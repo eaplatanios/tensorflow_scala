@@ -1,0 +1,333 @@
+<!DOCTYPE html >
+<html>
+        <head>
+          <title>io - org.platanios.tensorflow.api.io</title>
+          <meta name="description" content="io - org.platanios.tensorflow.api.io" />
+          <meta name="keywords" content="io org.platanios.tensorflow.api.io" />
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
+      <link href="../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript" src="../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../../lib/tools.tooltip.js"></script>
+      
+      <script type="text/javascript">
+         if(top === self) {
+            var url = '../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.io.package';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img alt="Package" src="../../../../../lib/package_big.png" />
+        <p id="owner"><a href="../../../../package.html" class="extype" name="org">org</a>.<a href="../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api">api</a></p>
+        <h1>io</h1><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      </div>
+
+      <h4 id="signature" class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <span class="name">io</span>
+      </span>
+      </h4>
+      
+          <div id="comment" class="fullcommenttop"></div>
+        
+
+      <div id="mbrsel">
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        
+        
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
+      </div>
+
+      <div id="template">
+        <div id="allMembers">
+        
+
+        <div id="types" class="types members">
+              <h3>Type Members</h3>
+              <ol><li name="org.platanios.tensorflow.api.io.CheckpointReader" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="CheckpointReaderextendsCloseable"></a>
+      <a id="CheckpointReader:CheckpointReader"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="CheckpointReader.html"><span class="name">CheckpointReader</span></a><span class="result"> extends <a href="../utilities/package$$Closeable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Closeable">utilities.Closeable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@CheckpointReaderextendsCloseable" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Helper class for reading checkpoint files.</p><div class="fullcomment"><div class="comment cmt"><p>Helper class for reading checkpoint files.</p><p>This class currently only interacts with single-slice (i.e., non-partitioned) variables.
+</p></div></div>
+    </li><li name="org.platanios.tensorflow.api.io.CompressionType" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="CompressionTypeextendsAnyRef"></a>
+      <a id="CompressionType:CompressionType"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">sealed </span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="CompressionType.html"><span class="name">CompressionType</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@CompressionTypeextendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li><li name="org.platanios.tensorflow.api.io.DirectoryLoader" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="DirectoryLoader[T]extendsProductwithSerializable"></a>
+      <a id="DirectoryLoader[T]:DirectoryLoader[T]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="DirectoryLoader.html"><span class="name">DirectoryLoader</span></a><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="directory">directory: <span class="extype" name="java.nio.file.Path">Path</span></span>, <span name="loaderFactory">loaderFactory: (<span class="extype" name="java.nio.file.Path">Path</span>) ⇒ <a href="Loader.html" class="extype" name="org.platanios.tensorflow.api.io.Loader">Loader</a>[<span class="extype" name="org.platanios.tensorflow.api.io.DirectoryLoader.T">T</span>]</span>, <span name="pathFilter">pathFilter: (<span class="extype" name="java.nio.file.Path">Path</span>) ⇒ <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a> = <span class="symbol">_ =&gt; true</span></span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@DirectoryLoader[T]extendsProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">A directory loader that wraps a loader factory to load entries from a sequence of paths.</p><div class="fullcomment"><div class="comment cmt"><p>A directory loader that wraps a loader factory to load entries from a sequence of paths.</p><p>A <a href="Loader.html" class="extype" name="org.platanios.tensorflow.api.io.Loader">Loader</a> reads a path and produces an iterator over entries. An <a href="DirectoryLoader.html" class="extype" name="org.platanios.tensorflow.api.io.DirectoryLoader">DirectoryLoader</a> takes a directory, a factory
+for entry loaders, and optionally a path filter and watches all the paths inside that directory.</p><p>This class is only valid under the assumption that only one path will be written to by the data source at a time and
+that once the source stops writing to a path, it will start writing to a new path that is lexicographically greater,
+and never come back. It uses some heuristics to check whether this is true based on tracking changes to the files'
+sizes, but the checks can yield false negatives. However, they should never yield false positives.
+</p></div><dl class="paramcmts block"><dt class="param">directory</dt><dd class="cmt"><p>Directory to watch.</p></dd><dt class="param">loaderFactory</dt><dd class="cmt"><p>Factory for loaders.</p></dd><dt class="param">pathFilter</dt><dd class="cmt"><p>Optional path filter to use.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.io.FileIO" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="FileIOextendsCloseablewithProductwithSerializable"></a>
+      <a id="FileIO:FileIO"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="FileIO.html"><span class="name">FileIO</span></a><span class="params">(<span name="filePath">filePath: <span class="extype" name="java.nio.file.Path">Path</span></span>, <span name="mode">mode: <a href="FileIO$$Mode.html" class="extype" name="org.platanios.tensorflow.api.io.FileIO.Mode">Mode</a></span>, <span name="readBufferSize">readBufferSize: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a> = <span class="symbol">1024 * 512</span></span>)</span><span class="result"> extends <a href="../utilities/package$$Closeable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Closeable">utilities.Closeable</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@FileIOextendsCloseablewithProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Helper class used for reading from and writing to a file.</p><div class="fullcomment"><div class="comment cmt"><p>Helper class used for reading from and writing to a file.</p><p><b>IMPORTANT:</b> <code>FileIO.close()</code> needs to be called after being done with this object in order to prevent memory
+leaks. The memory will not be automatically freed, like its done for tensors and graphs.
+</p></div><dl class="paramcmts block"><dt class="param">filePath</dt><dd class="cmt"><p>Path to a file.</p></dd><dt class="param">mode</dt><dd class="cmt"><p>Mode in which to open the file.</p></dd><dt class="param">readBufferSize</dt><dd class="cmt"><p>Buffer size used when reading from the file.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.io.Loader" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="Loader[T]extendsAnyRef"></a>
+      <a id="Loader[T]:Loader[T]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="Loader.html"><span class="name">Loader</span></a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@Loader[T]extendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Simple trait for representing data loaders of arbitrary types.</p>
+    </li></ol>
+            </div>
+
+        
+
+        <div id="values" class="values members">
+              <h3>Value Members</h3>
+              <ol><li name="org.platanios.tensorflow.api.io.CheckpointReader" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="CheckpointReader"></a>
+      <a id="CheckpointReader:CheckpointReader"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="CheckpointReader$.html"><span class="name">CheckpointReader</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@CheckpointReader" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.io.DirectoryLoader" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="DirectoryLoader"></a>
+      <a id="DirectoryLoader:DirectoryLoader"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="DirectoryLoader$.html"><span class="name">DirectoryLoader</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@DirectoryLoader" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.io.FileIO" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="FileIO"></a>
+      <a id="FileIO:FileIO"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="FileIO$.html"><span class="name">FileIO</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@FileIO" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Contains helper functions for dealing with file IO.</p>
+    </li><li name="org.platanios.tensorflow.api.io.GZIPCompression" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="GZIPCompression"></a>
+      <a id="GZIPCompression:GZIPCompression"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="GZIPCompression$.html"><span class="name">GZIPCompression</span></a><span class="result"> extends <a href="CompressionType.html" class="extype" name="org.platanios.tensorflow.api.io.CompressionType">CompressionType</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@GZIPCompression" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.io.NPY" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="NPY"></a>
+      <a id="NPY:NPY"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="NPY$.html"><span class="name">NPY</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@NPY" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Contains helpers for dealing with Numpy (i.e., <code>.npy</code>) files.</p>
+    </li><li name="org.platanios.tensorflow.api.io.NoCompression" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="NoCompression"></a>
+      <a id="NoCompression:NoCompression"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="NoCompression$.html"><span class="name">NoCompression</span></a><span class="result"> extends <a href="CompressionType.html" class="extype" name="org.platanios.tensorflow.api.io.CompressionType">CompressionType</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@NoCompression" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.io.ZLIBCompression" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="ZLIBCompression"></a>
+      <a id="ZLIBCompression:ZLIBCompression"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="ZLIBCompression$.html"><span class="name">ZLIBCompression</span></a><span class="result"> extends <a href="CompressionType.html" class="extype" name="org.platanios.tensorflow.api.io.CompressionType">CompressionType</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@ZLIBCompression" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.io.events" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="events"></a>
+      <a id="events:events"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <a href="events/package.html"><span class="name">events</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.io.package@events" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li></ol>
+            </div>
+
+        
+
+        
+        </div>
+
+        <div id="inheritedMembers">
+        
+        
+        </div>
+
+        <div id="groupedMembers">
+        <div class="group" name="Ungrouped">
+              <h3>Ungrouped</h3>
+              
+            </div>
+        </div>
+
+      </div>
+
+      <div id="tooltip"></div>
+
+      <div id="footer">  </div>
+
+
+    </body>
+      </html>

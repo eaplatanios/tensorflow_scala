@@ -2,7 +2,7 @@
 <h1 id="installation">Installation</h1>
 
 <p>TensorFlow for Scala is currently available for Scala 2.11.x and for 2.12.x. The main line of development is version 
-2.12.3. Binary release artifacts are published to the <a href="https://oss.sonatype.org/index.html#nexus-search;quick~platanios">Sonatype OSS Repository Hosting service</a> and synced to 
+2.12.6. Binary release artifacts are published to the <a href="https://oss.sonatype.org/index.html#nexus-search;quick~platanios">Sonatype OSS Repository Hosting service</a> and synced to
 Maven Central. Currently, given the beta status of this project, only snapshot releases are published.</p>
 
 <h2 id="using-with-sbt">Using with SBT</h2>
@@ -10,8 +10,7 @@ Maven Central. Currently, given the beta status of this project, only snapshot r
 <p>To include the Sonatype repositories in your <a href="http://www.scala-sbt.org">SBT</a> build and use TensorFlow for Scala, you 
 should add the following to your <code class="highlighter-rouge">build.sbt</code> file:</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">resolvers</span> <span class="o">+=</span> <span class="nc">Resolver</span><span class="o">.</span><span class="n">sonatypeRepo</span><span class="o">(</span><span class="s">"snapshots"</span><span class="o">)</span>
-<span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.1.0-SNAPSHOT"</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.2.0"</span>
 </code></pre></div></div>
 
 <p><strong>NOTE:</strong> This requires that you have installed the TensorFlow dynamic library in your system. If you haven’t, please 
@@ -28,7 +27,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
   <li>
     <p>Use:</p>
 
-    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.1.0-SNAPSHOT"</span> <span class="n">classifier</span> <span class="s">"linux-cpu-x86_64"</span>
+    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.2.0"</span> <span class="n">classifier</span> <span class="s">"linux-cpu-x86_64"</span>
 </code></pre></div>    </div>
 
     <p>instead of the line above, for your <code class="highlighter-rouge">build.sbt</code> file. <em>Make sure to replace <code class="highlighter-rouge">linux-cpu-x86_64</code> with the string 
@@ -46,6 +45,7 @@ following steps:</p>
 
         <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/tensorflow/tensorflow.git &lt;repository_directory&gt;
 <span class="nb">cd</span> &lt;repository_directory&gt;
+git checkout r1.8
 </code></pre></div>        </div>
       </li>
       <li>

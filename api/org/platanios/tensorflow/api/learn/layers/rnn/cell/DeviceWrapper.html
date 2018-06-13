@@ -1,255 +1,44 @@
 <!DOCTYPE html >
 <html>
         <head>
-          <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-          <title></title>
-          <meta name="description" content="" />
-          <meta name="keywords" content="" />
+          <title>DeviceWrapper - org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper</title>
+          <meta name="description" content="DeviceWrapper - org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper" />
+          <meta name="keywords" content="DeviceWrapper org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper" />
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
-      <link href="../../../../../../../../lib/index.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
-      <script type="text/javascript" src="../../../../../../../../lib/jquery.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/jquery.panzoom.min.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/jquery.mousewheel.min.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/index.js"></script>
-      <script type="text/javascript" src="../../../../../../../../index.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/scheduler.js"></script>
+      <script type="text/javascript" src="../../../../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../../../../lib/jquery-ui.js"></script>
       <script type="text/javascript" src="../../../../../../../../lib/template.js"></script>
       <script type="text/javascript" src="../../../../../../../../lib/tools.tooltip.js"></script>
       
       <script type="text/javascript">
-        /* this variable can be used by the JS to determine the path to the root document */
-        var toRoot = '../../../../../../../../';
-      </script>
+         if(top === self) {
+            var url = '../../../../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
     
         </head>
-        <body>
-      <div id="search">
-        <span id="doc-title"><span id="doc-version"></span></span>
-        <span class="close-results"><span class="left">&lt;</span> Back</span>
-        <div id="textfilter">
-          <span class="input">
-            <input autocapitalize="none" placeholder="Search" id="index-input" type="text" accesskey="/" />
-            <i class="clear material-icons"></i>
-            <i id="search-icon" class="material-icons"></i>
-          </span>
-        </div>
-    </div>
-      <div id="search-results">
-        <div id="search-progress">
-          <div id="progress-fill"></div>
-        </div>
-        <div id="results-content">
-          <div id="entity-results"></div>
-          <div id="member-results"></div>
-        </div>
-      </div>
-      <div id="content-scroll-container" style="-webkit-overflow-scrolling: touch;">
-        <div id="content-container" style="-webkit-overflow-scrolling: touch;">
-          <div id="subpackage-spacer">
-            <div id="packages">
-              <h1>Packages</h1>
-              <ul>
-                <li name="_root_.root" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="_root_"></a><a id="root:_root_"></a>
-      <span class="permalink">
-      <a href="index.html#_root_" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../../../../index.html"><span class="name">root</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="_root_.org" visbl="pub" class="indented1 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="org"></a><a id="org:org"></a>
-      <span class="permalink">
-      <a href="index.html#org" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../../../index.html"><span class="name">org</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="org.platanios" visbl="pub" class="indented2 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="platanios"></a><a id="platanios:platanios"></a>
-      <span class="permalink">
-      <a href="../org/index.html#platanios" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../../index.html"><span class="name">platanios</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../../index.html" class="extype" name="org">org</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow" visbl="pub" class="indented3 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="tensorflow"></a><a id="tensorflow:tensorflow"></a>
-      <span class="permalink">
-      <a href="../../org/platanios/index.html#tensorflow" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../index.html"><span class="name">tensorflow</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../index.html" class="extype" name="org.platanios">platanios</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api" visbl="pub" class="indented4 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="api"></a><a id="api:api"></a>
-      <span class="permalink">
-      <a href="../../../org/platanios/tensorflow/index.html#api" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../index.html"><span class="name">api</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="learn"></a><a id="learn:learn"></a>
-      <span class="permalink">
-      <a href="../../../../org/platanios/tensorflow/api/index.html#learn" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../index.html"><span class="name">learn</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers" visbl="pub" class="indented6 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="layers"></a><a id="layers:layers"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/learn/index.html#layers" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../index.html"><span class="name">layers</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../index.html" class="extype" name="org.platanios.tensorflow.api.learn">learn</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn" visbl="pub" class="indented7 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="rnn"></a><a id="rnn:rnn"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/learn/layers/index.html#rnn" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../index.html"><span class="name">rnn</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../index.html" class="extype" name="org.platanios.tensorflow.api.learn.layers">layers</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell" visbl="pub" class="indented8 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="cell"></a><a id="cell:cell"></a>
-      <span class="permalink">
-      <a href="../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/index.html#cell" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="index.html"><span class="name">cell</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn">rnn</a></dd></dl></div>
-    </li><li class="current-entities indented8">
-                        <a class="object" href="BasicLSTMCell$.html" title=""></a>
-                        <a class="class" href="BasicLSTMCell.html" title=""></a>
-                        <a href="BasicLSTMCell.html" title="">BasicLSTMCell</a>
-                      </li><li class="current-entities indented8">
-                        <a class="object" href="BasicRNNCell$.html" title=""></a>
-                        <a class="class" href="BasicRNNCell.html" title=""></a>
-                        <a href="BasicRNNCell.html" title="">BasicRNNCell</a>
-                      </li><li class="current-entities indented8">
-                        <a class="object" href="DeviceWrapper$.html" title=""></a>
-                        <a class="class" href="" title=""></a>
-                        <a href="" title="">DeviceWrapper</a>
-                      </li><li class="current-entities indented8">
-                        <a class="object" href="DropoutWrapper$.html" title=""></a>
-                        <a class="class" href="DropoutWrapper.html" title=""></a>
-                        <a href="DropoutWrapper.html" title="">DropoutWrapper</a>
-                      </li><li class="current-entities indented8">
-                        <a class="object" href="GRUCell$.html" title=""></a>
-                        <a class="class" href="GRUCell.html" title=""></a>
-                        <a href="GRUCell.html" title="">GRUCell</a>
-                      </li><li class="current-entities indented8">
-                        <a class="object" href="LSTMCell$.html" title=""></a>
-                        <a class="class" href="LSTMCell.html" title=""></a>
-                        <a href="LSTMCell.html" title="">LSTMCell</a>
-                      </li><li class="current-entities indented8">
-                        <a class="object" href="MultiCell$.html" title=""></a>
-                        <a class="class" href="MultiCell.html" title=""></a>
-                        <a href="MultiCell.html" title="">MultiCell</a>
-                      </li><li class="current-entities indented8">
-                        <span class="separator"></span>
-                        <a class="class" href="RNNCell.html" title=""></a>
-                        <a href="RNNCell.html" title="">RNNCell</a>
-                      </li><li class="current-entities indented8">
-                        <a class="object" href="ResidualWrapper$.html" title=""></a>
-                        <a class="class" href="ResidualWrapper.html" title=""></a>
-                        <a href="ResidualWrapper.html" title="">ResidualWrapper</a>
-                      </li>
-              </ul>
-            </div>
-          </div>
-          <div id="content">
-            <body class="class type">
+        <body class="type">
       <div id="definition">
-        <a href="DeviceWrapper$.html" title="See companion object"><div class="big-circle class-companion-object">c</div></a>
-        <p id="owner"><a href="../../../../../../../index.html" class="extype" name="org">org</a>.<a href="../../../../../../index.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../../../index.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../../../index.html" class="extype" name="org.platanios.tensorflow.api.learn">learn</a>.<a href="../../index.html" class="extype" name="org.platanios.tensorflow.api.learn.layers">layers</a>.<a href="../index.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn">rnn</a>.<a href="index.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell">cell</a></p>
-        <h1><a href="DeviceWrapper$.html" title="See companion object">DeviceWrapper</a><span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html" title="Permalink">
-        <i class="material-icons"></i>
+        <a href="DeviceWrapper$.html" title="See companion object"><img alt="Class/Object" src="../../../../../../../../lib/class_to_object_big.png" /></a>
+        <p id="owner"><a href="../../../../../../../package.html" class="extype" name="org">org</a>.<a href="../../../../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../../../package.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../../../package.html" class="extype" name="org.platanios.tensorflow.api.learn">learn</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow.api.learn.layers">layers</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn">rnn</a>.<a href="package.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell">cell</a></p>
+        <h1><a href="DeviceWrapper$.html" title="See companion object">DeviceWrapper</a></h1><h3><span class="morelinks"><div>
+            Related Docs:
+            <a href="DeviceWrapper$.html" title="See companion object">object DeviceWrapper</a>
+            | <a href="package.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell">package cell</a>
+          </div></span></h3><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
-    </span></h1>
-        <h3><span class="morelinks"><div>
-            Companion <a href="DeviceWrapper$.html" title="See companion object">object DeviceWrapper</a>
-          </div></span></h3>
+    </span>
       </div>
 
       <h4 id="signature" class="signature">
@@ -261,65 +50,51 @@
         <span class="name">DeviceWrapper</span><span class="tparams">[<span name="O">O</span>, <span name="OS">OS</span>, <span name="S">S</span>, <span name="SS">SS</span>]</span><span class="result"> extends <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>]</span>
       </span>
       </h4>
-
       
-          <div id="comment" class="fullcommenttop"><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.scala" target="_blank">DeviceWrapper.scala</a></dd></dl><div class="toggleContainer block">
-          <span class="toggle">
-            Linear Supertypes
-          </span>
-          <div class="superTypes hiddenContent"><a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>], <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]], <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></div>
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>RNN cell that ensures another RNN cell runs on a specific device.
+</p></div><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.scala" target="_blank">DeviceWrapper.scala</a></dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>], <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]], <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></div>
         </div></div>
         
 
       <div id="mbrsel">
-        <div class="toggle"></div>
-        <div id="memberfilter">
-          <i class="material-icons arrow"></i>
-          <span class="input">
-            <input id="mbrsel-input" placeholder="Filter all members" type="text" accesskey="/" />
-          </span>
-          <i class="clear material-icons"></i>
-        </div>
-        <div id="filterby">
-          <div id="order">
-            <span class="filtertype">Ordering</span>
-            <ol>
-              
-              <li class="alpha in"><span>Alphabetic</span></li>
-              <li class="inherit out"><span>By Inheritance</span></li>
-            </ol>
-          </div>
-          <div class="ancestors">
-                  <span class="filtertype">Inherited<br />
-                  </span>
-                  <ol id="linearization">
-                    <li class="in" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper"><span>DeviceWrapper</span></li><li class="in" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell"><span>RNNCell</span></li><li class="in" name="org.platanios.tensorflow.api.learn.layers.Layer"><span>Layer</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
-                  </ol>
-                </div><div class="ancestors">
-              <span class="filtertype"></span>
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        <div id="order">
+              <span class="filtertype">Ordering</span>
               <ol>
-                <li class="hideall out"><span>Hide All</span></li>
-                <li class="showall in"><span>Show All</span></li>
+                
+                <li class="alpha in"><span>Alphabetic</span></li>
+                <li class="inherit out"><span>By Inheritance</span></li>
               </ol>
             </div>
-          <div id="visbl">
-              <span class="filtertype">Visibility</span>
-              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
-            </div>
-        </div>
+        <div id="ancestors">
+                <span class="filtertype">Inherited<br />
+                </span>
+                <ol id="linearization">
+                  <li class="in" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper"><span>DeviceWrapper</span></li><li class="in" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell"><span>RNNCell</span></li><li class="in" name="org.platanios.tensorflow.api.learn.layers.Layer"><span>Layer</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                </ol>
+              </div><div id="ancestors">
+            <span class="filtertype"></span>
+            <ol>
+              <li class="hideall out"><span>Hide All</span></li>
+              <li class="showall in"><span>Show All</span></li>
+            </ol>
+          </div>
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
       </div>
 
       <div id="template">
         <div id="allMembers">
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
-              <ol><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;init&gt;(name:String,cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS],device:String,deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String)(implicitevO:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[O,OS],implicitevS:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[S,SS]):org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper[O,OS,S,SS]"></a><a id="&lt;init&gt;:DeviceWrapper[O,OS,S,SS]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#&lt;init&gt;(name:String,cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS],device:String,deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String)(implicitevO:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[O,OS],implicitevS:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[S,SS]):org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper[O,OS,S,SS]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&lt;init&gt;(name:String,cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS],device:String,deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String)(implicitevO:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[O,OS],implicitevS:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[S,SS]):org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper[O,OS,S,SS]"></a>
+      <a id="&lt;init&gt;:DeviceWrapper[O,OS,S,SS]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">new</span>
@@ -327,8 +102,12 @@
       <span class="symbol">
         <span class="name">DeviceWrapper</span><span class="params">(<span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="cell">cell: <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>]</span>, <span name="device">device: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;&quot;</span></span>, <span name="deviceFunction">deviceFunction: (<a href="../../../../ops/OpSpecification.html" class="extype" name="org.platanios.tensorflow.api.ops.OpSpecification">OpSpecification</a>) ⇒ <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol"><span class="name"><a href="../../../../ops/OpSpecification.html#device:String">_.device</a></span></span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="evO">evO: <a href="../../../../ops/control_flow/WhileLoopVariable$.html#Aux[T,TS]=org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable[T]{typeShapeType=TS}" class="extmbr" name="org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>]</span>, <span name="evS">evS: <a href="../../../../ops/control_flow/WhileLoopVariable$.html#Aux[T,TS]=org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable[T]{typeShapeType=TS}" class="extmbr" name="org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>]</span>)</span>
       </span>
-      
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@&lt;init&gt;(name:String,cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS],device:String,deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String)(implicitevO:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[O,OS],implicitevS:org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable.Aux[S,SS]):org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper[O,OS,S,SS]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>Name scope (also acting as variable scope) for this layer.</p></dd><dt class="param">cell</dt><dd class="cmt"><p>RNN cell being wrapped.</p></dd><dt class="param">device</dt><dd class="cmt"><p>Device to use.</p></dd><dt class="param">deviceFunction</dt><dd class="cmt"><p>Device function to use.</p></dd></dl></div>
     </li></ol>
             </div>
 
@@ -336,144 +115,148 @@
 
         
 
-        <div class="values members">
+        <div id="values" class="values members">
               <h3>Value Members</h3>
-              <ol>
-                <li name="scala.AnyRef#!=" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="!=(x$1:Any):Boolean"></a><a id="!=(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#!=(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="scala.AnyRef#!=" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="!=(x$1:Any):Boolean"></a>
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@!=(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef###" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef###" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="##():Int"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html###():Int" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="##():Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@##():Int" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#+" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="+(other:org.platanios.tensorflow.api.learn.layers.Layer[T,R]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]"></a><a id="+(Layer[Tuple[O,S],Tuple[O,S]]):Concatenate[Tuple[O,S],Tuple[O,S]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#+(other:org.platanios.tensorflow.api.learn.layers.Layer[T,R]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#+" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="+(other:org.platanios.tensorflow.api.learn.layers.Layer[T,R]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]"></a>
+      <a id="+(Layer[Tuple[O,S],Tuple[O,S]]):Concatenate[Tuple[O,S],Tuple[O,S]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $plus" class="name">+</span><span class="params">(<span name="other">other: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>)</span><span class="result">: <a href="../../Concatenate.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Concatenate">Concatenate</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>
+        <span title="gt4s: $plus" class="name">+</span><span class="params">(<span name="other">other: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>)</span><span class="result">: <a href="../../Concatenate.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Concatenate">Concatenate</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#++" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="++(others:Seq[org.platanios.tensorflow.api.learn.layers.Layer[T,R]]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]"></a><a id="++(Seq[Layer[Tuple[O,S],Tuple[O,S]]]):Concatenate[Tuple[O,S],Tuple[O,S]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#++(others:Seq[org.platanios.tensorflow.api.learn.layers.Layer[T,R]]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@+(other:org.platanios.tensorflow.api.learn.layers.Layer[T,R]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#++" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="++(others:Seq[org.platanios.tensorflow.api.learn.layers.Layer[T,R]]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]"></a>
+      <a id="++(Seq[Layer[Tuple[O,S],Tuple[O,S]]]):Concatenate[Tuple[O,S],Tuple[O,S]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $plus$plus" class="name">++</span><span class="params">(<span name="others">others: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]]</span>)</span><span class="result">: <a href="../../Concatenate.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Concatenate">Concatenate</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>
+        <span title="gt4s: $plus$plus" class="name">++</span><span class="params">(<span name="others">others: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]]</span>)</span><span class="result">: <a href="../../Concatenate.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Concatenate">Concatenate</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="scala.AnyRef#==" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="==(x$1:Any):Boolean"></a><a id="==(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#==(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@++(others:Seq[org.platanios.tensorflow.api.learn.layers.Layer[T,R]]):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="scala.AnyRef#==" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="==(x$1:Any):Boolean"></a>
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@==(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#&gt;&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&gt;&gt;[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]"></a><a id="&gt;&gt;[S](Layer[Tuple[O,S],S]):Compose[Tuple[O,S],Tuple[O,S],S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#&gt;&gt;[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#&gt;&gt;" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="&gt;&gt;[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]"></a>
+      <a id="&gt;&gt;[S](Layer[Tuple[O,S],S]):Compose[Tuple[O,S],Tuple[O,S],S]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $greater$greater" class="name">&gt;&gt;</span><span class="tparams">[<span name="S">S</span>]</span><span class="params">(<span name="other">other: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.&gt;&gt;.S">S</span>]</span>)</span><span class="result">: <a href="../../Compose.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Compose">Compose</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.&gt;&gt;.S">S</span>]</span>
+        <span title="gt4s: $greater$greater" class="name">&gt;&gt;</span><span class="tparams">[<span name="S">S</span>]</span><span class="params">(<span name="other">other: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.&gt;&gt;.S">S</span>]</span>)</span><span class="result">: <a href="../../Compose.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Compose">Compose</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.&gt;&gt;.S">S</span>]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell#_forward" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="_forward(input:org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S],mode:org.platanios.tensorflow.api.learn.Mode):org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S]"></a><a id="_forward(Tuple[O,S],Mode):Tuple[O,S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#_forward(input:org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S],mode:org.platanios.tensorflow.api.learn.Mode):org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@&gt;&gt;[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell#_forward" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="_forward(input:org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S])(implicitmode:org.platanios.tensorflow.api.learn.Mode):org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S]"></a>
+      <a id="_forward(Tuple[O,S])(Mode):Tuple[O,S]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">_forward</span><span class="params">(<span name="input">input: <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>, <span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>)</span><span class="result">: <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>
+        <span class="name">_forward</span><span class="params">(<span name="input">input: <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>)</span><span class="result">: <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@_forward(input:org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S])(implicitmode:org.platanios.tensorflow.api.learn.Mode):org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple[O,S]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd><dt>Definition Classes</dt><dd><a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a> → <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#apply" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="apply(input:T,mode:org.platanios.tensorflow.api.learn.Mode):R"></a><a id="apply(Tuple[O,S],Mode):Tuple[O,S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#apply(input:T,mode:org.platanios.tensorflow.api.learn.Mode):R" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#apply" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="apply(input:T)(implicitmode:org.platanios.tensorflow.api.learn.Mode):R"></a>
+      <a id="apply(Tuple[O,S])(Mode):Tuple[O,S]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">apply</span><span class="params">(<span name="input">input: <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>, <span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>)</span><span class="result">: <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>
+        <span class="name">apply</span><span class="params">(<span name="input">input: <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>)</span><span class="result">: <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="scala.Any#asInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="asInstanceOf[T0]:T0"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#asInstanceOf[T0]:T0" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@apply(input:T)(implicitmode:org.platanios.tensorflow.api.learn.Mode):R" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="scala.Any#asInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -481,15 +264,16 @@
       <span class="symbol">
         <span class="name">asInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <span class="extype" name="scala.Any.asInstanceOf.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#cell" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS]"></a><a id="cell:RNNCell[O,OS,S,SS]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@asInstanceOf[T0]:T0" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#cell" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS]"></a>
+      <a id="cell:RNNCell[O,OS,S,SS]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">val</span>
@@ -497,87 +281,73 @@
       <span class="symbol">
         <span class="name">cell</span><span class="result">: <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>]</span>
       </span>
-      
-      
-    </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="clone():Object"></a><a id="clone():AnyRef"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#clone():Object" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@cell:org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell[O,OS,S,SS]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">RNN cell being wrapped.</p>
+    </li><li name="scala.AnyRef#clone" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="clone():Object"></a>
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>
+        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@clone():Object" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.CloneNotSupportedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#compose" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="compose[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]"></a><a id="compose[S](Layer[Tuple[O,S],S]):Compose[Tuple[O,S],Tuple[O,S],S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#compose[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#compose" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="compose[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]"></a>
+      <a id="compose[S](Layer[Tuple[O,S],S]):Compose[Tuple[O,S],Tuple[O,S],S]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">compose</span><span class="tparams">[<span name="S">S</span>]</span><span class="params">(<span name="other">other: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.compose.S">S</span>]</span>)</span><span class="result">: <a href="../../Compose.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Compose">Compose</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.compose.S">S</span>]</span>
+        <span class="name">compose</span><span class="tparams">[<span name="S">S</span>]</span><span class="params">(<span name="other">other: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.compose.S">S</span>]</span>)</span><span class="result">: <a href="../../Compose.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Compose">Compose</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <span class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer.compose.S">S</span>]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#concatenate" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="concatenate(others:org.platanios.tensorflow.api.learn.layers.Layer[T,R]*):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]"></a><a id="concatenate(Layer[Tuple[O,S],Tuple[O,S]]*):Concatenate[Tuple[O,S],Tuple[O,S]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#concatenate(others:org.platanios.tensorflow.api.learn.layers.Layer[T,R]*):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@compose[S](other:org.platanios.tensorflow.api.learn.layers.Layer[R,S]):org.platanios.tensorflow.api.learn.layers.Compose[T,R,S]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#concatenate" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="concatenate(others:org.platanios.tensorflow.api.learn.layers.Layer[T,R]*):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]"></a>
+      <a id="concatenate(Layer[Tuple[O,S],Tuple[O,S]]*):Concatenate[Tuple[O,S],Tuple[O,S]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">concatenate</span><span class="params">(<span name="others">others: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]*</span>)</span><span class="result">: <a href="../../Concatenate.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Concatenate">Concatenate</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>
+        <span class="name">concatenate</span><span class="params">(<span name="others">others: <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]*</span>)</span><span class="result">: <a href="../../Concatenate.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Concatenate">Concatenate</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#context" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="context:scala.util.DynamicVariable[org.platanios.tensorflow.api.learn.layers.LayerCreationContext]"></a><a id="context:DynamicVariable[LayerCreationContext]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#context:scala.util.DynamicVariable[org.platanios.tensorflow.api.learn.layers.LayerCreationContext]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@concatenate(others:org.platanios.tensorflow.api.learn.layers.Layer[T,R]*):org.platanios.tensorflow.api.learn.layers.Concatenate[T,R]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
-      <span class="modifier_kind">
-        <span class="modifier">implicit </span>
-        <span class="kind">val</span>
-      </span>
-      <span class="symbol">
-        <span class="name">context</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/util/DynamicVariable.html#scala.util.DynamicVariable" class="extype" name="scala.util.DynamicVariable">DynamicVariable</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.LayerCreationContext">LayerCreationContext</span>]</span>
-      </span>
-      
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell#createCell" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="createCell(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]"></a><a id="createCell(Mode,OS):ops.rnn.cell.RNNCell[O,OS,S,SS]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#createCell(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell#createCell" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="createCell(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]"></a>
+      <a id="createCell(Mode,OS):ops.rnn.cell.RNNCell[O,OS,S,SS]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -585,15 +355,16 @@
       <span class="symbol">
         <span class="name">createCell</span><span class="params">(<span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>, <span name="inputShape">inputShape: <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span></span>)</span><span class="result">: <a href="../../../../ops/rnn/cell/RNNCell.html" class="extype" name="org.platanios.tensorflow.api.ops.rnn.cell.RNNCell">ops.rnn.cell.RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#createCellWithoutContext" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="createCellWithoutContext(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]"></a><a id="createCellWithoutContext(Mode,OS):ops.rnn.cell.RNNCell[O,OS,S,SS]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#createCellWithoutContext(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@createCell(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#createCellWithoutContext" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="createCellWithoutContext(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]"></a>
+      <a id="createCellWithoutContext(Mode,OS):ops.rnn.cell.RNNCell[O,OS,S,SS]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -601,15 +372,16 @@
       <span class="symbol">
         <span class="name">createCellWithoutContext</span><span class="params">(<span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>, <span name="inputShape">inputShape: <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span></span>)</span><span class="result">: <a href="../../../../ops/rnn/cell/RNNCell.html" class="extype" name="org.platanios.tensorflow.api.ops.rnn.cell.RNNCell">ops.rnn.cell.RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper">DeviceWrapper</a> → <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#device" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="device:String"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#device:String" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@createCellWithoutContext(mode:org.platanios.tensorflow.api.learn.Mode,inputShape:OS):org.platanios.tensorflow.api.ops.rnn.cell.RNNCell[O,OS,S,SS]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper">DeviceWrapper</a> → <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#device" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="device:String"></a>
+      <a id="device:String"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">val</span>
@@ -617,15 +389,16 @@
       <span class="symbol">
         <span class="name">device</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
       </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#deviceFunction" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String"></a><a id="deviceFunction:(OpSpecification)⇒String"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@device:String" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Device to use.</p>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#deviceFunction" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String"></a>
+      <a id="deviceFunction:(OpSpecification)⇒String"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">val</span>
@@ -633,85 +406,90 @@
       <span class="symbol">
         <span class="name">deviceFunction</span><span class="result">: (<a href="../../../../ops/OpSpecification.html" class="extype" name="org.platanios.tensorflow.api.ops.OpSpecification">OpSpecification</a>) ⇒ <span class="extype" name="scala.Predef.String">String</span></span>
       </span>
-      
-      
-    </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#eq(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@deviceFunction:org.platanios.tensorflow.api.ops.OpSpecification=&gt;String" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Device function to use.</p>
+    </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="eq(x$1:AnyRef):Boolean"></a>
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@eq(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#equals" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="equals(x$1:Any):Boolean"></a><a id="equals(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#equals(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#equals" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="equals(x$1:Any):Boolean"></a>
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">equals</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">equals</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@equals(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#finalize" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="finalize():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#finalize():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@finalize():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="symbol">classOf[java.lang.Throwable]</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#forward" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="forward(input:T,mode:org.platanios.tensorflow.api.learn.Mode):R"></a><a id="forward(Tuple[O,S],Mode):Tuple[O,S]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#forward(input:T,mode:org.platanios.tensorflow.api.learn.Mode):R" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#forward" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="forward(input:T)(implicitmode:org.platanios.tensorflow.api.learn.Mode):R"></a>
+      <a id="forward(Tuple[O,S])(Mode):Tuple[O,S]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">forward</span><span class="params">(<span name="input">input: <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>, <span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>)</span><span class="result">: <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>
+        <span class="name">forward</span><span class="params">(<span name="input">input: <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="mode">mode: <a href="../../../Mode.html" class="extype" name="org.platanios.tensorflow.api.learn.Mode">Mode</a></span>)</span><span class="result">: <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="getClass():Class[_]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#getClass():Class[_]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@forward(input:T)(implicitmode:org.platanios.tensorflow.api.learn.Mode):R" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="scala.AnyRef#getClass" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="getClass():Class[_]"></a>
+      <a id="getClass():Class[_]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -719,53 +497,50 @@
       <span class="symbol">
         <span class="name">getClass</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.Class">Class</span>[_]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#hashCode" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="hashCode():Int"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#hashCode():Int" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@getClass():Class[_]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="scala.AnyRef#hashCode" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="hashCode():Int"></a>
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="isInstanceOf[T0]:Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#isInstanceOf[T0]:Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@hashCode():Int" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="scala.Any#isInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#layerType" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="layerType:String"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#layerType:String" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@isInstanceOf[T0]:Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#layerType" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="layerType:String"></a>
+      <a id="layerType:String"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">val</span>
@@ -773,15 +548,16 @@
       <span class="symbol">
         <span class="name">layerType</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper">DeviceWrapper</a> → <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#name" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="name:String"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#name:String" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@layerType:String" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper">DeviceWrapper</a> → <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper#name" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="name:String"></a>
+      <a id="name:String"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">val</span>
@@ -789,69 +565,67 @@
       <span class="symbol">
         <span class="name">name</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper">DeviceWrapper</a> → <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a> → <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
-    </li><li name="scala.AnyRef#ne" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="ne(x$1:AnyRef):Boolean"></a><a id="ne(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#ne(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@name:String" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Name scope (also acting as variable scope) for this layer.</p><div class="fullcomment"><div class="comment cmt"><p>Name scope (also acting as variable scope) for this layer.</p></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper">DeviceWrapper</a> → <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a> → <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a></dd></dl></div>
+    </li><li name="scala.AnyRef#ne" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="ne(x$1:AnyRef):Boolean"></a>
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@ne(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#notify" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#notify" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notify():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#notify():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@notify():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="scala.AnyRef#notifyAll" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#notifyAll():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@notifyAll():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="scala.AnyRef#synchronized" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a>
+      <a id="synchronized[T0](⇒T0):T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -859,15 +633,16 @@
       <span class="symbol">
         <span class="name">synchronized</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="params">(<span name="arg0">arg0: ⇒ <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>)</span><span class="result">: <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#toString" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="toString():String"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#toString():String" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@synchronized[T0](x$1:=&gt;T0):T0" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.learn.layers.Layer#toString" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="toString():String"></a>
+      <a id="toString():String"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -875,23 +650,28 @@
       <span class="symbol">
         <span class="name">toString</span><span class="params">()</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@toString():String" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a> → AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#wait():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@wait():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -899,21 +679,22 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long,x$2:Int):Unit"></a>
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.4/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.12.4/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@wait(x$1:Long,x$2:Int):Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -921,32 +702,30 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long):Unit"></a><a id="wait(Long):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/learn/layers/rnn/cell/DeviceWrapper.html#wait(x$1:Long):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long):Unit"></a>
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.4/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.4/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper@wait(x$1:Long):Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li>
-              </ol>
+    </li></ol>
             </div>
 
         
@@ -958,11 +737,11 @@
         <div class="parent" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">
               <h3>Inherited from <a href="RNNCell.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.RNNCell">RNNCell</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.OS">OS</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.SS">SS</span>]</h3>
             </div><div class="parent" name="org.platanios.tensorflow.api.learn.layers.Layer">
-              <h3>Inherited from <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="index.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</h3>
+              <h3>Inherited from <a href="../../Layer.html" class="extype" name="org.platanios.tensorflow.api.learn.layers.Layer">Layer</a>[<a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>], <a href="package.html#Tuple[O,S]=org.platanios.tensorflow.api.ops.rnn.cell.Tuple[O,S]" class="extmbr" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.Tuple">Tuple</a>[<span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.O">O</span>, <span class="extype" name="org.platanios.tensorflow.api.learn.layers.rnn.cell.DeviceWrapper.S">S</span>]]</h3>
             </div><div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.AnyRef" class="extype" name="scala.collection.immutable.List">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.4/scala/collection/immutable/List.html#scala.Any" class="extype" name="scala.collection.immutable.List">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></h3>
             </div>
         
         </div>
@@ -979,9 +758,7 @@
       <div id="tooltip"></div>
 
       <div id="footer">  </div>
-    </body>
-          </div>
-        </div>
-      </div>
+
+
     </body>
       </html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html >
+<html>
+        <head>
+          <title>strategies - org.platanios.tensorflow.api.ops.training.distribute.strategies</title>
+          <meta name="description" content="strategies - org.platanios.tensorflow.api.ops.training.distribute.strategies" />
+          <meta name="keywords" content="strategies org.platanios.tensorflow.api.ops.training.distribute.strategies" />
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
+      <link href="../../../../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript" src="../../../../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../../../../../lib/tools.tooltip.js"></script>
+      
+      <script type="text/javascript">
+         if(top === self) {
+            var url = '../../../../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.ops.training.distribute.strategies.package';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img alt="Package" src="../../../../../../../../lib/package_big.png" />
+        <p id="owner"><a href="../../../../../../../package.html" class="extype" name="org">org</a>.<a href="../../../../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../../../package.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../../../package.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow.api.ops.training">training</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute">distribute</a></p>
+        <h1>strategies</h1><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.package" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      </div>
+
+      <h4 id="signature" class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <span class="name">strategies</span>
+      </span>
+      </h4>
+      
+          <div id="comment" class="fullcommenttop"></div>
+        
+
+      <div id="mbrsel">
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        
+        
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
+      </div>
+
+      <div id="template">
+        <div id="allMembers">
+        
+
+        <div id="types" class="types members">
+              <h3>Type Members</h3>
+              <ol><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="CrossTowerContextextendsDistributionContextwithProductwithSerializable"></a>
+      <a id="CrossTowerContext:CrossTowerContext"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="CrossTowerContext.html"><span class="name">CrossTowerContext</span></a><span class="params">(<span name="strategy">strategy: <a href="DistributionStrategy.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy">DistributionStrategy</a></span>)</span><span class="result"> extends <a href="DistributionContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext">DistributionContext</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.package@CrossTowerContextextendsDistributionContextwithProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Represents a cross-tower context (as opposed to an in-tower context).</p><div class="fullcomment"><div class="comment cmt"><p>Represents a cross-tower context (as opposed to an in-tower context).</p><p>This context typically becomes available during a <code>distributionStrategy.scope</code> call. That call also sets up a new
+variable scope that changes variable creation calls (e.g., to make mirrored variables). This is intended as an outer
+scope that users enter once, around their model creation and graph definition.
+</p></div><dl class="paramcmts block"><dt class="param">strategy</dt><dd class="cmt"><p>Distribution strategy.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DefaultStrategy" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="DefaultStrategyextendsDistributionStrategy"></a>
+      <a id="DefaultStrategy:DefaultStrategy"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="DefaultStrategy.html"><span class="name">DefaultStrategy</span></a><span class="result"> extends <a href="DistributionStrategy.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy">DistributionStrategy</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.package@DefaultStrategyextendsDistributionStrategy" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="DistributionContextextendsAnyRef"></a>
+      <a id="DistributionContext:DistributionContext"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">sealed </span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="DistributionContext.html"><span class="name">DistributionContext</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.package@DistributionContextextendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Represents a distribution context (e.g., in-tower or cross-tower).</p><div class="fullcomment"><div class="comment cmt"><p>Represents a distribution context (e.g., in-tower or cross-tower).</p><p>Distribution contexts are used to constrain what actions are allowed at every point in the code, and enforce those
+constraints at compile time, using implicits. More specifically, the current distribution context is always
+available implicitly and can be checked (e.g., some method require an implicit cross-tower context and will not be
+able to compile if there current context is an in-tower context).</p><p>For example, for the following execution steps:</p><ol class="decimal"><li>Start in the default (single-tower) tower context (i.e., implicit in-tower context is available).
+  2. Switch to a cross-tower context, when entering a distribution strategy scope (this will make available a
+     cross-tower context implicit, for the all code within that scope).
+  3. Switch to a (non-default) tower context inside <code>forEachTower(fn, ...)</code> (i.e., the code in <code>fn</code> will have an
+     in-tower implicit context available).
+  4. If <code>fn</code> calls <code>currentTowerContext-&gt;mergeCall(mergeFn, ...)</code>, then inside <code>mergeFn</code>, a cross-tower context
+     will again be implicitly available.</li></ol><p>Note that you can also go directly from step 1 to 4 to switch to a cross-tower context for the default distribution
+strategy. You may also switch from the cross-tower context of 4 to an in-tower context by calling
+<code>forEachTower()</code>, jumping back to step 3.</p><p>Most distribution API methods may only be executed in cross-tower contexts.
+</p></div></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="DistributionStrategyextendsAnyRef"></a>
+      <a id="DistributionStrategy:DistributionStrategy"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">abstract </span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="DistributionStrategy.html"><span class="name">DistributionStrategy</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.package@DistributionStrategyextendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Represents a list of devices with a state and a compute distribution policy.</p><div class="fullcomment"><div class="comment cmt"><p>Represents a list of devices with a state and a compute distribution policy.</p><p>The intent is that you can write an algorithm in a stylized way and it will be usable with a variety of different
+<code>DistributionStrategy</code> implementations. Each descendant will implement a different strategy for distributing the
+algorithm across multiple devices/machines. Furthermore, these changes can be hidden inside the specific layers and
+other library classes that need special treatment to run in a distributed setting, so that most users' model
+definition code can run unchanged.</p><p>First let's introduce a few high-level concepts:</p><ul><li><i>Data parallelism</i> is where we run multiple copies of the model on different slices of the input data. This is
+    in contrast to <i>model parallelism</i> where we divide up a single copy of a model across multiple devices. Note
+    that we only support data parallelism at this time, but plan to add support for model parallelism in the future.</li><li>A <i>tower</i> is one copy of the model, running on one slice of the input data.</li><li><i>Synchronous</i>, or more commonly <i>sync</i>, training is when the updates from each tower are aggregated together
+    before updating the model variables. This is in contrast to <i>asynchronous</i>, or <i>async</i> training where each
+    tower updates the model variables independently.</li><li>Furthermore you might run your computation on multiple devices on one machine (or &quot;host&quot;), or on multiple
+    machines/hosts. If you are running on multiple machines, you might have a single master host that drives
+    computation across all of them, or you might have multiple clients driving the computation asynchronously.</li></ul><p>To distribute an algorithm, we might use some of these ingredients:</p><ul><li><i>Parameter servers</i>: These are hosts that hold a single copy of parameters/variables. All towers that want to
+    operate on a variable retrieve it at the beginning of a step and send an update to be applied at the end of the
+    step. Can support either sync or async training.</li><li><i>Mirrored variables</i>: These are variables that are copied to multiple devices, where we keep the copies in
+    sync by applying the same updates to every copy. Normally would only be used with sync training.</li><li><i>Reductions</i>: A reduction is a method of aggregating multiple values into one value, like &quot;sum&quot; or &quot;mean&quot;. If
+    doing sync training, we will perform a reduction on the gradients to a parameter from each tower before applying
+    the update. <code>Allreduce</code> is an algorithm for performing a reduction on values from multiple devices and making
+    the result available on all of those devices.</li><li>In the future we will have support for TensorFlows' partitioned variables, where a single variable is split
+    across multiple devices.</li></ul><p>We have a few approaches we want to support:</p><ul><li>Code written (as if) with no knowledge of class <code>DistributionStrategy</code>. This code should work as before, even if
+    some of the layers, etc., used by that code are written to be distribution-aware. This is done by having a
+    default <code>DistributionStrategy</code> that gives ordinary behavior, and by default being in a single tower context.</li><li>Ordinary model code that you want to run using a specific <code>DistributionStrategy</code>. This can be as simple as:</li></ul><pre>d.scope {
+  <span class="kw">val</span> iterator = d.distributeDataset(dataset)
+  <span class="kw">val</span> towerTrainOps = d.forEachTower(towerFn, iterator.next())
+  <span class="kw">val</span> trainOp = tf.group(d.unwrap(towerTrainOps))
+}</pre><p>    This takes an ordinary <code>dataset</code> and <code>towerFn</code> and runs it distributed using a particular <code>DistributionStrategy</code>
+    in <code>d</code>. Any variables created in <code>towerFn</code> are created using <code>d</code>'s policy, and library functions called by
+    <code>towerFn</code> can use the <code>currentTowerContext</code> API to get enhanced behavior in this case. Note that in the future
+    we will add support for initializable dataset iterators, at which point this example code will change.</p><ul><li>If you want to write a distributed algorithm, you may use any of the <code>DistributionStrategy</code> APIs inside a
+    <code>d.scope</code> block of code.</li></ul><p>Lower-level concepts:</p><ul><li><i>Wrapped values</i>: In order to represent values parallel across devices (either towers or the devices
+    associated with a particular value), we wrap them in a <code>PerDevice</code> or <code>Mirrored</code> object that contains a map from
+    device to values. <code>PerDevice</code> is used when the value may be different across devices, and <code>Mirrored</code> is used
+    when the value is the same across devices.</li><li><i>Unwrapping and merging</i>: Consider calling a function <code>fn</code> on multiple devices, like <code>forEachTower(fn, w)</code>
+    with an argument <code>w</code> that is a wrapped value. This means that <code>w</code> will have a map taking tower device <code>d0</code> to
+    <code>w0</code>, tower device <code>d1</code> to <code>w1</code>, etc. <code>forEachTower()</code> unwraps <code>w</code> before calling <code>fn</code>, and so it calls <code>fn(w0)</code>
+    on <code>d0</code>, <code>fn(w1)</code> on <code>d1</code>, etc. It then merges the return values from <code>fn()</code>, which can possibly result in
+    wrapped values. For example, let's say <code>fn()</code> returns a tuple with three components: <code>(x, a, v0)</code> from tower 0,
+    <code>(x, b, v1)</code> from tower 1, etc. If the first component is the same object <code>x</code> for every tower, then the first
+    component of the merged result will also be <code>x</code>. If the second component is different (<code>a</code>, <code>b</code>, ...) for each
+    tower, then the merged value will have a wrapped map from tower device to the different values. If the third
+    component is the members of a mirrored variable (<code>v</code> maps <code>d0</code> to <code>v0</code>, <code>d1</code> to <code>v1</code>, etc.), then the merged
+    result will be that mirrored variable (i.e., <code>v</code>).</li><li><i>Tower context vs. cross-tower context</i>: Tower context is when we are in some function that is being called
+    once for each tower. Otherwise, we are in a cross-tower context, which is useful for calling
+    <code>DistributionStrategy</code> methods which operate across towers (like <code>reduce()</code>). By default you start in a tower
+    context (the default &quot;single tower context&quot;) and then some methods can switch you back and forth,
+    as described below.</li><li><i>Worker devices vs. parameter devices</i>: Most tower computations will happen on worker devices. Since we do not
+    yet support model parallelism, there will be one worker device per tower. When using parameter servers (see
+    above), the set of devices holding variables may be different, otherwise the parameter devices might match the
+    worker devices.</li><li>Non-slot devices are some subset of the parameter devices where we put all the non-slot variables. We need to
+    ensure that all non-slot variables are allocated on the same device, or mirrored across the same set of devices.
+    If you have some variable that you want to colocate all the non-slot variables with, you can use
+    <code>colocateVariablesWith()</code> to get the remaining non-slot variables on the same device. Otherwise, you can use
+    <code>nonSlotDevices()</code> to pick a consistent set of devices to pass to both <code>colocateVariablesWith()</code> and
+    <code>updateNonSlot()</code>.</li></ul><p>When using a <code>DistributionStrategy</code>, we have a new type dimension called <i>locality</i> that says what values are
+compatible with which APIs:</p><ul><li><code>T</code>: Different value for each tower (e.g., a <code>PerDevice</code>-wrapped value).</li><li><code>M</code>: Value is &quot;mirrored&quot; across towers. That is, there are copies with the same value on each tower (e.g., a
+    <code>Mirrored</code>-wrapped value).</li><li><code>V(v)</code>: Value is &quot;mirrored&quot; across all the devices which have a copy of variable <code>v</code> (also a <code>Mirrored</code>-wrapped
+    value, but over parameter devices instead of worker devices).</li><li><code>N</code>: Value is &quot;mirrored&quot; across all the &quot;non-slot&quot; devices.</li></ul><p>Rules for methods with respect to locality and single-tower vs. cross-tower context:</p><ul><li><code>d.scope()</code>: Default single-tower context -&gt; cross-tower context for <code>d</code>.</li><li><code>d.colocateVariablesWith(v)</code>: In tower/cross-tower context, variables will be created with locality <code>V(v)</code>. That
+    is, if we write <code>d.colocateVariablesWith(v1) { val v2 = tf.variable(...) }</code>, then <code>v2</code> will have locality
+    <code>V(v1)</code> (i.e., locality <code>V(v2)</code> will equal <code>V(v1)</code>).</li><li><code>d.colocateVariablesWith(d.nonSlotDevices(...))</code>: In tower/cross-tower context, variables will be created with
+    locality <code>N</code>.</li><li><code>v = tf.variable(...)</code>: In tower/cross-tower context, creates a variable (which by definition will have locality
+    <code>V(v)</code>, though will match another locality if inside a <code>colocateVariablesWith()</code> scope).</li><li><code>d.distributeDataset(dataset)</code>: In cross-tower context, produces an iterator with locality <code>T</code>.</li><li><code>d.broadcast(t)</code>: In cross-tower context, produces a value with locality <code>M</code>.</li><li><code>d.broadcast(t, v)</code>: In cross-tower context, produces a value with locality <code>V(v)</code>.</li><li><code>d.forEachTower(fn, ...)</code>: In cross-tower context, runs <code>fn()</code> in a tower context (and so may call
+    <code>currentTowerContext</code> and use its API, including <code>mergeCall()</code> to get back to cross-tower context), once for
+    each tower. May use values with locality <code>T</code> or <code>M</code>, and any variable.</li><li><code>d.reduce(m, t)</code>: In cross-tower context, accepts <code>t</code> with locality <code>T</code> and produces a value with locality <code>M</code>.</li><li><code>d.reduce(m, t, v)</code>: In cross-tower context, accepts <code>t</code> with locality <code>T</code> and produces a value with locality
+    <code>V(v)</code>.</li><li><code>d.batchReduce(m, Seq((t, v)))</code>: See <code>d.reduce()</code>.</li><li><code>d.update(v, fn, ...)</code>: In cross-tower context, runs <code>fn()</code> once for each device <code>v</code> is copied to. All inputs
+    should have locality <code>V(v)</code>, and the output will have locality <code>V(v)</code> as well.</li><li><code>d.updateNonSlot(d.nonSlotDevices(), fn)</code>: In cross-tower context, like <code>d.update()</code> except with locality <code>N</code>.</li><li><code>d.fetch(t)</code>: Copy <code>t</code> with any locality to the client's CPU device.</li></ul><p>The standard pattern for updating variables is to:</p><ol class="decimal"><li>Wrap your input dataset in <code>d.distributeDataset()</code>.
+  2. Define each tower <code>d.forEachTower()</code> up to the point of getting a list of gradient, variable pairs.
+  3. Call <code>d.reduce(&quot;sum&quot;, t, v)</code> or <code>d.batchReduce()</code> to sum the gradients (with locality <code>T</code>) into values with
+     locality <code>V(v)</code>.
+  4. Call <code>d.update(v)</code> for each variable to update its value.</li></ol><p>Steps 3 and 4 are done automatically by the <code>Optimizer</code> class if you call its <code>applyGradients</code> method from within a
+tower context. Otherwise, you can manually call its <code>distributedApply</code> method in a cross-tower context.</p><p>Another thing you might want to do in the middle of your tower function is an all-reduce of some intermediate value,
+using <code>d.reduce()</code> or <code>d.batchReduce()</code> without supplying a variable as the destination.</p><p>Layers should expect to be called in a tower context, and can use the <code>currentTowerContext</code> function to get a
+<code>TowerContext</code> object. The <code>TowerContext</code> object has a <code>mergeCall()</code> method for entering cross-tower context where
+you can use <code>reduce()</code> (or <code>batchReduce()</code>) and then optionally <code>update()</code> to update state.</p><p>You may use this API whether or not a <code>DistributionStrategy</code> is being used, since there is a default implementation
+of <code>TowerContext</code> and <code>DistributionStrategy</code>. Or you can use the <code>currentTowerContext.isSingleTower</code> property to run
+different code in the distributed vs. single tower cases.
+</p></div></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.InTowerContext" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="InTowerContextextendsDistributionContextwithProductwithSerializable"></a>
+      <a id="InTowerContext:InTowerContext"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="InTowerContext.html"><span class="name">InTowerContext</span></a><span class="params">(<span name="strategy">strategy: <a href="DistributionStrategy.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy">DistributionStrategy</a></span>, <span name="towerID">towerID: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>)</span><span class="result"> extends <a href="DistributionContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext">DistributionContext</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.package@InTowerContextextendsDistributionContextwithProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Represents an in-tower context (as opposed to a cross-tower context).</p><div class="fullcomment"><div class="comment cmt"><p>Represents an in-tower context (as opposed to a cross-tower context).</p><p>This context is only present during a <code>forEachTower()</code> call (except during a <code>mergeRun()</code> call), and in such a scope
+it will be implicitly available.
+</p></div><dl class="paramcmts block"><dt class="param">strategy</dt><dd class="cmt"><p>Distribution strategy.</p></dd><dt class="param">towerID</dt><dd class="cmt"><p>ID of the tower that is being defined, which is a number in <code>[0, numTowers - 1]</code>.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.MirroredStrategy" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="MirroredStrategyextendsDistributionStrategy"></a>
+      <a id="MirroredStrategy:MirroredStrategy"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="MirroredStrategy.html"><span class="name">MirroredStrategy</span></a><span class="result"> extends <a href="DistributionStrategy.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy">DistributionStrategy</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.package@MirroredStrategyextendsDistributionStrategy" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li></ol>
+            </div>
+
+        
+
+        
+
+        
+
+        
+        </div>
+
+        <div id="inheritedMembers">
+        
+        
+        </div>
+
+        <div id="groupedMembers">
+        <div class="group" name="Ungrouped">
+              <h3>Ungrouped</h3>
+              
+            </div>
+        </div>
+
+      </div>
+
+      <div id="tooltip"></div>
+
+      <div id="footer">  </div>
+
+
+    </body>
+      </html>
