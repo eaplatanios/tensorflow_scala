@@ -27,7 +27,7 @@ addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
 
 // Plugins used for generating the library website
 addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.1")
-addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.15")
+addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.18")
 
 // Packaging and publishing related plugins
 addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.8")
