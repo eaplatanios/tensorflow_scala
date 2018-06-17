@@ -181,9 +181,7 @@ class Session private[api](
     * implementation depends on some methods that mutate ops that have already been added to a graph (e.g., for control
     * flow constructs like while loops). This allows us to prevent modifications to nodes in the graph after the session
     * has been made aware of them. */
-  protected def extend(): Unit = graph.NativeHandleLock.synchronized {
-    NativeSession.extend(nativeHandle)
-  }
+  protected def extend(): Unit = NativeSession.extend(nativeHandle)
 
   /** Returns a boolean flag indicating whether this session has been closed. */
   def closed: Boolean = nativeHandle == 0
