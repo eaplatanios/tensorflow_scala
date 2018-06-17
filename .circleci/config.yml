@@ -14,7 +14,7 @@ jobs:
        - checkout
        - run: mkdir downloads && cd downloads
        - run: wget http://central.maven.org/maven2/org/platanios/tensorflow_2.12/0.2.1/tensorflow_2.12-0.2.1-linux-cpu-x86_64.jar
-       - run: jar xf tensorflow_2.12-0.2.1-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: jar xf tensorflow_2.12-0.2.1-linux-cpu-x86_64.jar
        - run: mv libtensorflow.so /usr/lib/libtensorflow.so
        - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
        - run: cd ..
@@ -41,7 +41,7 @@ jobs:
 #       - checkout
 #       - run: mkdir downloads && cd downloads
 #       - run: wget http://central.maven.org/maven2/org/platanios/tensorflow_2.12/0.2.1/tensorflow_2.12-0.2.1-linux-gpu-x86_64.jar
-#       - run: jar xf tensorflow_2.12-0.2.1-SNAPSHOT-linux-gpu-x86_64.jar
+#       - run: jar xf tensorflow_2.12-0.2.1-linux-gpu-x86_64.jar
 #       - run: mv libtensorflow.so /usr/lib/libtensorflow.so
 #       - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
 #       - run: cd ..
