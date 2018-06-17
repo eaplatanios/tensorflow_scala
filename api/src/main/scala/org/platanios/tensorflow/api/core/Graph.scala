@@ -52,7 +52,7 @@ class Graph private[api](
     override protected val closeFn: () => Unit
 ) extends Closeable with ProtoSerializable {
   /** Lock for the native handle. */
-  private[Graph] def NativeHandleLock = nativeHandleWrapper.Lock
+  private[api] def NativeHandleLock = nativeHandleWrapper.Lock
 
   /** Native handle of this tensor. */
   private[api] def nativeHandle: Long = nativeHandleWrapper.handle
