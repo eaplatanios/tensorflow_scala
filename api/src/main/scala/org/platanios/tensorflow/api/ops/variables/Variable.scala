@@ -64,6 +64,8 @@ case class Variable private (
     private val cachedValue: Output,
     private[variables] val graphElement: Output
 ) extends ProtoSerializable with VariableLike {
+  // TODO: _assign_dependencies.
+
   /** Graph where this variable is defined. */
   override val graph: Graph = variableHandle.graph
 

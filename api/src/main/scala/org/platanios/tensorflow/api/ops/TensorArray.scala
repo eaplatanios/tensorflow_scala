@@ -717,6 +717,7 @@ object TensorArray {
 
     GradientsRegistry.registerNonDifferentiable("TensorArrayV3")
     GradientsRegistry.registerNonDifferentiable("TensorArrayGradV3")
+    GradientsRegistry.registerNonDifferentiable("TensorArrayGradWithShape")
     GradientsRegistry.registerNonDifferentiable("TensorArraySizeV3")
     GradientsRegistry.registerNonDifferentiable("TensorArrayCloseV3")
 
