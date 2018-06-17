@@ -161,36 +161,6 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
     return HandleRound<ReturnT>(round);
   }
 
-  Status HandleBroadcast(HloInstruction* broadcast) override {
-    const Literal& operand_to_broadcast =
-        parent_->GetEvaluatedLiteralFor(broadcast->operand(0));
-    std::vector<int64> broadcast_indices(
-        ShapeUtil::Rank(broadcast->operand(0)->shape()), 0);
-
-    TF_RET_CHECK(broadcast->dimensions().size() ==
-                 ShapeUtil::Rank(operand_to_broadcast.shape()))
-        << "broadcast dimensions is of size: " << broadcast->dimensions().size()
-        << " and rank of operand_to_broadcast is: "
-        << ShapeUtil::Rank(operand_to_broadcast.shape());
-    // Checks that operand's dimensions are the same as the broadcast's
-    // dimensions along the dimensions to be broadcasted.
-    for (int64 i = 0; i < broadcast->dimensions().size(); ++i) {
-      TF_RET_CHECK(broadcast->shape().dimensions(broadcast->dimensions(i)) ==
-                   operand_to_broadcast.shape().dimensions(i));
-    }
-
-    auto output = MakeUnique<Literal>(broadcast->shape());
-    TF_RETURN_IF_ERROR(output->Populate<ReturnT>(
-        [&](tensorflow::gtl::ArraySlice<int64> multi_index) {
-          for (int64 i = 0; i < broadcast->dimensions().size(); ++i) {
-            broadcast_indices[i] = multi_index[broadcast->dimensions(i)];
-          }
-          return operand_to_broadcast.Get<ReturnT>(broadcast_indices);
-        }));
-    parent_->evaluated_[broadcast] = std::move(output);
-    return Status::OK();
-  }
-
   template <
       typename NativeT,
       typename std::enable_if<!is_complex_t<NativeT>::value>::type* = nullptr>
@@ -808,7 +778,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
 
   Status HandleSelect(HloInstruction* select) override {
     CHECK(!ShapeUtil::IsScalar(select->operand(0)->shape()));
-    CHECK(!ShapeUtil::IsTuple(select->shape()));
+    CHECK(ShapeUtil::IsArray(select->shape()));
     std::function<ReturnT(bool, ReturnT, ReturnT)> select_op =
         [](bool pred, ReturnT on_true, ReturnT on_false) {
           if (pred) {
@@ -1133,7 +1103,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
   }
 
   Status HandlePad(HloInstruction* pad) override {
-    CHECK(!ShapeUtil::IsTuple(pad->operand(0)->shape()));
+    CHECK(ShapeUtil::IsArray(pad->operand(0)->shape()));
     // Padding value must be scalar.
     CHECK(ShapeUtil::IsScalar(pad->operand(1)->shape()));
     CHECK_EQ(ShapeUtil::Rank(pad->operand(0)->shape()),
@@ -1146,7 +1116,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
                             /*padding_config=*/pad->padding_config()));
     CHECK(ShapeUtil::Compatible(pad->shape(), inferred_return_shape))
         << "return shape is set to: " << ShapeUtil::HumanString(pad->shape())
-        << "but is inferred to be: "
+        << " but is inferred to be: "
         << ShapeUtil::HumanString(inferred_return_shape);
 
     // Create new HLO of padded shape with padding value.
@@ -1212,7 +1182,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
                             dynamic_slice->dynamic_slice_sizes()));
     TF_RET_CHECK(ShapeUtil::Compatible(result_shape, inferred_return_shape))
         << "return shape is set to: " << ShapeUtil::HumanString(result_shape)
-        << "but is inferred to be: "
+        << " but is inferred to be: "
         << ShapeUtil::HumanString(inferred_return_shape);
     TF_RET_CHECK(
         primitive_util::IsIntegralType(start_indices->shape().element_type()));
@@ -1267,7 +1237,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
             operand->shape(), update->shape(), start_indices->shape()));
     TF_RET_CHECK(ShapeUtil::Compatible(result_shape, inferred_return_shape))
         << "return shape is set to: " << ShapeUtil::HumanString(result_shape)
-        << "but is inferred to be: "
+        << " but is inferred to be: "
         << ShapeUtil::HumanString(inferred_return_shape);
     TF_RET_CHECK(
         primitive_util::IsIntegralType(start_indices->shape().element_type()));
@@ -1423,7 +1393,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
                             /*to_apply=*/function->ComputeProgramShape()));
     TF_RET_CHECK(ShapeUtil::Compatible(reduce->shape(), inferred_return_shape))
         << "return shape is set to: " << ShapeUtil::HumanString(reduce->shape())
-        << "but is inferred to be: "
+        << " but is inferred to be: "
         << ShapeUtil::HumanString(inferred_return_shape);
 
     const Literal& arg_literal = parent_->GetEvaluatedLiteralFor(arg);
@@ -1482,11 +1452,12 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
             // Evaluate computation with specified literal operands.
             auto curr_val_literal = Literal::CreateR0<ReturnT>(curr_val);
             auto result_val_literal = Literal::CreateR0<ReturnT>(result_val);
-            std::vector<const Literal*> args = {result_val_literal.get(),
-                                                curr_val_literal.get()};
 
             std::unique_ptr<Literal> computed_result =
-                embedded_evaluator.Evaluate<const Literal*>(*function, args)
+                embedded_evaluator
+                    .Evaluate<const Literal*>(
+                        *function,
+                        {result_val_literal.get(), curr_val_literal.get()})
                     .ConsumeValueOrDie();
             // Clear visit states so that we can use the evaluator again on
             // the same computation.
@@ -1642,7 +1613,7 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
         ShapeUtil::Compatible(reduce_window->shape(), inferred_return_shape))
         << "return shape is set to: "
         << ShapeUtil::HumanStringWithLayout(reduce_window->shape())
-        << "but is inferred to be: "
+        << " but is inferred to be: "
         << ShapeUtil::HumanStringWithLayout(inferred_return_shape);
 
     const Literal& operand_literal =
@@ -1685,10 +1656,11 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
                     Literal::CreateR0<ReturnT>(curr_val);
                 const auto result_val_literal =
                     Literal::CreateR0<ReturnT>(result_val);
-                const std::vector<const Literal*> args = {
-                    result_val_literal.get(), curr_val_literal.get()};
                 std::unique_ptr<Literal> computed_result =
-                    embedded_evaluator.Evaluate<const Literal*>(*function, args)
+                    embedded_evaluator
+                        .Evaluate<const Literal*>(
+                            *function,
+                            {result_val_literal.get(), curr_val_literal.get()})
                         .ConsumeValueOrDie();
 
                 // Clear visit states so that the we can use the evaluate again
@@ -1990,10 +1962,10 @@ class HloEvaluatorTypedVisitor : public DfsHloVisitorWithDefault {
 
     // TODO(b/74360564): This is implementation defined behavior, but is
     // currently respected by all implementations. Change this if we ever decide
-    // to oficially document different behavior.
+    // to officially document different behavior.
     for (int64 i = 0; i < start.size(); ++i) {
       start[i] = std::min<int64>(
-          std::max(0LL, start[i]),
+          std::max(int64{0}, start[i]),
           operand_literal.shape().dimensions(i) - result_shape.dimensions(i));
     }
 

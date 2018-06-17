@@ -150,6 +150,7 @@ class IrEmitter : public DfsHloVisitorWithDefault {
   Status HandleWhile(HloInstruction* xla_while) override;
   Status HandleConcatenate(HloInstruction* concatenate) override;
   Status HandleConditional(HloInstruction* conditional) override;
+  Status HandleGenerateToken(HloInstruction* gen_token) override;
   Status FinishVisit(HloInstruction* root) override;
 
   Status Preprocess(HloInstruction* hlo) override;
@@ -527,7 +528,8 @@ class IrEmitter : public DfsHloVisitorWithDefault {
   Status EmitXfeedTransfer(XfeedKind kind, const Shape& shape,
                            llvm::Value* program_buffer_address);
 
-  llvm::GlobalVariable* EmitGlobalForLiteral(const Literal& literal);
+  // Returns a ConstExpr bitcast.
+  llvm::Constant* EmitGlobalForLiteral(const Literal& literal);
 
   const HloModuleConfig& hlo_module_config_;
 
@@ -548,7 +550,7 @@ class IrEmitter : public DfsHloVisitorWithDefault {
     }
   };
 
-  tensorflow::gtl::FlatMap<const Literal*, llvm::GlobalVariable*,
+  tensorflow::gtl::FlatMap<const Literal*, llvm::Constant*,
                            LiteralPtrHashFunctor, LiteralPtrEqualityFunctor>
       emitted_literals_;
 
