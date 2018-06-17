@@ -70,8 +70,10 @@ object TensorFlowNativePackage extends AutoPlugin {
         IO.createDirectory(platformTargetDir / "downloads" / "lib")
 
         if (compileTfLibValue) {
+          val workingDir = (platformTargetDir / "code").toPath
+          workingDir.resolve("tensorflow").toFile.mkdirs()
           TensorFlowNativeCrossCompiler.compile(
-            (platformTargetDir / "code").toPath, platformTargetDir.getPath, tfLibRepositoryValue,
+            workingDir, platformTargetDir.getPath, tfLibRepositoryValue,
             tfLibRepositoryBranchValue, platform) ! log
         }
 

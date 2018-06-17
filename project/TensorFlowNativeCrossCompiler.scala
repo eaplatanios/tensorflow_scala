@@ -32,8 +32,8 @@ object TensorFlowNativeCrossCompiler {
       platform: Platform
   ): ProcessBuilder = {
     val repoDir = workingDir.resolve("tensorflow").toFile
-    var processBuilder = Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile) #&&
-        Process("git" :: "clone" :: gitRepository :: Nil, workingDir.toFile)
+    var processBuilder = Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile)
+    processBuilder = processBuilder #&& Process("git" :: "clone" :: gitRepository :: Nil, workingDir.toFile)
     if (gitRepositoryBranch != "master") {
       processBuilder = processBuilder #&&
           Process("git" :: "checkout" :: "-b" :: gitRepositoryBranch ::

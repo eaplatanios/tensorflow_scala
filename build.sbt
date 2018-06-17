@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.6")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.8.0"
+val tensorFlowVersion = "1.9.0-rc0"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -160,7 +160,7 @@ lazy val jni = (project in file("./jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
       nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tfBinaryVersion in JniCross := "nightly", // tensorFlowVersion
+      tfBinaryVersion in JniCross := tensorFlowVersion,
       tfLibCompile in JniCross := false,
       tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch in JniCross := "master",
@@ -170,7 +170,7 @@ lazy val jni = (project in file("./jni"))
 lazy val api = (project in file("./api"))
     .dependsOn(jni)
     .enablePlugins(ProtobufPlugin)
-    .settings(moduleName := "tensorflow-api", name := "TensorFlow Scala")
+    .settings(moduleName := "tensorflow-api", name := "TensorFlow Scala - API")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
