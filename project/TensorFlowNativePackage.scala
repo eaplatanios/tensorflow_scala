@@ -113,7 +113,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     case (LINUX_GPU_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/TYPE=gpu-linux/lastSuccessfulBuild/artifact/lib_package/${tfLibFilename(platform)}"
     case (DARWIN_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/TYPE=mac-slave/lastSuccessfulBuild/artifact/lib_package/${tfLibFilename(platform)}"
     case (LINUX_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
-    case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-gpu-${platform.name}-$v.tar.gz"
+    case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-gpu-${LINUX_x86_64.name}-$v.tar.gz"
     case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
   }
 
