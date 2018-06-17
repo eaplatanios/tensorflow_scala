@@ -30,10 +30,7 @@ object TensorFlow {
   private[this] val logger: Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
 
   /** TensorFlow native library name. */
-  private[this] val LIB_NAME: String = "tensorflow"
-
-  /** TensorFlow native framework library name. */
-  private[this] val LIB_FRAMEWORK_NAME: String = "tensorflow_framework"
+  private[this] val LIB_NAME: String = "tensorflow_framework"
 
   /** TensorFlow JNI bindings library name. */
   private[this] val JNI_LIB_NAME: String = "tensorflow_jni"
@@ -76,9 +73,7 @@ object TensorFlow {
       })
       val classLoader = Thread.currentThread.getContextClassLoader
 
-      // Check if a TensorFlow native framework library resource is provided and load it.
-      Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME)))
-          .map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory))
+      // Check if a TensorFlow native library resource is provided and load it.
       Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
           .map(extractResource(LIB_NAME, _, tempDirectory))
 
@@ -130,7 +125,7 @@ object TensorFlow {
 
   /** Generates the resource name (including the path) for the specified library. */
   private def makeResourceName(lib: String): String = {
-    if (lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME)
+    if (lib == LIB_NAME)
       mapLibraryName(lib)
     else
       s"native/$os-$architecture/${mapLibraryName(lib)}"
