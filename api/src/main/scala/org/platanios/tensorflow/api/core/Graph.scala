@@ -22,6 +22,7 @@ import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableScop
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
+
 import com.google.protobuf.ByteString
 import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
 import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
