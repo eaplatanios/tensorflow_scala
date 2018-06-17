@@ -50,7 +50,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
           ```bash
           git clone https://github.com/tensorflow/tensorflow.git <repository_directory>
           cd <repository_directory>
-          git checkout r1.8
+          git checkout r1.9
           ```
           
        2. Compile the library using the following commands:
