@@ -19,7 +19,7 @@ To include the Sonatype repositories in your [SBT](http://www.scala-sbt.org) bui
 should add the following to your `build.sbt` file:
 
 ```scala
-libraryDependencies += "org.platanios" %% "tensorflow" % "0.2.1"
+libraryDependencies += "org.platanios" %% "tensorflow" % "0.2.2"
 ```
 
 **NOTE:** This requires that you have installed the TensorFlow dynamic library in your system. If you haven't, please 
@@ -35,7 +35,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
   1. Use:
      
      ```scala
-     libraryDependencies += "org.platanios" %% "tensorflow" % "0.2.1" classifier "linux-cpu-x86_64"
+     libraryDependencies += "org.platanios" %% "tensorflow" % "0.2.2" classifier "linux-cpu-x86_64"
      ```
      
      instead of the line above, for your `build.sbt` file. *Make sure to replace `linux-cpu-x86_64` with the string 
