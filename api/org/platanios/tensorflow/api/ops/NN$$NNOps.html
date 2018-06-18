@@ -1,221 +1,42 @@
 <!DOCTYPE html >
 <html>
         <head>
-          <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-          <title></title>
-          <meta name="description" content="" />
-          <meta name="keywords" content="" />
+          <title>NNOps - org.platanios.tensorflow.api.ops.NN.NNOps</title>
+          <meta name="description" content="NNOps - org.platanios.tensorflow.api.ops.NN.NNOps" />
+          <meta name="keywords" content="NNOps org.platanios.tensorflow.api.ops.NN.NNOps" />
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
-      <link href="../../../../../lib/index.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
-      <script type="text/javascript" src="../../../../../lib/jquery.js"></script>
-      <script type="text/javascript" src="../../../../../lib/jquery.panzoom.min.js"></script>
-      <script type="text/javascript" src="../../../../../lib/jquery.mousewheel.min.js"></script>
-      <script type="text/javascript" src="../../../../../lib/index.js"></script>
-      <script type="text/javascript" src="../../../../../index.js"></script>
-      <script type="text/javascript" src="../../../../../lib/scheduler.js"></script>
+      <script type="text/javascript" src="../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../lib/jquery-ui.js"></script>
       <script type="text/javascript" src="../../../../../lib/template.js"></script>
       <script type="text/javascript" src="../../../../../lib/tools.tooltip.js"></script>
       
       <script type="text/javascript">
-        /* this variable can be used by the JS to determine the path to the root document */
-        var toRoot = '../../../../../';
-      </script>
+         if(top === self) {
+            var url = '../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.ops.NN$$NNOps';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
     
         </head>
-        <body>
-      <div id="search">
-        <span id="doc-title"><span id="doc-version"></span></span>
-        <span class="close-results"><span class="left">&lt;</span> Back</span>
-        <div id="textfilter">
-          <span class="input">
-            <input autocapitalize="none" placeholder="Search" id="index-input" type="text" accesskey="/" />
-            <i class="clear material-icons"></i>
-            <i id="search-icon" class="material-icons"></i>
-          </span>
-        </div>
-    </div>
-      <div id="search-results">
-        <div id="search-progress">
-          <div id="progress-fill"></div>
-        </div>
-        <div id="results-content">
-          <div id="entity-results"></div>
-          <div id="member-results"></div>
-        </div>
-      </div>
-      <div id="content-scroll-container" style="-webkit-overflow-scrolling: touch;">
-        <div id="content-container" style="-webkit-overflow-scrolling: touch;">
-          <div id="subpackage-spacer">
-            <div id="packages">
-              <h1>Packages</h1>
-              <ul>
-                <li name="_root_.root" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="_root_"></a><a id="root:_root_"></a>
-      <span class="permalink">
-      <a href="index.html#_root_" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../index.html"><span class="name">root</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="_root_.org" visbl="pub" class="indented1 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="org"></a><a id="org:org"></a>
-      <span class="permalink">
-      <a href="index.html#org" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../index.html"><span class="name">org</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="org.platanios" visbl="pub" class="indented2 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="platanios"></a><a id="platanios:platanios"></a>
-      <span class="permalink">
-      <a href="../org/index.html#platanios" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../index.html"><span class="name">platanios</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../index.html" class="extype" name="org">org</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow" visbl="pub" class="indented3 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="tensorflow"></a><a id="tensorflow:tensorflow"></a>
-      <span class="permalink">
-      <a href="../../org/platanios/index.html#tensorflow" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../index.html"><span class="name">tensorflow</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../index.html" class="extype" name="org.platanios">platanios</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api" visbl="pub" class="indented4 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="api"></a><a id="api:api"></a>
-      <span class="permalink">
-      <a href="../../../org/platanios/tensorflow/index.html#api" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../index.html"><span class="name">api</span></a>
-      </span>
-      
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="ops"></a><a id="ops:ops"></a>
-      <span class="permalink">
-      <a href="../../../../org/platanios/tensorflow/api/index.html#ops" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="index.html"><span class="name">ops</span></a>
-      </span>
-      
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN" visbl="pub" class="indented6 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="NN"></a><a id="NN:NN"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#NN" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">object</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="NN$.html"><span class="name">NN</span></a><span class="result"> extends <span class="extype" name="org.platanios.tensorflow.api.ops.NN">NN</span></span>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
-    </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="NN$$CNNDataFormat$.html" title=""></a>
-                        <a href="NN$$CNNDataFormat$.html" title="">CNNDataFormat</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="trait" href="NN$$CNNDataFormat.html" title=""></a>
-                        <a href="NN$$CNNDataFormat.html" title="">CNNDataFormat</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="NN$$ConvPaddingMode$.html" title=""></a>
-                        <a href="NN$$ConvPaddingMode$.html" title="">ConvPaddingMode</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="trait" href="NN$$ConvPaddingMode.html" title="Padding mode."></a>
-                        <a href="NN$$ConvPaddingMode.html" title="Padding mode.">ConvPaddingMode</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="NN$$NCWFormat$.html" title=""></a>
-                        <a href="NN$$NCWFormat$.html" title="">NCWFormat</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="class" href="" title=""></a>
-                        <a href="" title="">NNOps</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="NN$$NWCFormat$.html" title=""></a>
-                        <a href="NN$$NWCFormat$.html" title="">NWCFormat</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="NN$$SameConvPadding$.html" title=""></a>
-                        <a href="NN$$SameConvPadding$.html" title="">SameConvPadding</a>
-                      </li><li class="current-entities indented6">
-                        <span class="separator"></span>
-                        <a class="object" href="NN$$ValidConvPadding$.html" title=""></a>
-                        <a href="NN$$ValidConvPadding$.html" title="">ValidConvPadding</a>
-                      </li>
-              </ul>
-            </div>
-          </div>
-          <div id="content">
-            <body class="class type">
+        <body class="type">
       <div id="definition">
-        <div class="big-circle class">c</div>
-        <p id="owner"><a href="../../../../index.html" class="extype" name="org">org</a>.<a href="../../../index.html" class="extype" name="org.platanios">platanios</a>.<a href="../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../index.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a>.<a href="NN$.html" class="extype" name="org.platanios.tensorflow.api.ops.NN">NN</a></p>
-        <h1>NNOps<span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html" title="Permalink">
-        <i class="material-icons"></i>
+        <img alt="Class" src="../../../../../lib/class_big.png" />
+        <p id="owner"><a href="../../../../package.html" class="extype" name="org">org</a>.<a href="../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="package.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a>.<a href="NN$.html" class="extype" name="org.platanios.tensorflow.api.ops.NN">NN</a></p>
+        <h1>NNOps</h1><h3><span class="morelinks"><div>Related Doc:
+            <a href="NN$.html" class="extype" name="org.platanios.tensorflow.api.ops.NN">package NN</a>
+          </div></span></h3><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
-    </span></h1>
-        <h3><span class="morelinks"></span></h3>
+    </span>
       </div>
 
       <h4 id="signature" class="signature">
@@ -224,68 +45,53 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">NNOps</span><span class="params">(<span name="output">output: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.6/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="http://www.scala-lang.org/api/2.12.6/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <span class="name">NNOps</span><span class="params">(<span name="output">output: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
       </span>
       </h4>
-
       
           <div id="comment" class="fullcommenttop"><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/ops/NN.scala" target="_blank">NN.scala</a></dd></dl><div class="toggleContainer block">
-          <span class="toggle">
-            Linear Supertypes
-          </span>
-          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.6/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a>, <span class="extype" name="java.io.Serializable">Serializable</span>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></div>
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a>, <span class="extype" name="java.io.Serializable">Serializable</span>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Equals" class="extype" target="_top">Equals</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></div>
         </div></div>
         
 
       <div id="mbrsel">
-        <div class="toggle"></div>
-        <div id="memberfilter">
-          <i class="material-icons arrow"></i>
-          <span class="input">
-            <input id="mbrsel-input" placeholder="Filter all members" type="text" accesskey="/" />
-          </span>
-          <i class="clear material-icons"></i>
-        </div>
-        <div id="filterby">
-          <div id="order">
-            <span class="filtertype">Ordering</span>
-            <ol>
-              <li class="group out"><span>Grouped</span></li>
-              <li class="alpha in"><span>Alphabetic</span></li>
-              <li class="inherit out"><span>By Inheritance</span></li>
-            </ol>
-          </div>
-          <div class="ancestors">
-                  <span class="filtertype">Inherited<br />
-                  </span>
-                  <ol id="linearization">
-                    <li class="in" name="org.platanios.tensorflow.api.ops.NN.NNOps"><span>NNOps</span></li><li class="in" name="scala.Serializable"><span>Serializable</span></li><li class="in" name="java.io.Serializable"><span>Serializable</span></li><li class="in" name="scala.Product"><span>Product</span></li><li class="in" name="scala.Equals"><span>Equals</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
-                  </ol>
-                </div><div class="ancestors">
-              <span class="filtertype"></span>
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        <div id="order">
+              <span class="filtertype">Ordering</span>
               <ol>
-                <li class="hideall out"><span>Hide All</span></li>
-                <li class="showall in"><span>Show All</span></li>
+                <li class="group out"><span>Grouped</span></li>
+                <li class="alpha in"><span>Alphabetic</span></li>
+                <li class="inherit out"><span>By Inheritance</span></li>
               </ol>
             </div>
-          <div id="visbl">
-              <span class="filtertype">Visibility</span>
-              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
-            </div>
-        </div>
+        <div id="ancestors">
+                <span class="filtertype">Inherited<br />
+                </span>
+                <ol id="linearization">
+                  <li class="in" name="org.platanios.tensorflow.api.ops.NN.NNOps"><span>NNOps</span></li><li class="in" name="scala.Serializable"><span>Serializable</span></li><li class="in" name="java.io.Serializable"><span>Serializable</span></li><li class="in" name="scala.Product"><span>Product</span></li><li class="in" name="scala.Equals"><span>Equals</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                </ol>
+              </div><div id="ancestors">
+            <span class="filtertype"></span>
+            <ol>
+              <li class="hideall out"><span>Hide All</span></li>
+              <li class="showall in"><span>Show All</span></li>
+            </ol>
+          </div>
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
       </div>
 
       <div id="template">
         <div id="allMembers">
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
-              <ol><li name="org.platanios.tensorflow.api.ops.NN.NNOps#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;init&gt;(output:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.NN.NNOps"></a><a id="&lt;init&gt;:NNOps"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#&lt;init&gt;(output:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.NN.NNOps" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="org.platanios.tensorflow.api.ops.NN.NNOps#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="&lt;init&gt;(output:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.NN.NNOps"></a>
+      <a id="&lt;init&gt;:NNOps"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">new</span>
@@ -293,7 +99,11 @@
       <span class="symbol">
         <span class="name">NNOps</span><span class="params">(<span name="output">output: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@&lt;init&gt;(output:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.NN.NNOps" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       
     </li></ol>
             </div>
@@ -302,64 +112,63 @@
 
         
 
-        <div class="values members">
+        <div id="values" class="values members">
               <h3>Value Members</h3>
-              <ol>
-                <li name="scala.AnyRef#!=" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="!=(x$1:Any):Boolean"></a><a id="!=(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#!=(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="scala.AnyRef#!=" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="!=(x$1:Any):Boolean"></a>
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@!=(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef###" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef###" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="##():Int"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html###():Int" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="##():Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#==" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="==(x$1:Any):Boolean"></a><a id="==(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#==(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@##():Int" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="scala.AnyRef#==" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="==(x$1:Any):Boolean"></a>
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#addBias" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="addBias(bias:org.platanios.tensorflow.api.ops.Output,cNNDataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat):org.platanios.tensorflow.api.ops.Output"></a><a id="addBias(Output,NN.CNNDataFormat):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#addBias(bias:org.platanios.tensorflow.api.ops.Output,cNNDataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@==(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#addBias" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="addBias(bias:org.platanios.tensorflow.api.ops.Output,cNNDataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="addBias(Output,NN.CNNDataFormat):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -367,20 +176,21 @@
       <span class="symbol">
         <span class="name">addBias</span><span class="params">(<span name="bias">bias: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="cNNDataFormat">cNNDataFormat: <a href="NN$.html#CNNDataFormatextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.CNNDataFormat">NN.CNNDataFormat</a> = <span class="symbol">CNNDataFormat.default</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@addBias(bias:org.platanios.tensorflow.api.ops.Output,cNNDataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNAddBias
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNAddBias
 </p></div><dl class="paramcmts block"><dt class="param">bias</dt><dd class="cmt"><p>Bias tensor that must be one-dimensional (i.e., it must have rank 1).</p></dd><dt class="param">cNNDataFormat</dt><dd class="cmt"><p>Data format of the input and output tensors. With the default format <a href="NN$.html#NWCFormat" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.NWCFormat">NWCFormat</a>, the
                       <code>bias</code> tensor will be added to the last dimension of the <code>value</code> tensor. Alternatively, the
                       format could be <a href="NN$.html#NCWFormat" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.NCWFormat">NCWFormat</a>, and the <code>bias</code> tensor would be added to the third-to-last
                       dimension.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="scala.Any#asInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.Any#asInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="asInstanceOf[T0]:T0"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#asInstanceOf[T0]:T0" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -388,47 +198,51 @@
       <span class="symbol">
         <span class="name">asInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <span class="extype" name="scala.Any.asInstanceOf.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="clone():Object"></a><a id="clone():AnyRef"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#clone():Object" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@asInstanceOf[T0]:T0" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="scala.AnyRef#clone" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="clone():Object"></a>
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>
+        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@clone():Object" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.CloneNotSupportedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#conv2D" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="conv2D(filter:org.platanios.tensorflow.api.ops.Output,stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,dilations:(Int,Int,Int,Int),useCuDNNOnGPU:Boolean,name:String):org.platanios.tensorflow.api.ops.Output"></a><a id="conv2D(Output,Long,Long,NN.ConvPaddingMode,NN.CNNDataFormat,(Int,Int,Int,Int),Boolean,String):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#conv2D(filter:org.platanios.tensorflow.api.ops.Output,stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,dilations:(Int,Int,Int,Int),useCuDNNOnGPU:Boolean,name:String):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#conv2D" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="conv2D(filter:org.platanios.tensorflow.api.ops.Output,stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,dilations:(Int,Int,Int,Int),useCuDNNOnGPU:Boolean,name:String):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="conv2D(Output,Long,Long,NN.ConvPaddingMode,NN.CNNDataFormat,(Int,Int,Int,Int),Boolean,String):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">conv2D</span><span class="params">(<span name="filter">filter: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="stride1">stride1: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="stride2">stride2: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="padding">padding: <a href="NN$.html#ConvPaddingModeextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.ConvPaddingMode">NN.ConvPaddingMode</a></span>, <span name="dataFormat">dataFormat: <a href="NN$.html#CNNDataFormatextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.CNNDataFormat">NN.CNNDataFormat</a> = <span class="symbol">CNNDataFormat.default</span></span>, <span name="dilations">dilations: (<a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>) = <span class="symbol">(1, 1, 1, 1)</span></span>, <span name="useCuDNNOnGPU">useCuDNNOnGPU: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;Conv2D&quot;</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">conv2D</span><span class="params">(<span name="filter">filter: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="stride1">stride1: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="stride2">stride2: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="padding">padding: <a href="NN$.html#ConvPaddingModeextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.ConvPaddingMode">NN.ConvPaddingMode</a></span>, <span name="dataFormat">dataFormat: <a href="NN$.html#CNNDataFormatextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.CNNDataFormat">NN.CNNDataFormat</a> = <span class="symbol">CNNDataFormat.default</span></span>, <span name="dilations">dilations: (<a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a>) = <span class="symbol">(1, 1, 1, 1)</span></span>, <span name="useCuDNNOnGPU">useCuDNNOnGPU: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a> = <span class="symbol">true</span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;Conv2D&quot;</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@conv2D(filter:org.platanios.tensorflow.api.ops.Output,stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,dilations:(Int,Int,Int,Int),useCuDNNOnGPU:Boolean,name:String):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocConv2D
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocConv2D
 </p></div><dl class="paramcmts block"><dt class="param">filter</dt><dd class="cmt"><p>4-D tensor with shape <code>[filterHeight, filterWidth, inChannels, outChannels]</code>.</p></dd><dt class="param">stride1</dt><dd class="cmt"><p>Stride of the sliding window along the second dimension of this tensor.</p></dd><dt class="param">stride2</dt><dd class="cmt"><p>Stride of the sliding window along the third dimension of this tensor.</p></dd><dt class="param">padding</dt><dd class="cmt"><p>Padding mode to use.</p></dd><dt class="param">dataFormat</dt><dd class="cmt"><p>Format of the input and output data.</p></dd><dt class="param">dilations</dt><dd class="cmt"><p>The dilation factor for each dimension of input. If set to <code>k &gt; 1</code>, there will be <code>k - 1</code>
@@ -436,13 +250,10 @@
                       determined by the value of <code>dataFormat</code>. Dilations in the batch and depth dimensions must
                       be set to <code>1</code>.</p></dd><dt class="param">useCuDNNOnGPU</dt><dd class="cmt"><p>Boolean value indicating whether or not to use CuDNN for the created op, if its placed on
                       a GPU, as opposed to the TensorFlow implementation.</p></dd><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output, which is a 4-D tensor whose dimension order depends on the value of <code>dataFormat</code>.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#crelu" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="crelu:org.platanios.tensorflow.api.ops.Output"></a><a id="crelu:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#crelu:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#crelu" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="crelu:org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="crelu:Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -450,55 +261,58 @@
       <span class="symbol">
         <span class="name">crelu</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@crelu:org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNCrelu
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNCrelu
 </p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#dropout" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="dropout(keepProbability:Float,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output"></a><a id="dropout(Float,Boolean,Output,Option[Int]):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#dropout(keepProbability:Float,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#dropout" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="dropout(keepProbability:Float,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="dropout(Float,Boolean,Output,Option[Int]):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">dropout</span><span class="params">(<span name="keepProbability">keepProbability: <a href="http://www.scala-lang.org/api/2.12.6/scala/Float.html#scala.Float" class="extype" name="scala.Float">Float</a></span>, <span name="scaleOutput">scaleOutput: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>, <span name="noiseShape">noiseShape: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> = <span class="symbol">null</span></span>, <span name="seed">seed: <a href="http://www.scala-lang.org/api/2.12.6/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>] = <span class="symbol">None</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">dropout</span><span class="params">(<span name="keepProbability">keepProbability: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Float" class="extype" target="_top">Float</a></span>, <span name="scaleOutput">scaleOutput: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a> = <span class="symbol">true</span></span>, <span name="noiseShape">noiseShape: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> = <span class="symbol">null</span></span>, <span name="seed">seed: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Option" class="extype" target="_top">Option</a>[<a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a>] = <span class="symbol">None</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
-      <p class="shortcomment cmt">$OpDocNNDropout
-</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNDropout
-</p></div><dl class="paramcmts block"><dt class="param">keepProbability</dt><dd class="cmt"><p>Probability (i.e., number in the interval <code>(0, 1]</code>) that each element is kept.</p></dd><dt class="param">scaleOutput</dt><dd class="cmt"><p>If <code>true</code>, the outputs will be divided by the keep probability.</p></dd><dt class="param">noiseShape</dt><dd class="cmt"><p><a href="../index.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> rank-1 tensor representing the shape for the randomly generated keep/drop flags.</p></dd><dt class="param">seed</dt><dd class="cmt"><p>Optional random seed, used to generate a random seed pair for the random number
-                        generator, when combined with the graph-level seed.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output that has the same shape as <code>input</code>.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#dynamicDropout" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="dynamicDropout(keepProbability:org.platanios.tensorflow.api.ops.Output,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output"></a><a id="dynamicDropout(Output,Boolean,Output,Option[Int]):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#dynamicDropout(keepProbability:org.platanios.tensorflow.api.ops.Output,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@dropout(keepProbability:Float,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">$OpDocNNDropout
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNDropout
+</p></div><dl class="paramcmts block"><dt class="param">keepProbability</dt><dd class="cmt"><p>Probability (i.e., number in the interval <code>(0, 1]</code>) that each element is kept.</p></dd><dt class="param">scaleOutput</dt><dd class="cmt"><p>If <code>true</code>, the outputs will be divided by the keep probability.</p></dd><dt class="param">noiseShape</dt><dd class="cmt"><p><a href="../package.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> rank-1 tensor representing the shape for the randomly generated keep/drop flags.</p></dd><dt class="param">seed</dt><dd class="cmt"><p>Optional random seed, used to generate a random seed pair for the random number
+                        generator, when combined with the graph-level seed.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output that has the same shape as <code>input</code>.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#dynamicDropout" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="dynamicDropout(keepProbability:org.platanios.tensorflow.api.ops.Output,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="dynamicDropout(Output,Boolean,Output,Option[Int]):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">dynamicDropout</span><span class="params">(<span name="keepProbability">keepProbability: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="scaleOutput">scaleOutput: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>, <span name="noiseShape">noiseShape: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> = <span class="symbol">null</span></span>, <span name="seed">seed: <a href="http://www.scala-lang.org/api/2.12.6/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>] = <span class="symbol">None</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">dynamicDropout</span><span class="params">(<span name="keepProbability">keepProbability: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="scaleOutput">scaleOutput: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a> = <span class="symbol">true</span></span>, <span name="noiseShape">noiseShape: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> = <span class="symbol">null</span></span>, <span name="seed">seed: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Option" class="extype" target="_top">Option</a>[<a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a>] = <span class="symbol">None</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
-      <p class="shortcomment cmt">$OpDocNNDropout
-</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNDropout
-</p></div><dl class="paramcmts block"><dt class="param">keepProbability</dt><dd class="cmt"><p>Probability (i.e., number in the interval <code>(0, 1]</code>) that each element is kept.</p></dd><dt class="param">scaleOutput</dt><dd class="cmt"><p>If <code>true</code>, the outputs will be divided by the keep probability.</p></dd><dt class="param">noiseShape</dt><dd class="cmt"><p><a href="../index.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> rank-1 tensor representing the shape for the randomly generated keep/drop flags.</p></dd><dt class="param">seed</dt><dd class="cmt"><p>Optional random seed, used to generate a random seed pair for the random number
-                        generator, when combined with the graph-level seed.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output that has the same shape as <code>input</code>.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#elu" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="elu:org.platanios.tensorflow.api.ops.Output"></a><a id="elu:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#elu:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@dynamicDropout(keepProbability:org.platanios.tensorflow.api.ops.Output,scaleOutput:Boolean,noiseShape:org.platanios.tensorflow.api.ops.Output,seed:Option[Int]):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">$OpDocNNDropout
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNDropout
+</p></div><dl class="paramcmts block"><dt class="param">keepProbability</dt><dd class="cmt"><p>Probability (i.e., number in the interval <code>(0, 1]</code>) that each element is kept.</p></dd><dt class="param">scaleOutput</dt><dd class="cmt"><p>If <code>true</code>, the outputs will be divided by the keep probability.</p></dd><dt class="param">noiseShape</dt><dd class="cmt"><p><a href="../package.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> rank-1 tensor representing the shape for the randomly generated keep/drop flags.</p></dd><dt class="param">seed</dt><dd class="cmt"><p>Optional random seed, used to generate a random seed pair for the random number
+                        generator, when combined with the graph-level seed.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output that has the same shape as <code>input</code>.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#elu" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="elu:org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="elu:Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -506,55 +320,58 @@
       <span class="symbol">
         <span class="name">elu</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@elu:org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNElu
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNElu
 </p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#eq(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="eq(x$1:AnyRef):Boolean"></a>
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="finalize():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#finalize():Unit" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@eq(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="scala.AnyRef#finalize" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="finalize():Unit"></a>
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@finalize():Unit" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="symbol">classOf[java.lang.Throwable]</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#getClass" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getClass():Class[_]"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#getClass():Class[_]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="getClass():Class[_]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -562,18 +379,16 @@
       <span class="symbol">
         <span class="name">getClass</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.Class">Class</span>[_]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#inTopK" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="inTopK(targets:org.platanios.tensorflow.api.ops.Output,k:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="inTopK(Output,Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#inTopK(targets:org.platanios.tensorflow.api.ops.Output,k:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@getClass():Class[_]" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#inTopK" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="inTopK(targets:org.platanios.tensorflow.api.ops.Output,k:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="inTopK(Output,Output):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -581,52 +396,55 @@
       <span class="symbol">
         <span class="name">inTopK</span><span class="params">(<span name="targets">targets: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="k">k: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
-      <p class="shortcomment cmt">$OpDocNNInTopK
-</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNInTopK
-</p></div><dl class="paramcmts block"><dt class="param">targets</dt><dd class="cmt"><p><a href="../index.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> or <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor containing the targets.</p></dd><dt class="param">k</dt><dd class="cmt"><p>Scalar <a href="../index.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> or <a href="../index.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor containing the number of top elements to look at.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="isInstanceOf[T0]:Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#isInstanceOf[T0]:Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@inTopK(targets:org.platanios.tensorflow.api.ops.Output,k:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">$OpDocNNInTopK
+</p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNInTopK
+</p></div><dl class="paramcmts block"><dt class="param">targets</dt><dd class="cmt"><p><a href="../package.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> or <a href="../package.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor containing the targets.</p></dd><dt class="param">k</dt><dd class="cmt"><p>Scalar <a href="../package.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> or <a href="../package.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor containing the number of top elements to look at.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
+    </li><li name="scala.Any#isInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#l2Normalize" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="l2Normalize(axes:org.platanios.tensorflow.api.ops.Output,epsilon:Float):org.platanios.tensorflow.api.ops.Output"></a><a id="l2Normalize(Output,Float):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#l2Normalize(axes:org.platanios.tensorflow.api.ops.Output,epsilon:Float):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@isInstanceOf[T0]:Boolean" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#l2Normalize" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="l2Normalize(axes:org.platanios.tensorflow.api.ops.Output,epsilon:Float):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="l2Normalize(Output,Float):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">l2Normalize</span><span class="params">(<span name="axes">axes: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="epsilon">epsilon: <a href="http://www.scala-lang.org/api/2.12.6/scala/Float.html#scala.Float" class="extype" name="scala.Float">Float</a> = <span class="symbol">1e-12f</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">l2Normalize</span><span class="params">(<span name="axes">axes: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="epsilon">epsilon: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Float" class="extype" target="_top">Float</a> = <span class="symbol">1e-12f</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@l2Normalize(axes:org.platanios.tensorflow.api.ops.Output,epsilon:Float):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNL2Normalize
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNL2Normalize
 </p></div><dl class="paramcmts block"><dt class="param">axes</dt><dd class="cmt"><p>Tensor containing the axes along which to normalize.</p></dd><dt class="param">epsilon</dt><dd class="cmt"><p>Lower bound value for the norm. The created op will use <code>sqrt(epsilon)</code> as the divisor, if
                 <code>norm &lt; sqrt(epsilon)</code>.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#linear" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="linear(weights:org.platanios.tensorflow.api.ops.Output,bias:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a><a id="linear(Output,Output):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#linear(weights:org.platanios.tensorflow.api.ops.Output,bias:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#linear" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="linear(weights:org.platanios.tensorflow.api.ops.Output,bias:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="linear(Output,Output):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -634,107 +452,107 @@
       <span class="symbol">
         <span class="name">linear</span><span class="params">(<span name="weights">weights: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>, <span name="bias">bias: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@linear(weights:org.platanios.tensorflow.api.ops.Output,bias:org.platanios.tensorflow.api.ops.Output):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNLinear
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNLinear
 </p></div><dl class="paramcmts block"><dt class="param">weights</dt><dd class="cmt"><p>Weights tensor.</p></dd><dt class="param">bias</dt><dd class="cmt"><p>Bias tensor.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#logSoftmax" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="logSoftmax(axis:Int):org.platanios.tensorflow.api.ops.Output"></a><a id="logSoftmax(Int):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#logSoftmax(axis:Int):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#logSoftmax" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="logSoftmax(axis:Int):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="logSoftmax(Int):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">logSoftmax</span><span class="params">(<span name="axis">axis: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a> = <span class="symbol">-1</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">logSoftmax</span><span class="params">(<span name="axis">axis: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a> = <span class="symbol">1</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@logSoftmax(axis:Int):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNLogSoftmax
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNLogSoftmax
 </p></div><dl class="paramcmts block"><dt class="param">axis</dt><dd class="cmt"><p>Axis along which to perform the log-softmax. Defaults to <code>-1</code> denoting the last axis.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#maxPool" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="maxPool(windowSize:Seq[Long],stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,name:String):org.platanios.tensorflow.api.ops.Output"></a><a id="maxPool(Seq[Long],Long,Long,NN.ConvPaddingMode,NN.CNNDataFormat,String):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#maxPool(windowSize:Seq[Long],stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,name:String):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#maxPool" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="maxPool(windowSize:Seq[Long],stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,name:String):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="maxPool(Seq[Long],Long,Long,NN.ConvPaddingMode,NN.CNNDataFormat,String):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">maxPool</span><span class="params">(<span name="windowSize">windowSize: <span class="extype" name="scala.Seq">Seq</span>[<a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a>]</span>, <span name="stride1">stride1: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="stride2">stride2: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="padding">padding: <a href="NN$.html#ConvPaddingModeextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.ConvPaddingMode">NN.ConvPaddingMode</a></span>, <span name="dataFormat">dataFormat: <a href="NN$.html#CNNDataFormatextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.CNNDataFormat">NN.CNNDataFormat</a> = <span class="symbol">CNNDataFormat.default</span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;MaxPool&quot;</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">maxPool</span><span class="params">(<span name="windowSize">windowSize: <span class="extype" name="scala.Seq">Seq</span>[<a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a>]</span>, <span name="stride1">stride1: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="stride2">stride2: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="padding">padding: <a href="NN$.html#ConvPaddingModeextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.ConvPaddingMode">NN.ConvPaddingMode</a></span>, <span name="dataFormat">dataFormat: <a href="NN$.html#CNNDataFormatextendsAnyRef" class="extmbr" name="org.platanios.tensorflow.api.ops.NN.CNNDataFormat">NN.CNNDataFormat</a> = <span class="symbol">CNNDataFormat.default</span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;MaxPool&quot;</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@maxPool(windowSize:Seq[Long],stride1:Long,stride2:Long,padding:org.platanios.tensorflow.api.ops.NN.ConvPaddingMode,dataFormat:org.platanios.tensorflow.api.ops.NN.CNNDataFormat,name:String):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocMaxPool
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocMaxPool
 </p></div><dl class="paramcmts block"><dt class="param">windowSize</dt><dd class="cmt"><p>The size of the pooling window for each dimension of the input tensor.</p></dd><dt class="param">stride1</dt><dd class="cmt"><p>Stride of the sliding window along the second dimension of <code>input</code>.</p></dd><dt class="param">stride2</dt><dd class="cmt"><p>Stride of the sliding window along the third dimension of <code>input</code>.</p></dd><dt class="param">padding</dt><dd class="cmt"><p>Padding mode to use.</p></dd><dt class="param">dataFormat</dt><dd class="cmt"><p>Format of the input and output data.</p></dd><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output, which is a 4-D tensor whose dimension order depends on the value of <code>dataFormat</code>.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#ne" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="ne(x$1:AnyRef):Boolean"></a><a id="ne(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#ne(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#ne" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="ne(x$1:AnyRef):Boolean"></a>
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@ne(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#notify" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#notify" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notify():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#notify():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@notify():Unit" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="scala.AnyRef#notifyAll" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#notifyAll():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#output" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="output:org.platanios.tensorflow.api.ops.Output"></a><a id="output:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#output:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@notifyAll():Unit" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#output" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="output:org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="output:Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">val</span>
@@ -742,34 +560,36 @@
       <span class="symbol">
         <span class="name">output</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#relu" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="relu(alpha:Float):org.platanios.tensorflow.api.ops.Output"></a><a id="relu(Float):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#relu(alpha:Float):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@output:org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#relu" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="relu(alpha:Float):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="relu(Float):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">relu</span><span class="params">(<span name="alpha">alpha: <a href="http://www.scala-lang.org/api/2.12.6/scala/Float.html#scala.Float" class="extype" name="scala.Float">Float</a> = <span class="symbol">0.0f</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">relu</span><span class="params">(<span name="alpha">alpha: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Float" class="extype" target="_top">Float</a> = <span class="symbol">0.0f</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@relu(alpha:Float):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNRelu
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNRelu
 </p></div><dl class="paramcmts block"><dt class="param">alpha</dt><dd class="cmt"><p>Slope of the negative section, also known as leakage parameter. If other than <code>0.0f</code>, the negative
               part will be equal to <code>alpha * x</code> instead of <code>0</code>. Defaults to <code>0</code>.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#relu6" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="relu6:org.platanios.tensorflow.api.ops.Output"></a><a id="relu6:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#relu6:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#relu6" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="relu6:org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="relu6:Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -777,17 +597,18 @@
       <span class="symbol">
         <span class="name">relu6</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@relu6:org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNRelu6
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNRelu6
 </p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#selu" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="selu:org.platanios.tensorflow.api.ops.Output"></a><a id="selu:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#selu:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#selu" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="selu:org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="selu:Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -795,35 +616,37 @@
       <span class="symbol">
         <span class="name">selu</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@selu:org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNSelu
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNSelu
 </p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#softmax" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="softmax(axis:Int):org.platanios.tensorflow.api.ops.Output"></a><a id="softmax(Int):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#softmax(axis:Int):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#softmax" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="softmax(axis:Int):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="softmax(Int):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">softmax</span><span class="params">(<span name="axis">axis: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a> = <span class="symbol">-1</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
+        <span class="name">softmax</span><span class="params">(<span name="axis">axis: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a> = <span class="symbol">1</span></span>)</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@softmax(axis:Int):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNSoftmax
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNSoftmax
 </p></div><dl class="paramcmts block"><dt class="param">axis</dt><dd class="cmt"><p>Axis along which to perform the softmax. Defaults to <code>-1</code> denoting the last axis.</p></dd><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#softplus" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="softplus:org.platanios.tensorflow.api.ops.Output"></a><a id="softplus:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#softplus:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#softplus" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="softplus:org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="softplus:Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -831,17 +654,18 @@
       <span class="symbol">
         <span class="name">softplus</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@softplus:org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNSoftplus
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNSoftplus
 </p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#softsign" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="softsign:org.platanios.tensorflow.api.ops.Output"></a><a id="softsign:Output"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#softsign:org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#softsign" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="softsign:org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="softsign:Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -849,17 +673,18 @@
       <span class="symbol">
         <span class="name">softsign</span><span class="result">: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@softsign:org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNSoftsign
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNSoftsign
 </p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>Created op output.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#synchronized" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a>
+      <a id="synchronized[T0](⇒T0):T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -867,43 +692,49 @@
       <span class="symbol">
         <span class="name">synchronized</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="params">(<span name="arg0">arg0: ⇒ <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>)</span><span class="result">: <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#topK" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="NNOps">
-      <a id="topK(k:org.platanios.tensorflow.api.ops.Output,sorted:Boolean):(org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.ops.Output)"></a><a id="topK(Output,Boolean):(Output,Output)"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#topK(k:org.platanios.tensorflow.api.ops.Output,sorted:Boolean):(org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.ops.Output)" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@synchronized[T0](x$1:=&gt;T0):T0" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.NN.NNOps#topK" visbl="pub" data-isabs="false" fullComment="yes" group="NNOps">
+      <a id="topK(k:org.platanios.tensorflow.api.ops.Output,sorted:Boolean):(org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.ops.Output)"></a>
+      <a id="topK(Output,Boolean):(Output,Output)"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">topK</span><span class="params">(<span name="k">k: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> = <span class="symbol"><span class="name"><a href="../types/SupportedType$.html">1</a></span></span></span>, <span name="sorted">sorted: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: (<a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>)</span>
+        <span class="name">topK</span><span class="params">(<span name="k">k: <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> = <span class="symbol"><span class="name"><a href="../types/SupportedType$.html">1</a></span></span></span>, <span name="sorted">sorted: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a> = <span class="symbol">true</span></span>)</span><span class="result">: (<a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>, <a href="Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>)</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@topK(k:org.platanios.tensorflow.api.ops.Output,sorted:Boolean):(org.platanios.tensorflow.api.ops.Output,org.platanios.tensorflow.api.ops.Output)" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">$OpDocNNTopK
 </p><div class="fullcomment"><div class="comment cmt"><p>$OpDocNNTopK
-</p></div><dl class="paramcmts block"><dt class="param">k</dt><dd class="cmt"><p>Scalar <a href="../index.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> tensor containing the number of top elements to look for along the last axis of
+</p></div><dl class="paramcmts block"><dt class="param">k</dt><dd class="cmt"><p>Scalar <a href="../package.html#INT32:org.platanios.tensorflow.api.types.DataType.Aux[Int]" class="extmbr" name="org.platanios.tensorflow.api#INT32">INT32</a> tensor containing the number of top elements to look for along the last axis of
                <code>input</code>.</p></dd><dt class="param">sorted</dt><dd class="cmt"><p>If <code>true</code>, the resulting <code>k</code> elements will be sorted by their values in descending order.</p></dd><dt>returns</dt><dd class="cmt"><p>Tuple containing the created op outputs: (i) <code>values</code>: the <code>k</code> largest elements along each last
         dimensional slice, and (ii) <code>indices</code>: the indices of <code>values</code> within the last axis of <code>input</code>.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#wait():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@wait():Unit" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -911,21 +742,22 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long,x$2:Int):Unit"></a>
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@wait(x$1:Long,x$2:Int):Unit" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -933,32 +765,30 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long):Unit"></a><a id="wait(Long):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/NN$$NNOps.html#wait(x$1:Long):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long):Unit"></a>
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.ops.NN$$NNOps@wait(x$1:Long):Unit" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li>
-              </ol>
+    </li></ol>
             </div>
 
         
@@ -968,17 +798,17 @@
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.Serializable">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></h3>
             </div><div class="parent" name="java.io.Serializable">
               <h3>Inherited from <span class="extype" name="java.io.Serializable">Serializable</span></h3>
             </div><div class="parent" name="scala.Product">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a></h3>
             </div><div class="parent" name="scala.Equals">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/Equals.html#scala.Equals" class="extype" name="scala.Equals">Equals</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Equals" class="extype" target="_top">Equals</a></h3>
             </div><div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></h3>
             </div>
         
         </div>
@@ -998,9 +828,7 @@
       <div id="tooltip"></div>
 
       <div id="footer">  </div>
-    </body>
-          </div>
-        </div>
-      </div>
+
+
     </body>
       </html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html >
+<html>
+        <head>
+          <title>tensors - org.platanios.tensorflow.api.tensors</title>
+          <meta name="description" content="tensors - org.platanios.tensorflow.api.tensors" />
+          <meta name="keywords" content="tensors org.platanios.tensorflow.api.tensors" />
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
+      <link href="../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript" src="../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../../lib/tools.tooltip.js"></script>
+      
+      <script type="text/javascript">
+         if(top === self) {
+            var url = '../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.tensors.package';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img alt="Package" src="../../../../../lib/package_big.png" />
+        <p id="owner"><a href="../../../../package.html" class="extype" name="org">org</a>.<a href="../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api">api</a></p>
+        <h1>tensors</h1><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      </div>
+
+      <h4 id="signature" class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <span class="name">tensors</span>
+      </span>
+      </h4>
+      
+          <div id="comment" class="fullcommenttop"><div class="comment cmt"></div><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/tensors/package.scala" target="_blank">package.scala</a></dd></dl><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></div>
+        </div></div>
+        
+
+      <div id="mbrsel">
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        <div id="order">
+              <span class="filtertype">Ordering</span>
+              <ol>
+                
+                <li class="alpha in"><span>Alphabetic</span></li>
+                <li class="inherit out"><span>By Inheritance</span></li>
+              </ol>
+            </div>
+        <div id="ancestors">
+                <span class="filtertype">Inherited<br />
+                </span>
+                <ol id="linearization">
+                  <li class="in" name="org.platanios.tensorflow.api.tensors"><span>tensors</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                </ol>
+              </div><div id="ancestors">
+            <span class="filtertype"></span>
+            <ol>
+              <li class="hideall out"><span>Hide All</span></li>
+              <li class="showall in"><span>Show All</span></li>
+            </ol>
+          </div>
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
+      </div>
+
+      <div id="template">
+        <div id="allMembers">
+        
+
+        <div id="types" class="types members">
+              <h3>Type Members</h3>
+              <ol><li name="org.platanios.tensorflow.api.tensors.SparseTensor" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="SparseTensorextendsTensorLikewithProductwithSerializable"></a>
+      <a id="SparseTensor:SparseTensor"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">final </span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="SparseTensor.html"><span class="name">SparseTensor</span></a><span class="params">(<span name="indices">indices: <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a></span>, <span name="values">values: <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a></span>, <span name="denseShape">denseShape: <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a></span>)</span><span class="result"> extends <a href="TensorLike.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorLike">TensorLike</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@SparseTensorextendsTensorLikewithProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Represents a sparse op output.</p><div class="fullcomment"><div class="comment cmt"><p>Represents a sparse op output.</p><p>TensorFlow represents a sparse tensor as three separate dense tensors: <code>indices</code>, <code>values</code>, and <code>denseShape</code>. In
+Scala, the three tensors are collected into a <a href="SparseTensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.SparseTensor">SparseTensor</a> class for ease of use.  If you have separate
+<code>indices</code>, <code>values</code>, and <code>denseShape</code> tensors, wrap them in a <code>SparseTensor</code> object before passing to the
+relevant sparse tensor manipulation.</p><p>Concretely, the sparse tensor <code>SparseTensor(indices, values, denseShape)</code> comprises the following components,
+where <code>N</code> and <code>rank</code> are the number of values and number of dimensions in the <a href="SparseTensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.SparseTensor">SparseTensor</a>, respectively:</p><ul><li><code>indices</code>: Two-dimensional <a href="../package.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[N, rank]</code>, which specifies the indices of the elements
+    in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
+    <code>indices = <span class="extype" name="1,">3], [2, 4</span></code> specifies that the elements with indexes <code>[1, 3]</code> and <code>[2, 4]</code> have nonzero
+    values.</li><li><code>values</code>: One-dimensional tensor of any type, with shape <code>[N]</code>, which supplies the values for each element in
+    <code>indices</code>. For example, given <code>indices = <span class="extype" name="1,">3], [2, 4</span></code>, the parameter <code>values = [18, 3.6]</code> specifies that
+     element <code>[1, 3]</code> of the sparse tensor has a value of <code>18</code>, and element <code>[2, 4]</code> of the tensor has a value of
+     <code>3.6</code>.</li><li><code>denseShape</code>: One-dimensional <a href="../package.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[rank]</code>, which specifies the dense shape of the
+    sparse tensor.  For example, <code>denseShape = [3, 6]</code> specifies a two-dimensional 3x6 tensor,
+    <code>denseShape = [2, 3, 4]</code> specifies a three-dimensional 2x3x4 tensor, and <code>denseShape = [9]</code> specifies a
+    one-dimensional tensor with 9 elements.</li></ul><p>The corresponding dense tensor, <code>dense</code>, satisfies:</p><pre>dense.shape == denseShape
+dense(indices(i)) = values(i) <span class="cmt">// Using a somewhat loose notation with respect to indexing.</span></pre><p>IMPORTANT NOTE: By convention, <code>indices</code> should be sorted in row-major order (or equivalently lexicographic order
+on <code>indices(i)</code>). This is not enforced when <code>SparseTensor</code> objects are constructed, but most ops assume correct
+ordering. If the ordering of sparse tensor <code>st</code> is wrong, a fixed version can be obtained by calling
+<code>sparseReorder(st)</code>.</p><p>For example, the sparse tensor <code>SparseTensor(indices = <span class="extype" name="0,">0], [1, 2</span>, values = [1, 2], denseShape = [3, 4])</code>,
+represents the dense tensor <code><span class="extype" name="1,">0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0</span></code>.
+</p></div><dl class="paramcmts block"><dt class="param">indices</dt><dd class="cmt"><p>Two-dimensional <a href="../package.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[N, rank]</code>.</p></dd><dt class="param">values</dt><dd class="cmt"><p>One-dimensional tensor with shape <code>[N]</code>.</p></dd><dt class="param">denseShape</dt><dd class="cmt"><p>One-dimensional <a href="../package.html#INT64:org.platanios.tensorflow.api.types.DataType.Aux[Long]" class="extmbr" name="org.platanios.tensorflow.api#INT64">INT64</a> tensor with shape <code>[rank]</code>.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.tensors.Tensor" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="TensorextendsTensorLikewithCloseablewithProto.Serializable"></a>
+      <a id="Tensor:Tensor"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="Tensor.html"><span class="name">Tensor</span></a><span class="result"> extends <a href="TensorLike.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorLike">TensorLike</a> with <a href="../utilities/package$$Closeable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Closeable">utilities.Closeable</a> with <a href="../utilities/Proto$$Serializable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Proto.Serializable">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@TensorextendsTensorLikewithCloseablewithProto.Serializable" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Tensor (i.e., multi-dimensional array).</p><div class="fullcomment"><div class="comment cmt"><p>Tensor (i.e., multi-dimensional array).</p><p>Tensors are the main data structure underlying all operations in TensorFlow. They represent multi-dimensional arrays
+of various data types (e.g., <a href="../package.html#FLOAT32:org.platanios.tensorflow.api.types.DataType.Aux[Float]" class="extmbr" name="org.platanios.tensorflow.api#FLOAT32">FLOAT32</a>). Operations involving tensors can be of two types:</p><ul><li><b>Eager:</b> Operations directly executed on the tensor arguments, returning a new tensor. For example:</li></ul><pre><span class="kw">val</span> a = Tensor(<span class="num">2.0</span>, <span class="num">4.5</span>, <span class="num">3.0</span>, -<span class="num">1.2</span>)
+<span class="kw">val</span> b = Tensor(Tensor(<span class="num">0.2</span>, <span class="num">0.4</span>), Tensor(-<span class="num">2.3</span>, <span class="num">5.0</span>))
+a.reshape(Shape(<span class="num">2</span>, <span class="num">2</span>)) + b == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</span>), Tensor(<span class="num">0.7</span>, <span class="num">3.8</span>))</pre><ul><li><b>Symbolic:</b> Operations that need to be constructed as part of a computational <a href="../package.html#Graph=org.platanios.tensorflow.api.core.Graph" class="extmbr" name="org.platanios.tensorflow.api.Graph">Graph</a> before being
+    executing using a <a href="../package.html#Session=org.platanios.tensorflow.api.core.client.Session" class="extmbr" name="org.platanios.tensorflow.api.Session">Session</a>. For example:</li></ul><pre><span class="kw">val</span> a = tf.placeholder(FLOAT64, Shape(<span class="num">4</span>))               <span class="cmt">// Symbolic placeholder for value of a</span>
+<span class="kw">val</span> b = tf.placeholder(FLOAT64, Shape(<span class="num">2</span>, <span class="num">2</span>))            <span class="cmt">// Symbolic placeholder for the value of b</span>
+<span class="kw">val</span> add = tf.reshape(a, Shape(<span class="num">2</span>, <span class="num">2</span>)) + b                <span class="cmt">// Symbolic representation of the computation</span>
+<span class="kw">val</span> result = Session.run(
+  feeds = <span class="std">Map</span>(
+    a -&gt; Tensor(<span class="num">2.0</span>, <span class="num">4.5</span>, <span class="num">3.0</span>, -<span class="num">1.2</span>),
+    b -&gt; Tensor(Tensor(<span class="num">0.2</span>, <span class="num">0.4</span>), Tensor(-<span class="num">2.3</span>, <span class="num">5.0</span>))),
+  fetches = add)                                        <span class="cmt">// Performs the actual computation</span>
+result == Tensor(Tensor(<span class="num">2.2</span>, <span class="num">4.9</span>), Tensor(<span class="num">0.7</span>, <span class="num">3.8</span>))</pre><p>    // TODO: [OPS] Update doc when we enrich op outputs similarly to tensors.
+</p></div></div>
+    </li><li name="org.platanios.tensorflow.api.tensors.TensorConvertible" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="TensorConvertible[T]extendsAnyRef"></a>
+      <a id="TensorConvertible[T]:TensorConvertible[T]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="TensorConvertible.html"><span class="name">TensorConvertible</span></a><span class="tparams">[<span name="T">T</span>]</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@TensorConvertible[T]extendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="TensorIndexedSlicesextendsTensorLikewithProductwithSerializable"></a>
+      <a id="TensorIndexedSlices:TensorIndexedSlices"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">final </span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="TensorIndexedSlices.html"><span class="name">TensorIndexedSlices</span></a><span class="result"> extends <a href="TensorLike.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorLike">TensorLike</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@TensorIndexedSlicesextendsTensorLikewithProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Sparse representation of a set of tensor slices at given indices.</p><div class="fullcomment"><div class="comment cmt"><p>Sparse representation of a set of tensor slices at given indices.</p><p>This class if a simple wrapper for a pair (or a set of three) of <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> objects:</p><ul><li><code>indices</code>: A one-dimensional integer <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> with shape <code>[D0]</code>.</li><li><code>values</code>: An <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> of any data type, with shape <code>[D0, D1, ..., Dn]</code>.</li><li><code>denseShape</code>: Optionally, an integer <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a> with shape <code>[LARGE0, D1, ..., Dn]</code>.</li></ul><p>An <a href="TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a> is typically used to represent a subset of a larger <a href="../package.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.Output">Output</a>, <code>dense</code>, of shape
+<code>[LARGE0, D1, ..., Dn]</code>, where <code>LARGE0 &gt;&gt; D0</code>. The values in <code>indices</code> are the indices in the first dimension of
+the slices that have been extracted from the larger tensor.</p><p>The dense <a href="Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">Tensor</a>, <code>dense</code>, represented by <a href="TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a>, <code>slices</code>, has:</p><pre>dense(slices.indices(i), ::, ::, ...) = slices.values(i, ::, ::, ...)</pre><p>The <a href="TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a> class is used primarily in the definition of gradients for operations that have
+sparse gradients, such as <code>gather</code>.</p><p>Note that this is different than <a href="SparseTensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.SparseTensor">SparseTensor</a> which uses multi-dimensional indices and scalar values.
+</p></div></div>
+    </li><li name="org.platanios.tensorflow.api.tensors.TensorLike" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="TensorLikeextendsAnyRef"></a>
+      <a id="TensorLike:TensorLike"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">sealed </span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="TensorLike.html"><span class="name">TensorLike</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@TensorLikeextendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Represents tensor-like objects.</p>
+    </li></ol>
+            </div>
+
+        
+
+        <div id="values" class="values members">
+              <h3>Value Members</h3>
+              <ol><li name="org.platanios.tensorflow.api.tensors.Tensor" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="Tensor"></a>
+      <a id="Tensor:Tensor"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="Tensor$.html"><span class="name">Tensor</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@Tensor" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.tensors.TensorConvertible" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TensorConvertible"></a>
+      <a id="TensorConvertible:TensorConvertible"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="TensorConvertible$.html"><span class="name">TensorConvertible</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@TensorConvertible" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.tensors.TensorLike" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="TensorLike"></a>
+      <a id="TensorLike:TensorLike"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="TensorLike$.html"><span class="name">TensorLike</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@TensorLike" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li><li name="org.platanios.tensorflow.api.tensors.ops" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="ops"></a>
+      <a id="ops:ops"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <a href="ops/package.html"><span class="name">ops</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../index.html#org.platanios.tensorflow.api.tensors.package@ops" title="Permalink" target="_top">
+        <img src="../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li></ol>
+            </div>
+
+        
+
+        
+        </div>
+
+        <div id="inheritedMembers">
+        <div class="parent" name="scala.AnyRef">
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></h3>
+            </div><div class="parent" name="scala.Any">
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></h3>
+            </div>
+        
+        </div>
+
+        <div id="groupedMembers">
+        <div class="group" name="Ungrouped">
+              <h3>Ungrouped</h3>
+              
+            </div>
+        </div>
+
+      </div>
+
+      <div id="tooltip"></div>
+
+      <div id="footer">  </div>
+
+
+    </body>
+      </html>

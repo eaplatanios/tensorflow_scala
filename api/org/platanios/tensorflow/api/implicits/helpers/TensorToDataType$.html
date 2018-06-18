@@ -1,203 +1,44 @@
 <!DOCTYPE html >
 <html>
         <head>
-          <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-          <title></title>
-          <meta name="description" content="" />
-          <meta name="keywords" content="" />
+          <title>TensorToDataType - org.platanios.tensorflow.api.implicits.helpers.TensorToDataType</title>
+          <meta name="description" content="TensorToDataType - org.platanios.tensorflow.api.implicits.helpers.TensorToDataType" />
+          <meta name="keywords" content="TensorToDataType org.platanios.tensorflow.api.implicits.helpers.TensorToDataType" />
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
-      <link href="../../../../../../lib/index.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
-      <script type="text/javascript" src="../../../../../../lib/jquery.js"></script>
-      <script type="text/javascript" src="../../../../../../lib/jquery.panzoom.min.js"></script>
-      <script type="text/javascript" src="../../../../../../lib/jquery.mousewheel.min.js"></script>
-      <script type="text/javascript" src="../../../../../../lib/index.js"></script>
-      <script type="text/javascript" src="../../../../../../index.js"></script>
-      <script type="text/javascript" src="../../../../../../lib/scheduler.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../../lib/jquery-ui.js"></script>
       <script type="text/javascript" src="../../../../../../lib/template.js"></script>
       <script type="text/javascript" src="../../../../../../lib/tools.tooltip.js"></script>
       
       <script type="text/javascript">
-        /* this variable can be used by the JS to determine the path to the root document */
-        var toRoot = '../../../../../../';
-      </script>
+         if(top === self) {
+            var url = '../../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
     
         </head>
-        <body>
-      <div id="search">
-        <span id="doc-title"><span id="doc-version"></span></span>
-        <span class="close-results"><span class="left">&lt;</span> Back</span>
-        <div id="textfilter">
-          <span class="input">
-            <input autocapitalize="none" placeholder="Search" id="index-input" type="text" accesskey="/" />
-            <i class="clear material-icons"></i>
-            <i id="search-icon" class="material-icons"></i>
-          </span>
-        </div>
-    </div>
-      <div id="search-results">
-        <div id="search-progress">
-          <div id="progress-fill"></div>
-        </div>
-        <div id="results-content">
-          <div id="entity-results"></div>
-          <div id="member-results"></div>
-        </div>
-      </div>
-      <div id="content-scroll-container" style="-webkit-overflow-scrolling: touch;">
-        <div id="content-container" style="-webkit-overflow-scrolling: touch;">
-          <div id="subpackage-spacer">
-            <div id="packages">
-              <h1>Packages</h1>
-              <ul>
-                <li name="_root_.root" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="_root_"></a><a id="root:_root_"></a>
-      <span class="permalink">
-      <a href="index.html#_root_" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../../index.html"><span class="name">root</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="_root_.org" visbl="pub" class="indented1 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="org"></a><a id="org:org"></a>
-      <span class="permalink">
-      <a href="index.html#org" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../index.html"><span class="name">org</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="org.platanios" visbl="pub" class="indented2 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="platanios"></a><a id="platanios:platanios"></a>
-      <span class="permalink">
-      <a href="../org/index.html#platanios" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../index.html"><span class="name">platanios</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../index.html" class="extype" name="org">org</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow" visbl="pub" class="indented3 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="tensorflow"></a><a id="tensorflow:tensorflow"></a>
-      <span class="permalink">
-      <a href="../../org/platanios/index.html#tensorflow" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../index.html"><span class="name">tensorflow</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../index.html" class="extype" name="org.platanios">platanios</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api" visbl="pub" class="indented4 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="api"></a><a id="api:api"></a>
-      <span class="permalink">
-      <a href="../../../org/platanios/tensorflow/index.html#api" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../index.html"><span class="name">api</span></a>
-      </span>
-      
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.implicits" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="implicits"></a><a id="implicits:implicits"></a>
-      <span class="permalink">
-      <a href="../../../../org/platanios/tensorflow/api/index.html#implicits" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../index.html"><span class="name">implicits</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers" visbl="pub" class="indented6 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="helpers"></a><a id="helpers:helpers"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/implicits/index.html#helpers" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="index.html"><span class="name">helpers</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api.implicits">implicits</a></dd></dl></div>
-    </li><li class="current-entities indented6">
-                        <a class="object" href="DataTypeAuxToDataType$.html" title=""></a>
-                        <a class="trait" href="DataTypeAuxToDataType.html" title="Type trait used to map structures of data type aux types to structures of data types."></a>
-                        <a href="DataTypeAuxToDataType.html" title="Type trait used to map structures of data type aux types to structures of data types.">DataTypeAuxToDataType</a>
-                      </li><li class="current-entities indented6">
-                        <a class="object" href="DataTypeToOutput$.html" title=""></a>
-                        <a class="trait" href="DataTypeToOutput.html" title="Type trait used to map structures of data types to structures of symbolic tensors (i.e., outputs)."></a>
-                        <a href="DataTypeToOutput.html" title="Type trait used to map structures of data types to structures of symbolic tensors (i.e., outputs).">DataTypeToOutput</a>
-                      </li><li class="current-entities indented6">
-                        <a class="object" href="OutputToTensor$.html" title=""></a>
-                        <a class="trait" href="OutputToTensor.html" title="Type trait used to map structures of symbolic tensors (i.e., outputs) to structures of tensors."></a>
-                        <a href="OutputToTensor.html" title="Type trait used to map structures of symbolic tensors (i.e., outputs) to structures of tensors.">OutputToTensor</a>
-                      </li><li class="current-entities indented6">
-                        <a class="object" href="" title=""></a>
-                        <a class="trait" href="TensorToDataType.html" title="Type trait used to map structures of tensors to structures of data types."></a>
-                        <a href="TensorToDataType.html" title="Type trait used to map structures of tensors to structures of data types.">TensorToDataType</a>
-                      </li>
-              </ul>
-            </div>
-          </div>
-          <div id="content">
-            <body class="object value">
+        <body class="value">
       <div id="definition">
-        <a href="TensorToDataType.html" title="See companion trait"><div class="big-circle object-companion-trait">o</div></a>
-        <p id="owner"><a href="../../../../../index.html" class="extype" name="org">org</a>.<a href="../../../../index.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../index.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../index.html" class="extype" name="org.platanios.tensorflow.api.implicits">implicits</a>.<a href="index.html" class="extype" name="org.platanios.tensorflow.api.implicits.helpers">helpers</a></p>
-        <h1><a href="TensorToDataType.html" title="See companion trait">TensorToDataType</a><span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html" title="Permalink">
-        <i class="material-icons"></i>
+        <a href="TensorToDataType.html" title="See companion trait"><img alt="Object/Trait" src="../../../../../../lib/object_to_trait_big.png" /></a>
+        <p id="owner"><a href="../../../../../package.html" class="extype" name="org">org</a>.<a href="../../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api.implicits">implicits</a>.<a href="package.html" class="extype" name="org.platanios.tensorflow.api.implicits.helpers">helpers</a></p>
+        <h1><a href="TensorToDataType.html" title="See companion trait">TensorToDataType</a></h1><h3><span class="morelinks"><div>
+            Related Docs:
+            <a href="TensorToDataType.html" title="See companion trait">trait TensorToDataType</a>
+            | <a href="package.html" class="extype" name="org.platanios.tensorflow.api.implicits.helpers">package helpers</a>
+          </div></span></h3><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
-    </span></h1>
-        <h3><span class="morelinks"><div>
-            Companion <a href="TensorToDataType.html" title="See companion trait">trait TensorToDataType</a>
-          </div></span></h3>
+    </span>
       </div>
 
       <h4 id="signature" class="signature">
@@ -209,52 +50,40 @@
         <span class="name">TensorToDataType</span>
       </span>
       </h4>
-
       
           <div id="comment" class="fullcommenttop"><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/implicits/helpers/TensorToDataType.scala" target="_blank">TensorToDataType.scala</a></dd></dl><div class="toggleContainer block">
-          <span class="toggle">
-            Linear Supertypes
-          </span>
-          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></div>
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></div>
         </div></div>
         
 
       <div id="mbrsel">
-        <div class="toggle"></div>
-        <div id="memberfilter">
-          <i class="material-icons arrow"></i>
-          <span class="input">
-            <input id="mbrsel-input" placeholder="Filter all members" type="text" accesskey="/" />
-          </span>
-          <i class="clear material-icons"></i>
-        </div>
-        <div id="filterby">
-          <div id="order">
-            <span class="filtertype">Ordering</span>
-            <ol>
-              
-              <li class="alpha in"><span>Alphabetic</span></li>
-              <li class="inherit out"><span>By Inheritance</span></li>
-            </ol>
-          </div>
-          <div class="ancestors">
-                  <span class="filtertype">Inherited<br />
-                  </span>
-                  <ol id="linearization">
-                    <li class="in" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType"><span>TensorToDataType</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
-                  </ol>
-                </div><div class="ancestors">
-              <span class="filtertype"></span>
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        <div id="order">
+              <span class="filtertype">Ordering</span>
               <ol>
-                <li class="hideall out"><span>Hide All</span></li>
-                <li class="showall in"><span>Show All</span></li>
+                
+                <li class="alpha in"><span>Alphabetic</span></li>
+                <li class="inherit out"><span>By Inheritance</span></li>
               </ol>
             </div>
-          <div id="visbl">
-              <span class="filtertype">Visibility</span>
-              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
-            </div>
-        </div>
+        <div id="ancestors">
+                <span class="filtertype">Inherited<br />
+                </span>
+                <ol id="linearization">
+                  <li class="in" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType"><span>TensorToDataType</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                </ol>
+              </div><div id="ancestors">
+            <span class="filtertype"></span>
+            <ol>
+              <li class="hideall out"><span>Hide All</span></li>
+              <li class="showall in"><span>Show All</span></li>
+            </ol>
+          </div>
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
       </div>
 
       <div id="template">
@@ -263,101 +92,102 @@
 
         <div id="types" class="types members">
               <h3>Type Members</h3>
-              <ol><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}"></a><a id="Aux[T,D]:Aux[T,D]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}"></a>
+      <a id="Aux[T,D]:Aux[T,D]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">type</span>
       </span>
       <span class="symbol">
-        <span class="name">Aux</span><span class="tparams">[<span name="T">T</span>, <span name="D">D</span>]</span><span class="result alias"> = <a href="TensorToDataType.html" class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType">TensorToDataType</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux.T">T</span>] { type DataTypeType = D }</span>
+        <span class="name">Aux</span><span class="tparams">[<span name="T">T</span>, <span name="D">D</span>]</span><span class="result"> = <a href="TensorToDataType.html" class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType">TensorToDataType</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux.T">T</span>] { type DataTypeType = D }</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       
     </li></ol>
             </div>
 
         
 
-        <div class="values members">
+        <div id="values" class="values members">
               <h3>Value Members</h3>
-              <ol>
-                <li name="scala.AnyRef#!=" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="!=(x$1:Any):Boolean"></a><a id="!=(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#!=(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="scala.AnyRef#!=" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="!=(x$1:Any):Boolean"></a>
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@!=(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef###" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef###" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="##():Int"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html###():Int" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="##():Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#==" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="==(x$1:Any):Boolean"></a><a id="==(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#==(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@##():Int" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="scala.AnyRef#==" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="==(x$1:Any):Boolean"></a>
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#arrayTensorToDataType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="arrayTensorToDataType[T,D](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[Array[T],Array[D]]"></a><a id="arrayTensorToDataType[T,D](Aux[T,D]):Aux[Array[T],Array[D]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#arrayTensorToDataType[T,D](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[Array[T],Array[D]]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@==(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#arrayTensorToDataType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="arrayTensorToDataType[T,D](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[Array[T],Array[D]]"></a>
+      <a id="arrayTensorToDataType[T,D](Aux[T,D]):Aux[Array[T],Array[D]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">arrayTensorToDataType</span><span class="tparams">[<span name="T">T</span>, <span name="D">D</span>]</span><span class="params">(<span class="implicit">implicit </span><span name="ev">ev: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.D">D</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<a href="http://www.scala-lang.org/api/2.12.6/scala/Array.html#scala.Array" class="extype" name="scala.Array">Array</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.T">T</span>], <a href="http://www.scala-lang.org/api/2.12.6/scala/Array.html#scala.Array" class="extype" name="scala.Array">Array</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.D">D</span>]]</span>
+        <span class="name">arrayTensorToDataType</span><span class="tparams">[<span name="T">T</span>, <span name="D">D</span>]</span><span class="params">(<span class="implicit">implicit </span><span name="ev">ev: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.D">D</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Array" class="extype" target="_top">Array</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.T">T</span>], <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Array" class="extype" target="_top">Array</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.arrayTensorToDataType.D">D</span>]]</span>
       </span>
-      
-      
-    </li><li name="scala.Any#asInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="asInstanceOf[T0]:T0"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#asInstanceOf[T0]:T0" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@arrayTensorToDataType[T,D](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[Array[T],Array[D]]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="scala.Any#asInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="asInstanceOf[T0]:T0"></a>
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -365,93 +195,96 @@
       <span class="symbol">
         <span class="name">asInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <span class="extype" name="scala.Any.asInstanceOf.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="clone():Object"></a><a id="clone():AnyRef"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#clone():Object" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@asInstanceOf[T0]:T0" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="scala.AnyRef#clone" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="clone():Object"></a>
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>
+        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@clone():Object" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.CloneNotSupportedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#eq(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="eq(x$1:AnyRef):Boolean"></a>
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@eq(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#equals" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="equals(x$1:Any):Boolean"></a><a id="equals(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#equals(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#equals" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="equals(x$1:Any):Boolean"></a>
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">equals</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">equals</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@equals(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#finalize" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="finalize():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#finalize():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@finalize():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="symbol">classOf[java.lang.Throwable]</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#getClass" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getClass():Class[_]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#getClass():Class[_]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="getClass():Class[_]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -459,37 +292,33 @@
       <span class="symbol">
         <span class="name">getClass</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.Class">Class</span>[_]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#hashCode" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="hashCode():Int"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#hashCode():Int" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@getClass():Class[_]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="scala.AnyRef#hashCode" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="hashCode():Int"></a>
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#hnilTensorToDataType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="hnilTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[shapeless.HNil,shapeless.HNil]"></a><a id="hnilTensorToDataType:Aux[HNil,HNil]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#hnilTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[shapeless.HNil,shapeless.HNil]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@hashCode():Int" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#hnilTensorToDataType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="hnilTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[shapeless.HNil,shapeless.HNil]"></a>
+      <a id="hnilTensorToDataType:Aux[HNil,HNil]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">val</span>
@@ -497,117 +326,118 @@
       <span class="symbol">
         <span class="name">hnilTensorToDataType</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="shapeless.HNil">HNil</span>, <span class="extype" name="shapeless.HNil">HNil</span>]</span>
       </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@hnilTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[shapeless.HNil,shapeless.HNil]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       
-      
-    </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.Any#isInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="isInstanceOf[T0]:Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#isInstanceOf[T0]:Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@isInstanceOf[T0]:Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#mapTensorToDataType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="mapTensorToDataType[K,T,D,CC[CK,CV]&lt;:scala.collection.MapLike[CK,CV,CC[CK,CV]]withMap[CK,CV]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[K,T],CC[K,D]]"></a><a id="mapTensorToDataType[K,T,D,CC[CK,CV]&lt;:MapLike[CK,CV,CC[CK,CV]]withMap[CK,CV]](Aux[T,D]):Aux[CC[K,T],CC[K,D]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#mapTensorToDataType[K,T,D,CC[CK,CV]&lt;:scala.collection.MapLike[CK,CV,CC[CK,CV]]withMap[CK,CV]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[K,T],CC[K,D]]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#mapTensorToDataType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="mapTensorToDataType[K,T,D,CC[CK,CV]&lt;:scala.collection.MapLike[CK,CV,CC[CK,CV]]withMap[CK,CV]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[K,T],CC[K,D]]"></a>
+      <a id="mapTensorToDataType[K,T,D,CC[CK,CV]&lt;:MapLike[CK,CV,CC[CK,CV]]withMap[CK,CV]](Aux[T,D]):Aux[CC[K,T],CC[K,D]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">mapTensorToDataType</span><span class="tparams">[<span name="K">K</span>, <span name="T">T</span>, <span name="D">D</span>, <span name="CC">CC<span class="tparams">[<span name="CK">CK</span>, <span name="CV">CV</span>]</span> &lt;: <a href="http://www.scala-lang.org/api/2.12.6/scala/collection/MapLike.html#scala.collection.MapLike" class="extype" name="scala.collection.MapLike">MapLike</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CK">CK</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CV">CV</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CK">CK</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CV">CV</span>]] with <span class="extype" name="scala.Predef.Map">Map</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CK">CK</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CV">CV</span>]</span>]</span><span class="params">(<span class="implicit">implicit </span><span name="ev">ev: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.D">D</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.K">K</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.T">T</span>], <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.K">K</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.D">D</span>]]</span>
+        <span class="name">mapTensorToDataType</span><span class="tparams">[<span name="K">K</span>, <span name="T">T</span>, <span name="D">D</span>, <span name="CC">CC<span class="tparams">[<span name="CK">CK</span>, <span name="CV">CV</span>]</span> &lt;: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.collection.MapLike" class="extype" target="_top">MapLike</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CK">CK</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CV">CV</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CK">CK</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CV">CV</span>]] with <span class="extype" name="scala.Predef.Map">Map</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CK">CK</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC.CV">CV</span>]</span>]</span><span class="params">(<span class="implicit">implicit </span><span name="ev">ev: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.D">D</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.K">K</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.T">T</span>], <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.K">K</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.mapTensorToDataType.D">D</span>]]</span>
       </span>
-      
-      
-    </li><li name="scala.AnyRef#ne" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="ne(x$1:AnyRef):Boolean"></a><a id="ne(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#ne(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@mapTensorToDataType[K,T,D,CC[CK,CV]&lt;:scala.collection.MapLike[CK,CV,CC[CK,CV]]withMap[CK,CV]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[K,T],CC[K,D]]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="scala.AnyRef#ne" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="ne(x$1:AnyRef):Boolean"></a>
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@ne(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#notify" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#notify" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notify():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#notify():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@notify():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="scala.AnyRef#notifyAll" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#notifyAll():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#productTensorToDataTypeConstructor" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="productTensorToDataTypeConstructor[PT&lt;:Product,PD&lt;:Product,HT&lt;:shapeless.HList,HD&lt;:shapeless.HList](implicitgenO:shapeless.Generic.Aux[PT,HT],implicitevH:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD],implicittuplerT:shapeless.ops.hlist.Tupler.Aux[HD,PD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[PT,PD]"></a><a id="productTensorToDataTypeConstructor[PT&lt;:Product,PD&lt;:Product,HT&lt;:HList,HD&lt;:HList](shapeless.Generic.Aux[PT,HT],Aux[HT,HD],shapeless.ops.hlist.Tupler.Aux[HD,PD]):Aux[PT,PD]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#productTensorToDataTypeConstructor[PT&lt;:Product,PD&lt;:Product,HT&lt;:shapeless.HList,HD&lt;:shapeless.HList](implicitgenO:shapeless.Generic.Aux[PT,HT],implicitevH:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD],implicittuplerT:shapeless.ops.hlist.Tupler.Aux[HD,PD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[PT,PD]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@notifyAll():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#productTensorToDataTypeConstructor" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="productTensorToDataTypeConstructor[PT&lt;:Product,PD&lt;:Product,HT&lt;:shapeless.HList,HD&lt;:shapeless.HList](implicitgenO:shapeless.Generic.Aux[PT,HT],implicitevH:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD],implicittuplerT:shapeless.ops.hlist.Tupler.Aux[HD,PD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[PT,PD]"></a>
+      <a id="productTensorToDataTypeConstructor[PT&lt;:Product,PD&lt;:Product,HT&lt;:HList,HD&lt;:HList](shapeless.Generic.Aux[PT,HT],Aux[HT,HD],shapeless.ops.hlist.Tupler.Aux[HD,PD]):Aux[PT,PD]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">productTensorToDataTypeConstructor</span><span class="tparams">[<span name="PT">PT &lt;: <a href="http://www.scala-lang.org/api/2.12.6/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a></span>, <span name="PD">PD &lt;: <a href="http://www.scala-lang.org/api/2.12.6/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a></span>, <span name="HT">HT &lt;: <span class="extype" name="shapeless.HList">HList</span></span>, <span name="HD">HD &lt;: <span class="extype" name="shapeless.HList">HList</span></span>]</span><span class="params">(<span class="implicit">implicit </span><span name="genO">genO: <span class="extype" name="shapeless.Generic.Aux">shapeless.Generic.Aux</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PT">PT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HT">HT</span>]</span>, <span name="evH">evH: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HT">HT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HD">HD</span>]</span>, <span name="tuplerT">tuplerT: <span class="extype" name="shapeless.ops.TuplerInstances.Aux">shapeless.ops.hlist.Tupler.Aux</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HD">HD</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PD">PD</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PT">PT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PD">PD</span>]</span>
+        <span class="name">productTensorToDataTypeConstructor</span><span class="tparams">[<span name="PT">PT &lt;: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a></span>, <span name="PD">PD &lt;: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a></span>, <span name="HT">HT &lt;: <span class="extype" name="shapeless.HList">HList</span></span>, <span name="HD">HD &lt;: <span class="extype" name="shapeless.HList">HList</span></span>]</span><span class="params">(<span class="implicit">implicit </span><span name="genO">genO: <span class="extype" name="shapeless.Generic.Aux">shapeless.Generic.Aux</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PT">PT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HT">HT</span>]</span>, <span name="evH">evH: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HT">HT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HD">HD</span>]</span>, <span name="tuplerT">tuplerT: <span class="extype" name="shapeless.ops.TuplerInstances.Aux">shapeless.ops.hlist.Tupler.Aux</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.HD">HD</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PD">PD</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PT">PT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.productTensorToDataTypeConstructor.PD">PD</span>]</span>
       </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#recursiveTensorToDataTypeConstructor" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="recursiveTensorToDataTypeConstructor[HT,HD,TT&lt;:shapeless.HList,TD&lt;:shapeless.HList](implicitevHead:shapeless.Lazy[org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD]],implicitevTail:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[TT,TD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT::TT,HD::TD]"></a><a id="recursiveTensorToDataTypeConstructor[HT,HD,TT&lt;:HList,TD&lt;:HList](Lazy[Aux[HT,HD]],Aux[TT,TD]):Aux[::[HT,TT],::[HD,TD]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#recursiveTensorToDataTypeConstructor[HT,HD,TT&lt;:shapeless.HList,TD&lt;:shapeless.HList](implicitevHead:shapeless.Lazy[org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD]],implicitevTail:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[TT,TD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT::TT,HD::TD]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@productTensorToDataTypeConstructor[PT&lt;:Product,PD&lt;:Product,HT&lt;:shapeless.HList,HD&lt;:shapeless.HList](implicitgenO:shapeless.Generic.Aux[PT,HT],implicitevH:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD],implicittuplerT:shapeless.ops.hlist.Tupler.Aux[HD,PD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[PT,PD]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#recursiveTensorToDataTypeConstructor" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="recursiveTensorToDataTypeConstructor[HT,HD,TT&lt;:shapeless.HList,TD&lt;:shapeless.HList](implicitevHead:shapeless.Lazy[org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD]],implicitevTail:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[TT,TD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[shapeless.::[HT,TT],shapeless.::[HD,TD]]"></a>
+      <a id="recursiveTensorToDataTypeConstructor[HT,HD,TT&lt;:HList,TD&lt;:HList](Lazy[Aux[HT,HD]],Aux[TT,TD]):Aux[::[HT,TT],::[HD,TD]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">def</span>
@@ -615,31 +445,33 @@
       <span class="symbol">
         <span class="name">recursiveTensorToDataTypeConstructor</span><span class="tparams">[<span name="HT">HT</span>, <span name="HD">HD</span>, <span name="TT">TT &lt;: <span class="extype" name="shapeless.HList">HList</span></span>, <span name="TD">TD &lt;: <span class="extype" name="shapeless.HList">HList</span></span>]</span><span class="params">(<span class="implicit">implicit </span><span name="evHead">evHead: <span class="extype" name="shapeless.Lazy">Lazy</span>[<a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.HT">HT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.HD">HD</span>]]</span>, <span name="evTail">evTail: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.TT">TT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.TD">TD</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="shapeless.::">::</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.HT">HT</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.TT">TT</span>], <span class="extype" name="shapeless.::">::</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.HD">HD</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.recursiveTensorToDataTypeConstructor.TD">TD</span>]]</span>
       </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#seqTensorToDataType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="seqTensorToDataType[T,D,CC[A]&lt;:scala.collection.SeqLike[A,CC[A]]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[T],CC[D]]"></a><a id="seqTensorToDataType[T,D,CC[A]&lt;:SeqLike[A,CC[A]]](Aux[T,D]):Aux[CC[T],CC[D]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#seqTensorToDataType[T,D,CC[A]&lt;:scala.collection.SeqLike[A,CC[A]]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[T],CC[D]]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@recursiveTensorToDataTypeConstructor[HT,HD,TT&lt;:shapeless.HList,TD&lt;:shapeless.HList](implicitevHead:shapeless.Lazy[org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[HT,HD]],implicitevTail:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[TT,TD]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[shapeless.::[HT,TT],shapeless.::[HD,TD]]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#seqTensorToDataType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="seqTensorToDataType[T,D,CC[A]&lt;:scala.collection.SeqLike[A,CC[A]]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[T],CC[D]]"></a>
+      <a id="seqTensorToDataType[T,D,CC[A]&lt;:SeqLike[A,CC[A]]](Aux[T,D]):Aux[CC[T],CC[D]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">seqTensorToDataType</span><span class="tparams">[<span name="T">T</span>, <span name="D">D</span>, <span name="CC">CC<span class="tparams">[<span name="A">A</span>]</span> &lt;: <a href="http://www.scala-lang.org/api/2.12.6/scala/collection/SeqLike.html#scala.collection.SeqLike" class="extype" name="scala.collection.SeqLike">SeqLike</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC.A">A</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC.A">A</span>]]</span>]</span><span class="params">(<span class="implicit">implicit </span><span name="ev">ev: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.D">D</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.T">T</span>], <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.D">D</span>]]</span>
+        <span class="name">seqTensorToDataType</span><span class="tparams">[<span name="T">T</span>, <span name="D">D</span>, <span name="CC">CC<span class="tparams">[<span name="A">A</span>]</span> &lt;: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.collection.SeqLike" class="extype" target="_top">SeqLike</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC.A">A</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC.A">A</span>]]</span>]</span><span class="params">(<span class="implicit">implicit </span><span name="ev">ev: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.T">T</span>, <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.D">D</span>]</span>)</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.T">T</span>], <span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.CC">CC</span>[<span class="extype" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.seqTensorToDataType.D">D</span>]]</span>
       </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#sparseTensorToDataType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="sparseTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.SparseTensor,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]"></a><a id="sparseTensorToDataType:Aux[SparseTensor,(types.DataType,types.DataType,types.DataType)]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#sparseTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.SparseTensor,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@seqTensorToDataType[T,D,CC[A]&lt;:scala.collection.SeqLike[A,CC[A]]](implicitev:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[T,D]):org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[CC[T],CC[D]]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#sparseTensorToDataType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="sparseTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.SparseTensor,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]"></a>
+      <a id="sparseTensorToDataType:Aux[SparseTensor,(types.DataType,types.DataType,types.DataType)]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">val</span>
@@ -647,15 +479,16 @@
       <span class="symbol">
         <span class="name">sparseTensorToDataType</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<a href="../../tensors/SparseTensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.SparseTensor">SparseTensor</a>, (<a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>, <a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>, <a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>)]</span>
       </span>
-      
-      
-    </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@sparseTensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.SparseTensor,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="scala.AnyRef#synchronized" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a>
+      <a id="synchronized[T0](⇒T0):T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -663,15 +496,16 @@
       <span class="symbol">
         <span class="name">synchronized</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="params">(<span name="arg0">arg0: ⇒ <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>)</span><span class="result">: <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#tensorIndexedSlicesToDataType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="tensorIndexedSlicesToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.TensorIndexedSlices,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]"></a><a id="tensorIndexedSlicesToDataType:Aux[TensorIndexedSlices,(types.DataType,types.DataType,types.DataType)]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#tensorIndexedSlicesToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.TensorIndexedSlices,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@synchronized[T0](x$1:=&gt;T0):T0" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#tensorIndexedSlicesToDataType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="tensorIndexedSlicesToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.TensorIndexedSlices,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]"></a>
+      <a id="tensorIndexedSlicesToDataType:Aux[TensorIndexedSlices,(types.DataType,types.DataType,types.DataType)]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">val</span>
@@ -679,15 +513,16 @@
       <span class="symbol">
         <span class="name">tensorIndexedSlicesToDataType</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<a href="../../tensors/TensorIndexedSlices.html" class="extype" name="org.platanios.tensorflow.api.tensors.TensorIndexedSlices">TensorIndexedSlices</a>, (<a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>, <a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>, <a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>)]</span>
       </span>
-      
-      
-    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#tensorToDataType" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="tensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.Tensor,org.platanios.tensorflow.api.types.DataType]"></a><a id="tensorToDataType:Aux[tensors.Tensor,types.DataType]"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#tensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.Tensor,org.platanios.tensorflow.api.types.DataType]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@tensorIndexedSlicesToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.TensorIndexedSlices,(org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType,org.platanios.tensorflow.api.types.DataType)]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType#tensorToDataType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="tensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.Tensor,org.platanios.tensorflow.api.types.DataType]"></a>
+      <a id="tensorToDataType:Aux[tensors.Tensor,types.DataType]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">implicit </span>
         <span class="kind">val</span>
@@ -695,15 +530,16 @@
       <span class="symbol">
         <span class="name">tensorToDataType</span><span class="result">: <a href="#Aux[T,D]=org.platanios.tensorflow.api.implicits.helpers.TensorToDataType[T]{typeDataTypeType=D}" class="extmbr" name="org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux">Aux</a>[<a href="../../tensors/Tensor.html" class="extype" name="org.platanios.tensorflow.api.tensors.Tensor">tensors.Tensor</a>, <a href="../../types/DataType.html" class="extype" name="org.platanios.tensorflow.api.types.DataType">types.DataType</a>]</span>
       </span>
-      
-      
-    </li><li name="scala.AnyRef#toString" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="toString():String"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#toString():String" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@tensorToDataType:org.platanios.tensorflow.api.implicits.helpers.TensorToDataType.Aux[org.platanios.tensorflow.api.tensors.Tensor,org.platanios.tensorflow.api.types.DataType]" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="scala.AnyRef#toString" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="toString():String"></a>
+      <a id="toString():String"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -711,23 +547,28 @@
       <span class="symbol">
         <span class="name">toString</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.String">String</span></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@toString():String" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#wait():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@wait():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -735,21 +576,22 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long,x$2:Int):Unit"></a>
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@wait(x$1:Long,x$2:Int):Unit" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -757,32 +599,30 @@
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long):Unit"></a><a id="wait(Long):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/implicits/helpers/TensorToDataType$.html#wait(x$1:Long):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long):Unit"></a>
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.implicits.helpers.TensorToDataType$@wait(x$1:Long):Unit" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li>
-              </ol>
+    </li></ol>
             </div>
 
         
@@ -792,9 +632,9 @@
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></h3>
             </div>
         
         </div>
@@ -811,9 +651,7 @@
       <div id="tooltip"></div>
 
       <div id="footer">  </div>
-    </body>
-          </div>
-        </div>
-      </div>
+
+
     </body>
       </html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html >
+<html>
+        <head>
+          <title>examples - org.platanios.tensorflow.examples</title>
+          <meta name="description" content="examples - org.platanios.tensorflow.examples" />
+          <meta name="keywords" content="examples org.platanios.tensorflow.examples" />
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
+      <link href="../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript" src="../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../lib/tools.tooltip.js"></script>
+      
+      <script type="text/javascript">
+         if(top === self) {
+            var url = '../../../../index.html';
+            var hash = 'org.platanios.tensorflow.examples.package';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img alt="Package" src="../../../../lib/package_big.png" />
+        <p id="owner"><a href="../../../package.html" class="extype" name="org">org</a>.<a href="../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a></p>
+        <h1>examples</h1><span class="permalink">
+      <a href="../../../../index.html#org.platanios.tensorflow.examples.package" title="Permalink" target="_top">
+        <img src="../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      </div>
+
+      <h4 id="signature" class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <span class="name">examples</span>
+      </span>
+      </h4>
+      
+          <div id="comment" class="fullcommenttop"></div>
+        
+
+      <div id="mbrsel">
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        
+        
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
+      </div>
+
+      <div id="template">
+        <div id="allMembers">
+        
+
+        <div id="types" class="types members">
+              <h3>Type Members</h3>
+              <ol><li name="org.platanios.tensorflow.examples.DummyAccuracy" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="DummyAccuracyextendsMetric[(org.platanios.tensorflow.api.Output,(org.platanios.tensorflow.api.Output,org.platanios.tensorflow.api.Output)),org.platanios.tensorflow.api.Output]withProductwithSerializable"></a>
+      <a id="DummyAccuracy:DummyAccuracy"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="DummyAccuracy.html"><span class="name">DummyAccuracy</span></a><span class="params">(<span name="variablesCollections">variablesCollections: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../api/core/Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../api/package.html#Variable=org.platanios.tensorflow.api.ops.variables.Variable" class="extmbr" name="org.platanios.tensorflow.api.Variable">Variable</a>]] = <span class="symbol"><span class="name"><a href="../../../package.html">Set(METRIC_VARIABLES)</a></span></span></span>, <span name="valuesCollections">valuesCollections: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../api/core/Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../api/package.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.Output">Output</a>]] = <span class="symbol"><span class="name"><a href="../../../package.html">Set(METRIC_VALUES)</a></span></span></span>, <span name="updatesCollections">updatesCollections: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../api/core/Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../api/package.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.Output">Output</a>]] = <span class="symbol"><span class="name"><a href="../../../package.html">Set(METRIC_UPDATES)</a></span></span></span>, <span name="resetsCollections">resetsCollections: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../api/core/Graph$$Key.html" class="extype" name="org.platanios.tensorflow.api.core.Graph.Key">Key</a>[<a href="../api/package.html#Op=org.platanios.tensorflow.api.ops.Op" class="extmbr" name="org.platanios.tensorflow.api.Op">Op</a>]] = <span class="symbol"><span class="name"><a href="../../../package.html">Set(METRIC_RESETS)</a></span></span></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;Accuracy&quot;</span></span>)</span><span class="result"> extends <a href="../api/ops/metrics/Metric.html" class="extype" name="org.platanios.tensorflow.api.ops.metrics.Metric">Metric</a>[(<a href="../api/package.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.Output">Output</a>, (<a href="../api/package.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.Output">Output</a>, <a href="../api/package.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.Output">Output</a>)), <a href="../api/package.html#Output=org.platanios.tensorflow.api.ops.Output" class="extmbr" name="org.platanios.tensorflow.api.Output">Output</a>] with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../index.html#org.platanios.tensorflow.examples.package@DummyAccuracyextendsMetric[(org.platanios.tensorflow.api.Output,(org.platanios.tensorflow.api.Output,org.platanios.tensorflow.api.Output)),org.platanios.tensorflow.api.Output]withProductwithSerializable" title="Permalink" target="_top">
+        <img src="../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      
+    </li></ol>
+            </div>
+
+        
+
+        <div id="values" class="values members">
+              <h3>Value Members</h3>
+              <ol><li name="org.platanios.tensorflow.examples.CIFAR" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="CIFAR"></a>
+      <a id="CIFAR:CIFAR"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="CIFAR$.html"><span class="name">CIFAR</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../index.html#org.platanios.tensorflow.examples.package@CIFAR" title="Permalink" target="_top">
+        <img src="../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li><li name="org.platanios.tensorflow.examples.LinearRegression" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="LinearRegression"></a>
+      <a id="LinearRegression:LinearRegression"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="LinearRegression$.html"><span class="name">LinearRegression</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../index.html#org.platanios.tensorflow.examples.package@LinearRegression" title="Permalink" target="_top">
+        <img src="../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li><li name="org.platanios.tensorflow.examples.MNIST" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="MNIST"></a>
+      <a id="MNIST:MNIST"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="MNIST$.html"><span class="name">MNIST</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../index.html#org.platanios.tensorflow.examples.package@MNIST" title="Permalink" target="_top">
+        <img src="../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li><li name="org.platanios.tensorflow.examples.RNNTutorialUsingPTB" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="RNNTutorialUsingPTB"></a>
+      <a id="RNNTutorialUsingPTB:RNNTutorialUsingPTB"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="RNNTutorialUsingPTB$.html"><span class="name">RNNTutorialUsingPTB</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../index.html#org.platanios.tensorflow.examples.package@RNNTutorialUsingPTB" title="Permalink" target="_top">
+        <img src="../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li><li name="org.platanios.tensorflow.examples.STL10" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="STL10"></a>
+      <a id="STL10:STL10"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="STL10$.html"><span class="name">STL10</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../index.html#org.platanios.tensorflow.examples.package@STL10" title="Permalink" target="_top">
+        <img src="../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt"></p>
+    </li></ol>
+            </div>
+
+        
+
+        
+        </div>
+
+        <div id="inheritedMembers">
+        
+        
+        </div>
+
+        <div id="groupedMembers">
+        <div class="group" name="Ungrouped">
+              <h3>Ungrouped</h3>
+              
+            </div>
+        </div>
+
+      </div>
+
+      <div id="tooltip"></div>
+
+      <div id="footer">  </div>
+
+
+    </body>
+      </html>

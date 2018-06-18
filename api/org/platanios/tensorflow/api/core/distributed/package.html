@@ -1,0 +1,210 @@
+<!DOCTYPE html >
+<html>
+        <head>
+          <title>distributed - org.platanios.tensorflow.api.core.distributed</title>
+          <meta name="description" content="distributed - org.platanios.tensorflow.api.core.distributed" />
+          <meta name="keywords" content="distributed org.platanios.tensorflow.api.core.distributed" />
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
+      <link href="../../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript" src="../../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/tools.tooltip.js"></script>
+      
+      <script type="text/javascript">
+         if(top === self) {
+            var url = '../../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.core.distributed.package';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img alt="Package" src="../../../../../../lib/package_big.png" />
+        <p id="owner"><a href="../../../../../package.html" class="extype" name="org">org</a>.<a href="../../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api.core">core</a></p>
+        <h1>distributed</h1><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.core.distributed.package" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      </div>
+
+      <h4 id="signature" class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <span class="name">distributed</span>
+      </span>
+      </h4>
+      
+          <div id="comment" class="fullcommenttop"></div>
+        
+
+      <div id="mbrsel">
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        
+        
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
+      </div>
+
+      <div id="template">
+        <div id="allMembers">
+        
+
+        <div id="types" class="types members">
+              <h3>Type Members</h3>
+              <ol><li name="org.platanios.tensorflow.api.core.distributed.Protocol" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="ProtocolextendsAnyRef"></a>
+      <a id="Protocol:Protocol"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">sealed </span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="Protocol.html"><span class="name">Protocol</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.core.distributed.package@ProtocolextendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Trait used to represented supported communication protocols for <a href="Server.html" class="extype" name="org.platanios.tensorflow.api.core.distributed.Server">Server</a>s.</p>
+    </li><li name="org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="ReplicaDevicePlacerextendsAnyRef"></a>
+      <a id="ReplicaDevicePlacer:ReplicaDevicePlacer"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="ReplicaDevicePlacer.html"><span class="name">ReplicaDevicePlacer</span></a><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.core.distributed.package@ReplicaDevicePlacerextendsAnyRef" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Device placement strategy to use in a replicated training setup.</p>
+    </li><li name="org.platanios.tensorflow.api.core.distributed.Server" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="ServerextendsProto.SerializablewithCloseable"></a>
+      <a id="Server:Server"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="Server.html"><span class="name">Server</span></a><span class="result"> extends <a href="../../utilities/Proto$$Serializable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Proto.Serializable">Serializable</a> with <a href="../../utilities/package$$Closeable.html" class="extype" name="org.platanios.tensorflow.api.utilities.Closeable">utilities.Closeable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.core.distributed.package@ServerextendsProto.SerializablewithCloseable" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">In-process TensorFlow server, for use in distributed training.</p><div class="fullcomment"><div class="comment cmt"><p>In-process TensorFlow server, for use in distributed training.</p><p>A <a href="Server.html" class="extype" name="org.platanios.tensorflow.api.core.distributed.Server">Server</a> instance encapsulates a set of devices along with a <a href="../../package.html#Session=org.platanios.tensorflow.api.core.client.Session" class="extmbr" name="org.platanios.tensorflow.api.Session">Session</a> target, that can participate in
+distributed training. A server belongs to a cluster (specified by a <span class="extype" name="ClusterConfig">ClusterConfig</span> when creating the server), and
+corresponds to a particular task in a named job. The server can communicate with any other server in the same
+cluster.
+</p></div></div>
+    </li></ol>
+            </div>
+
+        
+
+        <div id="values" class="values members">
+              <h3>Value Members</h3>
+              <ol><li name="org.platanios.tensorflow.api.core.distributed.GRPC" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="GRPC"></a>
+      <a id="GRPC:GRPC"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="GRPC$.html"><span class="name">GRPC</span></a><span class="result"> extends <a href="Protocol.html" class="extype" name="org.platanios.tensorflow.api.core.distributed.Protocol">Protocol</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Product" class="extype" target="_top">Product</a> with <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Serializable" class="extype" target="_top">Serializable</a></span>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.core.distributed.package@GRPC" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">GRPC communication protocol.</p>
+    </li><li name="org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="ReplicaDevicePlacer"></a>
+      <a id="ReplicaDevicePlacer:ReplicaDevicePlacer"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="ReplicaDevicePlacer$.html"><span class="name">ReplicaDevicePlacer</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.core.distributed.package@ReplicaDevicePlacer" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Contains helper methods for dealing with <a href="ReplicaDevicePlacer.html" class="extype" name="org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer">ReplicaDevicePlacer</a>s.</p>
+    </li><li name="org.platanios.tensorflow.api.core.distributed.Server" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="Server"></a>
+      <a id="Server:Server"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="Server$.html"><span class="name">Server</span></a>
+      </span>
+      </h4><span class="permalink">
+      <a href="../../../../../../index.html#org.platanios.tensorflow.api.core.distributed.package@Server" title="Permalink" target="_top">
+        <img src="../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <p class="shortcomment cmt">Contains helper methods for creating <a href="Server.html" class="extype" name="org.platanios.tensorflow.api.core.distributed.Server">Server</a>s.</p>
+    </li></ol>
+            </div>
+
+        
+
+        
+        </div>
+
+        <div id="inheritedMembers">
+        
+        
+        </div>
+
+        <div id="groupedMembers">
+        <div class="group" name="Ungrouped">
+              <h3>Ungrouped</h3>
+              
+            </div>
+        </div>
+
+      </div>
+
+      <div id="tooltip"></div>
+
+      <div id="footer">  </div>
+
+
+    </body>
+      </html>

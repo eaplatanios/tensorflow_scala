@@ -1,241 +1,42 @@
 <!DOCTYPE html >
 <html>
         <head>
-          <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-          <title></title>
-          <meta name="description" content="" />
-          <meta name="keywords" content="" />
+          <title>DistributionStrategy - org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy</title>
+          <meta name="description" content="DistributionStrategy - org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy" />
+          <meta name="keywords" content="DistributionStrategy org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy" />
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
-      <link href="../../../../../../../../lib/index.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
       <link href="../../../../../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
-      <script type="text/javascript" src="../../../../../../../../lib/jquery.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/jquery.panzoom.min.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/jquery.mousewheel.min.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/index.js"></script>
-      <script type="text/javascript" src="../../../../../../../../index.js"></script>
-      <script type="text/javascript" src="../../../../../../../../lib/scheduler.js"></script>
+      <script type="text/javascript" src="../../../../../../../../lib/jquery.js" id="jquery-js"></script>
+      <script type="text/javascript" src="../../../../../../../../lib/jquery-ui.js"></script>
       <script type="text/javascript" src="../../../../../../../../lib/template.js"></script>
       <script type="text/javascript" src="../../../../../../../../lib/tools.tooltip.js"></script>
       
       <script type="text/javascript">
-        /* this variable can be used by the JS to determine the path to the root document */
-        var toRoot = '../../../../../../../../';
-      </script>
+         if(top === self) {
+            var url = '../../../../../../../../index.html';
+            var hash = 'org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
     
         </head>
-        <body>
-      <div id="search">
-        <span id="doc-title"><span id="doc-version"></span></span>
-        <span class="close-results"><span class="left">&lt;</span> Back</span>
-        <div id="textfilter">
-          <span class="input">
-            <input autocapitalize="none" placeholder="Search" id="index-input" type="text" accesskey="/" />
-            <i class="clear material-icons"></i>
-            <i id="search-icon" class="material-icons"></i>
-          </span>
-        </div>
-    </div>
-      <div id="search-results">
-        <div id="search-progress">
-          <div id="progress-fill"></div>
-        </div>
-        <div id="results-content">
-          <div id="entity-results"></div>
-          <div id="member-results"></div>
-        </div>
-      </div>
-      <div id="content-scroll-container" style="-webkit-overflow-scrolling: touch;">
-        <div id="content-container" style="-webkit-overflow-scrolling: touch;">
-          <div id="subpackage-spacer">
-            <div id="packages">
-              <h1>Packages</h1>
-              <ul>
-                <li name="_root_.root" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="_root_"></a><a id="root:_root_"></a>
-      <span class="permalink">
-      <a href="index.html#_root_" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../../../../index.html"><span class="name">root</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="_root_.org" visbl="pub" class="indented1 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="org"></a><a id="org:org"></a>
-      <span class="permalink">
-      <a href="index.html#org" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../../../index.html"><span class="name">org</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../../../index.html" class="extype" name="_root_">root</a></dd></dl></div>
-    </li><li name="org.platanios" visbl="pub" class="indented2 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="platanios"></a><a id="platanios:platanios"></a>
-      <span class="permalink">
-      <a href="../org/index.html#platanios" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../../index.html"><span class="name">platanios</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../../index.html" class="extype" name="org">org</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow" visbl="pub" class="indented3 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="tensorflow"></a><a id="tensorflow:tensorflow"></a>
-      <span class="permalink">
-      <a href="../../org/platanios/index.html#tensorflow" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../../index.html"><span class="name">tensorflow</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../../index.html" class="extype" name="org.platanios">platanios</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api" visbl="pub" class="indented4 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="api"></a><a id="api:api"></a>
-      <span class="permalink">
-      <a href="../../../org/platanios/tensorflow/index.html#api" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../../index.html"><span class="name">api</span></a>
-      </span>
-      
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops" visbl="pub" class="indented5 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="ops"></a><a id="ops:ops"></a>
-      <span class="permalink">
-      <a href="../../../../org/platanios/tensorflow/api/index.html#ops" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../../index.html"><span class="name">ops</span></a>
-      </span>
-      
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../../index.html" class="extype" name="org.platanios.tensorflow.api">api</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training" visbl="pub" class="indented6 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="training"></a><a id="training:training"></a>
-      <span class="permalink">
-      <a href="../../../../../org/platanios/tensorflow/api/ops/index.html#training" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../../index.html"><span class="name">training</span></a>
-      </span>
-      
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../../index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute" visbl="pub" class="indented7 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="distribute"></a><a id="distribute:distribute"></a>
-      <span class="permalink">
-      <a href="../../../../../../org/platanios/tensorflow/api/ops/training/index.html#distribute" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="../index.html"><span class="name">distribute</span></a>
-      </span>
-      
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../../index.html" class="extype" name="org.platanios.tensorflow.api.ops.training">training</a></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies" visbl="pub" class="indented8 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="strategies"></a><a id="strategies:strategies"></a>
-      <span class="permalink">
-      <a href="../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/index.html#strategies" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">package</span>
-      </span>
-      <span class="symbol">
-        <a title="" href="index.html"><span class="name">strategies</span></a>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute">distribute</a></dd></dl></div>
-    </li><li class="current-entities indented8">
-                        <span class="separator"></span>
-                        <a class="class" href="CrossTowerContext.html" title="Represents a cross-tower context (as opposed to an in-tower context)."></a>
-                        <a href="CrossTowerContext.html" title="Represents a cross-tower context (as opposed to an in-tower context).">CrossTowerContext</a>
-                      </li><li class="current-entities indented8">
-                        <span class="separator"></span>
-                        <a class="class" href="DefaultStrategy.html" title=""></a>
-                        <a href="DefaultStrategy.html" title="">DefaultStrategy</a>
-                      </li><li class="current-entities indented8">
-                        <span class="separator"></span>
-                        <a class="trait" href="DistributionContext.html" title="Represents a distribution context (e.g., in-tower or cross-tower)."></a>
-                        <a href="DistributionContext.html" title="Represents a distribution context (e.g., in-tower or cross-tower).">DistributionContext</a>
-                      </li><li class="current-entities indented8">
-                        <span class="separator"></span>
-                        <a class="class" href="" title="Represents a list of devices with a state and a compute distribution policy."></a>
-                        <a href="" title="Represents a list of devices with a state and a compute distribution policy.">DistributionStrategy</a>
-                      </li><li class="current-entities indented8">
-                        <span class="separator"></span>
-                        <a class="class" href="InTowerContext.html" title="Represents an in-tower context (as opposed to a cross-tower context)."></a>
-                        <a href="InTowerContext.html" title="Represents an in-tower context (as opposed to a cross-tower context).">InTowerContext</a>
-                      </li><li class="current-entities indented8">
-                        <span class="separator"></span>
-                        <a class="class" href="MirroredStrategy.html" title=""></a>
-                        <a href="MirroredStrategy.html" title="">MirroredStrategy</a>
-                      </li>
-              </ul>
-            </div>
-          </div>
-          <div id="content">
-            <body class="class type">
+        <body class="type">
       <div id="definition">
-        <div class="big-circle class">c</div>
-        <p id="owner"><a href="../../../../../../../index.html" class="extype" name="org">org</a>.<a href="../../../../../../index.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../../../index.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../../../index.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../../../index.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a>.<a href="../../index.html" class="extype" name="org.platanios.tensorflow.api.ops.training">training</a>.<a href="../index.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute">distribute</a>.<a href="index.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies">strategies</a></p>
-        <h1>DistributionStrategy<span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html" title="Permalink">
-        <i class="material-icons"></i>
+        <img alt="Class" src="../../../../../../../../lib/class_big.png" />
+        <p id="owner"><a href="../../../../../../../package.html" class="extype" name="org">org</a>.<a href="../../../../../../package.html" class="extype" name="org.platanios">platanios</a>.<a href="../../../../../package.html" class="extype" name="org.platanios.tensorflow">tensorflow</a>.<a href="../../../../package.html" class="extype" name="org.platanios.tensorflow.api">api</a>.<a href="../../../package.html" class="extype" name="org.platanios.tensorflow.api.ops">ops</a>.<a href="../../package.html" class="extype" name="org.platanios.tensorflow.api.ops.training">training</a>.<a href="../package.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute">distribute</a>.<a href="package.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies">strategies</a></p>
+        <h1>DistributionStrategy</h1><h3><span class="morelinks"><div>Related Doc:
+            <a href="package.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies">package strategies</a>
+          </div></span></h3><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
-    </span></h1>
-        <h3><span class="morelinks"></span></h3>
+    </span>
       </div>
 
       <h4 id="signature" class="signature">
@@ -244,10 +45,9 @@
         <span class="kind">class</span>
       </span>
       <span class="symbol">
-        <span class="name">DistributionStrategy</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>
+        <span class="name">DistributionStrategy</span><span class="result"> extends <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
       </span>
       </h4>
-
       
           <div id="comment" class="fullcommenttop"><div class="comment cmt"><p>Represents a list of devices with a state and a compute distribution policy.</p><p>The intent is that you can write an algorithm in a stylized way and it will be usable with a variety of different
 <code>DistributionStrategy</code> implementations. Each descendant will implement a different strategy for distributing the
@@ -323,67 +123,51 @@ you can use <code>reduce()</code> (or <code>batchReduce()</code>) and then optio
 of <code>TowerContext</code> and <code>DistributionStrategy</code>. Or you can use the <code>currentTowerContext.isSingleTower</code> property to run
 different code in the distributed vs. single tower cases.
 </p></div><dl class="attributes block"> <dt>Source</dt><dd><a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/api/src/main/scala/org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.scala" target="_blank">DistributionStrategy.scala</a></dd></dl><div class="toggleContainer block">
-          <span class="toggle">
-            Linear Supertypes
-          </span>
-          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></div>
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></div>
         </div><div class="toggleContainer block">
-            <span class="toggle">
-              Known Subclasses
-            </span>
+            <span class="toggle">Known Subclasses</span>
             <div class="subClasses hiddenContent"><a href="DefaultStrategy.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DefaultStrategy">DefaultStrategy</a>, <a href="MirroredStrategy.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.MirroredStrategy">MirroredStrategy</a></div>
           </div></div>
         
 
       <div id="mbrsel">
-        <div class="toggle"></div>
-        <div id="memberfilter">
-          <i class="material-icons arrow"></i>
-          <span class="input">
-            <input id="mbrsel-input" placeholder="Filter all members" type="text" accesskey="/" />
-          </span>
-          <i class="clear material-icons"></i>
-        </div>
-        <div id="filterby">
-          <div id="order">
-            <span class="filtertype">Ordering</span>
-            <ol>
-              
-              <li class="alpha in"><span>Alphabetic</span></li>
-              <li class="inherit out"><span>By Inheritance</span></li>
-            </ol>
-          </div>
-          <div class="ancestors">
-                  <span class="filtertype">Inherited<br />
-                  </span>
-                  <ol id="linearization">
-                    <li class="in" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy"><span>DistributionStrategy</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
-                  </ol>
-                </div><div class="ancestors">
-              <span class="filtertype"></span>
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        <div id="order">
+              <span class="filtertype">Ordering</span>
               <ol>
-                <li class="hideall out"><span>Hide All</span></li>
-                <li class="showall in"><span>Show All</span></li>
+                
+                <li class="alpha in"><span>Alphabetic</span></li>
+                <li class="inherit out"><span>By Inheritance</span></li>
               </ol>
             </div>
-          <div id="visbl">
-              <span class="filtertype">Visibility</span>
-              <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
-            </div>
-        </div>
+        <div id="ancestors">
+                <span class="filtertype">Inherited<br />
+                </span>
+                <ol id="linearization">
+                  <li class="in" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy"><span>DistributionStrategy</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                </ol>
+              </div><div id="ancestors">
+            <span class="filtertype"></span>
+            <ol>
+              <li class="hideall out"><span>Hide All</span></li>
+              <li class="showall in"><span>Show All</span></li>
+            </ol>
+          </div>
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
       </div>
 
       <div id="template">
         <div id="allMembers">
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
-              <ol><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="&lt;init&gt;():org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy"></a><a id="&lt;init&gt;:DistributionStrategy"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#&lt;init&gt;():org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#&lt;init&gt;" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="&lt;init&gt;():org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy"></a>
+      <a id="&lt;init&gt;:DistributionStrategy"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">new</span>
@@ -391,22 +175,23 @@ different code in the distributed vs. single tower cases.
       <span class="symbol">
         <span class="name">DistributionStrategy</span><span class="params">()</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@&lt;init&gt;():org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       
     </li></ol>
             </div>
 
         
 
-        <div class="values members">
+        <div id="values" class="values members">
               <h3>Abstract Value Members</h3>
-              <ol><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#broadcast" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="broadcast[O&lt;:org.platanios.tensorflow.api.ops.OutputLike](value:O,devices:Seq[org.platanios.tensorflow.api.core.DeviceSpecification])(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[O]"></a><a id="broadcast[O&lt;:OutputLike](O,Seq[DeviceSpecification])(CrossTowerContext):MirroredValue[O]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#broadcast[O&lt;:org.platanios.tensorflow.api.ops.OutputLike](value:O,devices:Seq[org.platanios.tensorflow.api.core.DeviceSpecification])(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[O]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#broadcast" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="broadcast[O&lt;:org.platanios.tensorflow.api.ops.OutputLike](value:O,devices:Seq[org.platanios.tensorflow.api.core.DeviceSpecification])(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[O]"></a>
+      <a id="broadcast[O&lt;:OutputLike](O,Seq[DeviceSpecification])(CrossTowerContext):MirroredValue[O]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -414,16 +199,17 @@ different code in the distributed vs. single tower cases.
       <span class="symbol">
         <span class="name">broadcast</span><span class="tparams">[<span name="O">O &lt;: <a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a></span>]</span><span class="params">(<span name="value">value: <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.broadcast.O">O</span></span>, <span name="devices">devices: <span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="org.platanios.tensorflow.api.core.DeviceSpecification">DeviceSpecification</span>] = <span class="symbol">Seq.empty</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <a href="../values/MirroredValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue">MirroredValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.broadcast.O">O</span>]</span>
       </span>
-      
-      <p class="shortcomment cmt">Mirrors <code>value</code> to all worker devices.</p><div class="fullcomment"><div class="comment cmt"><p>Mirrors <code>value</code> to all worker devices.
-</p></div><dl class="paramcmts block"><dt class="param">value</dt><dd class="cmt"><p>Value to broadcast.</p></dd><dt class="param">devices</dt><dd class="cmt"><p>Destination devices.</p></dd><dt>returns</dt><dd class="cmt"><p>Mirrored value.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#createVariable" visbl="prt" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="createVariable:org.platanios.tensorflow.api.ops.training.distribute.ColocatedVariableGetter"></a><a id="createVariable:ColocatedVariableGetter"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#createVariable:org.platanios.tensorflow.api.ops.training.distribute.ColocatedVariableGetter" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@broadcast[O&lt;:org.platanios.tensorflow.api.ops.OutputLike](value:O,devices:Seq[org.platanios.tensorflow.api.core.DeviceSpecification])(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[O]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Mirrors <code>value</code> to all worker devices.</p><div class="fullcomment"><div class="comment cmt"><p>Mirrors <code>value</code> to all worker devices.
+</p></div><dl class="paramcmts block"><dt class="param">value</dt><dd class="cmt"><p>Value to broadcast.</p></dd><dt class="param">devices</dt><dd class="cmt"><p>Destination devices.</p></dd><dt>returns</dt><dd class="cmt"><p>Mirrored value.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#createVariable" visbl="prt" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="createVariable:org.platanios.tensorflow.api.ops.training.distribute.ColocatedVariableGetter"></a>
+      <a id="createVariable:ColocatedVariableGetter"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -431,15 +217,16 @@ different code in the distributed vs. single tower cases.
       <span class="symbol">
         <span class="name">createVariable</span><span class="result">: <a href="../package$$ColocatedVariableGetter.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.ColocatedVariableGetter">ColocatedVariableGetter</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#fetch" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="fetch(variable:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedVariable,destination:String,fn:org.platanios.tensorflow.api.ops.Output=&gt;org.platanios.tensorflow.api.ops.Output)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Output"></a><a id="fetch(DistributedVariable,String,(Output)⇒Output)(CrossTowerContext):Output"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#fetch(variable:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedVariable,destination:String,fn:org.platanios.tensorflow.api.ops.Output=&gt;org.platanios.tensorflow.api.ops.Output)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Output" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@createVariable:org.platanios.tensorflow.api.ops.training.distribute.ColocatedVariableGetter" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#fetch" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="fetch(variable:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedVariable,destination:String,fn:org.platanios.tensorflow.api.ops.Output=&gt;org.platanios.tensorflow.api.ops.Output)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Output"></a>
+      <a id="fetch(DistributedVariable,String,(Output)⇒Output)(CrossTowerContext):Output"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -447,7 +234,11 @@ different code in the distributed vs. single tower cases.
       <span class="symbol">
         <span class="name">fetch</span><span class="params">(<span name="variable">variable: <a href="../values/DistributedVariable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.DistributedVariable">DistributedVariable</a></span>, <span name="destination">destination: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;/device:CPU:0&quot;</span></span>, <span name="fn">fn: (<a href="../../../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a>) ⇒ <a href="../../../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a> = <span class="symbol">(o: Output) =&gt; o</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <a href="../../../Output.html" class="extype" name="org.platanios.tensorflow.api.ops.Output">Output</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@fetch(variable:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedVariable,destination:String,fn:org.platanios.tensorflow.api.ops.Output=&gt;org.platanios.tensorflow.api.ops.Output)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Output" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Returns a copy of <code>fn(variable.value)</code> on <code>destination</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a copy of <code>fn(variable.value)</code> on <code>destination</code>. This is useful for getting a mirrored variable value onto
 a device. The method will attempt to avoid a copy by checking if the value is already on the destination device.
 </p></div><dl class="paramcmts block"><dt class="param">variable</dt><dd class="cmt"><p>Variable (which may be mirrored) to copy and fetch.</p></dd><dt class="param">destination</dt><dd class="cmt"><p>Device to copy the variable value to.</p></dd><dt class="param">fn</dt><dd class="cmt"><p>Optional function to apply to the value on the source device, before copying.</p></dd><dt>returns</dt><dd class="cmt"><p>Fetched value in <code>device</code>.</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
@@ -457,13 +248,10 @@ a device. The method will attempt to avoid a copy by checking if the value is al
     </span>)</span>
               
         </dd><dt>Exceptions thrown</dt><dd><span class="cmt"><p><span class="extype" name="InvalidArgumentException"><code>InvalidArgumentException</code></span> If there is an issue with the provided variable.</p></span></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#forEachTower" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="forEachTower[T,R](fn:Seq[T]=&gt;R,values:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T]])(implicitevidence$1:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):R"></a><a id="forEachTower[T,R]((Seq[T])⇒R,Seq[DistributedValue[T]])(Distributable[T],CrossTowerContext):R"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#forEachTower[T,R](fn:Seq[T]=&gt;R,values:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T]])(implicitevidence$1:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):R" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#forEachTower" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="forEachTower[T,R](fn:Seq[T]=&gt;R,values:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T]])(implicitevidence$1:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):R"></a>
+      <a id="forEachTower[T,R]((Seq[T])⇒R,Seq[DistributedValue[T]])(Distributable[T],CrossTowerContext):R"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -471,7 +259,11 @@ a device. The method will attempt to avoid a copy by checking if the value is al
       <span class="symbol">
         <span class="name">forEachTower</span><span class="tparams">[<span name="T">T</span>, <span name="R">R</span>]</span><span class="params">(<span name="fn">fn: (<span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.forEachTower.T">T</span>]) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.forEachTower.R">R</span></span>, <span name="values">values: <span class="extype" name="scala.Seq">Seq</span>[<a href="../values/DistributedValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue">DistributedValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.forEachTower.T">T</span>]]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Distributable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Distributable">Distributable</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.forEachTower.T">T</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.forEachTower.R">R</span></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@forEachTower[T,R](fn:Seq[T]=&gt;R,values:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T]])(implicitevidence$1:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):R" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Runs <code>fn</code> once per tower.</p><div class="fullcomment"><div class="comment cmt"><p>Runs <code>fn</code> once per tower.</p><p><code>fn</code> may call <code>tf.currentTowerContext</code> to access fields and methods such as <code>towerID</code> and <code>mergeCall()</code>.
 <code>mergeCall()</code> is used to communicate between the towers and re-enter the cross-tower context. All towers pause
 their execution having encountered a <code>mergeCall()</code> call. After that the <code>mergeFn</code>-function is executed. Its
@@ -498,31 +290,29 @@ distributionStrategy.scope {
   <span class="cmt">// `mergedResults` has the values from every tower execution of `fn`.</span>
   <span class="kw">val</span> resultsList = distributionStrategy.unwrap(mergedResults)
 }</pre></div><dl class="paramcmts block"><dt class="param">fn</dt><dd class="cmt"><p>Function that will be run once per tower.</p></dd><dt class="param">values</dt><dd class="cmt"><p>Wrapped values that will be unwrapped when invoking <code>fn</code> on each tower.</p></dd><dt>returns</dt><dd class="cmt"><p>Merged return value of <code>fn</code> across all towers.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#isSingleTower" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#isSingleTower" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
       <a id="isSingleTower:Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#isSingleTower:Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="isSingleTower:Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">isSingleTower</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">isSingleTower</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@isSingleTower:Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Returns <code>true</code> if there is only a single tower, and <code>false</code>, otherwise.</p><div class="fullcomment"><div class="comment cmt"><p>Returns <code>true</code> if there is only a single tower, and <code>false</code>, otherwise.</p><p>If <code>true</code>, <code>forEachTower(fn)</code> will only call <code>fn</code> once.
 If <code>false</code>, <code>forEachTower(fn)</code> may call <code>fn</code> multiple times.
 </p></div></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#nonSlotDevices" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="nonSlotDevices(variables:Seq[org.platanios.tensorflow.api.ops.variables.Variable]):Set[org.platanios.tensorflow.api.core.DeviceSpecification]"></a><a id="nonSlotDevices(Seq[variables.Variable]):Set[DeviceSpecification]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#nonSlotDevices(variables:Seq[org.platanios.tensorflow.api.ops.variables.Variable]):Set[org.platanios.tensorflow.api.core.DeviceSpecification]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#nonSlotDevices" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="nonSlotDevices(variables:Seq[org.platanios.tensorflow.api.ops.variables.Variable]):Set[org.platanios.tensorflow.api.core.DeviceSpecification]"></a>
+      <a id="nonSlotDevices(Seq[variables.Variable]):Set[DeviceSpecification]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -530,33 +320,35 @@ If <code>false</code>, <code>forEachTower(fn)</code> may call <code>fn</code> mu
       <span class="symbol">
         <span class="name">nonSlotDevices</span><span class="params">(<span name="variables">variables: <span class="extype" name="scala.Seq">Seq</span>[<a href="../../../variables/Variable.html" class="extype" name="org.platanios.tensorflow.api.ops.variables.Variable">variables.Variable</a>]</span>)</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<span class="extype" name="org.platanios.tensorflow.api.core.DeviceSpecification">DeviceSpecification</span>]</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@nonSlotDevices(variables:Seq[org.platanios.tensorflow.api.ops.variables.Variable]):Set[org.platanios.tensorflow.api.core.DeviceSpecification]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Returns the devices used for non-slot variables.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the devices used for non-slot variables.</p><p>Create variables on these devices in a <code>colocateVariablesWith(nonSlotDevices(...)):</code> block. Then, update them
 using <code>updateNonSlot()</code>.
 </p></div><dl class="paramcmts block"><dt class="param">variables</dt><dd class="cmt"><p>Variables being optimized.</p></dd><dt>returns</dt><dd class="cmt"><p>Colocation ops for non-slot variables.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#numTowers" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#numTowers" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
       <a id="numTowers:Int"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#numTowers:Int" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="numTowers:Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">numTowers</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">numTowers</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
-      <p class="shortcomment cmt">Returns number of towers, for purposes of averaging across towers.</p>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#parameterDevices" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
-      <a id="parameterDevices:Set[String]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#parameterDevices:Set[String]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@numTowers:Int" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Returns number of towers, for purposes of averaging across towers.</p>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#parameterDevices" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="parameterDevices:Set[String]"></a>
+      <a id="parameterDevices:Set[String]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -564,32 +356,34 @@ using <code>updateNonSlot()</code>.
       <span class="symbol">
         <span class="name">parameterDevices</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<span class="extype" name="scala.Predef.String">String</span>]</span>
       </span>
-      
-      <p class="shortcomment cmt">Returns the devices used for variable and updates placement.</p>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#reduce" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="reduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,value:org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],destination:Option[D])(implicitevidence$2:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[org.platanios.tensorflow.api.ops.OutputLike]"></a><a id="reduce[D](Reduction,PerDeviceValue[OutputLike],Option[D])(Destination[D],CrossTowerContext):MirroredValue[OutputLike]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#reduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,value:org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],destination:Option[D])(implicitevidence$2:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[org.platanios.tensorflow.api.ops.OutputLike]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@parameterDevices:Set[String]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Returns the devices used for variable and updates placement.</p>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#reduce" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="reduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,value:org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],destination:Option[D])(implicitevidence$2:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[org.platanios.tensorflow.api.ops.OutputLike]"></a>
+      <a id="reduce[D](Reduction,PerDeviceValue[OutputLike],Option[D])(Destination[D],CrossTowerContext):MirroredValue[OutputLike]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">reduce</span><span class="tparams">[<span name="D">D</span>]</span><span class="params">(<span name="reduction">reduction: <a href="../Reduction.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Reduction">Reduction</a></span>, <span name="value">value: <a href="../values/PerDeviceValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue">PerDeviceValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>]</span>, <span name="destination">destination: <a href="http://www.scala-lang.org/api/2.12.6/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.reduce.D">D</span>] = <span class="symbol">None</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Destination.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Destination">Destination</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.reduce.D">D</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <a href="../values/MirroredValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue">MirroredValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>]</span>
+        <span class="name">reduce</span><span class="tparams">[<span name="D">D</span>]</span><span class="params">(<span name="reduction">reduction: <a href="../Reduction.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Reduction">Reduction</a></span>, <span name="value">value: <a href="../values/PerDeviceValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue">PerDeviceValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>]</span>, <span name="destination">destination: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Option" class="extype" target="_top">Option</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.reduce.D">D</span>] = <span class="symbol">None</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Destination.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Destination">Destination</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.reduce.D">D</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <a href="../values/MirroredValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue">MirroredValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>]</span>
       </span>
-      
-      <p class="shortcomment cmt">Combines values across towers into one value.</p><div class="fullcomment"><div class="comment cmt"><p>Combines values across towers into one value.
-</p></div><dl class="paramcmts block"><dt class="param">reduction</dt><dd class="cmt"><p>Reduction method to use.</p></dd><dt class="param">value</dt><dd class="cmt"><p>Value to reduce.</p></dd><dt class="param">destination</dt><dd class="cmt"><p>Optional destination on which to copy the reduced value.</p></dd><dt>returns</dt><dd class="cmt"><p>Reduced value.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#unwrap" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="unwrap[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T])(implicitevidence$9:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[T]"></a><a id="unwrap[T](DistributedValue[T])(Distributable[T],CrossTowerContext):Seq[T]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#unwrap[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T])(implicitevidence$9:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[T]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@reduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,value:org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],destination:Option[D])(implicitevidence$2:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[org.platanios.tensorflow.api.ops.OutputLike]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Combines values across towers into one value.</p><div class="fullcomment"><div class="comment cmt"><p>Combines values across towers into one value.
+</p></div><dl class="paramcmts block"><dt class="param">reduction</dt><dd class="cmt"><p>Reduction method to use.</p></dd><dt class="param">value</dt><dd class="cmt"><p>Value to reduce.</p></dd><dt class="param">destination</dt><dd class="cmt"><p>Optional destination on which to copy the reduced value.</p></dd><dt>returns</dt><dd class="cmt"><p>Reduced value.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#unwrap" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="unwrap[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T])(implicitevidence$9:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[T]"></a>
+      <a id="unwrap[T](DistributedValue[T])(Distributable[T],CrossTowerContext):Seq[T]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -597,16 +391,17 @@ using <code>updateNonSlot()</code>.
       <span class="symbol">
         <span class="name">unwrap</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="value">value: <a href="../values/DistributedValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue">DistributedValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.unwrap.T">T</span>]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Distributable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Distributable">Distributable</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.unwrap.T">T</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.unwrap.T">T</span>]</span>
       </span>
-      
-      <p class="shortcomment cmt">Returns the list of all per-device values contained in <code>value</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the list of all per-device values contained in <code>value</code>.
-</p></div><dl class="paramcmts block"><dt class="param">value</dt><dd class="cmt"><p>A value returned by <code>forEachTower()</code>, or a variable created in <code>scope</code>.</p></dd><dt>returns</dt><dd class="cmt"><p>Sequence of values contained in <code>value</code>.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#update" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="update[T,R](variable:org.platanios.tensorflow.api.ops.training.distribute.values.MirroredVariable,fn:(org.platanios.tensorflow.api.ops.variables.Variable,Seq[T])=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$4:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$5:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]"></a><a id="update[T,R](MirroredVariable,(variables.Variable,Seq[T])⇒R,Seq[MirroredValue[T]])(Distributable[T],Distributable[R],CrossTowerContext):MirroredValue[R]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#update[T,R](variable:org.platanios.tensorflow.api.ops.training.distribute.values.MirroredVariable,fn:(org.platanios.tensorflow.api.ops.variables.Variable,Seq[T])=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$4:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$5:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@unwrap[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T])(implicitevidence$9:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[T]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Returns the list of all per-device values contained in <code>value</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Returns the list of all per-device values contained in <code>value</code>.
+</p></div><dl class="paramcmts block"><dt class="param">value</dt><dd class="cmt"><p>A value returned by <code>forEachTower()</code>, or a variable created in <code>scope</code>.</p></dd><dt>returns</dt><dd class="cmt"><p>Sequence of values contained in <code>value</code>.</p></dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#update" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="update[T,R](variable:org.platanios.tensorflow.api.ops.training.distribute.values.MirroredVariable,fn:(org.platanios.tensorflow.api.ops.variables.Variable,Seq[T])=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$4:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$5:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]"></a>
+      <a id="update[T,R](MirroredVariable,(variables.Variable,Seq[T])⇒R,Seq[MirroredValue[T]])(Distributable[T],Distributable[R],CrossTowerContext):MirroredValue[R]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -614,7 +409,11 @@ using <code>updateNonSlot()</code>.
       <span class="symbol">
         <span class="name">update</span><span class="tparams">[<span name="T">T</span>, <span name="R">R</span>]</span><span class="params">(<span name="variable">variable: <a href="../values/MirroredVariable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredVariable">MirroredVariable</a></span>, <span name="fn">fn: (<a href="../../../variables/Variable.html" class="extype" name="org.platanios.tensorflow.api.ops.variables.Variable">variables.Variable</a>, <span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.update.T">T</span>]) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.update.R">R</span></span>, <span name="arguments">arguments: <span class="extype" name="scala.Seq">Seq</span>[<a href="../values/MirroredValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue">MirroredValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.update.T">T</span>]]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Distributable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Distributable">Distributable</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.update.T">T</span>]</span>, <span name="arg1">arg1: <a href="../Distributable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Distributable">Distributable</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.update.R">R</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <a href="../values/MirroredValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue">MirroredValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.update.R">R</span>]</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@update[T,R](variable:org.platanios.tensorflow.api.ops.training.distribute.values.MirroredVariable,fn:(org.platanios.tensorflow.api.ops.variables.Variable,Seq[T])=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$4:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$5:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Runs <code>fn</code> to update <code>variable</code> using inputs mirrored to the same devices.</p><div class="fullcomment"><div class="comment cmt"><p>Runs <code>fn</code> to update <code>variable</code> using inputs mirrored to the same devices.</p><p>If <code>variable</code> is mirrored across multiple devices, then this method implements logic like:</p><pre><span class="kw">val</span> results = variable.index.map {
   <span class="kw">case</span> (deviceSpec, variable) <span class="kw">=&gt;</span> tf.createWith(device = deviceSpec.toString) {
     fn(variable)
@@ -622,13 +421,10 @@ using <code>updateNonSlot()</code>.
 }
 merged(results)</pre><p>Otherwise this returns <code>fn(variable)</code> colocated with <code>variable</code>.
 </p></div><dl class="paramcmts block"><dt class="param">variable</dt><dd class="cmt"><p>Variable to update.</p></dd><dt class="param">fn</dt><dd class="cmt"><p>Update function to use.</p></dd><dt class="param">arguments</dt><dd class="cmt"><p>Mirrored arguments that should be passed to <code>fn</code>.</p></dd><dt>returns</dt><dd class="cmt"><p>Merged return value of <code>fn</code> across all towers.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#updateNonSlot" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="updateNonSlot[D,T,R](colocateWith:D,fn:Seq[T]=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$6:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitevidence$7:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$8:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]"></a><a id="updateNonSlot[D,T,R](D,(Seq[T])⇒R,Seq[MirroredValue[T]])(Destination[D],Distributable[T],Distributable[R],CrossTowerContext):MirroredValue[R]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#updateNonSlot[D,T,R](colocateWith:D,fn:Seq[T]=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$6:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitevidence$7:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$8:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#updateNonSlot" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="updateNonSlot[D,T,R](colocateWith:D,fn:Seq[T]=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$6:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitevidence$7:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$8:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]"></a>
+      <a id="updateNonSlot[D,T,R](D,(Seq[T])⇒R,Seq[MirroredValue[T]])(Destination[D],Distributable[T],Distributable[R],CrossTowerContext):MirroredValue[R]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -636,7 +432,11 @@ merged(results)</pre><p>Otherwise this returns <code>fn(variable)</code> colocat
       <span class="symbol">
         <span class="name">updateNonSlot</span><span class="tparams">[<span name="D">D</span>, <span name="T">T</span>, <span name="R">R</span>]</span><span class="params">(<span name="colocateWith">colocateWith: <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.D">D</span></span>, <span name="fn">fn: (<span class="extype" name="scala.Seq">Seq</span>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.T">T</span>]) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.R">R</span></span>, <span name="arguments">arguments: <span class="extype" name="scala.Seq">Seq</span>[<a href="../values/MirroredValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue">MirroredValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.T">T</span>]]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Destination.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Destination">Destination</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.D">D</span>]</span>, <span name="arg1">arg1: <a href="../Distributable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Distributable">Distributable</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.T">T</span>]</span>, <span name="arg2">arg2: <a href="../Distributable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Distributable">Distributable</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.R">R</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <a href="../values/MirroredValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue">MirroredValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.updateNonSlot.R">R</span>]</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@updateNonSlot[D,T,R](colocateWith:D,fn:Seq[T]=&gt;R,arguments:Seq[org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[T]])(implicitevidence$6:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitevidence$7:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitevidence$8:org.platanios.tensorflow.api.ops.training.distribute.Distributable[R],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.training.distribute.values.MirroredValue[R]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Runs <code>fn</code> on the devices specified by <code>colocateWith</code>, with the provided arguments.</p><div class="fullcomment"><div class="comment cmt"><p>Runs <code>fn</code> on the devices specified by <code>colocateWith</code>, with the provided arguments.
 </p></div><dl class="paramcmts block"><dt class="param">colocateWith</dt><dd class="cmt"><p>Destination on which to execute <code>fn</code>.</p></dd><dt class="param">fn</dt><dd class="cmt"><p>Function to use for the update.</p></dd><dt class="param">arguments</dt><dd class="cmt"><p>Mirrored arguments that should be passed to <code>fn</code>.</p></dd><dt>returns</dt><dd class="cmt"><p>Merged return value of <code>fn</code> across all towers.</p></dd></dl><dl class="attributes block"> <dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
@@ -645,21 +445,22 @@ merged(results)</pre><p>Otherwise this returns <code>fn(variable)</code> colocat
     </span>)</span>
               
         </dd><dt>Exceptions thrown</dt><dd><span class="cmt"><p><span class="extype" name="InvalidArgumentException"><code>InvalidArgumentException</code></span> If the provided <code>colocateWith</code> argument is invalid (e.g., too many devices).</p></span></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#workerDeviceIndex" visbl="pub" class="indented0 " data-isabs="true" fullComment="yes" group="Ungrouped">
-      <a id="workerDeviceIndex(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Map[org.platanios.tensorflow.api.core.DeviceSpecification,Int]"></a><a id="workerDeviceIndex(CrossTowerContext):Map[DeviceSpecification,Int]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#workerDeviceIndex(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Map[org.platanios.tensorflow.api.core.DeviceSpecification,Int]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#workerDeviceIndex" visbl="pub" data-isabs="true" fullComment="yes" group="Ungrouped">
+      <a id="workerDeviceIndex(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Map[org.platanios.tensorflow.api.core.DeviceSpecification,Int]"></a>
+      <a id="workerDeviceIndex(CrossTowerContext):Map[DeviceSpecification,Int]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">workerDeviceIndex</span><span class="params">(<span class="implicit">implicit </span><span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <span class="extype" name="scala.Predef.Map">Map</span>[<span class="extype" name="org.platanios.tensorflow.api.core.DeviceSpecification">DeviceSpecification</span>, <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a>]</span>
+        <span class="name">workerDeviceIndex</span><span class="params">(<span class="implicit">implicit </span><span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <span class="extype" name="scala.Predef.Map">Map</span>[<span class="extype" name="org.platanios.tensorflow.api.core.DeviceSpecification">DeviceSpecification</span>, <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a>]</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@workerDeviceIndex(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Map[org.platanios.tensorflow.api.core.DeviceSpecification,Int]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Returns a map from worker devices to indices.</p><div class="fullcomment"><div class="comment cmt"><p>Returns a map from worker devices to indices.</p><p>TODO: [DISTRIBUTE] Settle on the interface of <code>forEachTower()</code> first.
 This map might be passed as an argument to <code>forEachTower()</code>, as in:</p><pre>distributionStrategy.scope {
   <span class="kw">def</span> fn(deviceIndex: <span class="std">Int</span>): <span class="std">Unit</span> = {
@@ -667,13 +468,10 @@ This map might be passed as an argument to <code>forEachTower()</code>, as in:</
   }
   distributionStrategy.forEachTower(fn, distributionStrategy.workerDeviceIndex)
 }</pre></div></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#workerDevices" visbl="pub" class="indented0 " data-isabs="true" fullComment="no" group="Ungrouped">
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#workerDevices" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
       <a id="workerDevices:Set[String]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#workerDevices:Set[String]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="workerDevices:Set[String]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">abstract </span>
         <span class="kind">def</span>
@@ -681,69 +479,72 @@ This map might be passed as an argument to <code>forEachTower()</code>, as in:</
       <span class="symbol">
         <span class="name">workerDevices</span><span class="result">: <span class="extype" name="scala.Predef.Set">Set</span>[<span class="extype" name="scala.Predef.String">String</span>]</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@workerDevices:Set[String]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Returns the devices used to run <code>forEachTower()</code> calls.</p>
     </li></ol>
             </div>
 
-        <div class="values members">
+        <div id="values" class="values members">
               <h3>Concrete Value Members</h3>
-              <ol>
-                <li name="scala.AnyRef#!=" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="!=(x$1:Any):Boolean"></a><a id="!=(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#!=(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+              <ol><li name="scala.AnyRef#!=" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="!=(x$1:Any):Boolean"></a>
+      <a id="!=(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $bang$eq" class="name">!=</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@!=(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef###" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef###" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="##():Int"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html###():Int" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="##():Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span title="gt4s: $hash$hash" class="name">##</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#==" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="==(x$1:Any):Boolean"></a><a id="==(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#==(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@##():Int" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="scala.AnyRef#==" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="==(x$1:Any):Boolean"></a>
+      <a id="==(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span title="gt4s: $eq$eq" class="name">==</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@==(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.Any#asInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.Any#asInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="asInstanceOf[T0]:T0"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#asInstanceOf[T0]:T0" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="asInstanceOf[T0]:T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -751,56 +552,57 @@ This map might be passed as an argument to <code>forEachTower()</code>, as in:</
       <span class="symbol">
         <span class="name">asInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <span class="extype" name="scala.Any.asInstanceOf.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#batchReduce" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="batchReduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,valueDestinationPairs:Seq[(org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],Option[D])])(implicitevidence$3:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[org.platanios.tensorflow.api.ops.OutputLike]]"></a><a id="batchReduce[D](Reduction,Seq[(PerDeviceValue[OutputLike],Option[D])])(Destination[D],CrossTowerContext):Seq[DistributedValue[OutputLike]]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#batchReduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,valueDestinationPairs:Seq[(org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],Option[D])])(implicitevidence$3:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[org.platanios.tensorflow.api.ops.OutputLike]]" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@asInstanceOf[T0]:T0" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#batchReduce" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="batchReduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,valueDestinationPairs:Seq[(org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],Option[D])])(implicitevidence$3:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[org.platanios.tensorflow.api.ops.OutputLike]]"></a>
+      <a id="batchReduce[D](Reduction,Seq[(PerDeviceValue[OutputLike],Option[D])])(Destination[D],CrossTowerContext):Seq[DistributedValue[OutputLike]]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">batchReduce</span><span class="tparams">[<span name="D">D</span>]</span><span class="params">(<span name="reduction">reduction: <a href="../Reduction.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Reduction">Reduction</a></span>, <span name="valueDestinationPairs">valueDestinationPairs: <span class="extype" name="scala.Seq">Seq</span>[(<a href="../values/PerDeviceValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue">PerDeviceValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>], <a href="http://www.scala-lang.org/api/2.12.6/scala/Option.html#scala.Option" class="extype" name="scala.Option">Option</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.batchReduce.D">D</span>])]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Destination.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Destination">Destination</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.batchReduce.D">D</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../values/DistributedValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue">DistributedValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>]]</span>
+        <span class="name">batchReduce</span><span class="tparams">[<span name="D">D</span>]</span><span class="params">(<span name="reduction">reduction: <a href="../Reduction.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Reduction">Reduction</a></span>, <span name="valueDestinationPairs">valueDestinationPairs: <span class="extype" name="scala.Seq">Seq</span>[(<a href="../values/PerDeviceValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue">PerDeviceValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>], <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Option" class="extype" target="_top">Option</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.batchReduce.D">D</span>])]</span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Destination.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Destination">Destination</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.batchReduce.D">D</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <span class="extype" name="scala.Seq">Seq</span>[<a href="../values/DistributedValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue">DistributedValue</a>[<a href="../../../OutputLike.html" class="extype" name="org.platanios.tensorflow.api.ops.OutputLike">OutputLike</a>]]</span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@batchReduce[D](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction,valueDestinationPairs:Seq[(org.platanios.tensorflow.api.ops.training.distribute.values.PerDeviceValue[org.platanios.tensorflow.api.ops.OutputLike],Option[D])])(implicitevidence$3:org.platanios.tensorflow.api.ops.training.distribute.Destination[D],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):Seq[org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[org.platanios.tensorflow.api.ops.OutputLike]]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Combines multiple <code>reduce</code> calls into one for faster execution.</p><div class="fullcomment"><div class="comment cmt"><p>Combines multiple <code>reduce</code> calls into one for faster execution.
 </p></div><dl class="paramcmts block"><dt class="param">reduction</dt><dd class="cmt"><p>Reduction method to use.</p></dd><dt class="param">valueDestinationPairs</dt><dd class="cmt"><p>Sequence of values to reduce pairs with destinations to copy the reduced values to.</p></dd><dt>returns</dt><dd class="cmt"><p>Reduced values.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#clone" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="clone():Object"></a><a id="clone():AnyRef"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#clone():Object" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#clone" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="clone():Object"></a>
+      <a id="clone():AnyRef"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>
+        <span class="name">clone</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@clone():Object" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.CloneNotSupportedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#colocateVariablesWith" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="colocateVariablesWith[R](colocationOps:Set[org.platanios.tensorflow.api.ops.Op])(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R"></a><a id="colocateVariablesWith[R](Set[Op])(⇒R)(DistributionContext):R"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#colocateVariablesWith[R](colocationOps:Set[org.platanios.tensorflow.api.ops.Op])(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#colocateVariablesWith" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="colocateVariablesWith[R](colocationOps:Set[org.platanios.tensorflow.api.ops.Op])(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R"></a>
+      <a id="colocateVariablesWith[R](Set[Op])(⇒R)(DistributionContext):R"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -808,7 +610,11 @@ This map might be passed as an argument to <code>forEachTower()</code>, as in:</
       <span class="symbol">
         <span class="name">colocateVariablesWith</span><span class="tparams">[<span name="R">R</span>]</span><span class="params">(<span name="colocationOps">colocationOps: <span class="extype" name="scala.Predef.Set">Set</span>[<a href="../../../Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a>]</span>)</span><span class="params">(<span name="block">block: ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.colocateVariablesWith.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="context">context: <a href="DistributionContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext">DistributionContext</a></span>)</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.colocateVariablesWith.R">R</span></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@colocateVariablesWith[R](colocationOps:Set[org.platanios.tensorflow.api.ops.Op])(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Executes <code>block</code> within a scope that controls which devices variables will be created on.</p><div class="fullcomment"><div class="comment cmt"><p>Executes <code>block</code> within a scope that controls which devices variables will be created on.</p><p>No operations should be added to the graph inside this scope; it should only be used when creating variables (some
 implementations work by changing variable creation and others work by using a <code>colocateWith</code> scope). This may only
 be used inside <code>DistributionStrategy.scope</code>.</p><p>For example:</p><pre>distributionStrategy.scope {
@@ -826,83 +632,84 @@ be used inside <code>DistributionStrategy.scope</code>.</p><p>For example:</p><p
   <span class="cmt">// `fn` runs on every device `v1` is on, and `v2` and `v3` will be there too.</span>
   distributionStrategy.update(variable1, fn, variable2, variable3)
 }</pre></div><dl class="paramcmts block"><dt class="param">colocationOps</dt><dd class="cmt"><p>Variables created in <code>block</code> will be on the same set of devices as these ops.</p></dd><dt class="param">block</dt><dd class="cmt"><p>Code block to execute in this scope.</p></dd><dt>returns</dt><dd class="cmt"><p>Value returned by <code>block</code>.</p></dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#configure" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="configure(sessionConfig:org.platanios.tensorflow.api.core.client.SessionConfig):Unit"></a><a id="configure(SessionConfig):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#configure(sessionConfig:org.platanios.tensorflow.api.core.client.SessionConfig):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#configure" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="configure(sessionConfig:org.platanios.tensorflow.api.core.client.SessionConfig):Unit"></a>
+      <a id="configure(SessionConfig):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">configure</span><span class="params">(<span name="sessionConfig">sessionConfig: <a href="../../../../core/client/SessionConfig.html" class="extype" name="org.platanios.tensorflow.api.core.client.SessionConfig">SessionConfig</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">configure</span><span class="params">(<span name="sessionConfig">sessionConfig: <a href="../../../../core/client/SessionConfig.html" class="extype" name="org.platanios.tensorflow.api.core.client.SessionConfig">SessionConfig</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <p class="shortcomment cmt">Finds and sets the best configuration for the provided TensorFlow session configuration.</p>
-    </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#eq(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@configure(sessionConfig:org.platanios.tensorflow.api.core.client.SessionConfig):Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Finds and sets the best configuration for the provided TensorFlow session configuration.</p>
+    </li><li name="scala.AnyRef#eq" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="eq(x$1:AnyRef):Boolean"></a>
+      <a id="eq(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">eq</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@eq(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#equals" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="equals(x$1:Any):Boolean"></a><a id="equals(Any):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#equals(x$1:Any):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#equals" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="equals(x$1:Any):Boolean"></a>
+      <a id="equals(Any):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">equals</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">equals</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@equals(x$1:Any):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#finalize" visbl="prt" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="finalize():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#finalize():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="finalize():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java/lang/index.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@finalize():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a href="../../../../../../../../java$lang.html" class="extype" name="java.lang">java.lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="symbol">classOf[java.lang.Throwable]</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#getClass" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#getClass" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="getClass():Class[_]"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#getClass():Class[_]" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="getClass():Class[_]"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -910,18 +717,16 @@ be used inside <code>DistributionStrategy.scope</code>.</p><p>For example:</p><p
       <span class="symbol">
         <span class="name">getClass</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.Class">Class</span>[_]</span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#group" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="group[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T],name:String)(implicitevidence$10:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Op"></a><a id="group[T](DistributedValue[T],String)(Distributable[T],CrossTowerContext):Op"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#group[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T],name:String)(implicitevidence$10:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Op" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@getClass():Class[_]" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#group" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="group[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T],name:String)(implicitevidence$10:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Op"></a>
+      <a id="group[T](DistributedValue[T],String)(Distributable[T],CrossTowerContext):Op"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -929,51 +734,51 @@ be used inside <code>DistributionStrategy.scope</code>.</p><p>For example:</p><p
       <span class="symbol">
         <span class="name">group</span><span class="tparams">[<span name="T">T</span>]</span><span class="params">(<span name="value">value: <a href="../values/DistributedValue.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue">DistributedValue</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.group.T">T</span>]</span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span> = <span class="symbol">&quot;Group&quot;</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="arg0">arg0: <a href="../Distributable.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Distributable">Distributable</a>[<span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.group.T">T</span>]</span>, <span name="context">context: <a href="CrossTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext">CrossTowerContext</a></span>)</span><span class="result">: <a href="../../../Op.html" class="extype" name="org.platanios.tensorflow.api.ops.Op">Op</a></span>
       </span>
-      
-      <p class="shortcomment cmt">Acts as a shortcut for <code>tf.group(distributionStrategy.unwrap(value))</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Acts as a shortcut for <code>tf.group(distributionStrategy.unwrap(value))</code>.
-</p></div><dl class="paramcmts block"><dt class="param">value</dt><dd class="cmt"><p>A value returned by <code>forEachTower()</code>, or a variable created in <code>scope</code>.</p></dd><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Grouped unwrapped <code>value</code>.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#hashCode" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="hashCode():Int"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#hashCode():Int" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@group[T](value:org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue[T],name:String)(implicitevidence$10:org.platanios.tensorflow.api.ops.training.distribute.Distributable[T],implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.CrossTowerContext):org.platanios.tensorflow.api.ops.Op" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <p class="shortcomment cmt">Acts as a shortcut for <code>tf.group(distributionStrategy.unwrap(value))</code>.</p><div class="fullcomment"><div class="comment cmt"><p>Acts as a shortcut for <code>tf.group(distributionStrategy.unwrap(value))</code>.
+</p></div><dl class="paramcmts block"><dt class="param">value</dt><dd class="cmt"><p>A value returned by <code>forEachTower()</code>, or a variable created in <code>scope</code>.</p></dd><dt class="param">name</dt><dd class="cmt"><p>Name for the created op.</p></dd><dt>returns</dt><dd class="cmt"><p>Grouped unwrapped <code>value</code>.</p></dd></dl></div>
+    </li><li name="scala.AnyRef#hashCode" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="hashCode():Int"></a>
+      <a id="hashCode():Int"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>
+        <span class="name">hashCode</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="isInstanceOf[T0]:Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#isInstanceOf[T0]:Boolean" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@hashCode():Int" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="scala.Any#isInstanceOf" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <a id="isInstanceOf[T0]:Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">isInstanceOf</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#mergeCall" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="mergeCall[R](mergeFn:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.InTowerContext):R"></a><a id="mergeCall[R]((DistributionStrategy)⇒R)(InTowerContext):R"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#mergeCall[R](mergeFn:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.InTowerContext):R" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@isInstanceOf[T0]:Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#mergeCall" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="mergeCall[R](mergeFn:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.InTowerContext):R"></a>
+      <a id="mergeCall[R]((DistributionStrategy)⇒R)(InTowerContext):R"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -981,73 +786,71 @@ be used inside <code>DistributionStrategy.scope</code>.</p><p>For example:</p><p
       <span class="symbol">
         <span class="name">mergeCall</span><span class="tparams">[<span name="R">R</span>]</span><span class="params">(<span name="mergeFn">mergeFn: (<a href="" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy">DistributionStrategy</a>) ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.mergeCall.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="context">context: <a href="InTowerContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.InTowerContext">InTowerContext</a></span>)</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.mergeCall.R">R</span></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@mergeCall[R](mergeFn:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.InTowerContext):R" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Merges arguments across towers and runs <code>mergeFn</code> in a cross-tower context.</p><div class="fullcomment"><div class="comment cmt"><p>Merges arguments across towers and runs <code>mergeFn</code> in a cross-tower context.</p><p>This allows communication and coordination when there are multiple calls to a model function triggered by a call
 to <code>forEachTower(modelFn, ...)</code>. See <code>MirroredDistribution.forEachTower()</code> for an explanation.</p><p>Otherwise, this is equivalent to:</p><pre><span class="kw">val</span> strategy = tf.distribute.currentStrategy
 strategy.scope {
   mergeFn(strategy)
 }</pre></div><dl class="paramcmts block"><dt class="param">mergeFn</dt><dd class="cmt"><p>Merge function to invoke from within a cross-tower context.</p></dd><dt>returns</dt><dd class="cmt"><p>Result of the <code>mergeFn</code> call, except for per-device values which are unpacked.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#ne" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="ne(x$1:AnyRef):Boolean"></a><a id="ne(AnyRef):Boolean"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#ne(x$1:AnyRef):Boolean" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#ne" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="ne(x$1:AnyRef):Boolean"></a>
+      <a id="ne(AnyRef):Boolean"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Boolean.html#scala.Boolean" class="extype" name="scala.Boolean">Boolean</a></span>
+        <span class="name">ne</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Boolean" class="extype" target="_top">Boolean</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@ne(x$1:AnyRef):Boolean" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#notify" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#notify" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notify():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#notify():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notify():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notify</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@notify():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="scala.AnyRef#notifyAll" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#notifyAll():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="notifyAll():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">notifyAll</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#scope" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="scope[R](block:=&gt;R):R"></a><a id="scope[R](⇒R):R"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#scope[R](block:=&gt;R):R" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@notifyAll():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#scope" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="scope[R](block:=&gt;R):R"></a>
+      <a id="scope[R](⇒R):R"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -1055,15 +858,16 @@ strategy.scope {
       <span class="symbol">
         <span class="name">scope</span><span class="tparams">[<span name="R">R</span>]</span><span class="params">(<span name="block">block: ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.scope.R">R</span></span>)</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.scope.R">R</span></span>
       </span>
-      
-      
-    </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#synchronized[T0](x$1:=&gt;T0):T0" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@scope[R](block:=&gt;R):R" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      
+    </li><li name="scala.AnyRef#synchronized" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="synchronized[T0](x$1:=&gt;T0):T0"></a>
+      <a id="synchronized[T0](⇒T0):T0"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
@@ -1071,15 +875,16 @@ strategy.scope {
       <span class="symbol">
         <span class="name">synchronized</span><span class="tparams">[<span name="T0">T0</span>]</span><span class="params">(<span name="arg0">arg0: ⇒ <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>)</span><span class="result">: <span class="extype" name="java.lang.AnyRef.synchronized.T0">T0</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li name="scala.AnyRef#toString" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="toString():String"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#toString():String" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@synchronized[T0](x$1:=&gt;T0):T0" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li name="scala.AnyRef#toString" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="toString():String"></a>
+      <a id="toString():String"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -1087,15 +892,16 @@ strategy.scope {
       <span class="symbol">
         <span class="name">toString</span><span class="params">()</span><span class="result">: <span class="extype" name="java.lang.String">String</span></span>
       </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#towerLocalVariableScope" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="towerLocalVariableScope[R](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction)(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R"></a><a id="towerLocalVariableScope[R](Reduction)(⇒R)(DistributionContext):R"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#towerLocalVariableScope[R](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction)(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R" title="Permalink">
-        <i class="material-icons"></i>
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@toString():String" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
       </a>
     </span>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy#towerLocalVariableScope" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="towerLocalVariableScope[R](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction)(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R"></a>
+      <a id="towerLocalVariableScope[R](Reduction)(⇒R)(DistributionContext):R"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier"></span>
         <span class="kind">def</span>
@@ -1103,7 +909,11 @@ strategy.scope {
       <span class="symbol">
         <span class="name">towerLocalVariableScope</span><span class="tparams">[<span name="R">R</span>]</span><span class="params">(<span name="reduction">reduction: <a href="../Reduction.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.Reduction">Reduction</a></span>)</span><span class="params">(<span name="block">block: ⇒ <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.towerLocalVariableScope.R">R</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="context">context: <a href="DistributionContext.html" class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext">DistributionContext</a></span>)</span><span class="result">: <span class="extype" name="org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy.towerLocalVariableScope.R">R</span></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@towerLocalVariableScope[R](reduction:org.platanios.tensorflow.api.ops.training.distribute.Reduction)(block:=&gt;R)(implicitcontext:org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext):R" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <p class="shortcomment cmt">Executes <code>block</code> within a scope where new variables will not be mirrored.</p><div class="fullcomment"><div class="comment cmt"><p>Executes <code>block</code> within a scope where new variables will not be mirrored.</p><p>There will still be one component variable per tower, but there is no requirement that they stay in sync. Instead,
 when saving them or calling <code>fetch()</code>, we use the value that results when calling <code>reduce()</code> on all the towers'
 variables. Note that tower-local implies not trainable. Instead, it is expected that each tower will directly
@@ -1112,21 +922,22 @@ update (e.g., using <code>assignAdd()</code>) its local variable instance but on
 communication overhead by using tower-local variables.</p><p>Note that all component variables will be initialized to the same value, using the initialization expression from
 the first tower. The values will match even if the initialization expression uses random numbers.
 </p></div><dl class="paramcmts block"><dt class="param">reduction</dt><dd class="cmt"><p>Reduction method used to get the value to save when creating checkpoints.</p></dd><dt class="param">block</dt><dd class="cmt"><p>Code block to execute in this scope.</p></dd><dt>returns</dt><dd class="cmt"><p>Value returned by <code>block</code>.</p></dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#wait():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+      <a id="wait():Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@wait():Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -1134,21 +945,22 @@ the first tower. The values will match even if the initialization expression use
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long,x$2:Int):Unit"></a>
+      <a id="wait(Long,Int):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.12.6/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>, <span name="arg1">arg1: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Int" class="extype" target="_top">Int</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@wait(x$1:Long,x$2:Int):Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">(<span>
       
@@ -1156,32 +968,30 @@ the first tower. The values will match even if the initialization expression use
     </span>)</span>
               
         </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait(x$1:Long):Unit"></a><a id="wait(Long):Unit"></a>
-      <span class="permalink">
-      <a href="../../../../../../../../org/platanios/tensorflow/api/ops/training/distribute/strategies/DistributionStrategy.html#wait(x$1:Long):Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
+    </li><li name="scala.AnyRef#wait" visbl="pub" data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait(x$1:Long):Unit"></a>
+      <a id="wait(Long):Unit"></a>
+      <h4 class="signature">
       <span class="modifier_kind">
         <span class="modifier">final </span>
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.12.6/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.12.6/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+        <span class="name">wait</span><span class="params">(<span name="arg0">arg0: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Long" class="extype" target="_top">Long</a></span>)</span><span class="result">: <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Unit" class="extype" target="_top">Unit</a></span>
       </span>
-      
+      </h4><span class="permalink">
+      <a href="../../../../../../../../index.html#org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionStrategy@wait(x$1:Long):Unit" title="Permalink" target="_top">
+        <img src="../../../../../../../../lib/permalink.png" alt="Permalink" />
+      </a>
+    </span>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@native</span><span class="args">()</span>
-              
                 <span class="name">@throws</span><span class="args">(<span>
       
       <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
     </span>)</span>
               
         </dd></dl></div>
-    </li>
-              </ol>
+    </li></ol>
             </div>
 
         
@@ -1191,9 +1001,9 @@ the first tower. The values will match even if the initialization expression use
 
         <div id="inheritedMembers">
         <div class="parent" name="scala.AnyRef">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/AnyRef.html#scala.AnyRef" class="extype" name="scala.AnyRef">AnyRef</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.AnyRef" class="extype" target="_top">AnyRef</a></h3>
             </div><div class="parent" name="scala.Any">
-              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.12.6/scala/Any.html#scala.Any" class="extype" name="scala.Any">Any</a></h3>
+              <h3>Inherited from <a href="http://www.scala-lang.org/api/2.11.11/index.html#scala.Any" class="extype" target="_top">Any</a></h3>
             </div>
         
         </div>
@@ -1210,9 +1020,7 @@ the first tower. The values will match even if the initialization expression use
       <div id="tooltip"></div>
 
       <div id="footer">  </div>
-    </body>
-          </div>
-        </div>
-      </div>
+
+
     </body>
       </html>
