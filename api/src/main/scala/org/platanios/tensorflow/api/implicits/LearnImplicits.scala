@@ -26,7 +26,7 @@ import scala.collection.generic.CanBuildFrom
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Learn {
+private[implicits] trait LearnImplicits {
   implicit class MappableLayer[T, R, CC[A] <: TraversableLike[A, CC[A]]](
       layer: Layer[CC[T], CC[R]]
   ) extends Layer[CC[T], CC[R]]("Mappable") {

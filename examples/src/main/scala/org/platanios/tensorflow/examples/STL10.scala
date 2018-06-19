@@ -32,8 +32,8 @@ object STL10 {
 
   def main(args: Array[String]): Unit = {
     val dataSet = STL10Loader.load(Paths.get("datasets/STL10"), loadUnlabeled = false)
-    val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
-    val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
+    val trainImages = tf.data.TensorSlicesDataset[Tensor, Output, UINT8, Shape](dataSet.trainImages)
+    val trainLabels = tf.data.TensorSlicesDataset[Tensor, Output, UINT8, Shape](dataSet.trainLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()

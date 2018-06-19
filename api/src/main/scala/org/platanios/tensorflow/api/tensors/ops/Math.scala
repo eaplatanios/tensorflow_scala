@@ -1878,7 +1878,7 @@ private[api] trait Math {
     * @return Result as a new tensor, with `FLOAT32` data type.
     */
   def zerosFraction(input: Tensor): Tensor = {
-    mean(cast(equal(input, Tensor.fill(input.dataType)(0)), FLOAT32))
+    mean(cast(equal(input, Tensor.fill(input.dataType, Shape())(0)), FLOAT32))
   }
 
   //endregion Other Ops

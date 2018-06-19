@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.implicits.helpers.StructureFromOutput
 import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 import org.platanios.tensorflow.api.types.INT64
 
@@ -43,13 +43,12 @@ case class InterleaveDataset[T, O, D, S, RT, RO, RD, RS](
     blockLength: Output = 1,
     override val name: String = "InterleaveDataset"
 )(implicit
-    evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
     evData: Data.Aux[T, O, D, S] = inputDataset.evData,
     evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
-    evROToRT: OutputToTensor.Aux[RO, RT],
+    evStructure: StructureFromOutput.Aux[RT, RO, RD, RS],
     evRData: Data.Aux[RT, RO, RD, RS],
     evFunctionOutput: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
+) extends Dataset[RT, RO, RD, RS](name) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
@@ -106,13 +105,12 @@ case class ParallelInterleaveDataset[T, O, D, S, RT, RO, RD, RS](
     prefetchInputElements: Output = null,
     override val name: String = "ParallelInterleaveDataset"
 )(implicit
-    evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
     evData: Data.Aux[T, O, D, S] = inputDataset.evData,
     evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
-    evROToRT: OutputToTensor.Aux[RO, RT],
+    evStructure: StructureFromOutput.Aux[RT, RO, RD, RS],
     evRData: Data.Aux[RT, RO, RD, RS],
     evFunctionOutput: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
+) extends Dataset[RT, RO, RD, RS](name) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
@@ -157,7 +155,7 @@ object InterleaveDataset {
         blockLength: Output = 1,
         name: String = "Interleave"
     )(implicit
-        evROToRT: OutputToTensor.Aux[RO, RT],
+        evStructure: StructureFromOutput.Aux[RT, RO, RD, RS],
         evRData: Data.Aux[RT, RO, RD, RS],
         evFunctionOutput: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {
@@ -191,7 +189,7 @@ object InterleaveDataset {
         prefetchInputElements: Output = null,
         name: String = "ParallelInterleave"
     )(implicit
-        evROToRT: OutputToTensor.Aux[RO, RT],
+        evStructure: StructureFromOutput.Aux[RT, RO, RD, RS],
         evRData: Data.Aux[RT, RO, RD, RS],
         evFunctionOutput: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {

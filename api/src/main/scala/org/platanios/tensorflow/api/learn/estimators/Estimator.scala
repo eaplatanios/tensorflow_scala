@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.implicits.helpers.{StructureFromTensor, StructureFromOutput}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset, TensorDataset}
@@ -344,7 +344,7 @@ object Estimator {
 
   object SupportedInferInput {
     implicit def datasetInferInput[T, O, D, S, I](implicit
-        evOToT: OutputToTensor.Aux[O, T],
+        evStructure: StructureFromOutput.Aux[T, O, D, S],
         ev: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
     ): SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] = {
@@ -355,7 +355,7 @@ object Estimator {
     }
 
     implicit def singleValueInferInput[T, O, D, S, I](implicit
-        evOToT: OutputToTensor.Aux[O, T],
+        evStructure: StructureFromTensor.Aux[T, O, D, S],
         ev: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
     ): SupportedInferInput[T, I, T, O, D, S, I] = new SupportedInferInput[T, I, T, O, D, S, I] {

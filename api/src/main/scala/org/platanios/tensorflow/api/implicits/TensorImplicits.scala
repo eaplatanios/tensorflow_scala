@@ -25,15 +25,15 @@ import org.platanios.tensorflow.api.tensors.ops.NN.NNOps
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Tensor {
+private[implicits] trait TensorImplicits {
   implicit def tensorConvertibleToTensor[T](value: T)(implicit ev: TensorConvertible[T]): tensors.Tensor = ev.toTensor(value)
 
   implicit def tensorToBasicOps(value: tensors.Tensor): BasicOps = BasicOps(value)
-  implicit def tensorConvertibleToBasicOps[T](value: T)(implicit f: (T) => tensors.Tensor): BasicOps = BasicOps(f(value))
+  implicit def tensorConvertibleToBasicOps[T](value: T)(implicit f: T => tensors.Tensor): BasicOps = BasicOps(f(value))
 
   implicit def tensorToMathOps(value: tensors.Tensor): MathOps = MathOps(value)
-  implicit def tensorConvertibleToMathOps[T](value: T)(implicit f: (T) => tensors.Tensor): MathOps = MathOps(f(value))
+  implicit def tensorConvertibleToMathOps[T](value: T)(implicit f: T => tensors.Tensor): MathOps = MathOps(f(value))
 
   implicit def tensorToNNOps(value: tensors.Tensor): NNOps = NNOps(value)
-  implicit def tensorConvertibleToNNOps[T](value: T)(implicit f: (T) => tensors.Tensor): NNOps = NNOps(f(value))
+  implicit def tensorConvertibleToNNOps[T](value: T)(implicit f: T => tensors.Tensor): NNOps = NNOps(f(value))
 }

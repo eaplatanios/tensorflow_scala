@@ -37,7 +37,9 @@ case class ShuffleDataset[T, O, D, S](
     bufferSize: Long,
     seed: Option[Int],
     override val name: String = "ShuffleDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+) {
   override def createHandle(): Output = {
     val (seed1, seed2) = randomSeeds(seed, s"$name/RandomSeeds")
     Op.Builder(opType = "ShuffleDataset", name = name)

@@ -395,11 +395,8 @@ object Tensor {
     * @param  shape    Tensor shape.
     * @return Constructed tensor.
     */
-  def zeros(dataType: DataType, shape: Shape): Tensor = {
-    dataType match {
-      case BOOLEAN => Tensor.fill(BOOLEAN, shape)(false)
-      case _ => Tensor.fill(dataType, shape)(0)
-    }
+  def zeros[D <: DataType](dataType: D, shape: Shape): Tensor = {
+    Tensor.fill(dataType, shape)(dataType.zero)(dataType.evSupportedType)
   }
 
   /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to zero. */
@@ -416,11 +413,8 @@ object Tensor {
     * @param  shape    Tensor shape.
     * @return Constructed tensor.
     */
-  def ones(dataType: DataType, shape: Shape): Tensor = {
-    dataType match {
-      case BOOLEAN => Tensor.fill(BOOLEAN, shape)(true)
-      case _ => Tensor.fill(dataType, shape)(1)
-    }
+  def ones[D <: DataType](dataType: D, shape: Shape): Tensor = {
+    Tensor.fill(dataType, shape)(dataType.one)(dataType.evSupportedType)
   }
 
   /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to one. */
@@ -486,13 +480,14 @@ object Tensor {
     * @param  shape    Tensor shape.
     * @return Constructed tensor.
     */
-  def fill[T](dataType: DataType = null, shape: Shape = Shape())(value: T)(implicit ev: SupportedType[T]): Tensor = {
-    val inferredDataType = if (dataType == null) ev.dataType else dataType
+  def fill[T, D <: DataType](dataType: D, shape: Shape)(value: T)(implicit
+      evSupported: SupportedType[T, _]
+  ): Tensor = {
     // TODO: [TENSORS] Do we want to keep this warning?
     // if (inferredDataType.priority < ev.dataType.priority)
     //   logger.warn(s"Downcasting value '$value' while creating tensor with '$dataType' data type.")
     shape.assertFullyDefined()
-    inferredDataType match {
+    dataType match {
       case STRING =>
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
         val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
@@ -512,14 +507,14 @@ object Tensor {
         NativeTensor.delete(hostHandle)
         tensor
       case _ =>
-        val numBytes = shape.numElements * inferredDataType.byteSize
-        val hostHandle = NativeTensor.allocate(inferredDataType.cValue, shape.asArray.map(_.toLong), numBytes)
+        val numBytes = shape.numElements * dataType.byteSize
+        val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
         val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
         var index = 0
         var i = 0
         while (i < shape.numElements) {
-          inferredDataType.putElementInBuffer(buffer, index, inferredDataType.cast(value))
-          index += inferredDataType.byteSize
+          dataType.putElementInBuffer(buffer, index, dataType.cast(value))
+          index += dataType.byteSize
           i += 1
         }
         val tensor = Tensor.fromHostNativeHandle(hostHandle)
@@ -602,7 +597,7 @@ object Tensor {
     } else {
       castedValue.entriesIterator.foreach(v => {
         inferredDataType.addToTensorProtoBuilder(
-          tensorProtoBuilder, inferredDataType.cast(v)(castedValue.dataType.supportedType))
+          tensorProtoBuilder, inferredDataType.cast(v)(castedValue.dataType.evSupportedType))
       })
     }
     tensorProtoBuilder.build()
@@ -811,10 +806,13 @@ object TensorConvertible {
     }
   }
 
-  implicit def supportedTypeTensorConvertible[T](implicit ev: SupportedType[T]): TensorConvertible[T] = {
+  implicit def supportedTypeTensorConvertible[T, D <: DataType](implicit
+      evSupported: SupportedType[T, D],
+      evTypesMatch: D#ScalaType =:= T
+  ): TensorConvertible[T] = {
     new TensorConvertible[T] {
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: T): Tensor = Tensor.fill(ev.dataType, Shape())(value)
+      @inline override def toTensor(value: T): Tensor = Tensor.fill(evSupported.dataType, Shape())(value)
     }
   }
 

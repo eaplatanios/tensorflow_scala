@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.implicits.helpers.{DataTypeAuxToDataType, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.{StructureFromDataType, StructureFromOutput, StructureFromTensor}
 import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
@@ -45,7 +45,7 @@ import scala.language.postfixOps
 abstract class Dataset[T, O, D, S](
     val name: String = "Dataset"
 )(implicit
-    val evOToT: OutputToTensor.Aux[O, T],
+    val evStructure: StructureFromOutput.Aux[T, O, D, S],
     val evData: Data.Aux[T, O, D, S],
     val evFunctionInput: Function.ArgType[O]
 ) {
@@ -141,7 +141,7 @@ abstract class Dataset[T, O, D, S](
     * @return Transformed dataset.
     */
   def transform[TT, TO, TD, TS](transformFn: Dataset[T, O, D, S] => Dataset[TT, TO, TD, TS])(implicit
-      evTOToTT: OutputToTensor.Aux[TO, TT],
+      evStructure: StructureFromOutput.Aux[TT, TO, TD, TS],
       evT: Data.Aux[TT, TO, TD, TS],
       evFunctionInputT: Function.ArgType[TO]
   ): Dataset[TT, TO, TD, TS] = {
@@ -234,18 +234,17 @@ object Dataset {
 
     val GroupByWindowDataset: data.GroupByWindowDataset.type = data.GroupByWindowDataset
 
-    def fromGenerator[T, O, DA, D, S](
+    def fromGenerator[T, O, D, S](
         generator: () => Iterable[T],
-        outputDataType: DA,
+        outputDataType: D,
         outputShape: S = null
     )(implicit
-        evDAToD: DataTypeAuxToDataType.Aux[DA, D],
+        evStructureFromDataType: StructureFromDataType.Aux[T, O, D, S],
         evData: Data.Aux[T, O, D, S],
-        evOToT: OutputToTensor.Aux[O, T],
+        evStructureFromTensor: StructureFromTensor.Aux[T, O, D, S],
         evFunctionOutput: Function.ArgType[O]
     ): Dataset[T, O, D, S] = {
-      Dataset.fromGenerator[T, O, DA, D, S](
-        generator, outputDataType, outputShape)(evDAToD, evData, evOToT, evFunctionOutput)
+      Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)
     }
   }
 
@@ -286,25 +285,24 @@ object Dataset {
     * @param  outputShape    Output shape structure for the tensor structure of the generated [[Iterable]] elements.
     * @return Constructed dataset.
     */
-  private[api] def fromGenerator[T, O, DA, D, S](
+  private[api] def fromGenerator[T, O, D, S](
       generator: () => Iterable[T],
-      outputDataType: DA,
+      outputDataType: D,
       outputShape: S = null
   )(implicit
-      evDAToD: DataTypeAuxToDataType.Aux[DA, D],
+      evStructureFromDataType: StructureFromDataType.Aux[T, O, D, S],
       evData: Data.Aux[T, O, D, S],
-      evOToT: OutputToTensor.Aux[O, T],
+      evStructureFromTensor: StructureFromTensor.Aux[T, O, D, S],
       evFunctionOutput: Function.ArgType[O]
   ): Dataset[T, O, D, S] = {
-    val dataType = evDAToD.castDataType(outputDataType)
     val inferredOutputShape: S = {
       if (outputShape != null)
         outputShape
       else
-        evData.unflattenShapes(dataType, Seq.fill(evData.size(dataType))(Shape.unknown()))
+        evData.unflattenShapes(outputDataType, Seq.fill(evData.size(outputDataType))(Shape.unknown()))
     }
 
-    val flattenedTypes = evData.flattenedDataTypes(dataType)
+    val flattenedTypes = evData.flattenedDataTypes(outputDataType)
     val flattenedShapes = evData.flattenedShapes(inferredOutputShape)
     val generatorState = GeneratorState(generator)(evData)
 
@@ -356,7 +354,7 @@ object Dataset {
           }
         })
       }
-      evData.unflattenOutputs(dataType, flattenedValues)
+      evData.unflattenOutputs(outputDataType, flattenedValues)
     }
 
     /** Associates each traversal of the provided `generator` with a unique iterator ID. */

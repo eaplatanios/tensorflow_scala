@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.implicits
 import org.platanios.tensorflow.api.ops.io.data.BatchDataset.BatchDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.CacheDataset.CacheDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.ConcatenatedDataset.ConcatenatedDatasetOps
-import org.platanios.tensorflow.api.ops.io.data.{Dataset, InterleaveDataset}
+import org.platanios.tensorflow.api.ops.io.data.Dataset
 import org.platanios.tensorflow.api.ops.io.data.DropDataset.DropDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.FilterDataset.FilterDatasetOps
 import org.platanios.tensorflow.api.ops.io.data.FlatMapDataset.FlatMapDatasetOps
@@ -37,7 +37,7 @@ import org.platanios.tensorflow.api.ops.io.data.ZipDataset.ZipDatasetOps
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Data {
+private[implicits] trait DataImplicits {
   implicit def datasetToBatchDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]): BatchDatasetOps[T, O, D, S] = {
     BatchDatasetOps(dataset)
   }

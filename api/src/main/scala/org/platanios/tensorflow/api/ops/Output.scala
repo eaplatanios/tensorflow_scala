@@ -333,7 +333,7 @@ object Output {
         val fillValue = constantValue(tensor.op.inputs(0))
         if (fillShape.isFullyDefined && fillValue.isDefined) {
           val value = fillValue.get
-          Some(Tensor.fill(value.dataType, fillShape)(value.scalar)(value.dataType.supportedType))
+          Some(Tensor.fill(value.dataType, fillShape)(value.scalar)(value.dataType.evSupportedType))
         } else {
           None
         }

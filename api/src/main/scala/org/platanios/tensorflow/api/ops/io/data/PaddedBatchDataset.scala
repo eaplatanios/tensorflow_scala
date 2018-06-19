@@ -44,7 +44,9 @@ case class PaddedBatchDataset[T, O, D, S](
     paddedShapes: S,
     paddingValues: T = null.asInstanceOf[T],
     override val name: String = "PaddedBatchDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+) {
   override def createHandle(): Output = {
     Op.Builder(opType = "PaddedBatchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -98,7 +100,9 @@ case class DynamicPaddedBatchDataset[T, O, D, S](
     paddedShapes: S,
     paddingValues: O = null.asInstanceOf[O],
     override val name: String = "PaddedBatchDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+) {
   override def createHandle(): Output = {
     Op.Builder(opType = "PaddedBatchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))
@@ -141,8 +145,11 @@ object PaddedBatchDataset {
       * @return Created dataset.
       */
     def paddedBatch(
-        batchSize: Long, paddedShapes: S, paddingValues: T = null.asInstanceOf[T],
-        name: String = "PaddedBatch"): Dataset[T, O, D, S] = {
+        batchSize: Long,
+        paddedShapes: S,
+        paddingValues: T = null.asInstanceOf[T],
+        name: String = "PaddedBatch"
+    ): Dataset[T, O, D, S] = {
       Op.createWithNameScope(dataset.name) {
         PaddedBatchDataset(dataset, batchSize, paddedShapes, paddingValues, name)
       }
@@ -160,8 +167,11 @@ object PaddedBatchDataset {
       * @return Created dataset.
       */
     def dynamicPaddedBatch(
-        batchSize: Long, paddedShapes: S, paddingValues: O = null.asInstanceOf[O],
-        name: String = "PaddedBatch"): Dataset[T, O, D, S] = {
+        batchSize: Long,
+        paddedShapes: S,
+        paddingValues: O = null.asInstanceOf[O],
+        name: String = "PaddedBatch"
+    ): Dataset[T, O, D, S] = {
       Op.createWithNameScope(dataset.name) {
         DynamicPaddedBatchDataset(dataset, batchSize, paddedShapes, paddingValues, name)
       }

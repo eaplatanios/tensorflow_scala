@@ -34,7 +34,7 @@ import org.platanios.tensorflow.api.tensors.TensorConvertible
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Ops {
+private[implicits] trait OpsImplicits {
   implicit def opToControlFlowOps(op: Op): ControlFlowOps = ControlFlowOps(op)
 
   implicit def tensorConvertibleToOutput[T](value: T)(implicit ev: TensorConvertible[T]): Output = {
@@ -85,7 +85,8 @@ trait Ops {
   implicit def outputToEmbeddingMap(parameters: Output): EmbeddingMap = OutputParameters(parameters)
   implicit def variableToEmbeddingMap(parameters: Variable): EmbeddingMap = VariableParameters(parameters)
 
-  implicit def distributedValueToValue[T <: OutputConvertible, D <: DistributedValue[T]](
-      value: D
-  )(implicit context: DistributionContext): T = value.get()
+  // TODO: [DISTRIBUTE] Add support for this.
+//  implicit def distributedValueToValue[T <: OutputConvertible, D <: DistributedValue[T]](
+//      value: D
+//  )(implicit context: DistributionContext): T = value.get()
 }

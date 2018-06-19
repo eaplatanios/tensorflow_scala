@@ -93,8 +93,9 @@ trait Data[T] {
 }
 
 object Data {
-  private[io] def process[T, O, D, S](data: T)(implicit ev: Aux[T, O, D, S]): (
-      Seq[Output], Seq[DataType], Seq[Shape], Seq[Output] => O, Seq[DataType] => D, Seq[Shape] => S) = {
+  private[io] def process[T, O, D, S](data: T)(implicit
+      ev: Aux[T, O, D, S]
+  ): (Seq[Output], Seq[DataType], Seq[Shape], Seq[Output] => O, Seq[DataType] => D, Seq[Shape] => S) = {
     val flattenedOutputs = ev.flattenedOutputsFromT(data)
     val (uniqueOutputs, indices) = Data.uniquifyOutputs(flattenedOutputs)
     val uniqueDataTypes = uniqueOutputs.map(_.dataType)
@@ -121,7 +122,7 @@ object Data {
 
   def apply[T, O, D, S](implicit ev: Aux[T, O, D, S]): Aux[T, O, D, S] = ev
 
-  implicit def tensorData[D >: DataType.Aux[_] <: DataType]: Aux[Tensor, Output, D, Shape] = new Data[Tensor] {
+  implicit def tensorData[D <: DataType]: Aux[Tensor, Output, D, Shape] = new Data[Tensor] {
     override type OutputType = Output
     override type DataTypes = D
     override type Shapes = Shape
@@ -139,7 +140,7 @@ object Data {
     override def flattenedOutputsFromT(data: Tensor): Seq[Output] = Seq(data.toOutput)
     override def flattenedOutputsFromO(data: Output): Seq[Output] = Seq(data)
 
-    override def flattenedDataTypes(dataTypes: D): Seq[DataType] = Seq(dataTypes)
+    override def flattenedDataTypes(dataTypes: D): Seq[DataType] = Seq(dataTypes: DataType)
     override def flattenedShapes(shapes: Shape): Seq[Shape] = Seq(shapes)
 
     override def segmentOutputs(dataTypes: D, s: Seq[Output]): (Output, Seq[Output]) = (s.head, s.tail)
@@ -152,10 +153,10 @@ object Data {
   }
 
   implicit val tensorIndexedSlicesData: Aux[
-      TensorIndexedSlices, OutputIndexedSlices, (DataType, DataType, DataType), (Shape, Shape, Shape)] = {
+      TensorIndexedSlices, OutputIndexedSlices, (INT64, DataType, INT64), (Shape, Shape, Shape)] = {
     new Data[TensorIndexedSlices] {
       override type OutputType = OutputIndexedSlices
-      override type DataTypes = (DataType, DataType, DataType)
+      override type DataTypes = (INT64, DataType, INT64)
       override type Shapes = (Shape, Shape, Shape)
 
       override def size(dataTypes: DataTypes): Int = 3
@@ -200,7 +201,7 @@ object Data {
       }
 
       override def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType]) = {
-        ((s(0), s(1), s(2)), s.drop(3))
+        ((s(0).asInstanceOf[INT64], s(1), s(2).asInstanceOf[INT64]), s.drop(3))
       }
 
       override def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape]) = {
@@ -214,9 +215,9 @@ object Data {
   }
 
   implicit val sparseTensorData: Aux[
-      SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)] = new Data[SparseTensor] {
+      SparseTensor, SparseOutput, (INT64, DataType, INT64), (Shape, Shape, Shape)] = new Data[SparseTensor] {
     override type OutputType = SparseOutput
-    override type DataTypes = (DataType, DataType, DataType)
+    override type DataTypes = (INT64, DataType, INT64)
     override type Shapes = (Shape, Shape, Shape)
 
     override def size(dataTypes: DataTypes): Int = 3
@@ -259,7 +260,7 @@ object Data {
     }
 
     override def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType]) = {
-      ((s(0), s(1), s(2)), s.drop(3))
+      ((s(0).asInstanceOf[INT64], s(1), s(2).asInstanceOf[INT64]), s.drop(3))
     }
 
     override def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape]) = {
@@ -605,17 +606,15 @@ object Data {
   }
 
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-  implicit def productConstructor[
-  PT <: Product, PO <: Product, PD <: Product, PS <: Product,
-  LT <: HList, LO <: HList, LD <: HList, LS <: HList](implicit
-      genT: Generic.Aux[PT, LT],
-      dataL: Aux[LT, LO, LD, LS],
-      tuplerO: Tupler.Aux[LO, PO],
-      tuplerD: Tupler.Aux[LD, PD],
-      tuplerS: Tupler.Aux[LS, PS],
-      genO: Generic.Aux[PO, LO],
-      genD: Generic.Aux[PD, LD],
-      genS: Generic.Aux[PS, LS]
+  implicit def productConstructor[PT, PO, PD, PS, HT <: HList, HO <: HList, HD <: HList, HS <: HList](implicit
+      genT: Generic.Aux[PT, HT],
+      dataL: Aux[HT, HO, HD, HS],
+      tuplerO: Tupler.Aux[HO, PO],
+      tuplerD: Tupler.Aux[HD, PD],
+      tuplerS: Tupler.Aux[HS, PS],
+      genO: Generic.Aux[PO, HO],
+      genD: Generic.Aux[PD, HD],
+      genS: Generic.Aux[PS, HS]
   ): Aux[PT, PO, PD, PS] = new Data[PT] {
     override type OutputType = PO
     override type DataTypes = PD

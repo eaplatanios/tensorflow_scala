@@ -55,8 +55,8 @@ trait UnsupervisedTrainableModel[IT, IO, ID, IS, I]
 }
 
 object Model {
-  def unsupervised[IT, IO, IDA, ID, IS, I](
-      input: Input[IT, IO, IDA, ID, IS],
+  def unsupervised[IT, IO, ID, IS, I](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       loss: Layer[(IO, I), Output],
       optimizer: Optimizer,
@@ -66,10 +66,10 @@ object Model {
     new SimpleUnsupervisedTrainableModel(input, layer, loss, optimizer, clipGradients, colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer
@@ -77,10 +77,10 @@ object Model {
     new SimpleSupervisedTrainableModel(input, layer, trainInput, trainInputLayer, loss, optimizer)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer,
@@ -89,10 +89,10 @@ object Model {
     new SimpleSupervisedTrainableModel(input, layer, trainInput, trainInputLayer, loss, optimizer, clipGradients)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer
   ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
@@ -100,10 +100,10 @@ object Model {
       input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer,
       clipGradients: ClipGradients
@@ -112,11 +112,11 @@ object Model {
       input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer, clipGradients)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer
@@ -125,11 +125,11 @@ object Model {
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer,
@@ -139,11 +139,11 @@ object Model {
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer, clipGradients)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer
   ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
@@ -151,11 +151,11 @@ object Model {
       input, layer, trainLayer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer,
       clipGradients: ClipGradients
@@ -165,10 +165,10 @@ object Model {
       clipGradients)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer,
@@ -178,10 +178,10 @@ object Model {
       input, layer, trainInput, trainInputLayer, loss, optimizer, colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer,
@@ -193,10 +193,10 @@ object Model {
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
@@ -206,10 +206,10 @@ object Model {
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer,
       clipGradients: ClipGradients,
@@ -220,11 +220,11 @@ object Model {
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer,
@@ -235,11 +235,11 @@ object Model {
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS, T](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       trainInputLayer: Layer[TO, T],
       loss: Layer[(I, T), Output],
       optimizer: Optimizer,
@@ -251,11 +251,11 @@ object Model {
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
@@ -265,11 +265,11 @@ object Model {
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, IDA, ID, IS, I, TT, TO, TDA, TD, TS](
-      input: Input[IT, IO, IDA, ID, IS],
+  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
+      input: Input[IT, IO, ID, IS],
       layer: Layer[IO, I],
       trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TDA, TD, TS],
+      trainInput: Input[TT, TO, TD, TS],
       loss: Layer[(I, TO), Output],
       optimizer: Optimizer,
       clipGradients: ClipGradients,
@@ -334,7 +334,7 @@ object Model {
 }
 
 private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
-    val input: Input[IT, IO, _, ID, IS],
+    val input: Input[IT, IO, ID, IS],
     val layer: Layer[IO, I]
 ) extends InferenceModel[IT, IO, ID, IS, I] {
   override def buildInferOps(): Model.InferOps[IT, IO, ID, IS, I] = {
@@ -348,7 +348,7 @@ private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
 }
 
 private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private[learn](
-    override val input: Input[IT, IO, _, ID, IS],
+    override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
     val loss: Layer[(IO, I), Output],
     val optimizer: Optimizer,
@@ -389,9 +389,9 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
 }
 
 private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
-    override val input: Input[IT, IO, _, ID, IS],
+    override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
-    val trainInput: Input[TT, TO, _, TD, TS],
+    val trainInput: Input[TT, TO, TD, TS],
     val trainInputLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
     val optimizer: Optimizer,
@@ -437,10 +437,10 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
 }
 
 private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
-    override val input: Input[IT, IO, _, ID, IS],
+    override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
     val trainLayer: Layer[(IO, TO), I],
-    val trainInput: Input[TT, TO, _, TD, TS],
+    val trainInput: Input[TT, TO, TD, TS],
     val trainInputLayer: Layer[TO, T],
     val loss: Layer[(I, T), Output],
     val optimizer: Optimizer,

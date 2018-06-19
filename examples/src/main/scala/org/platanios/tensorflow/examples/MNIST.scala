@@ -40,10 +40,10 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))
-    val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
-    val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
-    val testImages = tf.data.TensorSlicesDataset(dataSet.testImages)
-    val testLabels = tf.data.TensorSlicesDataset(dataSet.testLabels)
+    val trainImages = tf.data.TensorSlicesDataset[Tensor, Output, UINT8, Shape](dataSet.trainImages)
+    val trainLabels = tf.data.TensorSlicesDataset[Tensor, Output, UINT8, Shape](dataSet.trainLabels)
+    val testImages = tf.data.TensorSlicesDataset[Tensor, Output, UINT8, Shape](dataSet.testImages)
+    val testLabels = tf.data.TensorSlicesDataset[Tensor, Output, UINT8, Shape](dataSet.testLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()

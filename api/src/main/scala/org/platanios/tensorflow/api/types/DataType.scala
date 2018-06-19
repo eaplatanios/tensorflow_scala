@@ -15,12 +15,14 @@
 
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.types.SupportedType._
-import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
+import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
+import com.google.protobuf.ByteString
 import org.tensorflow.framework.TensorProto
+import spire.math.{UByte, UShort}
 
 import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 
 // TODO: Add min/max-value and "isSigned" information.
 // TODO: Casts are unsafe (i.e., downcasting is allowed).
@@ -31,7 +33,8 @@ import java.nio.ByteBuffer
   */
 sealed trait DataType {
   type ScalaType
-  implicit val supportedType: SupportedType[ScalaType]
+
+  private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type]
 
   //region Data Type Properties
 
@@ -65,6 +68,12 @@ sealed trait DataType {
   //endregion Data Type Properties
 
   //region Data Type Set Helper Methods
+
+  /** Zero value for this data type. */
+  def zero: ScalaType
+
+  /** One value for this data type. */
+  def one: ScalaType
 
   /** Returns `true` if this data type represents a non-quantized floating-point data type. */
   def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(this)
@@ -111,7 +120,7 @@ sealed trait DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  @inline def cast[T](value: T)(implicit evidence: SupportedType[T]): ScalaType = value.cast(this)
+  @inline def cast[R](value: R)(implicit ev: SupportedType[R, _]): ScalaType = evSupportedType.cast(value)
 
   /** Puts an element of this data type into the provided byte buffer.
     *
@@ -149,10 +158,6 @@ sealed trait DataType {
 
 /** Contains all supported data types along with some helper functions for dealing with them. */
 object DataType {
-  trait Aux[T] extends DataType {
-    override type ScalaType = T
-  }
-
   //region Data Type Sets
 
   /** Set of all floating-point data types. */
@@ -194,7 +199,10 @@ object DataType {
     * @param  value Value whose data type to return.
     * @return Data type of the provided value.
     */
-  @inline def dataTypeOf[T: SupportedType](value: T): DataType = value.dataType
+  @inline def dataTypeOf[T, D <: DataType](value: T)(implicit
+      evSupported: SupportedType[T, D],
+      evTypesMatch: D#ScalaType =:= T
+  ): D = evSupported.dataType
 
   /** Returns the data type corresponding to the provided C value.
     *
@@ -286,7 +294,10 @@ object DataType {
   //endregion Helper Methods
 
   private[types] trait API {
-    @inline def dataTypeOf[T: SupportedType](value: T): DataType = DataType.dataTypeOf(value)
+    @inline def dataTypeOf[T, D <: DataType](value: T)(implicit
+        evSupportedType: SupportedType[T, D],
+        evTypesMatch: D#ScalaType =:= T
+    ): D = DataType.dataTypeOf(value)
 
     @throws[IllegalArgumentException]
     def dataType(cValue: Int): DataType = DataType.fromCValue(cValue)
@@ -296,5 +307,732 @@ object DataType {
 
     def mostPreciseDataType(dataTypes: DataType*): DataType = DataType.mostPrecise(dataTypes: _*)
     def leastPreciseDataType(dataTypes: DataType*): DataType = DataType.leastPrecise(dataTypes: _*)
+  }
+}
+
+object STRING extends DataType {
+  override type ScalaType = String
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.stringIsSupportedType
+  }
+
+  override val name    : String = "STRING"
+  override val cValue  : Int    = 7
+  override val byteSize: Int    = -1
+  override val priority: Int    = 1000
+
+  override def zero: String = ""
+  override def one: String = ???
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_STRING
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    val stringBytes = element.getBytes(StandardCharsets.ISO_8859_1)
+    NativeTensor.setStringBytes(stringBytes, buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): String = {
+    val stringBytes = NativeTensor.getStringBytes(buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
+    new String(stringBytes, StandardCharsets.ISO_8859_1)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: String): Unit = {
+    tensorProtoBuilder.addStringVal(ByteString.copyFrom(value.getBytes))
+  }
+}
+
+object BOOLEAN extends DataType {
+  override type ScalaType = Boolean
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.booleanIsSupportedType
+  }
+
+  override val name    : String = "BOOLEAN"
+  override val cValue  : Int    = 10
+  override val byteSize: Int    = 1
+  override val priority: Int    = 0
+
+  override def zero: Boolean = false
+  override def one: Boolean = true
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_BOOL
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.put(index, if (element) 1 else 0)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Boolean = {
+    buffer.get(index) == 1
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Boolean): Unit = {
+    tensorProtoBuilder.addBoolVal(value)
+  }
+}
+
+// TODO: Fix/complete the following implementations for FLOAT16, BFLOAT16, COMPLEX64, and COMPLEX128.
+
+object FLOAT16 extends DataType {
+  override type ScalaType = Float
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "FLOAT16"
+  override val cValue  : Int    = 19
+  override val byteSize: Int    = 2
+  override val priority: Int    = -1
+
+  override def zero: Float = 0.0f
+  override def one: Float = 1.0f
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_HALF
+
+  override def min: ScalaType = -65504f
+  override def max: ScalaType = 65504f
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Float = {
+    ???
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Float): Unit = {
+    ???
+  }
+}
+
+object FLOAT32 extends DataType {
+  override type ScalaType = Float
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.floatIsSupportedType
+  }
+
+  override val name    : String = "FLOAT32"
+  override val cValue  : Int    = 1
+  override val byteSize: Int    = 4
+  override val priority: Int    = 220
+
+  override def zero: Float = 0.0f
+  override def one: Float = 1.0f
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_FLOAT
+
+  override def min: ScalaType = Float.MinValue
+  override def max: ScalaType = Float.MaxValue
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putFloat(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Float = {
+    buffer.getFloat(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Float): Unit = {
+    tensorProtoBuilder.addFloatVal(value)
+  }
+}
+
+object FLOAT64 extends DataType {
+  override type ScalaType = Double
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.doubleIsSupportedType
+  }
+
+  override val name    : String = "FLOAT64"
+  override val cValue  : Int    = 2
+  override val byteSize: Int    = 8
+  override val priority: Int    = 230
+
+  override def zero: Double = 0.0
+  override def one: Double = 1.0
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_DOUBLE
+
+  override def min: ScalaType = Double.MinValue
+  override def max: ScalaType = Double.MaxValue
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putDouble(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Double = {
+    buffer.getDouble(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Double): Unit = {
+    tensorProtoBuilder.addDoubleVal(value)
+  }
+}
+
+object BFLOAT16 extends DataType {
+  override type ScalaType = Float
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "BFLOAT16"
+  override val cValue  : Int    = 14
+  override val byteSize: Int    = 2
+  override val priority: Int    = -1
+
+  override def zero: Float = 0.0f
+  override def one: Float = 1.0f
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_BFLOAT16
+
+  override def min: ScalaType = ???
+  override def max: ScalaType = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Float = {
+    ???
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Float): Unit = {
+    ???
+  }
+}
+
+object COMPLEX64 extends DataType {
+  override type ScalaType = Double
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "COMPLEX64"
+  override val cValue  : Int    = 8
+  override val byteSize: Int    = 8
+  override val priority: Int    = -1
+
+  override def zero: Double = ???
+  override def one: Double = ???
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_COMPLEX64
+
+  override def min: ScalaType = ???
+  override def max: ScalaType = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Double = {
+    ???
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Double): Unit = {
+    ???
+  }
+}
+
+object COMPLEX128 extends DataType {
+  override type ScalaType = Double
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "COMPLEX128"
+  override val cValue  : Int    = 18
+  override val byteSize: Int    = 16
+  override val priority: Int    = -1
+
+  override def zero: Double = ???
+  override def one: Double = ???
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_COMPLEX128
+
+  override def min: ScalaType = ???
+  override def max: ScalaType = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Double = {
+    ???
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Double): Unit = {
+    ???
+  }
+}
+
+object INT8 extends DataType {
+  override type ScalaType = Byte
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.byteIsSupportedType
+  }
+
+  override val name    : String = "INT8"
+  override val cValue  : Int    = 6
+  override val byteSize: Int    = 1
+  override val priority: Int    = 40
+
+  override def zero: Byte = 0
+  override def one: Byte = 1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT8
+
+  override def min: ScalaType = (-128).toByte
+  override def max: ScalaType = 127.toByte
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.put(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Byte = {
+    buffer.get(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Byte): Unit = {
+    tensorProtoBuilder.addIntVal(value)
+  }
+}
+
+object INT16 extends DataType {
+  override type ScalaType = Short
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.shortIsSupportedType
+  }
+
+  override val name    : String = "INT16"
+  override val cValue  : Int    = 5
+  override val byteSize: Int    = 2
+  override val priority: Int    = 80
+
+  override def zero: Short = 0
+  override def one: Short = 1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT16
+
+  override def min: ScalaType = (-32768).toShort
+  override def max: ScalaType = 32767.toShort
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putShort(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Short = {
+    buffer.getShort(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Short): Unit = {
+    tensorProtoBuilder.addIntVal(value)
+  }
+}
+
+object INT32 extends DataType {
+  override type ScalaType = Int
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.intIsSupportedType
+  }
+
+  override val name    : String = "INT32"
+  override val cValue  : Int    = 3
+  override val byteSize: Int    = 4
+  override val priority: Int    = 100
+
+  override def zero: Int = 0
+  override def one: Int = 1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT32
+
+  override def min: ScalaType = -2147483648
+  override def max: ScalaType = 2147483647
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putInt(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Int = {
+    buffer.getInt(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Int): Unit = {
+    tensorProtoBuilder.addIntVal(value)
+  }
+}
+
+object INT64 extends DataType {
+  override type ScalaType = Long
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.longIsSupportedType
+  }
+
+  override val name    : String = "INT64"
+  override val cValue  : Int    = 9
+  override val byteSize: Int    = 8
+  override val priority: Int    = 110
+
+  override def zero: Long = 0L
+  override def one: Long = 1L
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_INT64
+
+  override def min: ScalaType = -9223372036854775808L
+  override def max: ScalaType = 9223372036854775807L
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putLong(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    buffer.getLong(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    tensorProtoBuilder.addInt64Val(value)
+  }
+}
+
+object UINT8 extends DataType {
+  override type ScalaType = UByte
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.uByteIsSupportedType
+  }
+
+  override val name    : String = "UINT8"
+  override val cValue  : Int    = 4
+  override val byteSize: Int    = 1
+  override val priority: Int    = 20
+
+  override def zero: UByte = UByte(0)
+  override def one: UByte = UByte(1)
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_UINT8
+
+  override def min: ScalaType = UByte(0)
+  override def max: ScalaType = UByte(255)
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.put(index, element.toByte)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UByte = {
+    UByte(buffer.get(index))
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UByte): Unit = {
+    tensorProtoBuilder.addIntVal(value.toInt)
+  }
+}
+
+object UINT16 extends DataType {
+  override type ScalaType = UShort
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+    SupportedType.uShortIsSupportedType
+  }
+
+  override val name    : String = "UINT16"
+  override val cValue  : Int    = 17
+  override val byteSize: Int    = 2
+  override val priority: Int    = 60
+
+  override def zero: UShort = UShort(0)
+  override def one: UShort = UShort(1)
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_UINT16
+
+  override def min: ScalaType = UShort(0)
+  override def max: ScalaType = UShort(65535)
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putChar(index, element.toChar)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UShort = {
+    UShort(buffer.getChar(index))
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UShort): Unit = {
+    tensorProtoBuilder.addIntVal(value.toInt)
+  }
+}
+
+object UINT32 extends DataType {
+  override type ScalaType = Long
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "UINT32"
+  override val cValue  : Int    = 22
+  override val byteSize: Int    = 4
+  override val priority: Int    = 85
+
+  override def zero: Long = 0L
+  override def one: Long = 1L
+
+  override def protoType: org.tensorflow.framework.DataType = ???
+
+  override def min: ScalaType = 0L
+  override def max: ScalaType = 9223372036854775807L
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putInt(index, element.toInt)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    buffer.getInt(index).toLong
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    ???
+  }
+}
+
+object UINT64 extends DataType {
+  override type ScalaType = Long
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "UINT64"
+  override val cValue  : Int    = 23
+  override val byteSize: Int    = 8
+  override val priority: Int    = 105
+
+  override def zero: Long = ???
+  override def one: Long = ???
+
+  override def protoType: org.tensorflow.framework.DataType = ???
+
+  override def min: ScalaType = 0L
+  override def max: ScalaType = ???
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    ???
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    ???
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    ???
+  }
+}
+
+object QINT8 extends DataType {
+  override type ScalaType = Byte
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "QINT8"
+  override val cValue  : Int    = 11
+  override val byteSize: Int    = 1
+  override val priority: Int    = 30
+
+  override def zero: Byte = 0
+  override def one: Byte = 1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QINT8
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.put(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Byte = {
+    buffer.get(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Byte): Unit = {
+    ???
+  }
+}
+
+object QINT16 extends DataType {
+  override type ScalaType = Short
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "QINT16"
+  override val cValue  : Int    = 15
+  override val byteSize: Int    = 2
+  override val priority: Int    = 70
+
+  override def zero: Short = 0
+  override def one: Short = 1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QINT16
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putShort(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Short = {
+    buffer.getShort(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Short): Unit = {
+    ???
+  }
+}
+
+object QINT32 extends DataType {
+  override type ScalaType = Int
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "QINT32"
+  override val cValue  : Int    = 13
+  override val byteSize: Int    = 4
+  override val priority: Int    = 90
+
+  override def zero: Int = 0
+  override def one: Int = 1
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QINT32
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putInt(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Int = {
+    buffer.getInt(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Int): Unit = {
+    ???
+  }
+}
+
+object QUINT8 extends DataType {
+  override type ScalaType = UByte
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "QUINT8"
+  override val cValue  : Int    = 12
+  override val byteSize: Int    = 1
+  override val priority: Int    = 10
+
+  override def zero: UByte = UByte(0)
+  override def one: UByte = UByte(1)
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QUINT8
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.put(index, element.toByte)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UByte = {
+    UByte(buffer.get(index))
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UByte): Unit = {
+    ???
+  }
+}
+
+object QUINT16 extends DataType {
+  override type ScalaType = UShort
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "QUINT16"
+  override val cValue  : Int    = 16
+  override val byteSize: Int    = 2
+  override val priority: Int    = 50
+
+  override def zero: UShort = UShort(0)
+  override def one: UShort = UShort(1)
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_QUINT16
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putChar(index, element.toChar)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): UShort = {
+    UShort(buffer.getChar(index))
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: UShort): Unit = {
+    ???
+  }
+}
+
+object RESOURCE extends DataType {
+  override type ScalaType = Long
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "RESOURCE"
+  override val cValue  : Int    = 20
+  override val byteSize: Int    = -1
+  override val priority: Int    = -1
+
+  override def zero: Long = ???
+  override def one: Long = ???
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_RESOURCE
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putLong(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    buffer.getLong(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    ???
+  }
+}
+
+object VARIANT extends DataType {
+  override type ScalaType = Long
+
+  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+
+  override val name    : String = "VARIANT"
+  override val cValue  : Int    = 21
+  override val byteSize: Int    = -1
+  override val priority: Int    = -1
+
+  override def zero: Long = ???
+  override def one: Long = ???
+
+  override def protoType: org.tensorflow.framework.DataType = org.tensorflow.framework.DataType.DT_VARIANT
+
+  private[api] override def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int = {
+    buffer.putLong(index, element)
+    byteSize
+  }
+
+  private[api] override def getElementFromBuffer(buffer: ByteBuffer, index: Int): Long = {
+    buffer.getLong(index)
+  }
+
+  private[api] override def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: Long): Unit = {
+    ???
   }
 }
