@@ -240,7 +240,8 @@ object Indexer {
     *         - shrink axis mask.
     */
   private[api] def toStridedSlice(
-      indexers: Indexer*): (Array[Int], Array[Int], Array[Int], Long, Long, Long, Long, Long) = {
+      indexers: Indexer*
+  ): (Array[Int], Array[Int], Array[Int], Long, Long, Long, Long, Long) = {
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
     val begin = Array.fill(indexers.length)(0)

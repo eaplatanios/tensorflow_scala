@@ -53,7 +53,12 @@ private[api] trait Basic {
     *                               the provided `shape`.
     */
   @throws[InvalidShapeException]
-  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Output = {
+  def constant(
+      tensor: Tensor[_ <: DataType],
+      dataType: DataType = null,
+      shape: Shape = null,
+      name: String = "Constant"
+  ): Output = {
     val inferredDataType = if (dataType == null) tensor.dataType else dataType
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor =
@@ -657,12 +662,12 @@ private[api] trait Basic {
       * @param  paddings `INT32` or `INT64` tensor containing the paddings.
       * @return Result as a new tensor.
       */
-    private[api] def pad(input: Tensor, paddings: Tensor): Tensor
+    private[api] def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D]
   }
 
   private[ops] object PaddingMode {
     def fromString(name: String): PaddingMode = name match {
-      case "CONSTANT" => ConstantPadding(0)
+      case "CONSTANT" => ConstantPadding(Some(Tensor(0)))
       case "REFLECT" => ReflectivePadding
       case "SYMMETRIC" => SymmetricPadding
       case _ => throw new IllegalArgumentException(s"Invalid padding mode '$name' provided.")
@@ -690,20 +695,19 @@ private[api] trait Basic {
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  case class ConstantPadding(value: Tensor = 0) extends PaddingMode {
+  case class ConstantPadding(value: Option[Tensor[_ <: DataType]] = None) extends PaddingMode {
     override def pad(input: Output, paddings: Output, name: String): Output = {
       Op.Builder(opType = "PadV2", name = name)
           .addInput(input)
           .addInput(paddings)
-          .addInput(value.cast(input.dataType))
+          .addInput(value.map(Basic.constant(_, input.dataType)).getOrElse(Basic.zeros(input.dataType, Shape())))
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor): Tensor = {
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.padV2(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-          value.cast(input.dataType).nativeHandle))
+    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
+      Tensor.fromNativeHandle(NativeTensorOpsBasic.padV2(
+        executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+        value.map(_.cast(input.dataType)).getOrElse(Tensor.zeros(input.dataType, Shape())).nativeHandle))
     }
   }
 
@@ -738,11 +742,10 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor): Tensor = {
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.mirrorPad(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-          "REFLECT".getBytes()))
+    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
+      Tensor.fromNativeHandle(NativeTensorOpsBasic.mirrorPad(
+        executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+        "REFLECT".getBytes()))
     }
   }
 
@@ -777,11 +780,10 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor): Tensor = {
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.mirrorPad(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-          "SYMMETRIC".getBytes()))
+    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
+      Tensor.fromNativeHandle(NativeTensorOpsBasic.mirrorPad(
+        executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+        "SYMMETRIC".getBytes()))
     }
   }
 
