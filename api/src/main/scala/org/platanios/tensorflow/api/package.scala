@@ -79,7 +79,7 @@ package object api extends implicits.Implicits with Documentation {
   val NewAxis: Indexer = core.NewAxis
   val ::     : Slice   = core.Slice.::
 
-  type Tensor = tensors.Tensor
+  type Tensor[D <: DataType] = tensors.Tensor[D]
   val Tensor: tensors.Tensor.type = tensors.Tensor
 
   type Op = ops.Op
