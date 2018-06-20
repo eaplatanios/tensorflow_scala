@@ -34,7 +34,7 @@ import java.nio.charset.StandardCharsets
 sealed trait DataType {
   type ScalaType
 
-  private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type]
+  private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type]
 
   //region Data Type Properties
 
@@ -120,7 +120,7 @@ sealed trait DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  @inline def cast[R](value: R)(implicit ev: SupportedType[R, _]): ScalaType = evSupportedType.cast(value)
+  @inline def cast[R](value: R)(implicit ev: SupportedType.Aux[R, _]): ScalaType = evSupportedType.cast(value)
 
   /** Puts an element of this data type into the provided byte buffer.
     *
@@ -199,10 +199,9 @@ object DataType {
     * @param  value Value whose data type to return.
     * @return Data type of the provided value.
     */
-  @inline def dataTypeOf[T, D <: DataType](value: T)(implicit
-      evSupported: SupportedType[T, D],
-      evTypesMatch: D#ScalaType =:= T
-  ): D = evSupported.dataType
+  @inline def dataTypeOf[T, D <: DataType](value: T)(implicit evSupported: SupportedType.Aux[T, D]): D = {
+    evSupported.dataType
+  }
 
   /** Returns the data type corresponding to the provided C value.
     *
@@ -214,32 +213,35 @@ object DataType {
     * @throws IllegalArgumentException If an invalid C value is provided.
     */
   @throws[IllegalArgumentException]
-  def fromCValue(cValue: Int): DataType = cValue match {
-    case BOOLEAN.cValue => BOOLEAN
-    case STRING.cValue => STRING
-    case FLOAT16.cValue => FLOAT16
-    case FLOAT32.cValue => FLOAT32
-    case FLOAT64.cValue => FLOAT64
-    case BFLOAT16.cValue => BFLOAT16
-    case COMPLEX64.cValue => COMPLEX64
-    case COMPLEX128.cValue => COMPLEX128
-    case INT8.cValue => INT8
-    case INT16.cValue => INT16
-    case INT32.cValue => INT32
-    case INT64.cValue => INT64
-    case UINT8.cValue => UINT8
-    case UINT16.cValue => UINT16
-    case UINT32.cValue => UINT32
-    case UINT64.cValue => UINT64
-    case QINT8.cValue => QINT8
-    case QINT16.cValue => QINT16
-    case QINT32.cValue => QINT32
-    case QUINT8.cValue => QUINT8
-    case QUINT16.cValue => QUINT16
-    case RESOURCE.cValue => RESOURCE
-    case VARIANT.cValue => VARIANT
-    case value => throw new IllegalArgumentException(
-      s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+  private[api] def fromCValue[D <: DataType](cValue: Int): D = {
+    val dataType = cValue match {
+      case BOOLEAN.cValue => BOOLEAN
+      case STRING.cValue => STRING
+      case FLOAT16.cValue => FLOAT16
+      case FLOAT32.cValue => FLOAT32
+      case FLOAT64.cValue => FLOAT64
+      case BFLOAT16.cValue => BFLOAT16
+      case COMPLEX64.cValue => COMPLEX64
+      case COMPLEX128.cValue => COMPLEX128
+      case INT8.cValue => INT8
+      case INT16.cValue => INT16
+      case INT32.cValue => INT32
+      case INT64.cValue => INT64
+      case UINT8.cValue => UINT8
+      case UINT16.cValue => UINT16
+      case UINT32.cValue => UINT32
+      case UINT64.cValue => UINT64
+      case QINT8.cValue => QINT8
+      case QINT16.cValue => QINT16
+      case QINT32.cValue => QINT32
+      case QUINT8.cValue => QUINT8
+      case QUINT16.cValue => QUINT16
+      case RESOURCE.cValue => RESOURCE
+      case VARIANT.cValue => VARIANT
+      case value => throw new IllegalArgumentException(
+        s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+    }
+    dataType.asInstanceOf[D]
   }
 
   /** Returns the data type corresponding to the provided name.
@@ -249,32 +251,35 @@ object DataType {
     * @throws IllegalArgumentException If an invalid data type name is provided.
     */
   @throws[IllegalArgumentException]
-  def fromName(name: String): DataType = name match {
-    case "BOOLEAN" => BOOLEAN
-    case "STRING" => STRING
-    case "FLOAT16" => FLOAT16
-    case "FLOAT32" => FLOAT32
-    case "FLOAT64" => FLOAT64
-    case "BFLOAT16" => BFLOAT16
-    case "COMPLEX64" => COMPLEX64
-    case "COMPLEX128" => COMPLEX128
-    case "INT8" => INT8
-    case "INT16" => INT16
-    case "INT32" => INT32
-    case "INT64" => INT64
-    case "UINT8" => UINT8
-    case "UINT16" => UINT16
-    case "UINT32" => UINT32
-    case "UINT64" => UINT64
-    case "QINT8" => QINT8
-    case "QINT16" => QINT16
-    case "QINT32" => QINT32
-    case "QUINT8" => QUINT8
-    case "QUINT16" => QUINT16
-    case "RESOURCE" => RESOURCE
-    case "VARIANT" => VARIANT
-    case value => throw new IllegalArgumentException(
-      s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+  private[api] def fromName[D <: DataType](name: String): D = {
+    val dataType = name match {
+      case "BOOLEAN" => BOOLEAN
+      case "STRING" => STRING
+      case "FLOAT16" => FLOAT16
+      case "FLOAT32" => FLOAT32
+      case "FLOAT64" => FLOAT64
+      case "BFLOAT16" => BFLOAT16
+      case "COMPLEX64" => COMPLEX64
+      case "COMPLEX128" => COMPLEX128
+      case "INT8" => INT8
+      case "INT16" => INT16
+      case "INT32" => INT32
+      case "INT64" => INT64
+      case "UINT8" => UINT8
+      case "UINT16" => UINT16
+      case "UINT32" => UINT32
+      case "UINT64" => UINT64
+      case "QINT8" => QINT8
+      case "QINT16" => QINT16
+      case "QINT32" => QINT32
+      case "QUINT8" => QUINT8
+      case "QUINT16" => QUINT16
+      case "RESOURCE" => RESOURCE
+      case "VARIANT" => VARIANT
+      case value => throw new IllegalArgumentException(
+        s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+    }
+    dataType.asInstanceOf[D]
   }
 
   /** Returns the most precise data type out of the provided data types, based on their `priority` field.
@@ -294,10 +299,9 @@ object DataType {
   //endregion Helper Methods
 
   private[types] trait API {
-    @inline def dataTypeOf[T, D <: DataType](value: T)(implicit
-        evSupportedType: SupportedType[T, D],
-        evTypesMatch: D#ScalaType =:= T
-    ): D = DataType.dataTypeOf(value)
+    @inline def dataTypeOf[T, D <: DataType](value: T)(implicit evSupportedType: SupportedType.Aux[T, D]): D = {
+      DataType.dataTypeOf(value)
+    }
 
     @throws[IllegalArgumentException]
     def dataType(cValue: Int): DataType = DataType.fromCValue(cValue)
@@ -310,10 +314,20 @@ object DataType {
   }
 }
 
-object STRING extends DataType {
+sealed trait ReducibleDataType extends DataType
+sealed trait NumericDataType extends ReducibleDataType
+sealed trait NonQuantizedDataType extends NumericDataType
+sealed trait IntegerDataType extends NonQuantizedDataType
+sealed trait ShapeDataType extends IntegerDataType
+sealed trait DecimalDataType extends NonQuantizedDataType
+sealed trait Float32OrFloat64 extends DecimalDataType
+sealed trait ComplexDataType extends NonQuantizedDataType
+sealed trait QuantizedDataType extends NumericDataType
+
+object STRING extends ReducibleDataType {
   override type ScalaType = String
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.stringIsSupportedType
   }
 
@@ -342,10 +356,10 @@ object STRING extends DataType {
   }
 }
 
-object BOOLEAN extends DataType {
+object BOOLEAN extends ReducibleDataType {
   override type ScalaType = Boolean
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.booleanIsSupportedType
   }
 
@@ -375,10 +389,10 @@ object BOOLEAN extends DataType {
 
 // TODO: Fix/complete the following implementations for FLOAT16, BFLOAT16, COMPLEX64, and COMPLEX128.
 
-object FLOAT16 extends DataType {
+object FLOAT16 extends DecimalDataType {
   override type ScalaType = Float
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "FLOAT16"
   override val cValue  : Int    = 19
@@ -406,10 +420,10 @@ object FLOAT16 extends DataType {
   }
 }
 
-object FLOAT32 extends DataType {
+object FLOAT32 extends Float32OrFloat64 {
   override type ScalaType = Float
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.floatIsSupportedType
   }
 
@@ -440,10 +454,10 @@ object FLOAT32 extends DataType {
   }
 }
 
-object FLOAT64 extends DataType {
+object FLOAT64 extends Float32OrFloat64 {
   override type ScalaType = Double
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.doubleIsSupportedType
   }
 
@@ -474,10 +488,10 @@ object FLOAT64 extends DataType {
   }
 }
 
-object BFLOAT16 extends DataType {
+object BFLOAT16 extends DecimalDataType {
   override type ScalaType = Float
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "BFLOAT16"
   override val cValue  : Int    = 14
@@ -505,10 +519,10 @@ object BFLOAT16 extends DataType {
   }
 }
 
-object COMPLEX64 extends DataType {
+object COMPLEX64 extends ComplexDataType {
   override type ScalaType = Double
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "COMPLEX64"
   override val cValue  : Int    = 8
@@ -536,10 +550,10 @@ object COMPLEX64 extends DataType {
   }
 }
 
-object COMPLEX128 extends DataType {
+object COMPLEX128 extends ComplexDataType {
   override type ScalaType = Double
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "COMPLEX128"
   override val cValue  : Int    = 18
@@ -567,10 +581,10 @@ object COMPLEX128 extends DataType {
   }
 }
 
-object INT8 extends DataType {
+object INT8 extends IntegerDataType {
   override type ScalaType = Byte
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.byteIsSupportedType
   }
 
@@ -601,10 +615,10 @@ object INT8 extends DataType {
   }
 }
 
-object INT16 extends DataType {
+object INT16 extends IntegerDataType {
   override type ScalaType = Short
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.shortIsSupportedType
   }
 
@@ -635,10 +649,10 @@ object INT16 extends DataType {
   }
 }
 
-object INT32 extends DataType {
+object INT32 extends ShapeDataType {
   override type ScalaType = Int
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.intIsSupportedType
   }
 
@@ -669,10 +683,10 @@ object INT32 extends DataType {
   }
 }
 
-object INT64 extends DataType {
+object INT64 extends ShapeDataType {
   override type ScalaType = Long
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.longIsSupportedType
   }
 
@@ -703,10 +717,10 @@ object INT64 extends DataType {
   }
 }
 
-object UINT8 extends DataType {
+object UINT8 extends IntegerDataType {
   override type ScalaType = UByte
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.uByteIsSupportedType
   }
 
@@ -737,10 +751,10 @@ object UINT8 extends DataType {
   }
 }
 
-object UINT16 extends DataType {
+object UINT16 extends IntegerDataType {
   override type ScalaType = UShort
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = {
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
     SupportedType.uShortIsSupportedType
   }
 
@@ -771,10 +785,10 @@ object UINT16 extends DataType {
   }
 }
 
-object UINT32 extends DataType {
+object UINT32 extends IntegerDataType {
   override type ScalaType = Long
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "UINT32"
   override val cValue  : Int    = 22
@@ -803,10 +817,10 @@ object UINT32 extends DataType {
   }
 }
 
-object UINT64 extends DataType {
+object UINT64 extends IntegerDataType {
   override type ScalaType = Long
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "UINT64"
   override val cValue  : Int    = 23
@@ -834,10 +848,10 @@ object UINT64 extends DataType {
   }
 }
 
-object QINT8 extends DataType {
+object QINT8 extends QuantizedDataType {
   override type ScalaType = Byte
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "QINT8"
   override val cValue  : Int    = 11
@@ -863,10 +877,10 @@ object QINT8 extends DataType {
   }
 }
 
-object QINT16 extends DataType {
+object QINT16 extends QuantizedDataType {
   override type ScalaType = Short
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "QINT16"
   override val cValue  : Int    = 15
@@ -892,10 +906,10 @@ object QINT16 extends DataType {
   }
 }
 
-object QINT32 extends DataType {
+object QINT32 extends QuantizedDataType {
   override type ScalaType = Int
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "QINT32"
   override val cValue  : Int    = 13
@@ -921,10 +935,10 @@ object QINT32 extends DataType {
   }
 }
 
-object QUINT8 extends DataType {
+object QUINT8 extends QuantizedDataType {
   override type ScalaType = UByte
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "QUINT8"
   override val cValue  : Int    = 12
@@ -950,10 +964,10 @@ object QUINT8 extends DataType {
   }
 }
 
-object QUINT16 extends DataType {
+object QUINT16 extends QuantizedDataType {
   override type ScalaType = UShort
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "QUINT16"
   override val cValue  : Int    = 16
@@ -982,7 +996,7 @@ object QUINT16 extends DataType {
 object RESOURCE extends DataType {
   override type ScalaType = Long
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "RESOURCE"
   override val cValue  : Int    = 20
@@ -1011,7 +1025,7 @@ object RESOURCE extends DataType {
 object VARIANT extends DataType {
   override type ScalaType = Long
 
-  override private[api] implicit val evSupportedType: SupportedType[ScalaType, this.type] = null
+  override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
 
   override val name    : String = "VARIANT"
   override val cValue  : Int    = 21
