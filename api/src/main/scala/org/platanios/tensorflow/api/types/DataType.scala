@@ -317,12 +317,19 @@ object DataType {
 sealed trait ReducibleDataType extends DataType
 sealed trait NumericDataType extends ReducibleDataType
 sealed trait NonQuantizedDataType extends NumericDataType
-sealed trait IntegerDataType extends NonQuantizedDataType
-sealed trait ShapeDataType extends IntegerDataType
+sealed trait Int32OrInt64OrFloat16OrFloat32OrFloat64 extends NumericDataType
+sealed trait IntOrUInt extends NonQuantizedDataType
+sealed trait UInt8OrInt32OrInt64 extends IntOrUInt with Int32OrInt64OrFloat16OrFloat32OrFloat64
+sealed trait Int32OrInt64 extends UInt8OrInt32OrInt64
 sealed trait DecimalDataType extends NonQuantizedDataType
-sealed trait Float32OrFloat64 extends DecimalDataType
+sealed trait BFloat16OrFloat32OrFloat64 extends DecimalDataType
+sealed trait Float16OrFloat32OrFloat64 extends DecimalDataType with Int32OrInt64OrFloat16OrFloat32OrFloat64 with BFloat16OrFloat32OrFloat64
+sealed trait Float32OrFloat64 extends Float16OrFloat32OrFloat64
+sealed trait Int32OrInt64OrFloat32OrFloat64 extends Float32OrFloat64 with Int32OrInt64
 sealed trait ComplexDataType extends NonQuantizedDataType
 sealed trait QuantizedDataType extends NumericDataType
+
+sealed trait MathDataType extends Float16OrFloat32OrFloat64 with Int32OrInt64 with ComplexDataType
 
 object STRING extends ReducibleDataType {
   override type ScalaType = String
@@ -389,7 +396,7 @@ object BOOLEAN extends ReducibleDataType {
 
 // TODO: Fix/complete the following implementations for FLOAT16, BFLOAT16, COMPLEX64, and COMPLEX128.
 
-object FLOAT16 extends DecimalDataType {
+object FLOAT16 extends Float16OrFloat32OrFloat64 {
   override type ScalaType = Float
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
@@ -488,7 +495,7 @@ object FLOAT64 extends Float32OrFloat64 {
   }
 }
 
-object BFLOAT16 extends DecimalDataType {
+object BFLOAT16 extends BFloat16OrFloat32OrFloat64 {
   override type ScalaType = Float
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
@@ -581,7 +588,7 @@ object COMPLEX128 extends ComplexDataType {
   }
 }
 
-object INT8 extends IntegerDataType {
+object INT8 extends IntOrUInt {
   override type ScalaType = Byte
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
@@ -615,7 +622,7 @@ object INT8 extends IntegerDataType {
   }
 }
 
-object INT16 extends IntegerDataType {
+object INT16 extends IntOrUInt {
   override type ScalaType = Short
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
@@ -649,7 +656,7 @@ object INT16 extends IntegerDataType {
   }
 }
 
-object INT32 extends ShapeDataType {
+object INT32 extends Int32OrInt64 {
   override type ScalaType = Int
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
@@ -683,7 +690,7 @@ object INT32 extends ShapeDataType {
   }
 }
 
-object INT64 extends ShapeDataType {
+object INT64 extends Int32OrInt64 {
   override type ScalaType = Long
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
@@ -717,7 +724,7 @@ object INT64 extends ShapeDataType {
   }
 }
 
-object UINT8 extends IntegerDataType {
+object UINT8 extends UInt8OrInt32OrInt64 {
   override type ScalaType = UByte
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
@@ -751,7 +758,7 @@ object UINT8 extends IntegerDataType {
   }
 }
 
-object UINT16 extends IntegerDataType {
+object UINT16 extends IntOrUInt {
   override type ScalaType = UShort
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
@@ -785,7 +792,7 @@ object UINT16 extends IntegerDataType {
   }
 }
 
-object UINT32 extends IntegerDataType {
+object UINT32 extends IntOrUInt {
   override type ScalaType = Long
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
@@ -817,7 +824,7 @@ object UINT32 extends IntegerDataType {
   }
 }
 
-object UINT64 extends IntegerDataType {
+object UINT64 extends IntOrUInt {
   override type ScalaType = Long
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null

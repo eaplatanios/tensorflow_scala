@@ -40,15 +40,14 @@ import java.nio.file.Path
 
 import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
-import scala.util.DynamicVariable
 
 /** Represents tensor-like objects.
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorLike {
+sealed trait TensorLike[D <: DataType] {
   /** Data type of this tensor. */
-  val dataType: DataType
+  val dataType: D
 
   /** Shape of this tensor. */
   val shape: Shape
@@ -57,59 +56,134 @@ sealed trait TensorLike {
   val device: String
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
-  def toTensor: Tensor
+  def toTensor: Tensor[D]
 
   /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     *
     * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     */
-  def toTensorIndexedSlices: TensorIndexedSlices
+  def toTensorIndexedSlices: TensorIndexedSlices[D]
 }
 
 object TensorLike {
-  implicit def tensorLikeToTensor[T <: TensorLike](value: T): Tensor = value.toTensor
+  implicit def tensorLikeToTensor[D <: DataType, T <: TensorLike[D]](value: T): Tensor[D] = value.toTensor
+}
+
+trait TensorConvertible[D <: DataType, T] {
+  // TODO: Add data type argument.
+  /** Converts `value` to a dense tensor. */
+  @inline def toTensor(value: T): Tensor[D]
+}
+
+object TensorConvertible {
+  implicit def tensorLikeTensorConvertible[D <: DataType, T <: TensorLike[D]]: TensorConvertible[D, T] = {
+    new TensorConvertible[D, T] {
+      @inline override def toTensor(value: T): Tensor[D] = value.toTensor
+    }
+  }
+
+  implicit val shapeTensorConvertible: TensorConvertible[INT64, Shape] = {
+    new TensorConvertible[INT64, Shape] {
+      /** Converts `value` to a dense tensor. */
+      @inline override def toTensor(value: Shape): Tensor[INT64] = value.toTensor()
+    }
+  }
+
+//  implicit val rangeTensorConvertible: TensorConvertible[INT32, Range] = new TensorConvertible[INT32, Range] {
+//    /** Converts `value` to a dense tensor. */
+//    @inline override def toTensor(value: Range): Tensor[INT32] = {
+//      if (value.nonEmpty)
+//        Tensor(INT32, value.head, value.tail: _*)
+//      else
+//        Tensor(INT32)
+//    }
+//  }
+
+  implicit def supportedTypeTensorConvertible[D <: DataType, T](implicit
+      evSupported: SupportedType.Aux[T, D]
+  ): TensorConvertible[D, T] = {
+    new TensorConvertible[D, T] {
+      /** Converts `value` to a dense tensor. */
+      @inline override def toTensor(value: T): Tensor[D] = Tensor.fill(evSupported.dataType, Shape())(value)
+    }
+  }
+
+  implicit def arrayTensorConvertible[D <: DataType, T](implicit
+      ev: TensorConvertible[D, T]
+  ): TensorConvertible[D, Array[T]] = {
+    new TensorConvertible[D, Array[T]] {
+      /** Converts `value` to a dense tensor. */
+      @inline override def toTensor(value: Array[T]): Tensor[D] = stack(value.map(ev.toTensor))
+    }
+  }
+
+  implicit def traversableTensorConvertible[D <: DataType, T, CC[A] <: TraversableLike[A, CC[A]]](implicit
+      ev: TensorConvertible[D, T]
+  ): TensorConvertible[D, CC[T]] = {
+    new TensorConvertible[D, CC[T]] {
+      /** Converts `value` to a dense tensor. */
+      @inline override def toTensor(value: CC[T]): Tensor[D] = stack(value.map(ev.toTensor)(breakOut))
+    }
+  }
 }
 
 /** Type trait for defining functions operating on and returning tensors. */
-private[tensors] trait TensorOps[T] {
+private[tensors] trait TensorOps[D <: DataType, TL[DD] <: TensorLike[DD]] {
   /** Applies a unary function to the provided tensor and returns the result.
     *
     * @param  tensorLike Tensor-like object to apply the unary op function on.
     * @param  function   Unary function to apply.
     * @return Resulting tensor-like object that matches the type of `tensorLike`.
     */
-  @inline
-  def applyUnary(tensorLike: T, function: Tensor => Tensor): T
+  @inline def applyUnary[DR <: DataType](tensorLike: TL[D], function: Tensor[D] => Tensor[DR]): TL[DR]
 }
 
 /** Companion object that defines supported [[TensorOps]] implicit values. */
 private[tensors] object TensorOps {
-  implicit val tensorOps: TensorOps[Tensor] = new TensorOps[Tensor] {
-    @inline
-    override def applyUnary(tensorLike: Tensor, function: Tensor => Tensor): Tensor = function(tensorLike)
-  }
-
-  implicit val tensorIndexedSlicesOps: TensorOps[TensorIndexedSlices] = new TensorOps[TensorIndexedSlices] {
-    @inline
-    override def applyUnary(tensorLike: TensorIndexedSlices, function: Tensor => Tensor): TensorIndexedSlices = {
-      tensorLike.copy(values = function(tensorLike.values))
+  implicit def tensorOps[D <: DataType]: TensorOps[D, Tensor] = {
+    new TensorOps[D, Tensor] {
+      @inline override def applyUnary[DR <: DataType](
+          tensorLike: Tensor[D],
+          function: Tensor[D] => Tensor[DR]
+      ): Tensor[DR] = {
+        function(tensorLike)
+      }
     }
   }
 
-  implicit val sparseTensorOps: TensorOps[SparseTensor] = new TensorOps[SparseTensor] {
-    @inline
-    override def applyUnary(tensorLike: SparseTensor, function: Tensor => Tensor): SparseTensor = {
-      tensorLike.copy(values = function(tensorLike.values))
+  implicit def tensorIndexedSlicesOps[D <: DataType]: TensorOps[D, TensorIndexedSlices] = {
+    new TensorOps[D, TensorIndexedSlices] {
+      @inline override def applyUnary[DR <: DataType](
+          tensorLike: TensorIndexedSlices[D],
+          function: Tensor[D] => Tensor[DR]
+      ): TensorIndexedSlices[DR] = {
+        tensorLike.copy(values = function(tensorLike.values))
+      }
     }
   }
 
-  implicit val tensorLikeOps: TensorOps[TensorLike] = new TensorOps[TensorLike] {
-    @inline
-    override def applyUnary(tensorLike: TensorLike, function: Tensor => Tensor): TensorLike = {
-      tensorLike match {
-        case t: Tensor => function(t)
-        case t: TensorIndexedSlices => t.copy(values = function(t.values))
-        case t: SparseTensor => t.copy(values = function(t.values))
+  implicit def sparseTensorOps[D <: DataType]: TensorOps[D, SparseTensor] = {
+    new TensorOps[D, SparseTensor] {
+      @inline override def applyUnary[DR <: DataType](
+          tensorLike: SparseTensor[D],
+          function: Tensor[D] => Tensor[DR]
+      ): SparseTensor[DR] = {
+        tensorLike.copy(values = function(tensorLike.values))
+      }
+    }
+  }
+
+  implicit def tensorLikeOps[D <: DataType]: TensorOps[D, TensorLike] = {
+    new TensorOps[D, TensorLike] {
+      @inline override def applyUnary[DR <: DataType](
+          tensorLike: TensorLike[D],
+          function: Tensor[D] => Tensor[DR]
+      ): TensorLike[DR] = {
+        tensorLike match {
+          case t: Tensor[D] => function(t)
+          case t: TensorIndexedSlices[D] => t.copy(values = function(t.values))
+          case t: SparseTensor[D] => t.copy(values = function(t.values))
+        }
       }
     }
   }
@@ -142,12 +216,12 @@ private[tensors] object TensorOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor private[Tensor](
+class Tensor[D <: DataType] protected (
     private[api] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
-) extends TensorLike
-        with Closeable
-        with ProtoSerializable {
+) extends TensorLike[D]
+    with Closeable
+    with ProtoSerializable {
   /** Lock for the native handle. */
   private[api] def NativeHandleLock = nativeHandleWrapper.Lock
 
@@ -155,7 +229,7 @@ class Tensor private[Tensor](
   private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
   /** Data type of this tensor. */
-  override val dataType: DataType = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
+  override val dataType: D = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
 
   /** Shape of this tensor. */
   override val shape: Shape = Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
@@ -170,19 +244,19 @@ class Tensor private[Tensor](
   override val device: String = NativeTensor.eagerDevice(nativeHandle)
 
   /** Returns a copy of this tensor on the CPU. */
-  def cpu(): Tensor = copyToDevice("CPU:0")
+  def cpu(): Tensor[D] = copyToDevice("CPU:0")
 
   /** Returns a copy of this tensor on the GPU.
     *
     * @param  gpuIndex Index of the GPU to use.
     */
-  def gpu(gpuIndex: Int = 0): Tensor = copyToDevice(s"GPU:$gpuIndex")
+  def gpu(gpuIndex: Int = 0): Tensor[D] = copyToDevice(s"GPU:$gpuIndex")
 
   /** Returns a copy of this tensor on the provided device.
     *
     * @param  device Device name. For example, `"CPU:0"`, or `"GPU:2"`.
     */
-  def copyToDevice(device: String): Tensor = {
+  def copyToDevice(device: String): Tensor[D] = {
     val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
     val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.value.nativeHandle, parsedDevice)
     Tensor.fromNativeHandle(handle)
@@ -192,7 +266,7 @@ class Tensor private[Tensor](
     NativeTensor.eagerResolve(nativeHandle)
   }
 
-  private[api] def getElementAtFlattenedIndex(index: Int): dataType.ScalaType = {
+  private[api] def getElementAtFlattenedIndex(index: Int): D#ScalaType = {
     val resolvedHandle = resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     val value = dataType match {
@@ -209,14 +283,14 @@ class Tensor private[Tensor](
   }
 
   @throws[InvalidShapeException]
-  def scalar: dataType.ScalaType = {
+  def scalar: D#ScalaType = {
     if (size != 1)
       throw InvalidShapeException(
         "'Tensor.scalar' can only be called for scalar tensors (i.e., containing only one element).")
     getElementAtFlattenedIndex(0)
   }
 
-  def entriesIterator: Iterator[dataType.ScalaType] = new Iterator[dataType.ScalaType] {
+  def entriesIterator: Iterator[D#ScalaType] = new Iterator[D#ScalaType] {
     private var resolvedHandle: Long = resolve()
     private var i             : Int  = 0
 
@@ -234,7 +308,7 @@ class Tensor private[Tensor](
       hasNext
     }
 
-    override def next(): dataType.ScalaType = {
+    override def next(): D#ScalaType = {
       val nextElement = dataType match {
         case STRING =>
           dataType.getElementFromBuffer(
@@ -247,9 +321,9 @@ class Tensor private[Tensor](
     }
   }
 
-  def apply(indexers: Indexer*): Tensor = this.slice(indexers: _*)
+  def apply(indexers: Indexer*): Tensor[D] = this.slice(indexers: _*)
 
-  def slice(indexers: Indexer*): Tensor = BasicOps(this).slice(indexers: _*)
+  def slice(indexers: Indexer*): Tensor[D] = new BasicOps(this).slice(indexers: _*)
 
   /** Returns a summary of the contents of this tensor.
     *
@@ -263,7 +337,7 @@ class Tensor private[Tensor](
     * @return Tensor summary.
     */
   def summarize(maxEntries: Int = 6, flattened: Boolean = false, includeInfo: Boolean = true): String = {
-    def summarize(tensor: Tensor, maxEntries: Int): String =
+    def summarize(tensor: Tensor[D], maxEntries: Int): String =
       tensor.rank match {
         case 0 => tensor.scalar.toString
         case 1 =>
@@ -299,15 +373,17 @@ class Tensor private[Tensor](
   override def toString: String = s"$dataType$shape"
 
   /** Returns this tensor. */
-  override def toTensor: Tensor = this
+  override def toTensor: Tensor[D] = this
 
   /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     *
     * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     */
-  override def toTensorIndexedSlices: TensorIndexedSlices = {
-    val denseShape = shape.toTensor(INT32)
-    TensorIndexedSlices(indices = 0 until shape(0), values = this, denseShape = denseShape)
+  override def toTensorIndexedSlices: TensorIndexedSlices[D] = {
+    TensorIndexedSlices(
+      indices = 0L until shape(0).toLong,
+      values = this,
+      denseShape = shape.toTensor(INT64))
   }
 
   override def toProto: TensorProto = toTensorProto
@@ -323,10 +399,10 @@ class Tensor private[Tensor](
   def writeNPY(file: Path, fortranOrder: Boolean = false): Unit = NPY.write(this, file, fortranOrder)
 
   override def equals(that: Any): Boolean = that match {
-    case that: Tensor =>
+    case that: Tensor[D] =>
       this.shape == that.shape &&
           this.dataType == that.dataType &&
-          Math.all(Math.equal(this, that)).scalar.asInstanceOf[Boolean]
+          Math.all(Math.equal(this, that)).scalar
     case _ => false
   }
 
@@ -340,7 +416,7 @@ class Tensor private[Tensor](
     result
   }
 
-  def toOutput: Output = Basic.constant(this.cpu())
+  def toOutput: Output = Basic.constant(cpu())
 
   /** Closes this [[Tensor]] and releases any resources associated with it. Note that an [[Tensor]] is not
     * usable after it has been closed. */
@@ -350,7 +426,7 @@ class Tensor private[Tensor](
 object Tensor {
   private[tensors] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
-  private[api] def fromNativeHandle(nativeHandle: Long): Tensor = {
+  private[api] def fromNativeHandle[D <: DataType](nativeHandle: Long): Tensor[D] = {
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
       nativeHandleWrapper.Lock.synchronized {
@@ -360,7 +436,7 @@ object Tensor {
         }
       }
     }
-    val tensor = new Tensor(nativeHandleWrapper, closeFn)
+    val tensor = new Tensor[D](nativeHandleWrapper, closeFn)
     // Keep track of references in the Scala side and notify the native library when the tensor is not referenced
     // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
     // potential memory leak.
@@ -368,19 +444,20 @@ object Tensor {
     tensor
   }
 
-  private[api] def fromHostNativeHandle(nativeHandle: Long): Tensor = {
+  private[api] def fromHostNativeHandle[D <: DataType](nativeHandle: Long): Tensor[D] = {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
   }
 
-  def apply[T](head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
-    val tensors = head +: tail map ev.toTensor
-    val dataTypes = tensors.map(_.dataType)
-    Tensor(DataType.mostPrecise(dataTypes: _*), tensors.head, tensors.tail: _*)
+  def apply[D <: DataType, T](head: T, tail: T*)(implicit
+      ev: TensorConvertible[D, T],
+      evSupported: SupportedType.Aux[T, D]
+  ): Tensor[D] = {
+    apply(evSupported.dataType, head, tail: _*)
   }
 
-  def apply[T](dataType: DataType): Tensor = Tensor.allocate(dataType, Shape(0))
+  def apply[D <: DataType](dataType: D): Tensor[D] = Tensor.allocate(dataType, Shape(0))
 
-  def apply[T](dataType: DataType, head: T, tail: T*)(implicit ev: TensorConvertible[T]): Tensor = {
+  def apply[D <: DataType, T](dataType: D, head: T, tail: T*)(implicit ev: TensorConvertible[D, T]): Tensor[D] = {
     stack((head +: tail).map(ev.toTensor), 0).cast(dataType)
   }
 
@@ -395,12 +472,12 @@ object Tensor {
     * @param  shape    Tensor shape.
     * @return Constructed tensor.
     */
-  def zeros[D <: DataType](dataType: D, shape: Shape): Tensor = {
+  def zeros[D <: DataType](dataType: D, shape: Shape): Tensor[D] = {
     Tensor.fill(dataType, shape)(dataType.zero)(dataType.evSupportedType)
   }
 
   /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to zero. */
-  def zerosLike(tensor: Tensor): Tensor = zeros(tensor.dataType, tensor.shape)
+  def zerosLike[D <: DataType](tensor: Tensor[D]): Tensor[D] = zeros(tensor.dataType, tensor.shape)
 
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to ones.
     *
@@ -413,18 +490,17 @@ object Tensor {
     * @param  shape    Tensor shape.
     * @return Constructed tensor.
     */
-  def ones[D <: DataType](dataType: D, shape: Shape): Tensor = {
+  def ones[D <: DataType](dataType: D, shape: Shape): Tensor[D] = {
     Tensor.fill(dataType, shape)(dataType.one)(dataType.evSupportedType)
   }
 
   /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to one. */
-  def onesLike(tensor: Tensor): Tensor = ones(tensor.dataType, tensor.shape)
+  def onesLike[D <: DataType](tensor: Tensor[D]): Tensor[D] = ones(tensor.dataType, tensor.shape)
 
   /** $OpDocRandomRandomUniform
     *
     * @group RandomOps
-    * @param  dataType Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], [[FLOAT64]],
-    *                  [[INT32]], or [[INT64]].
+    * @param  dataType Data type for the output tensor.
     * @param  shape    Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  minValue Scalar tensor containing the inclusive lower bound on the random of random values to generate.
     *                  Defaults to `0`.
@@ -434,21 +510,21 @@ object Tensor {
     *                  combined with the graph-level seed.
     * @return New random tensor.
     */
-  def rand(
-      dataType: DataType = FLOAT32,
-      shape: Tensor = Shape.scalar(),
-      minValue: Tensor = 0.0,
-      maxValue: Tensor = 1.0,
+  def rand[N <: Int32OrInt64OrFloat16OrFloat32OrFloat64](
+      dataType: N,
+      shape: Tensor[INT64] = Shape()
+  )(
+      minValue: Tensor[N] = Tensor.zeros(dataType, Shape()),
+      maxValue: Tensor[N] = Tensor.ones(dataType, Shape()),
       seed: Option[Int] = None
-  ): Tensor = {
-    Random.randomUniform(dataType, shape, minValue, maxValue, seed)
+  ): Tensor[N] = {
+    Random.randomUniform(dataType, shape)(minValue, maxValue, seed)
   }
 
   /** $OpDocRandomRandomNormal
     *
     * @group RandomOps
-    * @param  dataType          Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], or
-    *                           [[FLOAT64]].
+    * @param  dataType          Data type for the output tensor.
     * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
     * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
@@ -457,14 +533,15 @@ object Tensor {
     *                           generator, when combined with the graph-level seed.
     * @return New random tensor.
     */
-  def randn(
-      dataType: DataType = FLOAT32,
-      shape: Tensor = Shape.scalar(),
-      mean: Tensor = 0.0,
-      standardDeviation: Tensor = 1.0,
+  def randn[N <: Float16OrFloat32OrFloat64](
+      dataType: N,
+      shape: Tensor[INT64] = Shape()
+  )(
+      mean: Tensor[N] = Tensor.zeros(dataType, Shape()),
+      standardDeviation: Tensor[N] = Tensor.ones(dataType, Shape()),
       seed: Option[Int] = None
-  ): Tensor = {
-    Random.randomNormal(dataType, shape, mean, standardDeviation, seed)
+  ): Tensor[N] = {
+    Random.randomNormal(dataType, shape)(mean, standardDeviation, seed)
   }
 
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
@@ -481,13 +558,13 @@ object Tensor {
     * @return Constructed tensor.
     */
   def fill[T, D <: DataType](dataType: D, shape: Shape)(value: T)(implicit
-      evSupported: SupportedType[T, _]
-  ): Tensor = {
+      evSupported: SupportedType.Aux[T, _]
+  ): Tensor[D] = {
     // TODO: [TENSORS] Do we want to keep this warning?
     // if (inferredDataType.priority < ev.dataType.priority)
     //   logger.warn(s"Downcasting value '$value' while creating tensor with '$dataType' data type.")
     shape.assertFullyDefined()
-    dataType match {
+    val hostHandle = dataType match {
       case STRING =>
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
         val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
@@ -503,9 +580,7 @@ object Tensor {
           index += numEncodedBytes
           i += 1
         }
-        val tensor = Tensor.fromHostNativeHandle(hostHandle)
-        NativeTensor.delete(hostHandle)
-        tensor
+        hostHandle
       case _ =>
         val numBytes = shape.numElements * dataType.byteSize
         val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
@@ -517,10 +592,11 @@ object Tensor {
           index += dataType.byteSize
           i += 1
         }
-        val tensor = Tensor.fromHostNativeHandle(hostHandle)
-        NativeTensor.delete(hostHandle)
-        tensor
+        hostHandle
     }
+    val tensor = Tensor.fromHostNativeHandle[D](hostHandle)
+    NativeTensor.delete(hostHandle)
+    tensor
   }
 
   /** Allocates a new tensor without worrying about the values stored in it.
@@ -532,51 +608,52 @@ object Tensor {
     *                                  tensor are not known until all its element values are known.
     */
   @throws[IllegalArgumentException]
-  private[api] def allocate(dataType: DataType, shape: Shape): Tensor = dataType match {
-    case STRING =>
-      if (shape.numElements == 0) {
-        val hostHandle = NativeTensor.allocate(dataType.cValue, Array[Long](0), 0)
-        val tensor = Tensor.fromHostNativeHandle(hostHandle)
-        NativeTensor.delete(hostHandle)
-        tensor
-      } else {
-        throw new IllegalArgumentException(
-          "Cannot pre-allocate string tensors because their size is not known.")
-      }
-    case _ =>
-      shape.assertFullyDefined()
-      val numBytes = shape.numElements * dataType.byteSize
-      val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
-      val tensor = Tensor.fromHostNativeHandle(hostHandle)
-      NativeTensor.delete(hostHandle)
-      tensor
-  }
-
-  @throws[IllegalArgumentException]
-  def fromBuffer(dataType: DataType, shape: Shape, numBytes: Long, buffer: ByteBuffer): Tensor = this synchronized {
-    // TODO: May behave weirdly for direct byte buffers allocated on the Scala side.
-    val directBuffer = {
-      if (buffer.isDirect) {
-        buffer
-      } else {
-        val direct = ByteBuffer.allocateDirect(numBytes.toInt)
-        val bufferCopy = buffer.duplicate()
-        direct.put(bufferCopy.limit(numBytes.toInt).asInstanceOf[ByteBuffer])
-        direct
-      }
+  private[api] def allocate[D <: DataType](dataType: D, shape: Shape): Tensor[D] = {
+    val hostHandle = dataType match {
+      case STRING if shape.numElements == 0 => NativeTensor.allocate(dataType.cValue, Array[Long](0), 0)
+      case STRING => throw new IllegalArgumentException(
+        "Cannot pre-allocate string tensors because their size is not known.")
+      case _ =>
+        shape.assertFullyDefined()
+        val numBytes = shape.numElements * dataType.byteSize
+        NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
     }
-    val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, directBuffer)
-    val tensor = Tensor.fromHostNativeHandle(hostHandle)
+    val tensor = Tensor.fromHostNativeHandle[D](hostHandle)
     NativeTensor.delete(hostHandle)
     tensor
   }
 
+  @throws[IllegalArgumentException]
+  def fromBuffer[D <: DataType](dataType: D, shape: Shape, numBytes: Long, buffer: ByteBuffer): Tensor[D] = {
+    this synchronized {
+      // TODO: May behave weirdly for direct byte buffers allocated on the Scala side.
+      val directBuffer = {
+        if (buffer.isDirect) {
+          buffer
+        } else {
+          val direct = ByteBuffer.allocateDirect(numBytes.toInt)
+          val bufferCopy = buffer.duplicate()
+          direct.put(bufferCopy.limit(numBytes.toInt).asInstanceOf[ByteBuffer])
+          direct
+        }
+      }
+      val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, directBuffer)
+      val tensor = Tensor.fromHostNativeHandle[D](hostHandle)
+      NativeTensor.delete(hostHandle)
+      tensor
+    }
+  }
+
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
   @throws[IllegalArgumentException]
-  def fromNPY(file: Path): Tensor = NPY.read(file)
+  def fromNPY[D <: DataType](file: Path): Tensor[D] = NPY.read(file)
 
   @throws[InvalidArgumentException]
-  def makeProto(value: Tensor, dataType: DataType = null, shape: Shape = null): TensorProto = {
+  def makeProto[D <: DataType, DR <: DataType](
+      value: Tensor[D],
+      dataType: DR = null,
+      shape: Shape = null
+  ): TensorProto = {
     val inferredDataType = if (dataType == null) value.dataType else dataType
     val inferredShape = if (shape == null) value.shape else shape
     val castedValue = value.cast(inferredDataType)
@@ -596,8 +673,7 @@ object Tensor {
       }
     } else {
       castedValue.entriesIterator.foreach(v => {
-        inferredDataType.addToTensorProtoBuilder(
-          tensorProtoBuilder, inferredDataType.cast(v)(castedValue.dataType.evSupportedType))
+        inferredDataType.addToTensorProtoBuilder(tensorProtoBuilder, inferredDataType.cast(v))
       })
     }
     tensorProtoBuilder.build()
@@ -631,40 +707,42 @@ object Tensor {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class TensorIndexedSlices private(indices: Tensor, values: Tensor, denseShape: Tensor = null)
-    extends TensorLike {
+final case class TensorIndexedSlices[D <: DataType](
+    indices: Tensor[INT64],
+    values: Tensor[D],
+    denseShape: Tensor[INT64] = null
+) extends TensorLike[D] {
   /** Data type of these tensor indexed slices. */
-  override val dataType: DataType = values.dataType
+  override val dataType: D = values.dataType
 
   /** Shape of these tensor indexed slices. */
-  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.map(_.asInstanceOf[Int]).toSeq: _*)
+  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.toSeq: _*)
 
   /** Device on which these tensor indexed slices will be placed. */
   override val device: String = values.device
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
   @throws[IllegalStateException]
-  override def toTensor: Tensor = {
+  override def toTensor: Tensor[D] = {
     if (denseShape != null)
       throw new IllegalStateException(
         s"Conversion of 'TensorIndexedSlices', '$this', " +
             s"which has no dense shape information available, is not possible.")
-    if (denseShape.prod().cast(INT32).scalar.asInstanceOf[Int] > 100000000)
+    if (denseShape.prod().scalar > 100000000)
       Tensor.logger.warn(
         "Converting large (> 100000000 elements) tensor indexed slices object to a tensor " +
             "(may consume too much memory).")
-    Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0))
+    Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0).cast(INT32))
   }
 
   /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     *
     * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     */
-  override def toTensorIndexedSlices: TensorIndexedSlices = this
+  override def toTensorIndexedSlices: TensorIndexedSlices[D] = this
 
   override def toString: String = {
-    s"TensorIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
-        s"device = $device)}"
+    s"TensorIndexedSlices(values = $values, indices = $indices, denseShape = $denseShape, device = $device)}"
   }
 }
 
@@ -711,26 +789,25 @@ final case class TensorIndexedSlices private(indices: Tensor, values: Tensor, de
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tensor) extends TensorLike {
-  // TODO: Add constructor from scala arrays?
-  require(indices.dataType == INT64, s"Indices cannot have '${indices.dataType}' data type. They have to be 'INT64'.")
-  require(denseShape.dataType == INT64,
-          s"Dense shape cannot have '${denseShape.dataType}' data type. They have to be 'INT64'.")
-
+final case class SparseTensor[D <: DataType](
+    indices: Tensor[INT64],
+    values: Tensor[D],
+    denseShape: Tensor[INT64]
+) extends TensorLike[D] {
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 
   /** Data type of this sparse op output. */
-  override val dataType: DataType = values.dataType
+  override val dataType: D = values.dataType
 
   /** Shape of this sparse tensor. */
-  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.map(_.asInstanceOf[Int]).toSeq: _*)
+  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.toSeq: _*)
 
   /** Device on which this sparse op output will be placed. */
   override val device: String = values.device
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
-  override def toTensor: Tensor = toTensor()
+  override def toTensor: Tensor[D] = toTensor()
 
   /** Converts this sparse tensor to a dense tensor.
     *
@@ -759,7 +836,9 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
     * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
     */
   def toTensor(
-      defaultValue: Tensor = 0, validateIndices: Boolean = true): Tensor = {
+      defaultValue: Tensor[D] = Tensor.zeros(dataType, Shape()),
+      validateIndices: Boolean = true
+  ): Tensor[D] = {
     Tensor.fromNativeHandle(NativeTensorOpsSparse.sparseToDense(
       executionContext.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
       defaultValue.nativeHandle, validateIndices))
@@ -770,64 +849,11 @@ final case class SparseTensor(indices: Tensor, values: Tensor, denseShape: Tenso
     * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     */
   @throws[UnsupportedOperationException]
-  override def toTensorIndexedSlices: TensorIndexedSlices = {
+  override def toTensorIndexedSlices: TensorIndexedSlices[D] = {
     throw new UnsupportedOperationException(s"Cannot convert sparse tensor '$this' to tensor indexed slices.")
   }
 
   override def toString: String = {
-    s"TensorIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
-        s"device = $device)}"
-  }
-}
-
-trait TensorConvertible[T] {
-  // TODO: Add data type argument.
-  /** Converts `value` to a dense tensor. */
-  @inline def toTensor(value: T): Tensor
-}
-
-object TensorConvertible {
-  implicit def tensorLikeTensorConvertible[T <: TensorLike]: TensorConvertible[T] = new TensorConvertible[T] {
-    @inline override def toTensor(value: T): Tensor = value.toTensor
-  }
-
-  implicit val shapeTensorConvertible: TensorConvertible[Shape] = new TensorConvertible[Shape] {
-    /** Converts `value` to a dense tensor. */
-    @inline override def toTensor(value: Shape): Tensor = value.toTensor()
-  }
-
-  implicit val rangeTensorConvertible: TensorConvertible[Range] = new TensorConvertible[Range] {
-    /** Converts `value` to a dense tensor. */
-    @inline override def toTensor(value: Range): Tensor = {
-      if (value.nonEmpty)
-        Tensor(INT32, value.head, value.tail: _*)
-      else
-        Tensor(INT32)
-    }
-  }
-
-  implicit def supportedTypeTensorConvertible[T, D <: DataType](implicit
-      evSupported: SupportedType[T, D],
-      evTypesMatch: D#ScalaType =:= T
-  ): TensorConvertible[T] = {
-    new TensorConvertible[T] {
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: T): Tensor = Tensor.fill(evSupported.dataType, Shape())(value)
-    }
-  }
-
-  implicit def arrayTensorConvertible[T](implicit ev: TensorConvertible[T]): TensorConvertible[Array[T]] = {
-    new TensorConvertible[Array[T]] {
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Array[T]): Tensor = stack(value.map(ev.toTensor))
-    }
-  }
-
-  implicit def traversableTensorConvertible[T, CC[A] <: TraversableLike[A, CC[A]]](
-      implicit ev: TensorConvertible[T]): TensorConvertible[CC[T]] = {
-    new TensorConvertible[CC[T]] {
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: CC[T]): Tensor = stack(value.map(ev.toTensor)(breakOut))
-    }
+    s"SparseTensor(values = $values, indices = $indices, denseShape = $denseShape, device = $device)}"
   }
 }
