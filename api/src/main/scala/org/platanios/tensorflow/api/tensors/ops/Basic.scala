@@ -65,7 +65,7 @@ private[api] trait Basic {
     * @param  dataType Optional data type to use for the output of this op.
     * @return Result as a new tensor.
     */
-  def size[T <: TensorLike[_], DR <: DataType](input: T, dataType: DR): Tensor[DR] = {
+  def size[T <: TensorLike[_], DR <: ReducibleDataType](input: T, dataType: DR): Tensor[DR] = {
     input match {
       case t: Tensor[_] => Tensor.fill(dataType, Shape())(t.size)
       case t: TensorIndexedSlices[_] => Math.prod(Math.cast(t.denseShape, dataType), Array(0))
@@ -569,7 +569,7 @@ private[api] trait Basic {
     val maskShape: Shape = mask.shape
     val maskRank: Int = maskShape.rank
     val leadingSize = Math.prod(input.shape(0 :: maskRank), Seq(0)).reshape(Shape(1))
-    val reshapedInput = reshape(input, concatenate(Seq(leadingSize, input.shape(maskRank ::).toTensor(INT32)), 0))
+    val reshapedInput = reshape(input, concatenate(Seq(leadingSize, input.shape(maskRank ::).toTensor(INT64)), 0))
     gather(reshapedInput, squeeze(where(reshape(mask, Seq(-1))), axes = Seq(1)))
   }
 
@@ -593,7 +593,7 @@ private[api] trait Basic {
     // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
     // with one column, [[1], [3], [2]]. Because of broadcasting on both arguments, this comparison results in a
     // matrix of size [lengths.shape(0), maxLen].
-    val rowVector = Math.range(Tensor(maxLen.dataType, 0), maxLen, Tensor(maxLen.dataType, 1))
+    val rowVector = Math.range(Tensor.zeros(maxLen.dataType, Shape()), maxLen, Tensor.ones(maxLen.dataType, Shape()))
     // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
     // into INT32, then so do the elements of 'lengths'.
     val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)

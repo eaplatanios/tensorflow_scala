@@ -317,7 +317,8 @@ object DataType {
 sealed trait ReducibleDataType extends DataType
 sealed trait NumericDataType extends ReducibleDataType
 sealed trait NonQuantizedDataType extends NumericDataType
-sealed trait Int32OrInt64OrFloat16OrFloat32OrFloat64 extends NumericDataType
+sealed trait MathDataType extends NonQuantizedDataType
+sealed trait Int32OrInt64OrFloat16OrFloat32OrFloat64 extends MathDataType
 sealed trait IntOrUInt extends NonQuantizedDataType
 sealed trait UInt8OrInt32OrInt64 extends IntOrUInt with Int32OrInt64OrFloat16OrFloat32OrFloat64
 sealed trait Int32OrInt64 extends UInt8OrInt32OrInt64
@@ -326,10 +327,8 @@ sealed trait BFloat16OrFloat32OrFloat64 extends DecimalDataType
 sealed trait Float16OrFloat32OrFloat64 extends DecimalDataType with Int32OrInt64OrFloat16OrFloat32OrFloat64 with BFloat16OrFloat32OrFloat64
 sealed trait Float32OrFloat64 extends Float16OrFloat32OrFloat64
 sealed trait Int32OrInt64OrFloat32OrFloat64 extends Float32OrFloat64 with Int32OrInt64
-sealed trait ComplexDataType extends NonQuantizedDataType
+sealed trait ComplexDataType extends MathDataType
 sealed trait QuantizedDataType extends NumericDataType
-
-sealed trait MathDataType extends Float16OrFloat32OrFloat64 with Int32OrInt64 with ComplexDataType
 
 object STRING extends ReducibleDataType {
   override type ScalaType = String
