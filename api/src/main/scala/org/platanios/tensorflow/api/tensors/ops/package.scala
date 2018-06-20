@@ -15,27 +15,10 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.types.DataType
-
 /**
   * @author Emmanouil Antonios Platanios
   */
 package object ops {
-  @inline private[ops] def castArgs(tensor1: Tensor, tensor2: Tensor): (Tensor, Tensor) = {
-    val dataType = DataType.mostPrecise(tensor1.dataType, tensor2.dataType)
-    (tensor1.cast(dataType), tensor2.cast(dataType))
-  }
-
-  @inline private[ops] def castArgs(tensor1: Tensor, tensor2: Tensor, tensor3: Tensor): (Tensor, Tensor, Tensor) = {
-    val dataType = DataType.mostPrecise(tensor1.dataType, tensor2.dataType, tensor3.dataType)
-    (tensor1.cast(dataType), tensor2.cast(dataType), tensor3.cast(dataType))
-  }
-
-  @inline private[ops] def castArgs(tensors: Seq[Tensor]): Seq[Tensor] = {
-    val dataType = DataType.mostPrecise(tensors.map(_.dataType): _*)
-    tensors.map(_.cast(dataType))
-  }
-
   private[api] trait API
       extends Basic
           with Math
