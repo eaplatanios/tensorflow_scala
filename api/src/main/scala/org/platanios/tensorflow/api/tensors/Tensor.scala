@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
 import org.platanios.tensorflow.api.ops.{Basic, Output}
-import org.platanios.tensorflow.api.tensors.ops.Basic.{BasicOps, stack}
+import org.platanios.tensorflow.api.tensors.ops.Basic.stack
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}

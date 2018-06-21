@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.tensors
 
 /** Groups together all the implicits of the API and takes care of their priorities.
   *
@@ -36,7 +37,7 @@ private[api] trait Implicits
 
 private[api] trait LowPriorityImplicits
     extends LowestPriorityImplicits
-        with TensorImplicits
+        with tensors.Implicits
 
 private[api] trait LowestPriorityImplicits
     extends OpsImplicits

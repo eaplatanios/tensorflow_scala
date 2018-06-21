@@ -1977,7 +1977,7 @@ private[api] trait Math {
 }
 
 object Math extends Math {
-  private[api] trait Implicits {
+  private[tensors] trait Implicits {
     implicit class MathOps[D <: DataType](val tensor: Tensor[D]) {
       /** $OpDocMathCast
         *

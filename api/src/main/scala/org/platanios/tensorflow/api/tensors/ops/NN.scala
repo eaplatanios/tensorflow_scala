@@ -767,7 +767,7 @@ private[api] trait NN {
 }
 
 object NN extends NN {
-  private[api] trait Implicits {
+  private[tensors] trait Implicits {
     implicit class MathNNOps[D <: MathDataType](val tensor: Tensor[D]) {
       //region Core Ops
 
