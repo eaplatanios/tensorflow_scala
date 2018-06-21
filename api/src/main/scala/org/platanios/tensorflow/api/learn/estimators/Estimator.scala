@@ -356,7 +356,7 @@ object Estimator {
     }
 
     implicit def singleValueInferInput[T, O, D, S, I](implicit
-        evStructure: StructureFromTensor.Aux[T, O, D, S],
+        evStructureFromTensor: StructureFromTensor.Aux[T, O, D, S],
         ev: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
     ): SupportedInferInput[T, I, T, O, D, S, I] = new SupportedInferInput[T, I, T, O, D, S, I] {
