@@ -32,14 +32,15 @@ private[api] trait Implicits
     * @return Function that returns `device` for any [[OpSpecification]] used as input.
     */
   implicit def deviceImplicitConversion(device: String): OpSpecification => String = _ => device
-
-  // implicit def dataTypeHelper[D >: DataType.Aux[_] <: DataType]: DataType
 }
 
 private[api] trait LowPriorityImplicits
-    extends TensorImplicits
-        with OpsImplicits
+    extends LowestPriorityImplicits
+        with TensorImplicits
         with DataImplicits
         with LearnImplicits
+
+private[api] trait LowestPriorityImplicits
+    extends OpsImplicits
 
 private[api] object Implicits extends Implicits
