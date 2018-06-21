@@ -28,7 +28,9 @@ private[api] trait Implicits
         with NN.Implicits {
   // implicit def tensorFromTensorLike[D <: DataType, T <: TensorLike[D]](value: T): Tensor[D] = value.toTensor
 
-  implicit def tensorFromTensorConvertible[T, D <: DataType](value: T)(implicit ev: TensorConvertible.Aux[T, D]): Tensor[D] = {
+  implicit def tensorFromTensorConvertible[T, D <: DataType](
+      value: T
+  )(implicit ev: TensorConvertible.Aux[T, D]): Tensor[D] = {
     ev.toTensor(value)
   }
 
@@ -36,9 +38,9 @@ private[api] trait Implicits
 
   //region FLOAT32 Conversions
 
-  implicit def float32ToFloat64[TL[D] <: TensorLike[D]](value: TL[FLOAT32])(implicit
-      ev: TensorOps.Aux[TL, FLOAT32]
-  ): TL[FLOAT64] = Math.cast(value, FLOAT64)
+//  implicit def float32ToFloat64[TL[D <: DataType] <: TensorLike[D]](value: TL[FLOAT32])(implicit
+//      ev: TensorOps.Aux[TL, FLOAT32]
+//  ): TL[FLOAT64] = Math.cast(value, FLOAT64)
 
   //endregion FLOAT32 Conversions
 }

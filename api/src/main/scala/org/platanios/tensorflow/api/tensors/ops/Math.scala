@@ -1034,7 +1034,7 @@ private[api] trait Math {
       axes
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
-        case t: Tensor[_] if t.rank > -1 => Tensor(0 until t.rank: _*)
+        case t: Tensor[_] if t.rank > -1 => 0 until t.rank
         // case t: TensorIndexedSlices if t.denseShape.shape.isFullyDefined =>
         //   Basic.constant(0 until t.denseShape.shape(0))
         // case t: SparseTensor if t.denseShape.shape.isFullyDefined =>
@@ -1675,14 +1675,14 @@ private[api] trait Math {
     // TODO: [TYPES] These runtime checks are not elegant.
     (transpose, conj) match {
       case (false, false) => (tensor, false)
-      case (false, true) if tensor.isInstanceOf[Tensor[COMPLEX64]] =>
+      case (false, true) if tensor.dataType == COMPLEX64 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX64]]).asInstanceOf[Tensor[D]], false)
-      case (false, true) if tensor.isInstanceOf[Tensor[COMPLEX128]] =>
+      case (false, true) if tensor.dataType == COMPLEX128 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX128]]).asInstanceOf[Tensor[D]], false)
       case (false, true) => (tensor, false)
-      case (true, false) if tensor.isInstanceOf[Tensor[COMPLEX64]] =>
+      case (true, false) if tensor.dataType == COMPLEX64 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX64]]).asInstanceOf[Tensor[D]], true)
-      case (true, false) if tensor.isInstanceOf[Tensor[COMPLEX128]] =>
+      case (true, false) if tensor.dataType == COMPLEX128 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX128]]).asInstanceOf[Tensor[D]], true)
       case (true, false) => (tensor, true)
       case (true, true) => (tensor, true)
@@ -1697,15 +1697,15 @@ private[api] trait Math {
     // TODO: [TYPES] These runtime checks are not elegant.
     (transpose, conj) match {
       case (false, false) => (tensor, false)
-      case (false, true) if tensor.isInstanceOf[Tensor[COMPLEX64]] =>
+      case (false, true) if tensor.dataType == COMPLEX64 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX64]]).asInstanceOf[Tensor[D]], false)
-      case (false, true) if tensor.isInstanceOf[Tensor[COMPLEX128]] =>
+      case (false, true) if tensor.dataType == COMPLEX128 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX128]]).asInstanceOf[Tensor[D]], false)
       case (false, true) => (tensor, false)
       case (true, false) => (tensor, true)
-      case (true, true) if tensor.isInstanceOf[Tensor[COMPLEX64]] =>
+      case (true, true) if tensor.dataType == COMPLEX64 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX64]]).asInstanceOf[Tensor[D]], true)
-      case (true, true) if tensor.isInstanceOf[Tensor[COMPLEX128]] =>
+      case (true, true) if tensor.dataType == COMPLEX128 =>
         (conjugate(tensor.asInstanceOf[Tensor[COMPLEX128]]).asInstanceOf[Tensor[D]], true)
       case (true, true) => (tensor, true)
     }
@@ -1816,7 +1816,7 @@ private[api] trait Math {
     * @param  imag Tensor containing the imaginary component.
     * @return Result as a new tensor.
     */
-  def complex(real: Tensor[FLOAT32], imag: Tensor[FLOAT32]): Tensor[COMPLEX64] = {
+  def complex64(real: Tensor[FLOAT32], imag: Tensor[FLOAT32]): Tensor[COMPLEX64] = {
     Tensor.fromNativeHandle[COMPLEX64](NativeTensorOpsMath.complex(
       executionContext.value.nativeHandle, real.nativeHandle, imag.nativeHandle, COMPLEX64.cValue))
   }
@@ -1828,99 +1828,9 @@ private[api] trait Math {
     * @param  imag Tensor containing the imaginary component.
     * @return Result as a new tensor.
     */
-  def complex(real: Tensor[FLOAT64], imag: Tensor[FLOAT64]): Tensor[COMPLEX128] = {
+  def complex128(real: Tensor[FLOAT64], imag: Tensor[FLOAT64]): Tensor[COMPLEX128] = {
     Tensor.fromNativeHandle[COMPLEX128](NativeTensorOpsMath.complex(
       executionContext.value.nativeHandle, real.nativeHandle, imag.nativeHandle, COMPLEX128.cValue))
-  }
-
-  /** $OpDocMathReal
-    *
-    * @group MathOps
-    * @param  input Input tensor.
-    * @return Result as a new tensor.
-    */
-  def real[TL[DD <: COMPLEX64] <: TensorLike[DD]](
-      input: TL[COMPLEX64]
-  )(implicit ev: TensorOps.Aux[TL, COMPLEX64]): TL[FLOAT32] = {
-    ev.applyUnary(input, t => {
-      Tensor.fromNativeHandle[FLOAT32](NativeTensorOpsMath.real(
-        executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
-    })
-  }
-
-  /** $OpDocMathReal
-    *
-    * @group MathOps
-    * @param  input Input tensor.
-    * @return Result as a new tensor.
-    */
-  def real[TL[DD <: COMPLEX128] <: TensorLike[DD]](
-      input: TL[COMPLEX128]
-  )(implicit ev: TensorOps.Aux[TL, COMPLEX128]): TL[FLOAT64] = {
-    ev.applyUnary(input, t => {
-      Tensor.fromNativeHandle[FLOAT64](NativeTensorOpsMath.real(
-        executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
-    })
-  }
-
-  /** $OpDocMathImag
-    *
-    * @group MathOps
-    * @param  input Input tensor.
-    * @return Result as a new tensor.
-    */
-  def imag[TL[DD <: COMPLEX64] <: TensorLike[DD]](
-      input: TL[COMPLEX64]
-  )(implicit ev: TensorOps.Aux[TL, COMPLEX64]): TL[FLOAT32] = {
-    ev.applyUnary(input, t => {
-      Tensor.fromNativeHandle[FLOAT32](NativeTensorOpsMath.imag(
-        executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
-    })
-  }
-
-  /** $OpDocMathImag
-    *
-    * @group MathOps
-    * @param  input Input tensor.
-    * @return Result as a new tensor.
-    */
-  def imag[TL[DD <: COMPLEX128] <: TensorLike[DD]](
-      input: TL[COMPLEX128]
-  )(implicit ev: TensorOps.Aux[TL, COMPLEX128]): TL[FLOAT64] = {
-    ev.applyUnary(input, t => {
-      Tensor.fromNativeHandle[FLOAT64](NativeTensorOpsMath.imag(
-        executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
-    })
-  }
-
-  /** $OpDocMathAngle
-    *
-    * @group MathOps
-    * @param  input Input tensor.
-    * @return Result as a new tensor.
-    */
-  def angle[TL[DD <: COMPLEX64] <: TensorLike[DD]](
-      input: TL[COMPLEX64]
-  )(implicit ev: TensorOps.Aux[TL, COMPLEX64]): TL[FLOAT32] = {
-    ev.applyUnary(input, t => {
-      Tensor.fromNativeHandle[FLOAT32](NativeTensorOpsMath.angle(
-        executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
-    })
-  }
-
-  /** $OpDocMathAngle
-    *
-    * @group MathOps
-    * @param  input Input tensor.
-    * @return Result as a new tensor.
-    */
-  def angle[TL[DD <: COMPLEX128] <: TensorLike[DD]](
-      input: TL[COMPLEX128]
-  )(implicit ev: TensorOps.Aux[TL, COMPLEX128]): TL[FLOAT64] = {
-    ev.applyUnary(input, t => {
-      Tensor.fromNativeHandle[FLOAT64](NativeTensorOpsMath.angle(
-        executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
-    })
   }
 
   /** $OpDocMathConjugate
@@ -3068,6 +2978,94 @@ object Math extends Math {
       //endregion Reduction Ops
     }
 
+    implicit class Float32MathOps(val tensor: Tensor[FLOAT32]) {
+      def toComplex(imag: Tensor[FLOAT32] = Tensor.zeros(FLOAT32, tensor.shape)): Tensor[COMPLEX64] = {
+        Math.complex64(tensor, imag)
+      }
+    }
+
+    implicit class Float64MathOps(val tensor: Tensor[FLOAT64]) {
+      def toComplex(imag: Tensor[FLOAT64] = Tensor.zeros(FLOAT64, tensor.shape)): Tensor[COMPLEX128] = {
+        Math.complex128(tensor, imag)
+      }
+    }
+
+    implicit class Complex64MathOps(val tensor: Tensor[COMPLEX64]) {
+      /** $OpDocMathReal
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def real(implicit ev: TensorOps.Aux[Tensor, COMPLEX64]): Tensor[FLOAT32] = {
+        ev.applyUnary(tensor, t => {
+          Tensor.fromNativeHandle[FLOAT32](NativeTensorOpsMath.real(
+            executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
+        })
+      }
+
+      /** $OpDocMathImag
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def imag(implicit ev: TensorOps.Aux[Tensor, COMPLEX64]): Tensor[FLOAT32] = {
+        ev.applyUnary(tensor, t => {
+          Tensor.fromNativeHandle[FLOAT32](NativeTensorOpsMath.imag(
+            executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
+        })
+      }
+
+      /** $OpDocMathAngle
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def angle(implicit ev: TensorOps.Aux[Tensor, COMPLEX64]): Tensor[FLOAT32] = {
+        ev.applyUnary(tensor, t => {
+          Tensor.fromNativeHandle[FLOAT32](NativeTensorOpsMath.angle(
+            executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
+        })
+      }
+    }
+
+    implicit class Complex128MathOps(val tensor: Tensor[COMPLEX128]) {
+      /** $OpDocMathReal
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def real(implicit ev: TensorOps.Aux[Tensor, COMPLEX128]): Tensor[FLOAT64] = {
+        ev.applyUnary(tensor, t => {
+          Tensor.fromNativeHandle[FLOAT64](NativeTensorOpsMath.real(
+            executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
+        })
+      }
+
+      /** $OpDocMathImag
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def imag(implicit ev: TensorOps.Aux[Tensor, COMPLEX128]): Tensor[FLOAT64] = {
+        ev.applyUnary(tensor, t => {
+          Tensor.fromNativeHandle[FLOAT64](NativeTensorOpsMath.imag(
+            executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
+        })
+      }
+
+      /** $OpDocMathAngle
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def angle(implicit ev: TensorOps.Aux[Tensor, COMPLEX128]): Tensor[FLOAT64] = {
+        ev.applyUnary(tensor, t => {
+          Tensor.fromNativeHandle[FLOAT64](NativeTensorOpsMath.angle(
+            executionContext.value.nativeHandle, t.nativeHandle, t.dataType.real.cValue))
+        })
+      }
+    }
+
     implicit class Int32MathOps(val tensor: Tensor[INT32]) {
       /** $OpDocMathBinCount
         *
@@ -3092,52 +3090,6 @@ object Math extends Math {
       }
     }
 
-    implicit class Complex64MathOps(val tensor: Tensor[COMPLEX64]) {
-      /** $OpDocMathReal
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def real: Tensor[FLOAT32] = Math.real(tensor)
-
-      /** $OpDocMathImag
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def imag: Tensor[FLOAT32] = Math.imag(tensor)
-
-      /** $OpDocMathAngle
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def angle: Tensor[FLOAT32] = Math.angle(tensor)
-    }
-
-    implicit class Complex128MathOps(val tensor: Tensor[COMPLEX128]) {
-      /** $OpDocMathReal
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def real: Tensor[FLOAT64] = Math.real(tensor)
-
-      /** $OpDocMathImag
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def imag: Tensor[FLOAT64] = Math.imag(tensor)
-
-      /** $OpDocMathAngle
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def angle: Tensor[FLOAT64] = Math.angle(tensor)
-    }
-
     implicit def tensorConvertibleToMathOps[D <: DataType, T](value: T)(implicit f: T => Tensor[D]): MathOps[D] = new MathOps(f(value))
     implicit def tensorConvertibleToReducibleMathOps[D <: ReducibleDataType, T](value: T)(implicit f: T => Tensor[D]): ReducibleMathOps[D] = new ReducibleMathOps(f(value))
     implicit def tensorConvertibleToMathMathOps[D <: MathDataType, T](value: T)(implicit f: T => Tensor[D]): MathMathOps[D] = new MathMathOps(f(value))
@@ -3146,8 +3098,10 @@ object Math extends Math {
     implicit def tensorConvertibleToFloat32OrFloat64MathOps[D <: Float32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Float32OrFloat64MathOps[D] = new Float32OrFloat64MathOps(f(value))
     implicit def tensorConvertibleToComplexMathOps[D <: ComplexDataType, T](value: T)(implicit f: T => Tensor[D]): ComplexMathOps[D] = new ComplexMathOps(f(value))
     implicit def tensorConvertibleToBooleanMathOps[T](value: T)(implicit f: T => Tensor[BOOLEAN]): BooleanMathOps = new BooleanMathOps(f(value))
-    implicit def tensorConvertibleToInt32MathOps[T](value: T)(implicit f: T => Tensor[INT32]): Int32MathOps = new Int32MathOps(f(value))
+    implicit def tensorConvertibleToFloat32MathOps[T](value: T)(implicit f: T => Tensor[FLOAT32]): Float32MathOps = new Float32MathOps(f(value))
+    implicit def tensorConvertibleToFloat64MathOps[T](value: T)(implicit f: T => Tensor[FLOAT64]): Float64MathOps = new Float64MathOps(f(value))
     implicit def tensorConvertibleToComplex64MathOps[T](value: T)(implicit f: T => Tensor[COMPLEX64]): Complex64MathOps = new Complex64MathOps(f(value))
     implicit def tensorConvertibleToComplex128MathOps[T](value: T)(implicit f: T => Tensor[COMPLEX128]): Complex128MathOps = new Complex128MathOps(f(value))
+    implicit def tensorConvertibleToInt32MathOps[T](value: T)(implicit f: T => Tensor[INT32]): Int32MathOps = new Int32MathOps(f(value))
   }
 }

@@ -1237,16 +1237,17 @@ object Basic extends Basic {
         */
       def gatherND[I <: Int32OrInt64](indices: Tensor[I]): Tensor[D] = Basic.gatherND(tensor, indices)
 
-      /** Creates an op that slices this op according to the provided indexers.
+      /** Slices this tensor according to the provided indexers.
         *
         * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
         *
         * @group BasicOps
-        * @param  indexers Sequence of indexers to use.
-        * @return Created op.
+        * @param  firstIndexer  First indexer to use.
+        * @param  otherIndexers Rest of the indexers to use.
+        * @return Resulting tensor.
         */
-      def slice(indexers: Indexer*): Tensor[D] = {
-        val stridedSlice = Indexer.toStridedSlice(indexers: _*)
+      def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[D] = {
+        val stridedSlice = Indexer.toStridedSlice(firstIndexer, otherIndexers: _*)
         val beginTensor: Tensor[INT32] = stridedSlice._1
         val endTensor: Tensor[INT32] = stridedSlice._2
         val stridesTensor: Tensor[INT32] = stridedSlice._3

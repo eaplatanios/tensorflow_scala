@@ -65,134 +65,6 @@ sealed trait TensorLike[+D <: DataType] {
   def toTensorIndexedSlices: TensorIndexedSlices[D]
 }
 
-trait TensorConvertible[T] {
-  type D <: DataType
-
-  // TODO: Add data type argument.
-  /** Converts `value` to a dense tensor. */
-  @inline def toTensor(value: T): Tensor[D]
-}
-
-object TensorConvertible {
-  type Aux[T, DD <: DataType] = TensorConvertible[T] {
-    type D = DD
-  }
-
-  implicit val shapeTensorConvertible: TensorConvertible.Aux[Shape, INT64] = {
-    new TensorConvertible[Shape] {
-      override type D = INT64
-
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Shape): Tensor[INT64] = value.toTensor()
-    }
-  }
-
-  implicit def supportedTypeTensorConvertible[T, DD <: DataType](implicit
-      evSupported: SupportedType.Aux[T, DD]
-  ): TensorConvertible.Aux[T, DD] = {
-    new TensorConvertible[T] {
-      override type D = DD
-
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: T): Tensor[D] = Tensor.fill(evSupported.dataType, Shape())(value)
-    }
-  }
-
-  implicit def arrayTensorConvertible[T, DD <: DataType](implicit
-      ev: TensorConvertible.Aux[T, DD]
-  ): TensorConvertible.Aux[Array[T], DD] = {
-    new TensorConvertible[Array[T]] {
-      override type D = DD
-
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Array[T]): Tensor[D] = stack(value.map(ev.toTensor))
-    }
-  }
-
-  implicit def traversableTensorConvertible[T, DD <: DataType, CC[A] <: TraversableLike[A, CC[A]]](implicit
-      ev: TensorConvertible.Aux[T, DD]
-  ): TensorConvertible.Aux[CC[T], DD] = {
-    new TensorConvertible[CC[T]] {
-      override type D = DD
-
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: CC[T]): Tensor[D] = stack(value.map(ev.toTensor)(breakOut))
-    }
-  }
-}
-
-/** Type trait for defining functions operating on and returning tensors. */
-trait TensorOps[TL[DD <: DataType] <: TensorLike[DD]] {
-  type D <: DataType
-
-  /** Applies a unary function to the provided tensor and returns the result.
-    *
-    * @param  tensorLike Tensor-like object to apply the unary op function on.
-    * @param  function   Unary function to apply.
-    * @return Resulting tensor-like object that matches the type of `tensorLike`.
-    */
-  @inline def applyUnary[DR <: DataType](tensorLike: TL[D], function: Tensor[D] => Tensor[DR]): TL[DR]
-}
-
-/** Companion object that defines supported [[TensorOps]] implicit values. */
-object TensorOps {
-  type Aux[TL[DDD <: DataType] <: TensorLike[DDD], DD <: DataType] = TensorOps[TL] {
-    type D = DD
-  }
-
-  implicit def tensorOps[DD <: DataType]: TensorOps.Aux[Tensor, DD] = {
-    new TensorOps[Tensor] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: Tensor[D],
-          function: Tensor[D] => Tensor[DR]
-      ): Tensor[DR] = {
-        function(tensorLike)
-      }
-    }
-  }
-
-  implicit def tensorIndexedSlicesOps[DD <: DataType]: TensorOps.Aux[TensorIndexedSlices, DD] = {
-    new TensorOps[TensorIndexedSlices] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: TensorIndexedSlices[D],
-          function: Tensor[D] => Tensor[DR]
-      ): TensorIndexedSlices[DR] = {
-        tensorLike.copy(values = function(tensorLike.values))
-      }
-    }
-  }
-
-  implicit def sparseTensorOps[DD <: DataType]: TensorOps.Aux[SparseTensor, DD] = {
-    new TensorOps[SparseTensor] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: SparseTensor[D],
-          function: Tensor[D] => Tensor[DR]
-      ): SparseTensor[DR] = {
-        tensorLike.copy(values = function(tensorLike.values))
-      }
-    }
-  }
-
-  implicit def tensorLikeOps[DD <: DataType]: TensorOps.Aux[TensorLike, DD] = {
-    new TensorOps[TensorLike] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: TensorLike[D],
-          function: Tensor[D] => Tensor[DR]
-      ): TensorLike[DR] = {
-        tensorLike match {
-          case t: Tensor[D] => function(t)
-          case t: TensorIndexedSlices[D] => t.copy(values = function(t.values))
-          case t: SparseTensor[D] => t.copy(values = function(t.values))
-        }
-      }
-    }
-  }
-}
-
 /** Tensor (i.e., multi-dimensional array).
   *
   * Tensors are the main data structure underlying all operations in TensorFlow. They represent multi-dimensional arrays
@@ -324,9 +196,11 @@ class Tensor[+D <: DataType] protected (
     }
   }
 
-  def apply(indexers: Indexer*): Tensor[D] = this.slice(indexers: _*)
+  def apply(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[D] = this.slice(firstIndexer, otherIndexers: _*)
 
-  def slice(indexers: Indexer*): Tensor[D] = new BasicOps(this).slice(indexers: _*)
+  def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[D] = {
+    new BasicOps(this).slice(firstIndexer, otherIndexers: _*)
+  }
 
   /** Returns a summary of the contents of this tensor.
     *
@@ -453,17 +327,16 @@ object Tensor {
   }
 
   def apply[D <: DataType, T](head: T, tail: T*)(implicit
-      evSupported: SupportedType.Aux[T, D]
+      ev: TensorConvertible.Aux[T, D]
   ): Tensor[D] = {
-    apply(evSupported.dataType, head, tail: _*)
+    stack((head +: tail).map(ev.toTensor), 0)
   }
 
   def apply[D <: DataType](dataType: D): Tensor[D] = Tensor.allocate(dataType, Shape(0))
 
-  def apply[D <: DataType, T](dataType: D, head: T, tail: T*)(implicit
-      evSupported: SupportedType.Aux[T, D],
+  def apply[D <: DataType, DR <: DataType, T](dataType: DR, head: T, tail: T*)(implicit
       ev: TensorConvertible.Aux[T, D]
-  ): Tensor[D] = {
+  ): Tensor[DR] = {
     stack((head +: tail).map(ev.toTensor), 0).cast(dataType)
   }
 
@@ -550,6 +423,8 @@ object Tensor {
     Random.randomNormal(dataType, shape)(mean, standardDeviation, seed)
   }
 
+  // TODO: !!! [TYPES] Make this safer.
+
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
     *
     * If `dataType` is not provided, then its value is inferred from `value`.
@@ -563,9 +438,7 @@ object Tensor {
     * @param  shape    Tensor shape.
     * @return Constructed tensor.
     */
-  def fill[T, D <: DataType](dataType: D, shape: Shape)(value: T)(implicit
-      evSupported: SupportedType.Aux[T, _]
-  ): Tensor[D] = {
+  def fill[T: SupportedType, D <: DataType](dataType: D, shape: Shape)(value: T): Tensor[D] = {
     // TODO: [TENSORS] Do we want to keep this warning?
     // if (inferredDataType.priority < ev.dataType.priority)
     //   logger.warn(s"Downcasting value '$value' while creating tensor with '$dataType' data type.")
@@ -854,11 +727,11 @@ final case class SparseTensor[+D <: DataType](
     *                         lexicographic order and that there are no repeats.
     * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toTensor(
-      defaultValue: Tensor[D] = Tensor.zeros(dataType, Shape()),
+  def toTensor[DD >: D <: DataType](
+      defaultValue: Tensor[DD] = Tensor.zeros(dataType, Shape()),
       validateIndices: Boolean = true
-  ): Tensor[D] = {
-    Tensor.fromNativeHandle(NativeTensorOpsSparse.sparseToDense(
+  ): Tensor[DD] = {
+    Tensor.fromNativeHandle[DD](NativeTensorOpsSparse.sparseToDense(
       executionContext.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
       defaultValue.nativeHandle, validateIndices))
   }

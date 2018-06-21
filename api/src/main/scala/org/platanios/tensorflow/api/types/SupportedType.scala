@@ -22,7 +22,7 @@ import spire.math.{UByte, UShort}
 /**
   * @author Emmanouil Antonios Platanios
   */
-sealed trait SupportedType[T] {
+sealed trait SupportedType[+T] {
   type D <: DataType
 
   @inline def dataType: D
@@ -34,7 +34,7 @@ sealed trait SupportedType[T] {
 }
 
 object SupportedType {
-  type Aux[T, DD <: DataType] = SupportedType[T] {
+  type Aux[+T, DD <: DataType] = SupportedType[T] {
     type D = DD
   }
 
