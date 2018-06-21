@@ -71,7 +71,7 @@ trait Data[T] {
   def shapesFromT(data: T): Shapes
   def shapesFromO(data: OutputType): Shapes
 
-  def flattenedTensors(data: T): Seq[Tensor]
+  def flattenedTensors(data: T): Seq[Tensor[DataType]]
 
   def flattenedOutputsFromT(data: T): Seq[Output]
   def flattenedOutputsFromO(data: OutputType): Seq[Output]
@@ -122,49 +122,50 @@ object Data {
 
   def apply[T, O, D, S](implicit ev: Aux[T, O, D, S]): Aux[T, O, D, S] = ev
 
-  implicit def tensorData[D <: DataType]: Aux[Tensor, Output, D, Shape] = new Data[Tensor] {
-    override type OutputType = Output
-    override type DataTypes = D
-    override type Shapes = Shape
+  implicit def tensorData[D <: DataType]: Aux[Tensor[D], Output, D, Shape] = {
+    new Data[Tensor[D]] {
+      override type OutputType = Output
+      override type DataTypes = D
+      override type Shapes = Shape
 
-    override def size(dataTypes: DataTypes): Int = 1
+      override def size(dataTypes: DataTypes): Int = 1
 
-    override def dataTypesFromT(data: Tensor): D = data.dataType.asInstanceOf[D]
-    override def dataTypesFromO(data: Output): D = data.dataType.asInstanceOf[D]
+      override def dataTypesFromT(data: Tensor[D]): D = data.dataType.asInstanceOf[D]
+      override def dataTypesFromO(data: Output): D = data.dataType.asInstanceOf[D]
 
-    override def shapesFromT(data: Tensor): Shape = data.shape
-    override def shapesFromO(data: Output): Shape = data.shape
+      override def shapesFromT(data: Tensor[D]): Shape = data.shape
+      override def shapesFromO(data: Output): Shape = data.shape
 
-    override def flattenedTensors(data: Tensor): Seq[Tensor] = Seq(data)
+      override def flattenedTensors(data: Tensor[D]): Seq[Tensor[DataType]] = Seq(data)
 
-    override def flattenedOutputsFromT(data: Tensor): Seq[Output] = Seq(data.toOutput)
-    override def flattenedOutputsFromO(data: Output): Seq[Output] = Seq(data)
+      override def flattenedOutputsFromT(data: Tensor[D]): Seq[Output] = Seq(data.toOutput)
+      override def flattenedOutputsFromO(data: Output): Seq[Output] = Seq(data)
 
-    override def flattenedDataTypes(dataTypes: D): Seq[DataType] = Seq(dataTypes: DataType)
-    override def flattenedShapes(shapes: Shape): Seq[Shape] = Seq(shapes)
+      override def flattenedDataTypes(dataTypes: D): Seq[DataType] = Seq(dataTypes: DataType)
+      override def flattenedShapes(shapes: Shape): Seq[Shape] = Seq(shapes)
 
-    override def segmentOutputs(dataTypes: D, s: Seq[Output]): (Output, Seq[Output]) = (s.head, s.tail)
-    override def segmentDataTypes(dataTypes: D, s: Seq[DataType]): (D, Seq[DataType]) = (s.head.asInstanceOf[D], s.tail)
-    override def segmentShapes(dataTypes: D, s: Seq[Shape]): (Shape, Seq[Shape]) = (s.head, s.tail)
+      override def segmentOutputs(dataTypes: D, s: Seq[Output]): (Output, Seq[Output]) = (s.head, s.tail)
+      override def segmentDataTypes(dataTypes: D, s: Seq[DataType]): (D, Seq[DataType]) = (s.head.asInstanceOf[D], s.tail)
+      override def segmentShapes(dataTypes: D, s: Seq[Shape]): (Shape, Seq[Shape]) = (s.head, s.tail)
 
-    override def dataToString(data: Tensor): String = data.toString
-    override def dataTypesToString(dataTypes: D): String = dataTypes.toString
-    override def shapesToString(shapes: Shape): String = shapes.toString
+      override def dataToString(data: Tensor[D]): String = data.toString
+      override def dataTypesToString(dataTypes: D): String = dataTypes.toString
+      override def shapesToString(shapes: Shape): String = shapes.toString
+    }
   }
 
-  implicit val tensorIndexedSlicesData: Aux[
-      TensorIndexedSlices, OutputIndexedSlices, (INT64, DataType, INT64), (Shape, Shape, Shape)] = {
-    new Data[TensorIndexedSlices] {
+  implicit def tensorIndexedSlicesData[D <: DataType]: Aux[TensorIndexedSlices[D], OutputIndexedSlices, (INT64, D, INT64), (Shape, Shape, Shape)] = {
+    new Data[TensorIndexedSlices[D]] {
       override type OutputType = OutputIndexedSlices
-      override type DataTypes = (INT64, DataType, INT64)
+      override type DataTypes = (INT64, D, INT64)
       override type Shapes = (Shape, Shape, Shape)
 
       override def size(dataTypes: DataTypes): Int = 3
 
-      override def dataTypesFromT(data: TensorIndexedSlices): DataTypes = (INT64, data.dataType, INT64)
-      override def dataTypesFromO(data: OutputIndexedSlices): DataTypes = (INT64, data.dataType, INT64)
+      override def dataTypesFromT(data: TensorIndexedSlices[D]): DataTypes = (INT64, data.dataType, INT64)
+      override def dataTypesFromO(data: OutputIndexedSlices): DataTypes = (INT64, data.dataType.asInstanceOf[D], INT64)
 
-      override def shapesFromT(data: TensorIndexedSlices): Shapes = {
+      override def shapesFromT(data: TensorIndexedSlices[D]): Shapes = {
         val indicesShape = data.indices.shape
         val denseShapeShape = data.denseShape.shape
         val rank = Shape(indicesShape(1) - 1).mergeWith(Shape(denseShapeShape(0) - 1))(0)
@@ -178,11 +179,11 @@ object Data {
         (Shape(-1, rank), Shape(-1), Shape(rank))
       }
 
-      override def flattenedTensors(data: TensorIndexedSlices): Seq[Tensor] = {
+      override def flattenedTensors(data: TensorIndexedSlices[D]): Seq[Tensor[DataType]] = {
         Seq(data.indices, data.values, data.denseShape)
       }
 
-      override def flattenedOutputsFromT(data: TensorIndexedSlices): Seq[Output] = {
+      override def flattenedOutputsFromT(data: TensorIndexedSlices[D]): Seq[Output] = {
         flattenedTensors(data).map(_.toOutput)
       }
 
@@ -201,75 +202,78 @@ object Data {
       }
 
       override def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType]) = {
-        ((s(0).asInstanceOf[INT64], s(1), s(2).asInstanceOf[INT64]), s.drop(3))
+        ((s(0).asInstanceOf[INT64], s(1).asInstanceOf[D], s(2).asInstanceOf[INT64]), s.drop(3))
       }
 
       override def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape]) = {
         ((s(0), s(1), s(2)), s.drop(3))
       }
 
-      override def dataToString(data: TensorIndexedSlices): String = data.toString
+      override def dataToString(data: TensorIndexedSlices[D]): String = data.toString
       override def dataTypesToString(dataTypes: DataTypes): String = s"${dataTypes._1}:${dataTypes._2}:${dataTypes._3}"
       override def shapesToString(shapes: Shapes): String = s"${shapes._1}:${shapes._2}:${shapes._3}"
     }
   }
 
-  implicit val sparseTensorData: Aux[
-      SparseTensor, SparseOutput, (INT64, DataType, INT64), (Shape, Shape, Shape)] = new Data[SparseTensor] {
-    override type OutputType = SparseOutput
-    override type DataTypes = (INT64, DataType, INT64)
-    override type Shapes = (Shape, Shape, Shape)
+  implicit def sparseTensorData[D <: DataType]: Aux[SparseTensor[D], SparseOutput, (INT64, D, INT64), (Shape, Shape, Shape)] = {
+    new Data[SparseTensor[D]] {
+      override type OutputType = SparseOutput
+      override type DataTypes = (INT64, D, INT64)
+      override type Shapes = (Shape, Shape, Shape)
 
-    override def size(dataTypes: DataTypes): Int = 3
+      override def size(dataTypes: DataTypes): Int = 3
 
-    override def dataTypesFromT(data: SparseTensor): DataTypes = (INT64, data.dataType, INT64)
-    override def dataTypesFromO(data: SparseOutput): DataTypes = (INT64, data.dataType, INT64)
+      override def dataTypesFromT(data: SparseTensor[D]): DataTypes = (INT64, data.dataType, INT64)
+      override def dataTypesFromO(data: SparseOutput): DataTypes = (INT64, data.dataType.asInstanceOf[D], INT64)
 
-    override def shapesFromT(data: SparseTensor): Shapes = {
-      val indicesShape = data.indices.shape
-      val denseShapeShape = data.denseShape.shape
-      val rank = Shape(indicesShape(1) - 1).mergeWith(Shape(denseShapeShape(0) - 1))(0)
-      (Shape(-1, rank), Shape(-1), Shape(rank))
+      override def shapesFromT(data: SparseTensor[D]): Shapes = {
+        val indicesShape = data.indices.shape
+        val denseShapeShape = data.denseShape.shape
+        val rank = Shape(indicesShape(1) - 1).mergeWith(Shape(denseShapeShape(0) - 1))(0)
+        (Shape(-1, rank), Shape(-1), Shape(rank))
+      }
+
+      override def shapesFromO(data: SparseOutput): Shapes = {
+        val indicesShape = data.indices.shape
+        val denseShapeShape = data.denseShape.shape
+        val rank = Shape(indicesShape(1) - 1).mergeWith(Shape(denseShapeShape(0) - 1))(0)
+        (Shape(-1, rank), Shape(-1), Shape(rank))
+      }
+
+      override def flattenedTensors(data: SparseTensor[D]): Seq[Tensor[DataType]] = {
+        Seq(data.indices, data.values, data.denseShape)
+      }
+
+      override def flattenedOutputsFromT(data: SparseTensor[D]): Seq[Output] = {
+        flattenedTensors(data).map(_.toOutput)
+      }
+
+      override def flattenedOutputsFromO(data: SparseOutput): Seq[Output] = {
+        Seq(data.indices, data.values, data.denseShape)
+      }
+
+      override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
+        Seq(dataTypes._1, dataTypes._2, dataTypes._3)
+      }
+
+      override def flattenedShapes(shapes: Shapes): Seq[Shape] = Seq(shapes._1, shapes._2, shapes._3)
+
+      override def segmentOutputs(dataTypes: DataTypes, s: Seq[Output]): (OutputType, Seq[Output]) = {
+        (SparseOutput(s(0), s(1), s(2)), s.drop(3))
+      }
+
+      override def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType]) = {
+        ((s(0).asInstanceOf[INT64], s(1).asInstanceOf[D], s(2).asInstanceOf[INT64]), s.drop(3))
+      }
+
+      override def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape]) = {
+        ((s(0), s(1), s(2)), s.drop(3))
+      }
+
+      override def dataToString(data: SparseTensor[D]): String = data.toString
+      override def dataTypesToString(dataTypes: DataTypes): String = s"${dataTypes._1}, ${dataTypes._2}, ${dataTypes._3}"
+      override def shapesToString(shapes: Shapes): String = s"${shapes._1}, ${shapes._2}, ${shapes._3}"
     }
-
-    override def shapesFromO(data: SparseOutput): Shapes = {
-      val indicesShape = data.indices.shape
-      val denseShapeShape = data.denseShape.shape
-      val rank = Shape(indicesShape(1) - 1).mergeWith(Shape(denseShapeShape(0) - 1))(0)
-      (Shape(-1, rank), Shape(-1), Shape(rank))
-    }
-
-    override def flattenedTensors(data: SparseTensor): Seq[Tensor] = Seq(data.indices, data.values, data.denseShape)
-
-    override def flattenedOutputsFromT(data: SparseTensor): Seq[Output] = {
-      flattenedTensors(data).map(_.toOutput)
-    }
-
-    override def flattenedOutputsFromO(data: SparseOutput): Seq[Output] = {
-      Seq(data.indices, data.values, data.denseShape)
-    }
-
-    override def flattenedDataTypes(dataTypes: DataTypes): Seq[DataType] = {
-      Seq(dataTypes._1, dataTypes._2, dataTypes._3)
-    }
-
-    override def flattenedShapes(shapes: Shapes): Seq[Shape] = Seq(shapes._1, shapes._2, shapes._3)
-
-    override def segmentOutputs(dataTypes: DataTypes, s: Seq[Output]): (OutputType, Seq[Output]) = {
-      (SparseOutput(s(0), s(1), s(2)), s.drop(3))
-    }
-
-    override def segmentDataTypes(dataTypes: DataTypes, s: Seq[DataType]): (DataTypes, Seq[DataType]) = {
-      ((s(0).asInstanceOf[INT64], s(1), s(2).asInstanceOf[INT64]), s.drop(3))
-    }
-
-    override def segmentShapes(dataTypes: DataTypes, s: Seq[Shape]): (Shapes, Seq[Shape]) = {
-      ((s(0), s(1), s(2)), s.drop(3))
-    }
-
-    override def dataToString(data: SparseTensor): String = data.toString
-    override def dataTypesToString(dataTypes: DataTypes): String = s"${dataTypes._1}, ${dataTypes._2}, ${dataTypes._3}"
-    override def shapesToString(shapes: Shapes): String = s"${shapes._1}, ${shapes._2}, ${shapes._3}"
   }
 
   implicit def dataArray[T: ClassTag, O: ClassTag, D: ClassTag, S: ClassTag](implicit
@@ -288,7 +292,7 @@ object Data {
       override def shapesFromT(data: Array[T]): Shapes = data.map(ev.shapesFromT)
       override def shapesFromO(data: Array[O]): Shapes = data.map(ev.shapesFromO)
 
-      override def flattenedTensors(data: Array[T]): Seq[Tensor] = data.flatMap(ev.flattenedTensors).toSeq
+      override def flattenedTensors(data: Array[T]): Seq[Tensor[DataType]] = data.flatMap(ev.flattenedTensors).toSeq
 
       override def flattenedOutputsFromT(data: Array[T]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromT).toSeq
       override def flattenedOutputsFromO(data: Array[O]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromO).toSeq
@@ -354,7 +358,7 @@ object Data {
       override def shapesFromT(data: CC[T]): Shapes = data.map(ev.shapesFromT)
       override def shapesFromO(data: CC[O]): Shapes = data.map(ev.shapesFromO)
 
-      override def flattenedTensors(data: CC[T]): Seq[Tensor] = data.flatMap(ev.flattenedTensors)(breakOut)
+      override def flattenedTensors(data: CC[T]): Seq[Tensor[DataType]] = data.flatMap(ev.flattenedTensors)(breakOut)
 
       override def flattenedOutputsFromT(data: CC[T]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromT)(breakOut)
       override def flattenedOutputsFromO(data: CC[O]): Seq[Output] = data.flatMap(ev.flattenedOutputsFromO)(breakOut)
@@ -420,7 +424,9 @@ object Data {
       override def shapesFromT(data: CC[K, T]): Shapes = data.mapValues(ev.shapesFromT)
       override def shapesFromO(data: CC[K, O]): Shapes = data.mapValues(ev.shapesFromO)
 
-      override def flattenedTensors(data: CC[K, T]): Seq[Tensor] = data.values.flatMap(ev.flattenedTensors).toSeq
+      override def flattenedTensors(data: CC[K, T]): Seq[Tensor[DataType]] = {
+        data.values.flatMap(ev.flattenedTensors).toSeq
+      }
 
       override def flattenedOutputsFromT(data: CC[K, T]): Seq[Output] = {
         data.values.flatMap(ev.flattenedOutputsFromT).toSeq
@@ -490,7 +496,7 @@ object Data {
     override def shapesFromT(data: HNil): Shapes = HNil
     override def shapesFromO(data: HNil): Shapes = HNil
 
-    override def flattenedTensors(data: HNil): Seq[Tensor] = Seq.empty
+    override def flattenedTensors(data: HNil): Seq[Tensor[DataType]] = Seq.empty
 
     override def flattenedOutputsFromT(data: HNil): Seq[Output] = Seq.empty
     override def flattenedOutputsFromO(data: HNil): Seq[Output] = Seq.empty
@@ -533,7 +539,7 @@ object Data {
       dataHead.value.shapesFromO(data.head) :: dataTail.shapesFromO(data.tail)
     }
 
-    override def flattenedTensors(data: HT :: TT): Seq[Tensor] = {
+    override def flattenedTensors(data: HT :: TT): Seq[Tensor[DataType]] = {
       dataHead.value.flattenedTensors(data.head) ++ dataTail.flattenedTensors(data.tail)
     }
 
@@ -628,7 +634,7 @@ object Data {
     override def shapesFromT(data: PT): Shapes = tuplerS(dataL.shapesFromT(genT.to(data)))
     override def shapesFromO(data: PO): Shapes = tuplerS(dataL.shapesFromO(genO.to(data)))
 
-    override def flattenedTensors(data: PT): Seq[Tensor] = dataL.flattenedTensors(genT.to(data))
+    override def flattenedTensors(data: PT): Seq[Tensor[DataType]] = dataL.flattenedTensors(genT.to(data))
 
     override def flattenedOutputsFromT(data: PT): Seq[Output] = dataL.flattenedOutputsFromT(genT.to(data))
     override def flattenedOutputsFromO(data: PO): Seq[Output] = dataL.flattenedOutputsFromO(genO.to(data))
