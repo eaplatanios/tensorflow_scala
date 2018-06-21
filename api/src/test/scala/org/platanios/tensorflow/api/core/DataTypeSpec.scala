@@ -342,19 +342,19 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(UINT16.cast(UShort(2)) === UShort(2))
     assert(UINT16.cast(2L) === UShort(2))
     assert(UINT16.cast(2.0) === UShort(2))
-    assert(QINT8.cast(-2L) === -2.toByte)
-    assert(QINT8.cast(-2.0) === -2.toByte)
-    assert(QINT8.cast(UByte(2)) === 2.toByte)
-    assert(QINT16.cast(-2L) === -2.toShort)
-    assert(QINT32.cast(-2L) === -2)
-    assert(QUINT8.cast(UByte(2)) === UByte(2))
-    assert(QUINT8.cast(UShort(2)) === UByte(2))
-    assert(QUINT8.cast(2L) === UByte(2))
-    assert(QUINT8.cast(-2.0) === UByte(254)) // TODO: Should this throw an error?
-    assert(QUINT16.cast(-UByte(2)) === UShort(254)) // TODO: Should this throw an error?
-    assert(QUINT16.cast(UShort(2)) === UShort(2))
-    assert(QUINT16.cast(2L) === UShort(2))
-    assert(QUINT16.cast(2.0) === UShort(2))
+    //  assert(QINT8.cast(-2L) === -2.toByte)
+    //  assert(QINT8.cast(-2.0) === -2.toByte)
+    //  assert(QINT8.cast(UByte(2)) === 2.toByte)
+    //  assert(QINT16.cast(-2L) === -2.toShort)
+    //  assert(QINT32.cast(-2L) === -2)
+    //  assert(QUINT8.cast(UByte(2)) === UByte(2))
+    //  assert(QUINT8.cast(UShort(2)) === UByte(2))
+    //  assert(QUINT8.cast(2L) === UByte(2))
+    //  assert(QUINT8.cast(-2.0) === UByte(254)) // TODO: Should this throw an error?
+    //  assert(QUINT16.cast(-UByte(2)) === UShort(254)) // TODO: Should this throw an error?
+    //  assert(QUINT16.cast(UShort(2)) === UShort(2))
+    //  assert(QUINT16.cast(2L) === UShort(2))
+    //  assert(QUINT16.cast(2.0) === UShort(2))
   }
 
   // TODO: Add 'InvalidCastException' checks.
