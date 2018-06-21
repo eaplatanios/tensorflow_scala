@@ -48,23 +48,23 @@ object Feedable {
 
   def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
 
-  implicit val outputFeedable: Aux[Output, Tensor[DataType]] = new Feedable[Output] {
-    override type ValueType = Tensor[DataType]
+  implicit def outputFeedable[D <: DataType]: Aux[Output, Tensor[D]] = new Feedable[Output] {
+    override type ValueType = Tensor[D]
     override def feed(feedable: Output, value: ValueType): Map[Output, Tensor[DataType]] = Map(feedable -> value)
   }
 
-  implicit val outputIndexedSlicesFeedable: Aux[OutputIndexedSlices, TensorIndexedSlices[DataType]] = {
+  implicit def outputIndexedSlicesFeedable[D <: DataType]: Aux[OutputIndexedSlices, TensorIndexedSlices[D]] = {
     new Feedable[OutputIndexedSlices] {
-      override type ValueType = TensorIndexedSlices[DataType]
+      override type ValueType = TensorIndexedSlices[D]
       override def feed(feedable: OutputIndexedSlices, value: ValueType): Map[Output, Tensor[DataType]] = {
         Map(feedable.indices -> value.indices, feedable.values -> value.values, feedable.denseShape -> value.denseShape)
       }
     }
   }
 
-  implicit val sparseOutputFeedable: Aux[SparseOutput, SparseTensor[DataType]] = {
+  implicit def sparseOutputFeedable[D <: DataType]: Aux[SparseOutput, SparseTensor[D]] = {
     new Feedable[SparseOutput] {
-      override type ValueType = SparseTensor[DataType]
+      override type ValueType = SparseTensor[D]
       override def feed(feedable: SparseOutput, value: ValueType): Map[Output, Tensor[DataType]] = {
         Map(feedable.indices -> value.indices, feedable.values -> value.values, feedable.denseShape -> value.denseShape)
       }

@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, OutputLike
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 import org.platanios.tensorflow.api.utilities.Collections
+
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
