@@ -39,9 +39,9 @@ private[api] trait Random {
     *                  combined with the graph-level seed.
     * @return Result as a new tensor.
     */
-  def randomUniform[D <: Int32OrInt64OrFloat16OrFloat32OrFloat64](
+  def randomUniform[D <: Int32OrInt64OrFloat16OrFloat32OrFloat64, I <: Int32OrInt64](
       dataType: D,
-      shape: Tensor[INT64] = Shape()
+      shape: Tensor[I]
   )(
       minValue: Tensor[D] = Tensor.zeros(dataType, Shape()),
       maxValue: Tensor[D] = Tensor.ones(dataType, Shape()),
@@ -72,9 +72,9 @@ private[api] trait Random {
     *                           generator, when combined with the graph-level seed.
     * @return Result as a new tensor.
     */
-  def randomNormal[D <: Float16OrFloat32OrFloat64](
+  def randomNormal[D <: Float16OrFloat32OrFloat64, I <: Int32OrInt64](
       dataType: D,
-      shape: Tensor[INT64] = Shape()
+      shape: Tensor[I]
   )(
       mean: Tensor[D] = Tensor.zeros(dataType, Shape()),
       standardDeviation: Tensor[D] = Tensor.ones(dataType, Shape()),
@@ -99,9 +99,9 @@ private[api] trait Random {
     *                           generator, when combined with the graph-level seed.
     * @return Result as a new tensor.
     */
-  def randomTruncatedNormal[D <: Float16OrFloat32OrFloat64](
+  def randomTruncatedNormal[D <: Float16OrFloat32OrFloat64, I <: Int32OrInt64](
       dataType: D,
-      shape: Tensor[INT64] = Shape()
+      shape: Tensor[I]
   )(
       mean: Tensor[D] = Tensor.zeros(dataType, Shape()),
       standardDeviation: Tensor[D] = Tensor.ones(dataType, Shape()),

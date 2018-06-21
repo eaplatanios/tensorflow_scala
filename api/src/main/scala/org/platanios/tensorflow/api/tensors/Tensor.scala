@@ -545,14 +545,14 @@ object Tensor {
     *                  combined with the graph-level seed.
     * @return New random tensor.
     */
-  def rand[N <: Int32OrInt64OrFloat16OrFloat32OrFloat64](
-      dataType: N,
-      shape: Tensor[INT64] = Shape()
+  def rand[D <: Int32OrInt64OrFloat16OrFloat32OrFloat64, I <: Int32OrInt64](
+      dataType: D,
+      shape: Tensor[I]
   )(
-      minValue: Tensor[N] = Tensor.zeros(dataType, Shape()),
-      maxValue: Tensor[N] = Tensor.ones(dataType, Shape()),
+      minValue: Tensor[D] = Tensor.zeros(dataType, Shape()),
+      maxValue: Tensor[D] = Tensor.ones(dataType, Shape()),
       seed: Option[Int] = None
-  ): Tensor[N] = {
+  ): Tensor[D] = {
     Random.randomUniform(dataType, shape)(minValue, maxValue, seed)
   }
 
@@ -568,14 +568,14 @@ object Tensor {
     *                           generator, when combined with the graph-level seed.
     * @return New random tensor.
     */
-  def randn[N <: Float16OrFloat32OrFloat64](
-      dataType: N,
-      shape: Tensor[INT64] = Shape()
+  def randn[D <: Float16OrFloat32OrFloat64, I <: Int32OrInt64](
+      dataType: D,
+      shape: Tensor[I]
   )(
-      mean: Tensor[N] = Tensor.zeros(dataType, Shape()),
-      standardDeviation: Tensor[N] = Tensor.ones(dataType, Shape()),
+      mean: Tensor[D] = Tensor.zeros(dataType, Shape()),
+      standardDeviation: Tensor[D] = Tensor.ones(dataType, Shape()),
       seed: Option[Int] = None
-  ): Tensor[N] = {
+  ): Tensor[D] = {
     Random.randomNormal(dataType, shape)(mean, standardDeviation, seed)
   }
 
