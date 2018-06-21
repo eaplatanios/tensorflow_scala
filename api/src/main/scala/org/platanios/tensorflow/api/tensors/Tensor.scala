@@ -38,7 +38,6 @@ import java.nio._
 import java.nio.charset.Charset
 import java.nio.file.Path
 
-import scala.collection.immutable.NumericRange
 import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
 
@@ -46,7 +45,7 @@ import scala.language.{higherKinds, postfixOps}
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorLike[D <: DataType] {
+sealed trait TensorLike[+D <: DataType] {
   /** Data type of this tensor. */
   val dataType: D
 
@@ -79,40 +78,12 @@ object TensorConvertible {
     type D = DD
   }
 
-  implicit def tensorLikeTensorConvertible[T <: TensorLike[DD], DD <: DataType]: TensorConvertible.Aux[T, DD] = {
-    new TensorConvertible[T] {
-      override type D = DD
-
-      @inline override def toTensor(value: T): Tensor[D] = value.toTensor
-    }
-  }
-
   implicit val shapeTensorConvertible: TensorConvertible.Aux[Shape, INT64] = {
     new TensorConvertible[Shape] {
       override type D = INT64
 
       /** Converts `value` to a dense tensor. */
       @inline override def toTensor(value: Shape): Tensor[INT64] = value.toTensor()
-    }
-  }
-
-  implicit val rangeTensorConvertible: TensorConvertible.Aux[Range, INT32] = {
-    new TensorConvertible[Range] {
-      override type D = INT32
-
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Range): Tensor[INT32] = stack(value.map(_.toTensor))
-    }
-  }
-
-  implicit def numericRangeTensorConvertible[T, DD <: DataType, N <: NumericRange[T]](implicit
-      ev: SupportedType.Aux[T, DD]
-  ): TensorConvertible.Aux[N, DD] = {
-    new TensorConvertible[N] {
-      override type D = DD
-
-      /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: N): Tensor[D] = stack(value.map(_.toTensor))
     }
   }
 
@@ -249,7 +220,7 @@ object TensorOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor[D <: DataType] protected (
+class Tensor[+D <: DataType] protected (
     private[api] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
 ) extends TensorLike[D]
@@ -413,7 +384,7 @@ class Tensor[D <: DataType] protected (
     */
   override def toTensorIndexedSlices: TensorIndexedSlices[D] = {
     TensorIndexedSlices(
-      indices = 0L until shape(0).toLong,
+      indices = Tensor(0L, 1L until shape(0).toLong: _*),
       values = this,
       denseShape = shape.toTensor(INT64))
   }
@@ -755,7 +726,7 @@ object Tensor {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class TensorIndexedSlices[D <: DataType](
+final case class TensorIndexedSlices[+D <: DataType](
     indices: Tensor[INT64],
     values: Tensor[D],
     denseShape: Tensor[INT64] = null
@@ -837,7 +808,7 @@ final case class TensorIndexedSlices[D <: DataType](
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseTensor[D <: DataType](
+final case class SparseTensor[+D <: DataType](
     indices: Tensor[INT64],
     values: Tensor[D],
     denseShape: Tensor[INT64]

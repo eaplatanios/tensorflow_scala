@@ -1034,7 +1034,7 @@ private[api] trait Math {
       axes
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
-        case t: Tensor[_] if t.rank > -1 => 0 until t.rank
+        case t: Tensor[_] if t.rank > -1 => Tensor(0 until t.rank: _*)
         // case t: TensorIndexedSlices if t.denseShape.shape.isFullyDefined =>
         //   Basic.constant(0 until t.denseShape.shape(0))
         // case t: SparseTensor if t.denseShape.shape.isFullyDefined =>
@@ -1737,7 +1737,7 @@ private[api] trait Math {
   def tensorDot[D <: MathDataType](a: Tensor[D], b: Tensor[D], numAxes: Tensor[INT32]): Tensor[D] = {
     if (numAxes.rank != 0)
       throw InvalidShapeException("'numAxes' must be a scalar.")
-    tensorDot(a, b, range(a.rank - numAxes, a.rank), range(0, numAxes))
+    tensorDot(a, b, range(subtract(a.rank, numAxes), a.rank), range(0, numAxes))
   }
 
   /** Dynamic version (i.e., where `axesA` and `axesB` may be tensors) of the `tensorDot` op.
