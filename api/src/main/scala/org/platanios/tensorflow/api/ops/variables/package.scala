@@ -55,7 +55,7 @@ package object variables {
 
     val ZerosInitializer: variables.ZerosInitializer.type = variables.ZerosInitializer
     val OnesInitializer : variables.OnesInitializer.type  = variables.OnesInitializer
-    def ConstantInitializer(value: Tensor): variables.Initializer = variables.ConstantInitializer(value)
+    def ConstantInitializer(value: Tensor[DataType]): variables.Initializer = variables.ConstantInitializer(value)
     def ConstantInitializer(value: Output): variables.Initializer = variables.DynamicConstantInitializer(value)
     val RandomUniformInitializer        : variables.RandomUniformInitializer.type         = variables.RandomUniformInitializer
     val RandomNormalInitializer         : variables.RandomNormalInitializer.type          = variables.RandomNormalInitializer
