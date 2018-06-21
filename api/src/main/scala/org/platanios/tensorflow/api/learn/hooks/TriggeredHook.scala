@@ -21,6 +21,8 @@ import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
+
 import org.tensorflow.framework.RunOptions
 
 /** Hook that may be triggered at certain steps or time points.
@@ -60,7 +62,7 @@ abstract class TriggeredHook(
   override final protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[DataType]]]] = {
     shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
       if (internalTrigger.lastTriggerStep().isEmpty)
@@ -73,7 +75,7 @@ abstract class TriggeredHook(
 
   override final protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
@@ -106,7 +108,7 @@ abstract class TriggeredHook(
   protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
       session: Session
   ): Unit = ()
 }

@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Session, Timeline}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -58,11 +59,11 @@ class TimelineHook protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
       session: Session
   ): Unit = {
     TimelineHook.logger.info("Saving timeline.")
-    val file = workingDir.resolve(s"trace${step}.json")
+    val file = workingDir.resolve(s"trace$step.json")
     val stepStatistics = runResult.runMetadata.get.getStepStats
     val chromeTraceJSON = Timeline.generateChromeTrace(stepStatistics, showDataFlow, showMemory, prettyJson)
     val fileWriter = Files.newBufferedWriter(file, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE)

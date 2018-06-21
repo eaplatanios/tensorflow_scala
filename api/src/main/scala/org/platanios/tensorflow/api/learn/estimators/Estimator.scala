@@ -213,10 +213,14 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
       name: String = null
-  ): Seq[Tensor]
+  ): Seq[Tensor[FLOAT32]]
 
   protected def saveEvaluationSummaries(
-      step: Long, metrics: Seq[Metric[EI, Output]], metricValues: Seq[Tensor], name: String = null): Unit = {
+      step: Long,
+      metrics: Seq[Metric[EI, Output]],
+      metricValues: Seq[Tensor[FLOAT32]],
+      name: String = null
+  ): Unit = {
     // Setup the output directory.
     val evaluationDir = workingDir.map(_.resolve(if (name != null) s"eval_$name" else "eval"))
     if (evaluationDir.isEmpty)
@@ -225,16 +229,13 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     val summaryProto = Summary.newBuilder()
     metrics.zip(metricValues).foreach {
       case (metric, metricValue) =>
-        if (metricValue.shape.rank == 0 &&
-            (metricValue.dataType.isFloatingPoint || metricValue.dataType.isInteger)) {
-          val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
+        if (metricValue.shape.rank == 0) {
           val value = Summary.Value.newBuilder()
           value.setTag(metric.name)
-          value.setSimpleValue(castedValue)
+          value.setSimpleValue(metricValue.scalar)
           summaryProto.addValue(value)
         } else {
-          Estimator.logger.warn(
-            s"Skipping summary for non-scalar and/or non-floating-point/non-integer metric '$metric'.")
+          Estimator.logger.warn(s"Skipping summary for non-scalar metric '$metric'.")
         }
     }
     evaluationDir.map(SummaryFileWriterCache.get(_)).foreach(writer => {

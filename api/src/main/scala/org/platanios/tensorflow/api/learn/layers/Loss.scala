@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -95,7 +96,7 @@ case class SequenceLoss(
     override val name: String,
     averageAcrossTimeSteps: Boolean = true,
     averageAcrossBatch: Boolean = true,
-    weights: Tensor = null,
+    weights: Tensor[DataType] = null,
     lossFn: (Output, Output) => Output = ops.NN.sparseSoftmaxCrossEntropy(_, _)
 ) extends Loss[(Output, Output)](name) {
   override val layerType: String = "SequenceLoss"

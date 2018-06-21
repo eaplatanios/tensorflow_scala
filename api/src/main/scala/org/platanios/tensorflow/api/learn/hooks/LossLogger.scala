@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -65,7 +65,7 @@ class LossLogger protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
       session: Session
   ): Unit = {
     val loss = runResult.values(0).scalar.asInstanceOf[Float]
