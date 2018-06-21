@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexed
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 import shapeless._
+import shapeless.ops.hlist.Tupler
 
 import scala.collection.{MapLike, SeqLike}
 
@@ -28,13 +29,13 @@ import scala.collection.{MapLike, SeqLike}
   *
   * @author Emmanouil Antonios Platanios
   */
-trait StructureFromDataType[-D]
+trait StructureFromDataType[D]
 
 object StructureFromDataType {
   private type DataTypes3[D] = (INT64, D, INT64)
   private type Shapes3 = (Shape, Shape, Shape)
 
-  type Aux[-T, -O, -D, -S] = StructureFromDataType[D]
+  type Aux[T, O, D, S] = StructureFromDataType[D]
 
   implicit def fromOutput[D <: DataType]: Aux[Tensor[D], Output, D, Shape] = {
     new StructureFromDataType[D] {}
@@ -77,12 +78,12 @@ object StructureFromDataType {
     new StructureFromDataType[HD :: TD] {}
   }
 
-  implicit def fromProduct[PT, PO, PD, PS, HT, HO, HD, HS](implicit
+  implicit def fromProduct[PT, PO, PD, PS, HT <: HList, HO <: HList, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
-      evH: Aux[HT, HO, HD, HS],
-      genT: Generic.Aux[PT, HT],
-      genO: Generic.Aux[PO, HO],
-      genS: Generic.Aux[PS, HS]
+      evH: Lazy[Aux[HT, HO, HD, HS]],
+      tuplerT: Tupler.Aux[HT, PT],
+      tuplerO: Tupler.Aux[HO, PO],
+      tuplerS: Tupler.Aux[HS, PS]
   ): Aux[PT, PO, PD, PS] = {
     new StructureFromDataType[PD] {}
   }

@@ -28,7 +28,7 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow.ControlFlowOps
 import org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext
 import org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue
-import org.platanios.tensorflow.api.tensors.TensorConvertible
+import org.platanios.tensorflow.api.tensors.{Tensor, TensorConvertible}
 
 /** Groups together all implicits related to constructing symbolic ops.
   *
@@ -37,7 +37,9 @@ import org.platanios.tensorflow.api.tensors.TensorConvertible
 private[implicits] trait OpsImplicits {
   implicit def opToControlFlowOps(op: Op): ControlFlowOps = ControlFlowOps(op)
 
-  implicit def tensorConvertibleToOutput[T](value: T)(implicit ev: TensorConvertible[T]): Output = {
+  implicit def tensorToOutput(tensor: Tensor[_]): Output = tensor.toOutput
+
+  implicit def tensorConvertibleToOutput[T](value: T)(implicit ev: TensorConvertible.Aux[T, _]): Output = {
     ev.toTensor(value).toOutput
   }
 
@@ -86,7 +88,7 @@ private[implicits] trait OpsImplicits {
   implicit def variableToEmbeddingMap(parameters: Variable): EmbeddingMap = VariableParameters(parameters)
 
   // TODO: [DISTRIBUTE] Add support for this.
-//  implicit def distributedValueToValue[T <: OutputConvertible, D <: DistributedValue[T]](
-//      value: D
-//  )(implicit context: DistributionContext): T = value.get()
+  implicit def distributedValueToValue[T <: OutputConvertible, D <: DistributedValue[T]](
+      value: D
+  )(implicit context: DistributionContext): T = value.get()
 }
