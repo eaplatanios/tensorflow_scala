@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
 
@@ -4452,7 +4453,7 @@ object Math extends Math {
         Seq(outputGradients.head, null)
       } else if (rank != -1
           && axes.op.opType == "Const"
-          && Output.constantValue(axes).orNull[Tensor] == (0 until rank: Tensor).cast(axes.dataType)) {
+          && Output.constantValue(axes).orNull[Tensor[DataType]] == (0 until rank).cast(axes.dataType)) {
         // In this case the reduction was over all dimensions.
         var outputGradient = outputGradients.head.toOutput
         outputGradient = Basic.reshape(outputGradient, Shape(Array.fill(rank)(1)))
@@ -4752,7 +4753,7 @@ object Math extends Math {
       val matrixShape = inputShape(-2 ::)
       val diagShape = {
         if (batchShape.isFullyDefined && matrixShape.isFullyDefined) {
-          Basic.constant(Tensor((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
+          Basic.constant(tensors.ops.Basic.stack((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
         } else {
           Op.colocateWith(Set(gradient.op)) {
             val gradShape = Basic.shape(gradient)
@@ -4764,7 +4765,7 @@ object Math extends Math {
           }
         }
       }
-      val gradInput = matrixSetDiag(gradient, Basic.fill(shape = diagShape)(Tensor(gradient.dataType, 0)))
+      val gradInput = matrixSetDiag(gradient, Basic.fill(shape = diagShape)(Tensor.zeros(gradient.dataType, Shape())))
       val gradDiag = matrixDiagPart(gradient)
       Seq(gradInput, gradDiag)
     }

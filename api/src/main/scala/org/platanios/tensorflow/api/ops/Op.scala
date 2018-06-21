@@ -337,9 +337,9 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no tensor attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def tensorAttribute(name: String): Tensor = using(graph.reference) { _ =>
+  def tensorAttribute(name: String): Tensor[DataType] = using(graph.reference) { _ =>
     try {
-      Tensor.fromHostNativeHandle(NativeOp.getAttrTensor(nativeHandle, name))
+      Tensor.fromHostNativeHandle[DataType](NativeOp.getAttrTensor(nativeHandle, name))
     } catch {
       case e: Exception => throw new IllegalArgumentException(
         s"Op has no tensor attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
@@ -1441,11 +1441,11 @@ object Op {
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
           case value: Array[DataType] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
-          case value: Tensor =>
+          case value: Tensor[_] =>
             val handle = value.resolve()
             NativeOp.setAttrTensor(nativeHandle, attribute._1, handle)
             NativeTensor.delete(handle)
-          case value: Array[Tensor] =>
+          case value: Array[Tensor[_]] =>
             val handles = value.map(_.resolve())
             NativeOp.setAttrTensorList(nativeHandle, attribute._1, handles)
             handles.foreach(NativeTensor.delete)
@@ -1546,12 +1546,12 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: Tensor): Builder = {
+    def setAttribute(name: String, value: Tensor[_ <: DataType]): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor]): Builder = {
+    def setAttribute(name: String, value: Array[Tensor[_ <: DataType]]): Builder = {
       attributes += name -> value
       this
     }
