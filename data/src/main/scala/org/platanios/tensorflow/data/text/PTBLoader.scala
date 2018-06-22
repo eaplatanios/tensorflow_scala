@@ -59,18 +59,22 @@ object PTBLoader extends Loader {
       batchSize: Int,
       numSteps: Int,
       name: String
-  ): tf.data.Dataset[(Tensor, Tensor), (Output, Output), (INT32, INT32), (Shape, Shape)] = {
+  ): tf.data.Dataset[(Tensor[INT32], Tensor[INT32]), (Output, Output), (INT32, INT32), (Shape, Shape)] = {
     tf.createWithNameScope(name) {
-      tf.data.fromGenerator(
+      tf.data.fromGenerator[(Tensor[INT32], Tensor[INT32]), (Output, Output), (INT32, INT32), (Shape, Shape)](
         () => tokensToBatchIterable(tokens, batchSize, numSteps),
         (INT32, INT32),
         (Shape(batchSize, numSteps), Shape(batchSize, numSteps)))
     }
   }
 
-  def tokensToBatchIterable(tokens: Seq[Int], batchSize: Int, numSteps: Int): Iterable[(Tensor, Tensor)] = {
-    new Iterable[(Tensor, Tensor)] {
-      override def iterator: Iterator[(Tensor, Tensor)] = new Iterator[(Tensor, Tensor)] {
+  def tokensToBatchIterable(
+      tokens: Seq[Int],
+      batchSize: Int,
+      numSteps: Int
+  ): Iterable[(Tensor[INT32], Tensor[INT32])] = {
+    new Iterable[(Tensor[INT32], Tensor[INT32])] {
+      override def iterator: Iterator[(Tensor[INT32], Tensor[INT32])] = new Iterator[(Tensor[INT32], Tensor[INT32])] {
         private val tokensTensor = Tensor(tokens.head, tokens.tail: _*)
         private val numTokens    = tokens.size
         private val batchLength  = numTokens / batchSize
@@ -84,7 +88,7 @@ object PTBLoader extends Loader {
 
         override def hasNext: Boolean = currentEpoch < numEpochs
 
-        override def next(): (Tensor, Tensor) = {
+        override def next(): (Tensor[INT32], Tensor[INT32]) = {
           val batch = (
               data(::, (currentEpoch * numSteps) :: ((currentEpoch + 1) * numSteps)),
               data(::, (currentEpoch * numSteps + 1) :: ((currentEpoch + 1) * numSteps + 1)))

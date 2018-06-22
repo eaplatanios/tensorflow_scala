@@ -76,7 +76,10 @@ object CIFARLoader extends Loader {
   }
 
   private[this] def extractFiles(
-      path: Path, datasetType: DatasetType = CIFAR_10, bufferSize: Int = 8192): CIFARDataset = {
+      path: Path,
+      datasetType: DatasetType = CIFAR_10,
+      bufferSize: Int = 8192
+  ): CIFARDataset = {
     logger.info(s"Extracting data from file '$path'.")
     val inputStream = new TarArchiveInputStream(new GZIPInputStream(Files.newInputStream(path)))
     var dataset = CIFARDataset(datasetType, null, null, null, null)
@@ -108,8 +111,11 @@ object CIFARLoader extends Loader {
   }
 
   private[this] def readImagesAndLabels(
-      inputStream: TarArchiveInputStream, entry: TarArchiveEntry,
-      datasetType: DatasetType = CIFAR_10, bufferSize: Int = 8192): (Tensor, Tensor) = {
+      inputStream: TarArchiveInputStream,
+      entry: TarArchiveEntry,
+      datasetType: DatasetType = CIFAR_10,
+      bufferSize: Int = 8192
+  ): (Tensor[UINT8], Tensor[UINT8]) = {
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
     Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
@@ -127,7 +133,7 @@ object CIFARLoader extends Loader {
 
 case class CIFARDataset(
     datasetType: CIFARLoader.DatasetType,
-    trainImages: Tensor,
-    trainLabels: Tensor,
-    testImages: Tensor,
-    testLabels: Tensor)
+    trainImages: Tensor[UINT8],
+    trainLabels: Tensor[UINT8],
+    testImages: Tensor[UINT8],
+    testLabels: Tensor[UINT8])

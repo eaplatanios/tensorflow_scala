@@ -104,14 +104,14 @@ object STL10Loader extends Loader {
             val tensor = Tensor.fromBuffer(UINT8, shape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
             dataset = dataset.copy(trainImages = tensor)
           case name if name == trainLabelsFilename =>
-            val tensor = Tensor.fromBuffer(UINT8, Shape(numTrain), entry.getSize, byteBuffer) - Tensor(UINT8, 1)
+            val tensor = Tensor.fromBuffer(UINT8, Shape(numTrain), entry.getSize, byteBuffer) - 1.toTensor.cast(UINT8)
             dataset = dataset.copy(trainLabels = tensor)
           case name if name == testImagesFilename =>
             val shape = Shape(numTest, imageChannels, imageHeight, imageWidth)
             val tensor = Tensor.fromBuffer(UINT8, shape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
             dataset = dataset.copy(testImages = tensor)
           case name if name == testLabelsFilename =>
-            val tensor = Tensor.fromBuffer(UINT8, Shape(numTest), entry.getSize, byteBuffer) - Tensor(UINT8, 1)
+            val tensor = Tensor.fromBuffer(UINT8, Shape(numTest), entry.getSize, byteBuffer) - 1.toTensor.cast(UINT8)
             dataset = dataset.copy(testLabels = tensor)
           case _ => ()
         }
@@ -124,8 +124,8 @@ object STL10Loader extends Loader {
 }
 
 case class STL10Dataset(
-    trainImages: Tensor,
-    trainLabels: Tensor,
-    testImages: Tensor,
-    testLabels: Tensor,
-    unlabeledImages: Tensor)
+    trainImages: Tensor[UINT8],
+    trainLabels: Tensor[UINT8],
+    testImages: Tensor[UINT8],
+    testLabels: Tensor[UINT8],
+    unlabeledImages: Tensor[UINT8])
