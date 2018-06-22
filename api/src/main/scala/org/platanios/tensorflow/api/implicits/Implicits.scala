@@ -36,11 +36,8 @@ private[api] trait Implicits
 }
 
 private[api] trait LowPriorityImplicits
-    extends LowestPriorityImplicits
-        with tensors.Implicits
-
-private[api] trait LowestPriorityImplicits
-    extends OpsImplicits
+    extends tensors.Implicits
+        with OpsImplicits
         with DataImplicits
         with LearnImplicits
 

@@ -22,25 +22,22 @@ import org.platanios.tensorflow.api.types._
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Implicits
-    extends Basic.Implicits
-        with Math.Implicits
-        with NN.Implicits {
-  // implicit def tensorFromTensorLike[D <: DataType, T <: TensorLike[D]](value: T): Tensor[D] = value.toTensor
-
-  implicit def tensorFromTensorConvertible[T, D <: DataType](
-      value: T
-  )(implicit ev: TensorConvertible.Aux[T, D]): Tensor[D] = {
+private[api] trait Implicits extends LowPriorityImplicits {
+  implicit def tensorFromTensorConvertible[T, D <: DataType](value: T)(implicit
+      ev: TensorConvertible.Aux[T, D]
+  ): Tensor[D] = {
     ev.toTensor(value)
   }
 
-  // TODO: !!! [TYPES] Add support for more lossless conversions.
+  // TODO: !!! [TYPES] This does not currently lets us cast an S tensor to a T tensor, when S is preceding (e.g., `Tensor[S] + Tensor[T]` fails to compile).
 
-  //region FLOAT32 Conversions
-
-//  implicit def float32ToFloat64[TL[D <: DataType] <: TensorLike[D]](value: TL[FLOAT32])(implicit
-//      ev: TensorOps.Aux[TL, FLOAT32]
-//  ): TL[FLOAT64] = Math.cast(value, FLOAT64)
-
-  //endregion FLOAT32 Conversions
+  implicit def cast[T, TL[D <: DataType] <: TensorLike[D], SOURCE <: DataType, TARGET <: DataType](value: TL[SOURCE])(implicit
+      evAllowedCast: AllowedCast.Aux[SOURCE, TARGET],
+      ev: TensorOps.Aux[TL, SOURCE]
+  ): TL[TARGET] = Math.cast(value, evAllowedCast.targetDataType)
 }
+
+private[api] trait LowPriorityImplicits
+    extends Basic.Implicits
+        with Math.Implicits
+        with NN.Implicits

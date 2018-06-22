@@ -39,8 +39,8 @@ private[implicits] trait OpsImplicits {
 
   implicit def tensorToOutput(tensor: Tensor[_]): Output = tensor.toOutput
 
-  implicit def tensorConvertibleToOutput[T](value: T)(implicit ev: TensorConvertible.Aux[T, _]): Output = {
-    ev.toTensor(value).toOutput
+  implicit def tensorConvertibleToOutput[T: TensorConvertible](value: T): Output = {
+    implicitly[TensorConvertible[T]].toTensor(value).toOutput
   }
 
   implicit def outputConvertibleToOutput[T <: OutputConvertible](outputConvertible: T): Output = {

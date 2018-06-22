@@ -38,7 +38,6 @@ import java.nio._
 import java.nio.charset.Charset
 import java.nio.file.Path
 
-import scala.collection.{TraversableLike, breakOut}
 import scala.language.{higherKinds, postfixOps}
 
 /** Represents tensor-like objects.
