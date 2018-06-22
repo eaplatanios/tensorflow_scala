@@ -52,7 +52,7 @@ scalacOptions in ThisBuild ++= Seq(
 //  "-P:splain:foundreq",
 //  "-P:splain:implicits",
 //  "-P:splain:color",
-//  "-P:splain:tree"
+//  "-P:splain:tree",
 //  "-P:splain:boundsimplicits:false"
 )
 
@@ -66,7 +66,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  // addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
+   addCompilerPlugin("io.tryp"  % "splain" % "0.3.1" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
