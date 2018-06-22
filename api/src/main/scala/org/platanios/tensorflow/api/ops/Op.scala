@@ -1078,7 +1078,7 @@ object Op {
     * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
   @throws[IllegalNameException]
-  private[api] def mergeNameScope(nameScope: String, oldNameScope: String, uniqueNameFn: (String) => String): String = {
+  private[api] def mergeNameScope(nameScope: String, oldNameScope: String, uniqueNameFn: String => String): String = {
     if (nameScope == null) {
       oldNameScope
     } else {
@@ -1326,8 +1326,10 @@ object Op {
     *                      a second time).
     */
   private[this] def pruneControlDependencies(
-      controlDependencies: mutable.Set[Op], op: Op, processedOps: mutable.Set[Op] = mutable.Set.empty[Op],
-      maxDepth: Int = 10): Unit = {
+      controlDependencies: mutable.Set[Op],
+      op: Op, processedOps: mutable.Set[Op] = mutable.Set.empty[Op],
+      maxDepth: Int = 10
+  ): Unit = {
     if (maxDepth > 0 && !processedOps.contains(op)) {
       // Prune op that is already used as input to the dependant op
       controlDependencies -= op
