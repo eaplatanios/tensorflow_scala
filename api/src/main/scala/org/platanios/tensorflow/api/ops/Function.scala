@@ -50,7 +50,8 @@ case class Function[I, O](name: String, function: I => O)(implicit
     val key = dataTypes.map(_.toString).mkString(":")
     InstantiatedFunction(
       s"${name}_$key", function, dataTypes, input = Some(arg),
-      captureByValue = captureByValue, appendHashToName = appendHashToName)(evInput, evOutput)(arg)
+      captureByValue = captureByValue, appendHashToName = appendHashToName
+    )(evInput, evOutput)(arg)
   }
 
   def instantiate(
@@ -102,7 +103,9 @@ object Function {
       }
 
       override def outputsDecoderWithKnownArg(
-          arg: OutputIndexedSlices, outputs: Seq[Output]): (OutputIndexedSlices, Seq[Output]) = {
+          arg: OutputIndexedSlices,
+          outputs: Seq[Output]
+      ): (OutputIndexedSlices, Seq[Output]) = {
         (OutputIndexedSlices(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
       }
     }
@@ -146,7 +149,6 @@ object Function {
     }
 
     implicit def datasetArgType[T, O, D, S](implicit
-        // TODO: Maybe StructureFromDataType?
         evStructure: StructureFromOutput.Aux[T, O, D, S],
         evData: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
