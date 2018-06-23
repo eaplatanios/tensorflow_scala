@@ -337,7 +337,7 @@ object STRING extends ReducibleDataType {
   override type ScalaType = String
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.stringIsSupported
+    SupportedType.stringIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "STRING"
@@ -369,7 +369,7 @@ object BOOLEAN extends ReducibleDataType {
   override type ScalaType = Boolean
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.booleanIsSupported
+    SupportedType.booleanIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "BOOLEAN"
@@ -433,7 +433,7 @@ object FLOAT32 extends Float32OrFloat64 {
   override type ScalaType = Float
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.floatIsSupported
+    SupportedType.floatIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "FLOAT32"
@@ -467,7 +467,7 @@ object FLOAT64 extends Float32OrFloat64 {
   override type ScalaType = Double
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.doubleIsSupported
+    SupportedType.doubleIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "FLOAT64"
@@ -594,7 +594,7 @@ object INT8 extends IntOrUInt {
   override type ScalaType = Byte
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.byteIsSupported
+    SupportedType.byteIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "INT8"
@@ -628,7 +628,7 @@ object INT16 extends IntOrUInt {
   override type ScalaType = Short
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.shortIsSupported
+    SupportedType.shortIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "INT16"
@@ -662,7 +662,7 @@ object INT32 extends Int32OrInt64 {
   override type ScalaType = Int
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.intIsSupported
+    SupportedType.intIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "INT32"
@@ -696,7 +696,7 @@ object INT64 extends Int32OrInt64 {
   override type ScalaType = Long
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.longIsSupported
+    SupportedType.longIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "INT64"
@@ -730,7 +730,7 @@ object UINT8 extends UInt8OrInt32OrInt64 {
   override type ScalaType = UByte
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.uByteIsSupported
+    SupportedType.uByteIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "UINT8"
@@ -764,7 +764,7 @@ object UINT16 extends IntOrUInt {
   override type ScalaType = UShort
 
   override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
-    SupportedType.uShortIsSupported
+    SupportedType.uShortIsSupported.asInstanceOf[SupportedType.Aux[ScalaType, this.type]]
   }
 
   override val name    : String = "UINT16"
