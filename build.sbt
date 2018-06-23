@@ -20,11 +20,11 @@ import sbtrelease.Vcs
 import scala.sys.process.Process
 
 scalaVersion in ThisBuild := "2.12.6"
-crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.6")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.6")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.9.0-rc0"
+val tensorFlowVersion = "1.9.0-rc1"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -35,10 +35,10 @@ scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
   "-encoding", "UTF-8",
   "-feature",
-  "-language:existentials",
-  "-language:higherKinds",
-  "-language:implicitConversions",
-  "-unchecked",
+  "-language:existentials",        // Existential types (besides wildcard types) can be written and inferred.
+  "-language:higherKinds",         // Allow higher-kinded types.
+  "-language:implicitConversions", // Allow definition of implicit functions called views.
+  "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
   "-Yno-adapted-args",
@@ -46,7 +46,7 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture"
+  "-Xfuture",                      // Turn on future language features.
 //  "-P:splain:all",
 //  "-P:splain:infix",
 //  "-P:splain:foundreq",
@@ -160,7 +160,7 @@ lazy val jni = (project in file("./jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
       nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tfBinaryVersion in JniCross := "1.9.0-rc1", // tensorFlowVersion,
+      tfBinaryVersion in JniCross := tensorFlowVersion,
       tfLibCompile in JniCross := false,
       tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch in JniCross := "master",
