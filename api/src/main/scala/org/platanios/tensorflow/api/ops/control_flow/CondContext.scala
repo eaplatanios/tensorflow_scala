@@ -447,22 +447,22 @@ object CondOutput {
     }
   }
 
-  implicit def productConstructor[P <: Product, PR <: Product, L <: HList, LR <: HList](implicit
+  implicit def productConstructor[P, R, L <: HList, LR <: HList](implicit
       genP: Generic.Aux[P, L],
       evL: Aux[L, LR],
-      tuplerR: Tupler.Aux[LR, PR],
+      tuplerR: Tupler.Aux[LR, R],
       tuplerP: Tupler.Aux[L, P],
-      genR: Generic.Aux[PR, LR]
-  ): Aux[P, PR] = new CondOutput[P] {
-    override type ResultType = PR
+      genR: Generic.Aux[R, LR]
+  ): Aux[P, R] = new CondOutput[P] {
+    override type ResultType = R
 
     override def size(output: P): Int = evL.size(genP.to(output))
 
-    override def processOutput(output: P, context: CondContext): PR = {
+    override def processOutput(output: P, context: CondContext): R = {
       tuplerR(evL.processOutput(genP.to(output), context))
     }
 
-    override def flatten(processedOutput: PR): Seq[OutputLike] = evL.flatten(genR.to(processedOutput))
+    override def flatten(processedOutput: R): Seq[OutputLike] = evL.flatten(genR.to(processedOutput))
 
     override def segment(output: P, values: Seq[OutputLike]): (P, Seq[OutputLike]) = {
       val (out, remaining) = evL.segment(genP.to(output), values)

@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexed
 import org.platanios.tensorflow.api.types.DataType
 
 import shapeless._
+import shapeless.ops.hlist.Tupler
 
 import scala.collection.SeqLike
 import scala.language.higherKinds
@@ -112,14 +113,15 @@ object Feedable {
     }
   }
 
-  implicit def productConstructor[P <: Product, L <: HList, LO <: HList, R](implicit
+  implicit def productConstructor[P, R, L <: HList, LO <: HList](implicit
       genP: Generic.Aux[P, L],
-      genR: Generic.Aux[R, LO],
-      feedableL: Lazy[Aux[L, LO]]
+      feedableL: Aux[L, LO],
+      tuplerR: Tupler.Aux[LO, R],
+      genR: Generic.Aux[R, LO]
   ): Aux[P, R] = new Feedable[P] {
     override type ValueType = R
     override def feed(feedable: P, value: R): Map[Output, Tensor[DataType]] = {
-      feedableL.value.feed(genP.to(feedable), genR.to(value))
+      feedableL.feed(genP.to(feedable), genR.to(value))
     }
   }
 }
@@ -130,7 +132,7 @@ object Feedable {
   *
   * @param  values Map from tensors in a graph to their values.
   */
-class FeedMap private[client] (val values: Map[Output, Tensor[DataType]] = Map.empty) {
+class FeedMap private[client](val values: Map[Output, Tensor[DataType]] = Map.empty) {
   def feed[T, V](feedable: T, value: V)(implicit ev: Feedable.Aux[T, V]): FeedMap = {
     FeedMap(values ++ ev.feed(feedable, value))
   }

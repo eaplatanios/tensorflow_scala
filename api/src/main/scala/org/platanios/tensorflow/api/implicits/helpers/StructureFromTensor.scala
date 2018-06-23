@@ -80,7 +80,7 @@ object StructureFromTensor {
 
   implicit def fromProduct[PT, PO, PD, PS, HT <: HList, HO <: HList, HD <: HList, HS <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evH: Lazy[Aux[HT, HO, HD, HS]],
+      evH: Aux[HT, HO, HD, HS],
       tuplerO: Tupler.Aux[HO, PO],
       tuplerD: Tupler.Aux[HD, PD],
       tuplerS: Tupler.Aux[HS, PS]

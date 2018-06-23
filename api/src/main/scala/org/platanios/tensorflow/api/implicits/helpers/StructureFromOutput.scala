@@ -80,7 +80,7 @@ object StructureFromOutput extends StructureFromOutputLowPriorityImplicits {
 
   implicit def fromProduct[PT, PO, PD, PS, HT <: HList, HO <: HList, HD <: HList, HS <: HList](implicit
       genO: Generic.Aux[PO, HO],
-      evH: Lazy[Aux[HT, HO, HD, HS]],
+      evH: Aux[HT, HO, HD, HS],
       tuplerT: Tupler.Aux[HT, PT],
       tuplerD: Tupler.Aux[HD, PD],
       tuplerS: Tupler.Aux[HS, PS]

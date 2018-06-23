@@ -175,7 +175,11 @@ object DropoutWrapper {
 
     implicit val hnilSupported: Supported[HNil] = new Supported[HNil] {
       override def dropout(
-          value: HNil, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+          value: HNil,
+          keepProbability: Output,
+          saltPrefix: String,
+          seed: Option[Int],
+          index: Int = 0
       ): (HNil, Int) = {
         (HNil, index)
       }

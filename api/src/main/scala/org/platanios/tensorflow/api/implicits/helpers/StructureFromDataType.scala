@@ -80,7 +80,7 @@ object StructureFromDataType {
 
   implicit def fromProduct[PT, PO, PD, PS, HT <: HList, HO <: HList, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
-      evH: Lazy[Aux[HT, HO, HD, HS]],
+      evH: Aux[HT, HO, HD, HS],
       tuplerT: Tupler.Aux[HT, PT],
       tuplerO: Tupler.Aux[HO, PO],
       tuplerS: Tupler.Aux[HS, PS]

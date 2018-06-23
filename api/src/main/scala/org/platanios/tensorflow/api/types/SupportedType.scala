@@ -47,24 +47,24 @@ object SupportedType {
     }
   }
 
-  implicit val stringIsSupported: SupportedType.Aux[String, STRING] = new SupportedType[String] {
-    override type D = STRING
-    @inline override def dataType: STRING = STRING
+  implicit val stringIsSupported: SupportedType.Aux[String, STRING.type] = new SupportedType[String] {
+    override type D = STRING.type
+    @inline override def dataType: STRING.type = STRING
     @inline override def cast(value: Any): String = value.toString
   }
 
-  implicit val booleanIsSupported: SupportedType.Aux[Boolean, BOOLEAN] = new SupportedType[Boolean] {
-    override type D = BOOLEAN
-    @inline override def dataType: BOOLEAN = BOOLEAN
+  implicit val booleanIsSupported: SupportedType.Aux[Boolean, BOOLEAN.type] = new SupportedType[Boolean] {
+    override type D = BOOLEAN.type
+    @inline override def dataType: BOOLEAN.type = BOOLEAN
     @inline override def cast(value: Any): Boolean = value match {
       case value: Boolean => value
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to a boolean.")
     }
   }
 
-  implicit val floatIsSupported: SupportedType.Aux[Float, FLOAT32] = new SupportedType[Float] {
-    override type D = FLOAT32
-    @inline override def dataType: FLOAT32 = FLOAT32
+  implicit val floatIsSupported: SupportedType.Aux[Float, FLOAT32.type] = new SupportedType[Float] {
+    override type D = FLOAT32.type
+    @inline override def dataType: FLOAT32.type = FLOAT32
     @inline override def cast(value: Any): Float = value match {
       case value: Boolean => if (value) 1.0f else 0.0f
       case value: Float => value.toFloat
@@ -79,9 +79,9 @@ object SupportedType {
     }
   }
 
-  implicit val doubleIsSupported: SupportedType.Aux[Double, FLOAT64] = new SupportedType[Double] {
-    override type D = FLOAT64
-    @inline override def dataType: FLOAT64 = FLOAT64
+  implicit val doubleIsSupported: SupportedType.Aux[Double, FLOAT64.type] = new SupportedType[Double] {
+    override type D = FLOAT64.type
+    @inline override def dataType: FLOAT64.type = FLOAT64
     @inline override def cast(value: Any): Double = value match {
       case value: Boolean => if (value) 1.0 else 0.0
       case value: Float => value.toDouble
@@ -96,9 +96,9 @@ object SupportedType {
     }
   }
 
-  implicit val byteIsSupported: SupportedType.Aux[Byte, INT8] = new SupportedType[Byte] {
-    override type D = INT8
-    @inline override def dataType: INT8 = INT8
+  implicit val byteIsSupported: SupportedType.Aux[Byte, INT8.type] = new SupportedType[Byte] {
+    override type D = INT8.type
+    @inline override def dataType: INT8.type = INT8
     @inline override def cast(value: Any): Byte = value match {
       case value: Boolean => if (value) 1 else 0
       case value: Float => value.toByte
@@ -113,9 +113,9 @@ object SupportedType {
     }
   }
 
-  implicit val shortIsSupported: SupportedType.Aux[Short, INT16] = new SupportedType[Short] {
-    override type D = INT16
-    @inline override def dataType: INT16 = INT16
+  implicit val shortIsSupported: SupportedType.Aux[Short, INT16.type] = new SupportedType[Short] {
+    override type D = INT16.type
+    @inline override def dataType: INT16.type = INT16
     @inline override def cast(value: Any): Short = value match {
       case value: Boolean => if (value) 1 else 0
       case value: Float => value.toShort
@@ -130,9 +130,9 @@ object SupportedType {
     }
   }
 
-  implicit val intIsSupported: SupportedType.Aux[Int, INT32] = new SupportedType[Int] {
-    override type D = INT32
-    @inline override def dataType: INT32 = INT32
+  implicit val intIsSupported: SupportedType.Aux[Int, INT32.type] = new SupportedType[Int] {
+    override type D = INT32.type
+    @inline override def dataType: INT32.type = INT32
     @inline override def cast(value: Any): Int = value match {
       case value: Boolean => if (value) 1 else 0
       case value: Float => value.toInt
@@ -147,9 +147,9 @@ object SupportedType {
     }
   }
 
-  implicit val longIsSupported: SupportedType.Aux[Long, INT64] = new SupportedType[Long] {
-    override type D = INT64
-    @inline override def dataType: INT64 = INT64
+  implicit val longIsSupported: SupportedType.Aux[Long, INT64.type] = new SupportedType[Long] {
+    override type D = INT64.type
+    @inline override def dataType: INT64.type = INT64
     @inline override def cast(value: Any): Long = value match {
       case value: Boolean => if (value) 1L else 0L
       case value: Float => value.toLong
@@ -164,9 +164,9 @@ object SupportedType {
     }
   }
 
-  implicit val uByteIsSupported: SupportedType.Aux[UByte, UINT8] = new SupportedType[UByte] {
-    override type D = UINT8
-    @inline override def dataType: UINT8 = UINT8
+  implicit val uByteIsSupported: SupportedType.Aux[UByte, UINT8.type] = new SupportedType[UByte] {
+    override type D = UINT8.type
+    @inline override def dataType: UINT8.type = UINT8
     @inline override def cast(value: Any): UByte = value match {
       case value: Boolean => if (value) UByte(1) else UByte(0)
       case value: Float => UByte(value.toInt)
@@ -181,9 +181,9 @@ object SupportedType {
     }
   }
 
-  implicit val uShortIsSupported: SupportedType.Aux[UShort, UINT16] = new SupportedType[UShort] {
-    override type D = UINT16
-    @inline override def dataType: UINT16 = UINT16
+  implicit val uShortIsSupported: SupportedType.Aux[UShort, UINT16.type] = new SupportedType[UShort] {
+    override type D = UINT16.type
+    @inline override def dataType: UINT16.type = UINT16
     @inline override def cast(value: Any): UShort = value match {
       case value: Boolean => if (value) UShort(1) else UShort(0)
       case value: Float => UShort(value.toInt)

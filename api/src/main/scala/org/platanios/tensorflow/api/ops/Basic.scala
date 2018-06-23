@@ -53,7 +53,7 @@ private[api] trait Basic {
     */
   @throws[InvalidShapeException]
   def constant(
-      tensor: Tensor[_ <: DataType],
+      tensor: Tensor[DataType],
       dataType: DataType = null,
       shape: Shape = null,
       name: String = "Constant"
