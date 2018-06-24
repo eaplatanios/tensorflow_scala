@@ -79,40 +79,6 @@ private[api] trait Math {
       executionContext.value.nativeHandle, start.nativeHandle, stop.nativeHandle, numberOfValues.nativeHandle))
   }
 
-  /** $OpDocMathCast
-    *
-    * @group MathOps
-    * @param  x        Tensor to cast.
-    * @param  dataType Target data type.
-    * @return Result as a new tensor.
-    */
-  def cast[D <: DataType, DR <: DataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D], dataType: DR)(implicit
-    ev: TensorOps.Aux[TL, D]
-  ): TL[DR] = {
-    if (x.dataType == dataType) {
-      x.asInstanceOf[TL[DR]]
-    } else {
-      ev.applyUnary(x, t => {
-        Tensor.fromNativeHandle(NativeTensorOpsMath.cast(
-          executionContext.value.nativeHandle, t.nativeHandle, dataType.cValue))
-      })
-    }
-  }
-
-  // TODO: [OPS] saturateCast
-
-  /** $OpDocMathBitcast
-    *
-    * @group MathOps
-    * @param  input    Input tensor.
-    * @param  dataType Target data type.
-    * @return Result as a new tensor.
-    */
-  def bitcast[D <: ReducibleDataType, DR <: DataType](input: Tensor[D], dataType: DR): Tensor[DR] = {
-    Tensor.fromNativeHandle[DR](NativeTensorOpsMath.bitcast(
-      executionContext.value.nativeHandle, input.nativeHandle, dataType.cValue))
-  }
-
   /** $OpDocMathAddN
     *
     * @group MathOps
@@ -1206,7 +1172,7 @@ private[api] trait Math {
       axes: Tensor[INT32] = null,
       keepDims: Boolean = false
   ): Tensor[INT64] = {
-    sum(cast(notEqual(input, Tensor.zeros(input.dataType, Shape())), INT64), axes, keepDims)
+    sum(Cast.cast(notEqual(input, Tensor.zeros(input.dataType, Shape())), INT64), axes, keepDims)
   }
 
   //endregion Reduction Ops
@@ -1289,7 +1255,7 @@ private[api] trait Math {
       dataType: D = null
   ): Tensor[D] = {
     val inputNonEmpty = greater(prod(Basic.shape(input)), 0)
-    var outputSize = cast(inputNonEmpty, INT32) * add(max(input), Tensor.ones(INT32, Shape()))
+    var outputSize = Cast.cast(inputNonEmpty, INT32) * add(max(input), Tensor.ones(INT32, Shape()))
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
     if (maxLength != null)
@@ -1880,7 +1846,7 @@ private[api] trait Math {
     * @return Result as a new tensor.
     */
   def zerosFraction[D <: ReducibleDataType](input: Tensor[D]): Tensor[FLOAT32] = {
-    mean(cast(equal(input, Tensor.fill(input.dataType, Shape())(0)), FLOAT32))
+    mean(Cast.cast(equal(input, Tensor.fill(input.dataType, Shape())(0)), FLOAT32))
   }
 
   //endregion Other Ops
@@ -1889,14 +1855,6 @@ private[api] trait Math {
 object Math extends Math {
   private[tensors] trait Implicits {
     implicit class MathOps[D <: DataType](val tensor: Tensor[D]) {
-      /** $OpDocMathCast
-        *
-        * @group MathOps
-        * @param  dataType Target data type.
-        * @return Result as a new tensor.
-        */
-      def cast[DR <: DataType](dataType: DR): Tensor[DR] = Math.cast(tensor, dataType)
-
       //region Segment Ops
 
       /** $OpDocMathUnsortedSegmentSum
@@ -1979,14 +1937,6 @@ object Math extends Math {
     }
 
     implicit class ReducibleMathOps[D <: ReducibleDataType](val tensor: Tensor[D]) {
-      /** $OpDocMathBitcast
-        *
-        * @group MathOps
-        * @param  dataType Target data type.
-        * @return Result as a new tensor.
-        */
-      def bitcast[DR <: DataType](dataType: DR): Tensor[DR] = Math.bitcast(tensor, dataType)
-
       //region Operators
 
       /** $OpDocMathEqual

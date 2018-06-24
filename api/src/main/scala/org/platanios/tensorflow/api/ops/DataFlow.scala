@@ -225,7 +225,7 @@ private[api] object DataFlow extends DataFlow {
       val outputGradient = outputGradients.head.toOutput
       val numberOfValues = op.inputs.length / 2
       val indicesGradient = Seq.fill(numberOfValues)(null)
-      val valuesGradient = op.inputs.take(numberOfValues).map(Math.cast(_, INT32)).map(Basic.gather(outputGradient, _))
+      val valuesGradient = op.inputs.take(numberOfValues).map(Cast.cast(_, INT32)).map(Basic.gather(outputGradient, _))
       indicesGradient ++ valuesGradient
     }
   }

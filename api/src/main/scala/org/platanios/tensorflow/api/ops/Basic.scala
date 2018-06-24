@@ -142,7 +142,7 @@ private[api] trait Basic {
       zeros(outputDataType, input.shape, name)
     } else if (outputDataType != input.dataType && outputDataType != VARIANT) {
       Op.Builder(opType = "ZerosLike", name = name)
-          .addInput(Math.cast(input, outputDataType))
+          .addInput(Cast.cast(input, outputDataType))
           .build().outputs(0)
     } else {
       Op.Builder(opType = "ZerosLike", name = name)
@@ -187,7 +187,7 @@ private[api] trait Basic {
       ones(outputDataType, input.shape, name)
     } else if (outputDataType != input.dataType && outputDataType != VARIANT) {
       Op.Builder(opType = "OnesLike", name = name)
-          .addInput(Math.cast(input, outputDataType))
+          .addInput(Cast.cast(input, outputDataType))
           .build().outputs(0)
     } else {
       Op.Builder(opType = "OnesLike", name = name)
@@ -209,7 +209,7 @@ private[api] trait Basic {
   def fill(dataType: DataType = null, shape: Output = null)(value: Output, name: String = "Fill"): Output = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(if (shape == null) Basic.shape(value) else shape)
-        .addInput(if (dataType == null || dataType == value.dataType) value else Math.cast(value, dataType))
+        .addInput(if (dataType == null || dataType == value.dataType) value else Cast.cast(value, dataType))
         .build().outputs(0)
   }
 
@@ -327,11 +327,11 @@ private[api] trait Basic {
               .build().outputs(0)
       case o: OutputIndexedSlices =>
         Op.createWith(nameScope = name) {
-          Math.prod(Math.cast(o.denseShape, dataType), Seq(0))
+          Math.prod(Cast.cast(o.denseShape, dataType), Seq(0))
         }
       case o: SparseOutput =>
         Op.createWith(nameScope = name) {
-          Math.prod(Math.cast(o.denseShape, dataType), Seq(0))
+          Math.prod(Cast.cast(o.denseShape, dataType), Seq(0))
         }
     }
   }
@@ -365,11 +365,11 @@ private[api] trait Basic {
               .build().outputs(0)
       case o: OutputIndexedSlices =>
         Op.createWith(nameScope = name) {
-          Math.cast(o.denseShape, dataType, name = name)
+          Cast.cast(o.denseShape, dataType, name = name)
         }
       case o: SparseOutput =>
         Op.createWith(nameScope = name) {
-          Math.cast(o.denseShape, dataType, name = name)
+          Cast.cast(o.denseShape, dataType, name = name)
         }
     }
   }
@@ -1214,9 +1214,9 @@ private[api] trait Basic {
       val rowVector = Math.range(Basic.zerosLike(maxLen), maxLen, Basic.onesLike(maxLen))
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
-      val matrix = Math.cast(expandDims(lengths, -1), maxLen.dataType)
+      val matrix = Cast.cast(expandDims(lengths, -1), maxLen.dataType)
       val result = Math.less(rowVector, matrix)
-      Math.cast(result, dataType)
+      Cast.cast(result, dataType)
     }
   }
 
@@ -2454,7 +2454,7 @@ object Basic extends Basic {
       val input = op.inputs(0)
       val inputShape = Op.colocateWith(Set(input.op)) {
         val inputShape = shape(input, INT64)
-        Math.cast(inputShape, INT32)
+        Cast.cast(inputShape, INT32)
       }
       // Build appropriately shaped 'OutputIndexedSlices'.
       val indices = op.inputs(1)

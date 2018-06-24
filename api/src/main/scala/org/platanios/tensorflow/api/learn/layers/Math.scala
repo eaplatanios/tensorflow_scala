@@ -47,7 +47,7 @@ case class Cast(override val name: String, dataType: DataType)
   override val layerType: String = s"Cast[$dataType]"
 
   override protected def _forward(input: Output)(implicit mode: Mode): Output = {
-    ops.Math.cast(input, dataType, name = name)
+    ops.Cast.cast(input, dataType, name = name)
   }
 }
 

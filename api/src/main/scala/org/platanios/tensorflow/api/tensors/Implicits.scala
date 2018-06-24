@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.tensors.ops.{Basic, Math, NN}
+import org.platanios.tensorflow.api.tensors.ops.{Basic, Cast, Math, NN}
 import org.platanios.tensorflow.api.types._
 
 /** Groups together all implicits related to tensors.
@@ -34,10 +34,11 @@ private[api] trait Implicits extends LowPriorityImplicits {
   implicit def cast[T, TL[D <: DataType] <: TensorLike[D], SOURCE <: DataType, TARGET <: DataType](value: TL[SOURCE])(implicit
       evAllowedCast: AllowedCast.Aux[SOURCE, TARGET],
       ev: TensorOps.Aux[TL, SOURCE]
-  ): TL[TARGET] = Math.cast(value, evAllowedCast.targetDataType)
+  ): TL[TARGET] = Cast.cast(value, evAllowedCast.targetDataType)
 }
 
 private[api] trait LowPriorityImplicits
     extends Basic.Implicits
+        with Cast.Implicits
         with Math.Implicits
         with NN.Implicits

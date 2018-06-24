@@ -90,10 +90,10 @@ private[api] trait NN {
   def l2Normalize(x: Output, axes: Output, epsilon: Float = 1e-12f, name: String = "L2Normalize"): Output = {
     Op.createWithNameScope(name, Set(x.op)) {
       val dataType = DataType.mostPrecise(x.dataType, FLOAT32)
-      val preciseX = Math.cast(x, dataType)
+      val preciseX = Cast.cast(x, dataType)
       val squareSum = Math.sum(Math.square(preciseX), axes = axes, keepDims = true)
       val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Basic.constant(epsilon, dataType)))
-      Math.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
+      Cast.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
     }
   }
 
@@ -316,8 +316,8 @@ private[api] trait NN {
   ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       // Labels and logits must be of the same data type.
-      val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-      val preciseLabels = Math.cast(labels, preciseLogits.dataType)
+      val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
+      val preciseLabels = Cast.cast(labels, preciseLogits.dataType)
       val inputRank = Basic.rank(preciseLogits)
       // We need the original shape of the logits for shape inference.
       val shape = logits.shape
@@ -352,7 +352,7 @@ private[api] trait NN {
       }
       // We cast back to the original logits data type, if necessary.
       if (logits.dataType == FLOAT16)
-        Math.cast(reshapedOutput, FLOAT16)
+        Cast.cast(reshapedOutput, FLOAT16)
       else
         reshapedOutput
     }
@@ -380,7 +380,7 @@ private[api] trait NN {
       name: String = "SparseSoftmaxCrossEntropy"
   ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
-      val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
+      val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
       // Check if no reshapes are required.
       val output = {
         if (logits.rank == 2) {
@@ -407,7 +407,7 @@ private[api] trait NN {
       }
       // We cast back to the original logits data type, if necessary.
       if (logits.dataType == FLOAT16)
-        Math.cast(output, FLOAT16)
+        Cast.cast(output, FLOAT16)
       else
         output
     }
@@ -435,8 +435,8 @@ private[api] trait NN {
       val output = {
         if (weights == null) {
           // Labels and logits must be of the same data type.
-          val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-          val preciseLabels = Math.cast(labels, preciseLogits.dataType)
+          val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
+          val preciseLabels = Cast.cast(labels, preciseLogits.dataType)
           // The logistic loss formula from above is:
           //   x - x * z + log(1 + exp(-x))
           // For x < 0, a more numerically stable formula is:
@@ -451,9 +451,9 @@ private[api] trait NN {
           Math.add(reluLogits - (preciseLogits * preciseLabels), Math.log1p(Math.exp(negativeAbsLogits)))
         } else {
           // Labels and logits must be of the same data type.
-          val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-          val preciseLabels = Math.cast(labels, preciseLogits.dataType)
-          val preciseWeights = Math.cast(weights, preciseLogits.dataType)
+          val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
+          val preciseLabels = Cast.cast(labels, preciseLogits.dataType)
+          val preciseWeights = Cast.cast(weights, preciseLogits.dataType)
           // The logistic loss formula from above is:
           //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))
           // For x < 0, a more numerically stable formula is:
@@ -468,7 +468,7 @@ private[api] trait NN {
       }
       // We cast back to the original logits data type, if necessary.
       if (logits.dataType == FLOAT16)
-        Math.cast(output, FLOAT16)
+        Cast.cast(output, FLOAT16)
       else
         output
     }
@@ -640,7 +640,7 @@ private[api] trait NN {
     Op.createWithNameScope(name, Set(input.op)) {
       val inferredNoiseShape = getNoiseShape(input, noiseShape)
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
-      val probability = Math.cast(keepProbability, input.dataType)
+      val probability = Cast.cast(keepProbability, input.dataType)
       val random = Random.randomUniform(
         input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.learn.layers.{Input, Layer}
-import org.platanios.tensorflow.api.ops.{Math, Op, Output, OutputLike}
+import org.platanios.tensorflow.api.ops.{Cast, Op, Output, OutputLike}
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
 import org.platanios.tensorflow.api.ops.io.data.Iterator
 import org.platanios.tensorflow.api.ops.metrics.Metric
@@ -365,7 +365,7 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
     val inputIteratorNext = inputIterator.next()
     val layerOutput = layer(inputIteratorNext)
     // TODO: [LEARN] Remove this cast.
-    val lossOutput = Math.cast(loss((inputIteratorNext, layerOutput)), FLOAT32, name = "LossCast")
+    val lossOutput = Cast.cast(loss((inputIteratorNext, layerOutput)), FLOAT32, name = "LossCast")
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
       lossOutput, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -409,7 +409,7 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
     val layerOutput = layer(inputIteratorNext._1)
     val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
     // TODO: [LEARN] Remove this cast.
-    val lossOutput = Math.cast(
+    val lossOutput = Cast.cast(
       loss((layerOutput, trainLayerOutput)), FLOAT32, name = "LossCast")
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
@@ -458,7 +458,7 @@ private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, 
     val layerOutput = trainLayer(inputIteratorNext)
     val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
     // TODO: [LEARN] Remove this cast.
-    val lossOutput = Math.cast(
+    val lossOutput = Cast.cast(
       loss((layerOutput, trainLayerOutput)), FLOAT32, name = "LossCast")
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(

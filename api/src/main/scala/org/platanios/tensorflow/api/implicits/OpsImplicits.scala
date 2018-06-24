@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.ops.Basic.BasicOps
+import org.platanios.tensorflow.api.ops.Cast.CastOps
 import org.platanios.tensorflow.api.ops.Clip.ClipOps
 import org.platanios.tensorflow.api.ops.Embedding.{OutputParameters, VariableParameters}
 import org.platanios.tensorflow.api.ops.Math.MathOps
@@ -52,6 +53,9 @@ private[implicits] trait OpsImplicits {
 
   implicit def outputToBasicOps(value: Output): BasicOps = BasicOps(value)
   implicit def outputConvertibleToBasicOps[T](value: T)(implicit f: T => Output): BasicOps = BasicOps(f(value))
+
+  implicit def outputToCastOps(value: Output): CastOps = CastOps(value)
+  implicit def outputConvertibleToCastOps[T](value: T)(implicit f: T => Output): CastOps = CastOps(f(value))
 
   implicit def outputToClipOps(value: Output): ClipOps = ClipOps(value)
   implicit def outputConvertibleToClipOps[T](value: T)(implicit f: T => Output): ClipOps = ClipOps(f(value))

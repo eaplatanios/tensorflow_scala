@@ -68,8 +68,8 @@ private[api] trait Basic {
   def size[T <: TensorLike[_], DR <: ReducibleDataType](input: T, dataType: DR): Tensor[DR] = {
     input match {
       case t: Tensor[_] => Tensor.fill(dataType, Shape())(t.size)
-      case t: TensorIndexedSlices[_] => Math.prod(Math.cast(t.denseShape, dataType), Array(0))
-      case t: SparseTensor[_] => Math.prod(Math.cast(t.denseShape, dataType), Array(0))
+      case t: TensorIndexedSlices[_] => Math.prod(Cast.cast(t.denseShape, dataType), Array(0))
+      case t: SparseTensor[_] => Math.prod(Cast.cast(t.denseShape, dataType), Array(0))
     }
   }
 
@@ -91,8 +91,8 @@ private[api] trait Basic {
   def shape[T <: TensorLike[_], DR <: DataType](input: T, dataType: DR): Tensor[DR] = {
     input match {
       case t: Tensor[_] => t.shape.toTensor(dataType)
-      case t: TensorIndexedSlices[_] => Math.cast(t.denseShape, dataType)
-      case t: SparseTensor[_] => Math.cast(t.denseShape, dataType)
+      case t: TensorIndexedSlices[_] => Cast.cast(t.denseShape, dataType)
+      case t: SparseTensor[_] => Cast.cast(t.denseShape, dataType)
     }
   }
 
@@ -596,7 +596,7 @@ private[api] trait Basic {
     val rowVector = Math.range(Tensor.zeros(maxLen.dataType, Shape()), maxLen, Tensor.ones(maxLen.dataType, Shape()))
     // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
     // into INT32, then so do the elements of 'lengths'.
-    val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
+    val matrix = Cast.cast(expandDims(lengths, 1), maxLen.dataType)
     Math.less(rowVector, matrix)
   }
 
@@ -901,8 +901,8 @@ private[api] trait Basic {
           FLOAT32
       }
     }
-    val actualOnValue = if (onValue != null) onValue else Math.cast(1: Tensor[INT32], inferredDataType)
-    val actualOffValue = if (offValue != null) offValue else Math.cast(0: Tensor[INT32], inferredDataType)
+    val actualOnValue = if (onValue != null) onValue else Cast.cast(1: Tensor[INT32], inferredDataType)
+    val actualOffValue = if (offValue != null) offValue else Cast.cast(0: Tensor[INT32], inferredDataType)
     Tensor.fromNativeHandle[D](NativeTensorOpsBasic.oneHot(
       executionContext.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
       actualOffValue.nativeHandle, axis))

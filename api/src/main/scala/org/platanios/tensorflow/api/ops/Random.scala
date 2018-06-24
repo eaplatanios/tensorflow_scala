@@ -48,8 +48,8 @@ private[api] trait Random {
       throw new IllegalArgumentException(
         s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, FLOAT64, INT32, or INT64.")
     Op.createWithNameScope(name, Set(shape.op, minValue.op, maxValue.op)) {
-      val castedMinValue = Math.cast(minValue, dataType)
-      val castedMaxValue = Math.cast(maxValue, dataType)
+      val castedMinValue = Cast.cast(minValue, dataType)
+      val castedMaxValue = Cast.cast(maxValue, dataType)
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
       if (dataType.isInteger) {
         Op.Builder(opType = "RandomUniformInt", name = name)
@@ -93,8 +93,8 @@ private[api] trait Random {
     if (dataType != FLOAT16 && dataType != FLOAT32 && dataType != FLOAT64)
       throw new IllegalArgumentException(s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, or FLOAT64.")
     Op.createWithNameScope(name, Set(shape.op, mean.op, standardDeviation.op)) {
-      val castedMean = Math.cast(mean, dataType)
-      val castedStandardDeviation = Math.cast(standardDeviation, dataType)
+      val castedMean = Cast.cast(mean, dataType)
+      val castedStandardDeviation = Cast.cast(standardDeviation, dataType)
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
       val random = Op.Builder(opType = "RandomStandardNormal", name = name)
           .addInput(shape)
@@ -128,8 +128,8 @@ private[api] trait Random {
     if (dataType != FLOAT16 && dataType != FLOAT32 && dataType != FLOAT64)
       throw new IllegalArgumentException(s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, or FLOAT64.")
     Op.createWithNameScope(name, Set(shape.op, mean.op, standardDeviation.op)) {
-      val castedMean = Math.cast(mean, dataType)
-      val castedStandardDeviation = Math.cast(standardDeviation, dataType)
+      val castedMean = Cast.cast(mean, dataType)
+      val castedStandardDeviation = Cast.cast(standardDeviation, dataType)
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
       val random = Op.Builder(opType = "TruncatedNormal", name = name)
           .addInput(shape)
