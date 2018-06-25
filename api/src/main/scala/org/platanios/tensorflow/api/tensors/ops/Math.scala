@@ -1120,8 +1120,11 @@ private[api] trait Math {
     * @return Result as a new tensor.
     */
   def all(input: Tensor[BOOLEAN], axes: Tensor[INT32] = null, keepDims: Boolean = false): Tensor[BOOLEAN] = {
-    Tensor.fromNativeHandle[BOOLEAN](NativeTensorOpsMath.all(
-      executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    if (input.rank == 0)
+      input
+    else
+      Tensor.fromNativeHandle[BOOLEAN](NativeTensorOpsMath.all(
+        executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathAny
@@ -1133,8 +1136,11 @@ private[api] trait Math {
     * @return Result as a new tensor.
     */
   def any(input: Tensor[BOOLEAN], axes: Tensor[INT32] = null, keepDims: Boolean = false): Tensor[BOOLEAN] = {
-    Tensor.fromNativeHandle[BOOLEAN](NativeTensorOpsMath.any(
-      executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    if (input.rank == 0)
+      input
+    else
+      Tensor.fromNativeHandle[BOOLEAN](NativeTensorOpsMath.any(
+        executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
   }
 
   /** $OpDocMathLogSumExp
