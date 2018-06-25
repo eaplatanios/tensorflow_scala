@@ -1298,23 +1298,7 @@ TF_CAPI_EXPORT extern unsigned char TF_TryEvaluateConstant(TF_Graph* graph,
 // --------------------------------------------------------------------------
 // API for driving Graph execution.
 
-// typedef struct TF_Session TF_Session;
-// TODO: !!! [JNI] Remove this.
-struct TF_Session {
-  TF_Session(tensorflow::Session* s, TF_Graph* g);
-
-  tensorflow::Session* session;
-  TF_Graph* const graph;
-
-  tensorflow::mutex mu ACQUIRED_AFTER(TF_Graph::mu);
-  int last_num_graph_nodes;
-
-  // If true, TF_SessionRun and similar methods will call
-  // ExtendSessionGraphHelper before running the graph (this is the default
-  // public behavior). Can be set to false if the caller needs to call
-  // ExtendSessionGraphHelper manually.
-  std::atomic<bool> extend_before_run;
-};
+typedef struct TF_Session TF_Session;
 
 // Return a new execution session with the associated graph, or NULL on
 // error. Does not take ownership of any input parameters.

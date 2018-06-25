@@ -21,6 +21,7 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/c_api_internal.h"
 #include "tensorflow/c/python_api.h"
 #include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/common_runtime/device.h"
