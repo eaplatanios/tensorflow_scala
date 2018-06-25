@@ -21,7 +21,6 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
-#include "tensorflow/c/c_api_internal.h"
 #include "tensorflow/c/python_api.h"
 #include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/common_runtime/device.h"
@@ -108,8 +107,6 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate
 
   TF_Session* session = TF_NewSession(graph, options, status.get());
   CHECK_STATUS(env, status.get(), 0);
-  // TODO: !!! [JNI] Remove this.
-  session->extend_before_run = false;
 
   TF_DeleteSessionOptions(options);
 
