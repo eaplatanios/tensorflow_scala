@@ -4304,20 +4304,28 @@ object Math extends Math {
     }
 
     private[this] def igammacGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null, negate(igammaGradient(op, outputGradients)(1)))
+      val igammaGradients = igammaGradient(op, outputGradients)
+      Seq(negate(igammaGradients(0)), negate(igammaGradients(1)))
     }
 
     private[this] def igammaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // TODO: [GRADIENTS] Mark the derivative w.r.t. a as not implemented somehow, or implement it.
       val a = op.inputs(0)
       val x = op.inputs(1)
       val aShape = Basic.shape(a)
       val xShape = Basic.shape(x)
-      val (_, rx) = Basic.broadcastGradientArguments(aShape, xShape)
+      val (ra, rx) = Basic.broadcastGradientArguments(aShape, xShape)
       val outputGradient = outputGradients.head.toOutput
-      // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
-      val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1, a.dataType)), log(x)) - logGamma(a))
-      Seq(null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val partialA = Op.Builder(opType = "IgammaGradA", name = "IGammaGradA")
+            .addInput(a)
+            .addInput(x)
+            .build().outputs(0)
+        // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
+        val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1, a.dataType)), log(x)) - logGamma(a))
+        Seq(
+          Basic.reshape(sum(multiply(partialA, outputGradient), ra), aShape),
+          Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
+      }
     }
 
     private[this] def zetaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
