@@ -41,13 +41,12 @@ class GenericTransferManager : public TransferManager {
 
   se::Platform::Id PlatformId() const override;
 
-  void TransferLiteralFromDevice(
-      se::Stream* stream, const ShapedBuffer& device_buffer,
-      std::function<void(StatusOr<std::unique_ptr<Literal>>)> done) override;
+  StatusOr<std::unique_ptr<Literal>> TransferLiteralFromDevice(
+      se::StreamExecutor* executor, const ShapedBuffer& device_buffer) override;
 
-  Status TransferLiteralToDeviceAsync(
-      se::Stream* stream, const LiteralSlice& literal,
-      const ShapedBuffer& device_buffer) override;
+  Status TransferLiteralToDevice(se::StreamExecutor* executor,
+                                 const LiteralSlice& literal,
+                                 const ShapedBuffer& device_buffer) override;
 
   Status TransferLiteralToInfeed(se::StreamExecutor* executor,
                                  const LiteralSlice& literal) override;
@@ -65,14 +64,11 @@ class GenericTransferManager : public TransferManager {
                                 const void* source) override;
 
   Status WriteSingleTupleIndexTable(
-      se::Stream* stream,
+      se::StreamExecutor* executor,
       tensorflow::gtl::ArraySlice<se::DeviceMemoryBase> elements,
       const Shape& shape, se::DeviceMemoryBase* region) override;
 
  private:
-  StatusOr<std::unique_ptr<Literal>> TransferLiteralFromDeviceInternal(
-      se::StreamExecutor* executor, const ShapedBuffer& device_buffer);
-
   // The platform this transfer manager targets.
   const se::Platform::Id platform_id_;
 

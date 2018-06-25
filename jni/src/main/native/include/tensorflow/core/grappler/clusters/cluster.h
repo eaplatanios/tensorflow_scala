@@ -95,7 +95,7 @@ class Cluster {
 
   // The DeviceSet is not always available, but when it is it contains a
   // superset of the devices listed in GetDevices/GetDeviceNames().
-  virtual const DeviceSet* GetDeviceSet() const { return nullptr; }
+  const DeviceSet* GetDeviceSet() const { return device_set_; }
 
   // Enables collecting the allocator stats. Call with enable=true must be made
   // before Provision().
@@ -124,6 +124,7 @@ class Cluster {
 
  protected:
   std::unordered_map<string, DeviceProperties> devices_;
+  const DeviceSet* device_set_ = nullptr;  // Not owned
   const int timeout_s_;
   SessionOptions options_;
   RunOptions run_options_;

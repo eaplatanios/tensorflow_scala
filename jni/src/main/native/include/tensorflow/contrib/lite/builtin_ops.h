@@ -99,10 +99,6 @@ typedef enum {
   kTfLiteBuiltinEqual = 71,
   kTfLiteBuiltinNotEqual = 72,
   kTfLiteBuiltinLog = 73,
-  kTfLiteBuiltinSum = 74,
-  kTfLiteBuiltinSqrt = 75,
-  kTfLiteBuiltinRsqrt = 76,
-  kTfLiteBuiltinShape = 77,
 } TfLiteBuiltinOperator;
 
 #ifdef __cplusplus

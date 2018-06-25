@@ -52,65 +52,30 @@ class TransferManager {
     return host_shape;
   }
 
-  // Returns a literal containing the data held in the given ShapedBuffer
-  // using the provided executor. This operation is performed synchronously
-  // without waiting for any other operation on a stream to complete.
-  //
-  // This function should be avoided in favor of the asynchronous version below.
+  // Returns a literal containing the data held in the given ShapedBuffer.
+  // using the provided executor. The optional literal_shape will be the shape
+  // for the literal. The shape of the ShapedBuffer and
+  // DeviceShape(literal_shape) must be compatible, but need not have the same
+  // layout.
   virtual StatusOr<std::unique_ptr<Literal>> TransferLiteralFromDevice(
-      se::Stream* stream, const ShapedBuffer& device_buffer);
-
-  // Begins transferring a literal containing the data held in the given
-  // ShapedBuffer using the provided executor.
-  //
-  // This operation is performed asynchronously on the given stream. It returns
-  // once the transfer is enqueued. 'done' is invoked with the result when
-  // complete.
-  //
-  // device_buffer is copied by reference and must live at least until done() is
-  // invoked.
-  virtual void TransferLiteralFromDevice(
-      se::Stream* stream, const ShapedBuffer& device_buffer,
-      std::function<void(StatusOr<std::unique_ptr<Literal>>)> done) = 0;
+      se::StreamExecutor* executor, const ShapedBuffer& device_buffer) = 0;
 
   // Transfers the given literal into the previously allocated device memory
   // represented by the given ShapedBuffer using the given executor. The shape
   // of the ShapedBuffer and DeviceShape(literal.shape()) must be compatible,
-  // but need not have the same layout.
-  //
-  // This operation is performed synchronously without waiting for any other
-  // operation on a stream to complete. This function should be avoided in favor
-  // of the asynchronous version below.
-  virtual Status TransferLiteralToDevice(se::Stream* stream,
+  // but need not have the same layout
+  virtual Status TransferLiteralToDevice(se::StreamExecutor* executor,
                                          const LiteralSlice& literal,
-                                         const ShapedBuffer& device_buffer);
-
-  // Transfers the given literal into the previously allocated device memory
-  // represented by the given ShapedBuffer using the given executor. The shape
-  // of the ShapedBuffer and DeviceShape(literal.shape()) must be compatible,
-  // but need not have the same layout.
-  //
-  // This operation is performed asynchronously on the given stream. It returns
-  // once the transfer is enqueued.
-  virtual Status TransferLiteralToDeviceAsync(
-      se::Stream* stream, const LiteralSlice& literal,
-      const ShapedBuffer& device_buffer) = 0;
+                                         const ShapedBuffer& device_buffer) = 0;
 
   // Convenience methods for transferring an array to or from the device at a
   // known address. This avoids having to construct a ShapedBuffer just to
   // transfer an array at a known address.
-  Status TransferArrayToDevice(se::Stream* stream, const LiteralSlice& literal,
+  Status TransferArrayToDevice(se::StreamExecutor* executor,
+                               const LiteralSlice& literal,
                                const se::DeviceMemoryBase& dest);
-  void TransferArrayFromDevice(
-      se::Stream* stream, const Shape& shape,
-      const se::DeviceMemoryBase& source,
-      std::function<void(StatusOr<std::unique_ptr<Literal>>)> done);
-
-  Status TransferArrayToDeviceAsync(se::Stream* stream,
-                                    const LiteralSlice& literal,
-                                    const se::DeviceMemoryBase& dest);
   StatusOr<std::unique_ptr<Literal>> TransferArrayFromDevice(
-      se::Stream* stream, const Shape& shape,
+      se::StreamExecutor* executor, const Shape& shape,
       const se::DeviceMemoryBase& source);
 
   // Transfers the given literal into the Infeed interface of the device,
@@ -131,10 +96,8 @@ class TransferManager {
   // Given an allocated ShapedBuffer, constructs the tuple index table(s) in
   // each buffer of the given ShapedBuffer corresponding to tuple shapes. If the
   // ShapedBuffer is array-shaped this method does nothing.
-  Status WriteTupleIndexTables(se::Stream* stream,
+  Status WriteTupleIndexTables(se::StreamExecutor* executor,
                                const ShapedBuffer& device_buffer);
-  Status WriteTupleIndexTablesAsync(se::Stream* stream,
-                                    const ShapedBuffer& device_buffer);
 
   // Determines the byte size requirement for the given shape on the underlying
   // architecture. This will be used to allocate an appropriately sized memory
@@ -181,7 +144,7 @@ class TransferManager {
   // 'destination' buffer.
   //
   // size is the size to transfer to destination in bytes.
-  virtual Status TransferBufferFromDevice(se::Stream* stream,
+  virtual Status TransferBufferFromDevice(se::StreamExecutor* executor,
                                           const se::DeviceMemoryBase& source,
                                           int64 size, void* destination);
 
@@ -189,15 +152,15 @@ class TransferManager {
   // destination of the device.
   //
   // size is the size to transfer from source in bytes.
-  virtual Status TransferBufferToDevice(se::Stream* stream, int64 size,
-                                        const void* source,
+  virtual Status TransferBufferToDevice(se::StreamExecutor* executor,
+                                        int64 size, const void* source,
                                         se::DeviceMemoryBase* destination);
 
   // Writes the given device-memory pointers in 'elements' to the given region
   // to construct a tuple index table in the platform-specific tuple
   // representation.
   virtual Status WriteSingleTupleIndexTable(
-      se::Stream* stream,
+      se::StreamExecutor* executor,
       tensorflow::gtl::ArraySlice<se::DeviceMemoryBase> elements,
       const Shape& shape, se::DeviceMemoryBase* region) = 0;
 

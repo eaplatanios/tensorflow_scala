@@ -215,7 +215,7 @@ typedef struct {
 
 typedef struct {
   bool keep_dims;
-} TfLiteReducerParams;
+} TfLiteMeanParams;
 
 typedef struct {
   int num_splits;
@@ -249,10 +249,6 @@ typedef struct {
 typedef struct {
   bool validate_indices;
 } TfLiteSparseToDenseParams;
-
-typedef struct {
-  TfLiteType out_type;
-} TfLiteShapeParams;
 
 #ifdef __cplusplus
 }  // extern "C"

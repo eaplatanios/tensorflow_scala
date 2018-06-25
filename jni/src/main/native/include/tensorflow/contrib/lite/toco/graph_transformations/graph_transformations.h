@@ -192,7 +192,7 @@ DECLARE_GRAPH_TRANSFORMATION(ResolveConstantGather)
 DECLARE_GRAPH_TRANSFORMATION(ResolveMultiplyByZero)
 DECLARE_GRAPH_TRANSFORMATION(Dequantize)
 DECLARE_GRAPH_TRANSFORMATION(UnpartitionEmbeddingLookup)
-DECLARE_GRAPH_TRANSFORMATION(ShuffleFCWeights)
+DECLARE_GRAPH_TRANSFORMATION(ExperimentalShuffleFCWeights)
 
 class PropagateDefaultMinMax : public GraphTransformation {
  public:

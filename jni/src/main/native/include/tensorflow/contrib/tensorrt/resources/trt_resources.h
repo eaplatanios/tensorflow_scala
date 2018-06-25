@@ -22,7 +22,6 @@ limitations under the License.
 #include <thread>
 #include <vector>
 
-#include "tensorflow/contrib/tensorrt/convert/utils.h"
 #include "tensorflow/contrib/tensorrt/log/trt_logger.h"
 #include "tensorflow/contrib/tensorrt/resources/trt_allocator.h"
 #include "tensorflow/contrib/tensorrt/resources/trt_int8_calibrator.h"
@@ -35,48 +34,50 @@ limitations under the License.
 
 namespace tensorflow {
 namespace tensorrt {
-
 class TRTCalibrationResource : public tensorflow::ResourceBase {
  public:
+  TRTCalibrationResource()
+      : calibrator_(nullptr),
+        builder_(nullptr),
+        network_(nullptr),
+        engine_(nullptr),
+        logger_(nullptr),
+        thr_(nullptr) {}
+
   ~TRTCalibrationResource() {
     VLOG(0) << "Destroying Calibration Resource " << std::endl << DebugString();
-    builder_.reset();
-    engine_.reset();
-    // We need to manually destroy the builder and engine before the allocator
-    // is destroyed.
-    allocator_.reset();
   }
 
   string DebugString() override {
     std::stringstream oss;
-    using std::dec;
-    using std::endl;
-    using std::hex;
-    oss << " Calibrator = " << hex << calibrator_.get() << dec << endl
-        << " Builder    = " << hex << builder_.get() << dec << endl
-        << " Engine     = " << hex << engine_.get() << dec << endl
-        << " Logger     = " << hex << &logger_ << dec << endl
-        << " Allocator  = " << hex << allocator_.get() << dec << endl
-        << " Thread     = " << hex << thr_.get() << dec << endl;
+    oss << " Calibrator = " << std::hex << calibrator_ << std::dec << std::endl
+        << " Builder    = " << std::hex << builder_ << std::dec << std::endl
+        << " Network    = " << std::hex << network_ << std::dec << std::endl
+        << " Engine     = " << std::hex << engine_ << std::dec << std::endl
+        << " Logger     = " << std::hex << logger_ << std::dec << std::endl
+        << " Allocator  = " << std::hex << allocator_.get() << std::dec
+        << std::endl
+        << " Thread     = " << std::hex << thr_ << std::dec << std::endl;
     return oss.str();
   }
 
-  std::unique_ptr<TRTInt8Calibrator> calibrator_;
-  TrtUniquePtrType<nvinfer1::IBuilder> builder_;
-  TrtUniquePtrType<nvinfer1::ICudaEngine> engine_;
-  std::unique_ptr<nvinfer1::IGpuAllocator> allocator_;
-  tensorflow::tensorrt::Logger logger_;
+  TRTInt8Calibrator* calibrator_;
+  nvinfer1::IBuilder* builder_;
+  nvinfer1::INetworkDefinition* network_;
+  nvinfer1::ICudaEngine* engine_;
+  std::shared_ptr<nvinfer1::IGpuAllocator> allocator_;
+  tensorflow::tensorrt::Logger* logger_;
   // TODO(sami): Use threadpool threads!
-  std::unique_ptr<std::thread> thr_;
+  std::thread* thr_;
 };
 
-class TRTWeightStore {
+class TRTWeightStore : public tensorflow::ResourceBase {
  public:
   TRTWeightStore() {}
 
   virtual ~TRTWeightStore() { VLOG(1) << "Destroying store" << DebugString(); }
 
-  string DebugString() {
+  string DebugString() override {
     std::stringstream oss;
     size_t len_bytes = 0;
     for (const auto& v : store_) {
