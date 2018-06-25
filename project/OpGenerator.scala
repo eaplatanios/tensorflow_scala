@@ -432,7 +432,8 @@ case class OpGenerator(opDef: OpDef) {
             s"""
                |
                |  jbyte *${attrName}_c_value = env->GetByteArrayElements($value, nullptr);
-               |  TFE_OpSetAttrString(op.get(), "$attrName", reinterpret_cast<const char *>(${attrName}_c_value));
+               |  size_t ${attrName}_c_value_length = env->GetArrayLength($value);
+               |  TFE_OpSetAttrString(op.get(), "$attrName", reinterpret_cast<const char *>(${attrName}_c_value), ${attrName}_c_value_length);
                |  env->ReleaseByteArrayElements($value, ${attrName}_c_value, JNI_ABORT);""".stripMargin)
         case "int" =>
           codeBuilder.append(
@@ -482,13 +483,15 @@ case class OpGenerator(opDef: OpDef) {
                |  int ${attrName}_num_strings = env->GetArrayLength($value);
                |  jbyteArray **${attrName}_arrays = new jbyteArray *[${attrName}_num_strings];
                |  jbyte **${attrName}_strings = new jbyte *[${attrName}_num_strings];
+               |  size_t *${attrName}_lengths = new size_t[${attrName}_num_strings];
                |  for (int i = 0; i < ${attrName}_num_strings; i++) {
                |    ${attrName}_arrays[i] = (jbyteArray) env->GetObjectArrayElement($value, i);
                |    ${attrName}_strings[i] = env->GetByteArrayElements(${attrName}_arrays[i], nullptr);
+               |    ${attrName}_lengths[i] = env->GetArrayLength(${attrName}_arrays[i]);
                |  }
                |  TFE_OpSetAttrStringList(
                |    op.get(), "$attrName", const_cast<const char **>(reinterpret_cast<char **>(${attrName}_strings)),
-               |    ${attrName}_num_strings);""".stripMargin)
+               |    ${attrName}_lengths, ${attrName}_num_strings);""".stripMargin)
           deallocationBuilder.append(
             s"""
                |

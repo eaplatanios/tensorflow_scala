@@ -1,4 +1,4 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,18 +12,26 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-// Optional debugging functionality. For small sized binaries, these are not
-// needed.
-#ifndef TENSORFLOW_CONTRIB_LITE_DEBUG_TOOLS_H_
-#define TENSORFLOW_CONTRIB_LITE_DEBUG_TOOLS_H_
 
-#include "tensorflow/contrib/lite/interpreter.h"
+#ifndef TENSORFLOW_CONTRIB_TENSORRT_CONVERT_UTILS_H_
+#define TENSORFLOW_CONTRIB_TENSORRT_CONVERT_UTILS_H_
 
-namespace tflite {
+#include <memory>
 
-// Prints a dump of what tensors and what nodes are in the interpreter.
-void PrintInterpreterState(Interpreter* interpreter);
+namespace tensorflow {
+namespace tensorrt {
 
-}  // namespace tflite
+template <typename T>
+struct TrtDestroyer {
+  void operator()(T* t) {
+    if (t) t->destroy();
+  }
+};
 
-#endif  // TENSORFLOW_CONTRIB_LITE_DEBUG_TOOLS_H_
+template <typename T>
+using TrtUniquePtrType = std::unique_ptr<T, TrtDestroyer<T>>;
+
+}  // namespace tensorrt
+}  // namespace tensorflow
+
+#endif  // TENSORFLOW_CONTRIB_TENSORRT_CONVERT_UTILS_H_
