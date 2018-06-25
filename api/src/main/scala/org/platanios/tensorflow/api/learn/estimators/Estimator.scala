@@ -248,14 +248,14 @@ object Estimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / Estimator"))
 
   class ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
-    val function: (Configuration) => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]) {
+    val function: Configuration => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]) {
     def apply(configuration: Configuration): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
       function(configuration)
     }
   }
 
   case class UnsupervisedModelFunction[IT, IO, ID, IS, I](
-      override val function: (Configuration) => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+      override val function: Configuration => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
   ) extends ModelFunction[IT, IO, ID, IS, I, IT, IO, ID, IS, I](function) {
     override def apply(configuration: Configuration): UnsupervisedTrainableModel[IT, IO, ID, IS, I] = {
       function(configuration)
@@ -263,7 +263,7 @@ object Estimator {
   }
 
   case class SupervisedModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      override val function: (Configuration) => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+      override val function: Configuration => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
   ) extends ModelFunction[IT, IO, ID, IS, I, (IT, TT), (IO, TO), (ID, TD), (IS, TS), (I, T)](function) {
     override def apply(configuration: Configuration): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
       function(configuration)
