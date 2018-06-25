@@ -200,7 +200,7 @@ object Iterator {
     * a threshold of suspicion. */
   private[data] val NEXT_CALL_WARNING_THRESHOLD: Int    = 32
   private[data] val NEXT_CALL_WARNING_MESSAGE  : String =
-    """An unusually high number of `Iterator.get_next()` calls was detected. This often indicates that `Iterator.next()`
+    """An unusually high number of `Iterator.next()` calls was detected. This often indicates that `Iterator.next()`
       |is being called inside a training loop, which will cause gradual slowdown and eventual resource exhaustion. If
       |this is the case, restructure your code to call `nextElement = iterator.next() once outside the loop, and use
       |`nextElement` inside the loop.

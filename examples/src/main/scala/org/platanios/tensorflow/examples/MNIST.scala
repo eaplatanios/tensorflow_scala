@@ -135,26 +135,3 @@ object MNIST {
     // }
   }
 }
-
-case class DummyAccuracy(
-    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
-    override val name: String = "Accuracy"
-) extends Metric[(Output, (Output, Output)), Output] {
-  private[this] val accuracyMetric =
-    Accuracy(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
-
-  override def compute(values: (Output, (Output, Output)), weights: Output = null, name: String = name): Output = {
-    accuracyMetric.compute((values._1.argmax(-1), values._2._2), weights, name)
-  }
-
-  override def streaming(
-      values: (Output, (Output, Output)),
-      weights: Output = null,
-      name: String = name
-  ): Metric.StreamingInstance[Output] = {
-    accuracyMetric.streaming((values._1.argmax(-1), values._2._2), weights, name)
-  }
-}

@@ -64,7 +64,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   }
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -548,11 +549,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -602,11 +605,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -656,11 +661,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -744,11 +751,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -832,11 +841,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -886,11 +897,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -940,7 +953,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   TFE_OpSetAttrType(op.get(), "Targmax", static_cast<TF_DataType>(targmax));
@@ -1112,13 +1126,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   TFE_OpSetAttrBool(op.get(), "use_cudnn_on_gpu", static_cast<unsigned char>(use_cudnn_on_gpu));
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int dilations_n = env->GetArrayLength(dilations);
@@ -1189,13 +1205,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   TFE_OpSetAttrBool(op.get(), "use_cudnn_on_gpu", static_cast<unsigned char>(use_cudnn_on_gpu));
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int dilations_n = env->GetArrayLength(dilations);
@@ -1266,13 +1284,15 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   TFE_OpSetAttrBool(op.get(), "use_cudnn_on_gpu", static_cast<unsigned char>(use_cudnn_on_gpu));
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int dilations_n = env->GetArrayLength(dilations);
@@ -1338,7 +1358,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   }
 
   jbyte *mode_c_value = env->GetByteArrayElements(mode, nullptr);
-  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value));
+  size_t mode_c_value_length = env->GetArrayLength(mode);
+  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value), mode_c_value_length);
   env->ReleaseByteArrayElements(mode, mode_c_value, JNI_ABORT);
 
   const int strides_n = env->GetArrayLength(strides);
@@ -1351,7 +1372,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   TFE_OpSetAttrBool(op.get(), "resize_align_corners", static_cast<unsigned char>(resize_align_corners));
@@ -1406,7 +1428,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   }
 
   jbyte *mode_c_value = env->GetByteArrayElements(mode, nullptr);
-  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value));
+  size_t mode_c_value_length = env->GetArrayLength(mode);
+  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value), mode_c_value_length);
   env->ReleaseByteArrayElements(mode, mode_c_value, JNI_ABORT);
 
   const int strides_n = env->GetArrayLength(strides);
@@ -1419,7 +1442,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -1477,11 +1501,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int dilations_n = env->GetArrayLength(dilations);
@@ -1548,11 +1574,13 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int dilations_n = env->GetArrayLength(dilations);
@@ -1628,7 +1656,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
   env->ReleaseLongArrayElements(rates, rates_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -1866,7 +1895,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   TFE_OpSetAttrFloat(op.get(), "epsilon", static_cast<float>(epsilon));
 
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  size_t data_format_c_value_length = env->GetArrayLength(data_format);
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_c_value_length);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   TFE_OpSetAttrBool(op.get(), "is_training", static_cast<unsigned char>(is_training));
@@ -2128,7 +2158,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   const int num_outputs = 3;
@@ -2192,7 +2223,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   const int num_outputs = 3;
@@ -2263,7 +2295,8 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
   env->ReleaseLongArrayElements(strides, strides_elems, JNI_ABORT);
 
   jbyte *padding_c_value = env->GetByteArrayElements(padding, nullptr);
-  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value));
+  size_t padding_c_value_length = env->GetArrayLength(padding);
+  TFE_OpSetAttrString(op.get(), "padding", reinterpret_cast<const char *>(padding_c_value), padding_c_value_length);
   env->ReleaseByteArrayElements(padding, padding_c_value, JNI_ABORT);
 
   TFE_OpSetAttrType(op.get(), "out_type", static_cast<TF_DataType>(out_type));
