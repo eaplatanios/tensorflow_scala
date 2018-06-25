@@ -894,7 +894,8 @@ TF_CAPI_EXPORT extern void TF_DeleteImportGraphDefOptions(
     TF_ImportGraphDefOptions* opts);
 
 // Set the prefix to be prepended to the names of nodes in `graph_def` that will
-// be imported into `graph`.
+// be imported into `graph`. `prefix` is copied and has no lifetime
+// requirements.
 TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsSetPrefix(
     TF_ImportGraphDefOptions* opts, const char* prefix);
 
@@ -915,6 +916,7 @@ TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsSetUniquifyPrefix(
 // Set any imported nodes with input `src_name:src_index` to have that input
 // replaced with `dst`. `src_name` refers to a node in the graph to be imported,
 // `dst` references a node already existing in the graph being imported into.
+// `src_name` is copied and has no lifetime requirements.
 TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsAddInputMapping(
     TF_ImportGraphDefOptions* opts, const char* src_name, int src_index,
     TF_Output dst);
@@ -922,7 +924,7 @@ TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsAddInputMapping(
 // Set any imported nodes with control input `src_name` to have that input
 // replaced with `dst`. `src_name` refers to a node in the graph to be imported,
 // `dst` references an operation already existing in the graph being imported
-// into.
+// into. `src_name` is copied and has no lifetime requirements.
 TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsRemapControlDependency(
     TF_ImportGraphDefOptions* opts, const char* src_name, TF_Operation* dst);
 
@@ -934,6 +936,7 @@ TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsAddControlDependency(
 // Add an output in `graph_def` to be returned via the `return_outputs` output
 // parameter of TF_GraphImportGraphDef(). If the output is remapped via an input
 // mapping, the corresponding existing tensor in `graph` will be returned.
+// `oper_name` is copied and has no lifetime requirements.
 TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsAddReturnOutput(
     TF_ImportGraphDefOptions* opts, const char* oper_name, int index);
 
@@ -943,7 +946,8 @@ TF_CAPI_EXPORT extern int TF_ImportGraphDefOptionsNumReturnOutputs(
     const TF_ImportGraphDefOptions* opts);
 
 // Add an operation in `graph_def` to be returned via the `return_opers` output
-// parameter of TF_GraphImportGraphDef().
+// parameter of TF_GraphImportGraphDef(). `oper_name` is copied and has no
+// lifetime requirements.
 TF_CAPI_EXPORT extern void TF_ImportGraphDefOptionsAddReturnOperation(
     TF_ImportGraphDefOptions* opts, const char* oper_name);
 
@@ -1294,7 +1298,23 @@ TF_CAPI_EXPORT extern unsigned char TF_TryEvaluateConstant(TF_Graph* graph,
 // --------------------------------------------------------------------------
 // API for driving Graph execution.
 
-typedef struct TF_Session TF_Session;
+// typedef struct TF_Session TF_Session;
+// TODO: !!! [JNI] Remove this.
+struct TF_Session {
+  TF_Session(tensorflow::Session* s, TF_Graph* g);
+
+  tensorflow::Session* session;
+  TF_Graph* const graph;
+
+  tensorflow::mutex mu ACQUIRED_AFTER(TF_Graph::mu);
+  int last_num_graph_nodes;
+
+  // If true, TF_SessionRun and similar methods will call
+  // ExtendSessionGraphHelper before running the graph (this is the default
+  // public behavior). Can be set to false if the caller needs to call
+  // ExtendSessionGraphHelper manually.
+  std::atomic<bool> extend_before_run;
+};
 
 // Return a new execution session with the associated graph, or NULL on
 // error. Does not take ownership of any input parameters.

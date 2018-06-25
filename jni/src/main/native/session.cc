@@ -107,6 +107,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Session_00024_allocate
 
   TF_Session* session = TF_NewSession(graph, options, status.get());
   CHECK_STATUS(env, status.get(), 0);
+  // TODO: !!! [JNI] Remove this.
+  session->extend_before_run = false;
 
   TF_DeleteSessionOptions(options);
 
