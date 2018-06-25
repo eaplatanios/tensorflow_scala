@@ -134,7 +134,8 @@ struct TF_Session {
   // ExtendSessionGraphHelper before running the graph (this is the default
   // public behavior). Can be set to false if the caller needs to call
   // ExtendSessionGraphHelper manually.
-  std::atomic<bool> extend_before_run;
+  // TODO: !!! [JNI] Remove default value.
+  std::atomic<bool> extend_before_run {false};
 };
 
 struct TF_ImportGraphDefOptions {
