@@ -2324,7 +2324,14 @@ object Basic extends Basic {
       //   axes = [0, 2, 4]
       val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), Shape(-1))
       val axes = Math.range(0, size(splitShape), 2)
-      val inputGradient = Math.sum(reshape(outputGradients.head, splitShape), axes)
+      // Sum reduces grad along the first dimension for indexed slices.
+      val (outputGradient, processedSplitShape) = outputGradients.head match {
+        case g: OutputIndexedSlices => (
+            Math.unsortedSegmentSum(g.values, Math.mod(g.indices, inputShape(0)), inputShape(0)),
+            concatenate(Seq(Tensor(1), splitShape(1 ::)), axis = 0))
+        case g => (g, splitShape)
+      }
+      val inputGradient = Math.sum(reshape(outputGradient, processedSplitShape), axes)
       // Fix shape inference.
       inputGradient.setShape(op.inputs(0).shape)
       Seq(inputGradient, null)
