@@ -20,11 +20,11 @@ import sbtrelease.Vcs
 import scala.sys.process.Process
 
 scalaVersion in ThisBuild := "2.12.6"
-crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.6")
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.6")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.9.0-rc0"
+val tensorFlowVersion = "1.9.0-rc1"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
