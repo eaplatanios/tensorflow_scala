@@ -10,7 +10,7 @@ Maven Central. Currently, given the beta status of this project, only snapshot r
 <p>To include the Sonatype repositories in your <a href="http://www.scala-sbt.org">SBT</a> build and use TensorFlow for Scala, you 
 should add the following to your <code class="highlighter-rouge">build.sbt</code> file:</p>
 
-<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.2.2"</span>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.2.3"</span>
 </code></pre></div></div>
 
 <p><strong>NOTE:</strong> This requires that you have installed the TensorFlow dynamic library in your system. If you haven’t, please 
@@ -27,7 +27,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
   <li>
     <p>Use:</p>
 
-    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.2.2"</span> <span class="n">classifier</span> <span class="s">"linux-cpu-x86_64"</span>
+    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.platanios"</span> <span class="o">%%</span> <span class="s">"tensorflow"</span> <span class="o">%</span> <span class="s">"0.2.3"</span> <span class="n">classifier</span> <span class="s">"linux-cpu-x86_64"</span>
 </code></pre></div>    </div>
 
     <p>instead of the line above, for your <code class="highlighter-rouge">build.sbt</code> file. <em>Make sure to replace <code class="highlighter-rouge">linux-cpu-x86_64</code> with the string 
@@ -52,7 +52,7 @@ git checkout r1.9
         <p>Compile the library using the following commands:</p>
 
         <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./configure
-bazel build <span class="nt">--config</span><span class="o">=</span>opt //tensorflow:libtensorflow.so
+bazel build <span class="nt">--config</span><span class="o">=</span>opt <span class="nt">--cxxopt</span><span class="o">=</span><span class="nt">-D_GLIBCXX_USE_CXX11_ABI</span><span class="o">=</span>0 //tensorflow:libtensorflow.so
 </code></pre></div>        </div>
 
         <p>For details regarding the configuration options (e.g., GPU support), please refer to the relevant main 
