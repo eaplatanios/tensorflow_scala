@@ -126,10 +126,8 @@ class SingleOpModel {
   SingleOpModel& operator=(const SingleOpModel&) = delete;
 
   // Add a TensorType input tensor and return its index.
-  int AddInput(TensorType type, bool is_variable = false) {
-    return AddInput(TensorData{type}, is_variable);
-  }
-  int AddInput(const TensorData& t, bool is_variable = false);
+  int AddInput(TensorType type) { return AddInput(TensorData{type}); }
+  int AddInput(const TensorData& t);
 
   // Templated version of AddConstInput().
   template <typename T>
@@ -262,8 +260,7 @@ class SingleOpModel {
   }
 
   template <typename T>
-  int AddTensor(TensorData t, std::initializer_list<T> data,
-                bool is_variable = false) {
+  int AddTensor(TensorData t, std::initializer_list<T> data) {
     int id = tensors_.size();
 
     // This is slightly different depending on whether we are adding a
@@ -280,9 +277,6 @@ class SingleOpModel {
         } else if (t.type == TensorType_INT32) {
           std::tie(t.scale, t.zero_point) =
               QuantizationParams<int32_t>(t.min, t.max);
-        } else if (t.type == TensorType_INT16) {
-          std::tie(t.scale, t.zero_point) =
-              QuantizationParams<int16_t>(t.min, t.max);
         } else {
           LOG(FATAL) << "No support for the requested quantized type";
         }
@@ -315,7 +309,7 @@ class SingleOpModel {
     tensors_.push_back(CreateTensor(builder_,
                                     builder_.CreateVector<int>(t.shape), t.type,
                                     /*buffer=*/buffer_id,
-                                    /*name=*/0, q_params, is_variable));
+                                    /*name=*/0, q_params));
 
     tensor_data_[id] = t;
 

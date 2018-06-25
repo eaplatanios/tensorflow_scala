@@ -25,8 +25,6 @@ limitations under the License.
 
 namespace tensorflow {
 
-struct SafeTensorId;
-
 // Identifier for a tensor within a step.
 // first == operation_name, second == output_index
 // Note: does not own backing storage for name.
@@ -35,11 +33,6 @@ struct TensorId : public std::pair<StringPiece, int> {
 
   // Inherit the set of constructors.
   using Base::pair;
-
-  // NOTE(skyewm): this is required on some platforms. I'm not sure why the
-  // using statement above isn't always sufficient.
-  TensorId() : Base() {}
-  TensorId(const SafeTensorId& id);
 
   string ToString() const {
     if (second == Graph::kControlSlot) return strings::StrCat("^", first);
@@ -56,32 +49,6 @@ struct TensorId : public std::pair<StringPiece, int> {
 
 TensorId ParseTensorName(const string& name);
 TensorId ParseTensorName(StringPiece name);
-
-// Same as TensorId, except owns the backing storage for the op name. This makes
-// the memory management simpler at the expense of a copy.
-struct SafeTensorId : public std::pair<string, int> {
-  typedef std::pair<string, int> Base;
-
-  // Inherit the set of constructors.
-  using Base::pair;
-
-  // NOTE(skyewm): this is required on some platforms. I'm not sure why the
-  // using statement above isn't always sufficient.
-  SafeTensorId() : Base() {}
-  SafeTensorId(const TensorId& id);
-
-  string ToString() const {
-    if (second == Graph::kControlSlot) return strings::StrCat("^", first);
-    return strings::StrCat(first, ":", second);
-  }
-
-  struct Hasher {
-   public:
-    std::size_t operator()(const TensorId& x) const {
-      return Hash32(x.first.data(), x.first.size(), x.second);
-    }
-  };
-};
 
 }  // namespace tensorflow
 

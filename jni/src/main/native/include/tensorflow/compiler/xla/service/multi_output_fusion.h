@@ -78,15 +78,6 @@ class MultiOutputFusion : public HloPassInterface {
   // Test if it's legal to fuse instr1 and instr2 into one fusion instruction.
   virtual bool LegalToFuse(HloInstruction* instr1, HloInstruction* instr2);
 
-  // Recompute reachability for the current computation.
-  void RecomputeReachability();
-
-  // Returns the reachability map for the current computation.
-  HloReachabilityMap* reachability() const { return reachability_.get(); }
-
-  // Returns the computation for the pass.
-  HloComputation* computation() const { return computation_; }
-
   // Update the reachability map after fusing instr1 and instr2.
   void UpdateReachability(
       HloInstruction* instr1, HloInstruction* instr2,
@@ -98,7 +89,7 @@ class MultiOutputFusion : public HloPassInterface {
   //
   // TODO(b/80420762): Perform producer-consumer multi-output fusion in
   // InstructionFusion instead.
-  virtual bool DoProducerConsumerMultiOutputFusion();
+  virtual bool DoProducerConsumerMultiOutputFusion(HloComputation* computation);
 
  private:
   // Fuse HloInstrctuion instr1 and instr2 and return the fused instruction.

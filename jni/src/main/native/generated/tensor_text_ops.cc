@@ -51,8 +51,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Text
   TFE_OpSetAttrInt(op.get(), "N", static_cast<int64_t>(attr_N));
 
   jbyte *separator_c_value = env->GetByteArrayElements(separator, nullptr);
-  size_t separator_c_value_length = env->GetArrayLength(separator);
-  TFE_OpSetAttrString(op.get(), "separator", reinterpret_cast<const char *>(separator_c_value), separator_c_value_length);
+  TFE_OpSetAttrString(op.get(), "separator", reinterpret_cast<const char *>(separator_c_value));
   env->ReleaseByteArrayElements(separator, separator_c_value, JNI_ABORT);
 
   const int num_outputs = 1;

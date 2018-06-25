@@ -57,18 +57,17 @@ StatusOr<XlaOp> Any(const XlaOp& predicates, XlaBuilder* builder);
 
 // Evaluate the polynomial given coefficients and `x`.
 // N.B. Coefficients should be supplied in decreasing order.
-XlaOp EvaluatePolynomial(const XlaOp& x,
-                         tensorflow::gtl::ArraySlice<float> coefficients,
-                         PrimitiveType data_type);
+xla::XlaOp EvaluatePolynomial(xla::XlaBuilder* b, const xla::XlaOp& x,
+                              tensorflow::gtl::ArraySlice<double> coefficients,
+                              PrimitiveType data_type);
 
 // Compute an approximation of the error function complement (1 - erf(x)).
-XlaOp Erfc(const XlaOp& x, PrimitiveType data_type);
+xla::XlaOp ComputeErfc(xla::XlaBuilder* b, const xla::XlaOp& x,
+                       PrimitiveType data_type);
 
 // Compute an approximation of the error function.
-XlaOp Erf(const XlaOp& x, PrimitiveType data_type);
-
-// Compute an approximation of the inverse of the error function.
-StatusOr<XlaOp> ErfInv(const XlaOp& x);
+xla::XlaOp ComputeErf(xla::XlaBuilder* b, const xla::XlaOp& x,
+                      PrimitiveType data_type);
 
 }  // namespace xla
 

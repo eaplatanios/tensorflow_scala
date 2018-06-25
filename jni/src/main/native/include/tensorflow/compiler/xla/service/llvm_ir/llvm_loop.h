@@ -177,21 +177,15 @@ class ForLoop {
 // A simple class for constructing nested for-loops.
 class ForLoopNest {
  public:
-  explicit ForLoopNest(llvm::IRBuilder<>* ir_builder,
-                       llvm::Type* index_ty = nullptr)
-      : ForLoopNest(/*name=*/"", ir_builder) {
-    SetIndexType(index_ty);
-  }
+  explicit ForLoopNest(llvm::IRBuilder<>* ir_builder)
+      : ForLoopNest(/*name=*/"", ir_builder) {}
 
-  ForLoopNest(tensorflow::StringPiece name, llvm::IRBuilder<>* ir_builder,
-              llvm::Type* index_ty = nullptr)
+  ForLoopNest(tensorflow::StringPiece name, llvm::IRBuilder<>* ir_builder)
       : name_(std::string(name)),
         outer_loop_preheader_bb_(nullptr),
         outer_loop_exit_bb_(nullptr),
         inner_loop_body_bb_(nullptr),
-        ir_builder_(ir_builder) {
-    SetIndexType(index_ty);
-  }
+        ir_builder_(ir_builder) {}
 
   // Adds a loop to the nest. If no loop has been added yet then emit a loop at
   // the current insert point of the given builder. If one or more loops have
@@ -258,14 +252,6 @@ class ForLoopNest {
   llvm::BasicBlock* GetInnerLoopBodyBasicBlock() { return inner_loop_body_bb_; }
 
  private:
-  void SetIndexType(llvm::Type* index_ty) {
-    index_type_ = index_ty == nullptr ? ir_builder_->getInt64Ty() : index_ty;
-  }
-
-  llvm::Constant* GetConstantWithIndexType(int64 c) const {
-    return llvm::ConstantInt::get(index_type_, c);
-  }
-
   // Human-friendly name of the loop nest.
   string name_;
 
@@ -279,8 +265,6 @@ class ForLoopNest {
   llvm::BasicBlock* inner_loop_body_bb_;
 
   llvm::IRBuilder<>* ir_builder_;
-
-  llvm::Type* index_type_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(ForLoopNest);
 };

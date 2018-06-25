@@ -278,8 +278,7 @@ TF_CAPI_EXPORT extern TF_AttrType TFE_OpNameGetAttrType(
 
 TF_CAPI_EXPORT extern void TFE_OpSetAttrString(TFE_Op* op,
                                                const char* attr_name,
-                                               const void* value,
-                                               size_t length);
+                                               const char* value);
 TF_CAPI_EXPORT extern void TFE_OpSetAttrInt(TFE_Op* op, const char* attr_name,
                                             int64_t value);
 TF_CAPI_EXPORT extern void TFE_OpSetAttrFloat(TFE_Op* op, const char* attr_name,
@@ -306,8 +305,7 @@ TF_CAPI_EXPORT extern void TFE_OpSetAttrFunction(TFE_Op* op,
 
 TF_CAPI_EXPORT extern void TFE_OpSetAttrStringList(TFE_Op* op,
                                                    const char* attr_name,
-                                                   const void* const* values,
-                                                   const size_t* lengths,
+                                                   const char** value,
                                                    int num_values);
 TF_CAPI_EXPORT extern void TFE_OpSetAttrIntList(TFE_Op* op,
                                                 const char* attr_name,

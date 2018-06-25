@@ -105,19 +105,20 @@ class HloModule {
     return entry_computation_;
   }
 
-  // Creates the ComputationLayout which describes the current status of the HLO
-  // module entry computation.
-  ComputationLayout compute_computation_layout() const {
-    return ComputationLayout(entry_computation()->ComputeProgramShape(),
-                             /*ignore_layouts=*/false);
+  ComputationLayout* mutable_host_entry_computation_layout() {
+    return config_.mutable_host_entry_computation_layout();
   }
 
-  ComputationLayout* mutable_entry_computation_layout() {
-    return config_.mutable_entry_computation_layout();
+  const ComputationLayout& host_entry_computation_layout() const {
+    return config_.host_entry_computation_layout();
   }
 
-  const ComputationLayout& entry_computation_layout() const {
-    return config_.entry_computation_layout();
+  ComputationLayout* mutable_device_entry_computation_layout() {
+    return config_.mutable_device_entry_computation_layout();
+  }
+
+  const ComputationLayout& device_entry_computation_layout() const {
+    return config_.device_entry_computation_layout();
   }
 
   // Gets the computations in this module.
@@ -153,7 +154,7 @@ class HloModule {
   // Compute and return a post order of all computations in the module. The sort
   // is defined like so: if computation A has an instruction which calls
   // computation B, then A will appear after B in the sort.
-  std::vector<HloComputation*> MakeComputationPostOrder() const;
+  std::list<HloComputation*> MakeComputationPostOrder() const;
 
   // Gets the computations in this module which aren't for fusion nodes.
   //
