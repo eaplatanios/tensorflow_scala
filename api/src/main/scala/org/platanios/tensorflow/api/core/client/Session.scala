@@ -120,6 +120,7 @@ class Session private[api](
       (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
+    // TODO: !!! [JNI] Add a call to 'extend' once some JNI issues are resolved.
     val (inputs, inputTensors) = feeds.values.toSeq.unzip
     val inputTensorHandles: Array[Long] = inputTensors.map(_.resolve()).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray

@@ -17,7 +17,6 @@ limitations under the License.
 
 #include "c_api.h"
 #include "c_api_internal.h"
-//#include "tensorflow/core/graph/validate.h"
 
 namespace tensorflow {
 
@@ -118,7 +117,7 @@ void SetAttr(
 void ExtendSession(TF_Session* session, TF_Status* status) {
   // TODO: !!! [JNI] Fix this.
   // ExtendSessionGraphHelper(session, status);
-  session->extend_before_run = false;
+  // session->extend_before_run = false;
 }
 
 //// TODO(josh11b,mrry): Change Session to be able to use a Graph*
