@@ -691,25 +691,8 @@ private[api] trait NN {
 
   //region Convolution Ops
 
-  /** Padding mode. */
-  sealed trait ConvPaddingMode {
-    val name: String
-    override def toString: String = name
-  }
-
-  object ConvPaddingMode {
-    def fromName(name: String): ConvPaddingMode = fromString(name)
-
-    @throws[InvalidArgumentException]
-    def fromString(name: String): ConvPaddingMode = name match {
-      case SameConvPadding.name => SameConvPadding
-      case ValidConvPadding.name => ValidConvPadding
-      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
-    }
-  }
-
-  case object SameConvPadding extends ConvPaddingMode { override val name: String = "SAME" }
-  case object ValidConvPadding extends ConvPaddingMode { override val name: String = "VALID" }
+  case object SameConvPadding extends NN.ConvPaddingMode { override val name: String = "SAME" }
+  case object ValidConvPadding extends NN.ConvPaddingMode { override val name: String = "VALID" }
 
   sealed trait CNNDataFormat {
     val name: String
@@ -1169,6 +1152,23 @@ object NN extends NN {
     }
 
     //endregion Pooling Ops
+  }
+
+  /** Padding mode. */
+  sealed trait ConvPaddingMode {
+    val name: String
+    override def toString: String = name
+  }
+
+  object ConvPaddingMode {
+    def fromName(name: String): ConvPaddingMode = fromString(name)
+
+    @throws[InvalidArgumentException]
+    def fromString(name: String): ConvPaddingMode = name match {
+      case SameConvPadding.name => SameConvPadding
+      case ValidConvPadding.name => ValidConvPadding
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
+    }
   }
 
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */
