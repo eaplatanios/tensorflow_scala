@@ -21,6 +21,7 @@ package org.platanios.tensorflow.api.tensors
 package object ops {
   private[api] trait API
       extends Basic
+          with Cast
           with Math
           with NN
           with Random

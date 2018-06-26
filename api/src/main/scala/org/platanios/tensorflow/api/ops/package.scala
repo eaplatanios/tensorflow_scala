@@ -92,6 +92,7 @@ package object ops {
   private[api] trait API
       extends Basic
           with Callback
+          with Cast
           with Checks
           with Clip
           with DataFlow
