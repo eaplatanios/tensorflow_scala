@@ -333,7 +333,7 @@ object Model {
       metricResets: Seq[Op])
 }
 
-private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
+private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I](
     val input: Input[IT, IO, ID, IS],
     val layer: Layer[IO, I]
 ) extends InferenceModel[IT, IO, ID, IS, I] {
@@ -347,7 +347,7 @@ private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I] private[learn](
   }
 }
 
-private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private[learn](
+private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I](
     override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
     val loss: Layer[(IO, I), Output],
@@ -388,7 +388,7 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I] private
   }
 }
 
-private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
+private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
     val trainInput: Input[TT, TO, TD, TS],
@@ -436,7 +436,7 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
   }
 }
 
-private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] private[learn](
+private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
     override val input: Input[IT, IO, ID, IS],
     override val layer: Layer[IO, I],
     val trainLayer: Layer[(IO, TO), I],

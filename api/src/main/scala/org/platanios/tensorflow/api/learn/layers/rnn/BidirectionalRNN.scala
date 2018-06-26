@@ -62,7 +62,7 @@ class BidirectionalRNN[O, OS, S, SS](
 ) extends Layer[O, (Tuple[O, S], Tuple[O, S])](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override protected def _forward(input: O)(implicit mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
+  override def forwardWithoutContext(input: O)(implicit mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
     val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
     val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
@@ -77,7 +77,7 @@ class BidirectionalRNN[O, OS, S, SS](
     new Layer[O, Tuple[O, (S, S)]](s"$name/ConcatenatedOutputs") {
       override val layerType: String = "BidirectionalRNNWithConcatenatedOutputs"
 
-      override protected def _forward(input: O)(implicit mode: Mode): Tuple[O, (S, S)] = {
+      override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, (S, S)] = {
         val raw = BidirectionalRNN.this(input)
         val output = evO.fromOutputs(
           raw._1.output, evO.outputs(raw._1.output).zip(evO.outputs(raw._2.output)).map(o => {

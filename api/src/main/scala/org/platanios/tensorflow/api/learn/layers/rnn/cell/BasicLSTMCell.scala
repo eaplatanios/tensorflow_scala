@@ -44,9 +44,8 @@ class BasicLSTMCell(
   override val layerType: String = "BasicLSTMCell"
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicLSTMCell = {
-    val kernel = tf.variable(
-      KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, 4 * numUnits), kernelInitializer)
-    val bias = tf.variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
+    val kernel = getParameter(KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, 4 * numUnits), kernelInitializer)
+    val bias = getParameter(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
     ops.rnn.cell.BasicLSTMCell(kernel, bias, activation, forgetBias, name)
   }
 }

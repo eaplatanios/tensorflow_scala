@@ -32,7 +32,7 @@ private[implicits] trait LearnImplicits {
   ) extends Layer[CC[T], CC[R]]("Mappable") {
     override val layerType: String = "Mappable"
 
-    override protected def _forward(input: CC[T])(implicit mode: Mode): CC[R] = {
+    override def forwardWithoutContext(input: CC[T])(implicit mode: Mode): CC[R] = {
       layer(input)
     }
 
@@ -59,7 +59,7 @@ private[implicits] trait LearnImplicits {
   }
 
   implicit def unsupervisedTrainableModelUnaryRunConfigFunctionToUnsupervisedModelFunction[IT, IO, ID, IS, I](
-      function: (Configuration) => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+      function: Configuration => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
   ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
     UnsupervisedModelFunction(function)
   }
@@ -77,7 +77,7 @@ private[implicits] trait LearnImplicits {
   }
 
   implicit def supervisedTrainableModelUnaryRunConfigFunctionToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      function: (Configuration) => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+      function: Configuration => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
   ): SupervisedModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
     SupervisedModelFunction(function)
   }

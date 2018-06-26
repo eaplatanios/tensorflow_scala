@@ -42,21 +42,21 @@ class GRUCell(
   override val layerType: String = "GRUCell"
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.GRUCell = {
-    val gateKernel = tf.variable(
+    val gateKernel = getParameter(
       s"Gate/$KERNEL_NAME",
       dataType,
       Shape(inputShape(-1) + numUnits, 2 * numUnits),
       kernelInitializer)
-    val gateBias = tf.variable(
+    val gateBias = getParameter(
       s"Gate/$BIAS_NAME",
       dataType, Shape(2 * numUnits),
       biasInitializer)
-    val candidateKernel = tf.variable(
+    val candidateKernel = getParameter(
       s"Candidate/$KERNEL_NAME",
       dataType,
       Shape(inputShape(-1) + numUnits, numUnits),
       kernelInitializer)
-    val candidateBias = tf.variable(
+    val candidateBias = getParameter(
       s"Candidate/$BIAS_NAME",
       dataType,
       Shape(numUnits),

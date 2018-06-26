@@ -15,18 +15,17 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables.VariableScope.maybeWrapCustomVariableGetter
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.DataType
 
-import scala.util.DynamicVariable
-
 /**
   *
-  * '''NOTE:''' Subclasses must implement the `_forward` method. Callers should always use either the `forward` or the
+  * '''NOTE:''' Subclasses must implement the `forwardWithoutContext` method. Callers should always use either the `forward` or the
   * `apply` methods.
   *
   * @param  name Name scope (also acting as variable scope) for this layer.
@@ -38,7 +37,7 @@ abstract class Layer[T, R](
 ) {
   val layerType: String
 
-  protected def _forward(input: T)(implicit mode: Mode): R
+  def forwardWithoutContext(input: T)(implicit mode: Mode): R
 
   def forward(input: T)(implicit mode: Mode): R = Op.createWith(
     nameScope = layerContext.value.nameScope,
@@ -48,12 +47,26 @@ abstract class Layer[T, R](
     VariableScope.updatedScope(layerContext.value.variableScope, isPure = true) {
       if (name != null) {
         VariableScope.scope(name, isPure = true) {
-          _forward(input)
+          forwardWithoutContext(input)
         }
       } else {
-        _forward(input)
+        forwardWithoutContext(input)
       }
     }
+  }
+
+  def getParameter(
+      name: String,
+      dataType: DataType,
+      shape: Shape,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      trainable: Boolean = true,
+      reuse: Reuse = ReuseOrCreateNew,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null
+  ): Output = {
+    Variable.getVariable(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
   }
 
   def apply(input: T)(implicit mode: Mode): R = forward(input)
