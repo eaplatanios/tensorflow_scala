@@ -35,6 +35,7 @@ package object layers {
           with Math.API
           with NN.API
           with Summary.API
+          with core.API
           with rnn.API
 
   private[api] object API extends API
