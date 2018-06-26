@@ -159,40 +159,42 @@ package object api extends implicits.Implicits with Documentation {
 
   /** @groupname BasicOps       Ops / Basic
     * @groupprio BasicOps       100
+    * @groupname CastOps        Ops / Cast
+    * @groupprio CastOps        110
     * @groupname MathOps        Ops / Math
-    * @groupprio MathOps        110
-    * @groupname SparseOps      Ops / Clip
-    * @groupprio SparseOps      120
+    * @groupprio MathOps        120
+    * @groupname SparseOps      Ops / Sparse
+    * @groupprio SparseOps      130
     * @groupname ClipOps        Ops / Clip
-    * @groupprio ClipOps        130
+    * @groupprio ClipOps        140
     * @groupname NNOps          Ops / NN
-    * @groupprio NNOps          140
+    * @groupprio NNOps          150
     * @groupname StatisticsOps  Ops / Statistics
-    * @groupprio StatisticsOps  150
+    * @groupprio StatisticsOps  160
     * @groupname RandomOps      Ops / Random
-    * @groupprio RandomOps      160
+    * @groupprio RandomOps      170
     * @groupname ParsingOps     Ops / Parsing
-    * @groupprio ParsingOps     170
+    * @groupprio ParsingOps     180
     * @groupname TextOps        Ops / Text
-    * @groupprio TextOps        180
+    * @groupprio TextOps        190
     * @groupname ImageOps       Ops / Image
-    * @groupprio ImageOps       190
+    * @groupprio ImageOps       200
     * @groupname EmbeddingOps   Ops / Embedding
-    * @groupprio EmbeddingOps   200
+    * @groupprio EmbeddingOps   210
     * @groupname RNNOps         Ops / RNN
-    * @groupprio RNNOps         210
+    * @groupprio RNNOps         220
     * @groupname RNNCellOps     Ops / RNN Cells
-    * @groupprio RNNCellOps     220
+    * @groupprio RNNCellOps     230
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 230
+    * @groupprio ControlFlowOps 240
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     240
+    * @groupprio LoggingOps     250
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       250
+    * @groupprio CheckOps       260
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     260
+    * @groupprio SummaryOps     270
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    270
+    * @groupprio CallbackOps    280
     */
   object tf
       extends core.API
@@ -206,40 +208,42 @@ package object api extends implicits.Implicits with Documentation {
 
   /** @groupname BasicOps       Ops / Basic
     * @groupprio BasicOps       100
+    * @groupname CastOps        Ops / Cast
+    * @groupprio CastOps        110
     * @groupname MathOps        Ops / Math
-    * @groupprio MathOps        110
-    * @groupname SparseOps      Ops / Clip
-    * @groupprio SparseOps      120
+    * @groupprio MathOps        120
+    * @groupname SparseOps      Ops / Sparse
+    * @groupprio SparseOps      130
     * @groupname ClipOps        Ops / Clip
-    * @groupprio ClipOps        130
+    * @groupprio ClipOps        140
     * @groupname NNOps          Ops / NN
-    * @groupprio NNOps          140
+    * @groupprio NNOps          150
     * @groupname StatisticsOps  Ops / Statistics
-    * @groupprio StatisticsOps  150
+    * @groupprio StatisticsOps  160
     * @groupname RandomOps      Ops / Random
-    * @groupprio RandomOps      160
+    * @groupprio RandomOps      170
     * @groupname ParsingOps     Ops / Parsing
-    * @groupprio ParsingOps     170
+    * @groupprio ParsingOps     180
     * @groupname TextOps        Ops / Text
-    * @groupprio TextOps        180
+    * @groupprio TextOps        190
     * @groupname ImageOps       Ops / Image
-    * @groupprio ImageOps       190
+    * @groupprio ImageOps       200
     * @groupname EmbeddingOps   Ops / Embedding
-    * @groupprio EmbeddingOps   200
+    * @groupprio EmbeddingOps   210
     * @groupname RNNOps         Ops / RNN
-    * @groupprio RNNOps         210
+    * @groupprio RNNOps         220
     * @groupname RNNCellOps     Ops / RNN Cells
-    * @groupprio RNNCellOps     220
+    * @groupprio RNNCellOps     230
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 230
+    * @groupprio ControlFlowOps 240
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     240
+    * @groupprio LoggingOps     250
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       250
+    * @groupprio CheckOps       260
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     260
+    * @groupprio SummaryOps     270
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    270
+    * @groupprio CallbackOps    280
     */
   object tfi
       extends core.API
