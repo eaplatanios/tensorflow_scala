@@ -35,12 +35,14 @@ object Basic {
     type Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.Map[T, R, S, CC]
     type Squeeze = layers.Squeeze
     type Flatten = layers.Flatten
+    type Reshape = layers.Reshape
     type Transpose = layers.Transpose
     type OneHot = layers.OneHot
 
     val Identity : layers.Identity.type  = layers.Identity
     val Squeeze  : layers.Squeeze.type   = layers.Squeeze
     val Flatten  : layers.Flatten.type   = layers.Flatten
+    val Reshape  : layers.Reshape.type   = layers.Reshape
     val Transpose: layers.Transpose.type = layers.Transpose
     val OneHot   : layers.OneHot.type    = layers.OneHot
   }
@@ -109,6 +111,15 @@ case class Flatten(override val name: String)
       ops.Basic.reshape(input, Shape(input.shape(0), -1), name = name)
     else
       ops.Basic.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
+  }
+}
+
+case class Reshape(override val name: String, shape: Shape)
+    extends Layer[Output, Output](name) {
+  override val layerType: String = s"Reshape[${shape.asArray.mkString(", ")}]"
+
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    ops.Basic.reshape(input, shape, name = name)
   }
 }
 
