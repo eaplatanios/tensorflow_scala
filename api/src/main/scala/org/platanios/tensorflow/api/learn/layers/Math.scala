@@ -87,7 +87,7 @@ case class AddBias(
   override val layerType: String = "AddBias"
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    val bias = getParameter(s"$name/Bias", input.dataType, Shape(input.shape(-1)), initializer)
+    val bias = parameterGetter.value(s"$name/Bias", input.dataType, Shape(input.shape(-1)), initializer)
     ops.NN.addBias(input, bias)
   }
 }
@@ -102,9 +102,9 @@ case class Linear(
   override val layerType: String = s"Linear[$units]"
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    val weights = getParameter("Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
+    val weights = parameterGetter.value("Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
     if (useBias)
-      ops.NN.linear(input, weights, getParameter("Bias", input.dataType, Shape(units), biasInitializer))
+      ops.NN.linear(input, weights, parameterGetter.value("Bias", input.dataType, Shape(units), biasInitializer))
     else
       ops.NN.linear(input, weights)
   }

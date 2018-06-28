@@ -18,8 +18,9 @@ val t5 = t3.any()       // Fails at compile-time because `any()` is only
 
 Other new features include:
 
-- Improvements to the high-level learn API
-  (e.g., layers now support `.map(...)`).
+- Improvements to the high-level learn API:
+  - Layers can now provide and use their own parameter generator.
+  - Layers now support `.map(...)`.
 
 # 0.2.4 Minor Fix
 

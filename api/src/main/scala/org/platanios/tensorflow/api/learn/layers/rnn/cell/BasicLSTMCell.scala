@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
+import org.platanios.tensorflow.api.learn.layers.parameterGetter
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
@@ -44,8 +45,9 @@ class BasicLSTMCell(
   override val layerType: String = "BasicLSTMCell"
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicLSTMCell = {
-    val kernel = getParameter(KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, 4 * numUnits), kernelInitializer)
-    val bias = getParameter(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
+    val kernel = parameterGetter.value(
+      KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, 4 * numUnits), kernelInitializer)
+    val bias = parameterGetter.value(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
     ops.rnn.cell.BasicLSTMCell(kernel, bias, activation, forgetBias, name)
   }
 }
