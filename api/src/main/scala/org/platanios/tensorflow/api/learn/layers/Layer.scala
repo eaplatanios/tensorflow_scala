@@ -81,6 +81,8 @@ abstract class Layer[T, R](
 
   def concatenate(others: Layer[T, R]*): Concatenate[T, R] = Concatenate(name, this +: others)
 
+  def map[MR](mapFn: R => MR): Layer[T, MR] = Map(s"$name/Map", this, mapFn)
+
   override def toString: String = layerType
 }
 
