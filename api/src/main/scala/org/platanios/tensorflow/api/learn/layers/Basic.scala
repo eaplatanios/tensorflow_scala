@@ -20,6 +20,10 @@ import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 
+import scala.collection.TraversableLike
+import scala.collection.generic.CanBuildFrom
+import scala.language.higherKinds
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -29,6 +33,7 @@ object Basic {
     type Compose[T, R, S] = layers.Compose[T, R, S]
     type Concatenate[T, R] = layers.Concatenate[T, R]
     type Map[T, R, MR] = layers.Map[T, R, MR]
+    type MapSeq[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.MapSeq[T, R, S, CC]
     type Squeeze = layers.Squeeze
     type Flatten = layers.Flatten
     type Reshape = layers.Reshape
@@ -37,6 +42,7 @@ object Basic {
 
     val Identity : layers.Identity.type  = layers.Identity
     val Map      : layers.Map.type       = layers.Map
+    val MapSeq   : layers.MapSeq.type    = layers.MapSeq
     val Squeeze  : layers.Squeeze.type   = layers.Squeeze
     val Flatten  : layers.Flatten.type   = layers.Flatten
     val Reshape  : layers.Reshape.type   = layers.Reshape
@@ -81,6 +87,22 @@ case class Map[T, R, MR](
 
   override def forwardWithoutContext(input: T)(implicit mode: Mode): MR = {
     mapFn(layer(input))
+  }
+}
+
+case class MapSeq[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
+    override val name: String,
+    layer: Layer[CC[T], CC[R]],
+    mapLayer: Layer[R, S]
+)(implicit
+    cbfRS: CanBuildFrom[CC[R], S, CC[S]]
+) extends Layer[CC[T], CC[S]](name) {
+  override val layerType: String = s"Map[$layer]"
+
+  override def forwardWithoutContext(input: CC[T])(implicit mode: Mode): CC[S] = {
+    layer(input)
+        .asInstanceOf[TraversableLike[R, CC[R]]]
+        .map[S, CC[S]](mapLayer(_))(cbfRS)
   }
 }
 

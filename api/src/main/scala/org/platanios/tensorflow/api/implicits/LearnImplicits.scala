@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.learn.{Configuration, Mode, SupervisedTrainableModel, UnsupervisedTrainableModel}
 import org.platanios.tensorflow.api.learn.estimators.Estimator.{SupervisedModelFunction, UnsupervisedModelFunction}
-import org.platanios.tensorflow.api.learn.layers.{Layer, Map}
+import org.platanios.tensorflow.api.learn.layers.{Layer, MapSeq}
 
 import scala.collection.TraversableLike
 import scala.collection.generic.CanBuildFrom
@@ -41,8 +41,8 @@ private[implicits] trait LearnImplicits {
         mapLayer: Layer[R, S]
     )(implicit
         cbfRS: CanBuildFrom[CC[R], S, CC[S]]
-    ): Map[T, R, S, CC] = {
-      Map[T, R, S, CC](layer.name, layer, mapLayer)(cbfRS)
+    ): MapSeq[T, R, S, CC] = {
+      MapSeq[T, R, S, CC](layer.name, layer, mapLayer)(cbfRS)
     }
   }
 
