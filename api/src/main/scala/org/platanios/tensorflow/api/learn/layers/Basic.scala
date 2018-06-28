@@ -35,6 +35,7 @@ object Basic {
     type Map[T, R, MR] = layers.Map[T, R, MR]
     type MapSeq[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.MapSeq[T, R, S, CC]
     type Squeeze = layers.Squeeze
+    type Stack = layers.Stack
     type Flatten = layers.Flatten
     type Reshape = layers.Reshape
     type Transpose = layers.Transpose
@@ -44,6 +45,7 @@ object Basic {
     val Map      : layers.Map.type       = layers.Map
     val MapSeq   : layers.MapSeq.type    = layers.MapSeq
     val Squeeze  : layers.Squeeze.type   = layers.Squeeze
+    val Stack    : layers.Stack.type     = layers.Stack
     val Flatten  : layers.Flatten.type   = layers.Flatten
     val Reshape  : layers.Reshape.type   = layers.Reshape
     val Transpose: layers.Transpose.type = layers.Transpose
@@ -112,6 +114,15 @@ case class Squeeze(override val name: String, axes: Seq[Int] = null)
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.Basic.squeeze(input, axes, name = name)
+  }
+}
+
+case class Stack(override val name: String, axis: Int = 0)
+    extends Layer[Seq[Output], Output](name) {
+  override val layerType: String = s"Stack[axis=$axis]"
+
+  override def forwardWithoutContext(input: Seq[Output])(implicit mode: Mode): Output = {
+    ops.Basic.stack(input, axis, name = name)
   }
 }
 
