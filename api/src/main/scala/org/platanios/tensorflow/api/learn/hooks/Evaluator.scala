@@ -148,7 +148,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
             if (m._1.shape.rank == 0 && (m._1.dataType.isFloatingPoint || m._1.dataType.isInteger)) {
               val castedValue = m._1.cast(FLOAT32).scalar
               val value = Summary.Value.newBuilder()
-              value.setTag(s"$datasetName/${m._2}")
+              value.setTag(s"$name/$datasetName/${m._2}")
               value.setSimpleValue(castedValue)
               sp.addValue(value)
             } else {
