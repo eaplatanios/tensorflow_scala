@@ -44,7 +44,7 @@ private[api] trait Statistics {
       name: String = "SufficientStatistics"): (Output, Output, Output, Output) = {
     Op.createWithNameScope(name, Set(input.op)) {
       val dynamicAxes: Output = axes
-      val counts = Math.prod(Basic.gather(Math.cast(Basic.shape(input), input.dataType), dynamicAxes))
+      val counts = Math.prod(Basic.gather(Cast.cast(Basic.shape(input), input.dataType), dynamicAxes))
       val mSS = if (shift == null) input else input - shift
       val vSS = if (shift == null) Math.square(input) else Math.squaredDifference(input, shift)
       val meanSS = Math.sum(mSS, axes = dynamicAxes, keepDims = keepDims, name = "MeanSS")
@@ -104,7 +104,7 @@ private[api] trait Statistics {
         // The dynamic range of FLOAT16 is too limited to support the collection of sufficient statistics. As a
         // workaround we simply perform the operations on 32-bit floats before converting the mean and variance back to
         // FLOAT16.
-        val preciseInput = if (input.dataType == FLOAT16) Math.cast(input, FLOAT32) else input
+        val preciseInput = if (input.dataType == FLOAT16) Cast.cast(input, FLOAT32) else input
         // Compute true mean while keeping the dimensions for proper broadcasting.
         var mean = Math.mean(preciseInput, axes = dynamicAxes, keepDims = true, name = "Mean")
         // Compute the sample variance (i.e., not an unbiased variance estimate).
@@ -117,7 +117,7 @@ private[api] trait Statistics {
         }
         // Cast back to FLOAT16 if necessary.
         if (input.dataType == FLOAT16)
-          (Math.cast(mean, FLOAT16), Math.cast(variance, FLOAT16))
+          (Cast.cast(mean, FLOAT16), Cast.cast(variance, FLOAT16))
         else
           (mean, variance)
       }
@@ -128,8 +128,8 @@ private[api] trait Statistics {
         // The dynamic range of FLOAT16 is too limited to support the collection of sufficient statistics. As a
         // workaround we simply perform the operations on 32-bit floats before converting the mean and variance back to
         // FLOAT16.
-        val preciseInput = if (input.dataType == FLOAT16) Math.cast(input, FLOAT32) else input
-        val preciseWeights = Math.cast(weights, preciseInput.dataType)
+        val preciseInput = if (input.dataType == FLOAT16) Cast.cast(input, FLOAT32) else input
+        val preciseWeights = Cast.cast(weights, preciseInput.dataType)
         // Note that we use keepDims = true for our reductions regardless of the provided function argument. This is so
         // that the results remain broadcast-compatible with the inputs.
         val weightedInputSum = Math.sum(
@@ -151,7 +151,7 @@ private[api] trait Statistics {
         }
         // Cast back to FLOAT16 if necessary.
         if (input.dataType == FLOAT16)
-          (Math.cast(mean, FLOAT16), Math.cast(variance, FLOAT16))
+          (Cast.cast(mean, FLOAT16), Cast.cast(variance, FLOAT16))
         else
           (mean, variance)
       }

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -90,25 +90,25 @@ class Adam protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(learningRateTensor, variable.dataType)
+    Cast.cast(learningRateTensor, variable.dataType)
   }
 
   protected def getBeta1(variable: Variable): Output = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(beta1Tensor, variable.dataType)
+    Cast.cast(beta1Tensor, variable.dataType)
   }
 
   protected def getBeta2(variable: Variable): Output = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(beta2Tensor, variable.dataType)
+    Cast.cast(beta2Tensor, variable.dataType)
   }
 
   protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(epsilonTensor, variable.dataType)
+    Cast.cast(epsilonTensor, variable.dataType)
   }
 
   protected def getBetaPowerAccumulators: (Variable, Variable) = {
@@ -146,8 +146,8 @@ class Adam protected (
       variable = variable,
       m = m,
       v = v,
-      beta1Power = Math.cast(beta1Power.value, variable.dataType),
-      beta2Power = Math.cast(beta2Power.value, variable.dataType),
+      beta1Power = Cast.cast(beta1Power.value, variable.dataType),
+      beta2Power = Cast.cast(beta2Power.value, variable.dataType),
       stepSize = getLearningRate(variable, iteration),
       beta1 = getBeta1(variable),
       beta2 = getBeta2(variable),

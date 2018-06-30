@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.learn.{Configuration, Mode, SupervisedTrainableModel, UnsupervisedTrainableModel}
 import org.platanios.tensorflow.api.learn.estimators.Estimator.{SupervisedModelFunction, UnsupervisedModelFunction}
-import org.platanios.tensorflow.api.learn.layers.{Layer, Map}
+import org.platanios.tensorflow.api.learn.layers.{Layer, MapSeq}
 
 import scala.collection.TraversableLike
 import scala.collection.generic.CanBuildFrom
@@ -26,13 +26,13 @@ import scala.collection.generic.CanBuildFrom
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Learn {
+private[implicits] trait LearnImplicits {
   implicit class MappableLayer[T, R, CC[A] <: TraversableLike[A, CC[A]]](
       layer: Layer[CC[T], CC[R]]
   ) extends Layer[CC[T], CC[R]]("Mappable") {
     override val layerType: String = "Mappable"
 
-    override protected def _forward(input: CC[T])(implicit mode: Mode): CC[R] = {
+    override def forwardWithoutContext(input: CC[T])(implicit mode: Mode): CC[R] = {
       layer(input)
     }
 
@@ -41,8 +41,8 @@ trait Learn {
         mapLayer: Layer[R, S]
     )(implicit
         cbfRS: CanBuildFrom[CC[R], S, CC[S]]
-    ): Map[T, R, S, CC] = {
-      Map[T, R, S, CC](layer.name, layer, mapLayer)(cbfRS)
+    ): MapSeq[T, R, S, CC] = {
+      MapSeq[T, R, S, CC](layer.name, layer, mapLayer)(cbfRS)
     }
   }
 
@@ -59,7 +59,7 @@ trait Learn {
   }
 
   implicit def unsupervisedTrainableModelUnaryRunConfigFunctionToUnsupervisedModelFunction[IT, IO, ID, IS, I](
-      function: (Configuration) => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+      function: Configuration => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
   ): UnsupervisedModelFunction[IT, IO, ID, IS, I] = {
     UnsupervisedModelFunction(function)
   }
@@ -77,7 +77,7 @@ trait Learn {
   }
 
   implicit def supervisedTrainableModelUnaryRunConfigFunctionToModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      function: (Configuration) => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
+      function: Configuration => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
   ): SupervisedModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
     SupervisedModelFunction(function)
   }

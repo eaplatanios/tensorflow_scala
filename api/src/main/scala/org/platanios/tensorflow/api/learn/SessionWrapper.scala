@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.exception.{AbortedException, Unavailabl
 import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -134,7 +135,7 @@ class SessionWrapper private[learn](
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Hook.SessionRunArgs[(F, Seq[Seq[Output]]), (E, Seq[Op]), (R, Seq[Seq[Tensor]])] = {
+  ): Hook.SessionRunArgs[(F, Seq[Seq[Output]]), (E, Seq[Op]), (R, Seq[Seq[Tensor[DataType]]])] = {
     var hooksFeedMap = FeedMap.empty
     val hooksFetchesList = mutable.ListBuffer.empty[Seq[Output]]
     val hooksTargetsList = mutable.ListBuffer.empty[Op]

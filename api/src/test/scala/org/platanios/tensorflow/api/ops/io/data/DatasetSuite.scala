@@ -18,10 +18,12 @@ package org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Op}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.types.{INT32, INT64}
 import org.platanios.tensorflow.api.utilities.using
+
 import org.junit.Test
 import org.scalatest.junit.JUnitSuite
 
@@ -72,10 +74,10 @@ class DatasetSuite extends JUnitSuite {
       assert(nextOutput.shape === Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
-      assert(session.run(fetches = nextOutput) === (0L: Tensor))
-      assert(session.run(fetches = nextOutput) === (1L: Tensor))
-      assert(session.run(fetches = nextOutput) === (2L: Tensor))
-      assert(session.run(fetches = nextOutput) === (3L: Tensor))
+      assert(session.run(fetches = nextOutput) === (0L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (1L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (2L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (3L: Tensor[INT64]))
       assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
@@ -89,10 +91,10 @@ class DatasetSuite extends JUnitSuite {
       assert(nextOutput.shape === Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
-      assert(session.run(fetches = nextOutput) === (0L: Tensor))
-      assert(session.run(fetches = nextOutput) === (2L: Tensor))
-      assert(session.run(fetches = nextOutput) === (4L: Tensor))
-      assert(session.run(fetches = nextOutput) === (6L: Tensor))
+      assert(session.run(fetches = nextOutput) === (0L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (2L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (4L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (6L: Tensor[INT64]))
       assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
@@ -106,14 +108,14 @@ class DatasetSuite extends JUnitSuite {
       assert(nextOutput.shape === Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
-      assert(session.run(fetches = nextOutput) === (0L: Tensor))
-      assert(session.run(fetches = nextOutput) === (1L: Tensor))
-      assert(session.run(fetches = nextOutput) === (1L: Tensor))
-      assert(session.run(fetches = nextOutput) === (1L: Tensor))
-      assert(session.run(fetches = nextOutput) === (2L: Tensor))
-      assert(session.run(fetches = nextOutput) === (1L: Tensor))
-      assert(session.run(fetches = nextOutput) === (3L: Tensor))
-      assert(session.run(fetches = nextOutput) === (1L: Tensor))
+      assert(session.run(fetches = nextOutput) === (0L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (1L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (1L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (1L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (2L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (1L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (3L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (1L: Tensor[INT64]))
       assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }

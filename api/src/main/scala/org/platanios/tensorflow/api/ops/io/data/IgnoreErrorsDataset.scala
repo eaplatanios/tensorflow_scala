@@ -33,7 +33,9 @@ import org.platanios.tensorflow.api.ops.{Op, Output}
 case class IgnoreErrorsDataset[T, O, D, S] private[io] (
     inputDataset: Dataset[T, O, D, S],
     override val name: String = "IgnoreErrorsDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+) {
   override def createHandle(): Output = {
     Op.Builder(opType = "IgnoreErrorsDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))

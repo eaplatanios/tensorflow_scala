@@ -35,7 +35,9 @@ case class PrefetchDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     bufferSize: Long,
     override val name: String = "PrefetchDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+) {
   override def createHandle(): Output = {
     Op.Builder(opType = "PrefetchDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))

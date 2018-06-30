@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.FileIO
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -188,7 +189,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
         val modelCheckpointPath = absoluteSavePath.getFileSystem.getPath(
           // TODO: [SESSION] !!! Feed mappers for string inputs.
           session.run(
-            feeds = Map(filenameTensor -> (checkpointFile.toString: Tensor)),
+            feeds = Map[Output, Tensor[DataType]](filenameTensor -> checkpointFile.toString.toTensor),
             fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
@@ -234,7 +235,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     val filenameTensor = session.graph.getOutputByName(saverDef.getFilenameTensorName)
     val restoreOp = session.graph.getOpByName(saverDef.getRestoreOpName)
     // TODO: [SESSION] !!! Feed mappers for string inputs.
-    session.run(feeds = Map(filenameTensor -> Tensor(savePath.toString)), targets = restoreOp)
+    session.run(feeds = Map[Output, Tensor[DataType]](filenameTensor -> savePath.toString.toTensor), targets = restoreOp)
   }
 
   /** Returns the sequence of the latest and not-yet-deleted checkpoint filenames, sorted from oldest to newest. You can
@@ -1185,7 +1186,7 @@ object SaverDefBuilder {
     // TODO: [TENSORS] !!! Can we avoid all the tensor reshapes in the future? Maybe have a "withRank" function.
     Op.Builder(opType = "Save", name = name)
         .addInput(filename)
-        .addInput(Tensor(tensorNames).reshape(Shape(tensorNames.length)).toOutput)
+        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
         .addInputList(tensors)
         .build()
   }
@@ -1243,8 +1244,8 @@ object SaverDefBuilder {
             s"'slices' (${slices.length}).")
     Op.Builder(opType = "SaveSlices", name = name)
         .addInput(filename)
-        .addInput(Tensor(tensorNames).reshape(Shape(tensorNames.length)).toOutput)
-        .addInput(Tensor(slices).reshape(Shape(slices.length)).toOutput)
+        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
+        .addInput(slices.toTensor.reshape(Shape(slices.length)).toOutput)
         .addInputList(tensors)
         .build()
   }
@@ -1360,8 +1361,8 @@ object SaverDefBuilder {
             s"'slices' (${slices.length}).")
     Op.Builder(opType = "SaveV2", name = name)
         .addInput(prefix)
-        .addInput(Tensor(tensorNames).reshape(Shape(tensorNames.length)).toOutput)
-        .addInput(Tensor(slices).reshape(Shape(slices.length)).toOutput)
+        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
+        .addInput(slices.toTensor.reshape(Shape(slices.length)).toOutput)
         .addInputList(tensors)
         .setAttribute("dtypes", tensors.map(_.dataType).toArray)
         .build()
@@ -1415,8 +1416,8 @@ object SaverDefBuilder {
             s"'dataTypes' (${dataTypes.length}).")
     Op.Builder(opType = "RestoreV2", name = name)
         .addInput(prefix)
-        .addInput(Tensor(tensorNames).reshape(Shape(tensorNames.length)).toOutput)
-        .addInput(Tensor(slices).reshape(Shape(slices.length)).toOutput)
+        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
+        .addInput(slices.toTensor.reshape(Shape(slices.length)).toOutput)
         .setAttribute("dtypes", dataTypes.toArray)
         .build().outputs.toSeq
   }

@@ -35,10 +35,10 @@ scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
   "-encoding", "UTF-8",
   "-feature",
-  "-language:existentials",
-  "-language:higherKinds",
-  "-language:implicitConversions",
-  "-unchecked",
+  "-language:existentials",        // Existential types (besides wildcard types) can be written and inferred.
+  "-language:higherKinds",         // Allow higher-kinded types.
+  "-language:implicitConversions", // Allow definition of implicit functions called views.
+  "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
   "-Yno-adapted-args",
@@ -46,13 +46,13 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture"
+  "-Xfuture",                      // Turn on future language features.
 //  "-P:splain:all",
 //  "-P:splain:infix",
 //  "-P:splain:foundreq",
 //  "-P:splain:implicits",
 //  "-P:splain:color",
-//  "-P:splain:tree"
+//  "-P:splain:tree",
 //  "-P:splain:boundsimplicits:false"
 )
 
@@ -66,7 +66,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  // addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
+  addCompilerPlugin("io.tryp"  % "splain" % "0.3.1" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
@@ -160,7 +160,7 @@ lazy val jni = (project in file("./jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
       nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tfBinaryVersion in JniCross := "1.9.0-rc1", // tensorFlowVersion,
+      tfBinaryVersion in JniCross := tensorFlowVersion,
       tfLibCompile in JniCross := false,
       tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch in JniCross := "master",

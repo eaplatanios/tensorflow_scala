@@ -77,7 +77,7 @@ object MNISTLoader extends Loader {
     MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
 
-  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor = {
+  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
     logger.info(s"Extracting images from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -99,7 +99,7 @@ object MNISTLoader extends Loader {
     tensor
   }
 
-  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor = {
+  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
     logger.info(s"Extracting labels from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -122,7 +122,7 @@ object MNISTLoader extends Loader {
 
 case class MNISTDataset(
     datasetType: MNISTLoader.DatasetType,
-    trainImages: Tensor,
-    trainLabels: Tensor,
-    testImages: Tensor,
-    testLabels: Tensor)
+    trainImages: Tensor[UINT8],
+    trainLabels: Tensor[UINT8],
+    testImages: Tensor[UINT8],
+    testLabels: Tensor[UINT8])

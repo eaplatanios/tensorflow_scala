@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.implicits.helpers.StructureFromOutput
 import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 import org.platanios.tensorflow.api.types.DataType
 
@@ -43,8 +43,8 @@ case class ZipDataset[T1, O1, D1, S1, T2, O2, D2, S2](
     inputDataset2: Dataset[T2, O2, D2, S2],
     override val name: String = "ZipDataset"
 )(implicit
-    evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
-    evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
+    evStructure1: StructureFromOutput.Aux[T1, O1, D1, S1] = inputDataset1.evStructure,
+    evStructure2: StructureFromOutput.Aux[T2, O2, D2, S2] = inputDataset2.evStructure,
     evData1: Data.Aux[T1, O1, D1, S1] = inputDataset1.evData,
     evData2: Data.Aux[T2, O2, D2, S2] = inputDataset2.evData,
     evFunctionInput1: Function.ArgType[O1] = inputDataset1.evFunctionInput,
@@ -91,9 +91,9 @@ case class Zip3Dataset[T1, O1, D1, S1, T2, O2, D2, S2, T3, O3, D3, S3](
     inputDataset3: Dataset[T3, O3, D3, S3],
     override val name: String = "Zip3Dataset"
 )(implicit
-    evO1ToT1: OutputToTensor.Aux[O1, T1] = inputDataset1.evOToT,
-    evO2ToT2: OutputToTensor.Aux[O2, T2] = inputDataset2.evOToT,
-    evO3ToT3: OutputToTensor.Aux[O3, T3] = inputDataset3.evOToT,
+    evStructure1: StructureFromOutput.Aux[T1, O1, D1, S1] = inputDataset1.evStructure,
+    evStructure2: StructureFromOutput.Aux[T2, O2, D2, S2] = inputDataset2.evStructure,
+    evStructure3: StructureFromOutput.Aux[T3, O3, D3, S3] = inputDataset3.evStructure,
     evData1: Data.Aux[T1, O1, D1, S1] = inputDataset1.evData,
     evData2: Data.Aux[T2, O2, D2, S2] = inputDataset2.evData,
     evData3: Data.Aux[T3, O3, D3, S3] = inputDataset3.evData,
@@ -136,7 +136,7 @@ case class ZipMultipleDataset[T, O, D, S](
     inputDatasets: Seq[Dataset[T, O, D, S]],
     override val name: String = "ZipMultipleDataset"
 )(implicit
-    evOToT: OutputToTensor.Aux[O, T] = inputDatasets.head.evOToT,
+    evStructure: StructureFromOutput.Aux[T, O, D, S] = inputDatasets.head.evStructure,
     evData: Data.Aux[T, O, D, S] = inputDatasets.head.evData,
     evFunctionInput: Function.ArgType[O] = inputDatasets.head.evFunctionInput,
     evFunctionInputSeq: Function.ArgType[Seq[O]]
@@ -162,7 +162,9 @@ object ZipDataset {
       * @return Created dataset.
       */
     def zip[T2, O2, D2, S2](
-        other: Dataset[T2, O2, D2, S2], name: String = "Zip"): Dataset[(T, T2), (O, O2), (D, D2), (S, S2)] = {
+        other: Dataset[T2, O2, D2, S2],
+        name: String = "Zip"
+    ): Dataset[(T, T2), (O, O2), (D, D2), (S, S2)] = {
       Op.createWithNameScope(s"${dataset.name}_${other.name}") {
         ZipDataset(dataset, other, name)
       }
@@ -197,8 +199,11 @@ object ZipDataset {
     * @return Created op output, which is a handle to the created dataset.
     */
   private[data] def datasetZip(
-      datasets: Seq[Output], outputDataTypes: Seq[DataType], outputShapes: Seq[Shape],
-      name: String = "DatasetZip"): Output = {
+      datasets: Seq[Output],
+      outputDataTypes: Seq[DataType],
+      outputShapes: Seq[Shape],
+      name: String = "DatasetZip"
+  ): Output = {
     Op.Builder(opType = "ZipDataset", name = name)
         .addInputList(datasets)
         .setAttribute("output_types", outputDataTypes.toArray)

@@ -353,7 +353,7 @@ trait Optimizer {
     */
   protected final def getOrCreateNonSlotVariable(
       name: String,
-      initialValue: Tensor,
+      initialValue: Tensor[_ <: DataType],
       colocationOps: Set[Op] = Set.empty
   ): Variable = {
     nonSlotVariables.getOrElseUpdate(

@@ -38,12 +38,12 @@ case class Embedding(
     dataType: DataType,
     partitionStrategy: ops.Embedding.PartitionStrategy = ops.Embedding.ModStrategy,
     transformFn: Output => Output = null,
-    maxNorm: Tensor = null
+    maxNorm: Tensor[DataType] = null
 ) extends Layer[Output, Output](name) {
   override val layerType: String = "Embedding"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
-    val embeddingMap = tf.variable("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    val embeddingMap = parameterGetter.value("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
     ops.Embedding.embeddingLookup(
       embeddingMap, input, partitionStrategy, transformFn,
       if (maxNorm == null) null else ops.Basic.constant(maxNorm),

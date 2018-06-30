@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.implicits.helpers.StructureFromOutput
 import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
@@ -50,7 +50,8 @@ case class Function[I, O](name: String, function: I => O)(implicit
     val key = dataTypes.map(_.toString).mkString(":")
     InstantiatedFunction(
       s"${name}_$key", function, dataTypes, input = Some(arg),
-      captureByValue = captureByValue, appendHashToName = appendHashToName)(evInput, evOutput)(arg)
+      captureByValue = captureByValue, appendHashToName = appendHashToName
+    )(evInput, evOutput)(arg)
   }
 
   def instantiate(
@@ -102,7 +103,9 @@ object Function {
       }
 
       override def outputsDecoderWithKnownArg(
-          arg: OutputIndexedSlices, outputs: Seq[Output]): (OutputIndexedSlices, Seq[Output]) = {
+          arg: OutputIndexedSlices,
+          outputs: Seq[Output]
+      ): (OutputIndexedSlices, Seq[Output]) = {
         (OutputIndexedSlices(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
       }
     }
@@ -130,10 +133,10 @@ object Function {
         dataType: D = null.asInstanceOf[D],
         shape: S = null.asInstanceOf[S]
     )(implicit
-        evOToT: OutputToTensor.Aux[O, T],
+        evStructure: StructureFromOutput.Aux[T, O, D, S],
         evData: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
-    ) extends Dataset[T, O, D, S]("VariantDataset")(evOToT, evData, evFunctionInput) {
+    ) extends Dataset[T, O, D, S]("VariantDataset") {
       /** Creates a `VARIANT` scalar tensor representing this dataset. This function adds ops to the current graph, that
         * create the dataset resource. */
       override def createHandle(): Output = handle
@@ -146,7 +149,7 @@ object Function {
     }
 
     implicit def datasetArgType[T, O, D, S](implicit
-        evOToT: OutputToTensor.Aux[O, T],
+        evStructure: StructureFromOutput.Aux[T, O, D, S],
         evData: Data.Aux[T, O, D, S],
         evFunctionInput: Function.ArgType[O]
     ): ArgType[Dataset[T, O, D, S]] = new ArgType[Dataset[T, O, D, S]] {
@@ -155,13 +158,12 @@ object Function {
       override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType] = Seq(VARIANT)
 
       override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = {
-        (VariantDataset(outputs.head)(evOToT, evData, evFunctionInput), outputs.drop(1))
+        (VariantDataset(outputs.head), outputs.drop(1))
       }
 
       override def outputsDecoderWithKnownArg(
           arg: Dataset[T, O, D, S], outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = {
-        (VariantDataset(outputs.head, arg.outputDataTypes, arg.outputShapes)(evOToT, evData, evFunctionInput),
-            outputs.drop(1))
+        (VariantDataset(outputs.head, arg.outputDataTypes, arg.outputShapes), outputs.drop(1))
       }
     }
 

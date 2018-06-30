@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.ops.Basic.BasicOps
+import org.platanios.tensorflow.api.ops.Cast.CastOps
 import org.platanios.tensorflow.api.ops.Clip.ClipOps
 import org.platanios.tensorflow.api.ops.Embedding.{OutputParameters, VariableParameters}
 import org.platanios.tensorflow.api.ops.Math.MathOps
@@ -28,17 +29,19 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow.ControlFlowOps
 import org.platanios.tensorflow.api.ops.training.distribute.strategies.DistributionContext
 import org.platanios.tensorflow.api.ops.training.distribute.values.DistributedValue
-import org.platanios.tensorflow.api.tensors.TensorConvertible
+import org.platanios.tensorflow.api.tensors.{Tensor, TensorConvertible}
 
 /** Groups together all implicits related to constructing symbolic ops.
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Ops {
+private[implicits] trait OpsImplicits {
   implicit def opToControlFlowOps(op: Op): ControlFlowOps = ControlFlowOps(op)
 
-  implicit def tensorConvertibleToOutput[T](value: T)(implicit ev: TensorConvertible[T]): Output = {
-    ev.toTensor(value).toOutput
+  implicit def tensorToOutput(tensor: Tensor[_]): Output = tensor.toOutput
+
+  implicit def tensorConvertibleToOutput[T: TensorConvertible](value: T): Output = {
+    implicitly[TensorConvertible[T]].toTensor(value).toOutput
   }
 
   implicit def outputConvertibleToOutput[T <: OutputConvertible](outputConvertible: T): Output = {
@@ -50,6 +53,9 @@ trait Ops {
 
   implicit def outputToBasicOps(value: Output): BasicOps = BasicOps(value)
   implicit def outputConvertibleToBasicOps[T](value: T)(implicit f: T => Output): BasicOps = BasicOps(f(value))
+
+  implicit def outputToCastOps(value: Output): CastOps = CastOps(value)
+  implicit def outputConvertibleToCastOps[T](value: T)(implicit f: T => Output): CastOps = CastOps(f(value))
 
   implicit def outputToClipOps(value: Output): ClipOps = ClipOps(value)
   implicit def outputConvertibleToClipOps[T](value: T)(implicit f: T => Output): ClipOps = ClipOps(f(value))
@@ -85,6 +91,7 @@ trait Ops {
   implicit def outputToEmbeddingMap(parameters: Output): EmbeddingMap = OutputParameters(parameters)
   implicit def variableToEmbeddingMap(parameters: Variable): EmbeddingMap = VariableParameters(parameters)
 
+  // TODO: [DISTRIBUTE] Add support for this.
   implicit def distributedValueToValue[T <: OutputConvertible, D <: DistributedValue[T]](
       value: D
   )(implicit context: DistributionContext): T = value.get()

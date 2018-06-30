@@ -16,12 +16,10 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices}
-import org.platanios.tensorflow.api.tensors.Tensor
-
 import org.scalatest.junit.JUnitSuite
 import org.junit.Test
+import org.platanios.tensorflow.api.tensors.TensorIndexedSlices
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -32,14 +30,14 @@ class FeedableSuite extends JUnitSuite {
   @Test def testFeedMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val tensor0 = Tensor(0.0f)
-      val tensor1 = Tensor(1.0f)
+      val tensor1 = Tensor(1L)
       val tensor2 = Tensor(2.0f)
-      val tensor3 = Tensor(3.0f)
+      val tensor3 = Tensor(3L)
       val feedable1 = Basic.placeholder(FLOAT32)
       val feedable2 = OutputIndexedSlices(
-        Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32))
+        Basic.placeholder(INT64), Basic.placeholder(FLOAT32), Basic.placeholder(INT64))
       val feedable1FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
-      val feedable2FeedMap = feedMapIdentity(Map(feedable2 -> ((tensor1, tensor2, tensor3))))
+      val feedable2FeedMap = feedMapIdentity(Map(feedable2 -> TensorIndexedSlices(tensor1, tensor2, tensor3)))
       assert(feedable1FeedMap.values === Map(feedable1 -> tensor0))
       assert(feedable2FeedMap.values ===
                  Map(feedable2.indices -> tensor1, feedable2.values -> tensor2, feedable2.denseShape -> tensor3))
@@ -49,14 +47,14 @@ class FeedableSuite extends JUnitSuite {
   @Test def testHeterogeneousFeedMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val tensor0 = Tensor(0.0f)
-      val tensor1 = Tensor(1.0f)
+      val tensor1 = Tensor(1L)
       val tensor2 = Tensor(2.0f)
-      val tensor3 = Tensor(3.0f)
+      val tensor3 = Tensor(3L)
       val feedable1 = Basic.placeholder(FLOAT32)
       val feedable2 = OutputIndexedSlices(
-        Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32), Basic.placeholder(FLOAT32))
+        Basic.placeholder(INT64), Basic.placeholder(FLOAT32), Basic.placeholder(INT64))
       val feedable1FeedMap: FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
-      val feedable2FeedMap: FeedMap = feedMapIdentity(Map(feedable2 -> ((tensor1, tensor2, tensor3))))
+      val feedable2FeedMap: FeedMap = feedMapIdentity(Map(feedable2 -> TensorIndexedSlices(tensor1, tensor2, tensor3)))
       val feedMap = feedMapIdentity(feedable1FeedMap ++ feedable2FeedMap)
       assert(feedMap.values === Map(
         feedable1 -> tensor0,

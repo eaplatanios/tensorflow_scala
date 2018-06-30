@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.types.DataType
 import scala.collection.mutable
 
 class RBM(
-    val input: Input[Tensor, Output, _, DataType, Shape],
+    val input: Input[Tensor[DataType], Output, DataType, Shape],
     val numHidden: Int,
     val meanField: Boolean = true,
     val numSamples: Int = 100,
@@ -37,19 +37,19 @@ class RBM(
     val cdSteps: Int = 1,
     val optimizer: Optimizer,
     val name: String = "RBM"
-) extends UnsupervisedTrainableModel[Tensor, Output, DataType, Shape, Output] {
-  type InferOps = Model.InferOps[Tensor, Output, DataType, Shape, Output]
-  type TrainOps = Model.UnsupervisedTrainOps[Tensor, Output, DataType, Shape, Output]
-  type EvalOps = Model.EvaluateOps[Tensor, Output, DataType, Shape, Output]
+) extends UnsupervisedTrainableModel[Tensor[DataType], Output, DataType, Shape, Output] {
+  type InferOps = Model.InferOps[Tensor[DataType], Output, DataType, Shape, Output]
+  type TrainOps = Model.UnsupervisedTrainOps[Tensor[DataType], Output, DataType, Shape, Output]
+  type EvalOps = Model.EvaluateOps[Tensor[DataType], Output, DataType, Shape, Output]
 
-  val dataType: DataType = input.dataType
-  val numInputs: Int = input.shape(1)
+  val dataType : DataType = input.dataType
+  val numInputs: Int      = input.shape(1)
 
-  private[this] val nextInputCache: mutable.Map[Graph, Output] = mutable.Map.empty
+  private[this] val nextInputCache: mutable.Map[Graph, Output]                         = mutable.Map.empty
   private[this] val variablesCache: mutable.Map[Graph, (Variable, Variable, Variable)] = mutable.Map.empty
-  private[this] val inferOpsCache: mutable.Map[Graph, InferOps] = mutable.Map.empty
-  private[this] val trainOpsCache: mutable.Map[Graph, TrainOps] = mutable.Map.empty
-  private[this] val evalOpsCache: mutable.Map[Graph, EvalOps] = mutable.Map.empty
+  private[this] val inferOpsCache : mutable.Map[Graph, InferOps]                       = mutable.Map.empty
+  private[this] val trainOpsCache : mutable.Map[Graph, TrainOps]                       = mutable.Map.empty
+  private[this] val evalOpsCache  : mutable.Map[Graph, EvalOps]                        = mutable.Map.empty
 
   override def buildInferOps(): InferOps = {
     inferOpsCache.getOrElseUpdate(Op.currentGraph, {
@@ -132,7 +132,7 @@ class RBM(
 
 object RBM {
   def apply(
-      input: Input[Tensor, Output, _, DataType, Shape],
+      input: Input[Tensor[DataType], Output, DataType, Shape],
       numHidden: Int,
       meanField: Boolean = true,
       numSamples: Int = 100,

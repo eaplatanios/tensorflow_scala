@@ -165,7 +165,7 @@ class GradientsSuite extends JUnitSuite {
       val lv = ControlFlow.whileLoop(
         (lv: (Output, Output, TensorArray)) => Math.less(lv._1, 4),
         (lv: (Output, Output, TensorArray)) => {
-          val a = Math.add(lv._2, Math.cast(v, INT32))
+          val a = Math.add(lv._2, Cast.cast(v, INT32))
           (Math.add(lv._1, 1), a, lv._3.write(lv._1, a))
         },
         (Basic.constant(0, INT32), Basic.constant(0, INT32), TensorArray.create(4, INT32)))

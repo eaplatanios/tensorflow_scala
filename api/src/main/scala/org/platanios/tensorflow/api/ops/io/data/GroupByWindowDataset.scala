@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.helpers.StructureFromOutput
 import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 import org.platanios.tensorflow.api.types.{INT64, VARIANT}
 
@@ -35,11 +36,14 @@ import org.platanios.tensorflow.api.types.{INT64, VARIANT}
   */
 case class GroupByWindowDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
-    keyFn: (O) => Output,
+    keyFn: O => Output,
     reduceFn: ((Output, Dataset[T, O, D, S])) => Dataset[T, O, D, S],
-    windowSizeFn: (Output) => Output,
+    windowSizeFn: Output => Output,
     override val name: String = "GroupByWindowDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+)(implicit evStructure: StructureFromOutput.Aux[T, O, D, S])
+    extends Dataset[T, O, D, S](name)(
+      inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+    ) {
   private[this] lazy val instantiatedKeyFunction = {
     Function(s"$name/KeyFunction", keyFn).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
@@ -78,11 +82,11 @@ case class GroupByWindowDataset[T, O, D, S](
 object GroupByWindowDataset {
   case class GroupByWindowDatasetOps[T, O, D, S](dataset: Dataset[T, O, D, S]) {
     def groupByWindow(
-        keyFn: (O) => Output,
+        keyFn: O => Output,
         reduceFn: ((Output, Dataset[T, O, D, S])) => Dataset[T, O, D, S],
-        windowSizeFn: (Output) => Output,
+        windowSizeFn: Output => Output,
         name: String = "GroupByWindowDataset"
-    ): Dataset[T, O, D, S] = {
+    )(implicit evStructure: StructureFromOutput.Aux[T, O, D, S]): Dataset[T, O, D, S] = {
       GroupByWindowDataset(dataset, keyFn, reduceFn, windowSizeFn, name)
     }
   }

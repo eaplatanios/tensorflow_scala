@@ -1179,6 +1179,7 @@ object WhileLoopVariable {
       evHead: Lazy[Aux[H, HS]],
       evTail: Aux[T, TS]
   ): Aux[H :: T, HS :: TS] = new WhileLoopVariable[H :: T] {
+    override type ShapeType = HS :: TS
 
     override def zero(batchSize: Output, dataType: DataType, shape: HS :: TS, name: String = "Zero"): H :: T = {
       Op.createWithNameScope(name) {
@@ -1186,7 +1187,6 @@ object WhileLoopVariable {
       }
     }
 
-    override type ShapeType = HS :: TS
     override def size(output: H :: T): Int = evHead.value.size(output.head) + evTail.size(output.tail)
 
     override def outputs(output: H :: T): Seq[Output] = {
@@ -1222,23 +1222,22 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def productConstructor[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
+  implicit def productConstructor[P, PS, L <: HList, LS <: HList](implicit
       genP: Generic.Aux[P, L],
       evL: Aux[L, LS],
-      tuplerPS: Tupler.Aux[LS, PS],
-      tuplerP: Tupler.Aux[L, P],
       tuplerS: Tupler.Aux[LS, PS],
-      genPS: Generic.Aux[PS, LS]
+      tuplerP: Tupler.Aux[L, P],
+      genS: Generic.Aux[PS, LS]
   ): Aux[P, PS] = new WhileLoopVariable[P] {
     override type ShapeType = PS
 
     override def zero(batchSize: Output, dataType: DataType, shape: PS, name: String = "Zero"): P = {
-      tuplerP(evL.zero(batchSize, dataType, genPS.to(shape), name))
+      tuplerP(evL.zero(batchSize, dataType, genS.to(shape), name))
     }
 
     override def size(output: P): Int = evL.size(genP.to(output))
     override def outputs(output: P): Seq[Output] = evL.outputs(genP.to(output))
-    override def shapes(shape: PS): Seq[Shape] = evL.shapes(genPS.to(shape))
+    override def shapes(shape: PS): Seq[Shape] = evL.shapes(genS.to(shape))
 
     override def segmentOutputs(output: P, values: Seq[Output]): (P, Seq[Output]) = {
       val (out, remaining) = evL.segmentOutputs(genP.to(output), values)
@@ -1255,7 +1254,7 @@ object WhileLoopVariable {
     }
 
     override def mapWithShape(value: P, shape: PS, mapFn: (OutputConvertible, Shape) => OutputConvertible): P = {
-      tuplerP(evL.mapWithShape(genP.to(value), genPS.to(shape), mapFn))
+      tuplerP(evL.mapWithShape(genP.to(value), genS.to(shape), mapFn))
     }
   }
 }

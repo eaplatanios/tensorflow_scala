@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.types
 
-import org.platanios.tensorflow.api.types.SupportedType._
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
 import org.tensorflow.framework.TensorProto
@@ -29,9 +28,10 @@ import java.nio.ByteBuffer
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait DataType {
+trait DataType {
   type ScalaType
-  implicit val supportedType: SupportedType[ScalaType]
+
+  private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type]
 
   //region Data Type Properties
 
@@ -65,6 +65,12 @@ sealed trait DataType {
   //endregion Data Type Properties
 
   //region Data Type Set Helper Methods
+
+  /** Zero value for this data type. */
+  def zero: ScalaType
+
+  /** One value for this data type. */
+  def one: ScalaType
 
   /** Returns `true` if this data type represents a non-quantized floating-point data type. */
   def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(this)
@@ -102,6 +108,8 @@ sealed trait DataType {
   /** Returns the largest value that can be represented by this data type. */
   def max: ScalaType = throw new UnsupportedOperationException(s"Cannot determine max value for '$this' data type.")
 
+  // TODO: !!! [TYPES] Make this safer.
+
   /** Casts the provided value to this data type.
     *
     * Note that this method allows downcasting.
@@ -111,7 +119,7 @@ sealed trait DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  @inline def cast[T](value: T)(implicit evidence: SupportedType[T]): ScalaType = value.cast(this)
+  @inline def cast[R](value: R)(implicit ev: SupportedType.Aux[R, _]): ScalaType = evSupportedType.cast(value)
 
   /** Puts an element of this data type into the provided byte buffer.
     *
@@ -149,10 +157,6 @@ sealed trait DataType {
 
 /** Contains all supported data types along with some helper functions for dealing with them. */
 object DataType {
-  trait Aux[T] extends DataType {
-    override type ScalaType = T
-  }
-
   //region Data Type Sets
 
   /** Set of all floating-point data types. */
@@ -194,7 +198,9 @@ object DataType {
     * @param  value Value whose data type to return.
     * @return Data type of the provided value.
     */
-  @inline def dataTypeOf[T: SupportedType](value: T): DataType = value.dataType
+  @inline def dataTypeOf[T, D <: DataType](value: T)(implicit evSupported: SupportedType.Aux[T, D]): D = {
+    evSupported.dataType
+  }
 
   /** Returns the data type corresponding to the provided C value.
     *
@@ -206,32 +212,35 @@ object DataType {
     * @throws IllegalArgumentException If an invalid C value is provided.
     */
   @throws[IllegalArgumentException]
-  def fromCValue(cValue: Int): DataType = cValue match {
-    case BOOLEAN.cValue => BOOLEAN
-    case STRING.cValue => STRING
-    case FLOAT16.cValue => FLOAT16
-    case FLOAT32.cValue => FLOAT32
-    case FLOAT64.cValue => FLOAT64
-    case BFLOAT16.cValue => BFLOAT16
-    case COMPLEX64.cValue => COMPLEX64
-    case COMPLEX128.cValue => COMPLEX128
-    case INT8.cValue => INT8
-    case INT16.cValue => INT16
-    case INT32.cValue => INT32
-    case INT64.cValue => INT64
-    case UINT8.cValue => UINT8
-    case UINT16.cValue => UINT16
-    case UINT32.cValue => UINT32
-    case UINT64.cValue => UINT64
-    case QINT8.cValue => QINT8
-    case QINT16.cValue => QINT16
-    case QINT32.cValue => QINT32
-    case QUINT8.cValue => QUINT8
-    case QUINT16.cValue => QUINT16
-    case RESOURCE.cValue => RESOURCE
-    case VARIANT.cValue => VARIANT
-    case value => throw new IllegalArgumentException(
-      s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+  private[api] def fromCValue[D <: DataType](cValue: Int): D = {
+    val dataType = cValue match {
+      case BOOLEAN.cValue => BOOLEAN
+      case STRING.cValue => STRING
+      case FLOAT16.cValue => FLOAT16
+      case FLOAT32.cValue => FLOAT32
+      case FLOAT64.cValue => FLOAT64
+      case BFLOAT16.cValue => BFLOAT16
+      case COMPLEX64.cValue => COMPLEX64
+      case COMPLEX128.cValue => COMPLEX128
+      case INT8.cValue => INT8
+      case INT16.cValue => INT16
+      case INT32.cValue => INT32
+      case INT64.cValue => INT64
+      case UINT8.cValue => UINT8
+      case UINT16.cValue => UINT16
+      case UINT32.cValue => UINT32
+      case UINT64.cValue => UINT64
+      case QINT8.cValue => QINT8
+      case QINT16.cValue => QINT16
+      case QINT32.cValue => QINT32
+      case QUINT8.cValue => QUINT8
+      case QUINT16.cValue => QUINT16
+      case RESOURCE.cValue => RESOURCE
+      case VARIANT.cValue => VARIANT
+      case value => throw new IllegalArgumentException(
+        s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+    }
+    dataType.asInstanceOf[D]
   }
 
   /** Returns the data type corresponding to the provided name.
@@ -241,32 +250,35 @@ object DataType {
     * @throws IllegalArgumentException If an invalid data type name is provided.
     */
   @throws[IllegalArgumentException]
-  def fromName(name: String): DataType = name match {
-    case "BOOLEAN" => BOOLEAN
-    case "STRING" => STRING
-    case "FLOAT16" => FLOAT16
-    case "FLOAT32" => FLOAT32
-    case "FLOAT64" => FLOAT64
-    case "BFLOAT16" => BFLOAT16
-    case "COMPLEX64" => COMPLEX64
-    case "COMPLEX128" => COMPLEX128
-    case "INT8" => INT8
-    case "INT16" => INT16
-    case "INT32" => INT32
-    case "INT64" => INT64
-    case "UINT8" => UINT8
-    case "UINT16" => UINT16
-    case "UINT32" => UINT32
-    case "UINT64" => UINT64
-    case "QINT8" => QINT8
-    case "QINT16" => QINT16
-    case "QINT32" => QINT32
-    case "QUINT8" => QUINT8
-    case "QUINT16" => QUINT16
-    case "RESOURCE" => RESOURCE
-    case "VARIANT" => VARIANT
-    case value => throw new IllegalArgumentException(
-      s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+  private[api] def fromName[D <: DataType](name: String): D = {
+    val dataType = name match {
+      case "BOOLEAN" => BOOLEAN
+      case "STRING" => STRING
+      case "FLOAT16" => FLOAT16
+      case "FLOAT32" => FLOAT32
+      case "FLOAT64" => FLOAT64
+      case "BFLOAT16" => BFLOAT16
+      case "COMPLEX64" => COMPLEX64
+      case "COMPLEX128" => COMPLEX128
+      case "INT8" => INT8
+      case "INT16" => INT16
+      case "INT32" => INT32
+      case "INT64" => INT64
+      case "UINT8" => UINT8
+      case "UINT16" => UINT16
+      case "UINT32" => UINT32
+      case "UINT64" => UINT64
+      case "QINT8" => QINT8
+      case "QINT16" => QINT16
+      case "QINT32" => QINT32
+      case "QUINT8" => QUINT8
+      case "QUINT16" => QUINT16
+      case "RESOURCE" => RESOURCE
+      case "VARIANT" => VARIANT
+      case value => throw new IllegalArgumentException(
+        s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
+    }
+    dataType.asInstanceOf[D]
   }
 
   /** Returns the most precise data type out of the provided data types, based on their `priority` field.
@@ -286,7 +298,9 @@ object DataType {
   //endregion Helper Methods
 
   private[types] trait API {
-    @inline def dataTypeOf[T: SupportedType](value: T): DataType = DataType.dataTypeOf(value)
+    @inline def dataTypeOf[T, D <: DataType](value: T)(implicit evSupportedType: SupportedType.Aux[T, D]): D = {
+      DataType.dataTypeOf(value)
+    }
 
     @throws[IllegalArgumentException]
     def dataType(cValue: Int): DataType = DataType.fromCValue(cValue)

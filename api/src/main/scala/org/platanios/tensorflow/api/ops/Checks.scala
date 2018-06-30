@@ -404,7 +404,7 @@ private[api] trait Checks {
   ): Op = {
     Op.createWithNameScope(name) {
       val stackedPredicates = Basic.stack(predicates, name = "StackPredicates")
-      val numTrue = Math.sum(Math.cast(stackedPredicates, INT32), "NumTrue")
+      val numTrue = Math.sum(Cast.cast(stackedPredicates, INT32), "NumTrue")
       val condition = Math.lessEqual(numTrue, Basic.constant(n, name = "NumTrueConditionsLimit"))
       val processedData = {
         val d: Seq[Output] = {

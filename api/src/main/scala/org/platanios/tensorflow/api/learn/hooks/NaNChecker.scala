@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -45,19 +46,20 @@ class NaNChecker protected (
   override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[DataType]]]] = {
     Some(Hook.SessionRunArgs(fetches = outputs))
   }
 
   @throws[IllegalStateException]
   override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
-    runResult.values.filter(_.isNaN.any().scalar.asInstanceOf[Boolean]).foreach(value => {
+    // TODO: !!! [TYPES] Remove the cast once we start using static types everywhere.
+    runResult.values.filter(_.cast(FLOAT32).isNaN.any().scalar).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {
         NaNChecker.logger.error(message)

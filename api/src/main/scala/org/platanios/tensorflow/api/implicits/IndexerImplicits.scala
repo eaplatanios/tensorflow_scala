@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.{Index, IndexerConstructionWithOneNumbe
   *
   * @author Emmanouil Antonios Platanios
   */
-private[implicits] trait Indexer {
+private[implicits] trait IndexerImplicits {
   // TODO: Add begin mask support (not simple).
 
   implicit def intToIndex(index: Int): Index = Index(index = index)

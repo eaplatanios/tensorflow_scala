@@ -217,7 +217,7 @@ case class TensorArray private (
         val lengths = Output.constantValue(splitFlow.inputs(2))
         val shape = {
           if (valueShape.rank != -1 && lengths.isDefined && lengths.get.max() == lengths.get.min())
-            Shape.fromSeq(lengths.get()(0).scalar.asInstanceOf[Long].toInt +: valueShape.asArray.tail)
+            Shape.fromSeq(lengths.get(0).scalar.asInstanceOf[Long].toInt +: valueShape.asArray.tail)
           else
             Shape.unknown()
         }

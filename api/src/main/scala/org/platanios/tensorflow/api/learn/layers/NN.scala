@@ -47,7 +47,7 @@ case class Softmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Softmax"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.NN.softmax(input, name = name)
   }
 }
@@ -56,7 +56,7 @@ case class LogSoftmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "LogSoftmax"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.NN.logSoftmax(input, name = name)
   }
 }
@@ -70,7 +70,7 @@ case class Dropout(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Dropout[$keepProbability]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput()
@@ -93,8 +93,8 @@ case class Conv2D(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
-    val weights = tf.variable("Weights", input.dataType, filterShape, weightsInitializer)
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    val weights = parameterGetter.value("Weights", input.dataType, filterShape, weightsInitializer)
     ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU)
   }
 }
@@ -109,7 +109,7 @@ case class MaxPool(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"MaxPool[${windowSize.mkString(",")}]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, name)
   }
 }

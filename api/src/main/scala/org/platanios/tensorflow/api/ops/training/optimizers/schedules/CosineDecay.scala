@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -57,7 +57,7 @@ class CosineDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for cosine decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Math.cast(step.get.value, value.dataType)
+      val stepValue = Cast.cast(step.get.value, value.dataType)
       val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
       val alphaValue = Basic.constant(alpha, value.dataType)
       if (startStep == 0L) {

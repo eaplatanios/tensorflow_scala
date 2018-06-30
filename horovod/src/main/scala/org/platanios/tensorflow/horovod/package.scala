@@ -28,11 +28,7 @@ import org.platanios.tensorflow.api._
   * @author Emmanouil Antonios Platanios
   */
 package object horovod {
-  Ops.Gradients
-
-  object hvd extends API
-
-  private[horovod] trait API {
+  object hvd {
     /** Initializes Horovod. */
     def initialize(): Unit = Horovod.init()
 
@@ -121,8 +117,8 @@ package object horovod {
       case v: OutputIndexedSlices => tf.device(deviceSparse) {
         // For indexed slices we do two all-gathers instead of an all-reduce.
         val horovodSize = tf.constant(size, v.dataType)
-        var values = Ops.allGather(v.values, name = s"${v.values.name.replace(":", "_")}/AllGather")
-        val indices = Ops.allGather(v.indices, name = s"${v.indices.name.replace(":", "_")}/AllGather")
+        var values = allGatherOp(v.values, name = s"${v.values.name.replace(":", "_")}/AllGather")
+        val indices = allGatherOp(v.indices, name = s"${v.indices.name.replace(":", "_")}/AllGather")
 
         // To convert this operation to an average, we divide all gathered values by the Horovod size.
         values = if (average) tf.divide(values, horovodSize) else values
@@ -131,7 +127,7 @@ package object horovod {
       case v => tf.device(deviceDense) {
         // TODO: [HOROVOD] What about sparse tensors?
         val horovodSize = tf.constant(size, v.dataType)
-        val summedValue = Ops.allReduce(v.toOutput, name = s"${v.name.replace(":", "_")}/AllReduce")
+        val summedValue = allReduceOp(v.toOutput, name = s"${v.name.replace(":", "_")}/AllReduce")
         if (average)
           tf.divide(summedValue, horovodSize).asInstanceOf[O]
         else
@@ -149,7 +145,7 @@ package object horovod {
       tf.group(tf.currentGraph.globalVariables.map(v => {
         Op.Builder(opType = "AssignVariableOp", name = s"${v.name}/Broadcast/Assign")
             .addInput(v.op.outputs.head)
-            .addInput(Ops.broadcast(v.value, rootRank, s"${v.name}/Broadcast"))
+            .addInput(broadcastOp(v.value, rootRank, s"${v.name}/Broadcast"))
             .setAttribute("dtype", v.dataType)
             .build()
       }))
@@ -351,4 +347,60 @@ package object horovod {
       }
     }
   }
+
+  /** Creates an op which sums an input tensor over all the Horovod processes.
+    *
+    * The reduction operation is keyed by the name of the op. The tensor type and shape must be the same on all Horovod
+    * processes for a given name. The reduction will not start until all processes are ready to send and receive the
+    * tensor.
+    *
+    * @param  value Tensor to reduce.
+    * @param  name  Name for the created op.
+    * @return Tensor of the same shape and type as `value` that is summed across all processes.
+    */
+  private[horovod] def allReduceOp(value: Output, name: String = "HorovodAllReduce"): Output = {
+    Op.Builder("HorovodAllreduce", name)
+        .addInput(value)
+        .build().outputs(0)
+  }
+
+  /** Creates an op which concatenates the input tensor with the same input tensor on all other Horovod processes.
+    *
+    * The concatenation is done along the first dimension, and so the input tensors on the different processes must
+    * have the same rank and shape, except for the first dimension, which is allowed to be different.
+    *
+    * @param  value Tensor to gather.
+    * @param  name  Name for the created op.
+    * @return Tensor of the same type as `value`, concatenated along dimension zero across all processes. Its shape is
+    *         identical to the input shape, except for the first dimension, which may be greater and is the sum of all
+    *         first dimensions of the tensors in the different Horovod processes.
+    */
+  private[horovod] def allGatherOp(value: Output, name: String = "HorovodAllGather"): Output = {
+    Op.Builder("HorovodAllgather", name)
+        .addInput(value)
+        .build().outputs(0)
+  }
+
+  /** Creates an op which broadcasts the input tensor on root rank to the same input tensor on all other Horovod
+    * processes.
+    *
+    * The broadcast operation is keyed by the name of the op. The tensor type and shape must be the same on all Horovod
+    * processes for a given name. The broadcast will not start until all processes are ready to send and receive the
+    * tensor.
+    *
+    * @param  value    Tensor to broadcast.
+    * @param  rootRank Rank that will send data, other ranks will receive data.
+    * @param  name     Name for the created op.
+    * @return Tensor of the same shape and type as `value`, with its value broadcasted from root rank.
+    */
+  private[horovod] def broadcastOp(value: Output, rootRank: Int, name: String = "HorovodBroadcast"): Output = {
+    Op.Builder("HorovodBroadcast", name)
+        .addInput(value)
+        .setAttribute("root_rank", rootRank)
+        .build().outputs(0)
+  }
+
+  tf.gradientsRegistry.registerNonDifferentiable("HorovodAllreduce")
+  tf.gradientsRegistry.registerNonDifferentiable("HorovodAllgather")
+  tf.gradientsRegistry.registerNonDifferentiable("HorovodBroadcast")
 }

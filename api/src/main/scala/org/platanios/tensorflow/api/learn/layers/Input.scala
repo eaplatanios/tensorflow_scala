@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.implicits.helpers.{DataTypeAuxToDataType, DataTypeToOutput, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.StructureFromDataType
 import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops.io.data.{Data, Iterator}
 import org.platanios.tensorflow.api.ops.Op
@@ -28,34 +28,28 @@ import scala.collection.mutable
   */
 object Input {
   private[layers] trait API {
-    type Input[T, O, DA, D, S] = layers.Input[T, O, DA, D, S]
+    type Input[T, O, D, S] = layers.Input[T, O, D, S]
     val Input: layers.Input.type = layers.Input
   }
 
   object API extends API
 }
 
-case class Input[T, O, DA, D, S](private val _dataType: DA, shape: S, name: String = "Input")(implicit
-    val evDAToD: DataTypeAuxToDataType.Aux[DA, D],
-    val evDToO: DataTypeToOutput.Aux[D, O],
-    val evOToT: OutputToTensor.Aux[O, T],
+case class Input[T, O, D, S](dataType: D, shape: S, name: String = "Input")(implicit
+    val evStructure: StructureFromDataType.Aux[T, O, D, S],
     val evData: Data.Aux[T, O, D, S]
 ) {
-  val dataType: D = evDAToD.castDataType(_dataType)
-
   private[this] val cache: mutable.Map[Graph, Iterator[T, O, D, S]] = mutable.Map.empty
 
   protected def create(): Iterator[T, O, D, S] = Iterator.fromStructure(dataType, shape, name = name)
 
   final def apply(): Iterator[T, O, D, S] = cache.getOrElse(Op.currentGraph, create())
 
-  def zip[T2, O2, DA2, D2, S2](other: Input[T2, O2, DA2, D2, S2]):
-  Input[(T, T2), (O, O2), (DA, DA2), (D, D2), (S, S2)] = {
-    implicit val evDA2ToD2: DataTypeAuxToDataType.Aux[DA2, D2] = other.evDAToD
-    implicit val evD2ToO2: DataTypeToOutput.Aux[D2, O2] = other.evDToO
-    implicit val evO2ToT2: OutputToTensor.Aux[O2, T2] = other.evOToT
+  def zip[T2, O2, D2, S2](other: Input[T2, O2, D2, S2]):
+  Input[(T, T2), (O, O2), (D, D2), (S, S2)] = {
+    implicit val evStructure2: StructureFromDataType.Aux[T2, O2, D2, S2] = other.evStructure
     implicit val evData2: Data.Aux[T2, O2, D2, S2] = other.evData
-    Input[(T, T2), (O, O2), (DA, DA2), (D, D2), (S, S2)](
-      (_dataType, other._dataType), (shape, other.shape), s"${name}_${other.name}/Zip")
+    Input[(T, T2), (O, O2), (D, D2), (S, S2)](
+      (dataType, other.dataType), (shape, other.shape), s"${name}_${other.name}/Zip")
   }
 }

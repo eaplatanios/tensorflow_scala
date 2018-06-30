@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -55,7 +55,7 @@ class SqrtDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for square-root decay.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Math.cast(step.get.value, value.dataType)
+      val stepValue = Cast.cast(step.get.value, value.dataType)
       val decayFactorValue = Basic.constant(decayFactor, value.dataType)
       val decayThresholdValue = Basic.constant(decayThreshold, value.dataType)
       if (startStep == 0L) {

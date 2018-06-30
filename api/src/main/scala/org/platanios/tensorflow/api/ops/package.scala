@@ -70,6 +70,7 @@ package object ops {
   }
 
   ops.Basic.Gradients
+  ops.Cast.Gradients
   ops.DataFlow.Gradients
   ops.Logging.Gradients
   ops.Math.Gradients
@@ -91,6 +92,7 @@ package object ops {
   private[api] trait API
       extends Basic
           with Callback
+          with Cast
           with Checks
           with Clip
           with DataFlow

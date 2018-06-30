@@ -140,7 +140,7 @@ class BeamSearchDecoder[S, SS](
         indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
         onValue = false, offValue = true, dataType = BOOLEAN)
       val dataType = evS.outputs(processedInitialCellState).head.dataType
-      import dataType.supportedType
+      import dataType.evSupportedType
       val initialState = BeamSearchDecoder.State[S, SS](
         rnnState = processedInitialCellState,
         logProbabilities = Basic.oneHot(
@@ -521,7 +521,7 @@ object BeamSearchDecoder {
     val vocabSize = Basic.shape(logProbabilities)(2)
     // Finished examples are replaced with a vector that has all its probability mass on `endToken`
     val dType = logProbabilities.dataType
-    import dType.supportedType
+    import dType.evSupportedType
     val dTypeMin = Tensor(dType.min).slice(0)
     val finishedRow = Basic.oneHot(endToken, vocabSize, Basic.zeros(dType, Shape()), Basic.constant(dTypeMin))
     val finishedLogProbabilities = Basic.tile(
