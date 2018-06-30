@@ -15,12 +15,14 @@
 
 logLevel := Level.Warn
 
-val tensorFlowVersion = "1.8.0"
+val tensorFlowVersion = "1.9.0-rc1"
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.ow2.asm" % "asm" % "5.0.4",
   "org.tensorflow" % "proto" % tensorFlowVersion)
+
+// addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC3")
 
 // addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
