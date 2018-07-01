@@ -34,6 +34,7 @@ import scala.language.postfixOps
   */
 object CIFARLoader extends Loader {
   sealed trait DatasetType {
+    val name              : String
     val url               : String
     val compressedFilename: String
     val trainFilenames    : Seq[String]
@@ -43,6 +44,7 @@ object CIFARLoader extends Loader {
   }
 
   case object CIFAR_10 extends DatasetType {
+    override val name              : String      = "CIFAR-10"
     override val url               : String      = "http://www.cs.toronto.edu/~kriz/"
     override val compressedFilename: String      = "cifar-10-binary.tar.gz"
     override val trainFilenames    : Seq[String] = (1 to 5).map(i => s"data_batch_$i.bin")
@@ -52,6 +54,7 @@ object CIFARLoader extends Loader {
   }
 
   case object CIFAR_100 extends DatasetType {
+    override val name              : String      = "CIFAR-100"
     override val url               : String      = "http://www.cs.toronto.edu/~kriz/"
     override val compressedFilename: String      = "cifar-100-binary.tar.gz"
     override val trainFilenames    : Seq[String] = Seq("train.bin")
@@ -71,7 +74,7 @@ object CIFARLoader extends Loader {
 
     // Load the data.
     val dataset = extractFiles(path.resolve(compressedFilename), datasetType, bufferSize)
-    logger.info(s"Finished loading the CIFAR dataset.")
+    logger.info(s"Finished loading the ${datasetType.name} dataset.")
     dataset
   }
 

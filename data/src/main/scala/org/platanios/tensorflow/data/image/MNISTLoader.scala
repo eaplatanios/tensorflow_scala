@@ -31,6 +31,7 @@ import java.util.zip.GZIPInputStream
   */
 object MNISTLoader extends Loader {
   sealed trait DatasetType {
+    val name               : String
     val url                : String
     val trainImagesFilename: String
     val trainLabelsFilename: String
@@ -39,6 +40,7 @@ object MNISTLoader extends Loader {
   }
 
   case object MNIST extends DatasetType {
+    override val name               : String = "MNIST"
     override val url                : String = "http://yann.lecun.com/exdb/mnist/"
     override val trainImagesFilename: String = "train-images-idx3-ubyte.gz"
     override val trainLabelsFilename: String = "train-labels-idx1-ubyte.gz"
@@ -47,6 +49,7 @@ object MNISTLoader extends Loader {
   }
 
   case object FASHION_MNIST extends DatasetType {
+    override val name               : String = "FASHION-MNIST"
     override val url                : String = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/"
     override val trainImagesFilename: String = "train-images-idx3-ubyte.gz"
     override val trainLabelsFilename: String = "train-labels-idx1-ubyte.gz"
@@ -73,6 +76,8 @@ object MNISTLoader extends Loader {
     val trainLabels = extractLabels(trainLabelsPath, bufferSize)
     val testImages = extractImages(testImagesPath, bufferSize)
     val testLabels = extractLabels(testLabelsPath, bufferSize)
+
+    logger.info(s"Finished loading the ${datasetType.name} dataset.")
 
     MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
