@@ -19,8 +19,8 @@ import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.6"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.6")
+scalaVersion in ThisBuild := "2.12.4"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
 organization in ThisBuild := "org.platanios"
 
@@ -66,7 +66,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  addCompilerPlugin("io.tryp"  % "splain" % "0.3.1" cross CrossVersion.patch)
+  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.1" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
@@ -186,54 +186,6 @@ lazy val api = (project in file("./api"))
         "io.circe" %% "circe-generic",
         "io.circe" %% "circe-parser"
       ).map(_ % circeVersion),
-      // Protobuf settings
-      version in ProtobufConfig := "3.5.1",
-      sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
-      javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
-      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
-      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value)
-
-lazy val tpu = (project in file("./tpu"))
-    .dependsOn(jni, api)
-    .enablePlugins(JniNative, JniCrossPackage, ProtobufPlugin)
-    .settings(moduleName := "tensorflow-tpu", name := "TensorFlow Scala - TPU Support")
-    .settings(commonSettings)
-    .settings(testSettings)
-    .settings(publishSettings)
-    .settings(
-      // Native bindings compilation settings
-      target in javah := sourceDirectory.value / "main" / "native" / "include",
-      sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
-      target in nativeCompile := target.value / "native" / nativePlatform.value,
-      dockerImagePrefix in JniCross := "tensorflow-jni",
-      nativeArtifactName in JniCross := "tpu",
-      nativeLibPath in JniCross := {
-        (nativeCrossCompile in JniCross in jni).value
-        val tfVersion = (tfBinaryVersion in JniCross in jni).value
-        val tfJniTarget = (target in JniCross in jni).value
-        val log = streams.value.log
-        val targetDir = (target in nativeCrossCompile in JniCross).value
-        IO.createDirectory(targetDir)
-        (nativePlatforms in nativeCrossCompile in JniCross).value.map(platform => {
-          val platformTargetDir = targetDir / platform.name
-          IO.createDirectory(platformTargetDir / "downloads")
-          IO.createDirectory(platformTargetDir / "downloads" / "lib")
-
-          // Download the native TensorFlow library
-          log.info(s"Downloading the TensorFlow native library.")
-          val exitCode = TensorFlowNativePackage.downloadTfLib(
-            platform, (tfJniTarget / platform.name).getPath, tfVersion
-          ).map(_ ! log)
-
-          if (exitCode.getOrElse(0) != 0) {
-            sys.error(
-              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. " +
-                  s"Exit code: $exitCode.")
-          }
-
-          platform -> tfJniTarget / platform.name
-        }).toMap
-      },
       // Protobuf settings
       version in ProtobufConfig := "3.5.1",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",

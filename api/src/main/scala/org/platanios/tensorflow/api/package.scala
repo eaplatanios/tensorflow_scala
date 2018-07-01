@@ -79,8 +79,14 @@ package object api extends implicits.Implicits with Documentation {
   val NewAxis: Indexer = core.NewAxis
   val ::     : Slice   = core.Slice.::
 
+  type TensorLike[D <: DataType] = tensors.TensorLike[D]
   type Tensor[D <: DataType] = tensors.Tensor[D]
-  val Tensor: tensors.Tensor.type = tensors.Tensor
+  type TensorIndexedSlices[D <: DataType] = tensors.TensorIndexedSlices[D]
+  type SparseTensor[D <: DataType] = tensors.SparseTensor[D]
+
+  val Tensor             : tensors.Tensor.type              = tensors.Tensor
+  val TensorIndexedSlices: tensors.TensorIndexedSlices.type = tensors.TensorIndexedSlices
+  val SparseTensor       : tensors.SparseTensor.type        = tensors.SparseTensor
 
   type Op = ops.Op
   val Op: ops.Op.type = ops.Op
@@ -124,28 +130,28 @@ package object api extends implicits.Implicits with Documentation {
   type RESOURCE = types.RESOURCE.type
   type VARIANT = types.VARIANT.type
 
-  val STRING    : STRING = types.STRING
-  val BOOLEAN   : BOOLEAN = types.BOOLEAN
-  val FLOAT16   : FLOAT16 = types.FLOAT16
-  val FLOAT32   : FLOAT32 = types.FLOAT32
-  val FLOAT64   : FLOAT64 = types.FLOAT64
-  val BFLOAT16  : BFLOAT16 = types.BFLOAT16
-  val COMPLEX64 : COMPLEX64 = types.COMPLEX64
+  val STRING    : STRING     = types.STRING
+  val BOOLEAN   : BOOLEAN    = types.BOOLEAN
+  val FLOAT16   : FLOAT16    = types.FLOAT16
+  val FLOAT32   : FLOAT32    = types.FLOAT32
+  val FLOAT64   : FLOAT64    = types.FLOAT64
+  val BFLOAT16  : BFLOAT16   = types.BFLOAT16
+  val COMPLEX64 : COMPLEX64  = types.COMPLEX64
   val COMPLEX128: COMPLEX128 = types.COMPLEX128
-  val INT8      : INT8 = types.INT8
-  val INT16     : INT16 = types.INT16
-  val INT32     : INT32 = types.INT32
-  val INT64     : INT64 = types.INT64
-  val UINT8     : UINT8 = types.UINT8
-  val UINT16    : UINT16 = types.UINT16
-  val UINT32    : UINT32 = types.UINT32
-  val QINT8     : QINT8 = types.QINT8
-  val QINT16    : QINT16 = types.QINT16
-  val QINT32    : QINT32 = types.QINT32
-  val QUINT8    : QUINT8 = types.QUINT8
-  val QUINT16   : QUINT16 = types.QUINT16
-  val RESOURCE  : RESOURCE = types.RESOURCE
-  val VARIANT   : VARIANT = types.VARIANT
+  val INT8      : INT8       = types.INT8
+  val INT16     : INT16      = types.INT16
+  val INT32     : INT32      = types.INT32
+  val INT64     : INT64      = types.INT64
+  val UINT8     : UINT8      = types.UINT8
+  val UINT16    : UINT16     = types.UINT16
+  val UINT32    : UINT32     = types.UINT32
+  val QINT8     : QINT8      = types.QINT8
+  val QINT16    : QINT16     = types.QINT16
+  val QINT32    : QINT32     = types.QINT32
+  val QUINT8    : QUINT8     = types.QUINT8
+  val QUINT16   : QUINT16    = types.QUINT16
+  val RESOURCE  : RESOURCE   = types.RESOURCE
+  val VARIANT   : VARIANT    = types.VARIANT
 
   //endregion Data Types API
 
