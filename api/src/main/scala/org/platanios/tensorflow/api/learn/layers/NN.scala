@@ -29,12 +29,14 @@ object NN {
   private[layers] trait API {
     type Softmax = layers.Softmax
     type LogSoftmax = layers.LogSoftmax
+    type LRN = layers.LRN
     type Dropout = layers.Dropout
     type Conv2D = layers.Conv2D
     type MaxPool = layers.MaxPool
 
     val Softmax   : layers.Softmax.type    = layers.Softmax
     val LogSoftmax: layers.LogSoftmax.type = layers.LogSoftmax
+    val LRN       : layers.LRN.type        = layers.LRN
     val Dropout   : layers.Dropout.type    = layers.Dropout
     val Conv2D    : layers.Conv2D.type     = layers.Conv2D
     val MaxPool   : layers.MaxPool.type    = layers.MaxPool
