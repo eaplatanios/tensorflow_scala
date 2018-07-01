@@ -526,10 +526,14 @@ private[api] trait NN {
     */
   @throws[InvalidShapeException]
   def sequenceLoss(
-      logits: Output, labels: Output, weights: Output = null,
-      averageAcrossTimeSteps: Boolean = true, averageAcrossBatch: Boolean = true,
+      logits: Output,
+      labels: Output,
+      weights: Output = null,
+      averageAcrossTimeSteps: Boolean = true,
+      averageAcrossBatch: Boolean = true,
       lossFn: (Output, Output) => Output = sparseSoftmaxCrossEntropy(_, _),
-      name: String = "SequenceLoss"): Output = {
+      name: String = "SequenceLoss"
+  ): Output = {
     if (logits.rank != 3)
       throw InvalidShapeException(
         s"'logits' must have shape [batchSize, sequenceLength, numClasses], but had: ${logits.shape}.")
@@ -573,6 +577,60 @@ private[api] trait NN {
   }
 
   //endregion Loss Ops
+
+  //region Normalization Ops
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor with data type `FLOAT16`, `BFLOAT16`, or `FLOAT32`.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    */
+  def lrn(
+      input: Output,
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f,
+      name: String = "LRN"
+  ): Output = {
+    localResponseNormalization(input, depthRadius, bias, alpha, beta, name)
+  }
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor with data type `FLOAT16`, `BFLOAT16`, or `FLOAT32`.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    */
+  def localResponseNormalization(
+      input: Output,
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f,
+      name: String = "LocalResponseNormalization"
+  ): Output = {
+    Op.Builder("LRN", name)
+        .addInput(input)
+        .setAttribute("depth_radius", depthRadius)
+        .setAttribute("bias", bias)
+        .setAttribute("alpha", alpha)
+        .setAttribute("beta", beta)
+        .build().outputs(0)
+  }
+
+  //endregion Normalization Ops
 
   /** Returns the `noiseShape` for the provided input, making the best effort possible to deal with unknown sizes. */
   private[api] def getNoiseShape(input: Output, noiseShape: Output): Output = {
@@ -1041,6 +1099,50 @@ object NN extends NN {
       */
     def logSoftmax(axis: Int = -1): Output = NN.logSoftmax(output, axis)
 
+    //region Normalization Ops
+
+    /** $OpDocNNLocalResponseNormalization
+      *
+      * @group NNOps
+      * @param  depthRadius Half-width of the 1-D normalization window.
+      * @param  bias        Offset (usually positive to avoid dividing by 0).
+      * @param  alpha       Scale factor (usually positive).
+      * @param  beta        Exponent.
+      * @param  name        Name for the created op.
+      * @return Created op output.
+      */
+    def lrn(
+        depthRadius: Int = 5,
+        bias: Float = 1.0f,
+        alpha: Float = 1.0f,
+        beta: Float = 0.5f,
+        name: String = "LRN"
+    ): Output = {
+      NN.localResponseNormalization(output, depthRadius, bias, alpha, beta, name)
+    }
+
+    /** $OpDocNNLocalResponseNormalization
+      *
+      * @group NNOps
+      * @param  depthRadius Half-width of the 1-D normalization window.
+      * @param  bias        Offset (usually positive to avoid dividing by 0).
+      * @param  alpha       Scale factor (usually positive).
+      * @param  beta        Exponent.
+      * @param  name        Name for the created op.
+      * @return Created op output.
+      */
+    def localResponseNormalization(
+        depthRadius: Int = 5,
+        bias: Float = 1.0f,
+        alpha: Float = 1.0f,
+        beta: Float = 0.5f,
+        name: String = "LocalResponseNormalization"
+    ): Output = {
+      NN.localResponseNormalization(output, depthRadius, bias, alpha, beta, name)
+    }
+
+    //endregion Normalization Ops
+
     /** $OpDocNNDropout
       *
       * @group NNOps
@@ -1233,6 +1335,7 @@ object NN extends NN {
     GradientsRegistry.register("SeluGrad", seluHessian)
     GradientsRegistry.register("Softmax", softmaxGradient)
     GradientsRegistry.register("LogSoftmax", logSoftmaxGradient)
+    GradientsRegistry.register("LRN", lrnGradient)
     GradientsRegistry.register("SoftmaxCrossEntropyWithLogits", softmaxCrossEntropyGradient)
     GradientsRegistry.register("SparseSoftmaxCrossEntropyWithLogits", sparseSoftmaxCrossEntropyGradient)
     GradientsRegistry.register("L2Loss", l2LossGradient)
@@ -1415,6 +1518,20 @@ object NN extends NN {
       Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
     }
 
+    private[this] def lrnGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Op.Builder(
+        opType = "LRNGrad", name = "LRNGrad")
+          .addInput(outputGradient)
+          .addInput(op.inputs(0))
+          .addInput(op.outputs(0))
+          .setAttribute("depth_radius", op.longAttribute("depth_radius"))
+          .setAttribute("bias", op.floatAttribute("bias"))
+          .setAttribute("alpha", op.floatAttribute("alpha"))
+          .setAttribute("beta", op.floatAttribute("beta"))
+          .build().outputs.asInstanceOf[Seq[OutputLike]]
+    }
+
     private[this] def broadcastMultiply(vector: Output, matrix: Output): Output = {
       Basic.expandDims(vector, -1) * matrix
     }
@@ -1499,7 +1616,9 @@ object NN extends NN {
   }
 
   private[this] def batchNormalizationWithGlobalNormalizationGradient(
-      op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      op: Op,
+      outputGradients: Seq[OutputLike]
+  ): Seq[OutputLike] = {
     val outputGradient = outputGradients.head.toOutput
     Op.Builder(
       opType = "BatchNormWithGlobalNormalizationGrad", name = "BatchNormalizationWithGlobalNormalizationGradient")
@@ -1781,6 +1900,19 @@ object NN extends NN {
     *   `[batchSize, sequenceLength]`, over their respective dimensions. For examplem if `averageAcrossTimeSteps` is
     *   `true` and `averageAcrossBatch` is `false`, then the returned tensor will have shape `[batchSize]`.
     *
+    * @define OpDocNNLocalResponseNormalization
+    *   The `localResponseNormalization` op treats the input 4-D tensor as a 3-D array of 1-D vectors (along the last
+    *   dimension), and each vector is normalized independently. Within a given vector, each component is divided by the
+    *   weighted, squared sum of the inputs within `depthRadius`. In detail:
+    *
+    *   {{{
+    *    sqrSum[a, b, c, d] = sum(input[a, b, c, d - depthRadius : d + depthRadius + 1] **   2)
+    *    output = input / (bias + alpha *   sqrSum) **   beta
+    *   }}}
+    *
+    *   For details, see
+    *   [[http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks Krizhevsky et al., ImageNet Classification with Deep Convolutional Neural Networks (NIPS 2012).]]
+    *   
     * @define OpDocNNDropout
     *   The `dropout` op computes a dropout layer.
     *

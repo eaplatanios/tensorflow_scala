@@ -61,6 +61,20 @@ case class LogSoftmax(override val name: String)
   }
 }
 
+case class LRN(
+    override val name: String,
+    depthRadius: Int = 5,
+    bias: Float = 1.0f,
+    alpha: Float = 1.0f,
+    beta: Float = 0.5f
+) extends Layer[Output, Output](name) {
+  override val layerType: String = "LRN"
+
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    ops.NN.lrn(input, depthRadius, bias, alpha, beta, name = name)
+  }
+}
+
 case class Dropout(
     override val name: String,
     keepProbability: Float,

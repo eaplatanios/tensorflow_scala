@@ -66,6 +66,7 @@ package object types {
   trait Int32OrInt64 extends UInt8OrInt32OrInt64
   trait DecimalDataType extends RealDataType
   trait BFloat16OrFloat32OrFloat64 extends DecimalDataType
+  trait BFloat16OrFloat16OrFloat32 extends DecimalDataType
   trait Float16OrFloat32OrFloat64 extends DecimalDataType with Int32OrInt64OrFloat16OrFloat32OrFloat64 with BFloat16OrFloat32OrFloat64
   trait Float32OrFloat64 extends Float16OrFloat32OrFloat64
   trait Int32OrInt64OrFloat32OrFloat64 extends Float32OrFloat64 with Int32OrInt64
@@ -136,7 +137,7 @@ package object types {
 
   // TODO: Fix/complete the following implementations for FLOAT16, BFLOAT16, COMPLEX64, and COMPLEX128.
 
-  object FLOAT16 extends Float16OrFloat32OrFloat64 {
+  object FLOAT16 extends Float16OrFloat32OrFloat64 with BFloat16OrFloat16OrFloat32 {
     override type ScalaType = Float
 
     override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null
@@ -167,7 +168,7 @@ package object types {
     }
   }
 
-  object FLOAT32 extends Float32OrFloat64 {
+  object FLOAT32 extends Float32OrFloat64 with BFloat16OrFloat16OrFloat32 {
     override type ScalaType = Float
 
     override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = {
@@ -235,7 +236,7 @@ package object types {
     }
   }
 
-  object BFLOAT16 extends BFloat16OrFloat32OrFloat64 {
+  object BFLOAT16 extends BFloat16OrFloat32OrFloat64 with BFloat16OrFloat16OrFloat32 {
     override type ScalaType = Float
 
     override private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type] = null

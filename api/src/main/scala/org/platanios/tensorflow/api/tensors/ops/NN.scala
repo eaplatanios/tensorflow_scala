@@ -491,6 +491,51 @@ private[api] trait NN {
 
   //endregion Loss Ops
 
+  //region Normalization Ops
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @return Created op output.
+    */
+  def lrn[D <: BFloat16OrFloat16OrFloat32](
+      input: Tensor[D],
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f
+  ): Tensor[D] = {
+    localResponseNormalization(input, depthRadius, bias, alpha, beta)
+  }
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @return Created op output.
+    */
+  def localResponseNormalization[D <: BFloat16OrFloat16OrFloat32](
+      input: Tensor[D],
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.lRN(
+      executionContext.value.nativeHandle, input.nativeHandle, depthRadius, bias, alpha, beta))
+  }
+
+  //endregion Normalization Ops
+
   /** $OpDocNNDropout
     *
     * @group NNOps
@@ -942,6 +987,49 @@ object NN extends NN {
       //endregion Convolution Ops
     }
 
+    implicit class BFloat16OrFloat16OrFloat32NNOps[D <: BFloat16OrFloat16OrFloat32](val tensor: Tensor[D]) {
+      //region Normalization Ops
+
+      /** $OpDocNNLocalResponseNormalization
+        *
+        * @group NNOps
+        * @param  depthRadius Half-width of the 1-D normalization window.
+        * @param  bias        Offset (usually positive to avoid dividing by 0).
+        * @param  alpha       Scale factor (usually positive).
+        * @param  beta        Exponent.
+        * @return Created op output.
+        */
+      def lrn(
+          depthRadius: Int = 5,
+          bias: Float = 1.0f,
+          alpha: Float = 1.0f,
+          beta: Float = 0.5f,
+          name: String = "LRN"
+      ): Tensor[D] = {
+        NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
+      }
+
+      /** $OpDocNNLocalResponseNormalization
+        *
+        * @group NNOps
+        * @param  depthRadius Half-width of the 1-D normalization window.
+        * @param  bias        Offset (usually positive to avoid dividing by 0).
+        * @param  alpha       Scale factor (usually positive).
+        * @param  beta        Exponent.
+        * @return Created op output.
+        */
+      def localResponseNormalization(
+          depthRadius: Int = 5,
+          bias: Float = 1.0f,
+          alpha: Float = 1.0f,
+          beta: Float = 0.5f
+      ): Tensor[D] = {
+        NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
+      }
+
+      //endregion Normalization Ops
+    }
+
     implicit class Float16OrFloat32OrFloat64NNOps[D <: Float16OrFloat32OrFloat64](val tensor: Tensor[D]) {
       /** $OpDocNNDropout
         *
@@ -993,6 +1081,7 @@ object NN extends NN {
     implicit def tensorConvertibleToMathNNOps[D <: MathDataType, T](value: T)(implicit f: T => Tensor[D]): MathNNOps[D] = new MathNNOps(f(value))
     implicit def tensorConvertibleToRealNNOps[D <: RealDataType, T](value: T)(implicit f: T => Tensor[D]): RealNNOps[D] = new RealNNOps(f(value))
     implicit def tensorConvertibleToDecimalNNOps[D <: DecimalDataType, T](value: T)(implicit f: T => Tensor[D]): DecimalNNOps[D] = new DecimalNNOps(f(value))
+    implicit def tensorConvertibleToBFloat16OrFloat16OrFloat32NNOps[D <: BFloat16OrFloat16OrFloat32, T](value: T)(implicit f: T => Tensor[D]): BFloat16OrFloat16OrFloat32NNOps[D] = new BFloat16OrFloat16OrFloat32NNOps(f(value))
     implicit def tensorConvertibleToFloat16OrFloat32OrFloat64NNOps[D <: Float16OrFloat32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Float16OrFloat32OrFloat64NNOps[D] = new Float16OrFloat32OrFloat64NNOps(f(value))
     implicit def tensorConvertibleToFloat32OrFloat64NNOps[D <: Float32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Float32OrFloat64NNOps[D] = new Float32OrFloat64NNOps(f(value))
     implicit def tensorConvertibleToFloat32NNOps[T](value: T)(implicit f: T => Tensor[FLOAT32]): Float32NNOps = new Float32NNOps(f(value))
