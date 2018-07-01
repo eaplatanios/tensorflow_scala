@@ -23,6 +23,7 @@ libraryDependencies ++= Seq(
   "org.tensorflow" % "proto" % tensorFlowVersion)
 
 // addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC3")
+addSbtPlugin("org.scalameta" % "sbt-metals" % "0.1.0-M1+267-28b92d0a")
 
 // addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
