@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.parameterGetter
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
@@ -43,9 +42,9 @@ class BasicRNNCell(
   override val layerType: String = "BasicRNNCell"
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicRNNCell = {
-    val kernel = parameterGetter.value(
+    val kernel = getParameter(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
-    val bias = parameterGetter.value(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
+    val bias = getParameter(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
     ops.rnn.cell.BasicRNNCell(kernel, bias, activation, name)
   }
 }

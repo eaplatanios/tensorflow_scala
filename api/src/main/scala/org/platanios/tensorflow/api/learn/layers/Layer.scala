@@ -15,10 +15,11 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables.VariableScope.maybeWrapCustomVariableGetter
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.types.DataType
 
@@ -67,6 +68,20 @@ abstract class Layer[T, R](
   def concatenate(others: Layer[T, R]*): Concatenate[T, R] = Concatenate(name, this +: others)
 
   def map[MR](mapFn: R => MR): Layer[T, MR] = Map(s"$name/Map", this, mapFn)
+
+  final def getParameter(
+      name: String,
+      dataType: DataType,
+      shape: Shape,
+      initializer: Initializer = null,
+      regularizer: Regularizer = null,
+      trainable: Boolean = true,
+      reuse: Reuse = ReuseOrCreateNew,
+      collections: Set[Graph.Key[Variable]] = Set.empty,
+      cachingDevice: OpSpecification => String = null
+  ): Output = {
+    getParameter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
+  }
 
   override def toString: String = layerType
 }

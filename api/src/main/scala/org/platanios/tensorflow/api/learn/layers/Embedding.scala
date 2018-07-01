@@ -43,7 +43,7 @@ case class Embedding(
   override val layerType: String = "Embedding"
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    val embeddingMap = parameterGetter.value("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
+    val embeddingMap = getParameter("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
     ops.Embedding.embeddingLookup(
       embeddingMap, input, partitionStrategy, transformFn,
       if (maxNorm == null) null else ops.Basic.constant(maxNorm),

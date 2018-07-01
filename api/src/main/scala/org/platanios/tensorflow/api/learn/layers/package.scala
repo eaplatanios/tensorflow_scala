@@ -58,7 +58,7 @@ package object layers {
     }
   }
 
-  private[learn] val parameterGetter: DynamicVariable[ParameterGetter] = {
+  private[layers] val parameterGetter: DynamicVariable[ParameterGetter] = {
     new DynamicVariable[ParameterGetter](DefaultParameterGetter)
   }
 

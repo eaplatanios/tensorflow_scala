@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.parameterGetter
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
@@ -55,14 +54,14 @@ class LSTMCell(
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.LSTMCell = {
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
-    val kernel = parameterGetter.value(
+    val kernel = getParameter(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
-    val bias = parameterGetter.value(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
+    val bias = getParameter(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
     val (wfDiag, wiDiag, woDiag) = {
       if (usePeepholes) {
-        val wfDiag = parameterGetter.value("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        val wiDiag = parameterGetter.value("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        val woDiag = parameterGetter.value("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val wfDiag = getParameter("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val wiDiag = getParameter("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val woDiag = getParameter("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
         (wfDiag, wiDiag, woDiag)
       } else {
         (null, null, null)
@@ -70,7 +69,7 @@ class LSTMCell(
     }
     val projectionKernel = {
       if (projectionSize != -1) {
-        val projectionKernel = parameterGetter.value(
+        val projectionKernel = getParameter(
           s"Projection/$KERNEL_NAME", dataType, Shape(numUnits, projectionSize), kernelInitializer)
         projectionKernel
       } else {

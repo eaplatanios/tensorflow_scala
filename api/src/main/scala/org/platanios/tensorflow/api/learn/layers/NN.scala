@@ -108,7 +108,7 @@ case class Conv2D(
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    val weights = parameterGetter.value("Weights", input.dataType, filterShape, weightsInitializer)
+    val weights = getParameter("Weights", input.dataType, filterShape, weightsInitializer)
     ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU)
   }
 }

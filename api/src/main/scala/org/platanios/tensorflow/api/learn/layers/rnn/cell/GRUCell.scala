@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.parameterGetter
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
@@ -43,21 +42,21 @@ class GRUCell(
   override val layerType: String = "GRUCell"
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.GRUCell = {
-    val gateKernel = parameterGetter.value(
+    val gateKernel = getParameter(
       s"Gate/$KERNEL_NAME",
       dataType,
       Shape(inputShape(-1) + numUnits, 2 * numUnits),
       kernelInitializer)
-    val gateBias = parameterGetter.value(
+    val gateBias = getParameter(
       s"Gate/$BIAS_NAME",
       dataType, Shape(2 * numUnits),
       biasInitializer)
-    val candidateKernel = parameterGetter.value(
+    val candidateKernel = getParameter(
       s"Candidate/$KERNEL_NAME",
       dataType,
       Shape(inputShape(-1) + numUnits, numUnits),
       kernelInitializer)
-    val candidateBias = parameterGetter.value(
+    val candidateBias = getParameter(
       s"Candidate/$BIAS_NAME",
       dataType,
       Shape(numUnits),
