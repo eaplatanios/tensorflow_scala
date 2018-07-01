@@ -46,7 +46,7 @@ object XCLoader extends Loader {
     val avgLabelsPerSample: Float
   }
 
-  sealed trait SmallScaleDatasetType extends DatasetType {
+  sealed trait SmallDatasetType extends DatasetType {
     def dataFilename: String = s"${name}_data.txt"
     def trainSplitsFilename: String = s"${name.toLowerCase()}_trSplit.txt"
     def testSplitsFilename: String = s"${name.toLowerCase()}_tstSplit.txt"
@@ -60,7 +60,7 @@ object XCLoader extends Loader {
     }
   }
 
-  sealed trait LargeScaleDatasetType extends DatasetType {
+  sealed trait LargeDatasetType extends DatasetType {
     def trainDataFilename: String = s"${name.toLowerCase()}_train.txt"
     def testDataFilename: String = s"${name.toLowerCase()}_test.txt"
 
@@ -73,7 +73,7 @@ object XCLoader extends Loader {
     }
   }
 
-  case object BIBTEX extends SmallScaleDatasetType {
+  case object BIBTEX extends SmallDatasetType {
     override val name: String = "Bibtex"
     override val url : String = "https://drive.google.com/uc?id=0B3lPMIHmG6vGcy1xM2pJZ09MMGM&export=download"
 
@@ -85,7 +85,7 @@ object XCLoader extends Loader {
     override val avgLabelsPerSample: Float = 2.40f
   }
 
-  case object DELICIOUS extends SmallScaleDatasetType {
+  case object DELICIOUS extends SmallDatasetType {
     override val name: String = "Delicious"
     override val url : String = "https://drive.google.com/uc?id=0B3lPMIHmG6vGdG1jZ19VS2NWRVU&export=download"
 
@@ -97,7 +97,7 @@ object XCLoader extends Loader {
     override val avgLabelsPerSample: Float = 19.03f
   }
 
-  case object MEDIAMILL extends SmallScaleDatasetType {
+  case object MEDIAMILL extends SmallDatasetType {
     override val name: String = "Mediamill"
     override val url : String = "https://drive.google.com/uc?id=0B3lPMIHmG6vGY3B4TXRmZnZBTkk&export=download"
 
@@ -109,7 +109,7 @@ object XCLoader extends Loader {
     override val avgLabelsPerSample: Float = 4.38f
   }
 
-  case object EURLEX extends LargeScaleDatasetType {
+  case object EURLEX extends LargeDatasetType {
     override val name: String = "Eurlex"
     override val url : String = "https://drive.google.com/uc?id=0B3lPMIHmG6vGU0VTR1pCejFpWjg&export=download"
 
@@ -128,7 +128,7 @@ object XCLoader extends Loader {
   case class Split(trainIndices: Seq[Int], testIndices: Seq[Int])
 
   case class SmallDataset[TL[D <: DataType] <: TensorLike[D]](
-      datasetType: SmallScaleDatasetType,
+      datasetType: SmallDatasetType,
       data: Data[TL],
       splits: Seq[Split]
   ) {
@@ -149,16 +149,13 @@ object XCLoader extends Loader {
     }
   }
 
-  case class LargeDataset[TL[D <: DataType] <: TensorLike[D]](
-      datasetType: LargeScaleDatasetType,
-      trainData: Data[TL],
-      testData: Data[TL])
+  case class LargeDataset[TL[D <: DataType] <: TensorLike[D]](datasetType: LargeDatasetType, data: SplitData[TL])
 
   override protected val logger = Logger(LoggerFactory.getLogger("XC Data Loader"))
 
   def loadSmallDense(
       path: Path,
-      datasetType: SmallScaleDatasetType,
+      datasetType: SmallDatasetType,
       bufferSize: Int = 8192
   ): SmallDataset[Tensor] = {
     val compressedFile = loadCommon(path, datasetType, bufferSize)
@@ -169,7 +166,7 @@ object XCLoader extends Loader {
 
   def loadSmallSparse(
       path: Path,
-      datasetType: SmallScaleDatasetType,
+      datasetType: SmallDatasetType,
       bufferSize: Int = 8192
   ): SmallDataset[SparseTensor] = {
     val compressedFile = loadCommon(path, datasetType, bufferSize)
@@ -180,7 +177,7 @@ object XCLoader extends Loader {
 
   def loadLargeDense(
       path: Path,
-      datasetType: LargeScaleDatasetType,
+      datasetType: LargeDatasetType,
       bufferSize: Int = 8192
   ): LargeDataset[Tensor] = {
     val compressedFile = loadCommon(path, datasetType, bufferSize)
@@ -191,7 +188,7 @@ object XCLoader extends Loader {
 
   def loadLargeSparse(
       path: Path,
-      datasetType: LargeScaleDatasetType,
+      datasetType: LargeDatasetType,
       bufferSize: Int = 8192
   ): LargeDataset[SparseTensor] = {
     val compressedFile = loadCommon(path, datasetType, bufferSize)
@@ -214,7 +211,7 @@ object XCLoader extends Loader {
 
   private[this] def extractSmallScaleDataset[TL[D <: DataType] <: TensorLike[D]](
       path: Path,
-      datasetType: SmallScaleDatasetType,
+      datasetType: SmallDatasetType,
       dataConverter: Data[SparseTensor] => Data[TL],
       bufferSize: Int = 8192
   ): SmallDataset[TL] = {
@@ -253,21 +250,35 @@ object XCLoader extends Loader {
 
   private[this] def extractLargeScaleDataset[TL[D <: DataType] <: TensorLike[D]](
       path: Path,
-      datasetType: LargeScaleDatasetType,
+      datasetType: LargeDatasetType,
       dataConverter: Data[SparseTensor] => Data[TL],
       bufferSize: Int = 8192
   ): LargeDataset[TL] = {
     logger.info(s"Extracting data from file '$path'.")
     val inputStream = new ZipInputStream(Files.newInputStream(path))
-    var dataset = LargeDataset[TL](datasetType, null, null)
+    var dataset = LargeDataset[TL](datasetType, null)
     var entry = inputStream.getNextEntry
     while (entry != null) {
       if (entry.getName.endsWith(datasetType.trainDataFilename)) {
-        val data = readData(inputStream, datasetType, bufferSize)
-        dataset = dataset.copy(trainData = dataConverter(data))
+        val data = dataConverter(readData(inputStream, datasetType, bufferSize))
+        val existingData = dataset.data
+        val updatedData = {
+          if (existingData == null)
+            SplitData(trainData = data, testData = null)
+          else
+            existingData.copy(trainData = data)
+        }
+        dataset = dataset.copy(data = updatedData)
       } else if (entry.getName.endsWith(datasetType.testDataFilename)) {
-        val data = readData(inputStream, datasetType, bufferSize)
-        dataset = dataset.copy(testData = dataConverter(data))
+        val data = dataConverter(readData(inputStream, datasetType, bufferSize))
+        val existingData = dataset.data
+        val updatedData = {
+          if (existingData == null)
+            SplitData(trainData = null, testData = data)
+          else
+            existingData.copy(testData = data)
+        }
+        dataset = dataset.copy(data = updatedData)
       }
       entry = inputStream.getNextEntry
     }
