@@ -133,7 +133,10 @@ class ConfusionMatrix(
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: (Output, Output), weights: Output = null, name: String = name): Metric.StreamingInstance[Output] = {
+      values: (Output, Output),
+      weights: Output = null,
+      name: String = name
+  ): Metric.StreamingInstance[Output] = {
     Op.createWithNameScope(name) {
       VariableScope.scope(name) {
         val accumulator = variable(

@@ -21,6 +21,9 @@ Other new features include:
 - Improvements to the high-level learn API:
   - Layers can now provide and use their own parameter generator.
   - Layers now support `.map(...)`.
+- Added support for local response normalization (i.e., `tf.lrn`).
+- Added support for loading the extreme classification repository
+  datasets (i.e., `data.XCLoader`).
 
 # 0.2.4 Minor Fix
 
