@@ -381,7 +381,12 @@ object Output {
       Some(Shape.scalar())
     } else {
       tensor.op.opType match {
-        case "Shape" => Some(tensor.op.inputs(0).shape)
+        case "Shape" =>
+          val inputShape = tensor.op.inputs(0).shape
+          if (inputShape.rank > -1)
+            Some(tensor.op.inputs(0).shape)
+          else
+            None
         case "Pack" =>
           // 'i' must be a scalar. Attempt to evaluate it.
           val values = tensor.op.inputs.map(i => constantValue(i).map(v => Shape(v.scalar.asInstanceOf[Int])))
@@ -427,7 +432,7 @@ object Output {
                             shrinkAxisMask == 1 ||
                             (beginMask != 1 && beginMask > 0) ||
                             (endMask != 1 && endMask > 0)) {
-                          null
+                          None
                         } else {
                           val previousShape = constantValueAsShape(tensor.op.inputs(0))
                           previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.asInstanceOf[Int]).toArray))
@@ -445,7 +450,10 @@ object Output {
               (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int]): _*)
             returnShape = returnShape.mergeWith(shape)
           }
-          Some(returnShape)
+          if (returnShape.rank > -1)
+            Some(returnShape)
+          else
+            None
       }
     }
   }
