@@ -130,7 +130,7 @@ package object metrics {
     Op.createWithNameScope(name) {
       val numTruePositives = sparseTruePositives(labels, predictionIDs, labelID, weights)
       val batchNumTruePositives = Math.sum(numTruePositives)
-      val accumulator = Metric.variable("Accumulator", FLOAT64, Shape())
+      val accumulator = Metric.variable(s"$name/Accumulator", FLOAT64, Shape())
       val value = accumulator.value
       val update = accumulator.assignAdd(batchNumTruePositives)
       val reset = accumulator.initializer
@@ -169,7 +169,7 @@ package object metrics {
         case Some(selectedID) =>
           val filteredPredictionIDs = selectID(predictionIDs, selectedID)
           val filteredLabels = selectID(labels, selectedID)
-          Sets.setSize(Sets.setIntersection(filteredPredictionIDs, filteredLabels)).toFloat64
+          Sets.setSize(Sets.setDifference(filteredPredictionIDs, filteredLabels, aMinusB = true)).toFloat64
       }
       weights match {
         case None => numFalsePositives
@@ -208,7 +208,7 @@ package object metrics {
     Op.createWithNameScope(name) {
       val numFalsePositives = sparseFalsePositives(labels, predictionIDs, labelID, weights)
       val batchNumFalsePositives = Math.sum(numFalsePositives)
-      val accumulator = Metric.variable("Accumulator", FLOAT64, Shape())
+      val accumulator = Metric.variable(s"$name/Accumulator", FLOAT64, Shape())
       val value = accumulator.value
       val update = accumulator.assignAdd(batchNumFalsePositives)
       val reset = accumulator.initializer
@@ -247,7 +247,7 @@ package object metrics {
         case Some(selectedID) =>
           val filteredPredictionIDs = selectID(predictionIDs, selectedID)
           val filteredLabels = selectID(labels, selectedID)
-          Sets.setSize(Sets.setIntersection(filteredPredictionIDs, filteredLabels)).toFloat64
+          Sets.setSize(Sets.setDifference(filteredPredictionIDs, filteredLabels, aMinusB = false)).toFloat64
       }
       weights match {
         case None => numTruePositives
@@ -286,7 +286,7 @@ package object metrics {
     Op.createWithNameScope(name) {
       val numFalseNegatives = sparseFalseNegatives(labels, predictionIDs, labelID, weights)
       val batchNumFalseNegatives = Math.sum(numFalseNegatives)
-      val accumulator = Metric.variable("Accumulator", FLOAT64, Shape())
+      val accumulator = Metric.variable(s"$name/Accumulator", FLOAT64, Shape())
       val value = accumulator.value
       val update = accumulator.assignAdd(batchNumFalseNegatives)
       val reset = accumulator.initializer

@@ -104,24 +104,24 @@ class GroupedPrecision(
       val predictedIndices = predictions.toInt64
       val truePositives = VariableScope.scope(name)(streamingSparseTruePositives(
         reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), Option(weights)))
-      val falseNegatives = VariableScope.scope(name)(streamingSparseFalsePositives(
+      val falsePositives = VariableScope.scope(name)(streamingSparseFalsePositives(
         reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), Option(weights)))
       val tp = truePositives.value
-      val fn = falseNegatives.value
+      val fp = falsePositives.value
       val tpUpdate = truePositives.update
-      val fnUpdate = falseNegatives.update
+      val fpUpdate = falsePositives.update
       val tpReset = truePositives.reset
-      val fnReset = falseNegatives.reset
+      val fpReset = falsePositives.reset
       val tpVariables = truePositives.variables
-      val fnVariables = falseNegatives.variables
+      val fpVariables = falsePositives.variables
       // TODO: [DISTRIBUTE] Add support for aggregation across towers.
-      val value = safeDiv(tp, tp + fn, name = "Value")
-      val update = safeDiv(tpUpdate, tpUpdate + fnUpdate, name = "Update")
-      val reset = ControlFlow.group(Set(tpReset, fnReset), name = "Reset")
+      val value = safeDiv(tp, tp + fp, name = "Value")
+      val update = safeDiv(tpUpdate, tpUpdate + fpUpdate, name = "Update")
+      val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset")
       valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
       updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
       resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-      Metric.StreamingInstance(value, update, reset, tpVariables ++ fnVariables)
+      Metric.StreamingInstance(value, update, reset, tpVariables ++ fpVariables)
     }
   }
 }
