@@ -94,14 +94,15 @@ class Mean(
     VariableScope.scope(name) {
       Op.createWithNameScope(name, ops) {
         val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
-        val total = variable("Total", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
-        val count = variable("Count", castedValues.dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val dataType = castedValues.dataType
+        val total = Metric.variable("Total", dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val count = Metric.variable("Count", dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
         val (processedValues, numValues) = {
           if (weights == null) {
-            (castedValues, Basic.size(castedValues).cast(castedValues.dataType))
+            (castedValues, Basic.size(castedValues).cast(dataType))
           } else {
             var (matchedValues, _, matchedWeights) = matchAxes(castedValues, null, weights)
-            matchedWeights = weightsBroadcast(matchedValues, matchedWeights.cast(castedValues.dataType))
+            matchedWeights = weightsBroadcast(matchedValues, matchedWeights.cast(dataType))
             matchedValues = Math.multiply(matchedValues, matchedWeights)
             val numValues = Math.sum(matchedWeights)
             (matchedValues, numValues)

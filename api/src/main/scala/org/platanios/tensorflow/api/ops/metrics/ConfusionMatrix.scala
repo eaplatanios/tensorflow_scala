@@ -139,7 +139,7 @@ class ConfusionMatrix(
   ): Metric.StreamingInstance[Output] = {
     Op.createWithNameScope(name) {
       VariableScope.scope(name) {
-        val accumulator = variable(
+        val accumulator = Metric.variable(
           "Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
         val value = compute(values, weights, name = "Value")
         val update = accumulator.assignAdd(value, name = "Update")

@@ -1520,8 +1520,7 @@ object NN extends NN {
 
     private[this] def lrnGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val outputGradient = outputGradients.head.toOutput
-      Op.Builder(
-        opType = "LRNGrad", name = "LRNGrad")
+      Op.Builder(opType = "LRNGrad", name = "LRNGrad")
           .addInput(outputGradient)
           .addInput(op.inputs(0))
           .addInput(op.outputs(0))
@@ -1912,7 +1911,7 @@ object NN extends NN {
     *
     *   For details, see
     *   [[http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks Krizhevsky et al., ImageNet Classification with Deep Convolutional Neural Networks (NIPS 2012).]]
-    *   
+    *
     * @define OpDocNNDropout
     *   The `dropout` op computes a dropout layer.
     *

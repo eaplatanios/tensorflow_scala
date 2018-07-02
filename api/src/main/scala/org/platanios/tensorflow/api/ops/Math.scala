@@ -4355,36 +4355,6 @@ object Math extends Math {
       Seq(null, null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
     }
 
-    /** Helper function for reduction ops that computes the reduction output shape, assuming `keepDims` is `true`.
-      *
-      * For example:
-      * {{{
-      *   // inputShape == [2, 3, 5, 7]
-      *   // axes = [1, 2]
-      *   reducedShape(inputShape, axes) ==> [2, 1, 1, 7]
-      * }}}
-      *
-      * @param  inputShape Shape of the tensor being reduced.
-      * @param  axes       Reduction axes.
-      * @return One-dimensional tensor representing the reduction output shape, assuming `keepDims` is `true`.
-      */
-    private[this] def reducedShape(inputShape: Output, axes: Output): Output = {
-      // Cast needed for SparseOutput reductions.
-      val intInputShape = Cast.cast(inputShape, INT32)
-      val inputRank = Basic.size(intInputShape)
-      val reshapedAxes = {
-        if (axes.rank == 0)
-          Basic.reshape(axes, Tensor(1))
-        else
-          axes
-      }
-      val intAxes = floorMod(add(Cast.cast(reshapedAxes, INT32), inputRank), inputRank)
-      val axesShape = Basic.shape(intAxes)
-      DataFlow.dynamicStitch(
-        Seq(range(Basic.constant(0), inputRank), intAxes),
-        Seq(intInputShape, Basic.fill(shape = axesShape)(1)))
-    }
-
     private[this] def safeShapeDiv(x: Output, y: Output): Output = {
       truncateDivide(x, maximum(y, Basic.constant(1, y.dataType)))
     }
@@ -4858,6 +4828,36 @@ object Math extends Math {
     private[this] def conjGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       Seq(conjugate(outputGradients.head))
     }
+  }
+
+  /** Helper function for reduction ops that computes the reduction output shape, assuming `keepDims` is `true`.
+    *
+    * For example:
+    * {{{
+    *   // inputShape == [2, 3, 5, 7]
+    *   // axes = [1, 2]
+    *   reducedShape(inputShape, axes) ==> [2, 1, 1, 7]
+    * }}}
+    *
+    * @param  inputShape Shape of the tensor being reduced.
+    * @param  axes       Reduction axes.
+    * @return One-dimensional tensor representing the reduction output shape, assuming `keepDims` is `true`.
+    */
+  private[api] def reducedShape(inputShape: Output, axes: Output): Output = {
+    // Cast needed for SparseOutput reductions.
+    val intInputShape = Cast.cast(inputShape, INT32)
+    val inputRank = Basic.size(intInputShape)
+    val reshapedAxes = {
+      if (axes.rank == 0)
+        Basic.reshape(axes, Tensor(1))
+      else
+        axes
+    }
+    val intAxes = floorMod(add(Cast.cast(reshapedAxes, INT32), inputRank), inputRank)
+    val axesShape = Basic.shape(intAxes)
+    DataFlow.dynamicStitch(
+      Seq(range(Basic.constant(0), inputRank), intAxes),
+      Seq(intInputShape, Basic.fill(shape = axesShape)(1)))
   }
 
   /** @define OpDocMathSelect

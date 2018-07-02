@@ -126,31 +126,29 @@ TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google 
 
 <!---
 
-## Supported Features
+## Some TODOs
 
   - [ ] Session execution context (I'm not sure if that's good to have)
   - [ ] Session reset functionality
   - [ ] Variables slicing
   - [ ] Slice assignment
-  - [x] Support for all data types
+  - [ ] Support for `CriticalSection`.
   - [ ] tfdbg / debugging support
   - [ ] tfprof / op statistics collection
 
-## Some TODOs
-
-- Switch to using JUnit for all tests.
-- Add convenience implicit conversions for shapes (e.g., from tuples or sequences of integers).
-- Create a "Scope" class and companion object.
-- Variables API:
-  - Clean up the implementation of variable scopes and stores and integrate it with "Scope".
-  - Make 'PartitionedVariable' extend 'Variable'.
-  - After that change, all 'getPartitionedVariable' methods can be integrated with the 'getVariable' methods, which will 
-    simplify the variables API.
-- Switch to using "Seq" instead of "Array" wherever possible.
-- Op creation:
-  - Reset default graph
-  - Register op statistics
-- Fix Travis CI support (somehow load the native library)
+  - Switch to using JUnit for all tests.
+  - Add convenience implicit conversions for shapes (e.g., from tuples or sequences of integers).
+  - Create a "Scope" class and companion object.
+  - Variables API:
+    - Clean up the implementation of variable scopes and stores and integrate it with "Scope".
+    - Make 'PartitionedVariable' extend 'Variable'.
+    - After that change, all 'getPartitionedVariable' methods can be integrated with the 'getVariable' methods, which will
+      simplify the variables API.
+  - Switch to using "Seq" instead of "Array" wherever possible.
+  - Op creation:
+    - Reset default graph
+    - Register op statistics
+  - Fix Travis CI support (somehow load the native library)
 
 - Website margins are a little large relative to the content in mobile
 - Make the code blocks scroll rather than wrap

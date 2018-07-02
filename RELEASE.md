@@ -22,6 +22,8 @@ Other new features include:
   - Layers can now provide and use their own parameter generator.
   - Layers now support `.map(...)`.
 - Added support for local response normalization (i.e., `tf.lrn`).
+- Added support for the following new metrics:
+  - Grouped precision.
 - Added support for loading the extreme classification repository
   datasets (i.e., `data.XCLoader`).
 
