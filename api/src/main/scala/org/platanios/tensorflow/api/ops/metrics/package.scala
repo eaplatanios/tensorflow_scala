@@ -75,12 +75,12 @@ package object metrics {
     * @param  name          Namescope to use for all created ops.
     * @return `FLOAT64` tensor containing the number of true positives.
     */
-  private[metrics] def sparseTruePositivesAtK(
+  private[metrics] def sparseTruePositives(
       labels: Output,
       predictionIDs: Output,
       labelID: Option[Output] = None,
       weights: Option[Output] = None,
-      name: String = "SparseTruePositivesAtK"
+      name: String = "SparseTruePositives"
   ): Output = {
     Op.createWithNameScope(name) {
       val numTruePositives = labelID match {
@@ -118,19 +118,97 @@ package object metrics {
     * @param  name          Namescope to use for all created ops.
     * @return Streaming metric instance for computing a `FLOAT64` tensor containing the number of true positives.
     */
-  private[metrics] def streamingSparseTruePositivesAtK(
+  private[metrics] def streamingSparseTruePositives(
       labels: Output,
       predictionIDs: Output,
       labelID: Option[Output] = None,
       weights: Option[Output] = None,
-      name: String = "StreamingSparseTruePositivesAtK"
+      name: String = "StreamingSparseTruePositives"
   ): Metric.StreamingInstance[Output] = {
     Op.createWithNameScope(name) {
-      val numTruePositives = sparseTruePositivesAtK(labels, predictionIDs, labelID, weights)
+      val numTruePositives = sparseTruePositives(labels, predictionIDs, labelID, weights)
       val batchNumTruePositives = Math.sum(numTruePositives)
       val accumulator = Metric.variable("Accumulator", FLOAT64, Shape())
       val value = accumulator.value
       val update = accumulator.assignAdd(batchNumTruePositives)
+      val reset = accumulator.initializer
+      Metric.StreamingInstance(value, update, reset, Set(accumulator))
+    }
+  }
+
+  /** Calculates false positives for the recall@k and the precision@k metrics.
+    *
+    * If `labelID` is specified, the constructed op calculates binary false positives for `labelID` only.
+    * If `labelID` is not specified, then it calculates metrics for `k` predicted vs `n` labels.
+    *
+    * @param  labels        `INT64` tensor with shape `[D1, ... DN, numLabels]`, where `N >= 1` and `numLabels` is the
+    *                       number of target classes for the associated prediction. Commonly, `N = 1` and `labels` has
+    *                       shape `[batchSize, numLabels]`. `[D1, ..., DN]` must match the shape of `predictionIDs`.
+    * @param  predictionIDs 1-D or higher `INT64` tensor with its last dimension corresponding to the top `k` predicted
+    *                       classes. For rank `n`, the first `n-1` dimensions must match the shape of `labels`.
+    * @param  labelID       Optional label for which we want to compute the number of false positives.
+    * @param  weights       Optional weights tensor with rank is either `0`, or `n-1`, where `n` is the rank of
+    *                       `labels`. If the latter, it must be broadcastable to `labels` (i.e., all dimensions must be
+    *                       either `1`, or the same as the corresponding `labels` dimension).
+    * @param  name          Namescope to use for all created ops.
+    * @return `FLOAT64` tensor containing the number of false positives.
+    */
+  private[metrics] def sparseFalsePositives(
+      labels: Output,
+      predictionIDs: Output,
+      labelID: Option[Output] = None,
+      weights: Option[Output] = None,
+      name: String = "SparseFalsePositives"
+  ): Output = {
+    Op.createWithNameScope(name) {
+      val numFalsePositives = labelID match {
+        case None =>
+          Sets.setSize(Sets.setDifference(predictionIDs, labels, aMinusB = true)).toFloat64
+        case Some(selectedID) =>
+          val filteredPredictionIDs = selectID(predictionIDs, selectedID)
+          val filteredLabels = selectID(labels, selectedID)
+          Sets.setSize(Sets.setIntersection(filteredPredictionIDs, filteredLabels)).toFloat64
+      }
+      weights match {
+        case None => numFalsePositives
+        case Some(w) =>
+          Op.createWith(controlDependencies = Set(Metric.weightsAssertBroadcastable(numFalsePositives, w))) {
+            Math.multiply(numFalsePositives, w.toFloat64)
+          }
+      }
+    }
+  }
+
+  /** Calculates streaming false positives for the recall@k and the precision@k metrics.
+    *
+    * If `labelID` is specified, the constructed op calculates binary false positives for `labelID` only.
+    * If `labelID` is not specified, then it calculates metrics for `k` predicted vs `n` labels.
+    *
+    * @param  labels        `INT64` tensor with shape `[D1, ... DN, numLabels]`, where `N >= 1` and `numLabels` is the
+    *                       number of target classes for the associated prediction. Commonly, `N = 1` and `labels` has
+    *                       shape `[batchSize, numLabels]`. `[D1, ..., DN]` must match the shape of `predictionIDs`.
+    * @param  predictionIDs 1-D or higher `INT64` tensor with its last dimension corresponding to the top `k` predicted
+    *                       classes. For rank `n`, the first `n-1` dimensions must match the shape of `labels`.
+    * @param  labelID       Optional label for which we want to compute the number of false positives.
+    * @param  weights       Optional weights tensor with rank is either `0`, or `n-1`, where `n` is the rank of
+    *                       `labels`. If the latter, it must be broadcastable to `labels` (i.e., all dimensions must be
+    *                       either `1`, or the same as the corresponding `labels` dimension).
+    * @param  name          Namescope to use for all created ops.
+    * @return Streaming metric instance for computing a `FLOAT64` tensor containing the number of false positives.
+    */
+  private[metrics] def streamingSparseFalsePositives(
+      labels: Output,
+      predictionIDs: Output,
+      labelID: Option[Output] = None,
+      weights: Option[Output] = None,
+      name: String = "StreamingSparseFalsePositives"
+  ): Metric.StreamingInstance[Output] = {
+    Op.createWithNameScope(name) {
+      val numFalsePositives = sparseFalsePositives(labels, predictionIDs, labelID, weights)
+      val batchNumFalsePositives = Math.sum(numFalsePositives)
+      val accumulator = Metric.variable("Accumulator", FLOAT64, Shape())
+      val value = accumulator.value
+      val update = accumulator.assignAdd(batchNumFalsePositives)
       val reset = accumulator.initializer
       Metric.StreamingInstance(value, update, reset, Set(accumulator))
     }
@@ -153,12 +231,12 @@ package object metrics {
     * @param  name          Namescope to use for all created ops.
     * @return `FLOAT64` tensor containing the number of false negatives.
     */
-  private[metrics] def sparseFalseNegativesAtK(
+  private[metrics] def sparseFalseNegatives(
       labels: Output,
       predictionIDs: Output,
       labelID: Option[Output] = None,
       weights: Option[Output] = None,
-      name: String = "SparseFalseNegativesAtK"
+      name: String = "SparseFalseNegatives"
   ): Output = {
     Op.createWithNameScope(name) {
       val numTruePositives = labelID match {
@@ -196,15 +274,15 @@ package object metrics {
     * @param  name          Namescope to use for all created ops.
     * @return Streaming metric instance for computing a `FLOAT64` tensor containing the number of false negatives.
     */
-  private[metrics] def streamingSparseFalseNegativesAtK(
+  private[metrics] def streamingSparseFalseNegatives(
       labels: Output,
       predictionIDs: Output,
       labelID: Option[Output] = None,
       weights: Option[Output] = None,
-      name: String = "StreamingSparseFalseNegativesAtK"
+      name: String = "StreamingSparseFalseNegatives"
   ): Metric.StreamingInstance[Output] = {
     Op.createWithNameScope(name) {
-      val numFalseNegatives = sparseFalseNegativesAtK(labels, predictionIDs, labelID, weights)
+      val numFalseNegatives = sparseFalseNegatives(labels, predictionIDs, labelID, weights)
       val batchNumFalseNegatives = Math.sum(numFalseNegatives)
       val accumulator = Metric.variable("Accumulator", FLOAT64, Shape())
       val value = accumulator.value

@@ -70,12 +70,12 @@ class GroupedPrecision(
     Op.createWithNameScope(name, ops) {
       val reshapedTargets = Metric.maybeExpandTargets(predictions, targets)
       val predictedIndices = predictions.toInt64
-      val truePositives = Math.sum(sparseTruePositivesAtK(
+      val truePositives = Math.sum(sparseTruePositives(
         reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), Option(weights)))
-      val falseNegatives = Math.sum(sparseFalseNegativesAtK(
+      val falsePositives = Math.sum(sparseFalsePositives(
         reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), Option(weights)))
       // TODO: [DISTRIBUTE] Add support for aggregation across towers.
-      val value = safeDiv(truePositives, truePositives + falseNegatives, name = "Value")
+      val value = safeDiv(truePositives, truePositives + falsePositives, name = "Value")
       valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
       value
     }
@@ -102,9 +102,9 @@ class GroupedPrecision(
     Op.createWithNameScope(name, ops) {
       val reshapedTargets = Metric.maybeExpandTargets(predictions, targets)
       val predictedIndices = predictions.toInt64
-      val truePositives = streamingSparseTruePositivesAtK(
+      val truePositives = streamingSparseTruePositives(
         reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), Option(weights))
-      val falseNegatives = streamingSparseFalseNegativesAtK(
+      val falseNegatives = streamingSparseFalsePositives(
         reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), Option(weights))
       val tp = truePositives.value
       val fn = falseNegatives.value
