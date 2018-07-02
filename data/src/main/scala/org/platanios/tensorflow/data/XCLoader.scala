@@ -62,17 +62,8 @@ object XCLoader extends Loader {
     // TODO: [DATA] Wikipedia-LSHTC: A=0.5,  B=0.4
     // TODO: [DATA] Amazon:          A=0.6,  B=2.6
 
-    protected val labelsPropensityA: Float = 0.55f
-    protected val labelsPropensityB: Float = 1.5f
-
-    def labelPropensityScores(dataset: SmallDataset[Tensor]): Tensor[FLOAT32] = {
-      val numSamples = dataset.data.labels.shape(0)
-      val labelCounts = dataset.data.labels.toFloat32.sum(axes = Seq(0))
-      val c = (math.log(numSamples) - 1) * math.pow(labelsPropensityB + 1, labelsPropensityA)
-      tf.add((labelCounts + labelsPropensityB).pow(-labelsPropensityA) * c, 1)
-    }
-
-    // TODO: [SPARSE] Add support for computing the propensity scores from sparse datasets.
+    private[data] val labelsPropensityA: Float = 0.55f
+    private[data] val labelsPropensityB: Float = 1.5f
   }
 
   sealed trait LargeDatasetType extends DatasetType {
@@ -213,6 +204,17 @@ object XCLoader extends Loader {
     logger.info(s"Finished loading the XC ${datasetType.name} dataset (in sparse format).")
     dataset
   }
+
+  def labelPropensityScores(dataset: SmallDataset[Tensor]): Tensor[FLOAT32] = {
+    val numSamples = dataset.data.labels.shape(0)
+    val labelCounts = dataset.data.labels.toFloat32.sum(axes = Seq(0))
+    val a = dataset.datasetType.labelsPropensityA
+    val b = dataset.datasetType.labelsPropensityB
+    val c = (math.log(numSamples) - 1) * math.pow(b + 1, a)
+    ((labelCounts + b).pow(-a) * c.toFloat) + 1.0f
+  }
+
+  // TODO: [SPARSE] Add support for computing the propensity scores from sparse datasets.
 
   private[this] def loadCommon(path: Path, datasetType: DatasetType, bufferSize: Int = 8192): Path = {
     val url = datasetType.url
