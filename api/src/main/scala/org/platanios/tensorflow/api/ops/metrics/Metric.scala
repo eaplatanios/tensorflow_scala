@@ -22,7 +22,8 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.
@@ -31,27 +32,44 @@ import org.platanios.tensorflow.api.types.DataType
   */
 trait Metric[T, R] {
   /** Name of this metric. */
-  val name: String
+  def name: String
+
+  /** Weights to multiply the provided values with when computing the value of this metric. */
+  def weights: Option[Tensor[FLOAT32]] = None
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
     * @param  values  Values.
-    * @param  weights Tensor containing weights for the values.
+    * @param  weights Optional tensor containing weights for the values.
     * @param  name    Name prefix for the created ops.
     * @return Created output containing the metric value.
     */
-  def compute(values: T, weights: Output = null, name: String = name): R
+  def compute(
+      values: T,
+      weights: Option[Output] = None,
+      name: String = s"$name/Compute"
+  ): R
 
   /** Creates ops for computing the value of this metric in a streaming fashion. This function returns an op for
     * obtaining the value of this metric, as well as a pair of ops to update its accumulated value and reset it.
     *
     * @param  values  Values.
-    * @param  weights Tensor containing weights for the predictions.
+    * @param  weights Optional tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
     * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
-  def streaming(values: T, weights: Output = null, name: String = name): Metric.StreamingInstance[R]
+  def streaming(
+      values: T,
+      weights: Option[Output] = None,
+      name: String = s"$name/Streaming"
+  ): Metric.StreamingInstance[R]
+
+  protected def getWeights(providedWeights: Option[Output]): Option[Output] = {
+    providedWeights
+        .map(w => this.weights.map(w * _).getOrElse(w))
+        .orElse(this.weights.map(_.toOutput))
+  }
 
   override def toString: String = name
 }
@@ -249,67 +267,76 @@ object Metric {
     */
   def matchAxes(
       predictions: Output,
-      targets: Output = null,
-      weights: Output = null,
+      targets: Option[Output] = None,
+      weights: Option[Output] = None,
       expectedRankDiff: Int = 0
-  ): (Output, Output, Output) = {
+  ): (Output, Option[Output], Option[Output]) = {
     var matchedPredictions = predictions
     var matchedTargets = targets
-    if (targets != null) {
-      if (predictions.rank != -1 && targets.rank != -1) {
-        // Use static rank.
-        val rankDiff = predictions.rank - targets.rank
-        if (rankDiff == expectedRankDiff + 1)
-          matchedPredictions = Basic.squeeze(matchedPredictions, Seq(-1))
-        else if (rankDiff == expectedRankDiff - 1)
-          matchedTargets = Basic.squeeze(matchedTargets, Seq(-1))
-      } else {
-        // Use dynamic rank.
-        val rankDiff = Basic.rank(predictions) - Basic.rank(targets)
-        if (predictions.rank == -1 || predictions.shape(-1) == -1 || predictions.shape(-1) == 1) {
-          matchedPredictions = ControlFlow.cond(
-            Math.equal(rankDiff, expectedRankDiff + 1),
-            () => Basic.squeeze(matchedPredictions, Seq(-1)),
-            () => matchedPredictions)
+    targets match {
+      case None => ()
+      case Some(t) =>
+        if (predictions.rank != -1 && t.rank != -1) {
+          // Use static rank.
+          val rankDiff = predictions.rank - t.rank
+          if (rankDiff == expectedRankDiff + 1)
+            matchedPredictions = Basic.squeeze(matchedPredictions, Seq(-1))
+          else if (rankDiff == expectedRankDiff - 1)
+            matchedTargets = matchedTargets.map(Basic.squeeze(_, Seq(-1)))
+        } else {
+          // Use dynamic rank.
+          val rankDiff = Basic.rank(predictions) - Basic.rank(t)
+          if (predictions.rank == -1 || predictions.shape(-1) == -1 || predictions.shape(-1) == 1) {
+            matchedPredictions = ControlFlow.cond(
+              Math.equal(rankDiff, expectedRankDiff + 1),
+              () => Basic.squeeze(matchedPredictions, Seq(-1)),
+              () => matchedPredictions)
+          }
+          if (t.rank == -1 || t.shape(-1) == -1 || t.shape(-1) == 1) {
+            matchedTargets = matchedTargets.map(mt => {
+              ControlFlow.cond(
+                Math.equal(rankDiff, expectedRankDiff - 1),
+                () => Basic.squeeze(mt, Seq(-1)),
+                () => mt)
+            })
+          }
         }
-        if (targets.rank == -1 || targets.shape(-1) == -1 || targets.shape(-1) == 1) {
-          matchedTargets = ControlFlow.cond(
-            Math.equal(rankDiff, expectedRankDiff - 1),
-            () => Basic.squeeze(matchedTargets, Seq(-1)),
-            () => matchedTargets)
-        }
-      }
     }
-    if (weights == null || weights.rank == 0) {
-      (matchedPredictions, matchedTargets, weights)
-    } else {
-      var matchedWeights = weights
-      if (predictions.rank != -1 && weights.rank != -1) {
-        // Use static rank.
-        val rankDiff = predictions.rank - weights.rank
-        if (rankDiff == expectedRankDiff + 1)
-          matchedWeights = Basic.expandDims(matchedWeights, -1)
-        else if (rankDiff == expectedRankDiff - 1)
-          matchedWeights = Basic.squeeze(matchedWeights, Seq(-1))
-      } else {
-        // Use dynamic rank.
-        val rankDiff = Basic.rank(predictions) - Basic.rank(weights)
-        // If weights are scalar, do nothing. Otherwise, try to add or remove an axis to match predictions.
-        matchedWeights = ControlFlow.cond(
-          Math.equal(matchedWeights, 0),
-          () => matchedWeights,
-          () => ControlFlow.cond(
-            Math.equal(rankDiff, -1),
-            if (weights.rank == -1 || weights.shape(-1) == -1 || weights.shape(-1) == 1)
-              () => Basic.expandDims(matchedWeights, -1)
-            else
-              () => matchedWeights,
-            () => ControlFlow.cond(
-              Math.equal(rankDiff, 1),
-              () => Basic.squeeze(matchedWeights, Seq(-1)),
-              () => matchedWeights)))
-      }
-      (matchedPredictions, matchedTargets, matchedWeights)
+    weights match {
+      case None =>
+        (matchedPredictions, matchedTargets, weights)
+      case Some(w) if w.rank == 0 =>
+        (matchedPredictions, matchedTargets, weights)
+      case Some(w) =>
+        var matchedWeights = weights
+        if (predictions.rank != -1 && w.rank != -1) {
+          // Use static rank.
+          val rankDiff = predictions.rank - w.rank
+          if (rankDiff == expectedRankDiff + 1)
+            matchedWeights = matchedWeights.map(Basic.expandDims(_, -1))
+          else if (rankDiff == expectedRankDiff - 1)
+            matchedWeights = matchedWeights.map(Basic.squeeze(_, Seq(-1)))
+        } else {
+          // Use dynamic rank.
+          val rankDiff = Basic.rank(predictions) - Basic.rank(w)
+          // If weights are scalar, do nothing. Otherwise, try to add or remove an axis to match predictions.
+          matchedWeights = matchedWeights.map(mw => {
+            ControlFlow.cond(
+              Math.equal(mw, 0),
+              () => mw,
+              () => ControlFlow.cond(
+                Math.equal(rankDiff, -1),
+                if (w.rank == -1 || w.shape(-1) == -1 || w.shape(-1) == 1)
+                  () => Basic.expandDims(mw, -1)
+                else
+                  () => mw,
+                () => ControlFlow.cond(
+                  Math.equal(rankDiff, 1),
+                  () => Basic.squeeze(mw, Seq(-1)),
+                  () => mw)))
+          })
+        }
+        (matchedPredictions, matchedTargets, matchedWeights)
     }
   }
 

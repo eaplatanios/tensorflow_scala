@@ -19,6 +19,8 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Accuracy metric.
   *
@@ -33,43 +35,51 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * `total` with the reduced sum of the product of `isCorrect` and `weights`, and increments `count` with the reduced
   * sum of `weights`.
   *
-  * If `weights` is `null`, the weights default to 1. Use weights of `0` to mask values.
+  * If `weights` is `None`, the weights default to 1. Use weights of `0` to mask values.
   *
+  * @param  namescope            Name prefix for the created ops.
+  * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
   * @param  valuesCollections    Graph collections in which to add the metric values.
   * @param  updatesCollections   Graph collections in which to add the metric updates.
   * @param  resetsCollections    Graph collections in which to add the metric resets.
-  * @param  name                 Name prefix for the created ops.
   *
   * @author Emmanouil Antonios Platanios
   */
 class Accuracy(
+    val namescope: String,
+    protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
     val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
-    override val name: String = "Accuracy"
+    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
 ) extends Metric[(Output, Output), Output] {
   private[this] val meanMetric = {
-    Mean(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
+    Mean(name, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
   }
+
+  /** Name of this metric. */
+  override def name: String = namescope
+
+  /** Weights to multiply the provided values with when computing the value of this metric. */
+  override def weights: Option[Tensor[FLOAT32]] = defaultWeights
 
   /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
     *
     * @param  values  Tuple containing the predictions tensor and the targets tensor.
-    * @param  weights Tensor containing weights for the values.
+    * @param  weights Optional tensor containing weights for the values.
     * @param  name    Name prefix for the created ops.
     * @return Created output containing the metric value.
     */
   override def compute(
       values: (Output, Output),
-      weights: Output = null,
-      name: String = name
+      weights: Option[Output] = None,
+      name: String = s"$name/Compute"
   ): Output = {
-    var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, values._2, weights)
-    matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.shape)
-    matchedPredictions = matchedPredictions.cast(matchedTargets.dataType)
-    val isCorrect = Math.equal(matchedPredictions, matchedTargets)
+    var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, Some(values._2), weights)
+    matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.get.shape)
+    matchedPredictions = matchedPredictions.cast(matchedTargets.get.dataType)
+    val isCorrect = Math.equal(matchedPredictions, matchedTargets.get)
     meanMetric.compute(isCorrect, matchedWeights, name)
   }
 
@@ -77,20 +87,20 @@ class Accuracy(
     * obtaining the value of this metric, as well as a pair of ops to update its accumulated value and reset it.
     *
     * @param  values  Tuple containing the predictions tensor and the targets tensor.
-    * @param  weights Tensor containing weights for the predictions.
+    * @param  weights Optional tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
     * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
       values: (Output, Output),
-      weights: Output = null,
-      name: String = name
+      weights: Option[Output] = None,
+      name: String = s"$name/Streaming"
   ): Metric.StreamingInstance[Output] = {
-    var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, values._2, weights)
-    matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.shape)
-    matchedPredictions = matchedPredictions.cast(matchedTargets.dataType)
-    val isCorrect = Math.equal(matchedPredictions, matchedTargets)
+    var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, Some(values._2), weights)
+    matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.get.shape)
+    matchedPredictions = matchedPredictions.cast(matchedTargets.get.dataType)
+    val isCorrect = Math.equal(matchedPredictions, matchedTargets.get)
     meanMetric.streaming(isCorrect, matchedWeights, name)
   }
 }
@@ -98,20 +108,23 @@ class Accuracy(
 object Accuracy {
   /** Creates a new accuracy metric.
     *
+    * @param  namescope            Name prefix for the created ops.
+    * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
     * @param  valuesCollections    Graph collections in which to add the metric values.
     * @param  updatesCollections   Graph collections in which to add the metric updates.
     * @param  resetsCollections    Graph collections in which to add the metric resets.
-    * @param  name                 Name prefix for the created ops.
-    * @return New mean metric.
+    * @return New accuracy metric.
     */
   def apply(
+      namescope: String,
+      defaultWeights: Option[Tensor[FLOAT32]] = None,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
       updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
-      name: String = "Accuracy"
+      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
   ): Accuracy = {
-    new Accuracy(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
+    new Accuracy(
+      namescope, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
   }
 }

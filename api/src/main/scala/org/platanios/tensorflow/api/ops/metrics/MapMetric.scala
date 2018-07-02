@@ -16,6 +16,8 @@
 package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Map metric wrapper.
   *
@@ -32,16 +34,23 @@ class MapMetric[S, T, R](
     val metric: Metric[T, R]
 ) extends Metric[S, R] {
   /** Name of this metric. */
-  override val name: String = metric.name
+  override def name: String = metric.name
+
+  /** Weights to multiply the provided values with when computing the value of this metric. */
+  override def weights: Option[Tensor[FLOAT32]] = metric.weights
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
     * @param  values  Values.
-    * @param  weights Tensor containing weights for the values.
+    * @param  weights Optional tensor containing weights for the values.
     * @param  name    Name prefix for the created ops.
     * @return Created output containing the metric value.
     */
-  override def compute(values: S, weights: Output, name: String): R = {
+  override def compute(
+      values: S,
+      weights: Option[Output] = None,
+      name: String = s"$name/Compute"
+  ): R = {
     metric.compute(mapFn(values), weights, name)
   }
 
@@ -49,12 +58,16 @@ class MapMetric[S, T, R](
     * obtaining the value of this metric, as well as a pair of ops to update its accumulated value and reset it.
     *
     * @param  values  Values.
-    * @param  weights Tensor containing weights for the predictions.
+    * @param  weights Optional tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
     * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
-  override def streaming(values: S, weights: Output, name: String): Metric.StreamingInstance[R] = {
+  override def streaming(
+      values: S,
+      weights: Option[Output] = None,
+      name: String = s"$name/Streaming"
+  ): Metric.StreamingInstance[R] = {
     metric.streaming(mapFn(values), weights, name)
   }
 }
