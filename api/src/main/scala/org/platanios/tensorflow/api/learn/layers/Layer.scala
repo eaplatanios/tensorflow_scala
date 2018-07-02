@@ -80,7 +80,7 @@ abstract class Layer[T, R](
       collections: Set[Graph.Key[Variable]] = Set.empty,
       cachingDevice: OpSpecification => String = null
   ): Output = {
-    getParameter(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
+    parameterGetter.value(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
   }
 
   override def toString: String = layerType
