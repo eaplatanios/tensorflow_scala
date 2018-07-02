@@ -24,6 +24,7 @@ Other new features include:
 - Added support for local response normalization (i.e., `tf.lrn`).
 - Added support for the following new metrics:
   - Grouped precision.
+  - Precision-at-k.
 - Added support for loading the extreme classification repository
   datasets (i.e., `data.XCLoader`).
 

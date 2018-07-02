@@ -29,6 +29,7 @@ package object metrics {
     type Accuracy = metrics.Accuracy
     type ConfusionMatrix = metrics.ConfusionMatrix
     type GroupedPrecision = metrics.GroupedPrecision
+    type PrecisionAtK = metrics.PrecisionAtK
 
     val Metric          : metrics.Metric.type           = metrics.Metric
     val MapMetric       : metrics.MapMetric.type        = metrics.MapMetric
@@ -36,6 +37,7 @@ package object metrics {
     val Accuracy        : metrics.Accuracy.type         = metrics.Accuracy
     val ConfusionMatrix : metrics.ConfusionMatrix.type  = metrics.ConfusionMatrix
     val GroupedPrecision: metrics.GroupedPrecision.type = metrics.GroupedPrecision
+    val PrecisionAtK    : metrics.PrecisionAtK.type     = metrics.PrecisionAtK
   }
 
   // TODO: [SPARSE] Add versions for the following utilities.
