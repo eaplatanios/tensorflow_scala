@@ -47,7 +47,7 @@ import org.platanios.tensorflow.api.types._
   *
   * Note that the possible labels are assumed to be `[0, 1, 2, 3, 4]`, resulting in a 5x5 confusion matrix.
   *
-  * @param  namescope            Name prefix for the created ops.
+  * @param  nameScope            Name prefix for the created ops.
   * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  numClasses           Number of classes over which the confusion matrix is computed.
   * @param  dataType             Data type for the confusion matrix.
@@ -59,7 +59,7 @@ import org.platanios.tensorflow.api.types._
   * @author Emmanouil Antonios Platanios
   */
 class ConfusionMatrix(
-    val namescope: String,
+    val nameScope: String,
     protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
     val numClasses: Int = -1,
     val dataType: DataType = FLOAT64,
@@ -71,7 +71,7 @@ class ConfusionMatrix(
   private[this] val numClassesOutput: Output = if (numClasses != -1) Basic.constant(numClasses) else null
 
   /** Name of this metric. */
-  override def name: String = namescope
+  override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
   override def weights: Option[Tensor[FLOAT32]] = defaultWeights
@@ -147,8 +147,8 @@ class ConfusionMatrix(
       weights: Option[Output] = None,
       name: String = s"$name/Streaming"
   ): Metric.StreamingInstance[Output] = {
-    Op.createWithNameScope(name) {
-      VariableScope.scope(name) {
+    VariableScope.scope(name) {
+      Op.createWithNameScope(name) {
         val accumulator = Metric.variable(
           s"$name/Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer,
           variablesCollections)
@@ -167,7 +167,7 @@ class ConfusionMatrix(
 object ConfusionMatrix {
   /** Creates a new confusion matrix metric.
     *
-    * @param  namescope            Name prefix for the created ops.
+    * @param  nameScope            Name prefix for the created ops.
     * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  numClasses           Number of classes over which the confusion matrix is computed.
     * @param  dataType             Data type for the confusion matrix.
@@ -178,7 +178,7 @@ object ConfusionMatrix {
     * @return New confusion matrix metric.
     */
   def apply(
-      namescope: String,
+      nameScope: String,
       defaultWeights: Option[Tensor[FLOAT32]] = None,
       numClasses: Int = -1, dataType: DataType = FLOAT64,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
@@ -187,7 +187,7 @@ object ConfusionMatrix {
       resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
   ): ConfusionMatrix = {
     new ConfusionMatrix(
-      namescope, defaultWeights, numClasses, dataType, variablesCollections, valuesCollections, updatesCollections,
+      nameScope, defaultWeights, numClasses, dataType, variablesCollections, valuesCollections, updatesCollections,
       resetsCollections)
   }
 }

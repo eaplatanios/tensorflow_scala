@@ -40,7 +40,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   *
   * If `weights` is `None`, the weights default to 1. Use weights of `0` to mask values.
   *
-  * @param  namescope            Name prefix for the created ops.
+  * @param  nameScope            Name prefix for the created ops.
   * @param  k                    Value for k.
   * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  labelID              Optional label for which we want to compute the precision.
@@ -52,7 +52,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   * @author Emmanouil Antonios Platanios
   */
 class PrecisionAtK(
-    val namescope: String,
+    val nameScope: String,
     val k: Int,
     protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
     val labelID: Option[Int] = None,
@@ -68,7 +68,7 @@ class PrecisionAtK(
   }
 
   /** Name of this metric. */
-  override def name: String = namescope
+  override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
   override def weights: Option[Tensor[FLOAT32]] = defaultWeights
@@ -123,7 +123,7 @@ class PrecisionAtK(
 object PrecisionAtK {
   /** Creates a new precision@K metric.
     *
-    * @param  namescope            Name prefix for the created ops.
+    * @param  nameScope            Name prefix for the created ops.
     * @param  k                    Value for k.
     * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  labelID              Optional label for which we want to compute the precision.
@@ -134,7 +134,7 @@ object PrecisionAtK {
     * @return New mean metric.
     */
   def apply(
-      namescope: String,
+      nameScope: String,
       k: Int,
       defaultWeights: Option[Tensor[FLOAT32]] = None,
       labelID: Option[Int] = None,
@@ -144,7 +144,7 @@ object PrecisionAtK {
       resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
   ): PrecisionAtK = {
     new PrecisionAtK(
-      namescope, k, defaultWeights, labelID, variablesCollections, valuesCollections, updatesCollections,
+      nameScope, k, defaultWeights, labelID, variablesCollections, valuesCollections, updatesCollections,
       resetsCollections)
   }
 }

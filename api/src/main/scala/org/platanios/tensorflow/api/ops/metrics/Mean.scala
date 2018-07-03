@@ -34,7 +34,7 @@ import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
   *
   * If `weights` is `None`, the weights default to 1. Use weights of `0` to mask values.
   *
-  * @param  namescope            Name prefix for the created ops.
+  * @param  nameScope            Name prefix for the created ops.
   * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
   * @param  valuesCollections    Graph collections in which to add the metric values.
@@ -44,7 +44,7 @@ import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
   * @author Emmanouil Antonios Platanios
   */
 class Mean(
-    val namescope: String,
+    val nameScope: String,
     protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
@@ -52,7 +52,7 @@ class Mean(
     val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
 ) extends Metric[Output, Output] {
   /** Name of this metric. */
-  override def name: String = namescope
+  override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
   override def weights: Option[Tensor[FLOAT32]] = defaultWeights
@@ -140,7 +140,7 @@ class Mean(
 object Mean {
   /** Creates a new mean metric.
     *
-    * @param  namescope            Name prefix for the created ops.
+    * @param  nameScope            Name prefix for the created ops.
     * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
     * @param  valuesCollections    Graph collections in which to add the metric values.
@@ -149,13 +149,13 @@ object Mean {
     * @return New mean metric.
     */
   def apply(
-      namescope: String,
+      nameScope: String,
       defaultWeights: Option[Tensor[FLOAT32]] = None,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
       updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
       resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
   ): Mean = {
-    new Mean(namescope, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
+    new Mean(nameScope, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
   }
 }

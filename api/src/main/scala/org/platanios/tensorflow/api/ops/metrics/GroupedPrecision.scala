@@ -36,7 +36,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   *
   * If `weights` is `None`, the weights default to 1. Use weights of `0` to mask values.
   *
-  * @param  namescope            Name prefix for the created ops.
+  * @param  nameScope            Name prefix for the created ops.
   * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  labelID              Optional label for which we want to compute the precision.
   * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
@@ -47,7 +47,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   * @author Emmanouil Antonios Platanios
   */
 class GroupedPrecision(
-    val namescope: String,
+    val nameScope: String,
     protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
     val labelID: Option[Int] = None,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
@@ -56,7 +56,7 @@ class GroupedPrecision(
     val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
 ) extends Metric[(Output, Output), Output] {
   /** Name of this metric. */
-  override def name: String = namescope
+  override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
   override def weights: Option[Tensor[FLOAT32]] = defaultWeights
@@ -109,29 +109,31 @@ class GroupedPrecision(
     var ops = Set(predictions.op, targets.op)
     val computedWeights = getWeights(weights)
     computedWeights.foreach(ops += _.op)
-    Op.createWithNameScope(name, ops) {
-      val reshapedTargets = Metric.maybeExpandTargets(predictions, targets)
-      val predictedIndices = predictions.toInt64
-      val truePositives = VariableScope.scope(name)(streamingSparseTruePositives(
-        reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
-      val falsePositives = VariableScope.scope(name)(streamingSparseFalsePositives(
-        reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
-      val tp = truePositives.value
-      val fp = falsePositives.value
-      val tpUpdate = truePositives.update
-      val fpUpdate = falsePositives.update
-      val tpReset = truePositives.reset
-      val fpReset = falsePositives.reset
-      val tpVariables = truePositives.variables
-      val fpVariables = falsePositives.variables
-      // TODO: [DISTRIBUTE] Add support for aggregation across towers.
-      val value = safeDiv(tp, tp + fp, name = "Value")
-      val update = safeDiv(tpUpdate, tpUpdate + fpUpdate, name = "Update")
-      val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset")
-      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
-      updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-      resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-      Metric.StreamingInstance(value, update, reset, tpVariables ++ fpVariables)
+    VariableScope.scope(name) {
+      Op.createWithNameScope(name, ops) {
+        val reshapedTargets = Metric.maybeExpandTargets(predictions, targets)
+        val predictedIndices = predictions.toInt64
+        val truePositives = VariableScope.scope(name)(streamingSparseTruePositives(
+          reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
+        val falsePositives = VariableScope.scope(name)(streamingSparseFalsePositives(
+          reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
+        val tp = truePositives.value
+        val fp = falsePositives.value
+        val tpUpdate = truePositives.update
+        val fpUpdate = falsePositives.update
+        val tpReset = truePositives.reset
+        val fpReset = falsePositives.reset
+        val tpVariables = truePositives.variables
+        val fpVariables = falsePositives.variables
+        // TODO: [DISTRIBUTE] Add support for aggregation across towers.
+        val value = safeDiv(tp, tp + fp, name = "Value")
+        val update = safeDiv(tpUpdate, tpUpdate + fpUpdate, name = "Update")
+        val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset")
+        valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+        updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
+        resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+        Metric.StreamingInstance(value, update, reset, tpVariables ++ fpVariables)
+      }
     }
   }
 }
@@ -139,7 +141,7 @@ class GroupedPrecision(
 object GroupedPrecision {
   /** Creates a new grouped precision metric.
     *
-    * @param  namescope            Name prefix for the created ops.
+    * @param  nameScope            Name prefix for the created ops.
     * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  labelID              Optional label for which we want to compute the precision.
     * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
@@ -149,7 +151,7 @@ object GroupedPrecision {
     * @return New grouped precision metric.
     */
   def apply(
-      namescope: String,
+      nameScope: String,
       defaultWeights: Option[Tensor[FLOAT32]] = None,
       labelID: Option[Int] = None,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
@@ -158,7 +160,7 @@ object GroupedPrecision {
       resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
   ): GroupedPrecision = {
     new GroupedPrecision(
-      namescope, defaultWeights, labelID, variablesCollections, valuesCollections, updatesCollections,
+      nameScope, defaultWeights, labelID, variablesCollections, valuesCollections, updatesCollections,
       resetsCollections)
   }
 }

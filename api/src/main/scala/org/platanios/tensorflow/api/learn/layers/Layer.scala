@@ -25,8 +25,8 @@ import org.platanios.tensorflow.api.types.DataType
 
 /**
   *
-  * '''NOTE:''' Subclasses must implement the `forwardWithoutContext` method. Callers should always use either the `forward` or the
-  * `apply` methods.
+  * '''NOTE:''' Subclasses must implement the `forwardWithoutContext` method. Callers should always use either the
+  * `forward` or the `apply` methods.
   *
   * @param  name Name scope (also acting as variable scope) for this layer.
   *
@@ -82,6 +82,8 @@ abstract class Layer[T, R](
   ): Output = {
     parameterGetter.value(name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
   }
+
+  final def currentStep: Output = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
 
   override def toString: String = layerType
 }

@@ -37,7 +37,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   *
   * If `weights` is `None`, the weights default to 1. Use weights of `0` to mask values.
   *
-  * @param  namescope            Name prefix for the created ops.
+  * @param  nameScope            Name prefix for the created ops.
   * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
   * @param  valuesCollections    Graph collections in which to add the metric values.
@@ -47,7 +47,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   * @author Emmanouil Antonios Platanios
   */
 class Accuracy(
-    val namescope: String,
+    val nameScope: String,
     protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
@@ -59,7 +59,7 @@ class Accuracy(
   }
 
   /** Name of this metric. */
-  override def name: String = namescope
+  override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
   override def weights: Option[Tensor[FLOAT32]] = defaultWeights
@@ -108,7 +108,7 @@ class Accuracy(
 object Accuracy {
   /** Creates a new accuracy metric.
     *
-    * @param  namescope            Name prefix for the created ops.
+    * @param  nameScope            Name prefix for the created ops.
     * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
     * @param  valuesCollections    Graph collections in which to add the metric values.
@@ -117,7 +117,7 @@ object Accuracy {
     * @return New accuracy metric.
     */
   def apply(
-      namescope: String,
+      nameScope: String,
       defaultWeights: Option[Tensor[FLOAT32]] = None,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
@@ -125,6 +125,6 @@ object Accuracy {
       resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
   ): Accuracy = {
     new Accuracy(
-      namescope, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
+      nameScope, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
   }
 }
