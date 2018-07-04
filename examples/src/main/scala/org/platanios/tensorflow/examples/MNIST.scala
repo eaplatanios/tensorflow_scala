@@ -77,7 +77,7 @@ object MNIST {
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
     val accMetric = tf.metrics.MapMetric(
-      (v: (Output, Output)) => (v._1.argmax(-1), v._2), tf.metrics.Accuracy())
+      (v: (Output, Output)) => (v._1.argmax(-1), v._2), tf.metrics.Accuracy("Accuracy"))
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
