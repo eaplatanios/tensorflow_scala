@@ -482,7 +482,17 @@ private[api] trait Math {
     })
   }
 
-  // TODO: [OPS] logSigmoid
+  /** $OpDocMathLogSigmoid
+    *
+    * @group MathOps
+    * @param  x Input tensor.
+    * @return Result as a new tensor.
+    */
+  def logSigmoid[D <: RealDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    negate(NN.softplus(negate(x)))
+  }
 
   /** $OpDocMathSign
     *
@@ -2741,6 +2751,15 @@ object Math extends Math {
       //endregion Matrix Ops
     }
 
+    implicit class RealMathOps[D <: RealDataType](val tensor: Tensor[D]) {
+      /** $OpDocMathLogSigmoid
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def logSigmoid: Tensor[D] = Math.logSigmoid(tensor)
+    }
+
     implicit class Int32OrInt64OrFloat32OrFloat64MathOps[D <: Int32OrInt64OrFloat32OrFloat64](val tensor: Tensor[D]) {
       //region Bucketization Ops
 
@@ -3049,6 +3068,7 @@ object Math extends Math {
     implicit def tensorConvertibleToMathOps[D <: DataType, T](value: T)(implicit f: T => Tensor[D]): MathOps[D] = new MathOps(f(value))
     implicit def tensorConvertibleToReducibleMathOps[D <: ReducibleDataType, T](value: T)(implicit f: T => Tensor[D]): ReducibleMathOps[D] = new ReducibleMathOps(f(value))
     implicit def tensorConvertibleToMathMathOps[D <: MathDataType, T](value: T)(implicit f: T => Tensor[D]): MathMathOps[D] = new MathMathOps(f(value))
+    implicit def tensorConvertibleToRealMathOps[D <: RealDataType, T](value: T)(implicit f: T => Tensor[D]): RealMathOps[D] = new RealMathOps(f(value))
     implicit def tensorConvertibleToInt32OrInt64OrFloat32OrFloat64MathOps[D <: Int32OrInt64OrFloat32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Int32OrInt64OrFloat32OrFloat64MathOps[D] = new Int32OrInt64OrFloat32OrFloat64MathOps(f(value))
     implicit def tensorConvertibleToFloat16OrFloat32OrFloat64MathOps[D <: Float16OrFloat32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Float16OrFloat32OrFloat64MathOps[D] = new Float16OrFloat32OrFloat64MathOps(f(value))
     implicit def tensorConvertibleToFloat32OrFloat64MathOps[D <: Float32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Float32OrFloat64MathOps[D] = new Float32OrFloat64MathOps(f(value))

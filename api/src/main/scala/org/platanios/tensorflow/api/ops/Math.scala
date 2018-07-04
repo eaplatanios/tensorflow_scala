@@ -572,7 +572,19 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  // TODO: [OPS] logSigmoid
+  /** $OpDocMathLogSigmoid
+    *
+    * @group MathOps
+    * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
+    *              `COMPLEX64`, or `COMPLEX128`.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def logSigmoid[T: OutputOps](x: T, name: String = "LogSigmoid"): T = {
+    Op.createWithNameScope(name) {
+      negate(NN.softplus(negate(x)))
+    }
+  }
 
   /** $OpDocMathSign
     *
@@ -2810,6 +2822,13 @@ object Math extends Math {
       */
     def sigmoid: Output = Math.sigmoid(output)
 
+    /** $OpDocMathLogSigmoid
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def logSigmoid: Output = Math.logSigmoid(output)
+
     /** $OpDocMathSign
       *
       * @group MathOps
@@ -5025,6 +5044,13 @@ object Math extends Math {
     *
     * @define OpDocMathSigmoid
     *   The `sigmoid` op computes the sigmoid function element-wise on a tensor.
+    *
+    *   Specifically, `y = 1 / (1 + exp(-x))`.
+    *
+    * @define OpDocMathLogSigmoid
+    *   The `logSigmoid` op computes the log-sigmoid function element-wise on a tensor.
+    *
+    *   Specifically, `y = log(1 / (1 + exp(-x)))`.  For numerical stability, we use `y = -tf.nn.softplus(-x)`.
     *
     * @define OpDocMathSign
     *   The `sign` op computes an element-wise indication of the sign of a tensor.

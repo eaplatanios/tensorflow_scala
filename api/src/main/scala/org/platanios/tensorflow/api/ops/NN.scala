@@ -137,10 +137,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def relu6(input: Output, name: String = "ReLU6"): Output = {
-    Op.Builder(opType = "Relu6", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def relu6[T: OutputOps](x: T,  name: String = "ReLU6"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "ReLU6", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNCrelu
@@ -164,10 +167,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def elu(input: Output, name: String = "ELU"): Output = {
-    Op.Builder(opType = "Elu", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def elu[T: OutputOps](x: T,  name: String = "ELU"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Elu", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNSelu
@@ -177,10 +183,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def selu(input: Output, name: String = "SELU"): Output = {
-    Op.Builder(opType = "Selu", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def selu[T: OutputOps](x: T, name: String = "SELU"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Selu", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNSoftplus
@@ -190,10 +199,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def softplus(input: Output, name: String = "Softplus"): Output = {
-    Op.Builder(opType = "Softplus", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def softplus[T: OutputOps](x: T, name: String = "Softplus"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Softplus", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNSoftsign
@@ -203,10 +215,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def softsign(input: Output, name: String = "Softsign"): Output = {
-    Op.Builder(opType = "Softsign", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def softsign[T: OutputOps](x: T, name: String = "Softsign"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Softsign", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   //endregion Activation Ops

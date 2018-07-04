@@ -100,12 +100,12 @@ private[api] trait NN {
   /** $OpDocNNRelu
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x     Input tensor.
     * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
     *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
     * @return Result as a new tensor.
     */
-  def relu[D <: RealDataType](input: Tensor[D], alpha: Float = 0.0f): Tensor[D] = {
+  def relu[D <: RealDataType](x: Tensor[D], alpha: Float = 0.0f): Tensor[D] = {
     def reluOp[TL[DD <: DataType] <: TensorLike[DD]](i: TL[D])(implicit ev: TensorOps.Aux[TL, D]): TL[D] = {
       ev.applyUnary(i, t => {
         Tensor.fromNativeHandle[D](NativeTensorOpsNN.relu(executionContext.value.nativeHandle, t.nativeHandle))
@@ -113,10 +113,10 @@ private[api] trait NN {
     }
 
     if (alpha == 0.0) {
-      reluOp(input)
+      reluOp(x)
     } else {
-      val positive = reluOp(input)
-      val negative = reluOp(-input)
+      val positive = reluOp(x)
+      val negative = reluOp(-x)
       positive - (alpha.toTensor.cast(negative.dataType) * negative)
     }
   }
@@ -124,52 +124,68 @@ private[api] trait NN {
   /** $OpDocNNRelu6
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def relu6[D <: RealDataType](input: Tensor[D]): Tensor[D] = {
-    Tensor.fromNativeHandle[D](NativeTensorOpsNN.relu6(executionContext.value.nativeHandle, input.nativeHandle))
+  def relu6[D <: RealDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.relu6(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNCrelu
     *
     * @group NNOps
-    * @param  input Input tensor.
-    * @param  axis  Along along which the output values are concatenated along.
+    * @param  x    Input tensor.
+    * @param  axis Along along which the output values are concatenated along.
     * @return Result as a new tensor.
     */
-  def crelu[D <: RealDataType](input: Tensor[D], axis: Tensor[INT32] = -1): Tensor[D] = {
-    relu(Basic.concatenate(Seq(input, -input), axis = axis))
+  def crelu[D <: RealDataType](x: Tensor[D], axis: Tensor[INT32] = -1): Tensor[D] = {
+    relu(Basic.concatenate(Seq(x, -x), axis = axis))
   }
 
   /** $OpDocNNElu
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def elu[D <: DecimalDataType](input: Tensor[D]): Tensor[D] = {
-    Tensor.fromNativeHandle[D](NativeTensorOpsNN.elu(executionContext.value.nativeHandle, input.nativeHandle))
+  def elu[D <: DecimalDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.elu(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNSelu
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def selu[D <: DecimalDataType](input: Tensor[D]): Tensor[D] = {
-    Tensor.fromNativeHandle[D](NativeTensorOpsNN.selu(executionContext.value.nativeHandle, input.nativeHandle))
+  def selu[D <: DecimalDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.selu(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNSoftplus
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def softplus[D <: RealDataType](input: Tensor[D]): Tensor[D] = {
-    Tensor.fromNativeHandle[D](NativeTensorOpsNN.softplus(executionContext.value.nativeHandle, input.nativeHandle))
+  def softplus[D <: RealDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.softplus(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNSoftsign
