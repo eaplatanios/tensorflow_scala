@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Random__
+ * Method:    randomShuffle
+ * Signature: (JJJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Random_00024_randomShuffle
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Random__
  * Method:    randomUniform
  * Signature: (JJIJJ)J
  */

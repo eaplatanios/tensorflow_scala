@@ -26,6 +26,21 @@ import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOps
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Random {
+  /** $OpDocRandomRandomShuffle
+    *
+    * @group RandomOps
+    * @param  value Tensor to be shuffled.
+    * @param  seed  Optional random seed, used to generate a random seed pair for the random number generator, when
+    *               combined with the graph-level seed.
+    * @return Result as a new tensor.
+    */
+  def randomShuffle[D <: DataType](value: Tensor[D], seed: Option[Int] = None): Tensor[D] = {
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    Tensor.fromNativeHandle[D](NativeTensorOpsRandom.randomShuffle(
+      executionContext.value.nativeHandle, value.nativeHandle,
+      graphSeed.getOrElse(0).toLong, opSeed.getOrElse(0).toLong))
+  }
+
   /** $OpDocRandomRandomUniform
     *
     * @group RandomOps
