@@ -17,7 +17,7 @@ package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.data.Loader
-import org.platanios.tensorflow.data.utilities.UniformStratifiedSplit
+import org.platanios.tensorflow.data.utilities.UniformSplit
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -139,7 +139,7 @@ case class MNISTDataset(
     } else {
       val allImages = tfi.concatenate(Seq(trainImages, testImages), axis = 0)
       val allLabels = tfi.concatenate(Seq(trainLabels, testLabels), axis = 0)
-      val split = UniformStratifiedSplit(allLabels.cast(INT32).entriesIterator.toSeq, seed)
+      val split = UniformSplit(allLabels.shape(0), seed)
       val (trainIndices, testIndices) = split(trainPortion)
       copy(
         trainImages = allImages.gather(trainIndices),

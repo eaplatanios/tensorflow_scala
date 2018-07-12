@@ -16,15 +16,16 @@
 package org.platanios.tensorflow.data
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.data.utilities.UniformSplit
+
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+
 import java.io.ByteArrayOutputStream
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.util.zip.ZipInputStream
-
-import org.platanios.tensorflow.data.utilities.UniformStratifiedSplit
 
 /** Loader for datasets obtained from the
   * [[http://manikvarma.org/downloads/XC/XMLRepository.html Extreme Classification Repository]].
@@ -142,7 +143,7 @@ object XCLoader extends Loader {
       } else {
         val allFeatures = tfi.concatenate(Seq(trainData.features.toTensor, testData.features.toTensor), axis = 0)
         val allLabels = tfi.concatenate(Seq(trainData.labels.toTensor, testData.labels.toTensor), axis = 0)
-        val split = UniformStratifiedSplit(allLabels.cast(INT32).entriesIterator.toSeq, seed)
+        val split = UniformSplit(allLabels.shape(0), seed)
         val (trainIndices, testIndices) = split(trainPortion)
         SplitData(
           trainData = Data(features = allFeatures.gather(trainIndices), labels = allLabels.gather(trainIndices)),
