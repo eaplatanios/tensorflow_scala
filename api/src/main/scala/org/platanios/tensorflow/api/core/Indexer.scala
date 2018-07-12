@@ -116,7 +116,9 @@ object Indexer {
     */
   @throws[InvalidIndexerException]
   private[api] def decode(
-      shape: Shape, indexers: Seq[Indexer]): (Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) = {
+      shape: Shape,
+      indexers: Seq[Indexer]
+  ): (Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) = {
     // TODO: Make this more efficient.
     // TODO: Add tests for when providing an empty shape.
     val newAxesCount = indexers.count(_ == NewAxis)

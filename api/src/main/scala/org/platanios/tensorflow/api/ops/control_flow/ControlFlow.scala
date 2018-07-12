@@ -129,7 +129,10 @@ private[api] trait ControlFlow {
     * @return Created op output.
     */
   private[api] def abort(
-      errorMessage: String = "", exitWithoutError: Boolean = false, name: String = "Abort"): Output = {
+      errorMessage: String = "",
+      exitWithoutError: Boolean = false,
+      name: String = "Abort"
+  ): Output = {
     Op.Builder(opType = "Abort", name = name)
         .setAttribute("error_message", errorMessage)
         .setAttribute("exit_without_error", exitWithoutError)
@@ -147,9 +150,12 @@ private[api] trait ControlFlow {
     * @throws InvalidDataTypeException If the data types of the tensors returned by `trueFn` and `falseFn` do not match.
     */
   @throws[InvalidDataTypeException]
-  def cond[T, R](predicate: Output, trueFn: () => T, falseFn: () => T, name: String = "Cond")(implicit
-      ev: CondOutput.Aux[T, R]
-  ): T = {
+  def cond[T, R](
+      predicate: Output,
+      trueFn: () => T,
+      falseFn: () => T,
+      name: String = "Cond"
+  )(implicit ev: CondOutput.Aux[T, R]): T = {
     Op.createWithNameScope(name) {
       Output.constantValue(predicate) match {
         case Some(predicateValue) if predicateValue.scalar == true => trueFn()
@@ -258,12 +264,16 @@ private[api] trait ControlFlow {
     *         return structure of `bodyFn`.
     */
   def whileLoop[T, TS](
-      predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: Option[TS] = None,
-      parallelIterations: Int = 10, enableBackPropagation: Boolean = true, swapMemory: Boolean = false,
-      maximumIterations: Output = null, name: String = "WhileLoop"
-  )(implicit
-      ev: WhileLoopVariable.Aux[T, TS]
-  ): T = {
+      predicateFn: T => Output,
+      bodyFn: T => T,
+      loopVariables: T,
+      shapeInvariants: Option[TS] = None,
+      parallelIterations: Int = 10,
+      enableBackPropagation: Boolean = true,
+      swapMemory: Boolean = false,
+      maximumIterations: Output = null, 
+      name: String = "WhileLoop"
+  )(implicit ev: WhileLoopVariable.Aux[T, TS]): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
     Op.createWithNameScope(name) {
       val loopContext = WhileLoopContext(
