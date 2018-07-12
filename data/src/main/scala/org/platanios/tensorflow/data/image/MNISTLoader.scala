@@ -134,14 +134,18 @@ case class MNISTDataset(
     testLabels: Tensor[UINT8]
 ) {
   def splitRandomly(trainPortion: Float, seed: Option[Long] = None): MNISTDataset = {
-    val allImages = tfi.concatenate(Seq(trainImages, testImages), axis = 0)
-    val allLabels = tfi.concatenate(Seq(trainLabels, testLabels), axis = 0)
-    val split = UniformStratifiedSplit(allLabels.cast(INT32).entriesIterator.toSeq, seed)
-    val (trainIndices, testIndices) = split(trainPortion)
-    copy(
-      trainImages = allImages.gather(trainIndices),
-      trainLabels = allLabels.gather(trainIndices),
-      testImages = allImages.gather(testIndices),
-      testLabels = allLabels.gather(testIndices))
+    if (trainPortion == 1.0f) {
+      this
+    } else {
+      val allImages = tfi.concatenate(Seq(trainImages, testImages), axis = 0)
+      val allLabels = tfi.concatenate(Seq(trainLabels, testLabels), axis = 0)
+      val split = UniformStratifiedSplit(allLabels.cast(INT32).entriesIterator.toSeq, seed)
+      val (trainIndices, testIndices) = split(trainPortion)
+      copy(
+        trainImages = allImages.gather(trainIndices),
+        trainLabels = allLabels.gather(trainIndices),
+        testImages = allImages.gather(testIndices),
+        testLabels = allLabels.gather(testIndices))
+    }
   }
 }

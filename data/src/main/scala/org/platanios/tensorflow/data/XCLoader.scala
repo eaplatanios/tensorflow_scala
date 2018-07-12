@@ -135,13 +135,19 @@ object XCLoader extends Loader {
 
   case class SplitData[TL[D <: DataType] <: TensorLike[D]](trainData: Data[TL], testData: Data[TL]) {
     def splitRandomly(trainPortion: Float, seed: Option[Long] = None): SplitData[Tensor] = {
-      val allFeatures = tfi.concatenate(Seq(trainData.features.toTensor, testData.features.toTensor), axis = 0)
-      val allLabels = tfi.concatenate(Seq(trainData.labels.toTensor, testData.labels.toTensor), axis = 0)
-      val split = UniformStratifiedSplit(allLabels.cast(INT32).entriesIterator.toSeq, seed)
-      val (trainIndices, testIndices) = split(trainPortion)
-      SplitData(
-        trainData = Data(features = allFeatures.gather(trainIndices), labels = allLabels.gather(trainIndices)),
-        testData = Data(features = allFeatures.gather(testIndices), labels = allLabels.gather(testIndices)))
+      if (trainPortion == 1.0f) {
+        SplitData(
+          trainData = Data(features = trainData.features.toTensor, labels = trainData.labels.toTensor),
+          testData = Data(features = testData.features.toTensor, labels = testData.labels.toTensor))
+      } else {
+        val allFeatures = tfi.concatenate(Seq(trainData.features.toTensor, testData.features.toTensor), axis = 0)
+        val allLabels = tfi.concatenate(Seq(trainData.labels.toTensor, testData.labels.toTensor), axis = 0)
+        val split = UniformStratifiedSplit(allLabels.cast(INT32).entriesIterator.toSeq, seed)
+        val (trainIndices, testIndices) = split(trainPortion)
+        SplitData(
+          trainData = Data(features = allFeatures.gather(trainIndices), labels = allLabels.gather(trainIndices)),
+          testData = Data(features = allFeatures.gather(testIndices), labels = allLabels.gather(testIndices)))
+      }
     }
   }
 
