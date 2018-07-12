@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.9.0-rc1"
+val tensorFlowVersion = "1.9.0"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
