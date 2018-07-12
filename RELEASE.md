@@ -27,8 +27,10 @@ Other new features include:
 - Added support for the following new metrics:
   - Grouped precision.
   - Precision-at-k.
-- Added support for loading the extreme classification repository
-  datasets (i.e., `data.XCLoader`).
+- `data` module:
+  - Added support for loading the extreme classification repository
+    datasets (i.e., `data.XCLoader`).
+  - Added support for randomly splitting datasets.
 
 # 0.2.4 Minor Fix
 

@@ -16,15 +16,15 @@
 package org.platanios.tensorflow.data
 
 import org.platanios.tensorflow.api._
-
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import java.io.ByteArrayOutputStream
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.util.zip.ZipInputStream
+
+import org.platanios.tensorflow.data.utilities.UniformStratifiedSplit
 
 /** Loader for datasets obtained from the
   * [[http://manikvarma.org/downloads/XC/XMLRepository.html Extreme Classification Repository]].
@@ -132,7 +132,19 @@ object XCLoader extends Loader {
   // TODO: [DATA] RCV1-x (an issue related to Google Drive will need to be resolved first).
 
   case class Data[TL[D <: DataType] <: TensorLike[D]](features: TL[FLOAT32], labels: TL[BOOLEAN])
-  case class SplitData[TL[D <: DataType] <: TensorLike[D]](trainData: Data[TL], testData: Data[TL])
+
+  case class SplitData[TL[D <: DataType] <: TensorLike[D]](trainData: Data[TL], testData: Data[TL]) {
+    def splitRandomly(trainPortion: Float, seed: Option[Long] = None): SplitData[Tensor] = {
+      val allFeatures = tfi.concatenate(Seq(trainData.features.toTensor, testData.features.toTensor), axis = 0)
+      val allLabels = tfi.concatenate(Seq(trainData.labels.toTensor, testData.labels.toTensor), axis = 0)
+      val split = UniformStratifiedSplit(allLabels.cast(INT32).entriesIterator.toSeq, seed)
+      val (trainIndices, testIndices) = split(trainPortion)
+      SplitData(
+        trainData = Data(features = allFeatures.gather(trainIndices), labels = allLabels.gather(trainIndices)),
+        testData = Data(features = allFeatures.gather(testIndices), labels = allLabels.gather(testIndices)))
+    }
+  }
+
   case class Split(trainIndices: Seq[Int], testIndices: Seq[Int])
 
   case class SmallDataset[TL[D <: DataType] <: TensorLike[D]](
