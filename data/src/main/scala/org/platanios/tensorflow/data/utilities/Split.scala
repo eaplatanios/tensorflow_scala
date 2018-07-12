@@ -53,7 +53,7 @@ case class UniformStratifiedSplit(
     require(trainPortion >= 0.0f && trainPortion <= 1.0f, "'trainPortion' must be in [0.0f, 1.0f].")
     val (trainIndices, testIndices) = labels.zipWithIndex.groupBy(_._1).mapValues(_.map(_._2)).map({
       case (_, indices) =>
-        val permutedIndices = random.shuffle[Int, Seq](indices.indices)
+        val permutedIndices = random.shuffle[Int, Seq](indices)
         val numTrainSamples = math.floor(indices.size * trainPortion).toInt
         (permutedIndices.take(numTrainSamples), permutedIndices.drop(numTrainSamples))
     }).unzip
