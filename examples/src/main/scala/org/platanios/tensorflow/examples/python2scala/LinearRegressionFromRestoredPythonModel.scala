@@ -29,10 +29,9 @@ object LinearRegressionFromRestoredPythonModel {
   def main(args: Array[String]): Unit = {
     val classLoader = getClass.getClassLoader
     val meta = new File(classLoader.getResource("python2scala/virgin-linear-regression-pull-request.meta").getFile)
-    val checkpoint = new File(classLoader.getResource("virgin-linear-regression-pull-request").getFile).getPath
-//    val meta = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request.meta"
-//    val checkpoint = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request"
-    val metaGraphDefFile = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/MetaGraphDef.txt"
+    val metaGraphDefFile = new File(classLoader.getResource("python2scala/MetaGraphDef.txt").getFile)
+
+    val checkpoint = "examples/src/main/resources/python2scala/virgin-linear-regression-pull-request"
 
     val metaGraphDefInputStream = new BufferedInputStream(new FileInputStream(meta))
     val mgf = MetaGraphDef.parseFrom(metaGraphDefInputStream)
@@ -40,7 +39,7 @@ object LinearRegressionFromRestoredPythonModel {
 
     // WRITE META GRAPH DEF ON TEXT FILE
     val fileWriter = new BufferedWriter(new FileWriter(metaGraphDefFile))
-    fileWriter.write(mgf)
+    fileWriter.write(mgf.toString)
     fileWriter.close()
 
 
@@ -75,7 +74,7 @@ object LinearRegressionFromRestoredPythonModel {
       // TRAINING LOOP
       for (i <- 0 to 50) {
         val (one, two) = batch(10000)
-        val feedsMap = FeedMap(input -> one, output -> two)
+        val feedsMap = FeedMap(Map(input -> one, output -> two))
         val fetchesSeq = Seq(loss, weight, bias)
         val trainFetches = session.run(feeds = feedsMap, fetches = fetchesSeq, targets = trainOp)
         val trainLoss = trainFetches(0)

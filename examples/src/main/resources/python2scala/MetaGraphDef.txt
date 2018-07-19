@@ -891,14 +891,20 @@ meta_info_def {
       is_stateful: true
     }
   }
-  tensorflow_version: "1.8.0-rc1"
-  tensorflow_git_version: "v1.8.0-rc0-46-gcf9afc9467"
+  tensorflow_version: "1.8.0"
+  tensorflow_git_version: "v1.8.0-0-g93bc2e2072"
 }
 graph_def {
   node {
     name: "p2s_input"
     op: "Placeholder"
     device: "/device:CPU:0"
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
     attr {
       key: "shape"
       value {
@@ -910,12 +916,6 @@ graph_def {
             size: 1
           }
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -939,6 +939,12 @@ graph_def {
     op: "Placeholder"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "shape"
       value {
         shape {
@@ -949,12 +955,6 @@ graph_def {
             size: 1
           }
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -976,6 +976,12 @@ graph_def {
   node {
     name: "p2s_weights_w/Initializer/zeros"
     op: "Const"
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
     attr {
       key: "value"
       value {
@@ -1002,12 +1008,6 @@ graph_def {
       }
     }
     attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "_output_shapes"
       value {
         list {
@@ -1027,14 +1027,6 @@ graph_def {
     name: "p2s_weights_w"
     op: "VarHandleOp"
     device: "/device:CPU:0"
-    attr {
-      key: "_class"
-      value {
-        list {
-          s: "loc:@p2s_weights_w"
-        }
-      }
-    }
     attr {
       key: "dtype"
       value {
@@ -1064,6 +1056,14 @@ graph_def {
       key: "shared_name"
       value {
         s: "p2s_weights_w"
+      }
+    }
+    attr {
+      key: "_class"
+      value {
+        list {
+          s: "loc:@p2s_weights_w"
+        }
       }
     }
     attr {
@@ -1151,6 +1151,12 @@ graph_def {
     name: "p2s_weights_b/Initializer/zeros"
     op: "Const"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "value"
       value {
         tensor {
@@ -1176,12 +1182,6 @@ graph_def {
       }
     }
     attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "_output_shapes"
       value {
         list {
@@ -1201,14 +1201,6 @@ graph_def {
     name: "p2s_weights_b"
     op: "VarHandleOp"
     device: "/device:CPU:0"
-    attr {
-      key: "_class"
-      value {
-        list {
-          s: "loc:@p2s_weights_b"
-        }
-      }
-    }
     attr {
       key: "dtype"
       value {
@@ -1238,6 +1230,14 @@ graph_def {
       key: "shared_name"
       value {
         s: "p2s_weights_b"
+      }
+    }
+    attr {
+      key: "_class"
+      value {
+        list {
+          s: "loc:@p2s_weights_b"
+        }
       }
     }
     attr {
@@ -1355,12 +1355,6 @@ graph_def {
     input: "MatMul/ReadVariableOp"
     device: "/device:CPU:0"
     attr {
-      key: "transpose_a"
-      value {
-        b: false
-      }
-    }
-    attr {
       key: "transpose_b"
       value {
         b: false
@@ -1370,6 +1364,12 @@ graph_def {
       key: "T"
       value {
         type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "transpose_a"
+      value {
+        b: false
       }
     }
     attr {
@@ -1542,6 +1542,12 @@ graph_def {
     input: "Const"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -1551,12 +1557,6 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -1608,12 +1608,6 @@ graph_def {
     op: "Const"
     device: "/device:CPU:0"
     attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "value"
       value {
         tensor {
@@ -1622,6 +1616,12 @@ graph_def {
           }
           double_val: 1.0
         }
+      }
+    }
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
@@ -1770,15 +1770,15 @@ graph_def {
     input: "gradients/p2s_loss_grad/Shape"
     device: "/device:CPU:0"
     attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "Tmultiples"
       value {
         type: DT_INT32
+      }
+    }
+    attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
@@ -1976,12 +1976,6 @@ graph_def {
     input: "gradients/p2s_loss_grad/Const_1"
     device: "/device:CPU:0"
     attr {
-      key: "T"
-      value {
-        type: DT_INT32
-      }
-    }
-    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -1991,6 +1985,12 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
+      }
+    }
+    attr {
+      key: "T"
+      value {
+        type: DT_INT32
       }
     }
     attr {
@@ -2008,12 +2008,6 @@ graph_def {
     op: "Const"
     device: "/device:CPU:0"
     attr {
-      key: "dtype"
-      value {
-        type: DT_INT32
-      }
-    }
-    attr {
       key: "value"
       value {
         tensor {
@@ -2022,6 +2016,12 @@ graph_def {
           }
           int_val: 1
         }
+      }
+    }
+    attr {
+      key: "dtype"
+      value {
+        type: DT_INT32
       }
     }
     attr {
@@ -2139,6 +2139,12 @@ graph_def {
     input: "^gradients/p2s_loss_grad/truediv"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "value"
       value {
         tensor {
@@ -2147,12 +2153,6 @@ graph_def {
           }
           double_val: 2.0
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -2387,12 +2387,6 @@ graph_def {
     input: "gradients/sub_grad/BroadcastGradientArgs:1"
     device: "/device:CPU:0"
     attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -2402,6 +2396,12 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
+      }
+    }
+    attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
@@ -2723,6 +2723,12 @@ graph_def {
     input: "gradients/add_grad/BroadcastGradientArgs:1"
     device: "/device:CPU:0"
     attr {
+      key: "T"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "Tidx"
       value {
         type: DT_INT32
@@ -2732,12 +2738,6 @@ graph_def {
       key: "keep_dims"
       value {
         b: false
-      }
-    }
-    attr {
-      key: "T"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -3187,6 +3187,18 @@ graph_def {
     op: "VarHandleOp"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
+      key: "container"
+      value {
+        s: ""
+      }
+    }
+    attr {
       key: "shape"
       value {
         shape {
@@ -3211,18 +3223,6 @@ graph_def {
         list {
           s: "loc:@p2s_weights_w/Adagrad/Read/ReadVariableOp"
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "container"
-      value {
-        s: ""
       }
     }
     attr {
@@ -3285,17 +3285,17 @@ graph_def {
     input: "p2s_weights_w/Adagrad"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "_class"
       value {
         list {
           s: "loc:@p2s_weights_w/Adagrad/Read/ReadVariableOp"
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
       }
     }
     attr {
@@ -3556,17 +3556,17 @@ graph_def {
     input: "p2s_weights_b/Adagrad/Initializer/Const"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
+      }
+    }
+    attr {
       key: "_class"
       value {
         list {
           s: "loc:@p2s_weights_b/Adagrad/Read/ReadVariableOp"
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
       }
     }
   }
@@ -3814,6 +3814,12 @@ graph_def {
     input: "p2s_train_op/learning_rate"
     device: "/device:CPU:0"
     attr {
+      key: "SrcT"
+      value {
+        type: DT_FLOAT
+      }
+    }
+    attr {
       key: "_class"
       value {
         list {
@@ -3825,12 +3831,6 @@ graph_def {
       key: "DstT"
       value {
         type: DT_DOUBLE
-      }
-    }
-    attr {
-      key: "SrcT"
-      value {
-        type: DT_FLOAT
       }
     }
     attr {
@@ -3852,12 +3852,6 @@ graph_def {
     input: "gradients/add_grad/tuple/control_dependency_1"
     device: "/device:CPU:0"
     attr {
-      key: "use_locking"
-      value {
-        b: false
-      }
-    }
-    attr {
       key: "T"
       value {
         type: DT_DOUBLE
@@ -3869,6 +3863,12 @@ graph_def {
         list {
           s: "loc:@p2s_train_op/update_p2s_weights_b/Read/ReadVariableOp"
         }
+      }
+    }
+    attr {
+      key: "use_locking"
+      value {
+        b: false
       }
     }
   }
@@ -3964,6 +3964,12 @@ graph_def {
     op: "Const"
     device: "/device:CPU:0"
     attr {
+      key: "dtype"
+      value {
+        type: DT_STRING
+      }
+    }
+    attr {
       key: "value"
       value {
         tensor {
@@ -3978,12 +3984,6 @@ graph_def {
           string_val: ""
           string_val: ""
         }
-      }
-    }
-    attr {
-      key: "dtype"
-      value {
-        type: DT_STRING
       }
     }
     attr {
@@ -4097,12 +4097,6 @@ graph_def {
     op: "Const"
     device: "/device:CPU:0"
     attr {
-      key: "dtype"
-      value {
-        type: DT_STRING
-      }
-    }
-    attr {
       key: "value"
       value {
         tensor {
@@ -4117,6 +4111,12 @@ graph_def {
           string_val: ""
           string_val: ""
         }
+      }
+    }
+    attr {
+      key: "dtype"
+      value {
+        type: DT_STRING
       }
     }
     attr {
@@ -4324,12 +4324,6 @@ graph_def {
     op: "Placeholder"
     device: "/device:CPU:0"
     attr {
-      key: "dtype"
-      value {
-        type: DT_DOUBLE
-      }
-    }
-    attr {
       key: "shape"
       value {
         shape {
@@ -4340,6 +4334,12 @@ graph_def {
             size: 1
           }
         }
+      }
+    }
+    attr {
+      key: "dtype"
+      value {
+        type: DT_DOUBLE
       }
     }
     attr {
