@@ -16,8 +16,11 @@ import scala.util.Random
 
 /**
   * Purpose: take a model trained with the Python API of Tensor Flow and restore
-  * it inside a Scala environment in order to continue the training process. The
-  * model was saved using tf.train.Saver()
+  * it inside a Scala environment in order to continue the training process. For
+  * this example was used a virgin model but can be used a trained one without any
+  * problem.
+  *
+  * Information, Python API side: The model was saved using tf.train.Saver().
   *
   * @author Luca Tagliabue
   */
