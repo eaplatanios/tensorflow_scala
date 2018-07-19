@@ -26,7 +26,8 @@ package object core {
         name: String,
         hiddenLayers: Seq[Int],
         outputSize: Int,
-        activation: String => Layer[Output, Output] = (name: String) => ReLU(name, 0.1f)
+        activation: String => Layer[Output, Output] = (name: String) => ReLU(name, 0.1f),
+        dropout: Float = 0.0f
     ): Layer[Output, Output] = {
       if (hiddenLayers.isEmpty) {
         Linear(s"$name/Linear", outputSize)
@@ -34,7 +35,10 @@ package object core {
         val size = hiddenLayers.head
         var layer = Linear(s"$name/Layer0/Linear", size) >> activation(s"$name/Layer0/Activation")
         hiddenLayers.zipWithIndex.tail.foreach(s => {
-          layer = layer >> Linear(s"$name/Layer${s._2}/Linear", s._1) >> activation(s"$name/Layer${s._2}/Activation")
+          layer = layer >>
+              Linear(s"$name/Layer${s._2}/Linear", s._1) >>
+              Dropout(s"$name/Layer${s._2}/Dropout", 1 - dropout) >>
+              activation(s"$name/Layer${s._2}/Activation")
         })
         layer >> Linear("OutputLayer/Linear", outputSize)
       }
