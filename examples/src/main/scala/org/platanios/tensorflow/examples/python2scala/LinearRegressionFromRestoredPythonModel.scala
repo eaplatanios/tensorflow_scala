@@ -5,8 +5,9 @@ import java.nio.file.Paths
 
 import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.client.FeedMap
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.{Op, Session, Shape, Tensor, tf}
+import org.platanios.tensorflow.api.{FLOAT64, Op, Session, Shape, Tensor, tf}
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.MetaGraphDef
 
@@ -14,14 +15,11 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 /**
-  * @author Luca Tagliabue
-  *         Purpose: take a model trained with the Python API of Tensor Flow and restore
-  *         it inside a Scala environment in order to continue the training process. The
-  *         model was saved using tf.train.Saver()
+  * Purpose: take a model trained with the Python API of Tensor Flow and restore
+  * it inside a Scala environment in order to continue the training process. The
+  * model was saved using tf.train.Saver()
   *
-  *         Version used:
-  *         TensorFlow version: 1.8.0rc1
-  *         ScalaTensorFlow version: 0.2.0-SNAPSHOT
+  * @author Luca Tagliabue
   */
 object LinearRegressionFromRestoredPythonModel {
   private[this] val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
@@ -29,14 +27,22 @@ object LinearRegressionFromRestoredPythonModel {
   private[this] val weight = random.nextFloat()
 
   def main(args: Array[String]): Unit = {
-    val meta = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request.meta"
-    val checkpoint = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request"
+    val classLoader = getClass.getClassLoader
+    val meta = new File(classLoader.getResource("python2scala/virgin-linear-regression-pull-request.meta").getFile)
+    val checkpoint = new File(classLoader.getResource("virgin-linear-regression-pull-request").getFile).getPath
+//    val meta = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request.meta"
+//    val checkpoint = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/virgin-linear-regression-pull-request"
     val metaGraphDefFile = "examples/src/main/scala/org/platanios/tensorflow/examples/python2scala/MetaGraphDef.txt"
 
     val metaGraphDefInputStream = new BufferedInputStream(new FileInputStream(meta))
     val mgf = MetaGraphDef.parseFrom(metaGraphDefInputStream)
     val checkpointPath = Paths.get(checkpoint)
-    scala.reflect.io.File(metaGraphDefFile).writeAll(mgf.toString)
+
+    // WRITE META GRAPH DEF ON TEXT FILE
+    val fileWriter = new BufferedWriter(new FileWriter(metaGraphDefFile))
+    fileWriter.write(mgf)
+    fileWriter.close()
+
 
     tf.createWith(graph = Graph()) {
       val session = Session()
@@ -69,7 +75,7 @@ object LinearRegressionFromRestoredPythonModel {
       // TRAINING LOOP
       for (i <- 0 to 50) {
         val (one, two) = batch(10000)
-        val feedsMap = Map(input -> one, output -> two)
+        val feedsMap = FeedMap(input -> one, output -> two)
         val fetchesSeq = Seq(loss, weight, bias)
         val trainFetches = session.run(feeds = feedsMap, fetches = fetchesSeq, targets = trainOp)
         val trainLoss = trainFetches(0)
@@ -82,7 +88,7 @@ object LinearRegressionFromRestoredPythonModel {
 
 
   // UTILIY METHODS
-  def batch(batchSize: Int): (Tensor, Tensor) = {
+  def batch(batchSize: Int): (Tensor[FLOAT64], Tensor[FLOAT64]) = {
     val inputs = ArrayBuffer.empty[Double]
     val outputs = ArrayBuffer.empty[Double]
     for (_ <- 0 until batchSize) {
