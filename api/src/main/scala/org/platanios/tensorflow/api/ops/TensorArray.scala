@@ -143,7 +143,7 @@ case class TensorArray private (
     }
     val returnValue = TensorArray(
       handle, scatterFlow, dataType, inferShape, elementShape, colocateWithFirstWrite, colocationOps)
-    if (this.inferShape) {
+    if (inferShape) {
       val valueShape = scatterFlow.inputs(2).shape
       val shape = if (valueShape != Shape.unknown()) Shape.fromSeq(valueShape.asArray.tail) else valueShape
       returnValue.mergeElementShape(shape)
@@ -217,7 +217,7 @@ case class TensorArray private (
         val lengths = Output.constantValue(splitFlow.inputs(2))
         val shape = {
           if (valueShape.rank != -1 && lengths.isDefined && lengths.get.max() == lengths.get.min())
-            Shape.fromSeq(lengths.get()(0).scalar.asInstanceOf[Long].toInt +: valueShape.asArray.tail)
+            Shape.fromSeq(lengths.get(0).scalar.asInstanceOf[Long].toInt +: valueShape.asArray.tail)
           else
             Shape.unknown()
         }
@@ -408,7 +408,7 @@ object TensorArray {
       handle = handle,
       flow = flow,
       dataType = dataType,
-      inferShape = inferShape || elementShape.rank == -1,
+      inferShape = inferShape,
       elementShape = if (elementShape.rank == -1) None else Some(elementShape),
       colocateWithFirstWrite = colocateWithFirstWrite)
   }
@@ -432,9 +432,15 @@ object TensorArray {
     * @return Tuple containing the resource handle to the tensor array and a scalar used to control gradient flow.
     */
   private[TensorArray] def createOp(
-      size: Output, dataType: DataType, elementShape: Shape = Shape.unknown(), dynamicSize: Boolean = false,
-      clearAfterRead: Boolean = true, inferShape: Boolean = true, tensorArrayName: String = "",
-      name: String = "TensorArray"): (Output, Output) = {
+      size: Output,
+      dataType: DataType,
+      elementShape: Shape = Shape.unknown(),
+      dynamicSize: Boolean = false,
+      clearAfterRead: Boolean = true,
+      inferShape: Boolean = true,
+      tensorArrayName: String = "",
+      name: String = "TensorArray"
+  ): (Output, Output) = {
     val outputs = Op.Builder(opType = "TensorArrayV3", name = name)
         .addInput(size)
         .setAttribute("dtype", dataType)
@@ -456,7 +462,12 @@ object TensorArray {
     * @return Tensor in the specified position of the tensor array.
     */
   private[TensorArray] def readOp(
-      handle: Output, index: Output, flow: Output, dataType: DataType, name: String = "TensorArrayRead"): Output = {
+      handle: Output,
+      index: Output,
+      flow: Output,
+      dataType: DataType,
+      name: String = "TensorArrayRead"
+  ): Output = {
     Op.Builder(opType = "TensorArrayReadV3", name = name)
         .addInput(handle)
         .addInput(index)
@@ -475,8 +486,12 @@ object TensorArray {
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
   private[TensorArray] def writeOp(
-      handle: Output, index: Output, value: Output, flow: Output,
-      name: String = "TensorArrayWrite"): Output = {
+      handle: Output,
+      index: Output,
+      value: Output,
+      flow: Output,
+      name: String = "TensorArrayWrite"
+  ): Output = {
     Op.Builder(opType = "TensorArrayWriteV3", name = name)
         .addInput(handle)
         .addInput(index)
@@ -499,8 +514,13 @@ object TensorArray {
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
   private[TensorArray] def gatherOp(
-      handle: Output, indices: Output, flow: Output, dataType: DataType, shape: Shape = Shape.unknown(),
-      name: String = "TensorArrayGather"): Output = {
+      handle: Output,
+      indices: Output,
+      flow: Output,
+      dataType: DataType,
+      shape: Shape = Shape.unknown(),
+      name: String = "TensorArrayGather"
+  ): Output = {
     Op.Builder(opType = "TensorArrayGatherV3", name = name)
         .addInput(handle)
         .addInput(indices)
@@ -522,8 +542,12 @@ object TensorArray {
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
   private[TensorArray] def scatterOp(
-      handle: Output, indices: Output, value: Output, flow: Output,
-      name: String = "TensorArrayScatter"): Output = {
+      handle: Output,
+      indices: Output,
+      value: Output,
+      flow: Output,
+      name: String = "TensorArrayScatter"
+  ): Output = {
     Op.Builder(opType = "TensorArrayScatterV3", name = name)
         .addInput(handle)
         .addInput(indices)
@@ -551,8 +575,12 @@ object TensorArray {
     *         this would be the values `n1, n2, ..., n(T-1)`.
     */
   private[TensorArray] def concatenateOp(
-      handle: Output, flow: Output, dataType: DataType, shapeTail: Shape = Shape.unknown(),
-      name: String = "TensorArrayConcatenate"): (Output, Output) = {
+      handle: Output,
+      flow: Output,
+      dataType: DataType,
+      shapeTail: Shape = Shape.unknown(),
+      name: String = "TensorArrayConcatenate"
+  ): (Output, Output) = {
     val outputs = Op.Builder(opType = "TensorArrayConcatV3", name = name)
         .addInput(handle)
         .addInput(flow)
@@ -578,8 +606,12 @@ object TensorArray {
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
   private[TensorArray] def splitOp(
-      handle: Output, value: Output, lengths: Output, flow: Output,
-      name: String = "TensorArraySplit"): Output = {
+      handle: Output,
+      value: Output,
+      lengths: Output,
+      flow: Output,
+      name: String = "TensorArraySplit"
+  ): Output = {
     Op.Builder(opType = "TensorArraySplitV3", name = name)
         .addInput(handle)
         .addInput(value)
@@ -644,7 +676,11 @@ object TensorArray {
     *         flow.
     */
   private[TensorArray] def gradientOp(
-      handle: Output, flow: Output, source: String, name: String = "TensorArrayGrad"): (Output, Output) = {
+      handle: Output,
+      flow: Output,
+      source: String,
+      name: String = "TensorArrayGrad"
+  ): (Output, Output) = {
     val outputs = Op.Builder(opType = "TensorArrayGradV3", name = name)
         .addInput(handle)
         .addInput(flow)
@@ -681,6 +717,7 @@ object TensorArray {
 
     GradientsRegistry.registerNonDifferentiable("TensorArrayV3")
     GradientsRegistry.registerNonDifferentiable("TensorArrayGradV3")
+    GradientsRegistry.registerNonDifferentiable("TensorArrayGradWithShape")
     GradientsRegistry.registerNonDifferentiable("TensorArraySizeV3")
     GradientsRegistry.registerNonDifferentiable("TensorArrayCloseV3")
 

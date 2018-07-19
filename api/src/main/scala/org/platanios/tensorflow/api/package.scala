@@ -15,10 +15,6 @@
 
 package org.platanios.tensorflow
 
-import org.platanios.tensorflow.api.types.DataType
-
-import spire.math.{UByte, UShort}
-
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -83,8 +79,14 @@ package object api extends implicits.Implicits with Documentation {
   val NewAxis: Indexer = core.NewAxis
   val ::     : Slice   = core.Slice.::
 
-  type Tensor = tensors.Tensor
-  val Tensor: tensors.Tensor.type = tensors.Tensor
+  type TensorLike[D <: DataType] = tensors.TensorLike[D]
+  type Tensor[D <: DataType] = tensors.Tensor[D]
+  type TensorIndexedSlices[D <: DataType] = tensors.TensorIndexedSlices[D]
+  type SparseTensor[D <: DataType] = tensors.SparseTensor[D]
+
+  val Tensor             : tensors.Tensor.type              = tensors.Tensor
+  val TensorIndexedSlices: tensors.TensorIndexedSlices.type = tensors.TensorIndexedSlices
+  val SparseTensor       : tensors.SparseTensor.type        = tensors.SparseTensor
 
   type Op = ops.Op
   val Op: ops.Op.type = ops.Op
@@ -104,28 +106,52 @@ package object api extends implicits.Implicits with Documentation {
 
   type DataType = types.DataType
 
-  val STRING    : DataType.Aux[String]  = types.STRING
-  val BOOLEAN   : DataType.Aux[Boolean] = types.BOOLEAN
-  val FLOAT16   : DataType.Aux[Float]   = types.FLOAT16
-  val FLOAT32   : DataType.Aux[Float]   = types.FLOAT32
-  val FLOAT64   : DataType.Aux[Double]  = types.FLOAT64
-  val BFLOAT16  : DataType.Aux[Float]   = types.BFLOAT16
-  val COMPLEX64 : DataType.Aux[Double]  = types.COMPLEX64
-  val COMPLEX128: DataType.Aux[Double]  = types.COMPLEX128
-  val INT8      : DataType.Aux[Byte]    = types.INT8
-  val INT16     : DataType.Aux[Short]   = types.INT16
-  val INT32     : DataType.Aux[Int]     = types.INT32
-  val INT64     : DataType.Aux[Long]    = types.INT64
-  val UINT8     : DataType.Aux[UByte]   = types.UINT8
-  val UINT16    : DataType.Aux[UShort]  = types.UINT16
-  val UINT32    : DataType.Aux[Long]    = types.UINT32
-  val QINT8     : DataType.Aux[Byte]    = types.QINT8
-  val QINT16    : DataType.Aux[Short]   = types.QINT16
-  val QINT32    : DataType.Aux[Int]     = types.QINT32
-  val QUINT8    : DataType.Aux[UByte]   = types.QUINT8
-  val QUINT16   : DataType.Aux[UShort]  = types.QUINT16
-  val RESOURCE  : DataType.Aux[Long]    = types.RESOURCE
-  val VARIANT   : DataType.Aux[Long]    = types.VARIANT
+  type STRING = types.STRING.type
+  type BOOLEAN = types.BOOLEAN.type
+  type FLOAT16 = types.FLOAT16.type
+  type FLOAT32 = types.FLOAT32.type
+  type FLOAT64 = types.FLOAT64.type
+  type BFLOAT16 = types.BFLOAT16.type
+  type COMPLEX64 = types.COMPLEX64.type
+  type COMPLEX128 = types.COMPLEX128.type
+  type INT8 = types.INT8.type
+  type INT16 = types.INT16.type
+  type INT32 = types.INT32.type
+  type INT64 = types.INT64.type
+  type UINT8 = types.UINT8.type
+  type UINT16 = types.UINT16.type
+  type UINT32 = types.UINT32.type
+  type UINT64 = types.UINT64.type
+  type QINT8 = types.QINT8.type
+  type QINT16 = types.QINT16.type
+  type QINT32 = types.QINT32.type
+  type QUINT8 = types.QUINT8.type
+  type QUINT16 = types.QUINT16.type
+  type RESOURCE = types.RESOURCE.type
+  type VARIANT = types.VARIANT.type
+
+  val STRING    : STRING     = types.STRING
+  val BOOLEAN   : BOOLEAN    = types.BOOLEAN
+  val FLOAT16   : FLOAT16    = types.FLOAT16
+  val FLOAT32   : FLOAT32    = types.FLOAT32
+  val FLOAT64   : FLOAT64    = types.FLOAT64
+  val BFLOAT16  : BFLOAT16   = types.BFLOAT16
+  val COMPLEX64 : COMPLEX64  = types.COMPLEX64
+  val COMPLEX128: COMPLEX128 = types.COMPLEX128
+  val INT8      : INT8       = types.INT8
+  val INT16     : INT16      = types.INT16
+  val INT32     : INT32      = types.INT32
+  val INT64     : INT64      = types.INT64
+  val UINT8     : UINT8      = types.UINT8
+  val UINT16    : UINT16     = types.UINT16
+  val UINT32    : UINT32     = types.UINT32
+  val QINT8     : QINT8      = types.QINT8
+  val QINT16    : QINT16     = types.QINT16
+  val QINT32    : QINT32     = types.QINT32
+  val QUINT8    : QUINT8     = types.QUINT8
+  val QUINT16   : QUINT16    = types.QUINT16
+  val RESOURCE  : RESOURCE   = types.RESOURCE
+  val VARIANT   : VARIANT    = types.VARIANT
 
   //endregion Data Types API
 
@@ -139,40 +165,42 @@ package object api extends implicits.Implicits with Documentation {
 
   /** @groupname BasicOps       Ops / Basic
     * @groupprio BasicOps       100
+    * @groupname CastOps        Ops / Cast
+    * @groupprio CastOps        110
     * @groupname MathOps        Ops / Math
-    * @groupprio MathOps        110
-    * @groupname SparseOps      Ops / Clip
-    * @groupprio SparseOps      120
+    * @groupprio MathOps        120
+    * @groupname SparseOps      Ops / Sparse
+    * @groupprio SparseOps      130
     * @groupname ClipOps        Ops / Clip
-    * @groupprio ClipOps        130
+    * @groupprio ClipOps        140
     * @groupname NNOps          Ops / NN
-    * @groupprio NNOps          140
+    * @groupprio NNOps          150
     * @groupname StatisticsOps  Ops / Statistics
-    * @groupprio StatisticsOps  150
+    * @groupprio StatisticsOps  160
     * @groupname RandomOps      Ops / Random
-    * @groupprio RandomOps      160
+    * @groupprio RandomOps      170
     * @groupname ParsingOps     Ops / Parsing
-    * @groupprio ParsingOps     170
+    * @groupprio ParsingOps     180
     * @groupname TextOps        Ops / Text
-    * @groupprio TextOps        180
+    * @groupprio TextOps        190
     * @groupname ImageOps       Ops / Image
-    * @groupprio ImageOps       190
+    * @groupprio ImageOps       200
     * @groupname EmbeddingOps   Ops / Embedding
-    * @groupprio EmbeddingOps   200
+    * @groupprio EmbeddingOps   210
     * @groupname RNNOps         Ops / RNN
-    * @groupprio RNNOps         210
+    * @groupprio RNNOps         220
     * @groupname RNNCellOps     Ops / RNN Cells
-    * @groupprio RNNCellOps     220
+    * @groupprio RNNCellOps     230
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 230
+    * @groupprio ControlFlowOps 240
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     240
+    * @groupprio LoggingOps     250
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       250
+    * @groupprio CheckOps       260
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     260
+    * @groupprio SummaryOps     270
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    270
+    * @groupprio CallbackOps    280
     */
   object tf
       extends core.API
@@ -186,40 +214,42 @@ package object api extends implicits.Implicits with Documentation {
 
   /** @groupname BasicOps       Ops / Basic
     * @groupprio BasicOps       100
+    * @groupname CastOps        Ops / Cast
+    * @groupprio CastOps        110
     * @groupname MathOps        Ops / Math
-    * @groupprio MathOps        110
-    * @groupname SparseOps      Ops / Clip
-    * @groupprio SparseOps      120
+    * @groupprio MathOps        120
+    * @groupname SparseOps      Ops / Sparse
+    * @groupprio SparseOps      130
     * @groupname ClipOps        Ops / Clip
-    * @groupprio ClipOps        130
+    * @groupprio ClipOps        140
     * @groupname NNOps          Ops / NN
-    * @groupprio NNOps          140
+    * @groupprio NNOps          150
     * @groupname StatisticsOps  Ops / Statistics
-    * @groupprio StatisticsOps  150
+    * @groupprio StatisticsOps  160
     * @groupname RandomOps      Ops / Random
-    * @groupprio RandomOps      160
+    * @groupprio RandomOps      170
     * @groupname ParsingOps     Ops / Parsing
-    * @groupprio ParsingOps     170
+    * @groupprio ParsingOps     180
     * @groupname TextOps        Ops / Text
-    * @groupprio TextOps        180
+    * @groupprio TextOps        190
     * @groupname ImageOps       Ops / Image
-    * @groupprio ImageOps       190
+    * @groupprio ImageOps       200
     * @groupname EmbeddingOps   Ops / Embedding
-    * @groupprio EmbeddingOps   200
+    * @groupprio EmbeddingOps   210
     * @groupname RNNOps         Ops / RNN
-    * @groupprio RNNOps         210
+    * @groupprio RNNOps         220
     * @groupname RNNCellOps     Ops / RNN Cells
-    * @groupprio RNNCellOps     220
+    * @groupprio RNNCellOps     230
     * @groupname ControlFlowOps Ops / Control Flow
-    * @groupprio ControlFlowOps 230
+    * @groupprio ControlFlowOps 240
     * @groupname LoggingOps     Ops / Logging
-    * @groupprio LoggingOps     240
+    * @groupprio LoggingOps     250
     * @groupname CheckOps       Ops / Checks
-    * @groupprio CheckOps       250
+    * @groupprio CheckOps       260
     * @groupname SummaryOps     Ops / Summary
-    * @groupprio SummaryOps     260
+    * @groupprio SummaryOps     270
     * @groupname CallbackOps    Ops / Callback
-    * @groupprio CallbackOps    270
+    * @groupprio CallbackOps    280
     */
   object tfi
       extends core.API

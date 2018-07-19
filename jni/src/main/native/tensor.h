@@ -90,10 +90,10 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
  * Method:    eagerAllocateContext
- * Signature: ()J
+ * Signature: ([B)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocateContext
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jbyteArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__

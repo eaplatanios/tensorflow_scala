@@ -19,24 +19,24 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.ops.{Math => TensorMath}
-import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
+import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64, MathDataType, ReducibleDataType}
 import org.platanios.tensorflow.api.utilities.using
 
-import org.scalatest.junit.JUnitSuite
 import org.junit.Test
+import org.scalatest.junit.JUnitSuite
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 class CallbackSuite extends JUnitSuite {
-  def square(input: Tensor): Tensor = input.square
+  def square[D <: MathDataType](input: Tensor[D]): Tensor[D] = input.square
 
-  def add(inputs: Seq[Tensor]): Tensor = TensorMath.addN(inputs)
+  def add[D <: ReducibleDataType](inputs: Seq[Tensor[D]]): Tensor[D] = TensorMath.addN(inputs)
 
   @Test def testIdentitySingleInputSingleOutputCallback(): Unit = using(Graph()) { graph =>
     val (input, output) = Op.createWith(graph) {
       val input = Basic.placeholder(FLOAT32)
-      val output = Callback.callback(square, input, FLOAT32)
+      val output = Callback.callback(square[FLOAT32], input, FLOAT32)
       (input, output)
     }
     val session = Session(graph = graph)
@@ -52,7 +52,7 @@ class CallbackSuite extends JUnitSuite {
       val input1 = Basic.placeholder(FLOAT64)
       val input2 = Basic.placeholder(FLOAT64)
       val input3 = Basic.placeholder(FLOAT64)
-      val output = Callback.callback(add, Seq(input1, input2, input3), FLOAT64)
+      val output = Callback.callback(add[FLOAT64], Seq(input1, input2, input3), FLOAT64)
       (input1, input2, input3, output)
     }
     val session = Session(graph = graph)

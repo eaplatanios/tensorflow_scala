@@ -31,7 +31,7 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class MultiCell[O, OS, S, SS](
+class MultiCell[O, OS, S, SS] protected (
     val cells: Seq[RNNCell[O, OS, S, SS]],
     val name: String = "MultiCell"
 )(implicit

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.training.distribute.packers
 
 import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputLike}
 
 /** Packer that concatenates all tensors together and then splits them into packs for reduction.
   *
@@ -42,8 +42,8 @@ class ConcatenateAndSplitPacker protected(val numPacks: Int)
     */
   @throws[InvalidArgumentException]
   override def pack(
-      grouped: Seq[Seq[Output]]
-  ): (Seq[Seq[Output]], Option[ConcatenateAndSplitPacker.PackInformation]) = {
+      grouped: Seq[Seq[OutputLike]]
+  ): (Seq[Seq[OutputLike]], Option[ConcatenateAndSplitPacker.PackInformation]) = {
     val packed = grouped.map(values => {
       Op.colocateWith(Set(values.head.op)) {
         // Flatten all the values.
@@ -83,9 +83,9 @@ class ConcatenateAndSplitPacker protected(val numPacks: Int)
     */
   @throws[InvalidArgumentException]
   override def unpack(
-      packed: Seq[Seq[Output]],
+      packed: Seq[Seq[OutputLike]],
       packInformation: Option[ConcatenateAndSplitPacker.PackInformation]
-  ): Seq[Seq[Output]] = packInformation match {
+  ): Seq[Seq[OutputLike]] = packInformation match {
     case None => throw InvalidArgumentException("Cannot unpack values because no pack information is provided.")
     case Some(information) =>
       packed.zip(information.allTowerShapes.zip(information.allTowerSizes))
@@ -95,7 +95,7 @@ class ConcatenateAndSplitPacker protected(val numPacks: Int)
               // into their original shapes.
               Op.colocateWith(Set(deviceValues.head.op)) {
                 // Concatenate the packed values into a big flat tensor.
-                val concatenatedDeviceValues = Basic.concatenate(deviceValues)
+                val concatenatedDeviceValues = Basic.concatenate(deviceValues.map(_.toOutput))
                 // Split the tensors back into their original sizes.
                 val splitValues = Basic.split(concatenatedDeviceValues, Basic.stack(sizes))
                 // Reshape the tensors back into their original shapes.

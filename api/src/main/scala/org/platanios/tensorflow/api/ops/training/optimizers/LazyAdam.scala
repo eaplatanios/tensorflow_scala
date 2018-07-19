@@ -23,6 +23,13 @@ import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements a variant of the Adam optimization algorithm that handles sparse updates more efficiently.
   *
+  * The original Adam algorithm maintains two moving-average accumulators for each trainable variable; the accumulators
+  * are updated at every step. This class provides lazier handling of gradient updates for sparse variables. It only
+  * updates the moving-average accumulators for sparse variable indices that appear in the current batch, rather than
+  * updating the accumulators for all indices. Compared with the original Adam optimizer, it can provide large
+  * improvements in model training throughput for some applications. However, it provides slightly different semantics
+  * than the original Adam algorithm, and may lead to different empirical results.
+  *
   * Initialization:
   * {{{
   *   m_0 = 0  // Initialize the 1st moment vector
@@ -44,10 +51,10 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * formulation in Algorithm 1, the "epsilon" referred to here is "epsilon hat" in the paper.
   *
   * The sparse implementation of this algorithm (used when the gradient is an indexed slices object, typically because
-  * of `tf.gather` or an embedding lookup in the forward pass) does apply momentum to variable slices even if they were
-  * not used in the forward pass (meaning they have a gradient equal to zero). Momentum decay (`beta1`) is also applied
-  * to the entire momentum accumulator. This means that the sparse behavior is equivalent to the dense behavior (in
-  * contrast to some momentum implementations which ignore momentum unless a variable slice was actually used).
+  * of `tf.gather` or an embedding lookup in the forward pass) does not apply momentum to variable slices if they are
+  * not used in the forward pass (meaning they have a gradient equal to zero). Momentum decay (`beta1`) is also not
+  * applied to the entire momentum accumulator. This means that the sparse behavior is not equivalent to the dense
+  * behavior.
   *
   * For more information on the original Adam algorithm, please refer to this [paper](https://arxiv.org/abs/1412.6980)
   * ([PDF](https://arxiv.org/pdf/1412.6980.pdf)).
@@ -86,11 +93,11 @@ class LazyAdam protected (
     override val epsilon: Double = 1e-8,
     override val useLocking: Boolean = false,
     override val learningRateSummaryTag: String = null,
-    override val name: String = "Adam"
+    override val name: String = "LazyAdam"
 ) extends Adam(
   learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name
 ) {
-  override val ignoreDuplicateSparseIndices: Boolean = false
+  override val ignoreDuplicateSparseIndices: Boolean = true
 
   override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
     val m = getSlot("M", variable)

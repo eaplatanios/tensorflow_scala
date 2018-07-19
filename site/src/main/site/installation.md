@@ -10,7 +10,7 @@ position: 2
 # Installation
 
 TensorFlow for Scala is currently available for Scala 2.11.x and for 2.12.x. The main line of development is version 
-2.12.3. Binary release artifacts are published to the [Sonatype OSS Repository Hosting service][sonatype] and synced to 
+2.12.6. Binary release artifacts are published to the [Sonatype OSS Repository Hosting service][sonatype] and synced to
 Maven Central. Currently, given the beta status of this project, only snapshot releases are published.
 
 ## Using with SBT
@@ -19,7 +19,7 @@ To include the Sonatype repositories in your [SBT](http://www.scala-sbt.org) bui
 should add the following to your `build.sbt` file:
 
 ```scala
-libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.1"
+libraryDependencies += "org.platanios" %% "tensorflow" % "0.2.4"
 ```
 
 **NOTE:** This requires that you have installed the TensorFlow dynamic library in your system. If you haven't, please 
@@ -35,7 +35,7 @@ have the main TensorFlow dynamic library installed. You have two options for dea
   1. Use:
      
      ```scala
-     libraryDependencies += "org.platanios" %% "tensorflow" % "0.1.0-SNAPSHOT" classifier "linux-cpu-x86_64"
+     libraryDependencies += "org.platanios" %% "tensorflow" % "0.2.4" classifier "linux-cpu-x86_64"
      ```
      
      instead of the line above, for your `build.sbt` file. *Make sure to replace `linux-cpu-x86_64` with the string 
@@ -50,13 +50,14 @@ have the main TensorFlow dynamic library installed. You have two options for dea
           ```bash
           git clone https://github.com/tensorflow/tensorflow.git <repository_directory>
           cd <repository_directory>
+          git checkout r1.9
           ```
           
        2. Compile the library using the following commands:
           
           ```bash
           ./configure
-          bazel build --config=opt //tensorflow:libtensorflow.so
+          bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 //tensorflow:libtensorflow.so
           ```
           
           For details regarding the configuration options (e.g., GPU support), please refer to the relevant main 

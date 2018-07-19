@@ -32,15 +32,22 @@ object Basic {
     type Identity[T] = layers.Identity[T]
     type Compose[T, R, S] = layers.Compose[T, R, S]
     type Concatenate[T, R] = layers.Concatenate[T, R]
-    type Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.Map[T, R, S, CC]
+    type Map[T, R, MR] = layers.Map[T, R, MR]
+    type MapSeq[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.MapSeq[T, R, S, CC]
     type Squeeze = layers.Squeeze
+    type Stack = layers.Stack
     type Flatten = layers.Flatten
+    type Reshape = layers.Reshape
     type Transpose = layers.Transpose
     type OneHot = layers.OneHot
 
     val Identity : layers.Identity.type  = layers.Identity
+    val Map      : layers.Map.type       = layers.Map
+    val MapSeq   : layers.MapSeq.type    = layers.MapSeq
     val Squeeze  : layers.Squeeze.type   = layers.Squeeze
+    val Stack    : layers.Stack.type     = layers.Stack
     val Flatten  : layers.Flatten.type   = layers.Flatten
+    val Reshape  : layers.Reshape.type   = layers.Reshape
     val Transpose: layers.Transpose.type = layers.Transpose
     val OneHot   : layers.OneHot.type    = layers.OneHot
   }
@@ -52,7 +59,7 @@ case class Identity[T](override val name: String)
     extends Layer[T, T](name) {
   override val layerType = "Identity"
 
-  override protected def _forward(input: T)(implicit mode: Mode): T = input
+  override def forwardWithoutContext(input: T)(implicit mode: Mode): T = input
 }
 
 case class Compose[T, R, S](
@@ -61,7 +68,7 @@ case class Compose[T, R, S](
 ) extends Layer[T, S](name) {
   override val layerType: String = s"Compose[$layer1>>$layer2]"
 
-  override protected def _forward(input: T)(implicit mode: Mode): S = layer2(layer1(input))
+  override def forwardWithoutContext(input: T)(implicit mode: Mode): S = layer2(layer1(input))
 }
 
 case class Concatenate[T, R](
@@ -70,10 +77,22 @@ case class Concatenate[T, R](
 ) extends Layer[T, Seq[R]](name) {
   override val layerType: String = "Concatenate"
 
-  override protected def _forward(input: T)(implicit mode: Mode): Seq[R] = layers.map(_ (input))
+  override def forwardWithoutContext(input: T)(implicit mode: Mode): Seq[R] = layers.map(_ (input))
 }
 
-case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
+case class Map[T, R, MR](
+    override val name: String,
+    layer: Layer[T, R],
+    mapFn: R => MR
+) extends Layer[T, MR](name) {
+  override val layerType: String = s"Map[$layer]"
+
+  override def forwardWithoutContext(input: T)(implicit mode: Mode): MR = {
+    mapFn(layer(input))
+  }
+}
+
+case class MapSeq[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
     override val name: String,
     layer: Layer[CC[T], CC[R]],
     mapLayer: Layer[R, S]
@@ -82,7 +101,7 @@ case class Map[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
 ) extends Layer[CC[T], CC[S]](name) {
   override val layerType: String = s"Map[$layer]"
 
-  override protected def _forward(input: CC[T])(implicit mode: Mode): CC[S] = {
+  override def forwardWithoutContext(input: CC[T])(implicit mode: Mode): CC[S] = {
     layer(input)
         .asInstanceOf[TraversableLike[R, CC[R]]]
         .map[S, CC[S]](mapLayer(_))(cbfRS)
@@ -93,8 +112,17 @@ case class Squeeze(override val name: String, axes: Seq[Int] = null)
     extends Layer[Output, Output](name) {
   override val layerType: String = if (axes != null) s"Squeeze[${axes.mkString(", ")}]" else "Squeeze"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.Basic.squeeze(input, axes, name = name)
+  }
+}
+
+case class Stack(override val name: String, axis: Int = 0)
+    extends Layer[Seq[Output], Output](name) {
+  override val layerType: String = s"Stack[axis=$axis]"
+
+  override def forwardWithoutContext(input: Seq[Output])(implicit mode: Mode): Output = {
+    ops.Basic.stack(input, axis, name = name)
   }
 }
 
@@ -102,7 +130,7 @@ case class Flatten(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Flatten"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     if (input.rank == 1)
       input
     else if (input.rank > -1 && input.shape(0) > -1)
@@ -112,11 +140,20 @@ case class Flatten(override val name: String)
   }
 }
 
+case class Reshape(override val name: String, shape: Shape)
+    extends Layer[Output, Output](name) {
+  override val layerType: String = s"Reshape[${shape.asArray.mkString(", ")}]"
+
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    ops.Basic.reshape(input, shape, name = name)
+  }
+}
+
 case class Transpose(override val name: String, permutation: Seq[Int])
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Transpose[${permutation.mkString(", ")}]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.Basic.transpose(input, permutation, name = name)
   }
 }
@@ -125,7 +162,7 @@ case class OneHot(override val name: String, numberOfLabels: Int)
     extends Layer[Output, Output](name) {
   override val layerType: String = s"OneHot[$numberOfLabels]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.Basic.oneHot(input, numberOfLabels, name = name)
   }
 }

@@ -36,11 +36,8 @@ object Tensor {
 
   //region Eager Execution API
 
-  // TODO: [SESSION] Add support for session options.
-  @native def eagerAllocateContext(): Long
+  @native def eagerAllocateContext(configProto: Array[Byte]): Long
   @native def eagerDeleteContext(handle: Long): Unit
-  // TODO: [SESSION] "listDevices".
-
   @native def eagerAllocate(tensorHandle: Long): Long
   @native def eagerDataType(handle: Long): Int
   @native def eagerShape(handle: Long): Array[Long]

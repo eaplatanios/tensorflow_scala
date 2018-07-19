@@ -36,9 +36,9 @@ object NPY {
   protected val dtypeParser: Regex = """^[<=>]?(\w\d*)$""".r
 
   /** Represents an NPY file header. */
-  case class Header(description: String, fortranOrder: Boolean, shape: Shape) {
-    val dataType: DataType = description match {
-      case dtypeParser(t) => numpyDTypeToDataType(t)
+  case class Header[D <: DataType](description: String, fortranOrder: Boolean, shape: Shape) {
+    val dataType: D = description match {
+      case dtypeParser(t) => numpyDTypeToDataType(t).asInstanceOf[D]
     }
 
     def byteOrder: ByteOrder = description.head match {
@@ -56,7 +56,7 @@ object NPY {
 
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
   @throws[InvalidDataTypeException]
-  def read(file: Path): Tensor = {
+  def read[D <: DataType](file: Path): Tensor[D] = {
     val byteBuffer = ByteBuffer.wrap(Files.readAllBytes(file))
 
     // Check the first byte in the magic string.
@@ -86,7 +86,7 @@ object NPY {
       case headerPattern(description, fortranOrderString, shapeString) =>
         val fortranOrder = fortranOrderString == "True"
         val shape = shapeString.trim.split(", ").map(_.toInt)
-        Header(description, fortranOrder, Shape.fromSeq(shape))
+        Header[D](description, fortranOrder, Shape.fromSeq(shape))
       case _ => throw new Exception("wrong header")
     }
 
@@ -94,15 +94,15 @@ object NPY {
     byteBuffer.order(header.byteOrder)
     val numBytes = header.shape.numElements * header.dataType.byteSize
     if (header.fortranOrder)
-      Tensor.fromBuffer(header.dataType, Shape.fromSeq(header.shape.asArray.reverse), numBytes, byteBuffer).transpose()
+      Tensor.fromBuffer[D](header.dataType, Shape.fromSeq(header.shape.asArray.reverse), numBytes, byteBuffer).transpose()
     else
-      Tensor.fromBuffer(header.dataType, header.shape, numBytes, byteBuffer)
+      Tensor.fromBuffer[D](header.dataType, header.shape, numBytes, byteBuffer)
   }
 
   /** Writes the provided tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method
     * will replace the file, if it already exists. */
   @throws[InvalidDataTypeException]
-  def write(tensor: Tensor, file: Path, fortranOrder: Boolean = false): Unit = {
+  def write[D <: DataType](tensor: Tensor[D], file: Path, fortranOrder: Boolean = false): Unit = {
     val description = ">" + dataTypeToNumpyDType(tensor.dataType)
     val header = Header(description, fortranOrder, tensor.shape).toString
 

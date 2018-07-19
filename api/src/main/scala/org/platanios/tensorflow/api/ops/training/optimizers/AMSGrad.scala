@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -91,32 +91,32 @@ class AMSGrad protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(learningRateTensor, variable.dataType)
+    Cast.cast(learningRateTensor, variable.dataType)
   }
 
   protected def getBeta1(variable: Variable): Output = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(beta1Tensor, variable.dataType)
+    Cast.cast(beta1Tensor, variable.dataType)
   }
 
   protected def getBeta2(variable: Variable): Output = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(beta2Tensor, variable.dataType)
+    Cast.cast(beta2Tensor, variable.dataType)
   }
 
   protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(epsilonTensor, variable.dataType)
+    Cast.cast(epsilonTensor, variable.dataType)
   }
 
   protected def getBetaPowerAccumulators: (Variable, Variable) = {
     (getNonSlotVariable("Beta1Power", Op.currentGraph), getNonSlotVariable("Beta2Power", Op.currentGraph))
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     // Create slots for the first and second moments.
     variables.foreach(v => {
       zerosSlot("M", v, name)
@@ -157,16 +157,17 @@ class AMSGrad protected (
     val mT = m.assign((m.value * beta1) + mScaledGradient)
 
     // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-    val vScaledGradient = gradient * gradient * (1 - beta2)
+    val vScaledGradient = Math.square(gradient) * (1 - beta2)
     val vT = v.assign((v.value * beta2) + vScaledGradient)
 
     val vHatT = vHat.assign(Math.maximum(vT, vHat))
     val vHatTSqrt = Math.sqrt(vHatT)
-    val update = variable.assignSub(learningRate * mT / Math.add(vHatTSqrt, epsilon))
-    ControlFlow.group(Set(update.op, mT.op, vT.op))
+    val denominator = vHatTSqrt + epsilon
+    val update = variable.assignSub(learningRate * mT / denominator)
+    ControlFlow.group(Set(update.op, mT.op, vT.op, vHatT.op))
   }
 
-  override protected def finish(updateOps: Set[Op], nameScope: String): Op = {
+  override def finish(updateOps: Set[Op], nameScope: String): Op = {
     // Update the power accumulators.
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val updateBetaPowerOps = Op.createWith(controlDependencies = updateOps) {
@@ -199,7 +200,7 @@ class AMSGrad protected (
     }
 
     // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-    val vScaledGradient = gradient.values * gradient.values * (1 - beta2)
+    val vScaledGradient = Math.square(gradient.values) * (1 - beta2)
     var vT = v.assign(v.value * beta2)
     vT = Op.createWith(controlDependencies = Set(vT.op)) {
       v.assignScatterAdd(gradient.indices, vScaledGradient)
@@ -207,8 +208,9 @@ class AMSGrad protected (
 
     val vHatT = vHat.assign(Math.maximum(vT, vHat))
     val vHatTSqrt = Math.sqrt(vHatT)
-    val update = variable.assignSub(learningRate * mT / Math.add(vHatTSqrt, epsilon))
-    ControlFlow.group(Set(update.op, mT.op, vT.op))
+    val denominator = vHatTSqrt + epsilon
+    val update = variable.assignSub(learningRate * mT / denominator)
+    ControlFlow.group(Set(update.op, mT.op, vT.op, vHatT.op))
   }
 }
 

@@ -20,7 +20,8 @@ import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope, ZerosInitializer}
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, SparseOutput}
-import org.platanios.tensorflow.api.types.{DataType, FLOAT64, INT32, INT64}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types._
 
 /** Confusion matrix classification metric.
   *
@@ -46,50 +47,61 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT64, INT32, INT64}
   *
   * Note that the possible labels are assumed to be `[0, 1, 2, 3, 4]`, resulting in a 5x5 confusion matrix.
   *
+  * @param  nameScope            Name prefix for the created ops.
+  * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  numClasses           Number of classes over which the confusion matrix is computed.
   * @param  dataType             Data type for the confusion matrix.
   * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
   * @param  valuesCollections    Graph collections in which to add the metric values.
   * @param  updatesCollections   Graph collections in which to add the metric updates.
   * @param  resetsCollections    Graph collections in which to add the metric resets.
-  * @param  name                 Name prefix for the created ops.
-  *
   *
   * @author Emmanouil Antonios Platanios
   */
 class ConfusionMatrix(
+    val nameScope: String,
+    protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
     val numClasses: Int = -1,
     val dataType: DataType = FLOAT64,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
     val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
-    override val name: String = "ConfusionMatrix"
+    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
 ) extends Metric[(Output, Output), Output] {
   private[this] val numClassesOutput: Output = if (numClasses != -1) Basic.constant(numClasses) else null
+
+  /** Name of this metric. */
+  override def name: String = nameScope
+
+  /** Weights to multiply the provided values with when computing the value of this metric. */
+  override def weights: Option[Tensor[FLOAT32]] = defaultWeights
 
   /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
     *
     * @param  values  Tuple containing the predictions tensor and the targets tensor.
-    * @param  weights Tensor containing weights for the values.
+    * @param  weights Optional tensor containing weights for the values.
     * @param  name    Name prefix for the created ops.
     * @return Created output containing the metric value.
     */
-  override def compute(values: (Output, Output), weights: Output = null, name: String = name): Output = {
+  override def compute(
+      values: (Output, Output),
+      weights: Option[Output] = None,
+      name: String = s"$name/Compute"
+  ): Output = {
     val predictions = values._1
     val targets = values._2
+    val computedWeights = getWeights(weights)
     // Flatten the inputs if their rank is bigger than 1.
     val flattenedPredictions = if (predictions.rank > 1) Basic.reshape(predictions, -1) else predictions
     val flattenedTargets = if (targets.rank > 1) Basic.reshape(targets, -1) else targets
-    val flattenedWeights = if (weights != null && weights.rank > 1) Basic.reshape(weights, -1) else weights
+    val flattenedWeights = computedWeights.map(w => if (w != null && w.rank > 1) Basic.reshape(w, -1) else w)
     var ops = Set(predictions.op, targets.op)
-    if (flattenedWeights != null)
-      ops += flattenedWeights
+    flattenedWeights.foreach(ops += _.op)
     if (numClassesOutput != null)
       ops += numClassesOutput
     Op.createWithNameScope(name, ops) {
-      var (matchedPredictions, matchedTargets, matchedWeights) =
-        Metric.matchAxes(flattenedPredictions, flattenedTargets, flattenedWeights)
+      var (matchedPredictions, Some(matchedTargets), matchedWeights) =
+        Metric.matchAxes(flattenedPredictions, Some(flattenedTargets), flattenedWeights)
       matchedPredictions = matchedPredictions.cast(INT64)
       matchedTargets = matchedTargets.cast(INT64)
       // Sanity checks: underflow or overflow can cause memory corruption.
@@ -109,13 +121,11 @@ class ConfusionMatrix(
           castedNumClasses
         }
       }
-      if (matchedWeights != null)
-        matchedWeights = matchedWeights.cast(dataType)
-      else
-        matchedWeights = Basic.onesLike(matchedPredictions, dataType)
+      matchedWeights = matchedWeights.map(_.cast(dataType))
+      val computedWeights = matchedWeights.getOrElse(Basic.onesLike(matchedPredictions, dataType))
       val denseShape = Basic.stack(Seq(inferredNumClasses, inferredNumClasses)).cast(INT64)
       val indices = Basic.transpose(Basic.stack(Seq(matchedTargets, matchedPredictions)))
-      val confusionMatrix = SparseOutput(indices, matchedWeights, denseShape)
+      val confusionMatrix = SparseOutput(indices, computedWeights, denseShape)
       val zeros = Basic.fill(dataType, denseShape.cast(INT32))(0)
       val value = confusionMatrix.addDense(zeros)
       valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
@@ -127,17 +137,21 @@ class ConfusionMatrix(
     * obtaining the value of this metric, as well as a pair of ops to update its accumulated value and reset it.
     *
     * @param  values  Tuple containing the predictions tensor and the targets tensor.
-    * @param  weights Tensor containing weights for the predictions.
+    * @param  weights Optional tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
     * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: (Output, Output), weights: Output = null, name: String = name): Metric.StreamingInstance[Output] = {
-    Op.createWithNameScope(name) {
-      VariableScope.scope(name) {
-        val accumulator = variable(
-          "Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer, variablesCollections)
+      values: (Output, Output),
+      weights: Option[Output] = None,
+      name: String = s"$name/Streaming"
+  ): Metric.StreamingInstance[Output] = {
+    VariableScope.scope(name) {
+      Op.createWithNameScope(name) {
+        val accumulator = Metric.variable(
+          s"$name/Accumulator", dataType, Shape(numClasses, numClasses), ZerosInitializer,
+          variablesCollections)
         val value = compute(values, weights, name = "Value")
         val update = accumulator.assignAdd(value, name = "Update")
         val reset = accumulator.initializer
@@ -153,24 +167,27 @@ class ConfusionMatrix(
 object ConfusionMatrix {
   /** Creates a new confusion matrix metric.
     *
+    * @param  nameScope            Name prefix for the created ops.
+    * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  numClasses           Number of classes over which the confusion matrix is computed.
     * @param  dataType             Data type for the confusion matrix.
     * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
     * @param  valuesCollections    Graph collections in which to add the metric values.
     * @param  updatesCollections   Graph collections in which to add the metric updates.
     * @param  resetsCollections    Graph collections in which to add the metric resets.
-    * @param  name                 Name prefix for the created ops.
     * @return New confusion matrix metric.
     */
   def apply(
+      nameScope: String,
+      defaultWeights: Option[Tensor[FLOAT32]] = None,
       numClasses: Int = -1, dataType: DataType = FLOAT64,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
       updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
-      name: String = "ConfusionMatrix"
+      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
   ): ConfusionMatrix = {
     new ConfusionMatrix(
-      numClasses, dataType, variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
+      nameScope, defaultWeights, numClasses, dataType, variablesCollections, valuesCollections, updatesCollections,
+      resetsCollections)
   }
 }

@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.distribute.packers
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.OutputLike
 
 /** Represents a dummy packer that does not perform any tensor packing at all.
   *
@@ -30,7 +30,7 @@ object DummyPacker extends Packer[Unit] {
     * @throws InvalidArgumentException If the provided grouped values are inconsistent in any way.
     */
   @throws[InvalidArgumentException]
-  def pack(grouped: Seq[Seq[Output]]): (Seq[Seq[Output]], Option[Unit]) = {
+  def pack(grouped: Seq[Seq[OutputLike]]): (Seq[Seq[OutputLike]], Option[Unit]) = {
     (grouped, None)
   }
 
@@ -42,7 +42,7 @@ object DummyPacker extends Packer[Unit] {
     * @throws InvalidArgumentException If not pack information is provided, while it is actually necessary.
     */
   @throws[InvalidArgumentException]
-  def unpack(packed: Seq[Seq[Output]], packInformation: Option[Unit]): Seq[Seq[Output]] = {
+  def unpack(packed: Seq[Seq[OutputLike]], packInformation: Option[Unit]): Seq[Seq[OutputLike]] = {
     packed
   }
 }

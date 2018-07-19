@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 /** Creates a bidirectional dynamic RNN layer.
   *
@@ -54,14 +55,14 @@ class BidirectionalRNN[O, OS, S, SS](
     val timeMajor: Boolean = false,
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
-    val sequenceLengths: Tensor = null
+    val sequenceLengths: Tensor[DataType] = null
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
 ) extends Layer[O, (Tuple[O, S], Tuple[O, S])](name) {
   override val layerType: String = "BidirectionalRNN"
 
-  override protected def _forward(input: O)(implicit mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
+  override def forwardWithoutContext(input: O)(implicit mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
     val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
     val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
@@ -76,7 +77,7 @@ class BidirectionalRNN[O, OS, S, SS](
     new Layer[O, Tuple[O, (S, S)]](s"$name/ConcatenatedOutputs") {
       override val layerType: String = "BidirectionalRNNWithConcatenatedOutputs"
 
-      override protected def _forward(input: O)(implicit mode: Mode): Tuple[O, (S, S)] = {
+      override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, (S, S)] = {
         val raw = BidirectionalRNN.this(input)
         val output = evO.fromOutputs(
           raw._1.output, evO.outputs(raw._1.output).zip(evO.outputs(raw._2.output)).map(o => {
@@ -98,7 +99,7 @@ object BidirectionalRNN {
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Tensor = null
+      sequenceLengths: Tensor[DataType] = null
   )(implicit
       evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
       evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]

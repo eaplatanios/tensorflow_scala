@@ -29,12 +29,14 @@ object NN {
   private[layers] trait API {
     type Softmax = layers.Softmax
     type LogSoftmax = layers.LogSoftmax
+    type LRN = layers.LRN
     type Dropout = layers.Dropout
     type Conv2D = layers.Conv2D
     type MaxPool = layers.MaxPool
 
     val Softmax   : layers.Softmax.type    = layers.Softmax
     val LogSoftmax: layers.LogSoftmax.type = layers.LogSoftmax
+    val LRN       : layers.LRN.type        = layers.LRN
     val Dropout   : layers.Dropout.type    = layers.Dropout
     val Conv2D    : layers.Conv2D.type     = layers.Conv2D
     val MaxPool   : layers.MaxPool.type    = layers.MaxPool
@@ -47,7 +49,7 @@ case class Softmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Softmax"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.NN.softmax(input, name = name)
   }
 }
@@ -56,8 +58,22 @@ case class LogSoftmax(override val name: String)
     extends Layer[Output, Output](name) {
   override val layerType: String = "LogSoftmax"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.NN.logSoftmax(input, name = name)
+  }
+}
+
+case class LRN(
+    override val name: String,
+    depthRadius: Int = 5,
+    bias: Float = 1.0f,
+    alpha: Float = 1.0f,
+    beta: Float = 0.5f
+) extends Layer[Output, Output](name) {
+  override val layerType: String = "LRN"
+
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    ops.NN.lrn(input, depthRadius, bias, alpha, beta, name = name)
   }
 }
 
@@ -70,7 +86,7 @@ case class Dropout(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Dropout[$keepProbability]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput()
@@ -87,14 +103,15 @@ case class Conv2D(
     stride2: Long,
     padding: ConvPaddingMode,
     dataFormat: CNNDataFormat = CNNDataFormat.default,
+    dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
     useCuDNNOnGPU: Boolean = true,
     weightsInitializer: Initializer = RandomNormalInitializer()
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
-    val weights = tf.variable("Weights", input.dataType, filterShape, weightsInitializer)
-    ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    val weights = getParameter("Weights", input.dataType, filterShape, weightsInitializer)
+    ops.NN.conv2D(input, weights, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU)
   }
 }
 
@@ -108,7 +125,7 @@ case class MaxPool(
 ) extends Layer[Output, Output](name) {
   override val layerType: String = s"MaxPool[${windowSize.mkString(",")}]"
 
-  override protected def _forward(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.NN.maxPool(input, windowSize, stride1, stride2, padding, dataFormat, name)
   }
 }

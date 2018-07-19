@@ -55,7 +55,7 @@ class Queue private[Queue](val handle: Output, val dataTypes: Seq[DataType])
     * as argument to `enqueue`. */
   @throws[IllegalArgumentException]
   private[this] def processEnqueueValues(values: Seq[Output]): Seq[Output] = {
-    values.zip(dataTypes).map(p => Math.cast(p._1, p._2))
+    values.zip(dataTypes).map(p => Cast.cast(p._1, p._2))
   }
 
   /** Creates an op that enqueues `values` as a single element to this queue.

@@ -17,6 +17,8 @@ import com.google.protobuf.TextFormat
 import org.tensorflow.framework.{AttrValue, OpDef, OpList}
 import org.tensorflow.framework.OpDef.AttrDef
 
+import sbt.File
+
 import java.io.StringWriter
 import java.nio.file.{Files, Path, Paths}
 import java.util.Locale
@@ -51,12 +53,17 @@ case class OpGenerator(opDef: OpDef) {
     val codeBuilder = StringBuilder.newBuilder
     val deallocationBuilder = StringBuilder.newBuilder
 
+    // TODO: !!! [TENSORS] We currently hardcode the op device to the CPU, but we should change that in the future.
+    // TODO: !!! [TENSORS] Switch to allowing device as an argument and default to the input tensors device.
+
     codeBuilder.append(
       s"""  REQUIRE_HANDLE(context, TFE_Context, context_handle, $cNullValuePlaceholder);
          |  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
          |
          |  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
          |      TFE_NewOp(context, "${opDef.getName}", status.get()), TFE_DeleteOp);
+         |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);
+         |  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
          |  CHECK_STATUS(env, status.get(), $cNullValuePlaceholder);""".stripMargin)
 
     addInputs(codeBuilder)
@@ -634,14 +641,14 @@ object OpGenerator {
     *
     * Note that all pre-existing files in the relevant directories will be replaced.
     *
+    * @param  opsPBFile    Protobuf file containing the op definitions.
     * @param  path         Root path for the file generation.
-    * @param  ops          Grouped ops for which bindinds will be generated.
+    * @param  ops          Grouped ops for which bindings will be generated.
     * @param  scalaPackage Scala package to use for the generated Scala file.
     */
-  def generateFiles(path: Path, ops: Map[String, Seq[String]], scalaPackage: String): Unit = {
+  def generateFiles(opsPBFile: File, path: Path, ops: Map[String, Seq[String]], scalaPackage: String): Unit = {
     val opList = OpList.newBuilder()
-    TextFormat.merge(
-      Files.readAllLines(path.resolve(Paths.get("resources", "ops.pbtxt"))).toArray.mkString("\n"), opList)
+    TextFormat.merge(Files.readAllLines(opsPBFile.toPath).toArray.mkString("\n"), opList)
     val opDefsMap = opList.getOpList.asScala.map(o => o.getName -> o).toMap
     ops.foreach(o => generateGroupFiles(path, o._1, o._2.map(opDefsMap), scalaPackage))
   }

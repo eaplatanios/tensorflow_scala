@@ -19,11 +19,11 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, STRING}
+import org.platanios.tensorflow.api.types.STRING
 
 /** Dataset with elements read from TensorFlow record files.
   *
-  * @param  filenames       [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
+  * @param  filenames       Scalar or vector tensor containing the the name(s) of the file(s) to be read.
   * @param  compressionType Compression type for the file.
   * @param  bufferSize      Number of bytes to buffer while reading from the file.
   * @param  name            Name for this dataset.
@@ -31,13 +31,11 @@ import org.platanios.tensorflow.api.types.{DataType, STRING}
   * @author Emmanouil Antonios Platanios
   */
 class TFRecordDataset protected (
-    filenames: Tensor,
+    filenames: Tensor[STRING],
     compressionType: CompressionType = NoCompression,
     bufferSize: Long = 256 * 1024,
     override val name: String = "TFRecordDataset"
-) extends Dataset[Tensor, Output, DataType, Shape](name) {
-  if (filenames.dataType != STRING)
-    throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
+) extends Dataset[Tensor[STRING], Output, STRING, Shape](name) {
   if (filenames.rank != -1 && filenames.rank > 1)
     throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
 
@@ -49,22 +47,22 @@ class TFRecordDataset protected (
         .build().outputs(0)
   }
 
-  override def outputDataTypes: DataType = STRING
+  override def outputDataTypes: STRING = STRING
   override def outputShapes: Shape = Shape.scalar()
 }
 
 object TFRecordDataset {
   def apply(
-      filenames: Tensor,
+      filenames: Tensor[STRING],
       compressionType: CompressionType = NoCompression,
       bufferSize: Long = 256 * 1024,
       numParallelReads: Int = 1,
       name: String = "TFRecordDataset"
-  ): Dataset[Tensor, Output, DataType, Shape] = {
+  ): Dataset[Tensor[STRING], Output, STRING, Shape] = {
     if (numParallelReads == 1) {
       new TFRecordDataset(filenames, compressionType, bufferSize, name)
     } else {
-      TensorSlicesDataset(filenames, name = s"$name/Filenames")
+      TensorSlicesDataset[Tensor[STRING], Output, STRING, Shape](filenames, name = s"$name/Filenames")
           .parallelInterleave(
             f => DynamicTFRecordDataset(f, compressionType, bufferSize, numParallelReads = 1, name = name),
             cycleLength = Basic.constant(numParallelReads, name = s"$name/NumParallelReads"),
@@ -77,7 +75,7 @@ object TFRecordDataset {
 
 /** Dataset with elements read from TensorFlow record files.
   *
-  * @param  filenames       [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
+  * @param  filenames       Scalar or vector tensor containing the the name(s) of the file(s) to be read.
   * @param  compressionType Compression type for the file.
   * @param  bufferSize      Number of bytes to buffer while reading from the file.
   * @param  name            Name for this dataset.
@@ -89,9 +87,7 @@ class DynamicTFRecordDataset protected (
     compressionType: CompressionType = NoCompression,
     bufferSize: Long = 256 * 1024,
     override val name: String = "TFRecordDataset"
-) extends Dataset[Tensor, Output, DataType, Shape](name) {
-  if (filenames.dataType != STRING)
-    throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
+) extends Dataset[Tensor[STRING], Output, STRING, Shape](name) {
   if (filenames.rank != -1 && filenames.rank > 1)
     throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
 
@@ -103,7 +99,7 @@ class DynamicTFRecordDataset protected (
         .build().outputs(0)
   }
 
-  override def outputDataTypes: DataType = STRING
+  override def outputDataTypes: STRING = STRING
   override def outputShapes: Shape = Shape.scalar()
 }
 
@@ -114,7 +110,7 @@ object DynamicTFRecordDataset {
       bufferSize: Long = 256 * 1024,
       numParallelReads: Int = 1,
       name: String = "TFRecordDataset"
-  ): Dataset[Tensor, Output, DataType, Shape] = {
+  ): Dataset[Tensor[STRING], Output, STRING, Shape] = {
     if (numParallelReads == 1) {
       new DynamicTFRecordDataset(filenames, compressionType, bufferSize, name)
     } else {

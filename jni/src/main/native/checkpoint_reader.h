@@ -41,6 +41,22 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024
 
 /*
  * Class:     org_platanios_tensorflow_jni_CheckpointReader__
+ * Method:    variableShapes
+ * Signature: (J)Lorg/platanios/tensorflow/jni/VariableShapes;
+ */
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_variableShapes
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_CheckpointReader__
+ * Method:    variableDataTypes
+ * Signature: (J)Lorg/platanios/tensorflow/jni/VariableDataTypes;
+ */
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_variableDataTypes
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_CheckpointReader__
  * Method:    delete
  * Signature: (J)V
  */

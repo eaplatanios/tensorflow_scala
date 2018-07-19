@@ -35,7 +35,11 @@ private[api] trait Sets {
     * @throws InvalidDataTypeException If `input` has an unsupported data type.
     */
   @throws[InvalidDataTypeException]
-  def setSize(input: SparseOutput, validateIndices: Boolean = true, name: String = "SetSize"): Output = {
+  def setSize(
+      input: SparseOutput,
+      validateIndices: Boolean = true,
+      name: String = "SetSize"
+  ): Output = {
     if (!Sets.supportedDataTypes.contains(input.dataType))
       throw InvalidDataTypeException(s"Unsupported data type: ${input.dataType}.")
     Op.Builder("SetSize", name)
@@ -58,9 +62,12 @@ private[api] trait Sets {
     * @throws InvalidDataTypeException If any of the input tensors has an unsupported data type.
     */
   @throws[InvalidDataTypeException]
-  def setIntersection[A, B](a: A, b: B, validateIndices: Boolean = true, name: String = "SetIntersection")(implicit
-      ev: SetOps.Aux[A, B]
-  ): SparseOutput = {
+  def setIntersection[A, B](
+      a: A,
+      b: B,
+      validateIndices: Boolean = true,
+      name: String = "SetIntersection"
+  )(implicit ev: SetOps.Aux[A, B]): SparseOutput = {
     if (!Sets.supportedDataTypes.contains(ev.dataTypeA(a)))
       throw InvalidDataTypeException(s"Unsupported data type for 'a': ${ev.dataTypeA(a)}.")
     if (!Sets.supportedDataTypes.contains(ev.dataTypeB(b)))
@@ -73,6 +80,7 @@ private[api] trait Sets {
     * @group SetOps
     * @param  a               First input tensor.
     * @param  b               Second input tensor.
+    * @param  aMinusB         Boolean value specifying whether to subtract `b` from `a`, or vice-versa.
     * @param  validateIndices Boolean indicator specifying whether to validate the order and range of the indices of
     *                         `input`.
     * @param  name            Name for the created op.
@@ -80,14 +88,21 @@ private[api] trait Sets {
     * @throws InvalidDataTypeException If any of the input tensors has an unsupported data type.
     */
   @throws[InvalidDataTypeException]
-  def setDifference[A, B](a: A, b: B, validateIndices: Boolean = true, name: String = "SetDifference")(implicit
-      ev: SetOps.Aux[A, B]
-  ): SparseOutput = {
+  def setDifference[A, B](
+      a: A,
+      b: B,
+      aMinusB: Boolean = true,
+      validateIndices: Boolean = true,
+      name: String = "SetDifference"
+  )(implicit ev: SetOps.Aux[A, B]): SparseOutput = {
     if (!Sets.supportedDataTypes.contains(ev.dataTypeA(a)))
       throw InvalidDataTypeException(s"Unsupported data type for 'a': ${ev.dataTypeA(a)}.")
     if (!Sets.supportedDataTypes.contains(ev.dataTypeB(b)))
       throw InvalidDataTypeException(s"Unsupported data type for 'b': ${ev.dataTypeB(b)}.")
-    ev.applyOperation(a, b, "a-b", validateIndices, name)
+    if (aMinusB)
+      ev.applyOperation(a, b, "a-b", validateIndices, name)
+    else
+      ev.applyOperation(a, b, "b-a", validateIndices, name)
   }
 
   /** $OpDocSetsSetUnion
@@ -102,9 +117,12 @@ private[api] trait Sets {
     * @throws InvalidDataTypeException If any of the input tensors has an unsupported data type.
     */
   @throws[InvalidDataTypeException]
-  def setUnion[A, B](a: A, b: B, validateIndices: Boolean = true, name: String = "SetUnion")(implicit
-      ev: SetOps.Aux[A, B]
-  ): SparseOutput = {
+  def setUnion[A, B](
+      a: A,
+      b: B,
+      validateIndices: Boolean = true,
+      name: String = "SetUnion"
+  )(implicit ev: SetOps.Aux[A, B]): SparseOutput = {
     if (!Sets.supportedDataTypes.contains(ev.dataTypeA(a)))
       throw InvalidDataTypeException(s"Unsupported data type for 'a': ${ev.dataTypeA(a)}.")
     if (!Sets.supportedDataTypes.contains(ev.dataTypeB(b)))
@@ -117,9 +135,12 @@ private[api] object Sets extends Sets {
   private[Sets] val supportedDataTypes: Set[DataType] = Set(INT8, INT16, INT32, INT64, UINT8, UINT16, STRING)
 
   private[Sets] def setOperation[A, B](
-      a: A, b: B, operation: String, validateIndices: Boolean = true, name: String)(implicit
-      ev: SetOps.Aux[A, B]
-  ): SparseOutput = {
+      a: A,
+      b: B,
+      operation: String,
+      validateIndices: Boolean = true,
+      name: String
+  )(implicit ev: SetOps.Aux[A, B]): SparseOutput = {
     ev.applyOperation(a, b, operation, validateIndices, name)
   }
 
@@ -290,7 +311,12 @@ trait SetOps[A] {
   @inline def dataTypeA(a: A): DataType
   @inline def dataTypeB(b: ArgType): DataType
   @inline def applyOperation(
-      a: A, b: ArgType, operation: String, validateIndices: Boolean = true, name: String): SparseOutput
+      a: A,
+      b: ArgType,
+      operation: String,
+      validateIndices: Boolean = true,
+      name: String
+  ): SparseOutput
 }
 
 object SetOps {
@@ -301,7 +327,12 @@ object SetOps {
     @inline override def dataTypeA(a: Output): DataType = a.dataType
     @inline override def dataTypeB(b: Output): DataType = b.dataType
     @inline override def applyOperation(
-        a: Output, b: Output, operation: String, validateIndices: Boolean, name: String): SparseOutput = {
+        a: Output,
+        b: Output,
+        operation: String,
+        validateIndices: Boolean,
+        name: String
+    ): SparseOutput = {
       val result = Op.Builder("DenseToDenseSetOperation", name)
           .addInput(a)
           .addInput(b)
@@ -317,7 +348,12 @@ object SetOps {
     @inline override def dataTypeA(a: Output): DataType = a.dataType
     @inline override def dataTypeB(b: SparseOutput): DataType = b.dataType
     @inline override def applyOperation(
-        a: Output, b: SparseOutput, operation: String, validateIndices: Boolean, name: String): SparseOutput = {
+        a: Output,
+        b: SparseOutput,
+        operation: String,
+        validateIndices: Boolean,
+        name: String
+    ): SparseOutput = {
       val result = Op.Builder("DenseToSparseSetOperation", name)
           .addInput(a)
           .addInput(b.indices)
@@ -335,7 +371,12 @@ object SetOps {
     @inline override def dataTypeA(a: SparseOutput): DataType = a.dataType
     @inline override def dataTypeB(b: SparseOutput): DataType = b.dataType
     @inline override def applyOperation(
-        a: SparseOutput, b: SparseOutput, operation: String, validateIndices: Boolean, name: String): SparseOutput = {
+        a: SparseOutput,
+        b: SparseOutput,
+        operation: String,
+        validateIndices: Boolean,
+        name: String
+    ): SparseOutput = {
       val result = Op.Builder("SparseToSparseSetOperation", name)
           .addInput(a.indices)
           .addInput(a.values)

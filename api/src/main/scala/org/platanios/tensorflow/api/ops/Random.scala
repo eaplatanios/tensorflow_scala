@@ -24,6 +24,24 @@ import org.platanios.tensorflow.api.types._
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
 private[api] trait Random {
+  /** $OpDocRandomRandomShuffle
+    *
+    * @group RandomOps
+    * @param  value Tensor to be shuffled.
+    * @param  seed  Optional random seed, used to generate a random seed pair for the random number generator, when
+    *               combined with the graph-level seed.
+    * @param  name  Name for the created op.
+    * @return Created op output.
+    */
+  def randomShuffle(value: Output, seed: Option[Int] = None, name: String = "RandomShuffle"): Output = {
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    Op.Builder(opType = "RandomShuffle", name = name)
+        .addInput(value)
+        .setAttribute("seed", graphSeed.getOrElse(0))
+        .setAttribute("seed2", opSeed.getOrElse(0))
+        .build().outputs(0)
+  }
+
   /** $OpDocRandomRandomUniform
     *
     * @group RandomOps
@@ -42,14 +60,19 @@ private[api] trait Random {
     */
   @throws[IllegalArgumentException]
   def randomUniform(
-      dataType: DataType = FLOAT32, shape: Output = Shape.scalar(), minValue: Output = 0.0, maxValue: Output = 1.0,
-      seed: Option[Int] = None, name: String = "RandomUniform"): Output = {
+      dataType: DataType = FLOAT32,
+      shape: Output = Shape.scalar(),
+      minValue: Output = 0.0,
+      maxValue: Output = 1.0,
+      seed: Option[Int] = None,
+      name: String = "RandomUniform"
+  ): Output = {
     if (!Set[DataType](FLOAT16, FLOAT32, FLOAT64, INT32, INT64).contains(dataType))
       throw new IllegalArgumentException(
         s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, FLOAT64, INT32, or INT64.")
     Op.createWithNameScope(name, Set(shape.op, minValue.op, maxValue.op)) {
-      val castedMinValue = Math.cast(minValue, dataType)
-      val castedMaxValue = Math.cast(maxValue, dataType)
+      val castedMinValue = Cast.cast(minValue, dataType)
+      val castedMaxValue = Cast.cast(maxValue, dataType)
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
       if (dataType.isInteger) {
         Op.Builder(opType = "RandomUniformInt", name = name)
@@ -88,13 +111,18 @@ private[api] trait Random {
     */
   @throws[IllegalArgumentException]
   def randomNormal(
-      dataType: DataType = FLOAT32, shape: Output = Shape.scalar(), mean: Output = 0.0, standardDeviation: Output = 1.0,
-      seed: Option[Int] = None, name: String = "RandomNormal"): Output = {
+      dataType: DataType = FLOAT32,
+      shape: Output = Shape.scalar(),
+      mean: Output = 0.0,
+      standardDeviation: Output = 1.0,
+      seed: Option[Int] = None,
+      name: String = "RandomNormal"
+  ): Output = {
     if (dataType != FLOAT16 && dataType != FLOAT32 && dataType != FLOAT64)
       throw new IllegalArgumentException(s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, or FLOAT64.")
     Op.createWithNameScope(name, Set(shape.op, mean.op, standardDeviation.op)) {
-      val castedMean = Math.cast(mean, dataType)
-      val castedStandardDeviation = Math.cast(standardDeviation, dataType)
+      val castedMean = Cast.cast(mean, dataType)
+      val castedStandardDeviation = Cast.cast(standardDeviation, dataType)
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
       val random = Op.Builder(opType = "RandomStandardNormal", name = name)
           .addInput(shape)
@@ -123,13 +151,18 @@ private[api] trait Random {
     */
   @throws[IllegalArgumentException]
   def randomTruncatedNormal(
-      dataType: DataType = FLOAT32, shape: Output = Shape.scalar(), mean: Output = 0.0, standardDeviation: Output = 1.0,
-      seed: Option[Int] = None, name: String = "RandomTruncatedNormal"): Output = {
+      dataType: DataType = FLOAT32,
+      shape: Output = Shape.scalar(),
+      mean: Output = 0.0,
+      standardDeviation: Output = 1.0,
+      seed: Option[Int] = None,
+      name: String = "RandomTruncatedNormal"
+  ): Output = {
     if (dataType != FLOAT16 && dataType != FLOAT32 && dataType != FLOAT64)
       throw new IllegalArgumentException(s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, or FLOAT64.")
     Op.createWithNameScope(name, Set(shape.op, mean.op, standardDeviation.op)) {
-      val castedMean = Math.cast(mean, dataType)
-      val castedStandardDeviation = Math.cast(standardDeviation, dataType)
+      val castedMean = Cast.cast(mean, dataType)
+      val castedStandardDeviation = Cast.cast(standardDeviation, dataType)
       val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
       val random = Op.Builder(opType = "TruncatedNormal", name = name)
           .addInput(shape)
@@ -144,12 +177,24 @@ private[api] trait Random {
 
 private[api] object Random extends Random {
   private[ops] object Gradients {
+    GradientsRegistry.registerNonDifferentiable("RandomShuffle")
     GradientsRegistry.registerNonDifferentiable("RandomUniform")
     GradientsRegistry.registerNonDifferentiable("RandomUniformInt")
     GradientsRegistry.registerNonDifferentiable("RandomStandardNormal")
   }
 
-  /** @define OpDocRandomRandomUniform
+  /** @define OpDocRandomRandomShuffle
+    *   The `randomShuffle` op randomly shuffles a tensor along its first axis.
+    *
+    *   The tensor is shuffled along axis `0`, such that each `value(j)` is mapped to one and only one `output(i)`. For
+    *   example, a mapping that might occur for a 3x2 tensor is:
+    *   {{{
+    *     [[1, 2],       [[5, 6],
+    *      [3, 4],  ==>   [1, 2],
+    *      [5, 6]]        [3, 4]]
+    *   }}}
+    *
+    * @define OpDocRandomRandomUniform
     *   The `randomUniform` op outputs random values drawn from a uniform distribution.
     *
     *   The generated values follow a uniform distribution in the range `[minValue, maxValue)`. The lower bound

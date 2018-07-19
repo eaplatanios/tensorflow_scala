@@ -16,12 +16,14 @@
 package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.exception.{InvalidShapeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.core.Graph.Keys.{OpCollectionKey, OutputCollectionKey, VariableCollectionKey}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
-import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets}
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.
@@ -30,35 +32,43 @@ import org.platanios.tensorflow.api.types.DataType
   */
 trait Metric[T, R] {
   /** Name of this metric. */
-  val name: String
+  def name: String
+
+  /** Weights to multiply the provided values with when computing the value of this metric. */
+  def weights: Option[Tensor[FLOAT32]] = None
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
     * @param  values  Values.
-    * @param  weights Tensor containing weights for the values.
+    * @param  weights Optional tensor containing weights for the values.
     * @param  name    Name prefix for the created ops.
     * @return Created output containing the metric value.
     */
-  def compute(values: T, weights: Output = null, name: String = name): R
+  def compute(
+      values: T,
+      weights: Option[Output] = None,
+      name: String = s"$name/Compute"
+  ): R
 
   /** Creates ops for computing the value of this metric in a streaming fashion. This function returns an op for
     * obtaining the value of this metric, as well as a pair of ops to update its accumulated value and reset it.
     *
     * @param  values  Values.
-    * @param  weights Tensor containing weights for the predictions.
+    * @param  weights Optional tensor containing weights for the predictions.
     * @param  name    Name prefix for the created ops.
     * @return Tuple containing: (i) an output representing the current value of the metric, (ii) an op used to update
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
-  def streaming(values: T, weights: Output = null, name: String = name): Metric.StreamingInstance[R]
+  def streaming(
+      values: T,
+      weights: Option[Output] = None,
+      name: String = s"$name/Streaming"
+  ): Metric.StreamingInstance[R]
 
-  /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
-  protected def variable(
-      name: String, dataType: DataType = null, shape: Shape = null, initializer: Initializer = ZerosInitializer,
-      collections: Set[Graph.Key[Variable]] = Set(Metric.METRIC_VARIABLES)): Variable = {
-    Variable.getVariable(
-      name = name, dataType = dataType, shape = shape, initializer = initializer, trainable = false,
-      collections = collections + Graph.Keys.LOCAL_VARIABLES)
+  protected def getWeights(providedWeights: Option[Output]): Option[Output] = {
+    providedWeights
+        .map(w => this.weights.map(w * _).getOrElse(w))
+        .orElse(this.weights.map(_.toOutput))
   }
 
   override def toString: String = name
@@ -87,6 +97,20 @@ object Metric {
     override def name: String = "metric_resets"
   }
 
+  /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
+  def variable(
+      name: String,
+      dataType: DataType = null,
+      shape: Shape = null,
+      initializer: Initializer = ZerosInitializer,
+      collections: Set[Graph.Key[Variable]] = Set.empty
+  ): Variable = {
+    // TODO: [DISTRIBUTE] Add support for the distribute API.
+    Variable.getVariable(
+      name = name, dataType = dataType, shape = shape, initializer = initializer, trainable = false,
+      collections = collections ++ Set(Metric.METRIC_VARIABLES, Graph.Keys.LOCAL_VARIABLES))
+  }
+
   /** Divides two values, returning 0 if the denominator is <= 0. */
   def safeDiv(numerator: Output, denominator: Output, name: String = "SafeDiv"): Output = {
     Math.select(Math.greater(denominator, 0), Math.divide(numerator, denominator), 0, name)
@@ -109,7 +133,11 @@ object Metric {
     * @param  name    Name prefix for the created ops.
     * @return Broadcasted weights.
     */
-  private[metrics] def weightsBroadcast(values: Output, weights: Output, name: String = "BroadcastWeights"): Output = {
+  private[metrics] def weightsBroadcast(
+      values: Output,
+      weights: Output,
+      name: String = "BroadcastWeights"
+  ): Output = {
     Op.createWithNameScope(name, Set(values.op, weights.op)) {
       // Try static check for exact match.
       if (values.shape.isFullyDefined && weights.shape.isFullyDefined && values.shape.isCompatibleWith(weights.shape)) {
@@ -133,8 +161,11 @@ object Metric {
     * @param  name    Name prefix for the created ops.
     * @return Assertion op for the assertion that `weights` can be broadcast to the same shape as `values`.
     */
-  private[this] def weightsAssertBroadcastable(
-      values: Output, weights: Output, name: String = "AssertBroadcastable"): Op = {
+  private[metrics] def weightsAssertBroadcastable(
+      values: Output,
+      weights: Output,
+      name: String = "AssertBroadcastable"
+  ): Op = {
     Op.createWithNameScope(name, Set(values.op, weights.op)) {
       val valuesRank = Basic.rank(values, name = "Values/Rank")
       val valuesShape = Basic.shape(values, name = "Values/Shape")
@@ -181,8 +212,12 @@ object Metric {
   /** Returns a boolean tensor indicating whether `weightsShape` has valid non-scalar dimensions for broadcasting to
     * `valuesShape`. */
   private[this] def weightsHaveValidNonScalarShape(
-      valuesRank: Output, valuesShape: Output, weightsRank: Output, weightsShape: Output,
-      name: String = "WeightsHaveValidNonScalarShape"): Output = {
+      valuesRank: Output,
+      valuesShape: Output,
+      weightsRank: Output,
+      weightsShape: Output,
+      name: String = "WeightsHaveValidNonScalarShape"
+  ): Output = {
     Op.createWithNameScope(name, Set(valuesRank.op, valuesShape.op, weightsRank.op, weightsShape.op)) {
       val isSameRank = Math.equal(valuesRank, weightsRank, name = "IsSameRank")
       ControlFlow.cond(
@@ -195,7 +230,10 @@ object Metric {
   /** Returns a boolean tensor indicating whether `weightsShape` has valid dimensions for broadcasting to
     * `valuesShape`. */
   private[this] def weightsHaveValidDimensions(
-      valuesShape: Output, weightsShape: Output, name: String = "WeightsHaveValidDimensions"): Output = {
+      valuesShape: Output,
+      weightsShape: Output,
+      name: String = "WeightsHaveValidDimensions"
+  ): Output = {
     Op.createWithNameScope(name, Set(valuesShape.op, weightsShape.op)) {
       val reshapedValuesShape = Basic.expandDims(valuesShape, -1)
       val reshapedWeightsShape = Basic.expandDims(weightsShape, -1)
@@ -228,65 +266,110 @@ object Metric {
     * @return Tuple containing the processed `predictions`, `targets`, and `weights`.
     */
   def matchAxes(
-      predictions: Output, targets: Output = null, weights: Output = null, expectedRankDiff: Int = 0
-  ): (Output, Output, Output) = {
+      predictions: Output,
+      targets: Option[Output] = None,
+      weights: Option[Output] = None,
+      expectedRankDiff: Int = 0
+  ): (Output, Option[Output], Option[Output]) = {
     var matchedPredictions = predictions
     var matchedTargets = targets
-    if (targets != null) {
-      if (predictions.rank != -1 && targets.rank != -1) {
-        // Use static rank.
-        val rankDiff = predictions.rank - targets.rank
-        if (rankDiff == expectedRankDiff + 1)
-          matchedPredictions = Basic.squeeze(matchedPredictions, Seq(-1))
-        else if (rankDiff == expectedRankDiff - 1)
-          matchedTargets = Basic.squeeze(matchedTargets, Seq(-1))
-      } else {
-        // Use dynamic rank.
-        val rankDiff = Basic.rank(predictions) - Basic.rank(targets)
-        if (predictions.rank == -1 || predictions.shape(-1) == -1 || predictions.shape(-1) == 1) {
-          matchedPredictions = ControlFlow.cond(
-            Math.equal(rankDiff, expectedRankDiff + 1),
-            () => Basic.squeeze(matchedPredictions, Seq(-1)),
-            () => matchedPredictions)
+    targets match {
+      case None => ()
+      case Some(t) =>
+        if (predictions.rank != -1 && t.rank != -1) {
+          // Use static rank.
+          val rankDiff = predictions.rank - t.rank
+          if (rankDiff == expectedRankDiff + 1)
+            matchedPredictions = Basic.squeeze(matchedPredictions, Seq(-1))
+          else if (rankDiff == expectedRankDiff - 1)
+            matchedTargets = matchedTargets.map(Basic.squeeze(_, Seq(-1)))
+        } else {
+          // Use dynamic rank.
+          val rankDiff = Basic.rank(predictions) - Basic.rank(t)
+          if (predictions.rank == -1 || predictions.shape(-1) == -1 || predictions.shape(-1) == 1) {
+            matchedPredictions = ControlFlow.cond(
+              Math.equal(rankDiff, expectedRankDiff + 1),
+              () => Basic.squeeze(matchedPredictions, Seq(-1)),
+              () => matchedPredictions)
+          }
+          if (t.rank == -1 || t.shape(-1) == -1 || t.shape(-1) == 1) {
+            matchedTargets = matchedTargets.map(mt => {
+              ControlFlow.cond(
+                Math.equal(rankDiff, expectedRankDiff - 1),
+                () => Basic.squeeze(mt, Seq(-1)),
+                () => mt)
+            })
+          }
         }
-        if (targets.rank == -1 || targets.shape(-1) == -1 || targets.shape(-1) == 1) {
-          matchedTargets = ControlFlow.cond(
-            Math.equal(rankDiff, expectedRankDiff - 1),
-            () => Basic.squeeze(matchedTargets, Seq(-1)),
-            () => matchedTargets)
-        }
-      }
     }
-    if (weights == null || weights.rank == 0) {
-      (matchedPredictions, matchedTargets, weights)
-    } else {
-      var matchedWeights = weights
-      if (predictions.rank != -1 && weights.rank != -1) {
-        // Use static rank.
-        val rankDiff = predictions.rank - weights.rank
-        if (rankDiff == expectedRankDiff + 1)
-          matchedWeights = Basic.expandDims(matchedWeights, -1)
-        else if (rankDiff == expectedRankDiff - 1)
-          matchedWeights = Basic.squeeze(matchedWeights, Seq(-1))
+    weights match {
+      case None =>
+        (matchedPredictions, matchedTargets, weights)
+      case Some(w) if w.rank == 0 =>
+        (matchedPredictions, matchedTargets, weights)
+      case Some(w) =>
+        var matchedWeights = weights
+        if (predictions.rank != -1 && w.rank != -1) {
+          // Use static rank.
+          val rankDiff = predictions.rank - w.rank
+          if (rankDiff == expectedRankDiff + 1)
+            matchedWeights = matchedWeights.map(Basic.expandDims(_, -1))
+          else if (rankDiff == expectedRankDiff - 1)
+            matchedWeights = matchedWeights.map(Basic.squeeze(_, Seq(-1)))
+        } else {
+          // Use dynamic rank.
+          val rankDiff = Basic.rank(predictions) - Basic.rank(w)
+          // If weights are scalar, do nothing. Otherwise, try to add or remove an axis to match predictions.
+          matchedWeights = matchedWeights.map(mw => {
+            ControlFlow.cond(
+              Math.equal(mw, 0),
+              () => mw,
+              () => ControlFlow.cond(
+                Math.equal(rankDiff, -1),
+                if (w.rank == -1 || w.shape(-1) == -1 || w.shape(-1) == 1)
+                  () => Basic.expandDims(mw, -1)
+                else
+                  () => mw,
+                () => ControlFlow.cond(
+                  Math.equal(rankDiff, 1),
+                  () => Basic.squeeze(mw, Seq(-1)),
+                  () => mw)))
+          })
+        }
+        (matchedPredictions, matchedTargets, matchedWeights)
+    }
+  }
+
+  /** If necessary, this method, expands `targets` along the last aixs to match the shape of `predictions`.
+    *
+    * @param  predictions Tensor with shape `[D1, ..., DN, numLabels]`.
+    * @param  targets     Tensor with shape `[D1, ..., DN, numLabels]` or `[D1, ..., DN]`. The latter implies
+    *                     `numLabels = 1`, in which case the result is an expanded `targets` with shape
+    *                     `[D1, ..., DN, 1]`.
+    * @return Potentially reshaped `targets` with the same shape as the provided `predictions`.
+    * @throws ShapeMismatchException If the targets shape is neither equal to `[D1, ..., DN, numLabels]` or
+    *                                `[D1, ..., DN]`.
+    */
+  @throws[ShapeMismatchException]
+  def maybeExpandTargets(predictions: Output, targets: Output): Output = {
+    // TODO: [SPARSE] Support sparse `targets`.
+    Op.createWithNameScope("MaybeExpandTargets") {
+      if (predictions.rank > -1 && targets.rank > -1) {
+        // We first try to use static shape information.
+        if (predictions.rank == targets.rank)
+          targets
+        else if (predictions.rank == targets.rank + 1)
+          Basic.expandDims(targets, -1)
+        else
+          throw ShapeMismatchException(
+            s"Unexpected targets shape '${targets.shape}', for predictions shape '${predictions.shape}'.")
       } else {
-        // Use dynamic rank.
-        val rankDiff = Basic.rank(predictions) - Basic.rank(weights)
-        // If weights are scalar, do nothing. Otherwise, try to add or remove an axis to match predictions.
-        matchedWeights = ControlFlow.cond(
-          Math.equal(matchedWeights, 0),
-          () => matchedWeights,
-          () => ControlFlow.cond(
-            Math.equal(rankDiff, -1),
-            if (weights.rank == -1 || weights.shape(-1) == -1 || weights.shape(-1) == 1)
-              () => Basic.expandDims(matchedWeights, -1)
-            else
-              () => matchedWeights,
-            () => ControlFlow.cond(
-              Math.equal(rankDiff, 1),
-              () => Basic.squeeze(matchedWeights, Seq(-1)),
-              () => matchedWeights)))
+        // Otherwise, we use dynamic shape information.
+        ControlFlow.cond(
+          Math.equal(Basic.rank(predictions), Basic.rank(targets) + 1),
+          () => Basic.expandDims(targets, -1),
+          () => targets)
       }
-      (matchedPredictions, matchedTargets, matchedWeights)
     }
   }
 }

@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.ops.{Math, Op}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.INT64
 
 import org.junit.Test
 import org.scalatest.junit.JUnitSuite
@@ -37,11 +38,11 @@ class FilterDatasetSuite extends JUnitSuite {
       assert(nextOutput.shape === Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
-      assert(session.run(fetches = nextOutput) === (0L: Tensor))
-      assert(session.run(fetches = nextOutput) === (1L: Tensor))
-      assert(session.run(fetches = nextOutput) === (3L: Tensor))
-      assert(session.run(fetches = nextOutput) === (4L: Tensor))
-      assert(session.run(fetches = nextOutput) === (6L: Tensor))
+      assert(session.run(fetches = nextOutput) === (0L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (1L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (3L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (4L: Tensor[INT64]))
+      assert(session.run(fetches = nextOutput) === (6L: Tensor[INT64]))
     }
   }
 }

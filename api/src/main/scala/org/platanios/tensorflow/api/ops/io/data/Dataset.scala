@@ -17,12 +17,13 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.implicits.helpers.{DataTypeAuxToDataType, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers.{StructureFromDataType, StructureFromOutput, StructureFromTensor}
 import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT64}
+
 import java.util.concurrent.atomic.AtomicLong
 
 import scala.collection.mutable
@@ -44,7 +45,7 @@ import scala.language.postfixOps
 abstract class Dataset[T, O, D, S](
     val name: String = "Dataset"
 )(implicit
-    val evOToT: OutputToTensor.Aux[O, T],
+    val evStructure: StructureFromOutput.Aux[T, O, D, S],
     val evData: Data.Aux[T, O, D, S],
     val evFunctionInput: Function.ArgType[O]
 ) {
@@ -63,7 +64,9 @@ abstract class Dataset[T, O, D, S](
     * @return Created iterator.
     */
   def createInitializableIterator(
-      sharedName: String = "", name: String = "InitializableIterator"): InitializableIterator[T, O, D, S] = {
+      sharedName: String = "",
+      name: String = "InitializableIterator"
+  ): InitializableIterator[T, O, D, S] = {
     Iterator.fromDataset(this, sharedName, name)
   }
 
@@ -138,7 +141,7 @@ abstract class Dataset[T, O, D, S](
     * @return Transformed dataset.
     */
   def transform[TT, TO, TD, TS](transformFn: Dataset[T, O, D, S] => Dataset[TT, TO, TD, TS])(implicit
-      evTOToTT: OutputToTensor.Aux[TO, TT],
+      evStructure: StructureFromOutput.Aux[TT, TO, TD, TS],
       evT: Data.Aux[TT, TO, TD, TS],
       evFunctionInputT: Function.ArgType[TO]
   ): Dataset[TT, TO, TD, TS] = {
@@ -162,7 +165,7 @@ object Dataset {
     type OutputDataset[T, O, D, S] = data.OutputDataset[T, O, D, S]
     type TensorSlicesDataset[T, O, D, S] = data.TensorSlicesDataset[T, O, D, S]
     type OutputSlicesDataset[T, O, D, S] = data.OutputSlicesDataset[T, O, D, S]
-    type SparseTensorSlicesDataset = data.SparseTensorSlicesDataset
+    type SparseTensorSlicesDataset[D <: DataType] = data.SparseTensorSlicesDataset[D]
     type SparseOutputSlicesDataset = data.SparseOutputSlicesDataset
     type TextLinesDataset = data.TextLinesDataset
     type DynamicTextLinesDataset = data.DynamicTextLinesDataset
@@ -231,16 +234,17 @@ object Dataset {
 
     val GroupByWindowDataset: data.GroupByWindowDataset.type = data.GroupByWindowDataset
 
-    def fromGenerator[T, O, DA, D, S](
-        generator: () => Iterable[T], outputDataType: DA, outputShape: S = null
+    def fromGenerator[T, O, D, S](
+        generator: () => Iterable[T],
+        outputDataType: D,
+        outputShape: S = null
     )(implicit
-        evDAToD: DataTypeAuxToDataType.Aux[DA, D],
+        evStructureFromDataType: StructureFromDataType.Aux[T, O, D, S],
         evData: Data.Aux[T, O, D, S],
-        evOToT: OutputToTensor.Aux[O, T],
+        evStructureFromTensor: StructureFromTensor.Aux[T, O, D, S],
         evFunctionOutput: Function.ArgType[O]
     ): Dataset[T, O, D, S] = {
-      Dataset.fromGenerator[T, O, DA, D, S](
-        generator, outputDataType, outputShape)(evDAToD, evData, evOToT, evFunctionOutput)
+      Dataset.fromGenerator[T, O, D, S](generator, outputDataType, outputShape)
     }
   }
 
@@ -281,23 +285,24 @@ object Dataset {
     * @param  outputShape    Output shape structure for the tensor structure of the generated [[Iterable]] elements.
     * @return Constructed dataset.
     */
-  private[api] def fromGenerator[T, O, DA, D, S](
-      generator: () => Iterable[T], outputDataType: DA, outputShape: S = null
+  private[api] def fromGenerator[T, O, D, S](
+      generator: () => Iterable[T],
+      outputDataType: D,
+      outputShape: S = null
   )(implicit
-      evDAToD: DataTypeAuxToDataType.Aux[DA, D],
+      evStructureFromDataType: StructureFromDataType.Aux[T, O, D, S],
       evData: Data.Aux[T, O, D, S],
-      evOToT: OutputToTensor.Aux[O, T],
+      evStructureFromTensor: StructureFromTensor.Aux[T, O, D, S],
       evFunctionOutput: Function.ArgType[O]
   ): Dataset[T, O, D, S] = {
-    val dataType = evDAToD.castDataType(outputDataType)
     val inferredOutputShape: S = {
       if (outputShape != null)
         outputShape
       else
-        evData.unflattenShapes(dataType, Seq.fill(evData.size(dataType))(Shape.unknown()))
+        evData.unflattenShapes(outputDataType, Seq.fill(evData.size(outputDataType))(Shape.unknown()))
     }
 
-    val flattenedTypes = evData.flattenedDataTypes(dataType)
+    val flattenedTypes = evData.flattenedDataTypes(outputDataType)
     val flattenedShapes = evData.flattenedShapes(inferredOutputShape)
     val generatorState = GeneratorState(generator)(evData)
 
@@ -306,15 +311,15 @@ object Dataset {
       * We map this function across an infinite repetition of the `iteratorId`, and throw an `OutOfRange` to terminate
       * the iteration.
       *
-      * @param  iteratorId [[INT64]] scalar tensor whose value uniquely identifies the iterator in the internal
+      * @param  iteratorId Scalar tensor whose value uniquely identifies the iterator in the internal
       *                    generator state, from which to generate an element.
       * @return Created op outputs structured according to the output data type of this dataset.
       */
     def generatorMapFn(iteratorId: Output): O = {
       /** Scala callback function that will be called to invoke the iterator. */
       @throws[OutOfRangeException]
-      def generatorScalaCallback(iteratorId: Tensor): Seq[Tensor] = {
-        val iterator = generatorState.getIterator(iteratorId.scalar.asInstanceOf[Long])
+      def generatorScalaCallback(iteratorId: Tensor[INT64]): Seq[Tensor[DataType]] = {
+        val iterator = generatorState.getIterator(iteratorId.scalar)
         val value = {
           if (iterator.hasNext)
             iterator.next()
@@ -349,7 +354,7 @@ object Dataset {
           }
         })
       }
-      evData.unflattenOutputs(dataType, flattenedValues)
+      evData.unflattenOutputs(outputDataType, flattenedValues)
     }
 
     /** Associates each traversal of the provided `generator` with a unique iterator ID. */
@@ -364,7 +369,7 @@ object Dataset {
     // returned dataset) INT64 ID that will be used to identify the appropriate Scala state, which is encapsulated in
     // the internal generator state, and captured in the provided callback function. The ID disambiguates between
     // multiple concurrently existing iterators.
-    val idDataset = TensorDataset(Tensor(INT64, 0)).map(
+    val idDataset = TensorDataset(Tensor(INT64, 0L)).map(
       (_: Output) => Callback.callback((_: Unit) => Tensor(INT64, generatorState.nextId), (), INT64, stateful = true))
 
     // A dataset that contains all of the elements generated by a single iterator created from the provided generator,
@@ -390,8 +395,13 @@ object Dataset {
     */
   @throws[IllegalArgumentException]
   private[io] def datasetPaddedBatch(
-      datasetHandle: Output, batchSize: Output, paddedShapes: Seq[Output], paddingValues: Seq[Output],
-      outputShapes: Seq[Shape], name: String = "DatasetPaddedBatch"): Output = {
+      datasetHandle: Output,
+      batchSize: Output,
+      paddedShapes: Seq[Output],
+      paddingValues: Seq[Output],
+      outputShapes: Seq[Shape],
+      name: String = "DatasetPaddedBatch"
+  ): Output = {
     if (batchSize.dataType != INT64)
       throw new IllegalArgumentException(s"'batchSize' (dataType = ${batchSize.dataType}) must be an INT64 tensor.")
     if (batchSize.rank != -1 && batchSize.rank > 0)

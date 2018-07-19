@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.tensors.{executionContext, Context, Tensor}
+import org.platanios.tensorflow.api.tensors.{executionContext, Tensor}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.InvalidArgumentException
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
@@ -30,7 +30,6 @@ import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsB
 import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
-import scala.util.DynamicVariable
 
 /** Contains functions for constructing ops related to basic tensor manipulation.
   *
@@ -53,7 +52,12 @@ private[api] trait Basic {
     *                               the provided `shape`.
     */
   @throws[InvalidShapeException]
-  def constant(tensor: Tensor, dataType: DataType = null, shape: Shape = null, name: String = "Constant"): Output = {
+  def constant(
+      tensor: Tensor[DataType],
+      dataType: DataType = null,
+      shape: Shape = null,
+      name: String = "Constant"
+  ): Output = {
     val inferredDataType = if (dataType == null) tensor.dataType else dataType
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor =
@@ -90,7 +94,11 @@ private[api] trait Basic {
     * @return Created op output.
     */
   private[ops] def immutableConstant(
-      dataType: DataType, shape: Shape, memoryRegionName: String, name: String = "ImmutableConstant"): Output = {
+      dataType: DataType,
+      shape: Shape,
+      memoryRegionName: String,
+      name: String = "ImmutableConstant"
+  ): Output = {
     Op.Builder(opType = "ImmutableConst", name = name)
         .setAttribute("dtype", dataType)
         .setAttribute("shape", shape)
@@ -123,14 +131,18 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def zerosLike(
-      input: Output, dataType: DataType = null, optimize: Boolean = true, name: String = "ZerosLike"): Output = {
+      input: Output,
+      dataType: DataType = null,
+      optimize: Boolean = true,
+      name: String = "ZerosLike"
+  ): Output = {
     val outputDataType = if (dataType != null) dataType else input.dataType
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
       zeros(outputDataType, input.shape, name)
     } else if (outputDataType != input.dataType && outputDataType != VARIANT) {
       Op.Builder(opType = "ZerosLike", name = name)
-          .addInput(Math.cast(input, outputDataType))
+          .addInput(Cast.cast(input, outputDataType))
           .build().outputs(0)
     } else {
       Op.Builder(opType = "ZerosLike", name = name)
@@ -164,14 +176,18 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def onesLike(
-      input: Output, dataType: DataType = null, optimize: Boolean = true, name: String = "OnesLike"): Output = {
+      input: Output,
+      dataType: DataType = null,
+      optimize: Boolean = true,
+      name: String = "OnesLike"
+  ): Output = {
     val outputDataType = if (dataType != null) dataType else input.dataType
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
       ones(outputDataType, input.shape, name)
     } else if (outputDataType != input.dataType && outputDataType != VARIANT) {
       Op.Builder(opType = "OnesLike", name = name)
-          .addInput(Math.cast(input, outputDataType))
+          .addInput(Cast.cast(input, outputDataType))
           .build().outputs(0)
     } else {
       Op.Builder(opType = "OnesLike", name = name)
@@ -193,7 +209,7 @@ private[api] trait Basic {
   def fill(dataType: DataType = null, shape: Output = null)(value: Output, name: String = "Fill"): Output = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(if (shape == null) Basic.shape(value) else shape)
-        .addInput(if (dataType == null || dataType == value.dataType) value else Math.cast(value, dataType))
+        .addInput(if (dataType == null || dataType == value.dataType) value else Cast.cast(value, dataType))
         .build().outputs(0)
   }
 
@@ -243,13 +259,11 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparsePlaceholder(
-      dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput = {
+  def sparsePlaceholder(dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput = {
     SparseOutput(
-      indices = placeholder(dataType, Shape(-1), name + "/Indices"),
-      values = placeholder(INT64, Shape(-1, -1), name + "/Values"),
-      denseShape =
-          if (shape == null) placeholder(INT64, Shape(-1), name + "/Shape") else constant(shape.toTensor()))
+      indices = placeholder(dataType, Shape(-1, -1), name + "/Indices"),
+      values = placeholder(INT64, Shape(-1), name + "/Values"),
+      denseShape = if (shape == null) placeholder(INT64, Shape(-1), name + "/Shape") else constant(shape.toTensor))
   }
 
   //endregion Tensor Creation Ops
@@ -313,11 +327,11 @@ private[api] trait Basic {
               .build().outputs(0)
       case o: OutputIndexedSlices =>
         Op.createWith(nameScope = name) {
-          Math.prod(Math.cast(o.denseShape, dataType), Seq(0))
+          Math.prod(Cast.cast(o.denseShape, dataType), Seq(0))
         }
       case o: SparseOutput =>
         Op.createWith(nameScope = name) {
-          Math.prod(Math.cast(o.denseShape, dataType), Seq(0))
+          Math.prod(Cast.cast(o.denseShape, dataType), Seq(0))
         }
     }
   }
@@ -334,7 +348,11 @@ private[api] trait Basic {
     * @return Created op output, which is one-dimensional.
     */
   def shape[T <: OutputLike](
-      input: T, dataType: DataType = INT32, optimize: Boolean = true, name: String = "Shape"): Output = {
+      input: T,
+      dataType: DataType = INT32,
+      optimize: Boolean = true,
+      name: String = "Shape"
+  ): Output = {
     input match {
       case o: Output =>
         val inputShape = o.shape
@@ -347,11 +365,11 @@ private[api] trait Basic {
               .build().outputs(0)
       case o: OutputIndexedSlices =>
         Op.createWith(nameScope = name) {
-          Math.cast(o.denseShape, dataType, name = name)
+          Cast.cast(o.denseShape, dataType, name = name)
         }
       case o: SparseOutput =>
         Op.createWith(nameScope = name) {
-          Math.cast(o.denseShape, dataType, name = name)
+          Cast.cast(o.denseShape, dataType, name = name)
         }
     }
   }
@@ -362,22 +380,14 @@ private[api] trait Basic {
     *
     * @param  inputs   Tensors whose shapes to return.
     * @param  dataType Optional data type to use for the outputs of this op.
-    * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
-    *                  shape of each input at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op outputs, all of which are one-dimensional.
     */
-  def shapeN(
-      inputs: Seq[Output], dataType: DataType = INT32, optimize: Boolean = true,
-      name: String = "ShapeN"): Seq[Output] = {
-    val dynamicShapes = Op.Builder(opType = "ShapeN", name = name)
+  def shapeN(inputs: Seq[Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output] = {
+    Op.Builder(opType = "ShapeN", name = name)
         .addInputList(inputs)
         .setAttribute("out_type", dataType)
         .build().outputs.toSeq
-    if (optimize)
-      inputs.zip(dynamicShapes).map(p => if (p._1.shape.isFullyDefined) p._1.shape.toOutput() else p._2)
-    else
-      dynamicShapes
   }
 
   //endregion Tensor Shape Ops
@@ -651,12 +661,12 @@ private[api] trait Basic {
       * @param  paddings `INT32` or `INT64` tensor containing the paddings.
       * @return Result as a new tensor.
       */
-    private[api] def pad(input: Tensor, paddings: Tensor): Tensor
+    private[api] def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D]
   }
 
   private[ops] object PaddingMode {
     def fromString(name: String): PaddingMode = name match {
-      case "CONSTANT" => ConstantPadding(0)
+      case "CONSTANT" => ConstantPadding(Some(Tensor(0)))
       case "REFLECT" => ReflectivePadding
       case "SYMMETRIC" => SymmetricPadding
       case _ => throw new IllegalArgumentException(s"Invalid padding mode '$name' provided.")
@@ -684,20 +694,19 @@ private[api] trait Basic {
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  case class ConstantPadding(value: Tensor = 0) extends PaddingMode {
+  case class ConstantPadding(value: Option[Tensor[_ <: DataType]] = None) extends PaddingMode {
     override def pad(input: Output, paddings: Output, name: String): Output = {
       Op.Builder(opType = "PadV2", name = name)
           .addInput(input)
           .addInput(paddings)
-          .addInput(value.cast(input.dataType))
+          .addInput(value.map(Basic.constant(_, input.dataType)).getOrElse(Basic.zeros(input.dataType, Shape())))
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor): Tensor = {
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.padV2(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-          value.cast(input.dataType).nativeHandle))
+    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
+      Tensor.fromNativeHandle(NativeTensorOpsBasic.padV2(
+        executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+        value.map(_.cast(input.dataType)).getOrElse(Tensor.zeros(input.dataType, Shape())).nativeHandle))
     }
   }
 
@@ -732,11 +741,10 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor): Tensor = {
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.mirrorPad(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-          "REFLECT".getBytes()))
+    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
+      Tensor.fromNativeHandle(NativeTensorOpsBasic.mirrorPad(
+        executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+        "REFLECT".getBytes()))
     }
   }
 
@@ -771,11 +779,10 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad(input: Tensor, paddings: Tensor): Tensor = {
-      Tensor.fromNativeHandle(
-        NativeTensorOpsBasic.mirrorPad(
-          executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-          "SYMMETRIC".getBytes()))
+    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
+      Tensor.fromNativeHandle(NativeTensorOpsBasic.mirrorPad(
+        executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
+        "SYMMETRIC".getBytes()))
     }
   }
 
@@ -789,7 +796,12 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def pad(input: Output, paddings: Output, mode: PaddingMode = ConstantPadding(0), name: String = "Pad"): Output = {
+  def pad(
+      input: Output,
+      paddings: Output,
+      mode: PaddingMode = ConstantPadding(Some(Tensor(0))),
+      name: String = "Pad"
+  ): Output = {
     mode.pad(input, paddings, name)
   }
 
@@ -820,7 +832,11 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def transpose(
-      input: Output, permutation: Output = null, conjugate: Boolean = false, name: String = "Transpose"): Output = {
+      input: Output,
+      permutation: Output = null,
+      conjugate: Boolean = false,
+      name: String = "Transpose"
+  ): Output = {
     val opType = if (conjugate && input.dataType.isComplex) "ConjugateTranspose" else "Transpose"
     if (permutation == null) {
       Op.createWith(nameScope = name) {
@@ -918,8 +934,12 @@ private[api] trait Basic {
     * @return Created op output which has the same shape as `input`.
     */
   def reverseSequence(
-      input: Output, sequenceLengths: Output, sequenceAxis: Int, batchAxis: Int = 0,
-      name: String = "ReverseSequence"): Output = {
+      input: Output,
+      sequenceLengths: Output,
+      sequenceAxis: Int,
+      batchAxis: Int = 0,
+      name: String = "ReverseSequence"
+  ): Output = {
     Op.Builder(opType = "ReverseSequence", name = name)
         .addInput(input)
         .addInput(sequenceLengths)
@@ -1021,8 +1041,11 @@ private[api] trait Basic {
     * @return Tuple containing the paddings and crops required.
     */
   def requiredSpaceToBatchPaddingsAndCrops(
-      inputShape: Output, blockShape: Output, basePaddings: Output = null,
-      name: String = "RequiredSpaceToBatchPaddings"): (Output, Output) = {
+      inputShape: Output,
+      blockShape: Output,
+      basePaddings: Output = null,
+      name: String = "RequiredSpaceToBatchPaddings"
+  ): (Output, Output) = {
     Op.createWithNameScope(name, Set(inputShape.op, blockShape.op)) {
       blockShape.shape.assertFullyDefined()
       blockShape.shape.assertHasRank(1)
@@ -1043,17 +1066,17 @@ private[api] trait Basic {
         val cBlockShape = Output.constantValue(blockShape)
         val cBasePaddings = Output.constantValue(actualBasePaddings)
         if (cInputShape.isDefined && cBlockShape.isDefined && cBasePaddings.isDefined) {
-          val ccInputShape = cInputShape.get
-          val ccBlockShape = cBlockShape.get
-          val ccBasePaddings = cBasePaddings.get
+          val ccInputShape = cInputShape.get.asInstanceOf[Tensor[Int32OrInt64]]
+          val ccBlockShape = cBlockShape.get.asInstanceOf[Tensor[Int32OrInt64]]
+          val ccBasePaddings = cBasePaddings.get.asInstanceOf[Tensor[Int32OrInt64]]
           val padStart = ccBasePaddings(::, 0)
           val originalPadEnd = ccBasePaddings(::, 1)
           val fullInputShape = ccInputShape + padStart + originalPadEnd
           val extraPadEnd = (ccBlockShape - (fullInputShape % ccBlockShape)) % ccBlockShape
           val padEnd = originalPadEnd + extraPadEnd
-          val resultPaddings = stack((0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i)))))
-          val zero = Tensor(padStart.dataType, 0)
-          val resultCrops = stack((0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i)))))
+          val resultPaddings = stack((0 until numBlockDims).map(i => concatenate(Seq[Output](padStart(i), padEnd(i)))))
+          val zero = Tensor.zeros(padStart.dataType, Shape())
+          val resultCrops = stack((0 until numBlockDims).map(i => concatenate(Seq[Output](zero, extraPadEnd(i)))))
           (resultPaddings, resultCrops)
         } else {
           val padStart = actualBasePaddings(::, 0)
@@ -1063,7 +1086,7 @@ private[api] trait Basic {
           val padEnd = originalPadEnd + extraPadEnd
           val resultPaddings = stack(
             (0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i)))), name = "Paddings")
-          val zero = constant(Tensor(padStart.dataType, 0))
+          val zero = constant(0.toTensor.cast(padStart.dataType))
           val resultCrops = stack(
             (0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i)))), name = "Crops")
           (resultPaddings, resultCrops)
@@ -1191,9 +1214,9 @@ private[api] trait Basic {
       val rowVector = Math.range(Basic.zerosLike(maxLen), maxLen, Basic.onesLike(maxLen))
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
-      val matrix = Math.cast(expandDims(lengths, 1), maxLen.dataType)
+      val matrix = Cast.cast(expandDims(lengths, -1), maxLen.dataType)
       val result = Math.less(rowVector, matrix)
-      Math.cast(result, dataType)
+      Cast.cast(result, dataType)
     }
   }
 
@@ -1786,7 +1809,9 @@ object Basic extends Basic {
       * @param  mode     Padding mode to use.
       * @return Result as a new tensor.
       */
-    def pad(paddings: Output, mode: PaddingMode = ConstantPadding(0)): Output = Basic.pad(output, paddings, mode)
+    def pad(paddings: Output, mode: PaddingMode = ConstantPadding(Some(Tensor(0)))): Output = {
+      Basic.pad(output, paddings, mode)
+    }
 
     /** $OpDocBasicReshape
       *
@@ -2033,9 +2058,17 @@ object Basic extends Basic {
       */
     def scatterND(updates: Output, shape: Output): Output = Basic.scatterND(output, updates, shape)
 
-    // TODO: [DOC] !!!
-    def slice(indexers: Indexer*): Output = {
-      val stridedSlice = Indexer.toStridedSlice(indexers: _*)
+    /** Creates an op that slices this tensor according to the provided indexers.
+      *
+      * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
+      *
+      * @group BasicOps
+      * @param  firstIndexer  First indexer to use.
+      * @param  otherIndexers Rest of the indexers to use.
+      * @return Created op.
+      */
+    def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Output = {
+      val stridedSlice = Indexer.toStridedSlice(firstIndexer, otherIndexers: _*)
       Basic.stridedSlice(
         input = output,
         begin = Basic.constant(stridedSlice._1),
@@ -2222,7 +2255,10 @@ object Basic extends Basic {
             // possible that there will be a small number of performance regressions.
             if (shapes.length > 16) {
               // Extract the size of each input along the concatenation axis.
-              val sizes = squeeze(slice(stack(shapes, 1), stack(Seq(nonNegativeConcatenationAxis, 0)), Tensor(1, -1)))
+              val sizes = squeeze(slice(
+                stack(shapes, 1),
+                stack(Seq(nonNegativeConcatenationAxis, 0)),
+                Tensor(1, -1)))
               split(g, sizes, nonNegativeConcatenationAxis)
             } else {
               val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
@@ -2318,7 +2354,14 @@ object Basic extends Basic {
       //   axes = [0, 2, 4]
       val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), Shape(-1))
       val axes = Math.range(0, size(splitShape), 2)
-      val inputGradient = Math.sum(reshape(outputGradients.head, splitShape), axes)
+      // Sum reduces grad along the first dimension for indexed slices.
+      val (outputGradient, processedSplitShape) = outputGradients.head match {
+        case g: OutputIndexedSlices => (
+            Math.unsortedSegmentSum(g.values, Math.mod(g.indices, inputShape(0)), inputShape(0)),
+            concatenate(Seq(Tensor(1), splitShape(1 ::)), axis = 0))
+        case g => (g, splitShape)
+      }
+      val inputGradient = Math.sum(reshape(outputGradient, processedSplitShape), axes)
       // Fix shape inference.
       inputGradient.setShape(op.inputs(0).shape)
       Seq(inputGradient, null)
@@ -2418,7 +2461,7 @@ object Basic extends Basic {
       val input = op.inputs(0)
       val inputShape = Op.colocateWith(Set(input.op)) {
         val inputShape = shape(input, INT64)
-        Math.cast(inputShape, INT32)
+        Cast.cast(inputShape, INT32)
       }
       // Build appropriately shaped 'OutputIndexedSlices'.
       val indices = op.inputs(1)
@@ -2496,7 +2539,7 @@ object Basic extends Basic {
       val inputVector = op.inputs(0)
       val beginVector = op.inputs(1)
       val inputRank = rank(inputVector)
-      val padShape = concatenate(Seq(expandDims(inputRank, 0), constant(Tensor(inputRank.dataType, 1))))
+      val padShape = concatenate(Seq(expandDims(inputRank, 0), constant(1.toTensor.cast(inputRank.dataType))))
       val beforePad = reshape(beginVector, padShape)
       val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
       val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)

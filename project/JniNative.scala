@@ -1,3 +1,18 @@
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 import BuildTool._
 
 import sbt._
@@ -84,19 +99,22 @@ object JniNative extends AutoPlugin {
     },
     clean in nativeCompile := nativeClean.value,
     nativeCompile := {
+      val log = streams.value.log
       val tool = nativeBuildTool.value
       val toolInstance = nativeBuildToolInstance.value
       val targetDir = (target in nativeCompile).value / "bin"
-      IO.createDirectory(targetDir)
-      streams.value.log.info(s"Building library with native build tool ${tool.name}.")
-      val libraries = toolInstance.libraries(targetDir)
-      streams.value.log.success(s"Libraries built in:\n\t- ${libraries.map(_.getAbsolutePath).mkString("\n\t- ")}")
-      libraries
-    }
-    // compile in Compile := (compile in Compile).dependsOn(nativeCompile).value,
+      val cachedFunction = FileFunction.cached(streams.value.cacheDirectory)(_ => {
+        IO.createDirectory(targetDir)
+        log.info(s"Building library with native build tool ${tool.name}.")
+        val libraries = toolInstance.libraries(targetDir)
+        log.success(s"Libraries built in:\n\t- ${libraries.map(_.getAbsolutePath).mkString("\n\t- ")}")
+        libraries.toSet
+      })
+      cachedFunction((sourceDirectory in nativeCompile).value.listFiles().toSet).toSeq
+    },
+    compile in Compile := (compile in Compile).dependsOn(nativeCompile).value,
     // Make the SBT clean task also cleans the native sources.
-    // clean := clean.dependsOn(clean in nativeCompile).value
-  )
+    clean := clean.dependsOn(clean in nativeCompile).value)
 
   override lazy val projectSettings: Seq[Setting[_]] = settings
 }

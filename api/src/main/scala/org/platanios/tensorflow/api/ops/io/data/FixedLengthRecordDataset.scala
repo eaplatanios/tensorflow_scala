@@ -18,29 +18,27 @@ package org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, STRING}
+import org.platanios.tensorflow.api.types.STRING
 
 /** Dataset with elements read from binary files.
   *
-  * @param  filenames      [[STRING]] scalar or vector tensor containing the the name(s) of the file(s) to be read.
+  * @param  filenames      Scalar or vector tensor containing the the name(s) of the file(s) to be read.
   * @param  recordNumBytes Number of bytes in the record.
   * @param  headerNumBytes Number of bytes in the header (i.e., the number of bytes to skip at the beginning of a file).
   * @param  footerNumBytes Number of bytes in the footer (i.e., the number of bytes to skip at the end of a file).
-  * @param  bufferSize      Number of bytes to buffer while reading from the file.
+  * @param  bufferSize     Number of bytes to buffer while reading from the file.
   * @param  name Name for this dataset.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class FixedLengthRecordDataset(
-    filenames: Tensor,
+    filenames: Tensor[STRING],
     recordNumBytes: Long,
     headerNumBytes: Long,
     footerNumBytes: Long,
     bufferSize: Long = 256 * 1024,
     override val name: String = "FixedLengthRecordDataset"
-) extends Dataset[Tensor, Output, DataType, Shape](name) {
-  if (filenames.dataType != STRING)
-    throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
+) extends Dataset[Tensor[STRING], Output, STRING, Shape](name) {
   if (filenames.rank != -1 && filenames.rank > 1)
     throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
 
@@ -54,6 +52,6 @@ case class FixedLengthRecordDataset(
         .build().outputs(0)
   }
 
-  override def outputDataTypes: DataType = STRING
+  override def outputDataTypes: STRING = STRING
   override def outputShapes: Shape = Shape.scalar()
 }

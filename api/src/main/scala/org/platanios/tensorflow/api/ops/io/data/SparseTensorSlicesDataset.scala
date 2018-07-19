@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output, SparseOutput}
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
+import org.platanios.tensorflow.api.tensors.SparseTensor
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 /** Dataset that splits a sparse tensor into its rows.
@@ -27,11 +27,10 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class SparseTensorSlicesDataset(
-    tensor: SparseTensor,
+case class SparseTensorSlicesDataset[D <: DataType](
+    tensor: SparseTensor[D],
     override val name: String = "SparseTensorSliceDataset"
-) extends Dataset[
-    SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
+) extends Dataset[SparseTensor[D], SparseOutput, (INT64, D, INT64), (Shape, Shape, Shape)](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createHandle(): Output = {
@@ -42,7 +41,7 @@ case class SparseTensorSlicesDataset(
         .build().outputs(0)
   }
 
-  override def outputDataTypes: (DataType, DataType, DataType) = (INT64, tensor.dataType, INT64)
+  override def outputDataTypes: (INT64, D, INT64) = (INT64, tensor.dataType, INT64)
 
   override def outputShapes: (Shape, Shape, Shape) = {
     val indicesShape = tensor.indices.shape
@@ -62,8 +61,7 @@ case class SparseTensorSlicesDataset(
 case class SparseOutputSlicesDataset(
     tensor: SparseOutput,
     override val name: String = "SparseOutputSliceDataset"
-) extends Dataset[
-    SparseTensor, SparseOutput, (DataType, DataType, DataType), (Shape, Shape, Shape)](name) {
+) extends Dataset[SparseTensor[DataType], SparseOutput, (INT64, DataType, INT64), (Shape, Shape, Shape)](name) {
   /** Creates a `RESOURCE` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
   override def createHandle(): Output = {
@@ -74,7 +72,7 @@ case class SparseOutputSlicesDataset(
         .build().outputs(0)
   }
 
-  override def outputDataTypes: (DataType, DataType, DataType) = (INT64, tensor.dataType, INT64)
+  override def outputDataTypes: (INT64, DataType, INT64) = (INT64, tensor.dataType, INT64)
 
   override def outputShapes: (Shape, Shape, Shape) = {
     val indicesShape = tensor.indices.shape

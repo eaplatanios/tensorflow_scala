@@ -19,11 +19,11 @@ import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.learn.Configuration._
+
 import io.circe._
 import io.circe.parser._
-import java.nio.file.Path
 
-import org.platanios.tensorflow.api.learn.hooks.{HookTrigger, StepHookTrigger}
+import java.nio.file.Path
 
 /** Configuration for models in the learn API, to be used by estimators.
   *

@@ -23,7 +23,6 @@
 
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/c/eager/c_api.h"
-#include "tensorflow/c/eager/c_api_internal.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate(
     JNIEnv* env, jobject object, jint data_type, jlongArray shape, jlong num_bytes) {
@@ -176,11 +175,28 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocateContext(
-    JNIEnv* env, jobject object) {
+    JNIEnv* env, jobject object, jbyteArray config_proto) {
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
   TFE_ContextOptions* options = TFE_NewContextOptions();
+
+  // Set the configuration proto, if one has been provided.
+  jbyte* c_config_proto;
+  if (config_proto != nullptr) {
+    c_config_proto = env->GetByteArrayElements(config_proto, nullptr);
+    TFE_ContextOptionsSetConfig(
+      options, c_config_proto, static_cast<size_t>(env->GetArrayLength(config_proto)), status.get());
+    CHECK_STATUS(env, status.get(), 0);
+  }
+
+  TFE_ContextOptionsSetAsync(options, 0);
   TFE_Context* context = TFE_NewContext(options, status.get());
+
   TFE_DeleteContextOptions(options);
+  if (config_proto != nullptr) {
+    env->ReleaseByteArrayElements(config_proto, c_config_proto, JNI_ABORT);
+  }
+
   CHECK_STATUS(env, status.get(), 0);
   return reinterpret_cast<jlong>(context);
 }

@@ -27,13 +27,15 @@ import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, INT64}
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT64}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.Summary
 
 import java.nio.file.Path
+
+// TODO: [LEARN] Add support for dataset groups and mean over datasets.
 
 /** Hooks that can be used to evaluate the performance of an estimator for a separate dataset, while training. This hook
   * creates a new session whenever invoked that loads the latest saved checkpoint and evaluates performance using the
@@ -103,7 +105,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
@@ -144,9 +146,9 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
           sessionCreator.removeLocalInitOp(datasetInitializer)
           summaryProto.foreach(sp => value.zip(metrics.map(_.name)).foreach(m => {
             if (m._1.shape.rank == 0 && (m._1.dataType.isFloatingPoint || m._1.dataType.isInteger)) {
-              val castedValue = m._1.cast(FLOAT32).scalar.asInstanceOf[Float]
+              val castedValue = m._1.cast(FLOAT32).scalar
               val value = Summary.Value.newBuilder()
-              value.setTag(s"$datasetName/${m._2}")
+              value.setTag(s"$name/$datasetName/${m._2}")
               value.setSimpleValue(castedValue)
               sp.addValue(value)
             } else {

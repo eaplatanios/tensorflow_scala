@@ -48,7 +48,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O, OS, S, SS](
+class DropoutWrapper[O, OS, S, SS] protected (
     val cell: RNNCell[O, OS, S, SS],
     val inputKeepProbability: Output = 1.0f,
     val outputKeepProbability: Output = 1.0f,
@@ -175,7 +175,11 @@ object DropoutWrapper {
 
     implicit val hnilSupported: Supported[HNil] = new Supported[HNil] {
       override def dropout(
-          value: HNil, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
+          value: HNil,
+          keepProbability: Output,
+          saltPrefix: String,
+          seed: Option[Int],
+          index: Int = 0
       ): (HNil, Int) = {
         (HNil, index)
       }

@@ -129,7 +129,10 @@ private[api] trait ControlFlow {
     * @return Created op output.
     */
   private[api] def abort(
-      errorMessage: String = "", exitWithoutError: Boolean = false, name: String = "Abort"): Output = {
+      errorMessage: String = "",
+      exitWithoutError: Boolean = false,
+      name: String = "Abort"
+  ): Output = {
     Op.Builder(opType = "Abort", name = name)
         .setAttribute("error_message", errorMessage)
         .setAttribute("exit_without_error", exitWithoutError)
@@ -147,9 +150,12 @@ private[api] trait ControlFlow {
     * @throws InvalidDataTypeException If the data types of the tensors returned by `trueFn` and `falseFn` do not match.
     */
   @throws[InvalidDataTypeException]
-  def cond[T, R](predicate: Output, trueFn: () => T, falseFn: () => T, name: String = "Cond")(implicit
-      ev: CondOutput.Aux[T, R]
-  ): T = {
+  def cond[T, R](
+      predicate: Output,
+      trueFn: () => T,
+      falseFn: () => T,
+      name: String = "Cond"
+  )(implicit ev: CondOutput.Aux[T, R]): T = {
     Op.createWithNameScope(name) {
       Output.constantValue(predicate) match {
         case Some(predicateValue) if predicateValue.scalar == true => trueFn()
@@ -258,12 +264,16 @@ private[api] trait ControlFlow {
     *         return structure of `bodyFn`.
     */
   def whileLoop[T, TS](
-      predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: Option[TS] = None,
-      parallelIterations: Int = 10, enableBackPropagation: Boolean = true, swapMemory: Boolean = false,
-      maximumIterations: Output = null, name: String = "WhileLoop"
-  )(implicit
-      ev: WhileLoopVariable.Aux[T, TS]
-  ): T = {
+      predicateFn: T => Output,
+      bodyFn: T => T,
+      loopVariables: T,
+      shapeInvariants: Option[TS] = None,
+      parallelIterations: Int = 10,
+      enableBackPropagation: Boolean = true,
+      swapMemory: Boolean = false,
+      maximumIterations: Output = null, 
+      name: String = "WhileLoop"
+  )(implicit ev: WhileLoopVariable.Aux[T, TS]): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
     Op.createWithNameScope(name) {
       val loopContext = WhileLoopContext(
@@ -313,6 +323,41 @@ private[api] object ControlFlow extends ControlFlow {
   /** Returns `true` if and only if the provided op is a switch op. */
   private[ops] def isSwitch(op: Op): Boolean = op.opType == "Switch" || op.opType == "RefSwitch"
 
+  /** Returns `true` if and only if the provided op is a merge op. */
+  private[ops] def isMerge(op: Op): Boolean = op.opType == "Merge" || op.opType == "RefMerge"
+
+  /** Returns `true` if and only if the provided op is a switch op for a conditional. */
+  private[ops] def isCondSwitch(op: Op): Boolean = {
+    if (!isSwitch(op) || op.outputs.length == 0) {
+      false
+    } else {
+      // Switch nodes are not part of the "cond" control flow context that they represent, and so we consider the
+      // consumers of its outputs to determine if it is a "cond" switch or not. A switch is a "cond" switch if and only
+      // if all its consumers are in "cond" contexts.
+      op.outputs.forall(_.consumers.forall(i => {
+        var context = i.op.controlFlowContext
+        if (isLoopEnter(i.op))
+          context = context.flatMap(_.outerContext)
+        context.isDefined && context.get.isInstanceOf[CondContext]
+      }))
+    }
+  }
+
+  /** Returns `true` if and only if the provided op is a merge op for a conditional. */
+  private[ops] def isCondMerge(op: Op): Boolean = {
+    if (!isMerge(op) || op.inputs.length == 0) {
+      false
+    } else {
+      // Merge nodes are not part of the "cond" control flow context that they represent, and so we consider their
+      // inputs to determine if they are "cond" merges or not. A merge is a "cond" merge if and only if all its inputs
+      // are in "cond" contexts.
+      op.inputs.forall(i => {
+        val context = getOutputContext(i.op)
+        context.isDefined && context.get.isInstanceOf[CondContext]
+      })
+    }
+  }
+
   /** Returns `true` if and only if the provided op is a loop invariant. */
   private[ops] def isLoopEnter(op: Op): Boolean = op.opType == "Enter" || op.opType == "RefEnter"
 
@@ -326,7 +371,18 @@ private[api] object ControlFlow extends ControlFlow {
 
   /** Returns `true` if and only if the provided op is a switch op for a while loop. */
   private[ops] def isLoopSwitch(op: Op): Boolean = {
-    isSwitch(op) && op.controlFlowContext.isDefined && op.controlFlowContext.get.isInstanceOf[WhileLoopContext]
+    isSwitch(op) &&
+        op.controlFlowContext.isDefined &&
+        op.controlFlowContext.get.isInstanceOf[WhileLoopContext] &&
+        !isCondSwitch(op)
+  }
+
+  /** Returns `true` if and only if the provided op is a merge op for a while loop. */
+  private[ops] def isLoopMerge(op: Op): Boolean = {
+    isMerge(op) &&
+        op.controlFlowContext.isDefined &&
+        op.controlFlowContext.get.isInstanceOf[WhileLoopContext] &&
+        !isCondMerge(op)
   }
 
   /** Returns the enter op if we can infer `value` to be a loop invariant. Otherwise, returns [[None]]. */
@@ -520,7 +576,7 @@ private[api] object ControlFlow extends ControlFlow {
     * be `true` at the same time). */
   private[ControlFlow] def assertExclusive(predicates: Seq[Output]): Op = {
     val stacked = Basic.stack(predicates, name = "StackedPredicates")
-    val numTrue = Math.sum(Math.cast(stacked, INT32), name = "NumTruePredicates")
+    val numTrue = Math.sum(Cast.cast(stacked, INT32), name = "NumTruePredicates")
     val atMostOneTrue = Math.less(numTrue, Basic.constant(2, name = "TwoTruePredicates"))
     val errorData =
       Seq(

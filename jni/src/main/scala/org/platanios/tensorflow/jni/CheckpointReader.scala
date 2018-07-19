@@ -25,5 +25,10 @@ object CheckpointReader {
   @native def debugString(handle: Long): String
   @native def hasTensor(handle: Long, name: String): Boolean
   @native def getTensor(handle: Long, name: String): Long
+  @native def variableShapes(handle: Long): VariableShapes
+  @native def variableDataTypes(handle: Long): VariableDataTypes
   @native def delete(handle: Long): Unit
 }
+
+case class VariableShapes(variables: Array[String], shapes: Array[Array[Long]])
+case class VariableDataTypes(variables: Array[String], dataTypes: Array[Int])

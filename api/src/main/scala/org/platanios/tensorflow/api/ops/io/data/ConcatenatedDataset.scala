@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output}
 
 /** Dataset that wraps the application of the `concatenate` op.
@@ -38,14 +39,19 @@ case class ConcatenatedDataset[T, O, D, S](
     inputDataset1: Dataset[T, O, D, S],
     inputDataset2: Dataset[T, O, D, S],
     override val name: String = "ConcatenatedDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset1.evOToT, inputDataset1.evData, inputDataset1.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset1.evStructure, inputDataset1.evData, inputDataset1.evFunctionInput
+) {
   if (inputDataset1.flattenedOutputDataTypes != inputDataset2.flattenedOutputDataTypes)
     throw new IllegalArgumentException("The data types of the datasets being concatenated are not the identical.")
   private[this] lazy val mostSpecificFlattenedShapes = {
     inputDataset1.flattenedOutputShapes.zip(inputDataset2.flattenedOutputShapes).map(p => {
-      if (!p._1.isCompatibleWith(p._2))
-        throw new IllegalArgumentException("The shapes of the datasets being concatenated are not compatible.")
-      p._1.mergeWith(p._2)
+      Shape.fromSeq(p._1.asArray.zip(p._2.asArray).map {
+        case (d1, d2) if d1 == d2 => d1
+        case (d1, d2) if d1 == -1 => d2
+        case (d1, d2) if d2 == -1 => d1
+        case _ => -1
+      })
     })
   }
 

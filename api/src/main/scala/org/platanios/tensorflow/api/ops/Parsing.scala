@@ -163,12 +163,13 @@ private[ops] object Parsing extends Parsing {
     *
     * @param  dataType     Data type of the input feature.
     * @param  shape        Shape of the input feature.
-    * @param  defaultValue Value to be used if an example is missing this feature. It must be compatible with `dataType`
-    *                      and of the specified `shape`.
+    * @param  defaultValue Value to be used if an example is missing this feature. It must match the specified `shape`.
     */
-  case class FixedLengthFeature(dataType: DataType, shape: Shape, defaultValue: Tensor = null) extends Feature {
-    require(defaultValue == null || defaultValue.dataType == dataType,
-            s"The default value data type (${defaultValue.dataType}) does not match the expected $dataType.")
+  case class FixedLengthFeature[D <: DataType](
+      dataType: D,
+      shape: Shape,
+      defaultValue: Tensor[D] = null
+  ) extends Feature {
     require(defaultValue == null || defaultValue.shape == shape,
             s"The default value shape (${defaultValue.shape}) does not match the expected $shape.")
   }
@@ -180,7 +181,7 @@ private[ops] object Parsing extends Parsing {
     * `[batchSize, None] + shape` and the specified `dataType`. The entries in the batch from different `Example`s will
     * be padded with `defaultValue` to the maximum length present in the batch.
     *
-    * To treat sparse input as dense, set `allow_missing` to `true`. Otherwise, the parsing functions will fail on any
+    * To treat sparse input as dense, set `allowMissing` to `true`. Otherwise, the parsing functions will fail on any
     * examples missing this feature.
     *
     * @param  dataType     Data type of the input feature.
@@ -191,8 +192,12 @@ private[ops] object Parsing extends Parsing {
     *                      for parsing a single `Example` or `SequenceExample`. Defaults to `""` for data type
     *                      [[STRING]] and to `0` otherwise.
     */
-  case class FixedLengthSequenceFeature(
-      dataType: DataType, shape: Shape, allowMissing: Boolean = false, defaultValue: Tensor = null) extends Feature
+  case class FixedLengthSequenceFeature[D <: DataType](
+      dataType: DataType,
+      shape: Shape,
+      allowMissing: Boolean = false,
+      defaultValue: Tensor[D]= null
+  ) extends Feature
 
   /** Configuration for parsing a sparse input feature.
     *
@@ -247,14 +252,22 @@ private[ops] object Parsing extends Parsing {
     *                       position. If so, we skip sorting.
     */
   case class SparseFeature(
-      indexKey: Seq[String], valueKey: String, dataType: DataType, size: Seq[Int], alreadySorted: Boolean = false)
-      extends Feature
+      indexKey: Seq[String],
+      valueKey: String,
+      dataType: DataType,
+      size: Seq[Int],
+      alreadySorted: Boolean = false
+  ) extends Feature
 
   /** Represents the raw parameters parsed from a set features that we pass to the parsing ops. Note that we use a
     * [[ListMap]] for `denseDefaults` because ignoring the ordering would cause graph equality to fail in some tests. */
   private[this] case class RawParameters(
-      sparseKeys: Seq[String], sparseTypes: Seq[DataType], denseKeys: Seq[String], denseTypes: Seq[DataType],
-      denseShapes: Seq[Shape], denseDefaults: ListMap[String, Tensor])
+      sparseKeys: Seq[String],
+      sparseTypes: Seq[DataType],
+      denseKeys: Seq[String],
+      denseTypes: Seq[DataType],
+      denseShapes: Seq[Shape],
+      denseDefaults: ListMap[String, Tensor[DataType]])
 
   /** Converts the provides features into a [[RawParameters]] object to be fed into the parsing ops. */
   @throws[IllegalArgumentException]
@@ -264,7 +277,7 @@ private[ops] object Parsing extends Parsing {
     val denseKeys = mutable.ListBuffer.empty[String]
     val denseTypes = mutable.ListBuffer.empty[DataType]
     val denseShapes = mutable.ListBuffer.empty[Shape]
-    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor)]
+    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor[DataType])]
     // We iterate over sorted keys to keep things deterministic.
     features.toSeq.sortBy(_._1).foreach({
       case (key, VariableLengthFeature(dataType)) =>

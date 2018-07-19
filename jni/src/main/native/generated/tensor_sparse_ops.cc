@@ -35,6 +35,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Spar
   std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
       TFE_NewOp(context, "SparseToDense", status.get()), TFE_DeleteOp);
   CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
 
   REQUIRE_HANDLE(sparse_indices_handle, TFE_TensorHandle, sparse_indices, 0);
   TFE_OpAddInput(op.get(), sparse_indices_handle, status.get());

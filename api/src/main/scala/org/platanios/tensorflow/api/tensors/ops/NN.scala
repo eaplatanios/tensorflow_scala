@@ -18,14 +18,12 @@ package org.platanios.tensorflow.api.tensors.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, NCWFormat, NWCFormat, ConvPaddingMode}
-import org.platanios.tensorflow.api.tensors.{executionContext, Context, Tensor, TensorOps}
-import org.platanios.tensorflow.api.types.{DataType, FLOAT16, FLOAT32, FLOAT64, INT32, INT64}
+import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, ConvPaddingMode, NCWFormat, NWCFormat}
+import org.platanios.tensorflow.api.tensors.{Tensor, TensorLike, TensorOps, executionContext}
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
 
 import java.nio.charset.StandardCharsets
-
-import scala.util.DynamicVariable
 
 /** Contains functions for executing ops related to neural networks.
   *
@@ -45,8 +43,12 @@ private[api] trait NN {
     *                       dimension.
     * @return Result as a new tensor.
     */
-  def addBias(value: Tensor, bias: Tensor, cNNDataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.biasAdd(
+  def addBias[D <: MathDataType](
+      value: Tensor[D],
+      bias: Tensor[D],
+      cNNDataFormat: CNNDataFormat = CNNDataFormat.default
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.biasAdd(
       executionContext.value.nativeHandle, value.nativeHandle, bias.nativeHandle,
       cNNDataFormat.toString.getBytes(StandardCharsets.ISO_8859_1)))
   }
@@ -59,7 +61,7 @@ private[api] trait NN {
     * @param  bias    Bias tensor.
     * @return Result as a new tensor.
     */
-  def linear(x: Tensor, weights: Tensor, bias: Tensor = null): Tensor = {
+  def linear[D <: MathDataType](x: Tensor[D], weights: Tensor[D], bias: Tensor[D] = null): Tensor[D] = {
     val product = {
       if (x.rank > 2)
         Math.tensorDot(x, weights, Seq(x.rank - 1), Seq(0))
@@ -81,13 +83,14 @@ private[api] trait NN {
     *                 `norm < sqrt(epsilon)`.
     * @return Result as a new tensor.
     */
-  def l2Normalize(
-      x: Tensor, axes: Tensor, epsilon: Float = 1e-12f): Tensor = {
-    val dataType = DataType.mostPrecise(x.dataType, FLOAT32)
-    val preciseX = Math.cast(x, dataType)
-    val squareSum = Math.sum(Math.square(preciseX), axes = axes, keepDims = true)
-    val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Tensor(dataType, epsilon)))
-    Math.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
+  def l2Normalize[D <: Float32OrFloat64](
+      x: Tensor[D],
+      axes: Tensor[INT32],
+      epsilon: Float = 1e-12f
+  ): Tensor[D] = {
+    val squareSum = Math.sum(Math.square(x), axes = axes, keepDims = true)
+    val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, epsilon.toTensor.cast(x.dataType)))
+    Math.multiply(x, xInverseNorm)
   }
 
   //endregion Core Ops
@@ -97,74 +100,92 @@ private[api] trait NN {
   /** $OpDocNNRelu
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x     Input tensor.
     * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
     *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
     * @return Result as a new tensor.
     */
-  def relu(input: Tensor, alpha: Float = 0.0f): Tensor = {
-    def reluOp[T: TensorOps](i: T): T = {
-      implicitly[TensorOps[T]]
-          .applyUnary(i, t =>
-            Tensor.fromNativeHandle(NativeTensorOpsNN.relu(executionContext.value.nativeHandle, t.nativeHandle)))
+  def relu[D <: RealDataType](x: Tensor[D], alpha: Float = 0.0f): Tensor[D] = {
+    def reluOp[TL[DD <: DataType] <: TensorLike[DD]](i: TL[D])(implicit ev: TensorOps.Aux[TL, D]): TL[D] = {
+      ev.applyUnary(i, t => {
+        Tensor.fromNativeHandle[D](NativeTensorOpsNN.relu(executionContext.value.nativeHandle, t.nativeHandle))
+      })
     }
 
     if (alpha == 0.0) {
-      reluOp(input)
+      reluOp(x)
     } else {
-      val positive = reluOp(input)
-      val negative = reluOp(-input)
-      positive - (Tensor(negative.dataType, alpha) * negative)
+      val positive = reluOp(x)
+      val negative = reluOp(-x)
+      positive - (alpha.toTensor.cast(negative.dataType) * negative)
     }
   }
 
   /** $OpDocNNRelu6
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def relu6(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.relu6(executionContext.value.nativeHandle, input.nativeHandle))
+  def relu6[D <: RealDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.relu6(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNCrelu
     *
     * @group NNOps
-    * @param  input Input tensor.
-    * @param  axis  Along along which the output values are concatenated along.
+    * @param  x    Input tensor.
+    * @param  axis Along along which the output values are concatenated along.
     * @return Result as a new tensor.
     */
-  def crelu(input: Tensor, axis: Tensor = -1): Tensor = relu(Basic.concatenate(Seq(input, -input), axis = axis))
+  def crelu[D <: RealDataType](x: Tensor[D], axis: Tensor[INT32] = -1): Tensor[D] = {
+    relu(Basic.concatenate(Seq(x, -x), axis = axis))
+  }
 
   /** $OpDocNNElu
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def elu(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.elu(executionContext.value.nativeHandle, input.nativeHandle))
+  def elu[D <: DecimalDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.elu(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNSelu
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def selu(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.selu(executionContext.value.nativeHandle, input.nativeHandle))
+  def selu[D <: DecimalDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.selu(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNSoftplus
     *
     * @group NNOps
-    * @param  input Input tensor.
+    * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def softplus(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.softplus(executionContext.value.nativeHandle, input.nativeHandle))
+  def softplus[D <: RealDataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D])(implicit
+      ev: TensorOps.Aux[TL, D]
+  ): TL[D] = {
+    ev.applyUnary(x, t => {
+      Tensor.fromNativeHandle[D](NativeTensorOpsNN.softplus(executionContext.value.nativeHandle, t.nativeHandle))
+    })
   }
 
   /** $OpDocNNSoftsign
@@ -173,8 +194,8 @@ private[api] trait NN {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def softsign(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.softsign(executionContext.value.nativeHandle, input.nativeHandle))
+  def softsign[D <: RealDataType](input: Tensor[D]): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.softsign(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   //endregion Activation Ops
@@ -182,17 +203,21 @@ private[api] trait NN {
   /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
     * two-dimensional tensors and then creates the corresponding native op. The output is transposed and reshaped
     * back. */
-  private[this] def softmaxHelper(logits: Tensor, opFunction: Long => Long, axis: Int = -1): Tensor = {
+  private[this] def softmaxHelper[D <: DecimalDataType](
+      logits: Tensor[D],
+      opFunction: Long => Long,
+      axis: Int = -1
+  ): Tensor[D] = {
     // We need the original shape of the logits for shape inference.
     val shape = logits.shape
     val isLastAxis = axis == -1 || axis == shape.rank - 1
     if (shape.rank == 2 && isLastAxis) {
-      Tensor.fromNativeHandle(opFunction(logits.nativeHandle))
+      Tensor.fromNativeHandle[D](opFunction(logits.nativeHandle))
     } else if (isLastAxis) {
       // If axis is the last axis, we simply reshape the logits to a matrix and apply the internal softmax.
       val inputShape = Basic.shape(logits)
       val flattenedLogits = NN.flattenOuterAxes(logits)
-      val output = Tensor.fromNativeHandle(opFunction(flattenedLogits.nativeHandle))
+      val output = Tensor.fromNativeHandle[D](opFunction(flattenedLogits.nativeHandle))
       Basic.reshape(output, inputShape)
     } else {
       // If axis is not the last dimension, we have to do a reshape and transpose so that we can still perform softmax
@@ -204,7 +229,7 @@ private[api] trait NN {
       // We reshape the logits into a matrix.
       val flattenedLogits = NN.flattenOuterAxes(swappedLogits)
       // We perform the actual softmax on the last axis.
-      var output = Tensor.fromNativeHandle(opFunction(flattenedLogits.nativeHandle))
+      var output = Tensor.fromNativeHandle[D](opFunction(flattenedLogits.nativeHandle))
       // We transform back the output tensor.
       output = Basic.reshape(output, shapeAfterSwap)
       output = NN.swapAxes(output, axis, Math.subtract(inputRank, 1))
@@ -215,22 +240,22 @@ private[api] trait NN {
   /** $OpDocNNSoftmax
     *
     * @group NNOps
-    * @param  logits Tensor containing the logits with data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]].
+    * @param  logits Tensor containing the logits.
     * @param  axis   Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
     * @return Result as a new tensor.
     */
-  def softmax(logits: Tensor, axis: Int = -1): Tensor = {
+  def softmax[D <: DecimalDataType](logits: Tensor[D], axis: Int = -1): Tensor[D] = {
     softmaxHelper(logits, NativeTensorOpsNN.softmax(executionContext.value.nativeHandle, _), axis)
   }
 
   /** $OpDocNNLogSoftmax
     *
     * @group NNOps
-    * @param  logits Tensor containing the logits with data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]].
+    * @param  logits Tensor containing the logits.
     * @param  axis   Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
     * @return Result as a new tensor.
     */
-  def logSoftmax(logits: Tensor, axis: Int = -1): Tensor = {
+  def logSoftmax[D <: DecimalDataType](logits: Tensor[D], axis: Int = -1): Tensor[D] = {
     softmaxHelper(logits, NativeTensorOpsNN.logSoftmax(executionContext.value.nativeHandle, _), axis)
   }
 
@@ -239,11 +264,11 @@ private[api] trait NN {
   /** $OpDocNNL2Loss
     *
     * @group NNOps
-    * @param  input [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]] input tensor.
+    * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def l2Loss(input: Tensor): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.l2Loss(executionContext.value.nativeHandle, input.nativeHandle))
+  def l2Loss[D <: DecimalDataType](input: Tensor[D]): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.l2Loss(executionContext.value.nativeHandle, input.nativeHandle))
   }
 
   private[this] def nativeCrossEntropyProxy(
@@ -257,29 +282,29 @@ private[api] trait NN {
   /** $OpDocNNSoftmaxCrossEntropy
     *
     * @group NNOps
-    * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
-    *                [[FLOAT64]], containing unscaled log probabilities.
-    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
-    *                [[FLOAT64]], where each row must be a valid probability distribution.
+    * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]`, containing unscaled log probabilities.
+    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1, numClasses]`, where each row must be a valid probability
+    *                distribution.
     * @param  axis   The class axis, along which the softmax is computed. Defaults to `-1`, which is the last axis.
     * @return Result as a new tensor, with rank one less than that of `logits` and the same data type as `logits`,
     *         containing the softmax cross entropy loss.
     */
-  def softmaxCrossEntropy(logits: Tensor, labels: Tensor, axis: Int = -1): Tensor = {
-    // Labels and logits must be of the same data type.
-    val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-    val preciseLabels = Math.cast(labels, preciseLogits.dataType)
-    val inputRank = Basic.rank(preciseLogits)
+  def softmaxCrossEntropy[D <: DecimalDataType](
+      logits: Tensor[D],
+      labels: Tensor[D],
+      axis: Int = -1
+  ): Tensor[D] = {
+    val inputRank = Basic.rank(logits)
     // We move axis to the end, if it's not already the last axis.
-    val transposedLogits = NN.moveAxisToEnd(preciseLogits, axis, inputRank)
-    val transposedLabels = NN.moveAxisToEnd(preciseLabels, axis, inputRank)
-    val inputShape = Basic.shape(preciseLogits)
+    val transposedLogits = NN.moveAxisToEnd(logits, axis, inputRank)
+    val transposedLabels = NN.moveAxisToEnd(labels, axis, inputRank)
+    val inputShape = Basic.shape(logits)
     // Flatten transposedLogits and transposedLabels into matrices.
     val flattenedLogits = NN.flattenOuterAxes(transposedLogits)
     val flattenedLabels = NN.flattenOuterAxes(transposedLabels)
     // Create the native op.
     // The second output tensor contains the gradients, which is used for the gradient computation.
-    val output = Tensor.fromNativeHandle(nativeCrossEntropyProxy(
+    val output = Tensor.fromNativeHandle[D](nativeCrossEntropyProxy(
       flattenedLogits.nativeHandle, flattenedLabels.nativeHandle,
       NativeTensorOpsNN.softmaxCrossEntropyWithLogits).apply(0))
     // The output shape should be the input shape without the axis over which the cross entropy was computed.
@@ -287,108 +312,89 @@ private[api] trait NN {
       inputShape,
       Tensor.fill(inputShape.dataType, Shape(1))(0),
       Basic.expandDims(Math.subtract(inputRank, 1), -1))
-    val reshapedTensor = Basic.reshape(output, outputShape)
-    // We cast back to the original logits data type, if necessary.
-    if (logits.dataType == FLOAT16)
-      Math.cast(reshapedTensor, FLOAT16)
-    else
-      reshapedTensor
+    Basic.reshape(output, outputShape)
   }
 
   /** $OpDocNNSparseSoftmaxCrossEntropy
     *
     * @group NNOps
     * @param  logits Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` (where `r` is the rank of `labels` and of the
-    *                result) and data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]], containing unscaled log
-    *                probabilities.
-    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1]` (where `r` is the rank of `labels` and of the result) and
-    *                data type [[INT32]] or [[INT64]]. Each entry in `labels` must be an index in `[0, numClasses)`.
-    *                Other values will raise an exception when this op is run on a CPU, and return `NaN` values for the
-    *                corresponding loss and gradient rows when this op is run on a GPU.
+    *                result), containing unscaled log probabilities.
+    * @param  labels Tensor of shape `[D0, D1, ..., Dr-1]` (where `r` is the rank of `labels` and of the result). Each
+    *                entry in `labels` must be an index in `[0, numClasses)`. Other values will raise an exception when
+    *                this op is run on a CPU, and return `NaN` values for the corresponding loss and gradient rows when
+    *                this op is run on a GPU.
     * @param  axis   The class axis, along which the softmax is computed. Defaults to `-1`, which is the last axis.
     * @return Result as a new tensor, with the same shape as `labels` and the same data type as `logits`, containing the
     *         softmax cross entropy loss.
     */
-  def sparseSoftmaxCrossEntropy(logits: Tensor, labels: Tensor, axis: Int = -1): Tensor = {
-    val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
+  def sparseSoftmaxCrossEntropy[D <: DecimalDataType, I <: Int32OrInt64](
+      logits: Tensor[D],
+      labels: Tensor[I],
+      axis: Int = -1
+  ): Tensor[D] = {
     // Check if no reshapes are required.
-    val output = {
-      if (logits.rank == 2) {
-        // Create the native op.
-        // The second output tensor contains the gradients, which is used for the gradient computation.
-        Tensor.fromNativeHandle(nativeCrossEntropyProxy(
-          preciseLogits.nativeHandle, labels.nativeHandle,
-          NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits).apply(0))
-      } else {
-        // Reshape logits to rank 2 and labels to rank 1.
-        val flattenedLogits = NN.flattenOuterAxes(preciseLogits)
-        val flattenedLabels = Basic.reshape(labels, -1)
-        // Create the native op.
-        // The second output tensor contains the gradients, which is used for the gradient computation.
-        val output = Tensor.fromNativeHandle(nativeCrossEntropyProxy(
-          flattenedLogits.nativeHandle, flattenedLabels.nativeHandle,
-          NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits).apply(0))
-        Basic.reshape(output, Basic.shape(labels))
-      }
+    if (logits.rank == 2) {
+      // Create the native op.
+      // The second output tensor contains the gradients, which is used for the gradient computation.
+      Tensor.fromNativeHandle[D](nativeCrossEntropyProxy(
+        logits.nativeHandle, labels.nativeHandle,
+        NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits).apply(0))
+    } else {
+      // Reshape logits to rank 2 and labels to rank 1.
+      val flattenedLogits = NN.flattenOuterAxes(logits)
+      val flattenedLabels = Basic.reshape(labels, -1)
+      // Create the native op.
+      // The second output tensor contains the gradients, which is used for the gradient computation.
+      val output = Tensor.fromNativeHandle[D](nativeCrossEntropyProxy(
+        flattenedLogits.nativeHandle, flattenedLabels.nativeHandle,
+        NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits).apply(0))
+      Basic.reshape(output, Basic.shape(labels))
     }
-    // We cast back to the original logits data type, if necessary.
-    if (logits.dataType == FLOAT16)
-      Math.cast(output, FLOAT16)
-    else
-      output
   }
 
   /** $OpDocNNSigmoidCrossEntropy
     *
     * @group NNOps
-    * @param  logits  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
-    *                 [[FLOAT64]], containing unscaled log probabilities.
-    * @param  labels  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]` and data type [[FLOAT16]], [[FLOAT32]], or
-    *                 [[FLOAT64]], where each row must be a valid probability distribution.
+    * @param  logits  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]`, containing unscaled log probabilities.
+    * @param  labels  Tensor of shape `[D0, D1, ..., Dr-1, numClasses]]`, where each row must be a valid probability
+    *                 distribution.
     * @param  weights Optionally, a coefficient to use for the positive examples.
     * @return Result as a new tensor, with rank one less than that of `logits` and the same data type as `logits`,
     *         containing the sigmoid cross entropy loss.
     */
-  def sigmoidCrossEntropy(logits: Tensor, labels: Tensor, weights: Tensor = null): Tensor = {
-    val output = {
-      if (weights == null) {
-        // Labels and logits must be of the same data type.
-        val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-        val preciseLabels = Math.cast(labels, preciseLogits.dataType)
-        // The logistic loss formula from above is:
-        //   x - x * z + log(1 + exp(-x))
-        // For x < 0, a more numerically stable formula is:
-        //   -x * z + log(1 + exp(x))
-        // Note that these two expressions can be combined into the following single expression:
-        //   max(x, 0) - x * z + log(1 + exp(-abs(x)))
-        // To allow computing gradients at zero, we define custom versions of the max and the abs functions.
-        val zeros = Tensor.zerosLike(preciseLogits)
-        val condition = Math.greaterEqual(preciseLogits, zeros)
-        val reluLogits = Math.select(condition, preciseLogits, zeros)
-        val negativeAbsLogits = Math.select(condition, -preciseLogits, preciseLogits)
-        Math.add(reluLogits - (preciseLogits * preciseLabels), Math.log1p(Math.exp(negativeAbsLogits)))
-      } else {
-        // Labels and logits must be of the same data type.
-        val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-        val preciseLabels = Math.cast(labels, preciseLogits.dataType)
-        val preciseWeights = Math.cast(weights, preciseLogits.dataType)
-        // The logistic loss formula from above is:
-        //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))
-        // For x < 0, a more numerically stable formula is:
-        //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(x)) - l * x
-        // To avoid branching, we use the following single expression:
-        //   (1 - z) * x + l * (log(1 + exp(-abs(x))) + max(-x, 0))
-        val logWeights = ((preciseWeights - 1) * preciseLabels) + 1
-        Math.add(
-          (1 - preciseLabels) * preciseLogits,
-          (logWeights * Math.log1p(Math.exp(-Math.abs(preciseLogits)))) + relu(-preciseLogits))
-      }
+  def sigmoidCrossEntropy[D <: DecimalDataType](
+      logits: Tensor[D],
+      labels: Tensor[D],
+      weights: Tensor[D] = null
+  ): Tensor[D] = {
+    if (weights == null) {
+      // The logistic loss formula from above is:
+      //   x - x * z + log(1 + exp(-x))
+      // For x < 0, a more numerically stable formula is:
+      //   -x * z + log(1 + exp(x))
+      // Note that these two expressions can be combined into the following single expression:
+      //   max(x, 0) - x * z + log(1 + exp(-abs(x)))
+      // To allow computing gradients at zero, we define custom versions of the max and the abs functions.
+      val zeros = Tensor.zerosLike(logits)
+      val condition = Math.greaterEqual(logits, zeros)
+      val reluLogits = Math.select(condition, logits, zeros)
+      val negativeAbsLogits = Math.select(condition, -logits, logits)
+      Math.add(reluLogits - (logits * labels), Math.log1p(Math.exp(negativeAbsLogits)))
+    } else {
+      // The logistic loss formula from above is:
+      //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))
+      // For x < 0, a more numerically stable formula is:
+      //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(x)) - l * x
+      // To avoid branching, we use the following single expression:
+      //   (1 - z) * x + l * (log(1 + exp(-abs(x))) + max(-x, 0))
+      val one = 1.toTensor.cast(weights.dataType)
+      val logWeights = ((weights - one) * labels) + one
+      Math.addN(Seq[Tensor[D]](
+        (one - labels) * logits,
+        logWeights * Math.log1p(Math.exp(-Math.abs(logits))),
+        relu(-logits)))
     }
-    // We cast back to the original logits data type, if necessary.
-    if (logits.dataType == FLOAT16)
-      Math.cast(output, FLOAT16)
-    else
-      output
   }
 
   /** $OpDocNNLogPoissonLoss
@@ -400,12 +406,16 @@ private[api] trait NN {
     *                         `false`, meaning that the constant term is ignored.
     * @return Result as a new tensor.
     */
-  def logPoissonLoss(logPredictions: Tensor, targets: Tensor, computeFullLoss: Boolean = false): Tensor = {
+  def logPoissonLoss[D <: DecimalDataType](
+      logPredictions: Tensor[D],
+      targets: Tensor[D],
+      computeFullLoss: Boolean = false
+  ): Tensor[D] = {
     val output = Math.exp(logPredictions) - (logPredictions * targets)
     if (computeFullLoss) {
       // Need to create constant tensors here so that their data types can be matched to that of the targets.
-      val pointFive = Tensor(targets.dataType, 0.5)
-      val twoPi = Tensor(targets.dataType, 2 * math.Pi)
+      val pointFive = 0.5.toTensor.cast(targets.dataType)
+      val twoPi = (2 * math.Pi).toTensor.cast(targets.dataType)
       val stirlingApproximation = (targets * Math.log(targets)) - targets + (pointFive * Math.log(twoPi * targets))
       val zeros = Tensor.zerosLike(targets)
       val ones = Tensor.onesLike(targets)
@@ -436,14 +446,16 @@ private[api] trait NN {
     * @throws InvalidShapeException If any of `logits`, `labels`, or `weights` has invalid shape.
     */
   @throws[InvalidShapeException]
-  def sequenceLoss(
-      logits: Tensor,
-      labels: Tensor,
-      weights: Tensor = null,
+  def sequenceLoss[D <: DecimalDataType, I <: Int32OrInt64](
+      logits: Tensor[D],
+      labels: Tensor[I],
+      weights: Tensor[D] = null,
       averageAcrossTimeSteps: Boolean = true,
       averageAcrossBatch: Boolean = true,
-      lossFn: (Tensor, Tensor) => Tensor = sparseSoftmaxCrossEntropy(_, _)
-  ): Tensor = {
+      lossFn: (Tensor[D], Tensor[I]) => Tensor[D] = {
+        (logits: Tensor[D], labels: Tensor[I]) => sparseSoftmaxCrossEntropy(logits, labels)
+      }
+  ): Tensor[D] = {
     if (logits.rank != 3)
       throw InvalidShapeException(
         s"'logits' must have shape [batchSize, sequenceLength, numClasses], but had: ${logits.shape}.")
@@ -452,26 +464,42 @@ private[api] trait NN {
     if (weights != null && weights.rank != 2)
       throw InvalidShapeException(s"'weights' must have shape [batchSize, sequenceLength], but had: ${weights.shape}.")
     val numClasses = Basic.shape(logits)(2)
-    val flattenedLogits = Basic.reshape(logits, Basic.stack(Seq(-1, numClasses)))
+    val flattenedLogits = Basic.reshape(logits, Basic.stack(Seq[Tensor[INT32]](-1, numClasses)))
     val flattenedLabels = Basic.reshape(labels, Shape(-1))
+    val epsilon = 1e-12.toTensor.cast(logits.dataType)
     var loss = lossFn(flattenedLogits, flattenedLabels)
     if (weights != null)
       loss = loss * Basic.reshape(weights, Shape(-1))
     if (averageAcrossTimeSteps && averageAcrossBatch) {
       loss = Math.sum(loss)
-      val totalSize = if (weights != null) Math.sum(weights) + 1e-12 else Basic.size(flattenedLabels)
+      val totalSize = {
+        if (weights != null)
+          Math.sum(weights) + epsilon
+        else
+          Basic.size(flattenedLabels).cast(logits.dataType)
+      }
       loss = Math.divide(loss, totalSize)
     } else {
       loss = Basic.reshape(loss, Basic.shape(logits)(0 :: 2))
     }
     if (averageAcrossTimeSteps && !averageAcrossBatch) {
       loss = Math.sum(loss, axes = 1)
-      val totalSize = if (weights != null) Math.sum(weights, axes = 1) + 1e-12 else Basic.shape(labels)(1)
+      val totalSize = {
+        if (weights != null)
+          Math.sum(weights, axes = 1) + epsilon
+        else
+          Basic.shape(labels)(1).cast(logits.dataType)
+      }
       loss = Math.divide(loss, totalSize)
     }
     if (!averageAcrossTimeSteps && averageAcrossBatch) {
       loss = Math.sum(loss, axes = 0)
-      val totalSize = if (weights != null) Math.sum(weights, axes = 0) + 1e-12 else Basic.shape(labels)(0)
+      val totalSize = {
+        if (weights != null)
+          Math.sum(weights, axes = 0) + epsilon
+        else
+          Basic.shape(labels)(0).cast(logits.dataType)
+      }
       loss = Math.divide(loss, totalSize)
     }
     loss
@@ -479,24 +507,69 @@ private[api] trait NN {
 
   //endregion Loss Ops
 
+  //region Normalization Ops
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @return Created op output.
+    */
+  def lrn[D <: BFloat16OrFloat16OrFloat32](
+      input: Tensor[D],
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f
+  ): Tensor[D] = {
+    localResponseNormalization(input, depthRadius, bias, alpha, beta)
+  }
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @return Created op output.
+    */
+  def localResponseNormalization[D <: BFloat16OrFloat16OrFloat32](
+      input: Tensor[D],
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.lRN(
+      executionContext.value.nativeHandle, input.nativeHandle, depthRadius, bias, alpha, beta))
+  }
+
+  //endregion Normalization Ops
+
   /** $OpDocNNDropout
     *
     * @group NNOps
     * @param  input           Input tensor.
     * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
     * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
-    * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+    * @param  noiseShape      Rank-1 tensor representing the shape for the randomly generated keep/drop flags.
     * @param  seed            Optional random seed, used to generate a random seed pair for the random number
     *                         generator, when combined with the graph-level seed.
     * @return Result as a new tensor that has the same shape as `input`.
     */
-  def dropout(
-      input: Tensor,
+  def dropout[D <: Float16OrFloat32OrFloat64](
+      input: Tensor[D],
       keepProbability: Float,
       scaleOutput: Boolean = true,
-      noiseShape: Tensor = null,
+      noiseShape: Tensor[INT32] = null,
       seed: Option[Int] = None
-  ): Tensor = {
+  ): Tensor[D] = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
     // Do nothing if we know that keepProbability == 1.
     if (keepProbability == 1.0) {
@@ -504,9 +577,13 @@ private[api] trait NN {
     } else {
       val inferredNoiseShape = if (noiseShape == null) Basic.shape(input) else noiseShape
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
-      val probability = Tensor(input.dataType, keepProbability)
+      val probability = keepProbability.toTensor.cast(input.dataType)
       val random = Random.randomUniform(
-        input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
+        dataType = input.dataType,
+        shape = inferredNoiseShape)(
+        minValue = probability,
+        maxValue = probability + 1.toTensor.cast(probability.dataType),
+        seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
       val binaryTensor = Math.floor(random)
       if (scaleOutput) Math.divide(input, probability) * binaryTensor else input * binaryTensor
@@ -517,68 +594,74 @@ private[api] trait NN {
     *
     * @group NNOps
     * @param  input  Input tensor whose last axis has size at least `k`.
-    * @param  k      Scalar [[INT32]] tensor containing the number of top elements to look for along the last axis of
-    *                `input`.
+    * @param  k      Scalar tensor containing the number of top elements to look for along the last axis of `input`.
     * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
     * @return Tuple containing the created tensors: (i) `values`: the `k` largest elements along each last
     *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
     */
-  def topK(
-      input: Tensor,
-      k: Tensor = 1,
+  def topK[D <: MathDataType](
+      input: Tensor[D],
+      k: Tensor[INT32] = 1,
       sorted: Boolean = true
-  ): (Tensor, Tensor) = {
+  ): (Tensor[D], Tensor[INT32]) = {
     val outputs = NativeTensorOpsNN.topKV2(
       executionContext.value.nativeHandle, input.nativeHandle, k.nativeHandle, sorted)
-    (Tensor.fromNativeHandle(outputs(0)), Tensor.fromNativeHandle(outputs(1)))
+    (Tensor.fromNativeHandle[D](outputs(0)), Tensor.fromNativeHandle[INT32](outputs(1)))
   }
 
   /** $OpDocNNInTopK
     *
     * @group NNOps
-    * @param  predictions [[FLOAT32]] tensor containing the predictions.
-    * @param  targets     [[INT32]] or [[INT64]] tensor containing the targets.
-    * @param  k           Scalar [[INT32]] or [[INT64]] tensor containing the number of top elements to look at.
+    * @param  predictions Tensor containing the predictions.
+    * @param  targets     Tensor containing the targets.
+    * @param  k           Scalar tensor containing the number of top elements to look at.
     * @return Result as a new tensor.
     */
-  def inTopK(predictions: Tensor, targets: Tensor, k: Tensor): Tensor = {
-    val mostPreciseDataType = DataType.mostPrecise(targets.dataType, k.dataType)
-    Tensor.fromNativeHandle(NativeTensorOpsNN.inTopKV2(
-      executionContext.value.nativeHandle, predictions.nativeHandle, targets.cast(mostPreciseDataType).nativeHandle,
-      k.cast(mostPreciseDataType).nativeHandle))
+  def inTopK[I <: Int32OrInt64](predictions: Tensor[FLOAT32], targets: Tensor[I], k: Tensor[I]): Tensor[BOOLEAN] = {
+    Tensor.fromNativeHandle[BOOLEAN](NativeTensorOpsNN.inTopKV2(
+      executionContext.value.nativeHandle, predictions.nativeHandle, targets.nativeHandle, k.nativeHandle))
   }
 
   //region Convolution Ops
 
   /** $OpDocConv2D
     *
+    * @group NNOps
     * @param  input         4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
     * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
     * @param  stride1       Stride of the sliding window along the second dimension of `input`.
     * @param  stride2       Stride of the sliding window along the third dimension of `input`.
     * @param  padding       Padding mode to use.
     * @param  dataFormat    Format of the input and output data.
+    * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                       skipped cells between each filter element on that dimension. The dimension order is
+    *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                       be set to `1`.
     * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                       GPU, as opposed to the TensorFlow implementation.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def conv2D(
-      input: Tensor,
-      filter: Tensor,
+  def conv2D[D <: DecimalDataType](
+      input: Tensor[D],
+      filter: Tensor[D],
       stride1: Long,
       stride2: Long,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
       useCuDNNOnGPU: Boolean = true
-  ): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.conv2D(
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.conv2D(
       executionContext.value.nativeHandle, input.nativeHandle, filter.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1),
+      Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
   /** $OpDocConv2DBackpropInput
     *
+    * @group NNOps
     * @param  inputSizes     Integer vector representing the shape of the original input, which is a 4-D tensor.
     * @param  filter         4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
     * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the convolution and whose shape
@@ -587,28 +670,36 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def conv2DBackpropInput(
-      inputSizes: Tensor,
-      filter: Tensor,
-      outputGradient: Tensor,
+  def conv2DBackpropInput[D <: DecimalDataType](
+      inputSizes: Tensor[INT32],
+      filter: Tensor[D],
+      outputGradient: Tensor[D],
       stride1: Long,
       stride2: Long,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
       useCuDNNOnGPU: Boolean = true
-  ): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropInput(
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.conv2DBackpropInput(
       executionContext.value.nativeHandle, inputSizes.nativeHandle, filter.nativeHandle, outputGradient.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1),
+      Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
   /** $OpDocConv2DBackpropFilter
     *
+    * @group NNOps
     * @param  input          4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
     * @param  filterSizes    Integer vector representing the shape of the original filter, which is a 4-D tensor.
     * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the convolution and whose shape
@@ -617,24 +708,31 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def conv2DBackpropFilter(
-      input: Tensor,
-      filterSizes: Tensor,
-      outputGradient: Tensor,
+  def conv2DBackpropFilter[D <: DecimalDataType](
+      input: Tensor[D],
+      filterSizes: Tensor[INT32],
+      outputGradient: Tensor[D],
       stride1: Long,
       stride2: Long,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
       useCuDNNOnGPU: Boolean = true
-  ): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.conv2DBackpropFilter(
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.conv2DBackpropFilter(
       executionContext.value.nativeHandle, input.nativeHandle, filterSizes.nativeHandle, outputGradient.nativeHandle,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1), useCuDNNOnGPU,
-      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
+      dataFormat.name.getBytes(StandardCharsets.ISO_8859_1),
+      Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
   //endregion Convolution Ops
@@ -643,6 +741,7 @@ private[api] trait NN {
 
   /** $OpDocMaxPool
     *
+    * @group NNOps
     * @param  input      4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
     * @param  windowSize The size of the pooling window for each dimension of the input tensor.
     * @param  stride1    Stride of the sliding window along the second dimension of `input`.
@@ -651,22 +750,23 @@ private[api] trait NN {
     * @param  dataFormat Format of the input and output data.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPool(
-      input: Tensor,
-      windowSize: Seq[Long],
-      stride1: Long,
-      stride2: Long,
+  def maxPool[D <: MathDataType](
+      input: Tensor[D],
+      windowSize: Seq[Int],
+      stride1: Int,
+      stride2: Int,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default
-  ): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.maxPool(
-      executionContext.value.nativeHandle, input.nativeHandle, windowSize.toArray,
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.maxPool(
+      executionContext.value.nativeHandle, input.nativeHandle, windowSize.map(_.toLong).toArray,
       Array[Long](1, stride1, stride2, 1), padding.name.getBytes(StandardCharsets.ISO_8859_1),
       dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocMaxPoolGrad
     *
+    * @group NNOps
     * @param  originalInput  Original input tensor.
     * @param  originalOutput Original output tensor.
     * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the max pooling and whose shape
@@ -678,24 +778,25 @@ private[api] trait NN {
     * @param  dataFormat     Format of the input and output data.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPoolGrad(
-      originalInput: Tensor,
-      originalOutput: Tensor,
-      outputGradient: Tensor,
-      windowSize: Seq[Long],
-      stride1: Long,
-      stride2: Long,
+  def maxPoolGrad[D <: RealDataType](
+      originalInput: Tensor[D],
+      originalOutput: Tensor[D],
+      outputGradient: Tensor[D],
+      windowSize: Seq[Int],
+      stride1: Int,
+      stride2: Int,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default
-  ): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGrad(
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.maxPoolGrad(
       executionContext.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle,
-      outputGradient.nativeHandle, windowSize.toArray, Array[Long](1, stride1, stride2, 1),
+      outputGradient.nativeHandle, windowSize.map(_.toLong).toArray, Array[Long](1, stride1, stride2, 1),
       padding.name.getBytes(StandardCharsets.ISO_8859_1), dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
   /** $OpDocMaxPoolGradGrad
     *
+    * @group NNOps
     * @param  originalInput  Original input tensor.
     * @param  originalOutput Original output tensor.
     * @param  outputGradient 4-D tensor containing the gradients w.r.t. the output of the max pooling and whose shape
@@ -707,19 +808,19 @@ private[api] trait NN {
     * @param  dataFormat     Format of the input and output data.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPoolGradGrad(
-      originalInput: Tensor,
-      originalOutput: Tensor,
-      outputGradient: Tensor,
-      windowSize: Seq[Long],
-      stride1: Long,
-      stride2: Long,
+  def maxPoolGradGrad[D <: RealDataType](
+      originalInput: Tensor[D],
+      originalOutput: Tensor[D],
+      outputGradient: Tensor[D],
+      windowSize: Seq[Int],
+      stride1: Int,
+      stride2: Int,
       padding: ConvPaddingMode,
       dataFormat: CNNDataFormat = CNNDataFormat.default
-  ): Tensor = {
-    Tensor.fromNativeHandle(NativeTensorOpsNN.maxPoolGradGrad(
+  ): Tensor[D] = {
+    Tensor.fromNativeHandle[D](NativeTensorOpsNN.maxPoolGradGrad(
       executionContext.value.nativeHandle, originalInput.nativeHandle, originalOutput.nativeHandle,
-      outputGradient.nativeHandle, windowSize.toArray, Array[Long](1, stride1, stride2, 1),
+      outputGradient.nativeHandle, windowSize.map(_.toLong).toArray, Array[Long](1, stride1, stride2, 1),
       padding.name.getBytes(StandardCharsets.ISO_8859_1), dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
@@ -727,197 +828,283 @@ private[api] trait NN {
 }
 
 object NN extends NN {
-  case class NNOps(tensor: Tensor) {
-    //region Core Ops
+  private[tensors] trait Implicits {
+    implicit class MathNNOps[D <: MathDataType](val tensor: Tensor[D]) {
+      //region Core Ops
 
-    /** $OpDocNNAddBias
-      *
-      * @group NNOps
-      * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
-      * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
-      *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
-      *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
-      *                       dimension.
-      * @return Result as a new tensor.
-      */
-    def addBias(bias: Tensor, cNNDataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
-      NN.addBias(tensor, bias, cNNDataFormat)
+      /** $OpDocNNAddBias
+        *
+        * @group NNOps
+        * @param  bias          Bias tensor that must be one-dimensional (i.e., it must have rank 1).
+        * @param  cNNDataFormat Data format of the input and output tensors. With the default format [[NWCFormat]], the
+        *                       `bias` tensor will be added to the last dimension of the `value` tensor. Alternatively, the
+        *                       format could be [[NCWFormat]], and the `bias` tensor would be added to the third-to-last
+        *                       dimension.
+        * @return Result as a new tensor.
+        */
+      def addBias(bias: Tensor[D], cNNDataFormat: CNNDataFormat = CNNDataFormat.default): Tensor[D] = {
+        NN.addBias(tensor, bias, cNNDataFormat)
+      }
+
+      /** $OpDocNNLinear
+        *
+        * @group NNOps
+        * @param  weights Weights tensor.
+        * @param  bias    Bias tensor.
+        * @return Result as a new tensor.
+        */
+      def linear(weights: Tensor[D], bias: Tensor[D] = null): Tensor[D] = NN.linear(tensor, weights, bias)
+
+      //endregion CoreOps
+
+      /** $OpDocNNTopK
+        *
+        * @group NNOps
+        * @param  k      Scalar tensor containing the number of top elements to look for along the last axis of `input`.
+        * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
+        * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
+        *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
+        */
+      def topK(k: Tensor[INT32] = 1, sorted: Boolean = true): (Tensor[D], Tensor[INT32]) = NN.topK(tensor, k, sorted)
+
+      //region Pooling Ops
+
+      /** $OpDocMaxPool
+        *
+        * @param  windowSize The size of the pooling window for each dimension of the input tensor.
+        * @param  stride1    Stride of the sliding window along the second dimension of `input`.
+        * @param  stride2    Stride of the sliding window along the third dimension of `input`.
+        * @param  padding    Padding mode to use.
+        * @param  dataFormat Format of the input and output data.
+        * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+        */
+      def maxPool(
+          windowSize: Seq[Int],
+          stride1: Int,
+          stride2: Int,
+          padding: ConvPaddingMode,
+          dataFormat: CNNDataFormat = CNNDataFormat.default
+      ): Tensor[D] = {
+        NN.maxPool(tensor, windowSize, stride1, stride2, padding, dataFormat)
+      }
+
+      //endregion Pooling Ops
     }
 
-    /** $OpDocNNLinear
-      *
-      * @group NNOps
-      * @param  weights Weights tensor.
-      * @param  bias    Bias tensor.
-      * @return Result as a new tensor.
-      */
-    def linear(weights: Tensor, bias: Tensor = null): Tensor = NN.linear(tensor, weights, bias)
+    implicit class RealNNOps[D <: RealDataType](val tensor: Tensor[D]) {
+      //region Activation Ops
 
-    /** $OpDocNNL2Normalize
-      *
-      * @group NNOps
-      * @param  axes    Tensor containing the axes along which to normalize.
-      * @param  epsilon Lower bound value for the norm. The created op will use `sqrt(epsilon)` as the divisor, if
-      *                 `norm < sqrt(epsilon)`.
-      * @return Result as a new tensor.
-      */
-    def l2Normalize(axes: Tensor, epsilon: Float = 1e-12f): Tensor = NN.l2Normalize(tensor, axes, epsilon)
+      /** $OpDocNNRelu
+        *
+        * @group NNOps
+        * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
+        *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
+        * @return Result as a new tensor.
+        */
+      def relu(alpha: Float = 0.0f): Tensor[D] = NN.relu(tensor, alpha)
 
-    //endregion Core Ops
+      /** $OpDocNNRelu6
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def relu6: Tensor[D] = NN.relu6(tensor)
 
-    //region Activation Ops
+      /** $OpDocNNCrelu
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def crelu: Tensor[D] = NN.crelu(tensor)
 
-    /** $OpDocNNRelu
-      *
-      * @group NNOps
-      * @param  alpha Slope of the negative section, also known as leakage parameter. If other than `0.0f`, the negative
-      *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
-      * @return Result as a new tensor.
-      */
-    def relu(alpha: Float = 0.0f): Tensor = NN.relu(tensor, alpha)
+      /** $OpDocNNSoftplus
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def softplus: Tensor[D] = NN.softplus(tensor)
 
-    /** $OpDocNNRelu6
-      *
-      * @group NNOps
-      * @return Result as a new tensor.
-      */
-    def relu6: Tensor = NN.relu6(tensor)
+      /** $OpDocNNSoftsign
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def softsign: Tensor[D] = NN.softsign(tensor)
 
-    /** $OpDocNNCrelu
-      *
-      * @group NNOps
-      * @return Result as a new tensor.
-      */
-    def crelu: Tensor = NN.crelu(tensor)
-
-    /** $OpDocNNElu
-      *
-      * @group NNOps
-      * @return Result as a new tensor.
-      */
-    def elu: Tensor = NN.elu(tensor)
-
-    /** $OpDocNNSelu
-      *
-      * @group NNOps
-      * @return Result as a new tensor.
-      */
-    def selu: Tensor = NN.selu(tensor)
-
-    /** $OpDocNNSoftplus
-      *
-      * @group NNOps
-      * @return Result as a new tensor.
-      */
-    def softplus: Tensor = NN.softplus(tensor)
-
-    /** $OpDocNNSoftsign
-      *
-      * @group NNOps
-      * @return Result as a new tensor.
-      */
-    def softsign: Tensor = NN.softsign(tensor)
-
-    //endregion Activation Ops
-
-    /** $OpDocNNSoftmax
-      *
-      * @group NNOps
-      * @param  axis Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
-      * @return Result as a new tensor.
-      */
-    def softmax(axis: Int = -1): Tensor = NN.softmax(tensor, axis)
-
-    /** $OpDocNNLogSoftmax
-      *
-      * @group NNOps
-      * @param  axis Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
-      * @return Result as a new tensor.
-      */
-    def logSoftmax(axis: Int = -1): Tensor = NN.logSoftmax(tensor, axis)
-
-    /** $OpDocNNDropout
-      *
-      * @group NNOps
-      * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
-      * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
-      * @param  noiseShape      [[INT32]] rank-1 tensor representing the shape for the randomly generated keep/drop flags.
-      * @param  seed            Optional random seed, used to generate a random seed pair for the random number
-      *                         generator, when combined with the graph-level seed.
-      * @return Result as a new tensor that has the same shape as `input`.
-      */
-    def dropout(
-        keepProbability: Float,
-        scaleOutput: Boolean = true,
-        noiseShape: Tensor = null,
-        seed: Option[Int] = None
-    ): Tensor = {
-      NN.dropout(tensor, keepProbability, scaleOutput, noiseShape, seed)
+      //endregion Activation Ops
     }
 
-    /** $OpDocNNTopK
-      *
-      * @group NNOps
-      * @param  k      Scalar [[INT32]] tensor containing the number of top elements to look for along the last axis of
-      *                `input`.
-      * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
-      * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
-      *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
-      */
-    def topK(k: Tensor = 1, sorted: Boolean = true): (Tensor, Tensor) = NN.topK(tensor, k, sorted)
+    implicit class DecimalNNOps[D <: DecimalDataType](val tensor: Tensor[D]) {
+      //region Activation Ops
 
-    /** $OpDocNNInTopK
-      *
-      * @group NNOps
-      * @param  targets [[INT32]] or [[INT64]] tensor containing the targets.
-      * @param  k       Scalar [[INT32]] or [[INT64]] tensor containing the number of top elements to look at.
-      * @return Result as a new tensor.
-      */
-    def inTopK(targets: Tensor, k: Tensor): Tensor = NN.inTopK(tensor, targets, k)
+      /** $OpDocNNElu
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def elu: Tensor[D] = NN.elu(tensor)
 
-    //region Convolution Ops
+      /** $OpDocNNSelu
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def selu: Tensor[D] = NN.selu(tensor)
 
-    /** $OpDocConv2D
-      *
-      * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
-      * @param  stride1       Stride of the sliding window along the second dimension of this tensor.
-      * @param  stride2       Stride of the sliding window along the third dimension of this tensor.
-      * @param  padding       Padding mode to use.
-      * @param  dataFormat    Format of the input and output data.
-      * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
-      *                       GPU, as opposed to the TensorFlow implementation.
-      * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
-      */
-    def conv2D(
-        filter: Tensor, stride1: Long, stride2: Long, padding: ConvPaddingMode,
-        dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true): Tensor = {
-      NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU)
+      //endregion Activation Ops
+
+      /** $OpDocNNSoftmax
+        *
+        * @group NNOps
+        * @param  axis Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
+        * @return Result as a new tensor.
+        */
+      def softmax(axis: Int = -1): Tensor[D] = NN.softmax(tensor, axis)
+
+      /** $OpDocNNLogSoftmax
+        *
+        * @group NNOps
+        * @param  axis Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
+        * @return Result as a new tensor.
+        */
+      def logSoftmax(axis: Int = -1): Tensor[D] = NN.logSoftmax(tensor, axis)
+
+      //region Convolution Ops
+
+      /** $OpDocConv2D
+        *
+        * @group NNOps
+        * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
+        * @param  stride1       Stride of the sliding window along the second dimension of this tensor.
+        * @param  stride2       Stride of the sliding window along the third dimension of this tensor.
+        * @param  padding       Padding mode to use.
+        * @param  dataFormat    Format of the input and output data.
+        * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+        *                       skipped cells between each filter element on that dimension. The dimension order is
+        *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+        *                       be set to `1`.
+        * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
+        *                       GPU, as opposed to the TensorFlow implementation.
+        * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+        */
+      def conv2D(
+          filter: Tensor[D],
+          stride1: Long,
+          stride2: Long,
+          padding: ConvPaddingMode,
+          dataFormat: CNNDataFormat = CNNDataFormat.default,
+          // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+          dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+          useCuDNNOnGPU: Boolean = true
+      ): Tensor[D] = {
+        NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU)
+      }
+
+      //endregion Convolution Ops
     }
 
-    //endregion Convolution Ops
+    implicit class BFloat16OrFloat16OrFloat32NNOps[D <: BFloat16OrFloat16OrFloat32](val tensor: Tensor[D]) {
+      //region Normalization Ops
 
-    //region Pooling Ops
+      /** $OpDocNNLocalResponseNormalization
+        *
+        * @group NNOps
+        * @param  depthRadius Half-width of the 1-D normalization window.
+        * @param  bias        Offset (usually positive to avoid dividing by 0).
+        * @param  alpha       Scale factor (usually positive).
+        * @param  beta        Exponent.
+        * @return Created op output.
+        */
+      def lrn(
+          depthRadius: Int = 5,
+          bias: Float = 1.0f,
+          alpha: Float = 1.0f,
+          beta: Float = 0.5f,
+          name: String = "LRN"
+      ): Tensor[D] = {
+        NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
+      }
 
-    /** $OpDocMaxPool
-      *
-      * @param  windowSize The size of the pooling window for each dimension of the input tensor.
-      * @param  stride1    Stride of the sliding window along the second dimension of `input`.
-      * @param  stride2    Stride of the sliding window along the third dimension of `input`.
-      * @param  padding    Padding mode to use.
-      * @param  dataFormat Format of the input and output data.
-      * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
-      */
-    def maxPool(
-        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
-        dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor = {
-      NN.maxPool(tensor, windowSize, stride1, stride2, padding, dataFormat)
+      /** $OpDocNNLocalResponseNormalization
+        *
+        * @group NNOps
+        * @param  depthRadius Half-width of the 1-D normalization window.
+        * @param  bias        Offset (usually positive to avoid dividing by 0).
+        * @param  alpha       Scale factor (usually positive).
+        * @param  beta        Exponent.
+        * @return Created op output.
+        */
+      def localResponseNormalization(
+          depthRadius: Int = 5,
+          bias: Float = 1.0f,
+          alpha: Float = 1.0f,
+          beta: Float = 0.5f
+      ): Tensor[D] = {
+        NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
+      }
+
+      //endregion Normalization Ops
     }
 
-    //endregion Pooling Ops
+    implicit class Float16OrFloat32OrFloat64NNOps[D <: Float16OrFloat32OrFloat64](val tensor: Tensor[D]) {
+      /** $OpDocNNDropout
+        *
+        * @group NNOps
+        * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+        * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
+        * @param  noiseShape      Rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+        * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+        *                         generator, when combined with the graph-level seed.
+        * @return Result as a new tensor that has the same shape as `input`.
+        */
+      def dropout(
+          keepProbability: Float,
+          scaleOutput: Boolean = true,
+          noiseShape: Tensor[INT32] = null,
+          seed: Option[Int] = None
+      ): Tensor[D] = {
+        NN.dropout(tensor, keepProbability, scaleOutput, noiseShape, seed)
+      }
+    }
+
+    implicit class Float32OrFloat64NNOps[D <: Float32OrFloat64](val tensor: Tensor[D]) {
+      //region Core Ops
+
+      /** $OpDocNNL2Normalize
+        *
+        * @group NNOps
+        * @param  axes    Tensor containing the axes along which to normalize.
+        * @param  epsilon Lower bound value for the norm. The created op will use `sqrt(epsilon)` as the divisor, if
+        *                 `norm < sqrt(epsilon)`.
+        * @return Result as a new tensor.
+        */
+      def l2Normalize(axes: Tensor[INT32], epsilon: Float = 1e-12f): Tensor[D] = NN.l2Normalize(tensor, axes, epsilon)
+
+      //endregion Core Ops
+    }
+
+    implicit class Float32NNOps(val tensor: Tensor[FLOAT32]) {
+      /** $OpDocNNInTopK
+        *
+        * @group NNOps
+        * @param  targets Tensor containing the targets.
+        * @param  k       Scalar tensor containing the number of top elements to look at.
+        * @return Result as a new tensor.
+        */
+      def inTopK[I <: Int32OrInt64](targets: Tensor[I], k: Tensor[I]): Tensor[BOOLEAN] = NN.inTopK(tensor, targets, k)
+    }
+
+    implicit def tensorConvertibleToMathNNOps[D <: MathDataType, T](value: T)(implicit f: T => Tensor[D]): MathNNOps[D] = new MathNNOps(f(value))
+    implicit def tensorConvertibleToRealNNOps[D <: RealDataType, T](value: T)(implicit f: T => Tensor[D]): RealNNOps[D] = new RealNNOps(f(value))
+    implicit def tensorConvertibleToDecimalNNOps[D <: DecimalDataType, T](value: T)(implicit f: T => Tensor[D]): DecimalNNOps[D] = new DecimalNNOps(f(value))
+    implicit def tensorConvertibleToBFloat16OrFloat16OrFloat32NNOps[D <: BFloat16OrFloat16OrFloat32, T](value: T)(implicit f: T => Tensor[D]): BFloat16OrFloat16OrFloat32NNOps[D] = new BFloat16OrFloat16OrFloat32NNOps(f(value))
+    implicit def tensorConvertibleToFloat16OrFloat32OrFloat64NNOps[D <: Float16OrFloat32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Float16OrFloat32OrFloat64NNOps[D] = new Float16OrFloat32OrFloat64NNOps(f(value))
+    implicit def tensorConvertibleToFloat32OrFloat64NNOps[D <: Float32OrFloat64, T](value: T)(implicit f: T => Tensor[D]): Float32OrFloat64NNOps[D] = new Float32OrFloat64NNOps(f(value))
+    implicit def tensorConvertibleToFloat32NNOps[T](value: T)(implicit f: T => Tensor[FLOAT32]): Float32NNOps = new Float32NNOps(f(value))
   }
 
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */
-  private[ops] def flattenOuterAxes(input: Tensor): Tensor = {
+  private[ops] def flattenOuterAxes[D <: DataType](input: Tensor[D]): Tensor[D] = {
     val rank = Basic.rank(input)
     val lastAxisSize = Basic.slice(
       Basic.shape(input),
@@ -927,7 +1114,11 @@ object NN extends NN {
   }
 
   /** Creates an op that swaps the axes `axis1` and `axis2` in `input` and ignores all axes after `axis2`. */
-  private[ops] def swapAxes(input: Tensor, axis1: Tensor, axis2: Tensor): Tensor = {
+  private[ops] def swapAxes[D <: DataType](
+      input: Tensor[D],
+      axis1: Tensor[INT32],
+      axis2: Tensor[INT32]
+  ): Tensor[D] = {
     Basic.transpose(
       input,
       Basic.concatenate(Seq(
@@ -938,7 +1129,11 @@ object NN extends NN {
   }
 
   /** Creates an op that moves `axis` to the end. */
-  private[ops] def moveAxisToEnd(input: Tensor, axis: Int, rank: Tensor): Tensor = {
+  private[ops] def moveAxisToEnd[D <: DataType](
+      input: Tensor[D],
+      axis: Int,
+      rank: Tensor[INT32]
+  ): Tensor[D] = {
     if (axis == -1) {
       input
     } else {

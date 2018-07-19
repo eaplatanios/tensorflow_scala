@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.Basic.BasicOps
 import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
-import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
@@ -144,7 +144,7 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 
   /** Data type of this op output. */
   override def dataType: DataType = using(graph.reference) { r =>
-    DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index))
+    DataType.fromCValue[DataType](NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index))
   }
 
   /** Device on which this op output will be placed. */
@@ -211,19 +211,23 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     *
     * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
     *
-    * @param  indexers Sequence of indexers to use.
+    * @param  firstIndexer  First indexer to use.
+    * @param  otherIndexers Rest of the indexers to use.
     * @return Created op.
     */
-  def apply(indexers: Indexer*): Output = this.slice(indexers: _*)
+  def apply(firstIndexer: Indexer, otherIndexers: Indexer*): Output = this.slice(firstIndexer, otherIndexers: _*)
 
   /** Creates an op that slices this op according to the provided indexers.
     *
     * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
     *
-    * @param  indexers Sequence of indexers to use.
+    * @param  firstIndexer  First indexer to use.
+    * @param  otherIndexers Rest of the indexers to use.
     * @return Created op.
     */
-  def slice(indexers: Indexer*): Output = BasicOps(this).slice(indexers: _*)
+  def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Output = {
+    BasicOps(this).slice(firstIndexer, otherIndexers: _*)
+  }
 
   //endregion Slicing
 
@@ -272,7 +276,7 @@ object Output {
   }
 
   /** Returns the constant value of the given tensor, if efficiently calculable. */
-  private[api] def constantValue(tensor: Output): Option[Tensor] = {
+  private[api] def constantValue(tensor: Output): Option[Tensor[DataType]] = {
     val value = using(tensor.graph.reference)(r => {
       val result = NativeOp.tryEvaluateConstant(r.nativeHandle, tensor.op.nativeHandle, tensor.index)
       if (result == 0L)
@@ -284,23 +288,26 @@ object Output {
       case "Shape" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
-          Some(Tensor(tensor.dataType, inputShape.asArray.map(Tensor(_))))
+          Some(inputShape.toTensor(tensor.dataType))
         None
       case "Size" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.isFullyDefined)
-          Some(Tensor(INT32, Tensor(inputShape.asArray.product)))
+          Some(Tensor(INT32, inputShape.asArray.product))
         None
       case "Rank" =>
         val inputShape = tensor.op.inputs(0).shape
         if (inputShape.numElements != -1)
-          Some(Tensor(INT32, Tensor(inputShape.numElements)))
+          Some(Tensor(INT32, inputShape.numElements.toInt))
         None
       case "Range" =>
         constantValue(tensor.op.inputs(0))
             .flatMap(start => constantValue(tensor.op.inputs(1))
                 .flatMap(limit => constantValue(tensor.op.inputs(2))
-                    .map(delta => TensorMath.range(start, limit, delta))))
+                    .map(delta => TensorMath.range(
+                      start.asInstanceOf[Tensor[NumericDataType]],
+                      limit.asInstanceOf[Tensor[NumericDataType]],
+                      delta.asInstanceOf[Tensor[NumericDataType]]))))
       case "Cast" =>
         constantValue(tensor.op.inputs(0)).map(preCast => {
           preCast.cast(tensor.op.dataTypeAttribute("DstT"))
@@ -311,7 +318,7 @@ object Output {
           if (values.contains(None))
             None
           else
-            Some(TensorBasic.concatenate(values.map(_.get), axis))
+            Some(TensorBasic.concatenate(values.map(_.get), axis.asInstanceOf[Tensor[INT32]]))
         })
       case "ConcatV2" =>
         constantValue(tensor.op.inputs(tensor.op.numInputs - 1)).flatMap(axis => {
@@ -319,7 +326,7 @@ object Output {
           if (values.contains(None))
             None
           else
-            Some(TensorBasic.concatenate(values.map(_.get), axis))
+            Some(TensorBasic.concatenate(values.map(_.get), axis.asInstanceOf[Tensor[INT32]]))
         })
       case "Pack" =>
         val values = tensor.op.inputs.map(constantValue)
@@ -333,18 +340,22 @@ object Output {
         val fillValue = constantValue(tensor.op.inputs(0))
         if (fillShape.isFullyDefined && fillValue.isDefined) {
           val value = fillValue.get
-          Some(Tensor.fill(value.dataType, fillShape)(value.scalar)(value.dataType.supportedType))
+          Some(Tensor.fill(value.dataType, fillShape)(value.scalar)(value.dataType.evSupportedType))
         } else {
           None
         }
       case "Equal" =>
         constantValue(tensor.op.inputs(0))
             .flatMap(value1 => constantValue(tensor.op.inputs(1))
-                .map(value2 => TensorMath.equal(value1, value2)))
+                .map(value2 => TensorMath.equal(
+                  value1.asInstanceOf[Tensor[ReducibleDataType]],
+                  value2.asInstanceOf[Tensor[ReducibleDataType]])))
       case "NotEqual" =>
         constantValue(tensor.op.inputs(0))
             .flatMap(value1 => constantValue(tensor.op.inputs(1))
-                .map(value2 => TensorMath.notEqual(value1, value2)))
+                .map(value2 => TensorMath.notEqual(
+                  value1.asInstanceOf[Tensor[ReducibleDataType]],
+                  value2.asInstanceOf[Tensor[ReducibleDataType]])))
       case _ => None
     })
     // If defined, the caller may now depend on the constant value, and so we prevent 'tensor' from being fed.
@@ -370,7 +381,12 @@ object Output {
       Some(Shape.scalar())
     } else {
       tensor.op.opType match {
-        case "Shape" => Some(tensor.op.inputs(0).shape)
+        case "Shape" =>
+          val inputShape = tensor.op.inputs(0).shape
+          if (inputShape.rank > -1)
+            Some(tensor.op.inputs(0).shape)
+          else
+            None
         case "Pack" =>
           // 'i' must be a scalar. Attempt to evaluate it.
           val values = tensor.op.inputs.map(i => constantValue(i).map(v => Shape(v.scalar.asInstanceOf[Int])))
@@ -416,7 +432,7 @@ object Output {
                             shrinkAxisMask == 1 ||
                             (beginMask != 1 && beginMask > 0) ||
                             (endMask != 1 && endMask > 0)) {
-                          null
+                          None
                         } else {
                           val previousShape = constantValueAsShape(tensor.op.inputs(0))
                           previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.asInstanceOf[Int]).toArray))
@@ -434,7 +450,10 @@ object Output {
               (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int]): _*)
             returnShape = returnShape.mergeWith(shape)
           }
-          Some(returnShape)
+          if (returnShape.rank > -1)
+            Some(returnShape)
+          else
+            None
       }
     }
   }
@@ -467,7 +486,7 @@ object Output {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class OutputIndexedSlices private (indices: Output, values: Output, denseShape: Output = null)
+final case class OutputIndexedSlices(indices: Output, values: Output, denseShape: Output = null)
     extends OutputLike {
   /** Graph that contains `values`, `indices`, and `denseShape`. */
   override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
@@ -526,7 +545,7 @@ final case class OutputIndexedSlices private (indices: Output, values: Output, d
       logger.warn(
         s"Converting sparse 'OutputIndexedSlices' to a dense 'Output' with ${denseShapeValue.get.numElements} " +
             "elements. This may consume a large amount of memory.")
-    createWith(nameScope = "IndexedSlicesToOutput") {
+    createWith(nameScope = s"${values.op.name}/ToOutput") {
       Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape.gather(0))
     }
   }
@@ -669,7 +688,11 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
     * @param  name            Name for the created op.
     * @return Created op output, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toOutput(defaultValue: Output = 0, validateIndices: Boolean = true, name: String = "SparseToDense"): Output = {
+  def toOutput(
+      defaultValue: Output = 0,
+      validateIndices: Boolean = true,
+      name: String = s"${values.op.name}/ToOutput"
+  ): Output = {
     Op.Builder(opType = "SparseToDense", name = name)
         .addInput(indices)
         .addInput(denseShape)

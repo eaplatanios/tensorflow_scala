@@ -18,9 +18,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
-
-import scala.collection.mutable
+import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
 /** $OpDocRNNCellLSTMCell
   *
@@ -56,30 +54,30 @@ class LSTMCell(
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.LSTMCell = {
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
-    val kernel = tf.variable(
+    val kernel = getParameter(
       KERNEL_NAME, dataType, Shape(inputShape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
-    val bias = tf.variable(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
+    val bias = getParameter(BIAS_NAME, dataType, Shape(4 * numUnits), biasInitializer)
     val (wfDiag, wiDiag, woDiag) = {
       if (usePeepholes) {
-        val wfDiag = tf.variable("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        val wiDiag = tf.variable("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        val woDiag = tf.variable("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
-        (wfDiag.value, wiDiag.value, woDiag.value)
+        val wfDiag = getParameter("Peepholes/ForgetKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val wiDiag = getParameter("Peepholes/InputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        val woDiag = getParameter("Peepholes/OutputKernelDiag", dataType, Shape(numUnits), kernelInitializer)
+        (wfDiag, wiDiag, woDiag)
       } else {
         (null, null, null)
       }
     }
     val projectionKernel = {
       if (projectionSize != -1) {
-        val projectionKernel = tf.variable(
+        val projectionKernel = getParameter(
           s"Projection/$KERNEL_NAME", dataType, Shape(numUnits, projectionSize), kernelInitializer)
-        projectionKernel.value
+        projectionKernel
       } else {
         null
       }
     }
     ops.rnn.cell.LSTMCell(
-      kernel.value, bias.value, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip,
+      kernel, bias, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip,
       activation, forgetBias, name)
   }
 }

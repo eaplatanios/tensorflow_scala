@@ -18,21 +18,19 @@ package org.platanios.tensorflow.api.ops.training.distribute.ops
 import org.platanios.tensorflow.api.core.DeviceSpecification
 import org.platanios.tensorflow.api.ops.training.distribute._
 import org.platanios.tensorflow.api.ops.training.distribute.values.{MirroredValue, PerDeviceValue}
-import org.platanios.tensorflow.api.ops.{Math, Output}
+import org.platanios.tensorflow.api.ops.OutputLike
 
 /** Cross-tower ops that always perform a reduction to one device first and then do broadcasting.
   *
   * Batch reduction is done by reduction on each element one by one.
   *
-  * @param  device       Intermediate device to reduce to. If `None`, reduce to the first device in the provided
-  *                      destination of the `reduce()` method.
-  * @param  accumulateFn Accumulation function to use.
+  * @param  device Intermediate device to reduce to. If `None`, reduce to the first device in the provided destination
+  *                of the `reduce()` method.
   *
   * @author Emmanouil Antonios Platanios
   */
 class SingleDeviceReduceCrossTowerOps protected(
-    val device: Option[DeviceSpecification],
-    val accumulateFn: Seq[Output] => Output
+    val device: Option[DeviceSpecification]
 ) extends CrossTowerOps {
   /** Reduces `value` to `destination`.
     *
@@ -45,9 +43,9 @@ class SingleDeviceReduceCrossTowerOps protected(
     */
   def reduce[D: Destination](
       reduction: Reduction,
-      value: PerDeviceValue[Output],
+      value: PerDeviceValue[OutputLike],
       destination: Option[D]
-  ): MirroredValue[Output] = {
+  ): MirroredValue[OutputLike] = {
     val devices = destination match {
       case Some(d) => Destination.devicesFrom(d)
       case None => value.devices
@@ -70,17 +68,16 @@ class SingleDeviceReduceCrossTowerOps protected(
     */
   def batchReduce[D: Destination](
       reduction: Reduction,
-      valueDestinationPairs: Seq[(PerDeviceValue[Output], Option[D])]
-  ): Seq[MirroredValue[Output]] = {
+      valueDestinationPairs: Seq[(PerDeviceValue[OutputLike], Option[D])]
+  ): Seq[MirroredValue[OutputLike]] = {
     valueDestinationPairs.map(p => reduce(reduction, p._1, p._2))
   }
 }
 
 object SingleDeviceReduceCrossTowerOps {
   def apply(
-      device: Option[DeviceSpecification] = None,
-      accumulateFn: Seq[Output] => Output = Math.addN(_, name = "ReductionAccumulate")
+      device: Option[DeviceSpecification] = None
   ): SingleDeviceReduceCrossTowerOps = {
-    new SingleDeviceReduceCrossTowerOps(device, accumulateFn)
+    new SingleDeviceReduceCrossTowerOps(device)
   }
 }

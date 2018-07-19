@@ -71,9 +71,11 @@ class Session private[api](
     */
   @throws[IllegalStateException]
   def run[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output],
-      targets: E = Traversable.empty[Op], options: Option[RunOptions] = None)
-      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
+      feeds: FeedMap = FeedMap.empty,
+      fetches: F = Seq.empty[Output],
+      targets: E = Traversable.empty[Op],
+      options: Option[RunOptions] = None
+  )(implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
 
@@ -106,21 +108,26 @@ class Session private[api](
     */
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: Option[RunOptions] = None)
-      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
+      feeds: FeedMap = FeedMap.empty,
+      fetches: F = Seq.empty[Output],
+      targets: E = Traversable.empty[Op],
+      options: Option[RunOptions] = None
+  )(implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
 
   /** Helper method for [[run]] and [[runWithMetadata]]. */
   @throws[IllegalStateException]
   private[api] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: Option[RunOptions] = None, wantMetadata: Boolean = false)
-      (implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
+      feeds: FeedMap = FeedMap.empty,
+      fetches: F = Seq.empty[Output],
+      targets: E = Traversable.empty[Op],
+      options: Option[RunOptions] = None,
+      wantMetadata: Boolean = false
+  )(implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
-    extend()
+    // TODO: !!! [JNI] Add a call to 'extend' once some JNI issues are resolved.
     val (inputs, inputTensors) = feeds.values.toSeq.unzip
     val inputTensorHandles: Array[Long] = inputTensors.map(_.resolve()).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
@@ -173,16 +180,6 @@ class Session private[api](
         }
       }
     }
-  }
-
-  /** Extends this session with any new operations added to its associated graph. Usually this happens automatically
-    * during a run. After this is called, session runs will no longer extend the session on every call. We expose this
-    * here to allow fine-grained synchronization in multi-threaded workloads, which is required since the Scala
-    * implementation depends on some methods that mutate ops that have already been added to a graph (e.g., for control
-    * flow constructs like while loops). This allows us to prevent modifications to nodes in the graph after the session
-    * has been made aware of them. */
-  protected def extend(): Unit = NativeHandleLock.synchronized {
-    NativeSession.extend(nativeHandle)
   }
 
   /** Returns a boolean flag indicating whether this session has been closed. */

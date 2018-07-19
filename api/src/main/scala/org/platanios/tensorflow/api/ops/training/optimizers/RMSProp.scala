@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{DynamicConstantInitializer, OnesInitializer, Variable}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output, OutputIndexedSlices, Summary}
 
 /** Optimizer that implements the RMSProp optimization algorithm.
   *
@@ -77,28 +77,28 @@ class RMSProp protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(learningRateTensor, variable.dataType)
+    Cast.cast(learningRateTensor, variable.dataType)
   }
 
   protected def getRho(variable: Variable): Output = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(rhoTensor, variable.dataType)
+    Cast.cast(rhoTensor, variable.dataType)
   }
 
   protected def getMomentum(variable: Variable): Output = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(momentumTensor, variable.dataType)
+    Cast.cast(momentumTensor, variable.dataType)
   }
 
   protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(epsilonTensor, variable.dataType)
+    Cast.cast(epsilonTensor, variable.dataType)
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
       val rmsInit = if (v.shape.isFullyDefined) OnesInitializer else DynamicConstantInitializer(Basic.onesLike(v))
       getSlot("AccumulatorRMS", v, rmsInit, v.shape, v.dataType, name)

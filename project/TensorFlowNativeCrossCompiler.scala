@@ -13,13 +13,11 @@
  * the License.
  */
 
-import TensorFlowNativePackage._
+import JniCrossPackage._
 
 import java.nio.file.Path
 
-import sbt._
-
-import sys.process._
+import scala.sys.process._
 
 /** Helper class for cross-compiling the TensorFlow dynamic library within Docker containers.
   *
@@ -27,21 +25,25 @@ import sys.process._
   */
 object TensorFlowNativeCrossCompiler {
   def compile(
-      workingDir: Path, targetDir: String, gitRepository: String, gitRepositoryBranch: String,
-      platform: Platform): ProcessBuilder = {
+      workingDir: Path,
+      targetDir: String,
+      gitRepository: String,
+      gitRepositoryBranch: String,
+      platform: Platform
+  ): ProcessBuilder = {
     val repoDir = workingDir.resolve("tensorflow").toFile
-    var processBuilder = Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile) #&&
-        Process("git" :: "clone" :: gitRepository :: Nil, workingDir.toFile)
+    var processBuilder = Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile)
+    processBuilder = processBuilder #&& Process("git" :: "clone" :: gitRepository :: Nil, workingDir.toFile)
     if (gitRepositoryBranch != "master") {
       processBuilder = processBuilder #&&
           Process("git" :: "checkout" :: "-b" :: gitRepositoryBranch ::
               s"origin/$gitRepositoryBranch" :: Nil, repoDir)
     }
+    val tfLibFilename = TensorFlowNativePackage.tfLibFilename(platform)
     processBuilder #&&
         Process(platform.compileScript, repoDir) #&&
         Process(
-          "cp" :: s"lib_package/${platform.tfLibFilename}" ::
-              s"$targetDir/downloads/lib/${platform.tfLibFilename}" :: Nil, repoDir) #&&
+          "cp" :: s"lib_package/$tfLibFilename" :: s"$targetDir/downloads/lib/$tfLibFilename" :: Nil, repoDir) #&&
         Process("rm" :: "-rf" :: "tensorflow" :: Nil, workingDir.toFile)
   }
 

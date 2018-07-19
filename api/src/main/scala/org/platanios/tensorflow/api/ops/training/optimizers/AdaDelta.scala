@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -65,22 +66,22 @@ class AdaDelta protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(learningRateTensor, variable.dataType)
+    Cast.cast(learningRateTensor, variable.dataType)
   }
 
   protected def getRho(variable: Variable): Output = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(rhoTensor, variable.dataType)
+    Cast.cast(rhoTensor, variable.dataType)
   }
 
   protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Math.cast(epsilonTensor, variable.dataType)
+    Cast.cast(epsilonTensor, variable.dataType)
   }
 
-  override protected def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable]): Unit = {
     variables.foreach(v => {
       zerosSlot("Accumulator", v, name)
       zerosSlot("AccumulatorUpdate", v, name)

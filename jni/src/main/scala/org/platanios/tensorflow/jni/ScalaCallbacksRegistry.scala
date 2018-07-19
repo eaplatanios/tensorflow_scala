@@ -23,16 +23,14 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 object ScalaCallbacksRegistry {
-  private[this] object Lock
-
   private[this] var uniqueId  = 0
-  private[this] val callbacks = mutable.Map.empty[Int, (Array[Long]) => Array[Long]]
+  private[this] val callbacks = mutable.Map.empty[Int, Array[Long] => Array[Long]]
 
   /** Number of callbacks currently registered. */
   def size: Int = callbacks.size
 
   /** Registers the provided callback function and returns a unique token to use when creating ops invoking it. */
-  def register(function: (Array[Long]) => Array[Long]): Int = Lock synchronized {
+  def register(function: Array[Long] => Array[Long]): Int = this synchronized {
     val token = uniqueId
     callbacks.update(uniqueId, function)
     uniqueId += 1
@@ -40,8 +38,13 @@ object ScalaCallbacksRegistry {
   }
 
   /** De-registers (i.e., removes from this registry) the function that corresponds to the provided token. */
-  def deregister(token: Int): Unit = callbacks.remove(token)
+  def deregister(token: Int): Unit = this synchronized {
+    callbacks.remove(token)
+  }
 
   /** Invokes the callback identified by `token` using the provides input arguments. */
-  def call(token: Int, inputs: Array[Long]): Array[Long] = callbacks(token)(inputs)
+  def call(token: Int, inputs: Array[Long]): Array[Long] = {
+    val callback = this synchronized callbacks(token)
+    callback(inputs)
+  }
 }

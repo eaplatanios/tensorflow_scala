@@ -76,11 +76,11 @@ object Executable {
   }
 
   implicit def recursiveConstructor[H, T <: HList](implicit
-      executableHead: Executable[H],
+      executableHead: Lazy[Executable[H]],
       executableTail: Executable[T]
   ): Executable[H :: T] = new Executable[H :: T] {
     override def ops(executable: H :: T): Set[Op] = {
-      executableHead.ops(executable.head) ++ executableTail.ops(executable.tail)
+      executableHead.value.ops(executable.head) ++ executableTail.ops(executable.tail)
     }
   }
 

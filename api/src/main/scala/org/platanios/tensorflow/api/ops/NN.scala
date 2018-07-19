@@ -90,10 +90,10 @@ private[api] trait NN {
   def l2Normalize(x: Output, axes: Output, epsilon: Float = 1e-12f, name: String = "L2Normalize"): Output = {
     Op.createWithNameScope(name, Set(x.op)) {
       val dataType = DataType.mostPrecise(x.dataType, FLOAT32)
-      val preciseX = Math.cast(x, dataType)
+      val preciseX = Cast.cast(x, dataType)
       val squareSum = Math.sum(Math.square(preciseX), axes = axes, keepDims = true)
       val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Basic.constant(epsilon, dataType)))
-      Math.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
+      Cast.cast(Math.multiply(preciseX, xInverseNorm), x.dataType)
     }
   }
 
@@ -137,10 +137,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def relu6(input: Output, name: String = "ReLU6"): Output = {
-    Op.Builder(opType = "Relu6", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def relu6[T: OutputOps](x: T,  name: String = "ReLU6"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "ReLU6", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNCrelu
@@ -164,10 +167,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def elu(input: Output, name: String = "ELU"): Output = {
-    Op.Builder(opType = "Elu", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def elu[T: OutputOps](x: T,  name: String = "ELU"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Elu", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNSelu
@@ -177,10 +183,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def selu(input: Output, name: String = "SELU"): Output = {
-    Op.Builder(opType = "Selu", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def selu[T: OutputOps](x: T, name: String = "SELU"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Selu", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNSoftplus
@@ -190,10 +199,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def softplus(input: Output, name: String = "Softplus"): Output = {
-    Op.Builder(opType = "Softplus", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def softplus[T: OutputOps](x: T, name: String = "Softplus"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Softplus", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   /** $OpDocNNSoftsign
@@ -203,10 +215,13 @@ private[api] trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def softsign(input: Output, name: String = "Softsign"): Output = {
-    Op.Builder(opType = "Softsign", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def softsign[T: OutputOps](x: T, name: String = "Softsign"): T = {
+    implicitly[OutputOps[T]]
+        .applyUnary(x, o => {
+          Op.Builder(opType = "Softsign", name = name)
+              .addInput(o)
+              .build().outputs(0)
+        })
   }
 
   //endregion Activation Ops
@@ -309,11 +324,15 @@ private[api] trait NN {
     *         the softmax cross entropy loss.
     */
   def softmaxCrossEntropy(
-      logits: Output, labels: Output, axis: Int = -1, name: String = "SoftmaxCrossEntropy"): Output = {
+      logits: Output,
+      labels: Output,
+      axis: Int = -1,
+      name: String = "SoftmaxCrossEntropy"
+  ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       // Labels and logits must be of the same data type.
-      val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-      val preciseLabels = Math.cast(labels, preciseLogits.dataType)
+      val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
+      val preciseLabels = Cast.cast(labels, preciseLogits.dataType)
       val inputRank = Basic.rank(preciseLogits)
       // We need the original shape of the logits for shape inference.
       val shape = logits.shape
@@ -348,7 +367,7 @@ private[api] trait NN {
       }
       // We cast back to the original logits data type, if necessary.
       if (logits.dataType == FLOAT16)
-        Math.cast(reshapedOutput, FLOAT16)
+        Cast.cast(reshapedOutput, FLOAT16)
       else
         reshapedOutput
     }
@@ -370,9 +389,13 @@ private[api] trait NN {
     *         softmax cross entropy loss.
     */
   def sparseSoftmaxCrossEntropy(
-      logits: Output, labels: Output, axis: Int = -1, name: String = "SparseSoftmaxCrossEntropy"): Output = {
+      logits: Output,
+      labels: Output,
+      axis: Int = -1,
+      name: String = "SparseSoftmaxCrossEntropy"
+  ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
-      val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
+      val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
       // Check if no reshapes are required.
       val output = {
         if (logits.rank == 2) {
@@ -399,7 +422,7 @@ private[api] trait NN {
       }
       // We cast back to the original logits data type, if necessary.
       if (logits.dataType == FLOAT16)
-        Math.cast(output, FLOAT16)
+        Cast.cast(output, FLOAT16)
       else
         output
     }
@@ -418,13 +441,17 @@ private[api] trait NN {
     *         the sigmoid cross entropy loss.
     */
   def sigmoidCrossEntropy(
-      logits: Output, labels: Output, weights: Output = null, name: String = "SigmoidCrossEntropy"): Output = {
+      logits: Output,
+      labels: Output,
+      weights: Output = null,
+      name: String = "SigmoidCrossEntropy"
+  ): Output = {
     Op.createWithNameScope(name, Set(logits.op, labels.op)) {
       val output = {
         if (weights == null) {
           // Labels and logits must be of the same data type.
-          val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-          val preciseLabels = Math.cast(labels, preciseLogits.dataType)
+          val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
+          val preciseLabels = Cast.cast(labels, preciseLogits.dataType)
           // The logistic loss formula from above is:
           //   x - x * z + log(1 + exp(-x))
           // For x < 0, a more numerically stable formula is:
@@ -439,9 +466,9 @@ private[api] trait NN {
           Math.add(reluLogits - (preciseLogits * preciseLabels), Math.log1p(Math.exp(negativeAbsLogits)))
         } else {
           // Labels and logits must be of the same data type.
-          val preciseLogits = if (logits.dataType == FLOAT16) Math.cast(logits, FLOAT32) else logits
-          val preciseLabels = Math.cast(labels, preciseLogits.dataType)
-          val preciseWeights = Math.cast(weights, preciseLogits.dataType)
+          val preciseLogits = if (logits.dataType == FLOAT16) Cast.cast(logits, FLOAT32) else logits
+          val preciseLabels = Cast.cast(labels, preciseLogits.dataType)
+          val preciseWeights = Cast.cast(weights, preciseLogits.dataType)
           // The logistic loss formula from above is:
           //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(-x))
           // For x < 0, a more numerically stable formula is:
@@ -456,7 +483,7 @@ private[api] trait NN {
       }
       // We cast back to the original logits data type, if necessary.
       if (logits.dataType == FLOAT16)
-        Math.cast(output, FLOAT16)
+        Cast.cast(output, FLOAT16)
       else
         output
     }
@@ -514,10 +541,14 @@ private[api] trait NN {
     */
   @throws[InvalidShapeException]
   def sequenceLoss(
-      logits: Output, labels: Output, weights: Output = null,
-      averageAcrossTimeSteps: Boolean = true, averageAcrossBatch: Boolean = true,
+      logits: Output,
+      labels: Output,
+      weights: Output = null,
+      averageAcrossTimeSteps: Boolean = true,
+      averageAcrossBatch: Boolean = true,
       lossFn: (Output, Output) => Output = sparseSoftmaxCrossEntropy(_, _),
-      name: String = "SequenceLoss"): Output = {
+      name: String = "SequenceLoss"
+  ): Output = {
     if (logits.rank != 3)
       throw InvalidShapeException(
         s"'logits' must have shape [batchSize, sequenceLength, numClasses], but had: ${logits.shape}.")
@@ -561,6 +592,60 @@ private[api] trait NN {
   }
 
   //endregion Loss Ops
+
+  //region Normalization Ops
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor with data type `FLOAT16`, `BFLOAT16`, or `FLOAT32`.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    */
+  def lrn(
+      input: Output,
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f,
+      name: String = "LRN"
+  ): Output = {
+    localResponseNormalization(input, depthRadius, bias, alpha, beta, name)
+  }
+
+  /** $OpDocNNLocalResponseNormalization
+    *
+    * @group NNOps
+    * @param  input       Input tensor with data type `FLOAT16`, `BFLOAT16`, or `FLOAT32`.
+    * @param  depthRadius Half-width of the 1-D normalization window.
+    * @param  bias        Offset (usually positive to avoid dividing by 0).
+    * @param  alpha       Scale factor (usually positive).
+    * @param  beta        Exponent.
+    * @param  name        Name for the created op.
+    * @return Created op output.
+    */
+  def localResponseNormalization(
+      input: Output,
+      depthRadius: Int = 5,
+      bias: Float = 1.0f,
+      alpha: Float = 1.0f,
+      beta: Float = 0.5f,
+      name: String = "LocalResponseNormalization"
+  ): Output = {
+    Op.Builder("LRN", name)
+        .addInput(input)
+        .setAttribute("depth_radius", depthRadius)
+        .setAttribute("bias", bias)
+        .setAttribute("alpha", alpha)
+        .setAttribute("beta", beta)
+        .build().outputs(0)
+  }
+
+  //endregion Normalization Ops
 
   /** Returns the `noiseShape` for the provided input, making the best effort possible to deal with unknown sizes. */
   private[api] def getNoiseShape(input: Output, noiseShape: Output): Output = {
@@ -628,7 +713,7 @@ private[api] trait NN {
     Op.createWithNameScope(name, Set(input.op)) {
       val inferredNoiseShape = getNoiseShape(input, noiseShape)
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
-      val probability = Math.cast(keepProbability, input.dataType)
+      val probability = Cast.cast(keepProbability, input.dataType)
       val random = Random.randomUniform(
         input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
@@ -679,25 +764,8 @@ private[api] trait NN {
 
   //region Convolution Ops
 
-  /** Padding mode. */
-  sealed trait ConvPaddingMode {
-    val name: String
-    override def toString: String = name
-  }
-
-  object ConvPaddingMode {
-    def fromName(name: String): ConvPaddingMode = fromString(name)
-
-    @throws[InvalidArgumentException]
-    def fromString(name: String): ConvPaddingMode = name match {
-      case SameConvPadding.name => SameConvPadding
-      case ValidConvPadding.name => ValidConvPadding
-      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
-    }
-  }
-
-  case object SameConvPadding extends ConvPaddingMode { override val name: String = "SAME" }
-  case object ValidConvPadding extends ConvPaddingMode { override val name: String = "VALID" }
+  case object SameConvPadding extends NN.ConvPaddingMode { override val name: String = "SAME" }
+  case object ValidConvPadding extends NN.ConvPaddingMode { override val name: String = "VALID" }
 
   sealed trait CNNDataFormat {
     val name: String
@@ -728,21 +796,34 @@ private[api] trait NN {
     * @param  stride2       Stride of the sliding window along the third dimension of `input`.
     * @param  padding       Padding mode to use.
     * @param  dataFormat    Format of the input and output data.
+    * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                       skipped cells between each filter element on that dimension. The dimension order is
+    *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                       be set to `1`.
     * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                       GPU, as opposed to the TensorFlow implementation.
     * @param  name          Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2D(
-      input: Output, filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
-      dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-      name: String = "Conv2D"): Output = {
+      input: Output,
+      filter: Output,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+      useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2D"
+  ): Output = {
     Op.Builder(opType = "Conv2D", name = name)
         .addInput(input)
         .addInput(filter)
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
         .build().outputs(0)
   }
@@ -757,15 +838,28 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropInput(
-      inputSizes: Output, filter: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-      name: String = "Conv2DBackpropInput"): Output = {
+      inputSizes: Output,
+      filter: Output,
+      outputGradient: Output,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+      useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2DBackpropInput"
+  ): Output = {
     Op.Builder(opType = "Conv2DBackpropInput", name = name)
         .addInput(inputSizes)
         .addInput(filter)
@@ -773,6 +867,7 @@ private[api] trait NN {
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
         .build().outputs(0)
   }
@@ -787,15 +882,28 @@ private[api] trait NN {
     * @param  stride2        Stride of the sliding window along the third dimension of `input`.
     * @param  padding        Padding mode to use.
     * @param  dataFormat     Format of the input and output data.
+    * @param  dilations      The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+    *                        skipped cells between each filter element on that dimension. The dimension order is
+    *                        determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+    *                        be set to `1`.
     * @param  useCuDNNOnGPU  Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
     *                        GPU, as opposed to the TensorFlow implementation.
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def conv2DBackpropFilter(
-      input: Output, filterSizes: Output, outputGradient: Output, stride1: Long, stride2: Long,
-      padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-      name: String = "Conv2DBackpropFilter"): Output = {
+      input: Output,
+      filterSizes: Output,
+      outputGradient: Output,
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+      dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+      useCuDNNOnGPU: Boolean = true,
+      name: String = "Conv2DBackpropFilter"
+  ): Output = {
     Op.Builder(opType = "Conv2DBackpropFilter", name = name)
         .addInput(input)
         .addInput(filterSizes)
@@ -803,6 +911,7 @@ private[api] trait NN {
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
         .build().outputs(0)
   }
@@ -1005,6 +1114,50 @@ object NN extends NN {
       */
     def logSoftmax(axis: Int = -1): Output = NN.logSoftmax(output, axis)
 
+    //region Normalization Ops
+
+    /** $OpDocNNLocalResponseNormalization
+      *
+      * @group NNOps
+      * @param  depthRadius Half-width of the 1-D normalization window.
+      * @param  bias        Offset (usually positive to avoid dividing by 0).
+      * @param  alpha       Scale factor (usually positive).
+      * @param  beta        Exponent.
+      * @param  name        Name for the created op.
+      * @return Created op output.
+      */
+    def lrn(
+        depthRadius: Int = 5,
+        bias: Float = 1.0f,
+        alpha: Float = 1.0f,
+        beta: Float = 0.5f,
+        name: String = "LRN"
+    ): Output = {
+      NN.localResponseNormalization(output, depthRadius, bias, alpha, beta, name)
+    }
+
+    /** $OpDocNNLocalResponseNormalization
+      *
+      * @group NNOps
+      * @param  depthRadius Half-width of the 1-D normalization window.
+      * @param  bias        Offset (usually positive to avoid dividing by 0).
+      * @param  alpha       Scale factor (usually positive).
+      * @param  beta        Exponent.
+      * @param  name        Name for the created op.
+      * @return Created op output.
+      */
+    def localResponseNormalization(
+        depthRadius: Int = 5,
+        bias: Float = 1.0f,
+        alpha: Float = 1.0f,
+        beta: Float = 0.5f,
+        name: String = "LocalResponseNormalization"
+    ): Output = {
+      NN.localResponseNormalization(output, depthRadius, bias, alpha, beta, name)
+    }
+
+    //endregion Normalization Ops
+
     /** $OpDocNNDropout
       *
       * @group NNOps
@@ -1072,16 +1225,27 @@ object NN extends NN {
       * @param  stride2       Stride of the sliding window along the third dimension of this tensor.
       * @param  padding       Padding mode to use.
       * @param  dataFormat    Format of the input and output data.
-      * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on a
-      *                       GPU, as opposed to the TensorFlow implementation.
+      * @param  dilations     The dilation factor for each dimension of input. If set to `k > 1`, there will be `k - 1`
+      *                       skipped cells between each filter element on that dimension. The dimension order is
+      *                       determined by the value of `dataFormat`. Dilations in the batch and depth dimensions must
+      *                       be set to `1`.
+      * @param  useCuDNNOnGPU Boolean value indicating whether or not to use CuDNN for the created op, if its placed on
+      *                       a GPU, as opposed to the TensorFlow implementation.
       * @param  name          Name for the created op.
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def conv2D(
-        filter: Output, stride1: Long, stride2: Long, padding: ConvPaddingMode,
-        dataFormat: CNNDataFormat = CNNDataFormat.default, useCuDNNOnGPU: Boolean = true,
-        name: String = "Conv2D"): Output = {
-      NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, useCuDNNOnGPU, name)
+        filter: Output,
+        stride1: Long,
+        stride2: Long,
+        padding: ConvPaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default,
+        // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
+        dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
+        useCuDNNOnGPU: Boolean = true,
+        name: String = "Conv2D"
+    ): Output = {
+      NN.conv2D(output, filter, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU, name)
     }
 
     //endregion Convolution Ops
@@ -1105,6 +1269,23 @@ object NN extends NN {
     }
 
     //endregion Pooling Ops
+  }
+
+  /** Padding mode. */
+  sealed trait ConvPaddingMode {
+    val name: String
+    override def toString: String = name
+  }
+
+  object ConvPaddingMode {
+    def fromName(name: String): ConvPaddingMode = fromString(name)
+
+    @throws[InvalidArgumentException]
+    def fromString(name: String): ConvPaddingMode = name match {
+      case SameConvPadding.name => SameConvPadding
+      case ValidConvPadding.name => ValidConvPadding
+      case _ => throw InvalidArgumentException(s"Invalid convolution/pooling padding mode '$name' provided.")
+    }
   }
 
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */
@@ -1169,6 +1350,7 @@ object NN extends NN {
     GradientsRegistry.register("SeluGrad", seluHessian)
     GradientsRegistry.register("Softmax", softmaxGradient)
     GradientsRegistry.register("LogSoftmax", logSoftmaxGradient)
+    GradientsRegistry.register("LRN", lrnGradient)
     GradientsRegistry.register("SoftmaxCrossEntropyWithLogits", softmaxCrossEntropyGradient)
     GradientsRegistry.register("SparseSoftmaxCrossEntropyWithLogits", sparseSoftmaxCrossEntropyGradient)
     GradientsRegistry.register("L2Loss", l2LossGradient)
@@ -1351,6 +1533,19 @@ object NN extends NN {
       Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
     }
 
+    private[this] def lrnGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      val outputGradient = outputGradients.head.toOutput
+      Op.Builder(opType = "LRNGrad", name = "LRNGrad")
+          .addInput(outputGradient)
+          .addInput(op.inputs(0))
+          .addInput(op.outputs(0))
+          .setAttribute("depth_radius", op.longAttribute("depth_radius"))
+          .setAttribute("bias", op.floatAttribute("bias"))
+          .setAttribute("alpha", op.floatAttribute("alpha"))
+          .setAttribute("beta", op.floatAttribute("beta"))
+          .build().outputs.toSeq.asInstanceOf[Seq[OutputLike]]
+    }
+
     private[this] def broadcastMultiply(vector: Output, matrix: Output): Output = {
       Basic.expandDims(vector, -1) * matrix
     }
@@ -1435,7 +1630,9 @@ object NN extends NN {
   }
 
   private[this] def batchNormalizationWithGlobalNormalizationGradient(
-      op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+      op: Op,
+      outputGradients: Seq[OutputLike]
+  ): Seq[OutputLike] = {
     val outputGradient = outputGradients.head.toOutput
     Op.Builder(
       opType = "BatchNormWithGlobalNormalizationGrad", name = "BatchNormalizationWithGlobalNormalizationGradient")
@@ -1468,15 +1665,16 @@ object NN extends NN {
     val strides = op.longArrayAttribute("strides")
     val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    val dilations = op.longArrayAttribute("dilations")
     val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
     val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)))
     Seq(
       NN.conv2DBackpropInput(
-        inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt,
-        padding, dataFormat, useCuDNNOnGPU),
+        inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
+        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU),
       NN.conv2DBackpropFilter(
-        op.inputs(0), inputShapes(1), outputGradient, strides(1).toInt, strides(2).toInt,
-        padding, dataFormat, useCuDNNOnGPU))
+        op.inputs(0), inputShapes(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
+        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU))
   }
 
   private[this] def maxPoolGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -1715,6 +1913,19 @@ object NN extends NN {
     *   0, 1, or 2 as these arguments reduce the cross-entropy each label, which has shape
     *   `[batchSize, sequenceLength]`, over their respective dimensions. For examplem if `averageAcrossTimeSteps` is
     *   `true` and `averageAcrossBatch` is `false`, then the returned tensor will have shape `[batchSize]`.
+    *
+    * @define OpDocNNLocalResponseNormalization
+    *   The `localResponseNormalization` op treats the input 4-D tensor as a 3-D array of 1-D vectors (along the last
+    *   dimension), and each vector is normalized independently. Within a given vector, each component is divided by the
+    *   weighted, squared sum of the inputs within `depthRadius`. In detail:
+    *
+    *   {{{
+    *    sqrSum[a, b, c, d] = sum(input[a, b, c, d - depthRadius : d + depthRadius + 1] **   2)
+    *    output = input / (bias + alpha *   sqrSum) **   beta
+    *   }}}
+    *
+    *   For details, see
+    *   [[http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks Krizhevsky et al., ImageNet Classification with Deep Convolutional Neural Networks (NIPS 2012).]]
     *
     * @define OpDocNNDropout
     *   The `dropout` op computes a dropout layer.

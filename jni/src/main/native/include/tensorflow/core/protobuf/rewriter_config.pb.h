@@ -28,8 +28,12 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_field.h>  // IWYU pragma: export
 #include <google/protobuf/extension_set.h>  // IWYU pragma: export
+#include <google/protobuf/map.h>  // IWYU pragma: export
+#include <google/protobuf/map_entry.h>
+#include <google/protobuf/map_field_inl.h>
 #include <google/protobuf/generated_enum_reflection.h>
 #include <google/protobuf/unknown_field_set.h>
+#include "tensorflow/core/framework/attr_value.pb.h"
 // @@protoc_insertion_point(includes)
 
 namespace protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto {
@@ -37,7 +41,7 @@ namespace protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto {
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[2];
+  static const ::google::protobuf::internal::ParseTable schema[4];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -45,10 +49,16 @@ struct TableStruct {
 void AddDescriptors();
 void InitDefaultsAutoParallelOptionsImpl();
 void InitDefaultsAutoParallelOptions();
+void InitDefaultsRewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUseImpl();
+void InitDefaultsRewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse();
+void InitDefaultsRewriterConfig_CustomGraphOptimizerImpl();
+void InitDefaultsRewriterConfig_CustomGraphOptimizer();
 void InitDefaultsRewriterConfigImpl();
 void InitDefaultsRewriterConfig();
 inline void InitDefaults() {
   InitDefaultsAutoParallelOptions();
+  InitDefaultsRewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse();
+  InitDefaultsRewriterConfig_CustomGraphOptimizer();
   InitDefaultsRewriterConfig();
 }
 }  // namespace protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto
@@ -59,11 +69,19 @@ extern AutoParallelOptionsDefaultTypeInternal _AutoParallelOptions_default_insta
 class RewriterConfig;
 class RewriterConfigDefaultTypeInternal;
 extern RewriterConfigDefaultTypeInternal _RewriterConfig_default_instance_;
+class RewriterConfig_CustomGraphOptimizer;
+class RewriterConfig_CustomGraphOptimizerDefaultTypeInternal;
+extern RewriterConfig_CustomGraphOptimizerDefaultTypeInternal _RewriterConfig_CustomGraphOptimizer_default_instance_;
+class RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse;
+class RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUseDefaultTypeInternal;
+extern RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUseDefaultTypeInternal _RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse_default_instance_;
 }  // namespace tensorflow
 namespace google {
 namespace protobuf {
 template<> ::tensorflow::AutoParallelOptions* Arena::CreateMessage< ::tensorflow::AutoParallelOptions>(Arena*);
 template<> ::tensorflow::RewriterConfig* Arena::CreateMessage< ::tensorflow::RewriterConfig>(Arena*);
+template<> ::tensorflow::RewriterConfig_CustomGraphOptimizer* Arena::CreateMessage< ::tensorflow::RewriterConfig_CustomGraphOptimizer>(Arena*);
+template<> ::tensorflow::RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse* Arena::CreateMessage< ::tensorflow::RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse>(Arena*);
 }  // namespace protobuf
 }  // namespace google
 namespace tensorflow {
@@ -90,6 +108,28 @@ inline bool RewriterConfig_Toggle_Parse(
     const ::std::string& name, RewriterConfig_Toggle* value) {
   return ::google::protobuf::internal::ParseNamedEnum<RewriterConfig_Toggle>(
     RewriterConfig_Toggle_descriptor(), name, value);
+}
+enum RewriterConfig_NumIterationsType {
+  RewriterConfig_NumIterationsType_DEFAULT_NUM_ITERS = 0,
+  RewriterConfig_NumIterationsType_ONE = 1,
+  RewriterConfig_NumIterationsType_TWO = 2,
+  RewriterConfig_NumIterationsType_RewriterConfig_NumIterationsType_INT_MIN_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32min,
+  RewriterConfig_NumIterationsType_RewriterConfig_NumIterationsType_INT_MAX_SENTINEL_DO_NOT_USE_ = ::google::protobuf::kint32max
+};
+bool RewriterConfig_NumIterationsType_IsValid(int value);
+const RewriterConfig_NumIterationsType RewriterConfig_NumIterationsType_NumIterationsType_MIN = RewriterConfig_NumIterationsType_DEFAULT_NUM_ITERS;
+const RewriterConfig_NumIterationsType RewriterConfig_NumIterationsType_NumIterationsType_MAX = RewriterConfig_NumIterationsType_TWO;
+const int RewriterConfig_NumIterationsType_NumIterationsType_ARRAYSIZE = RewriterConfig_NumIterationsType_NumIterationsType_MAX + 1;
+
+const ::google::protobuf::EnumDescriptor* RewriterConfig_NumIterationsType_descriptor();
+inline const ::std::string& RewriterConfig_NumIterationsType_Name(RewriterConfig_NumIterationsType value) {
+  return ::google::protobuf::internal::NameOfEnum(
+    RewriterConfig_NumIterationsType_descriptor(), value);
+}
+inline bool RewriterConfig_NumIterationsType_Parse(
+    const ::std::string& name, RewriterConfig_NumIterationsType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<RewriterConfig_NumIterationsType>(
+    RewriterConfig_NumIterationsType_descriptor(), name, value);
 }
 enum RewriterConfig_MemOptType {
   RewriterConfig_MemOptType_DEFAULT_MEM_OPT = 0,
@@ -244,6 +284,178 @@ class AutoParallelOptions : public ::google::protobuf::Message /* @@protoc_inser
 };
 // -------------------------------------------------------------------
 
+class RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse : public ::google::protobuf::internal::MapEntry<RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse, 
+    ::std::string, ::tensorflow::AttrValue,
+    ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+    ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
+    0 > {
+public:
+  typedef ::google::protobuf::internal::MapEntry<RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse, 
+    ::std::string, ::tensorflow::AttrValue,
+    ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+    ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
+    0 > SuperType;
+  RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse();
+  RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse(::google::protobuf::Arena* arena);
+  void MergeFrom(const RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse& other);
+  static const RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse* internal_default_instance() { return reinterpret_cast<const RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse*>(&_RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse_default_instance_); }
+  void MergeFrom(const ::google::protobuf::Message& other) PROTOBUF_FINAL;
+  ::google::protobuf::Metadata GetMetadata() const;
+};
+
+// -------------------------------------------------------------------
+
+class RewriterConfig_CustomGraphOptimizer : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.RewriterConfig.CustomGraphOptimizer) */ {
+ public:
+  RewriterConfig_CustomGraphOptimizer();
+  virtual ~RewriterConfig_CustomGraphOptimizer();
+
+  RewriterConfig_CustomGraphOptimizer(const RewriterConfig_CustomGraphOptimizer& from);
+
+  inline RewriterConfig_CustomGraphOptimizer& operator=(const RewriterConfig_CustomGraphOptimizer& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  RewriterConfig_CustomGraphOptimizer(RewriterConfig_CustomGraphOptimizer&& from) noexcept
+    : RewriterConfig_CustomGraphOptimizer() {
+    *this = ::std::move(from);
+  }
+
+  inline RewriterConfig_CustomGraphOptimizer& operator=(RewriterConfig_CustomGraphOptimizer&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const PROTOBUF_FINAL {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const PROTOBUF_FINAL {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const RewriterConfig_CustomGraphOptimizer& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const RewriterConfig_CustomGraphOptimizer* internal_default_instance() {
+    return reinterpret_cast<const RewriterConfig_CustomGraphOptimizer*>(
+               &_RewriterConfig_CustomGraphOptimizer_default_instance_);
+  }
+  static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
+    2;
+
+  void UnsafeArenaSwap(RewriterConfig_CustomGraphOptimizer* other);
+  void Swap(RewriterConfig_CustomGraphOptimizer* other);
+  friend void swap(RewriterConfig_CustomGraphOptimizer& a, RewriterConfig_CustomGraphOptimizer& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline RewriterConfig_CustomGraphOptimizer* New() const PROTOBUF_FINAL {
+    return ::google::protobuf::Arena::CreateMessage<RewriterConfig_CustomGraphOptimizer>(NULL);
+  }
+
+  RewriterConfig_CustomGraphOptimizer* New(::google::protobuf::Arena* arena) const PROTOBUF_FINAL {
+    return ::google::protobuf::Arena::CreateMessage<RewriterConfig_CustomGraphOptimizer>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void MergeFrom(const ::google::protobuf::Message& from) PROTOBUF_FINAL;
+  void CopyFrom(const RewriterConfig_CustomGraphOptimizer& from);
+  void MergeFrom(const RewriterConfig_CustomGraphOptimizer& from);
+  void Clear() PROTOBUF_FINAL;
+  bool IsInitialized() const PROTOBUF_FINAL;
+
+  size_t ByteSizeLong() const PROTOBUF_FINAL;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) PROTOBUF_FINAL;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const PROTOBUF_FINAL;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const PROTOBUF_FINAL;
+  int GetCachedSize() const PROTOBUF_FINAL { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const PROTOBUF_FINAL;
+  void InternalSwap(RewriterConfig_CustomGraphOptimizer* other);
+  protected:
+  explicit RewriterConfig_CustomGraphOptimizer(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const PROTOBUF_FINAL;
+
+  // nested types ----------------------------------------------------
+
+
+  // accessors -------------------------------------------------------
+
+  // map<string, .tensorflow.AttrValue> parameter_map = 2;
+  int parameter_map_size() const;
+  void clear_parameter_map();
+  static const int kParameterMapFieldNumber = 2;
+  const ::google::protobuf::Map< ::std::string, ::tensorflow::AttrValue >&
+      parameter_map() const;
+  ::google::protobuf::Map< ::std::string, ::tensorflow::AttrValue >*
+      mutable_parameter_map();
+
+  // string name = 1;
+  void clear_name();
+  static const int kNameFieldNumber = 1;
+  const ::std::string& name() const;
+  void set_name(const ::std::string& value);
+  #if LANG_CXX11
+  void set_name(::std::string&& value);
+  #endif
+  void set_name(const char* value);
+  void set_name(const char* value, size_t size);
+  ::std::string* mutable_name();
+  ::std::string* release_name();
+  void set_allocated_name(::std::string* name);
+  PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  ::std::string* unsafe_arena_release_name();
+  PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_name(
+      ::std::string* name);
+
+  // @@protoc_insertion_point(class_scope:tensorflow.RewriterConfig.CustomGraphOptimizer)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::internal::MapField<
+      RewriterConfig_CustomGraphOptimizer_ParameterMapEntry_DoNotUse,
+      ::std::string, ::tensorflow::AttrValue,
+      ::google::protobuf::internal::WireFormatLite::TYPE_STRING,
+      ::google::protobuf::internal::WireFormatLite::TYPE_MESSAGE,
+      0 > parameter_map_;
+  ::google::protobuf::internal::ArenaStringPtr name_;
+  mutable int _cached_size_;
+  friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::TableStruct;
+  friend void ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::InitDefaultsRewriterConfig_CustomGraphOptimizerImpl();
+};
+// -------------------------------------------------------------------
+
 class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.RewriterConfig) */ {
  public:
   RewriterConfig();
@@ -285,7 +497,7 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
                &_RewriterConfig_default_instance_);
   }
   static PROTOBUF_CONSTEXPR int const kIndexInFileMessages =
-    1;
+    3;
 
   void UnsafeArenaSwap(RewriterConfig* other);
   void Swap(RewriterConfig* other);
@@ -340,6 +552,8 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
 
   // nested types ----------------------------------------------------
 
+  typedef RewriterConfig_CustomGraphOptimizer CustomGraphOptimizer;
+
   typedef RewriterConfig_Toggle Toggle;
   static const Toggle DEFAULT =
     RewriterConfig_Toggle_DEFAULT;
@@ -368,6 +582,34 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   static inline bool Toggle_Parse(const ::std::string& name,
       Toggle* value) {
     return RewriterConfig_Toggle_Parse(name, value);
+  }
+
+  typedef RewriterConfig_NumIterationsType NumIterationsType;
+  static const NumIterationsType DEFAULT_NUM_ITERS =
+    RewriterConfig_NumIterationsType_DEFAULT_NUM_ITERS;
+  static const NumIterationsType ONE =
+    RewriterConfig_NumIterationsType_ONE;
+  static const NumIterationsType TWO =
+    RewriterConfig_NumIterationsType_TWO;
+  static inline bool NumIterationsType_IsValid(int value) {
+    return RewriterConfig_NumIterationsType_IsValid(value);
+  }
+  static const NumIterationsType NumIterationsType_MIN =
+    RewriterConfig_NumIterationsType_NumIterationsType_MIN;
+  static const NumIterationsType NumIterationsType_MAX =
+    RewriterConfig_NumIterationsType_NumIterationsType_MAX;
+  static const int NumIterationsType_ARRAYSIZE =
+    RewriterConfig_NumIterationsType_NumIterationsType_ARRAYSIZE;
+  static inline const ::google::protobuf::EnumDescriptor*
+  NumIterationsType_descriptor() {
+    return RewriterConfig_NumIterationsType_descriptor();
+  }
+  static inline const ::std::string& NumIterationsType_Name(NumIterationsType value) {
+    return RewriterConfig_NumIterationsType_Name(value);
+  }
+  static inline bool NumIterationsType_Parse(const ::std::string& name,
+      NumIterationsType* value) {
+    return RewriterConfig_NumIterationsType_Parse(name, value);
   }
 
   typedef RewriterConfig_MemOptType MemOptType;
@@ -429,6 +671,18 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   void add_optimizers(const char* value, size_t size);
   const ::google::protobuf::RepeatedPtrField< ::std::string>& optimizers() const;
   ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_optimizers();
+
+  // repeated .tensorflow.RewriterConfig.CustomGraphOptimizer custom_optimizers = 200;
+  int custom_optimizers_size() const;
+  void clear_custom_optimizers();
+  static const int kCustomOptimizersFieldNumber = 200;
+  ::tensorflow::RewriterConfig_CustomGraphOptimizer* mutable_custom_optimizers(int index);
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::RewriterConfig_CustomGraphOptimizer >*
+      mutable_custom_optimizers();
+  const ::tensorflow::RewriterConfig_CustomGraphOptimizer& custom_optimizers(int index) const;
+  ::tensorflow::RewriterConfig_CustomGraphOptimizer* add_custom_optimizers();
+  const ::google::protobuf::RepeatedPtrField< ::tensorflow::RewriterConfig_CustomGraphOptimizer >&
+      custom_optimizers() const;
 
   // string memory_optimizer_target_node_name_scope = 6;
   void clear_memory_optimizer_target_node_name_scope();
@@ -519,6 +773,24 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::tensorflow::RewriterConfig_Toggle debug_stripper() const;
   void set_debug_stripper(::tensorflow::RewriterConfig_Toggle value);
 
+  // .tensorflow.RewriterConfig.NumIterationsType meta_optimizer_iterations = 12;
+  void clear_meta_optimizer_iterations();
+  static const int kMetaOptimizerIterationsFieldNumber = 12;
+  ::tensorflow::RewriterConfig_NumIterationsType meta_optimizer_iterations() const;
+  void set_meta_optimizer_iterations(::tensorflow::RewriterConfig_NumIterationsType value);
+
+  // .tensorflow.RewriterConfig.Toggle shape_optimization = 13;
+  void clear_shape_optimization();
+  static const int kShapeOptimizationFieldNumber = 13;
+  ::tensorflow::RewriterConfig_Toggle shape_optimization() const;
+  void set_shape_optimization(::tensorflow::RewriterConfig_Toggle value);
+
+  // .tensorflow.RewriterConfig.Toggle remapping = 14;
+  void clear_remapping();
+  static const int kRemappingFieldNumber = 14;
+  ::tensorflow::RewriterConfig_Toggle remapping() const;
+  void set_remapping(::tensorflow::RewriterConfig_Toggle value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.RewriterConfig)
  private:
 
@@ -527,6 +799,7 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::google::protobuf::RepeatedPtrField< ::std::string> optimizers_;
+  ::google::protobuf::RepeatedPtrField< ::tensorflow::RewriterConfig_CustomGraphOptimizer > custom_optimizers_;
   ::google::protobuf::internal::ArenaStringPtr memory_optimizer_target_node_name_scope_;
   ::tensorflow::AutoParallelOptions* auto_parallel_;
   int layout_optimizer_;
@@ -538,6 +811,9 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   int loop_optimization_;
   int function_optimization_;
   int debug_stripper_;
+  int meta_optimizer_iterations_;
+  int shape_optimization_;
+  int remapping_;
   mutable int _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::TableStruct;
   friend void ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::InitDefaultsRewriterConfigImpl();
@@ -583,6 +859,102 @@ inline void AutoParallelOptions::set_num_replicas(::google::protobuf::int32 valu
 
 // -------------------------------------------------------------------
 
+// -------------------------------------------------------------------
+
+// RewriterConfig_CustomGraphOptimizer
+
+// string name = 1;
+inline void RewriterConfig_CustomGraphOptimizer::clear_name() {
+  name_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const ::std::string& RewriterConfig_CustomGraphOptimizer::name() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+  return name_.Get();
+}
+inline void RewriterConfig_CustomGraphOptimizer::set_name(const ::std::string& value) {
+  
+  name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+}
+#if LANG_CXX11
+inline void RewriterConfig_CustomGraphOptimizer::set_name(::std::string&& value) {
+  
+  name_.Set(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+}
+#endif
+inline void RewriterConfig_CustomGraphOptimizer::set_name(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+}
+inline void RewriterConfig_CustomGraphOptimizer::set_name(const char* value,
+    size_t size) {
+  
+  name_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+}
+inline ::std::string* RewriterConfig_CustomGraphOptimizer::mutable_name() {
+  
+  // @@protoc_insertion_point(field_mutable:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+  return name_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* RewriterConfig_CustomGraphOptimizer::release_name() {
+  // @@protoc_insertion_point(field_release:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+  
+  return name_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline void RewriterConfig_CustomGraphOptimizer::set_allocated_name(::std::string* name) {
+  if (name != NULL) {
+    
+  } else {
+    
+  }
+  name_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), name,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+}
+inline ::std::string* RewriterConfig_CustomGraphOptimizer::unsafe_arena_release_name() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  
+  return name_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void RewriterConfig_CustomGraphOptimizer::unsafe_arena_set_allocated_name(
+    ::std::string* name) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  if (name != NULL) {
+    
+  } else {
+    
+  }
+  name_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      name, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.RewriterConfig.CustomGraphOptimizer.name)
+}
+
+// map<string, .tensorflow.AttrValue> parameter_map = 2;
+inline int RewriterConfig_CustomGraphOptimizer::parameter_map_size() const {
+  return parameter_map_.size();
+}
+inline const ::google::protobuf::Map< ::std::string, ::tensorflow::AttrValue >&
+RewriterConfig_CustomGraphOptimizer::parameter_map() const {
+  // @@protoc_insertion_point(field_map:tensorflow.RewriterConfig.CustomGraphOptimizer.parameter_map)
+  return parameter_map_.GetMap();
+}
+inline ::google::protobuf::Map< ::std::string, ::tensorflow::AttrValue >*
+RewriterConfig_CustomGraphOptimizer::mutable_parameter_map() {
+  // @@protoc_insertion_point(field_mutable_map:tensorflow.RewriterConfig.CustomGraphOptimizer.parameter_map)
+  return parameter_map_.MutableMap();
+}
+
+// -------------------------------------------------------------------
+
 // RewriterConfig
 
 // .tensorflow.RewriterConfig.Toggle layout_optimizer = 1;
@@ -611,6 +983,34 @@ inline void RewriterConfig::set_constant_folding(::tensorflow::RewriterConfig_To
   
   constant_folding_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.constant_folding)
+}
+
+// .tensorflow.RewriterConfig.Toggle shape_optimization = 13;
+inline void RewriterConfig::clear_shape_optimization() {
+  shape_optimization_ = 0;
+}
+inline ::tensorflow::RewriterConfig_Toggle RewriterConfig::shape_optimization() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.shape_optimization)
+  return static_cast< ::tensorflow::RewriterConfig_Toggle >(shape_optimization_);
+}
+inline void RewriterConfig::set_shape_optimization(::tensorflow::RewriterConfig_Toggle value) {
+  
+  shape_optimization_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.shape_optimization)
+}
+
+// .tensorflow.RewriterConfig.Toggle remapping = 14;
+inline void RewriterConfig::clear_remapping() {
+  remapping_ = 0;
+}
+inline ::tensorflow::RewriterConfig_Toggle RewriterConfig::remapping() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.remapping)
+  return static_cast< ::tensorflow::RewriterConfig_Toggle >(remapping_);
+}
+inline void RewriterConfig::set_remapping(::tensorflow::RewriterConfig_Toggle value) {
+  
+  remapping_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.remapping)
 }
 
 // .tensorflow.RewriterConfig.Toggle arithmetic_optimization = 7;
@@ -695,6 +1095,20 @@ inline void RewriterConfig::set_disable_model_pruning(bool value) {
   
   disable_model_pruning_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.disable_model_pruning)
+}
+
+// .tensorflow.RewriterConfig.NumIterationsType meta_optimizer_iterations = 12;
+inline void RewriterConfig::clear_meta_optimizer_iterations() {
+  meta_optimizer_iterations_ = 0;
+}
+inline ::tensorflow::RewriterConfig_NumIterationsType RewriterConfig::meta_optimizer_iterations() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.meta_optimizer_iterations)
+  return static_cast< ::tensorflow::RewriterConfig_NumIterationsType >(meta_optimizer_iterations_);
+}
+inline void RewriterConfig::set_meta_optimizer_iterations(::tensorflow::RewriterConfig_NumIterationsType value) {
+  
+  meta_optimizer_iterations_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.meta_optimizer_iterations)
 }
 
 // .tensorflow.RewriterConfig.MemOptType memory_optimization = 4;
@@ -917,9 +1331,43 @@ RewriterConfig::mutable_optimizers() {
   return &optimizers_;
 }
 
+// repeated .tensorflow.RewriterConfig.CustomGraphOptimizer custom_optimizers = 200;
+inline int RewriterConfig::custom_optimizers_size() const {
+  return custom_optimizers_.size();
+}
+inline void RewriterConfig::clear_custom_optimizers() {
+  custom_optimizers_.Clear();
+}
+inline ::tensorflow::RewriterConfig_CustomGraphOptimizer* RewriterConfig::mutable_custom_optimizers(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.RewriterConfig.custom_optimizers)
+  return custom_optimizers_.Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField< ::tensorflow::RewriterConfig_CustomGraphOptimizer >*
+RewriterConfig::mutable_custom_optimizers() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.RewriterConfig.custom_optimizers)
+  return &custom_optimizers_;
+}
+inline const ::tensorflow::RewriterConfig_CustomGraphOptimizer& RewriterConfig::custom_optimizers(int index) const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.custom_optimizers)
+  return custom_optimizers_.Get(index);
+}
+inline ::tensorflow::RewriterConfig_CustomGraphOptimizer* RewriterConfig::add_custom_optimizers() {
+  // @@protoc_insertion_point(field_add:tensorflow.RewriterConfig.custom_optimizers)
+  return custom_optimizers_.Add();
+}
+inline const ::google::protobuf::RepeatedPtrField< ::tensorflow::RewriterConfig_CustomGraphOptimizer >&
+RewriterConfig::custom_optimizers() const {
+  // @@protoc_insertion_point(field_list:tensorflow.RewriterConfig.custom_optimizers)
+  return custom_optimizers_;
+}
+
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 
@@ -934,6 +1382,11 @@ template <> struct is_proto_enum< ::tensorflow::RewriterConfig_Toggle> : ::googl
 template <>
 inline const EnumDescriptor* GetEnumDescriptor< ::tensorflow::RewriterConfig_Toggle>() {
   return ::tensorflow::RewriterConfig_Toggle_descriptor();
+}
+template <> struct is_proto_enum< ::tensorflow::RewriterConfig_NumIterationsType> : ::google::protobuf::internal::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor< ::tensorflow::RewriterConfig_NumIterationsType>() {
+  return ::tensorflow::RewriterConfig_NumIterationsType_descriptor();
 }
 template <> struct is_proto_enum< ::tensorflow::RewriterConfig_MemOptType> : ::google::protobuf::internal::true_type {};
 template <>

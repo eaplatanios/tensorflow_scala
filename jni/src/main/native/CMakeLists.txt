@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 # Define project and related variables
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
-set(PROJECT_VERSION_MINOR 0)
+set(PROJECT_VERSION_MINOR 2)
 set(PROJECT_VERSION_PATCH 0)
 
 # Set up JNI
@@ -19,6 +19,7 @@ endif()
 include_directories(.)
 include_directories(./generated)
 include_directories(./include)
+include_directories(./include/third_party)
 include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 
@@ -39,7 +40,7 @@ file(GLOB JNI_LIB_SRC
   "*.cc"
   "generated/*.cc"
   "include/tensorflow/c/*.cc"
-  "include/tensorflow/core/distributed_runtime/*.cc"
+  "include/tensorflow/core/distributed_runtime/server_lib.cc"
 )
 
 file(GLOB OP_LIB_SRC

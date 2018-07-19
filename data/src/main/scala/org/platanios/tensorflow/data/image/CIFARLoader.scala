@@ -17,6 +17,7 @@ package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.data.Loader
+import org.platanios.tensorflow.data.utilities.UniformSplit
 
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream}
@@ -34,6 +35,7 @@ import scala.language.postfixOps
   */
 object CIFARLoader extends Loader {
   sealed trait DatasetType {
+    val name              : String
     val url               : String
     val compressedFilename: String
     val trainFilenames    : Seq[String]
@@ -43,6 +45,7 @@ object CIFARLoader extends Loader {
   }
 
   case object CIFAR_10 extends DatasetType {
+    override val name              : String      = "CIFAR-10"
     override val url               : String      = "http://www.cs.toronto.edu/~kriz/"
     override val compressedFilename: String      = "cifar-10-binary.tar.gz"
     override val trainFilenames    : Seq[String] = (1 to 5).map(i => s"data_batch_$i.bin")
@@ -52,6 +55,7 @@ object CIFARLoader extends Loader {
   }
 
   case object CIFAR_100 extends DatasetType {
+    override val name              : String      = "CIFAR-100"
     override val url               : String      = "http://www.cs.toronto.edu/~kriz/"
     override val compressedFilename: String      = "cifar-100-binary.tar.gz"
     override val trainFilenames    : Seq[String] = Seq("train.bin")
@@ -71,12 +75,15 @@ object CIFARLoader extends Loader {
 
     // Load the data.
     val dataset = extractFiles(path.resolve(compressedFilename), datasetType, bufferSize)
-    logger.info(s"Finished loading the CIFAR dataset.")
+    logger.info(s"Finished loading the ${datasetType.name} dataset.")
     dataset
   }
 
   private[this] def extractFiles(
-      path: Path, datasetType: DatasetType = CIFAR_10, bufferSize: Int = 8192): CIFARDataset = {
+      path: Path,
+      datasetType: DatasetType = CIFAR_10,
+      bufferSize: Int = 8192
+  ): CIFARDataset = {
     logger.info(s"Extracting data from file '$path'.")
     val inputStream = new TarArchiveInputStream(new GZIPInputStream(Files.newInputStream(path)))
     var dataset = CIFARDataset(datasetType, null, null, null, null)
@@ -108,8 +115,11 @@ object CIFARLoader extends Loader {
   }
 
   private[this] def readImagesAndLabels(
-      inputStream: TarArchiveInputStream, entry: TarArchiveEntry,
-      datasetType: DatasetType = CIFAR_10, bufferSize: Int = 8192): (Tensor, Tensor) = {
+      inputStream: TarArchiveInputStream,
+      entry: TarArchiveEntry,
+      datasetType: DatasetType = CIFAR_10,
+      bufferSize: Int = 8192
+  ): (Tensor[UINT8], Tensor[UINT8]) = {
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
     Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
@@ -127,7 +137,24 @@ object CIFARLoader extends Loader {
 
 case class CIFARDataset(
     datasetType: CIFARLoader.DatasetType,
-    trainImages: Tensor,
-    trainLabels: Tensor,
-    testImages: Tensor,
-    testLabels: Tensor)
+    trainImages: Tensor[UINT8],
+    trainLabels: Tensor[UINT8],
+    testImages: Tensor[UINT8],
+    testLabels: Tensor[UINT8]
+) {
+  def splitRandomly(trainPortion: Float, seed: Option[Long] = None): CIFARDataset = {
+    if (trainPortion == 1.0f) {
+      this
+    } else {
+      val allImages = tfi.concatenate(Seq(trainImages, testImages), axis = 0)
+      val allLabels = tfi.concatenate(Seq(trainLabels, testLabels), axis = 0)
+      val split = UniformSplit(allLabels.shape(0), seed)
+      val (trainIndices, testIndices) = split(trainPortion)
+      copy(
+        trainImages = allImages.gather(trainIndices),
+        trainLabels = allLabels.gather(trainIndices),
+        testImages = allImages.gather(testIndices),
+        testLabels = allLabels.gather(testIndices))
+    }
+  }
+}

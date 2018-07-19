@@ -103,6 +103,7 @@ package object cell {
     type ResidualWrapper[O, OS, S, SS] = cell.ResidualWrapper[O, OS, S, SS]
     type MultiCell[O, OS, S, SS] = cell.MultiCell[O, OS, S, SS]
 
+    val RNNCell        : cell.RNNCell.type         = cell.RNNCell
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell
     val BasicLSTMCell  : cell.BasicLSTMCell.type   = cell.BasicLSTMCell

@@ -33,9 +33,11 @@ import org.platanios.tensorflow.api.ops.{Function, Op, Output}
   */
 case class FilterDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
-    predicateFn: (O) => Output,
+    predicateFn: O => Output,
     override val name: String = "FilterDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+) {
   private[this] lazy val instantiatedPredicateFunction = {
     Function(s"$name/Predicate", predicateFn).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
@@ -64,7 +66,7 @@ object FilterDataset {
       * @param  name        Name for the created dataset.
       * @return Created dataset.
       */
-    def filter(predicateFn: (O) => Output, name: String = "Filter"): Dataset[T, O, D, S] = {
+    def filter(predicateFn: O => Output, name: String = "Filter"): Dataset[T, O, D, S] = {
       FilterDataset(dataset, predicateFn, name)
     }
   }

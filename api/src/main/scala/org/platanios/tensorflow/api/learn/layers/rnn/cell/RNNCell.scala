@@ -33,7 +33,7 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
 ) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
   def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
-  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS ] = Op.createWith(
+  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = Op.createWith(
     nameScope = layerContext.value.nameScope,
     device = layerContext.value.device,
     deviceFunction = layerContext.value.deviceFunction
@@ -49,7 +49,7 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
     }
   }
 
-  override final protected def _forward(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
+  override final def forwardWithoutContext(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
     createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
   }
 }

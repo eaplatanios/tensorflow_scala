@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.training.distribute.Distributable
   *
   * @author Emmanouil Antonios Platanios
   */
-class PerDeviceValue[T: Distributable] protected (
+class PerDeviceValue[+T: Distributable] protected (
     override val index: Map[DeviceSpecification, T]
 ) extends DistributedValue[T](index, DistributedValue.PerDevice)
 

@@ -17,6 +17,7 @@ package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.data.Loader
+import org.platanios.tensorflow.data.utilities.UniformSplit
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -31,6 +32,7 @@ import java.util.zip.GZIPInputStream
   */
 object MNISTLoader extends Loader {
   sealed trait DatasetType {
+    val name               : String
     val url                : String
     val trainImagesFilename: String
     val trainLabelsFilename: String
@@ -39,6 +41,7 @@ object MNISTLoader extends Loader {
   }
 
   case object MNIST extends DatasetType {
+    override val name               : String = "MNIST"
     override val url                : String = "http://yann.lecun.com/exdb/mnist/"
     override val trainImagesFilename: String = "train-images-idx3-ubyte.gz"
     override val trainLabelsFilename: String = "train-labels-idx1-ubyte.gz"
@@ -47,7 +50,8 @@ object MNISTLoader extends Loader {
   }
 
   case object FASHION_MNIST extends DatasetType {
-    override val url                : String = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com"
+    override val name               : String = "FASHION-MNIST"
+    override val url                : String = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/"
     override val trainImagesFilename: String = "train-images-idx3-ubyte.gz"
     override val trainLabelsFilename: String = "train-labels-idx1-ubyte.gz"
     override val testImagesFilename : String = "t10k-images-idx3-ubyte.gz"
@@ -74,10 +78,12 @@ object MNISTLoader extends Loader {
     val testImages = extractImages(testImagesPath, bufferSize)
     val testLabels = extractLabels(testLabelsPath, bufferSize)
 
+    logger.info(s"Finished loading the ${datasetType.name} dataset.")
+
     MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
 
-  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor = {
+  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
     logger.info(s"Extracting images from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -99,7 +105,7 @@ object MNISTLoader extends Loader {
     tensor
   }
 
-  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor = {
+  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
     logger.info(s"Extracting labels from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -122,7 +128,24 @@ object MNISTLoader extends Loader {
 
 case class MNISTDataset(
     datasetType: MNISTLoader.DatasetType,
-    trainImages: Tensor,
-    trainLabels: Tensor,
-    testImages: Tensor,
-    testLabels: Tensor)
+    trainImages: Tensor[UINT8],
+    trainLabels: Tensor[UINT8],
+    testImages: Tensor[UINT8],
+    testLabels: Tensor[UINT8]
+) {
+  def splitRandomly(trainPortion: Float, seed: Option[Long] = None): MNISTDataset = {
+    if (trainPortion == 1.0f) {
+      this
+    } else {
+      val allImages = tfi.concatenate(Seq(trainImages, testImages), axis = 0)
+      val allLabels = tfi.concatenate(Seq(trainLabels, testLabels), axis = 0)
+      val split = UniformSplit(allLabels.shape(0), seed)
+      val (trainIndices, testIndices) = split(trainPortion)
+      copy(
+        trainImages = allImages.gather(trainIndices),
+        trainLabels = allLabels.gather(trainIndices),
+        testImages = allImages.gather(testIndices),
+        testLabels = allLabels.gather(testIndices))
+    }
+  }
+}

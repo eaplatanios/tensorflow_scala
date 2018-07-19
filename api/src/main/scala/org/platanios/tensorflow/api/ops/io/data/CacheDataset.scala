@@ -35,7 +35,9 @@ case class CacheDataset[T, O, D, S](
     inputDataset: Dataset[T, O, D, S],
     directory: String,
     override val name: String = "CacheDataset"
-) extends Dataset[T, O, D, S](name)(inputDataset.evOToT, inputDataset.evData, inputDataset.evFunctionInput) {
+) extends Dataset[T, O, D, S](name)(
+  inputDataset.evStructure, inputDataset.evData, inputDataset.evFunctionInput
+) {
   override def createHandle(): Output = {
     Op.Builder(opType = "CacheDataset", name = name)
         .addInput(Op.createWithNameScope(name)(inputDataset.createHandle()))

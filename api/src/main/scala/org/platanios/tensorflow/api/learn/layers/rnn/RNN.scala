@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 /** Creates a dynamic RNN layer.
   *
@@ -47,14 +48,14 @@ class RNN[O, OS, S, SS](
     val timeMajor: Boolean = false,
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
-    val sequenceLengths: Tensor = null
+    val sequenceLengths: Tensor[DataType] = null
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
 ) extends Layer[O, Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
-  override protected def _forward(input: O)(implicit mode: Mode): Tuple[O, S] = {
+  override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val createdCell = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
@@ -71,7 +72,7 @@ object RNN {
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Tensor = null
+      sequenceLengths: Tensor[DataType] = null
   )(implicit
       evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
       evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]

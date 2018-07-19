@@ -17,6 +17,7 @@ package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.data.Loader
+import org.platanios.tensorflow.data.utilities.UniformSplit
 
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.compress.archivers.tar._
@@ -26,6 +27,8 @@ import java.io.ByteArrayOutputStream
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.file.{Files, Path}
 import java.util.zip.GZIPInputStream
+
+import scala.collection.mutable
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -67,28 +70,32 @@ object STL10Loader extends Loader {
       if (entry.getName == unlabeledImagesFilename) {
         if (loadUnlabeled) {
           // TODO: Make this more efficient.
-          // We have to split this tensor in two parts because its size exceeds the maximum allowed byte buffer size.
-          val halfShape = Shape(numUnlabeled / 2, imageChannels, imageHeight, imageWidth)
-          var outputStream = new ByteArrayOutputStream()
+          // We have to split this tensor in parts because its size exceeds the maximum allowed byte buffer size.
+          val maxNumBytesPerPart = Int.MaxValue / 2
+          val parts = mutable.ListBuffer.empty[Tensor[UINT8]]
+          val dataType = UINT8
           val buffer = new Array[Byte](bufferSize)
-          var numBytesRead = 0
-          Stream.continually(inputStream.read(buffer))
-              .takeWhile(_ => numBytesRead <= entry.getSize / 2)
-              .foreach(numBytes => {
-                outputStream.write(buffer, 0, numBytes)
-                numBytesRead += numBytes
-              })
-          var byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
-          outputStream.close()
-          val tensor1 =
-            Tensor.fromBuffer(UINT8, halfShape, byteBuffer.capacity(), byteBuffer).transpose(Tensor(0, 3, 2, 1))
-          outputStream = new ByteArrayOutputStream()
-          Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
-          byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
-          outputStream.close()
-          val tensor2 =
-            Tensor.fromBuffer(UINT8, halfShape, byteBuffer.capacity(), byteBuffer).transpose(Tensor(0, 3, 2, 1))
-          dataset = dataset.copy(unlabeledImages = tfi.concatenate(Seq(tensor1, tensor2), axis = 0))
+          var numRemainingBytes = entry.getSize
+          while (numRemainingBytes > maxNumBytesPerPart) {
+            val numElementsToRead = math.floor(maxNumBytesPerPart / dataType.byteSize).toInt
+            val numBytesToRead = numElementsToRead * dataType.byteSize
+            val numSamplesToRead = numElementsToRead / (imageChannels * imageHeight * imageWidth)
+            val shape = Shape(numSamplesToRead, imageChannels, imageHeight, imageWidth)
+            val outputStream = new ByteArrayOutputStream()
+            var numBytesRead = 0
+            Stream.continually(inputStream.read(buffer))
+                .takeWhile(_ => numBytesRead <= numBytesToRead)
+                .foreach(numBytes => {
+                  outputStream.write(buffer, 0, numBytes)
+                  numBytesRead += numBytes
+                })
+            val byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
+            outputStream.close()
+            val tensor = Tensor.fromBuffer(dataType, shape, byteBuffer.capacity(), byteBuffer)
+            parts.append(tensor.transpose(Tensor(0, 3, 2, 1)))
+            numRemainingBytes -= numBytesToRead
+          }
+          dataset = dataset.copy(unlabeledImages = tfi.concatenate(parts, axis = 0))
         }
       } else if (Set(
         trainImagesFilename, trainLabelsFilename,
@@ -104,14 +111,14 @@ object STL10Loader extends Loader {
             val tensor = Tensor.fromBuffer(UINT8, shape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
             dataset = dataset.copy(trainImages = tensor)
           case name if name == trainLabelsFilename =>
-            val tensor = Tensor.fromBuffer(UINT8, Shape(numTrain), entry.getSize, byteBuffer) - Tensor(UINT8, 1)
+            val tensor = Tensor.fromBuffer(UINT8, Shape(numTrain), entry.getSize, byteBuffer) - 1.toTensor.cast(UINT8)
             dataset = dataset.copy(trainLabels = tensor)
           case name if name == testImagesFilename =>
             val shape = Shape(numTest, imageChannels, imageHeight, imageWidth)
             val tensor = Tensor.fromBuffer(UINT8, shape, entry.getSize, byteBuffer).transpose(Tensor(0, 3, 2, 1))
             dataset = dataset.copy(testImages = tensor)
           case name if name == testLabelsFilename =>
-            val tensor = Tensor.fromBuffer(UINT8, Shape(numTest), entry.getSize, byteBuffer) - Tensor(UINT8, 1)
+            val tensor = Tensor.fromBuffer(UINT8, Shape(numTest), entry.getSize, byteBuffer) - 1.toTensor.cast(UINT8)
             dataset = dataset.copy(testLabels = tensor)
           case _ => ()
         }
@@ -124,8 +131,25 @@ object STL10Loader extends Loader {
 }
 
 case class STL10Dataset(
-    trainImages: Tensor,
-    trainLabels: Tensor,
-    testImages: Tensor,
-    testLabels: Tensor,
-    unlabeledImages: Tensor)
+    trainImages: Tensor[UINT8],
+    trainLabels: Tensor[UINT8],
+    testImages: Tensor[UINT8],
+    testLabels: Tensor[UINT8],
+    unlabeledImages: Tensor[UINT8]
+) {
+  def splitRandomly(trainPortion: Float, seed: Option[Long] = None): STL10Dataset = {
+    if (trainPortion == 1.0f) {
+      this
+    } else {
+      val allImages = tfi.concatenate(Seq(trainImages, testImages), axis = 0)
+      val allLabels = tfi.concatenate(Seq(trainLabels, testLabels), axis = 0)
+      val split = UniformSplit(allLabels.shape(0), seed)
+      val (trainIndices, testIndices) = split(trainPortion)
+      copy(
+        trainImages = allImages.gather(trainIndices),
+        trainLabels = allLabels.gather(trainIndices),
+        testImages = allImages.gather(testIndices),
+        testLabels = allLabels.gather(testIndices))
+    }
+  }
+}

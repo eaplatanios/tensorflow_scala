@@ -29,12 +29,12 @@ import scala.collection.mutable
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[ops] object Gradients {
+object Gradients {
   val logger = Logger(LoggerFactory.getLogger("Gradients"))
 
   private[ops] trait API {
-    val Gradients        : ops.Gradients.type          = ops.Gradients
-    val GradientsRegistry: ops.Gradients.Registry.type = ops.Gradients.Registry
+    val gradients        : ops.Gradients.type          = ops.Gradients
+    val gradientsRegistry: ops.Gradients.Registry.type = ops.Gradients.Registry
   }
 
   // TODO: [API] Expose in "tf".
@@ -479,32 +479,38 @@ private[ops] object Gradients {
             if (grads.length < 2) {
               grads
             } else {
-              opGradients(index) = Seq[OutputLike](aggregateGradients(grads.filter(_ != null), gradientUID))
+              opGradients(index) = Seq[OutputLike](aggregate(grads.filter(_ != null), Some(gradientUID)))
             }
         }
         opGradients
       }
     }
 
-    /** Aggregates the gradients in `gradient` into a single gradient tensor.
+    /** Aggregates `values` into a single tensor.
       *
-      * @param  gradients   Sequence of gradients to aggregate.
+      * @param  values      Sequence of values to aggregate.
       * @param  gradientUID Unique identifier within the graph indicating which invocation of gradients is being
-      *                     executed. Used to cluster ops for compilation.
-      * @return Aggregated gradient tensor.
+      *                     executed (if any). Used to cluster ops for compilation.
+      * @return Aggregated tensor.
       */
-    private[Gradients] def aggregateGradients(gradients: Seq[OutputLike], gradientUID: String): OutputLike
+    private[ops] def aggregate(
+        values: Seq[OutputLike],
+        gradientUID: Option[String] = None
+    ): OutputLike
   }
 
   /** Gradient aggregation method that simply adds up the collected gradients. */
   object AddAggregationMethod extends AggregationMethod {
-    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike], gradientUID: String): OutputLike = {
+    override private[ops] def aggregate(
+        gradients: Seq[OutputLike],
+        gradientUID: Option[String] = None
+    ): OutputLike = {
        if (gradients.forall(_.isInstanceOf[Output])) {
         // This function adds op outputs from potentially different devices.
         // We add the tensors of each device separately first, and we then add up the partial results.
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
           case (_, outputs) =>
-            Op.colocateWithForGradient(Set[Op](gradients.head.op), Some(gradientUID), ignoreExisting = true) {
+            Op.colocateWithForGradient(Set[Op](gradients.head.op), gradientUID, ignoreExisting = true) {
               Math.addN(outputs.map(_.asInstanceOf[Output]))
             }
         }
@@ -525,7 +531,7 @@ private[ops] object Gradients {
          }
          val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
            case (_, outputs) =>
-             Op.colocateWithForGradient(Set[Op](gradients.head.op), Some(gradientUID), ignoreExisting = true) {
+             Op.colocateWithForGradient(Set[Op](gradients.head.op), gradientUID, ignoreExisting = true) {
                addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
              }
          }
@@ -545,7 +551,10 @@ private[ops] object Gradients {
     * are much larger than total GPU memory.
     */
   object AccumulateAggregationMethod extends AggregationMethod {
-    override private[Gradients] def aggregateGradients(gradients: Seq[OutputLike], gradientUID: String): OutputLike = {
+    override private[ops] def aggregate(
+        gradients: Seq[OutputLike],
+        gradientUID: Option[String] = None
+    ): OutputLike = {
       if (gradients.forall(_.isInstanceOf[Output])) {
         Math.accumulateN(gradients.map(_.asInstanceOf[Output]))
       } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices])) {
@@ -564,7 +573,7 @@ private[ops] object Gradients {
         }
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
           case (_, outputs) =>
-            Op.colocateWithForGradient(Set[Op](gradients.head.op), Some(gradientUID), ignoreExisting = true) {
+            Op.colocateWithForGradient(Set[Op](gradients.head.op), gradientUID, ignoreExisting = true) {
               addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
             }
         }

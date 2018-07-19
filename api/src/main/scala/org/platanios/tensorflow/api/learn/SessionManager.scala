@@ -286,7 +286,8 @@ private[learn] case class SessionManager(
     *         restoration was successful or not.
     */
   private[this] def restoreCheckpoint(
-      master: String, saver: Option[Saver] = None,
+      master: String,
+      saver: Option[Saver] = None,
       checkpointPath: Option[Path] = None,
       waitForCheckpoint: Boolean = false,
       maxWaitSeconds: Int = 7200,

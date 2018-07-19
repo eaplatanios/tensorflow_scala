@@ -30,7 +30,7 @@ import scala.util.matching.Regex
 package object ops {
   private[ops] val logger = Logger(LoggerFactory.getLogger("Graph Construction"))
 
-  private[ops] val LARGE_SPARSE_TENSOR_SIZE = 100000000
+  private[ops] val LARGE_SPARSE_TENSOR_SIZE  = 100000000
   private[ops] val DEFAULT_GRAPH_RANDOM_SEED = 87654321
 
   private[ops] val COLOCATION_OPS_ATTRIBUTE_NAME  : String = "_class"
@@ -70,6 +70,7 @@ package object ops {
   }
 
   ops.Basic.Gradients
+  ops.Cast.Gradients
   ops.DataFlow.Gradients
   ops.Logging.Gradients
   ops.Math.Gradients
@@ -91,6 +92,7 @@ package object ops {
   private[api] trait API
       extends Basic
           with Callback
+          with Cast
           with Checks
           with Clip
           with DataFlow
@@ -120,5 +122,8 @@ package object ops {
       type FileWriter = api.io.events.SummaryFileWriter
       val FileWriter: api.io.events.SummaryFileWriter.type = api.io.events.SummaryFileWriter
     }
+
+    type TensorArray = ops.TensorArray
+    val TensorArray: ops.TensorArray.type = ops.TensorArray
   }
 }

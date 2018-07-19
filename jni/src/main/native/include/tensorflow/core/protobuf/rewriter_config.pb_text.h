@@ -23,9 +23,23 @@ bool ProtoParseFromString(
 const char* EnumName_RewriterConfig_Toggle(
     ::tensorflow::RewriterConfig_Toggle value);
 
+// Enum text output for tensorflow.RewriterConfig.NumIterationsType
+const char* EnumName_RewriterConfig_NumIterationsType(
+    ::tensorflow::RewriterConfig_NumIterationsType value);
+
 // Enum text output for tensorflow.RewriterConfig.MemOptType
 const char* EnumName_RewriterConfig_MemOptType(
     ::tensorflow::RewriterConfig_MemOptType value);
+
+// Message-text conversion for tensorflow.RewriterConfig.CustomGraphOptimizer
+string ProtoDebugString(
+    const ::tensorflow::RewriterConfig_CustomGraphOptimizer& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::RewriterConfig_CustomGraphOptimizer& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::RewriterConfig_CustomGraphOptimizer* msg)
+        TF_MUST_USE_RESULT;
 
 // Message-text conversion for tensorflow.RewriterConfig
 string ProtoDebugString(

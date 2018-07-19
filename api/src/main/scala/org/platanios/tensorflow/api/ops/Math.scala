@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
 
@@ -59,8 +60,12 @@ private[api] trait Math {
     * @return Created op output.
     */
   def range(
-      start: Output, limit: Output, delta: Output = Basic.constant(1), dataType: DataType = null,
-      name: String = "Range"): Output = {
+      start: Output,
+      limit: Output,
+      delta: Output = Basic.constant(1),
+      dataType: DataType = null,
+      name: String = "Range"
+  ): Output = {
     var castedStart: Output = start
     var castedLimit: Output = limit
     var castedDelta: Output = delta
@@ -72,11 +77,11 @@ private[api] trait Math {
           DataType.mostPrecise(start.dataType, limit.dataType, delta.dataType)
       }
       if (start.dataType != inferredDataType)
-        castedStart = cast(start, inferredDataType)
+        castedStart = Cast.cast(start, inferredDataType)
       if (limit.dataType != inferredDataType)
-        castedLimit = cast(limit, inferredDataType)
+        castedLimit = Cast.cast(limit, inferredDataType)
       if (delta.dataType != inferredDataType)
-        castedDelta = cast(delta, inferredDataType)
+        castedDelta = Cast.cast(delta, inferredDataType)
     }
     Op.Builder(opType = "Range", name = name)
         .addInput(castedStart)
@@ -100,45 +105,6 @@ private[api] trait Math {
         .addInput(start)
         .addInput(stop)
         .addInput(numberOfValues)
-        .build().outputs(0)
-  }
-
-  /** $OpDocMathCast
-    *
-    * @group MathOps
-    * @param  x        Tensor to cast.
-    * @param  dataType Target data type.
-    * @param  name     Name for the created op.
-    * @return Created op output.
-    */
-  def cast[T <: OutputLike : OutputOps](x: T, dataType: DataType, name: String = "Cast"): T = {
-    if (x.dataType == dataType) {
-      x
-    } else {
-      if (x.dataType.isComplex && !dataType.isComplex)
-        logger.warn("Casting complex tensors to real tensors discards the imaginary part.")
-      implicitly[OutputOps[T]]
-          .applyUnary(x, o => Op.Builder(opType = "Cast", name = name)
-              .addInput(o)
-              .setAttribute("DstT", dataType)
-              .build().outputs(0))
-    }
-  }
-
-  // TODO: [OPS] saturateCast
-
-  /** $OpDocMathBitcast
-    *
-    * @group MathOps
-    * @param  input    Input tensor.
-    * @param  dataType Target data type.
-    * @param  name     Name for the created op.
-    * @return Created op output.
-    */
-  def bitcast(input: Output, dataType: DataType, name: String = "Bitcast"): Output = {
-    Op.Builder(opType = "Bitcast", name = name)
-        .addInput(input)
-        .setAttribute("type", dataType)
         .build().outputs(0)
   }
 
@@ -606,7 +572,19 @@ private[api] trait Math {
             .build().outputs(0))
   }
 
-  // TODO: [OPS] logSigmoid
+  /** $OpDocMathLogSigmoid
+    *
+    * @group MathOps
+    * @param  x    Input tensor that must be one of the following types: `HALF`, `FLOAT32`, `FLOAT64`, `INT32`, `INT64`,
+    *              `COMPLEX64`, or `COMPLEX128`.
+    * @param  name Name for the created op.
+    * @return Created op output.
+    */
+  def logSigmoid[T: OutputOps](x: T, name: String = "LogSigmoid"): T = {
+    Op.createWithNameScope(name) {
+      negate(NN.softplus(negate(x)))
+    }
+  }
 
   /** $OpDocMathSign
     *
@@ -1447,7 +1425,7 @@ private[api] trait Math {
   def countNonZero(
       input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "CountNonZero"): Output = {
     Op.createWith(nameScope = name) {
-      sum(cast(notEqual(input, Basic.zeros(input.dataType, Shape())), INT64), axes, keepDims)
+      sum(Cast.cast(notEqual(input, Basic.zeros(input.dataType, Shape())), INT64), axes, keepDims)
     }
   }
 
@@ -1462,9 +1440,9 @@ private[api] trait Math {
     Op.createWith(nameScope = name) {
       val zero = Basic.zeros(input.dataType, Shape())
       input match {
-        case o: Output => sum(cast(notEqual(o, zero), INT64))
-        case o: OutputIndexedSlices => sum(cast(notEqual(o.values, zero), INT64))
-        case o: SparseOutput => sum(cast(notEqual(o.values, zero), INT64))
+        case o: Output => sum(Cast.cast(notEqual(o, zero), INT64))
+        case o: OutputIndexedSlices => sum(Cast.cast(notEqual(o.values, zero), INT64))
+        case o: SparseOutput => sum(Cast.cast(notEqual(o.values, zero), INT64))
       }
     }
   }
@@ -1526,7 +1504,7 @@ private[api] trait Math {
       input: Output, weights: Output = null, minLength: Output = null, maxLength: Output = null,
       dataType: DataType = INT32, name: String = "BinCount"): Output = {
     val inputNonEmpty = greater(prod(Basic.shape(input)), 0)
-    var outputSize = cast(inputNonEmpty, INT32) * (max(input) + 1)
+    var outputSize = Cast.cast(inputNonEmpty, INT32) * (max(input) + 1)
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
     if (maxLength != null)
@@ -1992,8 +1970,8 @@ private[api] trait Math {
 
     Op.Builder(opType = "MatrixBandPart", name = name)
         .addInput(input)
-        .addInput(cast(numSubDiagonals, INT64))
-        .addInput(cast(numSuperDiagonals, INT64))
+        .addInput(Cast.cast(numSubDiagonals, INT64))
+        .addInput(Cast.cast(numSuperDiagonals, INT64))
         .build().outputs(0)
   }
 
@@ -2512,9 +2490,11 @@ private[api] trait Math {
   def zerosFraction(input: Output, name: String = "ZerosFraction"): Output = {
     Op.createWithNameScope(name, Set(input.op)) {
       val zero = Basic.constant(0, input.dataType, name = "Zero")
-      mean(cast(equal(input, zero), FLOAT32))
+      mean(Cast.cast(equal(input, zero), FLOAT32))
     }
   }
+
+  // TODO: bessel_i0, bessel_i1, bessel_i0e, bessel_i1e.
 
   //endregion Other Ops
 }
@@ -2650,22 +2630,6 @@ object Math extends Math {
     def >=(other: Output): Output = greaterEqual(other)
 
     //endregion Math Operators
-
-    /** $OpDocMathCast
-      *
-      * @group MathOps
-      * @param  dataType Target data type.
-      * @return Result as a new tensor.
-      */
-    def cast(dataType: DataType): Output = Math.cast(output, dataType)
-
-    /** $OpDocMathBitcast
-      *
-      * @group MathOps
-      * @param  dataType Target data type.
-      * @return Result as a new tensor.
-      */
-    def bitcast(dataType: DataType): Output = Math.bitcast(output, dataType)
 
     //region Math Unary Ops
 
@@ -2857,6 +2821,13 @@ object Math extends Math {
       * @return Result as a new tensor.
       */
     def sigmoid: Output = Math.sigmoid(output)
+
+    /** $OpDocMathLogSigmoid
+      *
+      * @group MathOps
+      * @return Result as a new tensor.
+      */
+    def logSigmoid: Output = Math.logSigmoid(output)
 
     /** $OpDocMathSign
       *
@@ -3742,7 +3713,6 @@ object Math extends Math {
     GradientsRegistry.registerNonDifferentiable("GreaterEqual")
 
     GradientsRegistry.register("Select", selectGradient)
-    GradientsRegistry.register("Cast", castGradient)
     GradientsRegistry.register("AddN", addNGradient)
     GradientsRegistry.register("AccumulateNV2", accumulateNGradient)
     GradientsRegistry.register("Abs", absGradient)
@@ -3842,16 +3812,6 @@ object Math extends Math {
       val x = op.inputs(1)
       val zeros = Basic.zerosLike(x)
       Seq[OutputLike](null, select(c, grad, zeros), select(c, zeros, grad))
-    }
-
-    private[this] def castGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val supportedDataTypes = Seq(FLOAT16, FLOAT32, FLOAT64, BFLOAT16, COMPLEX64, COMPLEX128)
-      val sourceDataType = op.inputs(0).dataType
-      val destinationDataType = outputGradients.head.dataType
-      if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType))
-        Seq(cast(outputGradients.head, sourceDataType))
-      else
-        Seq(null)
     }
 
     private[this] def addNGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -4302,20 +4262,28 @@ object Math extends Math {
     }
 
     private[this] def igammacGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null, negate(igammaGradient(op, outputGradients)(1)))
+      val igammaGradients = igammaGradient(op, outputGradients)
+      Seq(negate(igammaGradients(0)), negate(igammaGradients(1)))
     }
 
     private[this] def igammaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // TODO: [GRADIENTS] Mark the derivative w.r.t. a as not implemented somehow, or implement it.
       val a = op.inputs(0)
       val x = op.inputs(1)
       val aShape = Basic.shape(a)
       val xShape = Basic.shape(x)
-      val (_, rx) = Basic.broadcastGradientArguments(aShape, xShape)
+      val (ra, rx) = Basic.broadcastGradientArguments(aShape, xShape)
       val outputGradient = outputGradients.head.toOutput
-      // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
-      val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1, a.dataType)), log(x)) - logGamma(a))
-      Seq(null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
+      Op.createWith(controlDependencies = Set(outputGradient.op)) {
+        val partialA = Op.Builder(opType = "IgammaGradA", name = "IGammaGradA")
+            .addInput(a)
+            .addInput(x)
+            .build().outputs(0)
+        // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
+        val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1, a.dataType)), log(x)) - logGamma(a))
+        Seq(
+          Basic.reshape(sum(multiply(partialA, outputGradient), ra), aShape),
+          Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
+      }
     }
 
     private[this] def zetaGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -4406,36 +4374,6 @@ object Math extends Math {
       Seq(null, null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
     }
 
-    /** Helper function for reduction ops that computes the reduction output shape, assuming `keepDims` is `true`.
-      *
-      * For example:
-      * {{{
-      *   // inputShape == [2, 3, 5, 7]
-      *   // axes = [1, 2]
-      *   reducedShape(inputShape, axes) ==> [2, 1, 1, 7]
-      * }}}
-      *
-      * @param  inputShape Shape of the tensor being reduced.
-      * @param  axes       Reduction axes.
-      * @return One-dimensional tensor representing the reduction output shape, assuming `keepDims` is `true`.
-      */
-    private[this] def reducedShape(inputShape: Output, axes: Output): Output = {
-      // Cast needed for SparseOutput reductions.
-      val intInputShape = cast(inputShape, INT32)
-      val inputRank = Basic.size(intInputShape)
-      val reshapedAxes = {
-        if (axes.rank == 0)
-          Basic.reshape(axes, Tensor(1))
-        else
-          axes
-      }
-      val intAxes = floorMod(add(cast(reshapedAxes, INT32), inputRank), inputRank)
-      val axesShape = Basic.shape(intAxes)
-      DataFlow.dynamicStitch(
-        Seq(range(Basic.constant(0), inputRank), intAxes),
-        Seq(intInputShape, Basic.fill(shape = axesShape)(1)))
-    }
-
     private[this] def safeShapeDiv(x: Output, y: Output): Output = {
       truncateDivide(x, maximum(y, Basic.constant(1, y.dataType)))
     }
@@ -4450,7 +4388,7 @@ object Math extends Math {
         Seq(outputGradients.head, null)
       } else if (rank != -1
           && axes.op.opType == "Const"
-          && Output.constantValue(axes).orNull[Tensor] == (0 until rank: Tensor).cast(axes.dataType)) {
+          && Output.constantValue(axes).exists(a => a.toInt32.entriesIterator.toArray[Int].sameElements((0 until rank).toArray[Int]))) {
         // In this case the reduction was over all dimensions.
         var outputGradient = outputGradients.head.toOutput
         outputGradient = Basic.reshape(outputGradient, Shape(Array.fill(rank)(1)))
@@ -4485,7 +4423,7 @@ object Math extends Math {
           safeShapeDiv(prod(inputShape), prod(outputShape))
         }
       }
-      Seq(divide(sumGrad, cast(factor, sumGrad.dataType)), null)
+      Seq(divide(sumGrad, Cast.cast(factor, sumGrad.dataType)), null)
     }
 
     private[this] def prodGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -4507,7 +4445,7 @@ object Math extends Math {
         val rank = Basic.rank(op.inputs(0))
         // Reshape the reduction indices for the case where the parameters is a scalar.
         val reductionIndices = floorMod(add(Basic.reshape(op.inputs(1), -1), rank), rank)
-        val reduced = cast(reductionIndices, INT32)
+        val reduced = Cast.cast(reductionIndices, INT32)
         val indices = range(Basic.constant(0), rank)
         val (other, _) = Basic.listDiff(indices, reduced)
         (Basic.concatenate(Seq(reduced, other), 0),
@@ -4522,7 +4460,8 @@ object Math extends Math {
       // Calculate the product, leaving out the current entry.
       val left = cumprod(reshaped, axis = 0, exclusive = true)
       val right = cumprod(reshaped, axis = 0, exclusive = true, reverse = true)
-      val y = Basic.reshape(multiply(left, right), permutedShape)
+      // For complex inputs, the gradient is in the conjugate direction.
+      val y = Basic.reshape(multiply(Math.conjugate(left), Math.conjugate(right)), permutedShape)
 
       // Invert the transpose and reshape operations.
       val output = multiply(gradient, Basic.transpose(y, Basic.invertPermutation(permutation)))
@@ -4539,7 +4478,7 @@ object Math extends Math {
 
       // Compute the number of selected (maximum or minimum) elements in each reduction dimension. If there are multiple
       // minimum or maximum elements then the gradient will be divided among them.
-      val indicators = cast(equal(y, op.inputs(0)), gradient.dataType)
+      val indicators = Cast.cast(equal(y, op.inputs(0)), gradient.dataType)
       val numberOfSelected = Basic.reshape(sum(indicators, op.inputs(1)), outputShapeKeptDims)
 
       Seq(multiply(divide(indicators, numberOfSelected), gradient), null)
@@ -4588,7 +4527,7 @@ object Math extends Math {
       // Get the number of selected (minimum or maximum) elements in each segment.
       val gatheredOutputs = Basic.gather(op.outputs(0), op.inputs(1))
       val isSelected = equal(op.inputs(0), gatheredOutputs)
-      val numSelected = segmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1))
+      val numSelected = segmentSum(Cast.cast(isSelected, outputGradient.dataType), op.inputs(1))
 
       // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
       // elements in that segment.
@@ -4650,7 +4589,7 @@ object Math extends Math {
       // Note that `unsortedSegmentSum` will filter out the negative indices, and so we do not need to do a `logicalAnd`
       // with `isPositive` here.
       val isZero = Math.equal(op.inputs(0), 0)
-      val numZeros = Math.unsortedSegmentSum(cast(isZero, INT32), op.inputs(1), op.inputs(2))
+      val numZeros = Math.unsortedSegmentSum(Cast.cast(isZero, INT32), op.inputs(1), op.inputs(2))
       // Handle case 3 and set the gradient to 0 for segments with more than one 0 as input.
       outputGradient = Math.select(Math.greater(numZeros, 1), Basic.zerosLike(outputGradient), outputGradient)
       // Replace all zeros with ones and compute the `unsortedSegmentProd`.
@@ -4675,7 +4614,7 @@ object Math extends Math {
       // Get the number of selected (minimum or maximum) elements in each segment.
       val (gatheredOutputs, zeroClippedIndices, isPositive) = gatherDropNegatives(op.outputs(0), op.inputs(1))
       val isSelected = Math.logicalAnd(Math.equal(op.inputs(0), gatheredOutputs), isPositive)
-      val numSelected = unsortedSegmentSum(cast(isSelected, outputGradient.dataType), op.inputs(1), op.inputs(2))
+      val numSelected = unsortedSegmentSum(Cast.cast(isSelected, outputGradient.dataType), op.inputs(1), op.inputs(2))
       // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
       // elements in that segment.
       val weightedGradients = divide(outputGradient, numSelected)
@@ -4749,7 +4688,7 @@ object Math extends Math {
       val matrixShape = inputShape(-2 ::)
       val diagShape = {
         if (batchShape.isFullyDefined && matrixShape.isFullyDefined) {
-          Basic.constant(Tensor((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
+          Basic.constant(tensors.ops.Basic.stack((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
         } else {
           Op.colocateWith(Set(gradient.op)) {
             val gradShape = Basic.shape(gradient)
@@ -4761,7 +4700,7 @@ object Math extends Math {
           }
         }
       }
-      val gradInput = matrixSetDiag(gradient, Basic.fill(shape = diagShape)(Tensor(gradient.dataType, 0)))
+      val gradInput = matrixSetDiag(gradient, Basic.fill(shape = diagShape)(Tensor.zeros(gradient.dataType, Shape())))
       val gradDiag = matrixDiagPart(gradient)
       Seq(gradInput, gradDiag)
     }
@@ -4845,7 +4784,7 @@ object Math extends Math {
           a: Output, b: Output, dataType: DataType,
           tA: Boolean = false, tB: Boolean = false,
           sA: Boolean = false, sB: Boolean = false): Output = {
-        cast(matmul(
+        Cast.cast(matmul(
           a = a,
           b = if (tB) Basic.transpose(b) else b,
           transposeA = tA,
@@ -4910,6 +4849,36 @@ object Math extends Math {
     }
   }
 
+  /** Helper function for reduction ops that computes the reduction output shape, assuming `keepDims` is `true`.
+    *
+    * For example:
+    * {{{
+    *   // inputShape == [2, 3, 5, 7]
+    *   // axes = [1, 2]
+    *   reducedShape(inputShape, axes) ==> [2, 1, 1, 7]
+    * }}}
+    *
+    * @param  inputShape Shape of the tensor being reduced.
+    * @param  axes       Reduction axes.
+    * @return One-dimensional tensor representing the reduction output shape, assuming `keepDims` is `true`.
+    */
+  private[api] def reducedShape(inputShape: Output, axes: Output): Output = {
+    // Cast needed for SparseOutput reductions.
+    val intInputShape = Cast.cast(inputShape, INT32)
+    val inputRank = Basic.size(intInputShape)
+    val reshapedAxes = {
+      if (axes.rank == 0)
+        Basic.reshape(axes, Tensor(1))
+      else
+        axes
+    }
+    val intAxes = floorMod(add(Cast.cast(reshapedAxes, INT32), inputRank), inputRank)
+    val axesShape = Basic.shape(intAxes)
+    DataFlow.dynamicStitch(
+      Seq(range(Basic.constant(0), inputRank), intAxes),
+      Seq(intInputShape, Basic.fill(shape = axesShape)(1)))
+  }
+
   /** @define OpDocMathSelect
     *   The `select` op selects elements from `x` or `y`, depending on `condition`.
     *
@@ -4969,33 +4938,7 @@ object Math extends Math {
     *   For example:
     *   {{{
     *     linspace(10.0, 12.0, 3) ==> [10.0  11.0  12.0]
-    *   }}}
-    *   
-    * @define OpDocMathCast
-    *   The `cast` op casts a tensor to a new data type.
-    *
-    *   The op casts `x` to the provided data type.
-    *
-    *   For example:
-    *   {{{
-    *     // `a` is a tensor with values [1.8, 2.2], and data type FLOAT32
-    *     cast(a, INT32) ==> [1, 2] // with data type INT32
-    *   }}}
-    *
-    *   **NOTE**: Only a smaller number of types are supported by the `cast` op. The exact casting rule is TBD. The
-    *   current implementation uses C++ static cast rules for numeric types, which may be changed in the future.
-    * 
-    * @define OpDocMathBitcast
-    *   The `bitcast` op bitcasts a tensor from one type to another without copying data.
-    *
-    *   Given a tensor `input`, the op returns a tensor that has the same buffer data as `input`, but with data type
-    *   `dataType`. If the input data type `T` is larger (in terms of number of bytes), then the output data type
-    *   `dataType`, then the shape changes from `[...]` to `[..., sizeof(T)/sizeof(dataType)]`. If `T` is smaller than
-    *   `dataType`, then the op requires that the rightmost dimension be equal to `sizeof(dataType)/sizeof(T)`. The
-    *   shape then changes from `[..., sizeof(type)/sizeof(T)]` to `[...]`.
-    *
-    *   *NOTE*: Bitcast is implemented as a low-level cast, so machines with different endian orderings will give
-    *   different results.
+    *   }}
     *
     * @define OpDocMathAddN
     *   The `addN` op adds all input tensors element-wise.
@@ -5101,6 +5044,13 @@ object Math extends Math {
     *
     * @define OpDocMathSigmoid
     *   The `sigmoid` op computes the sigmoid function element-wise on a tensor.
+    *
+    *   Specifically, `y = 1 / (1 + exp(-x))`.
+    *
+    * @define OpDocMathLogSigmoid
+    *   The `logSigmoid` op computes the log-sigmoid function element-wise on a tensor.
+    *
+    *   Specifically, `y = log(1 / (1 + exp(-x)))`.  For numerical stability, we use `y = -tf.nn.softplus(-x)`.
     *
     * @define OpDocMathSign
     *   The `sign` op computes an element-wise indication of the sign of a tensor.

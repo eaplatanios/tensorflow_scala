@@ -17,9 +17,10 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
-import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionCreator, SessionWrapper}
+import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionWrapper}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
@@ -157,12 +158,12 @@ abstract class Hook {
   protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = None
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[DataType]]]] = None
 
   private[learn] def internalBeforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = beforeSessionRun(runContext)
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[DataType]]]] = beforeSessionRun(runContext)
 
   /** Called after each call to `Session.run()`.
     *
@@ -182,7 +183,7 @@ abstract class Hook {
     */
   protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
@@ -190,7 +191,7 @@ abstract class Hook {
 
   private[learn] def internalAfterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]

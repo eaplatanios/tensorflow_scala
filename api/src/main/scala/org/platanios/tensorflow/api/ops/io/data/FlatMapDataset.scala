@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.io.data
 
-import org.platanios.tensorflow.api.implicits.helpers.OutputToTensor
+import org.platanios.tensorflow.api.implicits.helpers.StructureFromOutput
 import org.platanios.tensorflow.api.ops.{Function, Op, Output}
 
 /** Dataset that wraps the application of the `flatMap` op.
@@ -34,16 +34,15 @@ import org.platanios.tensorflow.api.ops.{Function, Op, Output}
   */
 case class FlatMapDataset[T, O, D, S, RT, RO, RD, RS](
     inputDataset: Dataset[T, O, D, S],
-    function: (O) => Dataset[RT, RO, RD, RS],
+    function: O => Dataset[RT, RO, RD, RS],
     override val name: String = "FlatMapDataset"
 )(implicit
-    evOToT: OutputToTensor.Aux[O, T] = inputDataset.evOToT,
     evData: Data.Aux[T, O, D, S] = inputDataset.evData,
     evFunctionInput: Function.ArgType[O] = inputDataset.evFunctionInput,
-    evROToRT: OutputToTensor.Aux[RO, RT],
+    evStructure: StructureFromOutput.Aux[RT, RO, RD, RS],
     evRData: Data.Aux[RT, RO, RD, RS],
     evFunctionOutput: Function.ArgType[RO]
-) extends Dataset[RT, RO, RD, RS](name)(evROToRT, evRData, evFunctionOutput) {
+) extends Dataset[RT, RO, RD, RS](name) {
   private[this] lazy val instantiatedFunction = {
     Function(s"$name/Function", function).instantiate(
       inputDataset.flattenedOutputDataTypes, inputDataset.flattenedOutputShapes,
@@ -72,8 +71,8 @@ object FlatMapDataset {
       * @param  name     Name for the created dataset.
       * @return Created dataset.
       */
-    def flatMap[RT, RO, RD, RS](function: (O) => Dataset[RT, RO, RD, RS], name: String = "FlatMap")(implicit
-        evROToRT: OutputToTensor.Aux[RO, RT],
+    def flatMap[RT, RO, RD, RS](function: O => Dataset[RT, RO, RD, RS], name: String = "FlatMap")(implicit
+        evStructure: StructureFromOutput.Aux[RT, RO, RD, RS],
         evRData: Data.Aux[RT, RO, RD, RS],
         evFunctionOutput: Function.ArgType[RO]
     ): Dataset[RT, RO, RD, RS] = {

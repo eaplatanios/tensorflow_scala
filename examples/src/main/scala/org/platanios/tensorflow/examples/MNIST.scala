@@ -40,10 +40,10 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))
-    val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
-    val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
-    val testImages = tf.data.TensorSlicesDataset(dataSet.testImages)
-    val testLabels = tf.data.TensorSlicesDataset(dataSet.testLabels)
+    val trainImages = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainImages)
+    val trainLabels = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainLabels)
+    val testImages = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.testImages)
+    val testLabels = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.testLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()
@@ -55,7 +55,9 @@ object MNIST {
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
+        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
     val trainInput = tf.learn.Input(UINT8, Shape(-1))
+        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
     //    val layer = tf.learn.flatten() >>
     //        tf.learn.cast(FLOAT32) >>
     //        tf.learn.linear(10) // >> tf.learn.logSoftmax()
@@ -75,7 +77,7 @@ object MNIST {
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
     val accMetric = tf.metrics.MapMetric(
-      (v: (Output, Output)) => (v._1.argmax(-1), v._2), tf.metrics.Accuracy())
+      (v: (Output, Output)) => (v._1.argmax(-1), v._2), tf.metrics.Accuracy("Accuracy"))
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
@@ -91,9 +93,12 @@ object MNIST {
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
-    def accuracy(images: Tensor, labels: Tensor): Float = {
+    def accuracy(images: Tensor[DataType], labels: Tensor[DataType]): Float = {
       val predictions = estimator.infer(() => images)
-      predictions.argmax(1).cast(UINT8).equal(labels).cast(FLOAT32).mean().scalar.asInstanceOf[Float]
+      predictions.asInstanceOf[Tensor[FLOAT32]]
+          .argmax(1).cast(UINT8)
+          .equal(labels.asInstanceOf[Tensor[UINT8]]).cast(FLOAT32)
+          .mean().scalar
     }
 
     logger.info(s"Train accuracy = ${accuracy(dataSet.trainImages, dataSet.trainLabels)}")
@@ -128,28 +133,5 @@ object MNIST {
     //                     f"${testAccuracy.scalar.asInstanceOf[Float]}%13.4e")
     //   }
     // }
-  }
-}
-
-case class DummyAccuracy(
-    variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS),
-    override val name: String = "Accuracy"
-) extends Metric[(Output, (Output, Output)), Output] {
-  private[this] val accuracyMetric =
-    Accuracy(variablesCollections, valuesCollections, updatesCollections, resetsCollections, name)
-
-  override def compute(values: (Output, (Output, Output)), weights: Output = null, name: String = name): Output = {
-    accuracyMetric.compute((values._1.argmax(-1), values._2._2), weights, name)
-  }
-
-  override def streaming(
-      values: (Output, (Output, Output)),
-      weights: Output = null,
-      name: String = name
-  ): Metric.StreamingInstance[Output] = {
-    accuracyMetric.streaming((values._1.argmax(-1), values._2._2), weights, name)
   }
 }

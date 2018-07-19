@@ -43,13 +43,13 @@ trait Optimizer {
 
   /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
     * use variables to accumulate updates. This map is where these variables are stored. */
-  protected val slots = mutable.Map.empty[String, mutable.Map[Variable, Variable]]
+  protected final val slots = mutable.Map.empty[String, mutable.Map[Variable, Variable]]
 
   /** Returns the names of all slots used by this optimizer. */
-  protected def slotNames: Set[String] = slots.keySet.toSet
+  protected final def slotNames: Set[String] = slots.keySet.toSet
 
   /** Contains variables used by some optimizers that require no slots to be stored. */
-  protected val nonSlotVariables = mutable.Map.empty[(String, Option[Graph]), Variable]
+  protected final val nonSlotVariables = mutable.Map.empty[(String, Option[Graph]), Variable]
 
   /** Creates an op that makes a step towards minimizing `loss` by updating the values of the variables in `variables`.
     *
@@ -69,7 +69,7 @@ trait Optimizer {
     * @param  name                       Name for the created op.
     * @return Created op.
     */
-  def minimize(
+  final def minimize(
       loss: Output,
       lossGradients: Seq[OutputLike] = null,
       variables: Set[Variable] = null,
@@ -199,7 +199,7 @@ trait Optimizer {
 
   /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
     * field allow other float types. */
-  protected val supportedDataTypes: Set[DataType] = Set[DataType](FLOAT32, FLOAT64)
+  val supportedDataTypes: Set[DataType] = Set[DataType](FLOAT32, FLOAT64)
 
   /** Asserts that the provided `outputs` all have data types that are supported by this optimizer.
     *
@@ -215,13 +215,13 @@ trait Optimizer {
   }
 
   /** Create all slots needed by this optimizer. */
-  protected def createSlots(variables: Seq[Variable]): Unit = {
+  def createSlots(variables: Seq[Variable]): Unit = {
     // No slots are created by default.
   }
 
   /** Creates all necessary tensors before applying the gradients. This function is called from within an op creation
     * context that uses as its name scope the name that users have chosen for the application of gradients. */
-  protected def prepare(iteration: Option[Variable]): Unit = {}
+  def prepare(iteration: Option[Variable]): Unit = {}
 
   /** Creates an op that finishes the gradients application. This function is called from within an op creation context
     * that uses as its name scope the name that users have chosen for the application of gradients.
@@ -230,7 +230,7 @@ trait Optimizer {
     * @param  nameScope Name scope to use for all the ops created by this function.
     * @return Created op output.
     */
-  protected def finish(updateOps: Set[Op], nameScope: String): Op = {
+  def finish(updateOps: Set[Op], nameScope: String): Op = {
     ControlFlow.group(updateOps, nameScope)
   }
 
@@ -241,7 +241,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op
+  def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op
 
   /** Applies the updates corresponding to the provided gradient, to the provided variable.
     *
@@ -255,7 +255,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op
+  def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op
 
   /** Applies the updates corresponding to the provided gradient (with potentially duplicate indices), to the provided
     * variable.
@@ -277,7 +277,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  protected def applySparseDuplicateIndices(
+  def applySparseDuplicateIndices(
       gradient: OutputIndexedSlices,
       variable: Variable,
       iteration: Option[Variable]
@@ -308,7 +308,7 @@ trait Optimizer {
     * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
     * @return Requested slot variable.
     */
-  protected def getSlot(
+  protected final def getSlot(
       name: String,
       variable: Variable,
       initializer: Initializer,
@@ -327,7 +327,7 @@ trait Optimizer {
     * @param  variable Slot primary variable.
     * @return Requested slot variable, or `null` if it cannot be found.
     */
-  protected def getSlot(name: String, variable: Variable): Variable = {
+  protected final def getSlot(name: String, variable: Variable): Variable = {
     slots.getOrElse(name, Map.empty[Variable, Variable]).getOrElse(variable, null)
   }
 
@@ -338,7 +338,7 @@ trait Optimizer {
     * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
     * @return Requested slot variable.
     */
-  protected def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
+  protected final def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
     Op.colocateWith(Set(variable.op)) {
       slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, variableScope))
     }
@@ -351,9 +351,9 @@ trait Optimizer {
     * @param  colocationOps Set of colocation ops for the non-slot variable.
     * @return Created non-slot variable.
     */
-  protected def getOrCreateNonSlotVariable(
+  protected final def getOrCreateNonSlotVariable(
       name: String,
-      initialValue: Tensor,
+      initialValue: Tensor[_ <: DataType],
       colocationOps: Set[Op] = Set.empty
   ): Variable = {
     nonSlotVariables.getOrElseUpdate(
@@ -370,16 +370,16 @@ trait Optimizer {
     * @param  graph Graph in which the variable is defined.
     * @return Obtained non-slot variable.
     */
-  protected def getNonSlotVariable(name: String, graph: Graph = null): Variable = {
+  protected final def getNonSlotVariable(name: String, graph: Graph = null): Variable = {
     nonSlotVariables((name, Option(graph)))
   }
 
   /** Gets all the non-slot variables that have been added to this optimizer. */
-  protected def getNonSlotVariables: Iterable[Variable] = nonSlotVariables.values
+  protected final def getNonSlotVariables: Iterable[Variable] = nonSlotVariables.values
 
   /** Returns a sequence of variables which encode the current state of this optimizer. The returned variables include
     * both slot variables and non-slot global variables created by this optimizer, in the current graph. */
-  def variables: Seq[Variable] = {
+  final def variables: Seq[Variable] = {
     (getNonSlotVariables.filter(_.graph == Op.currentGraph) ++ slots.values.flatMap(_.values))
         .toSeq.sortBy(_.name)
   }

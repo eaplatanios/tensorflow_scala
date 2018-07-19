@@ -26,6 +26,7 @@ import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.io.data.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.FLOAT32
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -299,7 +300,8 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
       metrics: Seq[Metric[EI, Output]],
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
-      name: String = null): Seq[Tensor] = {
+      name: String = null
+  ): Seq[Tensor[FLOAT32]] = {
     session.removeHooks(currentTrainHooks ++ inferHooks)
     val values = Op.createWith(graph) {
       val frozen = graph.isFrozen
@@ -326,11 +328,11 @@ class InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimator
               } catch {
                 case _: OutOfRangeException => session.setShouldStop(true)
               }
-            (step, session.run(fetches = evaluationOps.metricValues))
+            (step, session.run(fetches = evaluationOps.metricValues).asInstanceOf[Seq[Tensor[FLOAT32]]])
           } catch {
             case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
               session.close()
-              (-1L, Seq.empty[Tensor])
+              (-1L, Seq.empty[Tensor[FLOAT32]])
             case t: Throwable =>
               stopHook.updateCriteria(this.stopCriteria)
               session.closeWithoutHookEnd()

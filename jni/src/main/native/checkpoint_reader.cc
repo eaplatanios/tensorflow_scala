@@ -19,8 +19,15 @@
 #include <string.h>
 
 #include "tensorflow/c/eager/c_api.h"
-#include "tensorflow/c/eager/c_api_internal.h"
 #include "tensorflow/c/checkpoint_reader.h"
+#include "tensorflow/core/common_runtime/eager/tensor_handle.h"
+
+struct TFE_TensorHandle {
+  TFE_TensorHandle(const tensorflow::Tensor& t)
+      : handle(new tensorflow::TensorHandle(t, nullptr, nullptr, nullptr)) {}
+
+  tensorflow::TensorHandle* handle;
+};
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_newCheckpointReader(
     JNIEnv* env, jobject object, jstring file_pattern) {
@@ -59,8 +66,72 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024
   std::unique_ptr<tensorflow::Tensor> tensor;
   reader->GetTensor(c_name, &tensor, status.get());
   CHECK_STATUS(env, status.get(), 0);
-  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get(), nullptr, nullptr);
+  TFE_TensorHandle* tfe_tensor = new TFE_TensorHandle(*tensor.get());
   return (jlong) tfe_tensor;
+}
+
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_variableShapes(
+    JNIEnv* env, jobject object, jlong reader_handle) {
+  REQUIRE_HANDLE(reader, tensorflow::checkpoint::CheckpointReader, reader_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  const tensorflow::checkpoint::TensorSliceReader::VarToShapeMap map = reader->GetVariableToShapeMap();
+
+  jobjectArray jvariables = env->NewObjectArray(map.size(), env->FindClass("java/lang/String"), env->NewStringUTF(""));
+  jobjectArray jshapes = env->NewObjectArray(map.size(), env->FindClass("[J"), env->NewLongArray(0));
+  int i = 0;
+  for(const auto& pair : map) {
+    char *value = new char[pair.first.size() + 1];
+    strncpy(value, reinterpret_cast<const char *>(pair.first.c_str()), pair.first.size());
+    value[pair.first.size()] = '\0';
+    env->SetObjectArrayElement(jvariables, i, env->NewStringUTF(value));
+
+    tensorflow::TensorShape shape = pair.second;
+    jlongArray jshape = env->NewLongArray(shape.dims());
+    jlong *jdims = env->GetLongArrayElements(jshape, nullptr);
+    for (int j = 0; j < shape.dims(); ++j) {
+      jdims[j] = static_cast<jlong>(shape.dim_size(j));
+    }
+    env->ReleaseLongArrayElements(jshape, jdims, 0);
+    env->SetObjectArrayElement(jshapes, i, jshape);
+    i += 1;
+  }
+
+  jclass variableShapesClass = env->FindClass("org/platanios/tensorflow/jni/VariableShapes");
+  jmethodID classConstructor = env->GetStaticMethodID(
+    variableShapesClass, "apply", "([Ljava/lang/String;[[J)Lorg/platanios/tensorflow/jni/VariableShapes;");
+  jobject jvariableShapes = env->CallStaticObjectMethod(variableShapesClass, classConstructor, jvariables, jshapes);
+  CHECK_STATUS(env, status.get(), nullptr);
+  return jvariableShapes;
+}
+
+JNIEXPORT jobject JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_variableDataTypes(
+    JNIEnv* env, jobject object, jlong reader_handle) {
+  REQUIRE_HANDLE(reader, tensorflow::checkpoint::CheckpointReader, reader_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  const tensorflow::checkpoint::TensorSliceReader::VarToDataTypeMap map = reader->GetVariableToDataTypeMap();
+
+  jobjectArray jvariables = env->NewObjectArray(map.size(), env->FindClass("java/lang/String"), env->NewStringUTF(""));
+  jintArray jtypes = env->NewIntArray(map.size());
+  jint *types = env->GetIntArrayElements(jtypes, nullptr);
+  int i = 0;
+  for(const auto& pair : map) {
+    char *value = new char[pair.first.size() + 1];
+    strncpy(value, reinterpret_cast<const char *>(pair.first.c_str()), pair.first.size());
+    value[pair.first.size()] = '\0';
+    env->SetObjectArrayElement(jvariables, i, env->NewStringUTF(value));
+    types[i] = static_cast<jint>(pair.second);
+    i += 1;
+  }
+  env->ReleaseIntArrayElements(jtypes, types, 0);
+
+  jclass variableDataTypesClass = env->FindClass("org/platanios/tensorflow/jni/VariableDataTypes");
+  jmethodID classConstructor = env->GetStaticMethodID(
+    variableDataTypesClass, "apply", "([Ljava/lang/String;[I)Lorg/platanios/tensorflow/jni/VariableDataTypes;");
+  jobject jvariableDataTypes = env->CallStaticObjectMethod(variableDataTypesClass, classConstructor, jvariables, jtypes);
+  CHECK_STATUS(env, status.get(), nullptr);
+  return jvariableDataTypes;
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_CheckpointReader_00024_delete(

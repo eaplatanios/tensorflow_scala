@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.types.FLOAT32
@@ -51,7 +51,7 @@ class WarmUpLinearSchedule protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for warm-up schedule.")
     Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Math.cast(step.get.value, value.dataType)
+      val stepValue = Cast.cast(step.get.value, value.dataType)
       val warmUpStepsValue = Basic.constant(warmUpSteps, value.dataType)
       val warmUpOffsetValue = Basic.constant(warmUpOffset, FLOAT32)
       ControlFlow.cond(

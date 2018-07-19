@@ -34,17 +34,15 @@ class XlaTensor {
  public:
   // Downcast from a Tensor to an XlaTensor. Return nullptr if the downcast
   // fails.
-  static XlaTensor* FromTensor(Tensor* tensor);
-  // Downcast from a Tensor to an XlaTensor. Return nullptr if the downcast
-  // fails.
-  static const XlaTensor* FromTensor(const Tensor* tensor);
+  static XlaTensor* FromTensor(const Tensor* tensor);
+
+  static bool RefCountIsOne(const Tensor& tensor);
 
   // Create a DeviceMemoryBase from a Tensor. The Tensor can be an XlaTensor, in
   // which case the returned value is shaped_buffer()->root_buffer(), or a
   // normal Tensor in which case the returned value is
   // {tensor.tensor_data().data(), tensor.tensor_data().size}.
-  static perftools::gputools::DeviceMemoryBase DeviceMemoryFromTensor(
-      const Tensor& tensor);
+  static se::DeviceMemoryBase DeviceMemoryFromTensor(const Tensor& tensor);
 
   // Assign the internal ShapedBuffer to new memory for the given dtype and
   // shape. If a ShapedBuffer exists already (has_shaped_buffer() == true), it
@@ -55,7 +53,7 @@ class XlaTensor {
   // Some Tensors can have complex on-device shapes, including tuple shapes. To
   // manage the memory for these tensors a ShapedBuffer may be required.
 
-  // Return true if this TensorInfo contains a ShapedBuffer.
+  // Return true if this XlaTensor contains a ShapedBuffer.
   bool has_shaped_buffer() const { return shaped_buffer_ != nullptr; }
   // Return the contained ShapedBuffer.
   // REQUIRES: has_shaped_buffer()
@@ -63,7 +61,11 @@ class XlaTensor {
     CHECK(has_shaped_buffer());
     return *shaped_buffer_;
   }
-  // Mutates the TensorInfo to set the ShapedBuffer.
+  xla::ShapedBuffer& shaped_buffer() {
+    CHECK(has_shaped_buffer());
+    return *shaped_buffer_;
+  }
+  // Mutates the XlaTensor to set the ShapedBuffer.
   void set_shaped_buffer(xla::ScopedShapedBuffer shaped_buffer) {
     shaped_buffer_ =
         xla::MakeUnique<xla::ScopedShapedBuffer>(std::move(shaped_buffer));
@@ -73,7 +75,7 @@ class XlaTensor {
   // in on-demand mode to avoid re-copying values from the device if we know the
   // host value already.
 
-  // Return true if this TensorInfo contains a host tensor.
+  // Return true if this XlaTensor contains a host tensor.
   bool has_host_tensor() const { return host_tensor_ != nullptr; }
   // Return the contained host tensor.
   // REQUIRES: has_host_tensor()

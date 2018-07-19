@@ -15,11 +15,11 @@
 
 package org.platanios.tensorflow.data
 
+import com.typesafe.scalalogging.Logger
+
 import java.io.IOException
 import java.net.URL
 import java.nio.file.{Files, Path}
-
-import com.typesafe.scalalogging.Logger
 
 /**
   * @author Emmanouil Antonios Platanios

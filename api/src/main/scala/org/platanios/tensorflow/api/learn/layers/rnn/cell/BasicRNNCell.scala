@@ -42,8 +42,9 @@ class BasicRNNCell(
   override val layerType: String = "BasicRNNCell"
 
   override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicRNNCell = {
-    val kernel = tf.variable(KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
-    val bias = tf.variable(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
+    val kernel = getParameter(
+      KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
+    val bias = getParameter(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
     ops.rnn.cell.BasicRNNCell(kernel, bias, activation, name)
   }
 }

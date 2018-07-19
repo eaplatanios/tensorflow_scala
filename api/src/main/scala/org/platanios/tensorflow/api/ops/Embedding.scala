@@ -48,9 +48,13 @@ private[ops] trait Embedding {
     * @return Obtained embeddings for the provided `ids`.
     */
   def embeddingLookup(
-      parameters: EmbeddingMap, ids: Output, partitionStrategy: PartitionStrategy = ModStrategy,
-      transformFn: Output => Output = null, maxNorm: Output = null,
-      name: String = "EmbeddingLookup"): Output = {
+      parameters: EmbeddingMap,
+      ids: Output,
+      partitionStrategy: PartitionStrategy = ModStrategy,
+      transformFn: Output => Output = null,
+      maxNorm: Output = null,
+      name: String = "EmbeddingLookup"
+  ): Output = {
     Op.createWithNameScope(name) {
       if (parameters.numPartitions == 1 && (ids.rank == 1 || transformFn == null)) {
         Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp)) {
@@ -69,8 +73,10 @@ private[ops] trait Embedding {
         val flattenedIds = ids.reshape(Shape(-1))
         val originalIds = Math.range(0, flattenedIds.size)
         // Create `partitionAssignments` and set `newIds` depending on the strategy.
-        var (partitionAssignments, newIds) = partitionStrategy.transformIds(
+        val transformedIds = partitionStrategy.transformIds(
           flattenedIds, parameters.partitionParameters, parameters.numPartitions)
+        var partitionAssignments = transformedIds._1
+        val newIds = transformedIds._2
         // Cast partition assignments to `INT32` for use in `dynamicPartition`.
         // There really should not be more than 2^32 partitions.
         partitionAssignments = partitionAssignments.cast(INT32)
@@ -158,9 +164,14 @@ private[ops] trait Embedding {
     * @return Obtained embeddings for the provided `ids`.
     */
   def sparseEmbeddingLookup(
-      parameters: EmbeddingMap, sparseIds: SparseOutput, sparseWeights: SparseOutput = null,
-      partitionStrategy: PartitionStrategy = ModStrategy, combiner: Combiner = SumSqrtNCombiner,
-      maxNorm: Output = null, name: String = "SparseEmbeddingLookup"): Output = {
+      parameters: EmbeddingMap,
+      sparseIds: SparseOutput,
+      sparseWeights: SparseOutput = null,
+      partitionStrategy: PartitionStrategy = ModStrategy,
+      combiner: Combiner = SumSqrtNCombiner,
+      maxNorm: Output = null,
+      name: String = "SparseEmbeddingLookup"
+  ): Output = {
     val ignoreWeights = sparseWeights == null
     if (!ignoreWeights) {
       sparseIds.indices.shape.assertIsCompatibleWith(sparseWeights.indices.shape)
@@ -172,11 +183,12 @@ private[ops] trait Embedding {
     }
     Op.createWithNameScope(name) {
       val segmentIds = sparseIds.indices(::, 0).cast(INT32)
-      val (ids, idx) = if (ignoreWeights) Basic.unique(sparseIds.values, 0) else (sparseIds.values, null)
-      val embeddings = embeddingLookup(parameters, ids, partitionStrategy, maxNorm = maxNorm)
+      val (ids, idx) = Basic.unique(sparseIds.values, 0)
+      var embeddings = embeddingLookup(parameters, ids, partitionStrategy, maxNorm = maxNorm)
       if (ignoreWeights) {
         combiner.combine(embeddings, idx, segmentIds)
       } else {
+        embeddings = embeddings.gather(idx)
         val weights = sparseWeights.values.cast(embeddings.dataType)
         // Reshape weights to allow broadcasting.
         val weightsStaticShape = weights.shape

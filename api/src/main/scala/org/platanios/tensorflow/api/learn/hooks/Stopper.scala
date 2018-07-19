@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.learn.{Counter, StopCriteria}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -104,14 +105,14 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
   override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor]]] = {
+  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[DataType]]]] = {
     Some(Hook.SessionRunArgs(fetches = sessionFetches))
   }
 
   @throws[IllegalStateException]
   override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor]]
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.training.distribute.packers
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, OutputLike}
 import org.platanios.tensorflow.api.types.FLOAT32
 
 import scala.collection.mutable
@@ -51,8 +51,8 @@ class AggregateSmallTensorsPacker protected(
     */
   @throws[InvalidArgumentException]
   override def pack(
-      grouped: Seq[Seq[Output]]
-  ): (Seq[Seq[Output]], Option[AggregateSmallTensorsPacker.PackInformation]) = {
+      grouped: Seq[Seq[OutputLike]]
+  ): (Seq[Seq[OutputLike]], Option[AggregateSmallTensorsPacker.PackInformation]) = {
     val partitions = grouped.head.zipWithIndex.partition(gi => {
       gi._1.dataType == FLOAT32 && 4 * gi._1.shape.numElements <= maxBytes
     })
@@ -99,9 +99,9 @@ class AggregateSmallTensorsPacker protected(
     */
   @throws[InvalidArgumentException]
   override def unpack(
-      packed: Seq[Seq[Output]],
+      packed: Seq[Seq[OutputLike]],
       packInformation: Option[AggregateSmallTensorsPacker.PackInformation]
-  ): Seq[Seq[Output]] = packInformation match {
+  ): Seq[Seq[OutputLike]] = packInformation match {
     case None => packed
     case Some(information) =>
       val numDevices = packed.size

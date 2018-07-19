@@ -138,6 +138,7 @@ typedef enum {
   kTfLiteInt64 = 4,
   kTfLiteString = 5,
   kTfLiteBool = 6,
+  kTfLiteInt16 = 7,
 } TfLiteType;
 
 // Parameters for asymmetric quantization. Quantized values can be converted
@@ -148,7 +149,7 @@ typedef struct {
   int32_t zero_point;
 } TfLiteQuantizationParams;
 
-// A union of points that points to memory for a given tensor.
+// A union of pointers that points to memory for a given tensor.
 typedef union {
   int* i32;
   int64_t* i64;
@@ -157,6 +158,7 @@ typedef union {
   const char* raw_const;
   uint8_t* uint8;
   bool* b;
+  int16_t* i16;
 } TfLitePtrUnion;
 
 // Memory allocation strategies. kTfLiteMmapRo is for read-only memory-mapped
@@ -223,6 +225,9 @@ typedef struct {
   // delegate buffer.
   // WARNING: This is an // experimental interface that is subject to change.
   bool data_is_stale;
+
+  // True if the tensor is a variable.
+  bool is_variable;
 } TfLiteTensor;
 
 // Free data memory of tensor `t`;
@@ -235,7 +240,8 @@ void TfLiteTensorFree(TfLiteTensor* t);
 void TfLiteTensorReset(TfLiteType type, const char* name, TfLiteIntArray* dims,
                        TfLiteQuantizationParams quantization, char* buffer,
                        size_t size, TfLiteAllocationType allocation_type,
-                       const void* allocation, TfLiteTensor* tensor);
+                       const void* allocation, bool is_variable,
+                       TfLiteTensor* tensor);
 
 // Resize the allocated data of a (dynamic) tensor.
 void TfLiteTensorRealloc(size_t num_bytes, TfLiteTensor* tensor);
@@ -275,7 +281,7 @@ typedef struct {
 
 typedef struct TfLiteContext {
   // Number of tensors in the context.
-  int tensors_size;
+  size_t tensors_size;
 
   // The execution plan contains a list of the node indices in execution
   // order. execution_plan->size is the current number of nodes. And,
@@ -370,13 +376,21 @@ typedef struct _TfLiteRegistration {
 
   // Builtin codes. If this kernel refers to a builtin this is the code
   // of the builtin. This is so we can do marshaling to other frameworks like
-  // NN API. Note, it is the responsibility of the registration binder to
-  // set this properly.
+  // NN API.
+  // Note: It is the responsibility of the registration binder to set this
+  // properly.
   int32_t builtin_code;
 
   // Custom op name. If the op is a builtin, this will be null.
+  // Note: It is the responsibility of the registration binder to set this
+  // properly.
   // WARNING: This is an experimental interface that is subject to change.
   const char* custom_name;
+
+  // The version of the op.
+  // Note: It is the responsibility of the registration binder to set this
+  // properly.
+  int version;
 } TfLiteRegistration;
 
 // WARNING: This is an experimental interface that is subject to change.
@@ -397,13 +411,13 @@ typedef struct _TfLiteDelegate {
   // This can be null if the delegate doesn't use its own buffer.
   TfLiteStatus (*CopyFromBufferHandle)(TfLiteDelegate* delegate,
                                        TfLiteBufferHandle buffer_handle,
-                                       void* data, int size);
+                                       void* data, size_t size);
 
   // Copy the data from raw memory to delegate buffer handle.
   // This can be null if the delegate doesn't use its own buffer.
   TfLiteStatus (*CopyToBufferHandle)(TfLiteDelegate* delegate,
                                      TfLiteBufferHandle buffer_handle,
-                                     void* data, int size);
+                                     void* data, size_t size);
 
   // Free the Delegate Buffer Handle. Note: This only frees the handle, but
   // this doesn't release the underlying resource (e.g. textures). The

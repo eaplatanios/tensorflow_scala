@@ -116,7 +116,9 @@ object Indexer {
     */
   @throws[InvalidIndexerException]
   private[api] def decode(
-      shape: Shape, indexers: Seq[Indexer]): (Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) = {
+      shape: Shape,
+      indexers: Seq[Indexer]
+  ): (Array[Int], Array[Int], Array[Int], Array[Int], Array[Int]) = {
     // TODO: Make this more efficient.
     // TODO: Add tests for when providing an empty shape.
     val newAxesCount = indexers.count(_ == NewAxis)
@@ -228,7 +230,8 @@ object Indexer {
     *
     * Note that `indexers` is only allowed to contain at most one [[Ellipsis]].
     *
-    * @param  indexers Sequence of indexers to convert.
+    * @param  firstIndexer  First indexer to convert.
+    * @param  otherIndexers Rest of the indexers to convert.
     * @return Tuple containing:
     *         - begin indices,
     *         - end indices,
@@ -240,7 +243,10 @@ object Indexer {
     *         - shrink axis mask.
     */
   private[api] def toStridedSlice(
-      indexers: Indexer*): (Array[Int], Array[Int], Array[Int], Long, Long, Long, Long, Long) = {
+      firstIndexer: Indexer,
+      otherIndexers: Indexer*
+  ): (Array[Int], Array[Int], Array[Int], Long, Long, Long, Long, Long) = {
+    val indexers = firstIndexer +: otherIndexers
     if (indexers.count(_ == Ellipsis) > 1)
       throw InvalidIndexerException("Only one 'Ellipsis' ('---') is allowed per indexing sequence.")
     val begin = Array.fill(indexers.length)(0)

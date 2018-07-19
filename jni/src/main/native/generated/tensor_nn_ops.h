@@ -194,26 +194,26 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
  * Method:    conv2D
- * Signature: (JJJ[J[BZ[B)J
+ * Signature: (JJJ[J[BZ[B[J)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2D
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray, jlongArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
  * Method:    conv2DBackpropInput
- * Signature: (JJJJ[J[BZ[B)J
+ * Signature: (JJJJ[J[BZ[B[J)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropInput
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray, jlongArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
  * Method:    conv2DBackpropFilter
- * Signature: (JJJJ[J[BZ[B)J
+ * Signature: (JJJJ[J[BZ[B[J)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv2DBackpropFilter
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jboolean, jbyteArray, jlongArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
@@ -234,18 +234,18 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_0
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
  * Method:    depthwiseConv2dNative
- * Signature: (JJJ[J[B[B)J
+ * Signature: (JJJ[J[B[B[J)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_depthwiseConv2dNative
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray, jbyteArray, jbyteArray);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray, jbyteArray, jbyteArray, jlongArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
  * Method:    conv3D
- * Signature: (JJJ[J[B[B)J
+ * Signature: (JJJ[J[B[B[J)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_conv3D
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray, jbyteArray, jbyteArray);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlongArray, jbyteArray, jbyteArray, jlongArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
@@ -330,10 +330,10 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__
  * Method:    quantizedConv2D
- * Signature: (JJJJJJJ[J[BI)[J
+ * Signature: (JJJJJJJ[J[BI[J)[J
  */
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_NN_00024_quantizedConv2D
-  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jint);
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jlong, jlong, jlong, jlongArray, jbyteArray, jint, jlongArray);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_NN__

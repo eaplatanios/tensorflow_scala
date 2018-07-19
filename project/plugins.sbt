@@ -15,24 +15,27 @@
 
 logLevel := Level.Warn
 
-val tensorFlowVersion = "1.8.0-rc1"
+val tensorFlowVersion = "1.9.0-rc2"
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.ow2.asm" % "asm" % "5.0.4",
   "org.tensorflow" % "proto" % tensorFlowVersion)
 
+// addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC3")
+addSbtPlugin("org.scalameta" % "sbt-metals" % "0.1.0-M1+267-28b92d0a")
+
 // addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
 
 // Plugins used for generating the library website
 addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.1")
-addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.15")
+addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.18")
 
 // Packaging and publishing related plugins
-addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.7")
+addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.8")
 addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "1.1.1")
 addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.0")
 
 // Generally useful plugins
-addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.0") // Provides fast dependency resolution.
+addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.3") // Provides fast dependency resolution.

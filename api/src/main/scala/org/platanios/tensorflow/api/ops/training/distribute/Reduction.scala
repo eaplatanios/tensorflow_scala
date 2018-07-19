@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.distribute
 
 import org.platanios.tensorflow.api.core.DeviceSpecification
-import org.platanios.tensorflow.api.ops.{Math, Output}
+import org.platanios.tensorflow.api.ops.{Gradients, Math, Output, OutputIndexedSlices, OutputLike, SparseOutput}
 
 /** Represents a reduction method.
   *
@@ -24,21 +24,27 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   */
 trait Reduction {
   def reduce(
-      values: Seq[Output],
-      accumulateFn: Seq[Output] => Output = Math.addN(_, name = "ReductionAccumulate")
-  ): Output
+      values: Seq[OutputLike],
+      aggregationMethod: Gradients.AggregationMethod = Gradients.AccumulateAggregationMethod
+  ): OutputLike
 
   def processUngroupedValue(value: Output, devices: Seq[DeviceSpecification]): Output = value
   def processRestoredTensor(value: Output, devices: Seq[DeviceSpecification]): Output = value
 }
 
+object Reduction {
+  def defaultAccumulateFn(values: Seq[OutputLike]): OutputLike = {
+    Math.addN(values.map(_.toOutput), name = "ReductionAccumulate")
+  }
+}
+
 /** Reduces the variable updates by summing them. */
 case object SumReduction extends Reduction {
   override def reduce(
-      values: Seq[Output],
-      accumulateFn: Seq[Output] => Output = Math.addN(_, name = "ReductionAccumulate")
-  ): Output = {
-    accumulateFn(values)
+      values: Seq[OutputLike],
+      aggregationMethod: Gradients.AggregationMethod = Gradients.AccumulateAggregationMethod
+  ): OutputLike = {
+    aggregationMethod.aggregate(values)
   }
 
   override def processRestoredTensor(value: Output, devices: Seq[DeviceSpecification]): Output = {
@@ -51,10 +57,15 @@ case object SumReduction extends Reduction {
 /** Reduces the variable updates by averaging them. */
 case object MeanReduction extends Reduction {
   override def reduce(
-      values: Seq[Output],
-      accumulateFn: Seq[Output] => Output = Math.addN(_, name = "ReductionAccumulate")
-  ): Output = {
-    accumulateFn(values) / values.length
+      values: Seq[OutputLike],
+      aggregationMethod: Gradients.AggregationMethod = Gradients.AccumulateAggregationMethod
+  ): OutputLike = {
+    aggregationMethod.aggregate(values) match {
+      case o: Output => o / values.length
+      case o: OutputIndexedSlices => OutputIndexedSlices(o.indices, o.values / values.length, o.denseShape)
+      case o: SparseOutput => SparseOutput(o.indices, o.values / values.length, o.denseShape)
+      case o => o.toOutput / values.length
+    }
   }
 
   override def processUngroupedValue(value: Output, devices: Seq[DeviceSpecification]): Output = {

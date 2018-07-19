@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.ops.variables.VarianceScalingInitializer.FanInScalingMode
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /** Base trait for all variable initializers.
   *
@@ -84,7 +84,7 @@ object OnesInitializer extends Initializer {
 }
 
 /** Initializer that sets the value of the variable to the provided `value`. */
-case class ConstantInitializer(value: Tensor) extends Initializer {
+case class ConstantInitializer(value: Tensor[DataType]) extends Initializer {
   override val dataType: DataType = value.dataType
   override val shape: Shape = value.shape
 
@@ -115,7 +115,10 @@ case class DynamicConstantInitializer(value: Output) extends Initializer {
 
 /** Initializer that sets the value of the variable to a `value` drawn from a uniform distribution. */
 case class RandomUniformInitializer(
-    minValue: Tensor = 0.0, maxValue: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
+    minValue: Tensor[FLOAT32] = 0.0f,
+    maxValue: Tensor[FLOAT32] = 1.0f,
+    seed: Option[Int] = None
+) extends Initializer {
   override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     Random.randomUniform(
       dataType, shape, minValue = minValue, maxValue = maxValue, seed = seed, name = "RandomUniformInitializer")
@@ -124,7 +127,10 @@ case class RandomUniformInitializer(
 
 /** Initializer that sets the value of the variable to a `value` drawn from a Normal distribution. */
 case class RandomNormalInitializer(
-    mean: Tensor = 0.0, standardDeviation: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
+    mean: Tensor[FLOAT32] = 0.0f,
+    standardDeviation: Tensor[FLOAT32] = 1.0f,
+    seed: Option[Int] = None
+) extends Initializer {
   override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     Random.randomNormal(
       dataType, shape, mean = mean, standardDeviation = standardDeviation, seed = seed,
@@ -134,7 +140,10 @@ case class RandomNormalInitializer(
 
 /** Initializer that sets the value of the variable to a `value` drawn from a truncated Normal distribution. */
 case class RandomTruncatedNormalInitializer(
-    mean: Tensor = 0.0, standardDeviation: Tensor = 1.0, seed: Option[Int] = None) extends Initializer {
+    mean: Tensor[FLOAT32] = 0.0f,
+    standardDeviation: Tensor[FLOAT32] = 1.0f,
+    seed: Option[Int] = None
+) extends Initializer {
   override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
     Random.randomTruncatedNormal(
       dataType, shape, mean = mean, standardDeviation = standardDeviation, seed = seed,
