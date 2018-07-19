@@ -1543,7 +1543,7 @@ object NN extends NN {
           .setAttribute("bias", op.floatAttribute("bias"))
           .setAttribute("alpha", op.floatAttribute("alpha"))
           .setAttribute("beta", op.floatAttribute("beta"))
-          .build().outputs.asInstanceOf[Seq[OutputLike]]
+          .build().outputs.toSeq.asInstanceOf[Seq[OutputLike]]
     }
 
     private[this] def broadcastMultiply(vector: Output, matrix: Output): Output = {
