@@ -29,13 +29,11 @@ object LinearRegressionFromRestoredPythonModel {
   private[this] val random = new Random(22)
   private[this] val weight = random.nextFloat()
 
+  private[this] val checkpoint = "examples/src/main/resources/python2scala/virgin-linear-regression-pull-request"
+  private[this] val meta = new File(getClass.getClassLoader.getResource("python2scala/virgin-linear-regression-pull-request.meta").getFile)
+  private[this] val metaGraphDefFile = new File(getClass.getClassLoader.getResource("python2scala/MetaGraphDef.txt").getFile)
+
   def main(args: Array[String]): Unit = {
-    val classLoader = getClass.getClassLoader
-    val meta = new File(classLoader.getResource("python2scala/virgin-linear-regression-pull-request.meta").getFile)
-    val metaGraphDefFile = new File(classLoader.getResource("python2scala/MetaGraphDef.txt").getFile)
-
-    val checkpoint = "examples/src/main/resources/python2scala/virgin-linear-regression-pull-request"
-
     val metaGraphDefInputStream = new BufferedInputStream(new FileInputStream(meta))
     val mgf = MetaGraphDef.parseFrom(metaGraphDefInputStream)
     val checkpointPath = Paths.get(checkpoint)
@@ -44,7 +42,6 @@ object LinearRegressionFromRestoredPythonModel {
     val fileWriter = new BufferedWriter(new FileWriter(metaGraphDefFile))
     fileWriter.write(mgf.toString)
     fileWriter.close()
-
 
     tf.createWith(graph = Graph()) {
       val session = Session()
