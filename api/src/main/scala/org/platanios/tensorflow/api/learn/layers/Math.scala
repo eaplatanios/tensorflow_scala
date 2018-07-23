@@ -62,21 +62,27 @@ case class AddN(override val name: String)
   }
 }
 
-case class Sum(override val name: String)
+case class Sum(override val name: String, axes: Seq[Int] = Seq.empty, keepDims: Boolean = false)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Sum"
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    ops.Math.sum(input, name = name)
+    if (axes.isEmpty)
+      ops.Math.sum(input, keepDims = keepDims, name = name)
+    else
+      ops.Math.sum(input, axes, keepDims = keepDims, name = name)
   }
 }
 
-case class Mean(override val name: String)
+case class Mean(override val name: String, axes: Seq[Int] = Seq.empty, keepDims: Boolean = false)
     extends Layer[Output, Output](name) {
   override val layerType: String = "Mean"
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    ops.Math.mean(input, name = name)
+    if (axes.isEmpty)
+      ops.Math.mean(input, keepDims = keepDims, name = name)
+    else
+      ops.Math.mean(input, axes, keepDims = keepDims, name = name)
   }
 }
 
