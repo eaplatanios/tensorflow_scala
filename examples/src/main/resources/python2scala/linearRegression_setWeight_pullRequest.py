@@ -22,9 +22,6 @@ def generate_one_data(limit=100):
             yield (np.reshape(n_inp, [-1, 1]), np.reshape(n_out, [-1, 1]))
 
 
-# --- CLEAR TERMINAL ---
-os.system('cls' if os.name == 'nt' else 'clear')
-
 # --- CHECK FLAG ---
 if len(sys.argv) != 5:
     print("Error:")
@@ -57,8 +54,6 @@ with tf.device(device):
 
     # - - - - SAVE MODEL - - -
     saver.save(sess, abs_path_virgin_model)
-
-    [print("- - - - - >", n.name) for n in tf.get_default_graph().as_graph_def().node]
 
 # - - - - TRAIN - - - - -
 if do_train:
