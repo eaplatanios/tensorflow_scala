@@ -17,7 +17,7 @@ import scala.util.Random
 /**
   * Purpose: take a model trained with the Python API of Tensor Flow and restore
   * it inside a Scala environment in order to continue the training process. For
-  * this example was used a virgin model but can be used a trained one without any
+  * this example was used a trained model but can be used a virgin one without any
   * problem.
   *
   * Information, Python API side: The model was saved using tf.train.Saver().
@@ -29,8 +29,8 @@ object LinearRegressionFromRestoredPythonModel {
   private[this] val random = new Random(22)
   private[this] val weight = random.nextFloat()
 
-  private[this] val checkpoint = "examples/src/main/resources/python2scala/virgin-linear-regression-pull-request"
-  private[this] val meta = new File(getClass.getClassLoader.getResource("python2scala/virgin-linear-regression-pull-request.meta").getFile)
+  private[this] val checkpoint = "examples/src/main/resources/python2scala/linear-regression-pull-request"
+  private[this] val meta = new File(getClass.getClassLoader.getResource("python2scala/linear-regression-pull-request.meta").getFile)
   private[this] val metaGraphDefFile = new File(getClass.getClassLoader.getResource("python2scala/MetaGraphDef.txt").getFile)
 
   def main(args: Array[String]): Unit = {
@@ -59,17 +59,12 @@ object LinearRegressionFromRestoredPythonModel {
       val output = session.graph.getOutputByName("p2s_output:0")
       val weight = session.graph.getOutputByName("p2s_weights_w/Read/ReadVariableOp:0")
       val bias = session.graph.getOutputByName("p2s_weights_b/Read/ReadVariableOp:0")
+      val prediction = session.graph.getOutputByName("p2s_prediction:0")
       val loss = session.graph.getOutputByName("p2s_loss:0")
-      val placeholderW = session.graph.getOutputByName("placeholder_p2s_weights_w:0")
-      val placeholderB = session.graph.getOutputByName("placeholder_p2s_weights_b:0")
-      val gradientW = session.graph.getOutputByName("exported_gradient_p2s_weights_w:0")
-      val gradientB = session.graph.getOutputByName("exported_gradient_p2s_weights_b:0")
 
       val trainOp = session.graph.getOpByName("p2s_train_op")
-      val assignVariableW = session.graph.getOpByName("AssignOp_p2s_weights_w")
-      val assignVariableB = session.graph.getOpByName("AssignOp_p2s_weights_b")
 
-      printRestoredNodesAndOperations(session, input, output, weight, bias, loss, placeholderW, placeholderB, gradientW, gradientB, trainOp, assignVariableW, assignVariableB)
+      printRestoredNodesAndOperations(session, input, output, weight, bias, prediction, loss, trainOp)
 
       // TRAINING LOOP
       for (i <- 0 to 50) {
@@ -80,7 +75,7 @@ object LinearRegressionFromRestoredPythonModel {
         val trainLoss = trainFetches(0)
         val trainWeight = trainFetches(1)
         val trainBias = trainFetches(2)
-        logger.info(s"Train loss at iteration $i = ${trainLoss.scalar}\nTrain weight at iteration $i = ${trainWeight.scalar}\nTrain bias at iteration $i = ${trainBias.scalar}")
+        logger.info(s"\nTrain loss at iteration ${i+1} = ${trainLoss.scalar}\nTrain weight at iteration ${i+1} = ${trainWeight.scalar}\nTrain bias at iteration ${i+1} = ${trainBias.scalar}\n")
       }
     }
   }
@@ -98,7 +93,7 @@ object LinearRegressionFromRestoredPythonModel {
     (Tensor(inputs).reshape(Shape(-1, 1)), Tensor(outputs).reshape(Shape(-1, 1)))
   }
 
-  def printRestoredNodesAndOperations(session: Session, input: Output, output: Output, weight: Output, bias: Output, loss: Output, placeholderW: Output, placeholderB: Output, gradientW: Output, gradientB: Output, trainOp: Op, assignVariableW: Op, assignVariableB: Op): Unit = {
+  def printRestoredNodesAndOperations(session: Session, input: Output, output: Output, weight: Output, bias: Output, prediction: Output, loss: Output, trainOp: Op): Unit = {
     // ---------- PRINT RESTORED OUTPUT AND OPERATIONS ------------
     println(" *" * 60)
     myPrintln("Trained weight value: " + session.run(fetches = weight).scalar, 90)
@@ -107,15 +102,8 @@ object LinearRegressionFromRestoredPythonModel {
     myPrintln("" + output, 116)
     myPrintln("" + weight, 116)
     myPrintln("" + bias, 116)
+    myPrintln("" + prediction, 116)
     myPrintln("" + loss, 116)
-    myPrintln("" + placeholderW, 116)
-    myPrintln("" + placeholderB, 116)
-    myPrintln("" + gradientW, 116)
-    myPrintln("" + gradientB, 116)
-
-    myPrintln("" + trainOp, 116)
-    myPrintln("" + assignVariableW, 116)
-    myPrintln("" + assignVariableB, 116)
     println(" *" * 60)
     // ---------------------------------------------
 
