@@ -29,8 +29,8 @@ object LinearRegressionFromRestoredPythonModel {
   private[this] val random = new Random(22)
   private[this] val weight = random.nextFloat()
 
-  private[this] val checkpoint = "examples/src/main/resources/python2scala/linear-regression-pull-request"
-  private[this] val meta = new File(getClass.getClassLoader.getResource("python2scala/linear-regression-pull-request.meta").getFile)
+  private[this] val checkpoint = "examples/src/main/resources/python2scala/linear-regression"
+  private[this] val meta = new File(getClass.getClassLoader.getResource("python2scala/linear-regression.meta").getFile)
   private[this] val metaGraphDefFile = new File(getClass.getClassLoader.getResource("python2scala/MetaGraphDef.txt").getFile)
 
   def main(args: Array[String]): Unit = {
