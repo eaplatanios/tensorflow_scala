@@ -15,11 +15,13 @@
 
 package org.platanios.tensorflow.api.utilities
 
-import sun.misc.ThreadGroupUtils
-
+import java.lang.Thread.currentThread
 import java.lang.ref.{PhantomReference, Reference, ReferenceQueue}
 import java.security.{AccessController, PrivilegedAction}
 import java.util
+import java.util.concurrent.ConcurrentHashMap
+
+import scala.annotation.tailrec
 
 /** This class is used for registering and disposing the native data associated with Scala objects.
   *
@@ -31,52 +33,56 @@ import java.util
   * @author Emmanouil Antonios Platanios
   */
 private[api] object Disposer {
-  private val queue  : ReferenceQueue[Any]                        = new ReferenceQueue[Any]
-  private val records: util.Hashtable[Reference[Any], () => Unit] = new util.Hashtable[Reference[Any], () => Unit]
+  private val queue = new ReferenceQueue[Any]
+  private val records: util.Map[Reference[_],() => Unit] = new ConcurrentHashMap
 
   /** Performs the actual registration of the target object to be disposed.
     *
     * @param target Disposable object to register.
     */
-  def add(target: Any, disposer: () => Unit): Reference[Any] = synchronized {
-    val reference = new PhantomReference(target, Disposer.queue)
-    Disposer.records.put(reference, disposer)
-    reference
+  def add( target: Any, disposer: () => Unit ): Reference[Any] =
+  {
+    //    var refToDispose = queue.poll
+    //    while( null != refToDispose ) {
+    //      records.remove(refToDispose).apply()
+    //      refToDispose.clear()
+    //      refToDispose = queue.poll
+    //    }
+    val ref = new PhantomReference(target,queue)
+    records put (ref,disposer)
+    // FIXME: make sure reference isn't GC'd before this point (e.g. with org.openjdk.jmh.infra.Blackhole::consume)
+    ref
   }
 
-  /** Removes/unregisters the provided reference from this disposer (e.g., in case it was disposed of, externally).
-    *
-    * @param  reference Reference to remove/unregister.
-    */
-  def remove(reference: Reference[Any]): Unit = synchronized {
-    if (!reference.isEnqueued)
-      reference.enqueue()
-  }
+  //  /** Removes/unregisters the provided reference from this disposer (e.g., in case it was disposed of, externally).
+  //    *
+  //    * @param  reference Reference to remove/unregister.
+  //    */
+  //  def remove( reference: Reference[Any] ): Unit
+  //    = reference.enqueue() // JavaDoc: returns true if this reference object was successfully enqueued; false if it was already enqueued...
 
-  AccessController.doPrivileged(new PrivilegedAction[Unit] {
-    override def run(): Unit = {
+  AccessController  doPrivileged  new PrivilegedAction[Unit]
+  {
+    override def run = {
       // The thread must be a member of a thread group which will not get GCed before the VM exit. For this reason, we
       // make its parent the top-level thread group.
-      val rootThreadGroup: ThreadGroup = ThreadGroupUtils.getRootThreadGroup
-      val thread: Thread = new Thread(rootThreadGroup, new Disposer(), "TensorFlow Scala API Disposer")
-      thread.setContextClassLoader(null)
-      thread.setDaemon(true)
-      thread.setPriority(Thread.MAX_PRIORITY)
-      thread.start()
-    }
-  })
-}
-
-/** Disposer thread runnable. */
-private class Disposer extends Runnable {
-  override def run(): Unit = {
-    while (true) {
-      var referenceToBeDisposed = Disposer.queue.remove // Blocks until there is a reference in the queue
-      var disposer = Disposer.records.remove(referenceToBeDisposed)
-      disposer()
-      referenceToBeDisposed.clear()
-      referenceToBeDisposed = null
-      disposer = null
+      @tailrec def rootThreadGroup( group: ThreadGroup = currentThread.getThreadGroup ): ThreadGroup
+      = group.getParent match {
+        case null   => group
+        case parent => rootThreadGroup(parent)
+      }
+      new Thread( rootThreadGroup(), "TensorFlow Scala API Disposer" )
+      {
+        override def run = while (true) {
+          val refToDispose = queue.remove // Blocks until there is a reference in the queue
+          records.remove(refToDispose).apply() // <- TODO add try-catch?
+          refToDispose.clear()
+        }
+        setContextClassLoader(null)
+        setDaemon(true)
+        setPriority(Thread.MAX_PRIORITY)
+        start()
+      }
     }
   }
 }
