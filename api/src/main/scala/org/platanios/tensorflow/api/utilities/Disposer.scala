@@ -47,13 +47,13 @@ private[api] object Disposer {
     reference
   }
 
-  AccessController.doPrivileged (new PrivilegedAction[Unit] {
+  AccessController.doPrivileged(new PrivilegedAction[Unit] {
     override def run(): Unit = {
       // The thread must be a member of a thread group which will not get GCed before the VM exit. For this reason, we
       // make its parent the top-level thread group.
       @tailrec def rootThreadGroup(group: ThreadGroup = currentThread.getThreadGroup): ThreadGroup = {
         group.getParent match {
-          case null   => group
+          case null => group
           case parent => rootThreadGroup(parent)
         }
       }
