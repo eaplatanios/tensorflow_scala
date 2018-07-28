@@ -33,50 +33,37 @@ import scala.annotation.tailrec
   * @author Emmanouil Antonios Platanios
   */
 private[api] object Disposer {
-  private val queue = new ReferenceQueue[Any]
-  private val records: util.Map[Reference[_],() => Unit] = new ConcurrentHashMap
+  private val queue  : ReferenceQueue[Any]                  = new ReferenceQueue[Any]
+  private val records: util.Map[Reference[Any], () => Unit] = new ConcurrentHashMap[Reference[Any], () => Unit]
 
   /** Performs the actual registration of the target object to be disposed.
     *
     * @param target Disposable object to register.
     */
-  def add( target: Any, disposer: () => Unit ): Reference[Any] =
-  {
-    //    var refToDispose = queue.poll
-    //    while( null != refToDispose ) {
-    //      records.remove(refToDispose).apply()
-    //      refToDispose.clear()
-    //      refToDispose = queue.poll
-    //    }
-    val ref = new PhantomReference(target,queue)
-    records put (ref,disposer)
-    // FIXME: make sure reference isn't GC'd before this point (e.g. with org.openjdk.jmh.infra.Blackhole::consume)
+  def add(target: Any, disposer: () => Unit ): Reference[Any] = {
+    val reference = new PhantomReference(target, queue)
+    records.put(reference, disposer)
+    // TODO: make sure reference isn't GC'd before this point (e.g., with org.openjdk.jmh.infra.Blackhole::consume).
     ref
   }
 
-  //  /** Removes/unregisters the provided reference from this disposer (e.g., in case it was disposed of, externally).
-  //    *
-  //    * @param  reference Reference to remove/unregister.
-  //    */
-  //  def remove( reference: Reference[Any] ): Unit
-  //    = reference.enqueue() // JavaDoc: returns true if this reference object was successfully enqueued; false if it was already enqueued...
-
-  AccessController  doPrivileged  new PrivilegedAction[Unit]
-  {
-    override def run = {
+  AccessController.doPrivileged (new PrivilegedAction[Unit] {
+    override def run(): Unit = {
       // The thread must be a member of a thread group which will not get GCed before the VM exit. For this reason, we
       // make its parent the top-level thread group.
-      @tailrec def rootThreadGroup( group: ThreadGroup = currentThread.getThreadGroup ): ThreadGroup
-      = group.getParent match {
-        case null   => group
-        case parent => rootThreadGroup(parent)
+      @tailrec def rootThreadGroup(group: ThreadGroup = currentThread.getThreadGroup): ThreadGroup = {
+        group.getParent match {
+          case null   => group
+          case parent => rootThreadGroup(parent)
+        }
       }
-      new Thread( rootThreadGroup(), "TensorFlow Scala API Disposer" )
-      {
+     
+      new Thread(rootThreadGroup(), "TensorFlow Scala API Disposer") {
         override def run = while (true) {
-          val refToDispose = queue.remove // Blocks until there is a reference in the queue
-          records.remove(refToDispose).apply() // <- TODO add try-catch?
-          refToDispose.clear()
+          // Blocks until there is a reference in the queue.
+          val referenceToDispose = queue.remove
+          records.remove(referenceToDispose).apply()
+          referenceToDispose.clear()
         }
         setContextClassLoader(null)
         setDaemon(true)
@@ -84,5 +71,5 @@ private[api] object Disposer {
         start()
       }
     }
-  }
+  })
 }
