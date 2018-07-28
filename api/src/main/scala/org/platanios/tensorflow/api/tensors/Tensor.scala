@@ -167,10 +167,11 @@ class Tensor[+D <: DataType] protected (
 
   def entriesIterator: Iterator[D#ScalaType] = {
     object resolved extends (() => Unit) {
+      val lock = Tensor.this.NativeHandleLock
       var handle: Long = resolve()
       override def apply() = {
         if (handle != 0) {
-          NativeHandleLock synchronized {
+          lock synchronized {
             if (handle != 0) {
               NativeTensor.delete(handle)
               handle = 0
@@ -210,7 +211,7 @@ class Tensor[+D <: DataType] protected (
         i += 1
         remaining -= 1
         if (0 == remaining) {
-          NativeHandleLock synchronized {
+          resolved.lock synchronized {
             if (resolved.handle != 0) {
               NativeTensor.delete(resolved.handle)
               resolved.handle = 0
