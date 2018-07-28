@@ -190,7 +190,7 @@ case class SessionConfig(
 ) extends ProtoSerializable {
   val configProto: ConfigProto = {
     val configProto = ConfigProto.newBuilder()
-    deviceCount.foreach(d => configProto.putAllDeviceCount(d.mapValues(c => new Integer(c)).asJava))
+    deviceCount.foreach(d => configProto.putAllDeviceCount(d.mapValues(Integer.valueOf).asJava))
     intraOpParallelismThreads.foreach(configProto.setIntraOpParallelismThreads)
     interOpParallelismThreads.foreach(configProto.setInterOpParallelismThreads)
     usePerSessionThreads.foreach(configProto.setUsePerSessionThreads)

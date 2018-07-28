@@ -1208,7 +1208,7 @@ private[api] trait Math {
     *
     * @group MathOps
     * @param  input          Input tensor.
-    * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced and a multi-index is returned.
     * @param  outputDataType Data type for the output tensor.
     * @return Result as a new tensor.
     */
@@ -1217,7 +1217,21 @@ private[api] trait Math {
       axes: Tensor[I],
       outputDataType: IR
   ): Tensor[IR] = {
-    Tensor.fromNativeHandle[IR](NativeTensorOpsMath.argMax(
+    if( null == axes )
+    {
+      var iFlat = { input reshape Shape(-1) }.argmax[INT32](0).scalar
+      val result = Array.tabulate[Long](input.rank)( input.shape(_) )
+      var i = result.length
+      while( i > 0 )
+      {
+        i -= 1
+        val shape_i = result(i)
+        result(i) = iFlat % shape_i
+        iFlat /= shape_i
+      }
+      (result: Tensor[INT64]) cast outputDataType
+    }
+    else Tensor.fromNativeHandle[IR](NativeTensorOpsMath.argMax(
       executionContext.value.nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
   }
 
