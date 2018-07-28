@@ -15,12 +15,6 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import java.nio._
-import java.nio.charset.Charset
-import java.nio.file.Path
-
-import com.google.protobuf.ByteString
-import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
@@ -32,10 +26,17 @@ import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
-import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
+import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
+
+import com.google.protobuf.ByteString
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.TensorProto
+
+import java.nio._
+import java.nio.charset.Charset
+import java.nio.file.Path
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.language.{higherKinds, postfixOps}
@@ -165,21 +166,22 @@ class Tensor[+D <: DataType] protected (
   }
 
   def entriesIterator: Iterator[D#ScalaType] = {
-    object resolved extends ( () => Unit ) {
+    object resolved extends (() => Unit) {
       var handle: Long = resolve()
-      override def apply()
-        = if( handle != 0 )
+      override def apply() = {
+        if (handle != 0) {
           NativeHandleLock synchronized {
-            if( handle != 0 ) {
-              NativeTensor delete handle
+            if (handle != 0) {
+              NativeTensor.delete(handle)
               handle = 0
             }
           }
+        }
+      }
     }
-    if( resolved == 0 )
-      Iterator.empty // <- FIXME: can this even happen?
-    else new Iterator[D#ScalaType] {
-      private var i: Int  = 0
+    
+    new Iterator[D#ScalaType] {
+      private var i        : Int = 0
       private var remaining: Int = Tensor.this.size.ensuring(_ <= Int.MaxValue).toInt
 
       override def hasDefiniteSize = true
@@ -187,35 +189,37 @@ class Tensor[+D <: DataType] protected (
 
       private val buffer: ByteBuffer = NativeTensor.buffer(resolved.handle).order(ByteOrder.nativeOrder)
 
-      Disposer add (this, resolved)
+      Disposer.add(this, resolved)
 
-      override def hasNext: Boolean
-        = remaining > 0
+      override def hasNext: Boolean = remaining > 0
 
       override def next(): dataType.ScalaType = {
-        if( ! hasNext )
+        if (!hasNext)
           throw new NoSuchElementException
-        assert( resolved.handle != 0 )
+        assert(resolved.handle != 0)
+        
         val nextElement: dataType.ScalaType = dataType match {
           case _: STRING =>
-            val strOff = INT64.byteSize * (i+remaining)
+            val offset = INT64.byteSize * (i + remaining)
             dataType.getElementFromBuffer(
               buffer,
-              strOff + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).ensuring(_ <= Int.MaxValue).toInt
-            )
-          case _ =>
-            dataType.getElementFromBuffer(buffer, i * dataType.byteSize)
+              offset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).ensuring(_ <= Int.MaxValue).toInt)
+          case _ => dataType.getElementFromBuffer(buffer, i * dataType.byteSize)
         }
+        
         i += 1
         remaining -= 1
-        if( 0 == remaining )
+        if (0 == remaining) {
           NativeHandleLock synchronized {
-            if( resolved.handle != 0 ) {
-              NativeTensor delete resolved.handle
+            if (resolved.handle != 0) {
+              NativeTensor.delete(resolved.handle)
               resolved.handle = 0
+            } else {
+              throw new ConcurrentModificationException
             }
-            else throw new ConcurrentModificationException
           }
+        }
+
         nextElement
       }
     }
