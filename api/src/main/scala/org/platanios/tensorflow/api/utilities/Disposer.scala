@@ -44,7 +44,7 @@ private[api] object Disposer {
     val reference = new PhantomReference(target, queue)
     records.put(reference, disposer)
     // TODO: make sure reference isn't GC'd before this point (e.g., with org.openjdk.jmh.infra.Blackhole::consume).
-    ref
+    reference
   }
 
   AccessController.doPrivileged (new PrivilegedAction[Unit] {
