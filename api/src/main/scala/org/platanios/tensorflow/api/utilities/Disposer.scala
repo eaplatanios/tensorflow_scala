@@ -15,11 +15,13 @@
 
 package org.platanios.tensorflow.api.utilities
 
-import sun.misc.ThreadGroupUtils
-
+import java.lang.Thread.currentThread
 import java.lang.ref.{PhantomReference, Reference, ReferenceQueue}
 import java.security.{AccessController, PrivilegedAction}
 import java.util
+import java.util.concurrent.ConcurrentHashMap
+
+import scala.annotation.tailrec
 
 /** This class is used for registering and disposing the native data associated with Scala objects.
   *
@@ -31,52 +33,43 @@ import java.util
   * @author Emmanouil Antonios Platanios
   */
 private[api] object Disposer {
-  private val queue  : ReferenceQueue[Any]                        = new ReferenceQueue[Any]
-  private val records: util.Hashtable[Reference[Any], () => Unit] = new util.Hashtable[Reference[Any], () => Unit]
+  private val queue  : ReferenceQueue[Any]                  = new ReferenceQueue[Any]
+  private val records: util.Map[Reference[Any], () => Unit] = new ConcurrentHashMap[Reference[Any], () => Unit]
 
   /** Performs the actual registration of the target object to be disposed.
     *
     * @param target Disposable object to register.
     */
-  def add(target: Any, disposer: () => Unit): Reference[Any] = synchronized {
-    val reference = new PhantomReference(target, Disposer.queue)
-    Disposer.records.put(reference, disposer)
+  def add(target: Any, disposer: () => Unit ): Reference[Any] = {
+    val reference = new PhantomReference(target, queue)
+    records.put(reference, disposer)
+    // TODO: make sure reference isn't GC'd before this point (e.g., with org.openjdk.jmh.infra.Blackhole::consume).
     reference
-  }
-
-  /** Removes/unregisters the provided reference from this disposer (e.g., in case it was disposed of, externally).
-    *
-    * @param  reference Reference to remove/unregister.
-    */
-  def remove(reference: Reference[Any]): Unit = synchronized {
-    if (!reference.isEnqueued)
-      reference.enqueue()
   }
 
   AccessController.doPrivileged(new PrivilegedAction[Unit] {
     override def run(): Unit = {
       // The thread must be a member of a thread group which will not get GCed before the VM exit. For this reason, we
       // make its parent the top-level thread group.
-      val rootThreadGroup: ThreadGroup = ThreadGroupUtils.getRootThreadGroup
-      val thread: Thread = new Thread(rootThreadGroup, new Disposer(), "TensorFlow Scala API Disposer")
-      thread.setContextClassLoader(null)
-      thread.setDaemon(true)
-      thread.setPriority(Thread.MAX_PRIORITY)
-      thread.start()
+      @tailrec def rootThreadGroup(group: ThreadGroup = currentThread.getThreadGroup): ThreadGroup = {
+        group.getParent match {
+          case null => group
+          case parent => rootThreadGroup(parent)
+        }
+      }
+     
+      new Thread(rootThreadGroup(), "TensorFlow Scala API Disposer") {
+        override def run = while (true) {
+          // Blocks until there is a reference in the queue.
+          val referenceToDispose = queue.remove
+          records.remove(referenceToDispose).apply()
+          referenceToDispose.clear()
+        }
+        setContextClassLoader(null)
+        setDaemon(true)
+        setPriority(Thread.MAX_PRIORITY)
+        start()
+      }
     }
   })
-}
-
-/** Disposer thread runnable. */
-private class Disposer extends Runnable {
-  override def run(): Unit = {
-    while (true) {
-      var referenceToBeDisposed = Disposer.queue.remove // Blocks until there is a reference in the queue
-      var disposer = Disposer.records.remove(referenceToBeDisposed)
-      disposer()
-      referenceToBeDisposed.clear()
-      referenceToBeDisposed = null
-      disposer = null
-    }
-  }
 }

@@ -24,8 +24,8 @@ import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.stack
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 
@@ -38,6 +38,7 @@ import java.nio._
 import java.nio.charset.Charset
 import java.nio.file.Path
 
+import scala.compat.Platform.ConcurrentModificationException
 import scala.language.{higherKinds, postfixOps}
 
 /** Represents tensor-like objects.
@@ -164,34 +165,64 @@ class Tensor[+D <: DataType] protected (
     getElementAtFlattenedIndex(0)
   }
 
-  def entriesIterator: Iterator[D#ScalaType] = new Iterator[D#ScalaType] {
-    private var resolvedHandle: Long = resolve()
-    private var i             : Int  = 0
-
-    private val buffer      : ByteBuffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
-    private val stringOffset: Int        = INT64.byteSize * Tensor.this.size.toInt
-
-    override def hasNext: Boolean = {
-      val hasNext = resolvedHandle != 0 && i < Tensor.this.size.toInt
-      if (!hasNext && resolvedHandle != 0) {
-        NativeHandleLock synchronized {
-          NativeTensor.delete(resolvedHandle)
-          resolvedHandle = 0
+  def entriesIterator: Iterator[D#ScalaType] = {
+    object resolved extends (() => Unit) {
+      val lock = Tensor.this.NativeHandleLock
+      var handle: Long = resolve()
+      override def apply() = {
+        if (handle != 0) {
+          lock synchronized {
+            if (handle != 0) {
+              NativeTensor.delete(handle)
+              handle = 0
+            }
+          }
         }
       }
-      hasNext
     }
+    
+    new Iterator[D#ScalaType] {
+      private var i        : Int = 0
+      private var remaining: Int = Tensor.this.size.ensuring(_ <= Int.MaxValue).toInt
 
-    override def next(): D#ScalaType = {
-      val nextElement = dataType.asInstanceOf[DataType] match {
-        case STRING =>
-          dataType.getElementFromBuffer(
-            buffer, stringOffset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).toInt)
-        case _ =>
-          dataType.getElementFromBuffer(buffer, i * dataType.byteSize)
+      override def hasDefiniteSize = true
+      override def size = remaining
+
+      private val buffer: ByteBuffer = NativeTensor.buffer(resolved.handle).order(ByteOrder.nativeOrder)
+
+      Disposer.add(this, resolved)
+
+      override def hasNext: Boolean = remaining > 0
+
+      override def next(): dataType.ScalaType = {
+        if (!hasNext)
+          throw new NoSuchElementException
+        assert(resolved.handle != 0)
+        
+        val nextElement: dataType.ScalaType = dataType match {
+          case _: STRING =>
+            val offset = INT64.byteSize * (i + remaining)
+            dataType.getElementFromBuffer(
+              buffer,
+              offset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize).ensuring(_ <= Int.MaxValue).toInt)
+          case _ => dataType.getElementFromBuffer(buffer, i * dataType.byteSize)
+        }
+        
+        i += 1
+        remaining -= 1
+        if (0 == remaining) {
+          resolved.lock synchronized {
+            if (resolved.handle != 0) {
+              NativeTensor.delete(resolved.handle)
+              resolved.handle = 0
+            } else {
+              throw new ConcurrentModificationException
+            }
+          }
+        }
+
+        nextElement
       }
-      i += 1
-      nextElement.asInstanceOf[D#ScalaType]
     }
   }
 
