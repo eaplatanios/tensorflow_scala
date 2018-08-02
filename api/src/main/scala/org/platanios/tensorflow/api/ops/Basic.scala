@@ -666,7 +666,7 @@ private[api] trait Basic {
 
   private[ops] object PaddingMode {
     def fromString(name: String): PaddingMode = name match {
-      case "CONSTANT" => ConstantPadding(Some(Tensor(0)))
+      case "CONSTANT" => ConstantPadding(Some(Tensor(0).reshape(Shape())))
       case "REFLECT" => ReflectivePadding
       case "SYMMETRIC" => SymmetricPadding
       case _ => throw new IllegalArgumentException(s"Invalid padding mode '$name' provided.")
@@ -799,7 +799,7 @@ private[api] trait Basic {
   def pad(
       input: Output,
       paddings: Output,
-      mode: PaddingMode = ConstantPadding(Some(Tensor(0))),
+      mode: PaddingMode = ConstantPadding(Some(Tensor(0).reshape(Shape()))),
       name: String = "Pad"
   ): Output = {
     mode.pad(input, paddings, name)
@@ -2539,7 +2539,7 @@ object Basic extends Basic {
       val inputVector = op.inputs(0)
       val beginVector = op.inputs(1)
       val inputRank = rank(inputVector)
-      val padShape = concatenate(Seq(expandDims(inputRank, 0), constant(1.toTensor.cast(inputRank.dataType))))
+      val padShape = stack(Seq(inputRank, 1))
       val beforePad = reshape(beginVector, padShape)
       val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
       val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)

@@ -99,9 +99,8 @@ case class Variable private (
     if (cachedValue != null) {
       cachedValue
     } else {
-      Op.createWith(graph = graph, colocationOps = Set.empty[Op], device = handle.device) {
-        // Manually assign reads to the handle's device to avoid log messages
-        Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
+      Op.createWith(graph = graph, colocationOps = Set(handle.op), device = handle.device) {
+        Variable.readVariable(handle, dataType)
       }
     }
   }
