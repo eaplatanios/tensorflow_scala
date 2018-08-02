@@ -23,14 +23,6 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_allocate
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffer
   (JNIEnv *, jobject, jint, jlongArray, jlong, jobject);
 
-///*
-// * Class:     org_platanios_tensorflow_jni_Tensor__
-// * Method:    fromBuffer
-// * Signature: (LI[JJ)J
-// */
-//JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffer
-//  (JNIEnv *, jobject, jobject, jint, jlongArray, jlong);
-
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
  * Method:    dataType

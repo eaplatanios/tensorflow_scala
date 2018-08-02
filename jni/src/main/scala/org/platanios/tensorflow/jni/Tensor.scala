@@ -25,7 +25,6 @@ object Tensor {
 
   @native def allocate(dataType: Int, shape: Array[Long], numBytes: Long): Long
   @native def fromBuffer(dataType: Int, shape: Array[Long], numBytes: Long, buffer: ByteBuffer): Long
-  // @native def fromBuffer(buffer: ByteBuffer, dataType: Int, shape: Array[Long], byteSize: Long): Long
   @native def dataType(handle: Long): Int
   @native def shape(handle: Long): Array[Long]
   @native def buffer(handle: Long): ByteBuffer

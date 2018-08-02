@@ -56,48 +56,6 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffe
   return reinterpret_cast<jlong>(tensor);
 }
 
-//JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_fromBuffer(
-//    JNIEnv* env, jobject object, jobject buffer, jint dtype, jlongArray shape, jlong sizeInBytes) {
-//  int num_dims = static_cast<int>(env->GetArrayLength(shape));
-//  jlong* dims = nullptr;
-//  if (num_dims > 0) {
-//    jboolean is_copy;
-//    dims = env->GetLongArrayElements(shape, &is_copy);
-//  }
-//  static_assert(sizeof(jlong) == sizeof(int64_t), "Scala \"Long\" is not compatible with the TensorFlow C API.");
-//  // On some platforms "jlong" is a "long" while "int64_t" is a "long long".
-//  //
-//  // Thus, static_cast<int64_t*>(dims) will trigger a compiler error:
-//  // static_cast from 'jlong *' (aka 'long *') to 'int64_t *' (aka 'long long
-//  // *') is not allowed
-//  //
-//  // Since this array is typically very small, use the guaranteed safe scheme of
-//  // creating a copy.
-//  int64_t* dims_copy = new int64_t[num_dims];
-//  for (int i = 0; i < num_dims; ++i)
-//    dims_copy[i] = static_cast<int64_t>(dims[i]);
-//  // Notifying the JVM of the existence of this reference to the byte buffer, to avoid garbage collection.
-//  // More details can be found here: http://docs.oracle.com/javase/6/docs/technotes/guides/jni/spec/design.html#wp1242
-//  jobject buffer_ref = env->NewGlobalRef(buffer);
-//  std::pair<JNIEnv*, jobject>* deallocator_arg = new std::pair<JNIEnv*, jobject>(env, buffer_ref);
-//  TF_Tensor* tensor_handle = TF_NewTensor(
-//      static_cast<TF_DataType>(dtype), dims_copy, num_dims,
-//      env->GetDirectBufferAddress(buffer), static_cast<size_t>(sizeInBytes),
-//      [](void* data, size_t len, void* arg) {
-//        std::pair<JNIEnv*, jobject>* pair = reinterpret_cast<std::pair<JNIEnv*, jobject>*>(arg);
-//        pair->first->DeleteGlobalRef(reinterpret_cast<jobject>(pair->second));
-//        delete (pair);
-//      }, deallocator_arg);
-//  delete[] dims_copy;
-//  if (dims != nullptr)
-//    env->ReleaseLongArrayElements(shape, dims, JNI_ABORT);
-//  if (tensor_handle == nullptr) {
-//    throw_exception(env, tf_invalid_argument_exception, "Unable to create new native Tensor.");
-//    return 0;
-//  }
-//  return reinterpret_cast<jlong>(tensor_handle);
-//}
-
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_dataType(
     JNIEnv* env, jobject object, jlong handle) {
   static_assert(sizeof(jint) >= sizeof(TF_DataType),
