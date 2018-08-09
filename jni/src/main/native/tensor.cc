@@ -161,10 +161,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllo
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDeleteContext(
     JNIEnv* env, jobject object, jlong handle) {
-  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   REQUIRE_HANDLE(context, TFE_Context, handle, void());
-  TFE_DeleteContext(context, status.get());
-  CHECK_STATUS(env, status.get(), void());
+  TFE_DeleteContext(context);
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerAllocate(

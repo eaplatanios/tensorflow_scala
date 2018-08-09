@@ -31,7 +31,7 @@ private[api] trait Cast {
     * @param  dataType Target data type.
     * @return Result as a new tensor.
     */
-  def cast[D <: DataType, DR <: DataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D], dataType: DR)(implicit
+  def cast[D <: DataType, DR <: DataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D], dataType: DR, truncate: Boolean = false)(implicit
       ev: TensorOps.Aux[TL, D]
   ): TL[DR] = {
     if (x.dataType == dataType) {
@@ -39,7 +39,7 @@ private[api] trait Cast {
     } else {
       ev.applyUnary(x, t => {
         Tensor.fromNativeHandle(NativeTensorOpsMath.cast(
-          executionContext.value.nativeHandle, t.nativeHandle, dataType.cValue))
+          executionContext.value.nativeHandle, t.nativeHandle, dataType.cValue, truncate))
       })
     }
   }

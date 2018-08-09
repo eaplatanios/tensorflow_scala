@@ -431,8 +431,9 @@ case class OpGenerator(opDef: OpDef) {
           codeBuilder.append(
             s"""
                |
+               |  int ${attrName}_size = env->GetArrayLength($value);
                |  jbyte *${attrName}_c_value = env->GetByteArrayElements($value, nullptr);
-               |  TFE_OpSetAttrString(op.get(), "$attrName", reinterpret_cast<const char *>(${attrName}_c_value));
+               |  TFE_OpSetAttrString(op.get(), "$attrName", reinterpret_cast<const char *>(${attrName}_c_value), ${attrName}_size);
                |  env->ReleaseByteArrayElements($value, ${attrName}_c_value, JNI_ABORT);""".stripMargin)
         case "int" =>
           codeBuilder.append(

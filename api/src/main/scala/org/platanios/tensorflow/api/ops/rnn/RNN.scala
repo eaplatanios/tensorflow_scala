@@ -99,7 +99,7 @@ private[rnn] trait RNN {
               throw InvalidShapeException(
                 s"'sequenceLength' (rank = ${sequenceLengths.rank}) must be a vector " +
                     "with length equal to the batch size.")
-            Cast.cast(sequenceLengths, INT32, "SequenceLengthCast")
+            Cast.cast(sequenceLengths, INT32, name = "SequenceLengthCast")
           }
         }
         val batchSize = RNN.bestEffortInputBatchSize(processedInput)

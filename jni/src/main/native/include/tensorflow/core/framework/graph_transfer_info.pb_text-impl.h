@@ -15,52 +15,52 @@ namespace internal {
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::GraphTransferInfo_NodeInput& msg);
+    const ::tensorflow::GraphTransferNodeInput& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::GraphTransferInfo_NodeInput* msg);
+    ::tensorflow::GraphTransferNodeInput* msg);
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::GraphTransferInfo_NodeInfo& msg);
+    const ::tensorflow::GraphTransferNodeInfo& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::GraphTransferInfo_NodeInfo* msg);
+    ::tensorflow::GraphTransferNodeInfo* msg);
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::GraphTransferInfo_ConstNodeInfo& msg);
+    const ::tensorflow::GraphTransferConstNodeInfo& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::GraphTransferInfo_ConstNodeInfo* msg);
+    ::tensorflow::GraphTransferConstNodeInfo* msg);
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::GraphTransferInfo_NodeInputInfo& msg);
+    const ::tensorflow::GraphTransferNodeInputInfo& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::GraphTransferInfo_NodeInputInfo* msg);
+    ::tensorflow::GraphTransferNodeInputInfo* msg);
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::GraphTransferInfo_NodeOutputInfo& msg);
+    const ::tensorflow::GraphTransferNodeOutputInfo& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::GraphTransferInfo_NodeOutputInfo* msg);
+    ::tensorflow::GraphTransferNodeOutputInfo* msg);
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::GraphTransferInfo_GraphInputNodeInfo& msg);
+    const ::tensorflow::GraphTransferGraphInputNodeInfo& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::GraphTransferInfo_GraphInputNodeInfo* msg);
+    ::tensorflow::GraphTransferGraphInputNodeInfo* msg);
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::GraphTransferInfo_GraphOutputNodeInfo& msg);
+    const ::tensorflow::GraphTransferGraphOutputNodeInfo& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::GraphTransferInfo_GraphOutputNodeInfo* msg);
+    ::tensorflow::GraphTransferGraphOutputNodeInfo* msg);
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,

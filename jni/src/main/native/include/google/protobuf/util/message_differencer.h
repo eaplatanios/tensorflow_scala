@@ -175,10 +175,8 @@ class LIBPROTOBUF_EXPORT MessageDifferencer {
 
     // If "field" is a repeated field which is being treated as a map or
     // a set (see TreatAsMap() and TreatAsSet(), below), new_index indicates
-    // the index the position to which the element has moved.  This only
-    // applies to ReportMoved() and (in the case of TreatAsMap())
-    // ReportModified().  In all other cases, "new_index" will have the same
-    // value as "index".
+    // the index the position to which the element has moved.  If the element
+    // has not moved, "new_index" will have the same value as "index".
     int new_index;
 
     // For unknown fields, these are the pointers to the UnknownFieldSet
@@ -599,7 +597,7 @@ class LIBPROTOBUF_EXPORT MessageDifferencer {
    public:
     explicit StreamReporter(io::ZeroCopyOutputStream* output);
     explicit StreamReporter(io::Printer* printer);  // delimiter '$'
-    virtual ~StreamReporter();
+    virtual ~StreamReporter() override;
 
     // When set to true, the stream reporter will also output aggregates nodes
     // (i.e. messages and groups) whose subfields have been modified. When
@@ -609,32 +607,33 @@ class LIBPROTOBUF_EXPORT MessageDifferencer {
     }
 
     // The following are implementations of the methods described above.
+
     virtual void ReportAdded(const Message& message1, const Message& message2,
-                             const std::vector<SpecificField>& field_path);
+                             const std::vector<SpecificField>& field_path) override;
 
     virtual void ReportDeleted(const Message& message1,
                                const Message& message2,
-                               const std::vector<SpecificField>& field_path);
+                               const std::vector<SpecificField>& field_path) override;
 
     virtual void ReportModified(const Message& message1,
                                 const Message& message2,
-                                const std::vector<SpecificField>& field_path);
+                                const std::vector<SpecificField>& field_path) override;
 
     virtual void ReportMoved(const Message& message1,
                              const Message& message2,
-                             const std::vector<SpecificField>& field_path);
+                             const std::vector<SpecificField>& field_path) override;
 
     virtual void ReportMatched(const Message& message1,
                                const Message& message2,
-                               const std::vector<SpecificField>& field_path);
+                               const std::vector<SpecificField>& field_path) override;
 
     virtual void ReportIgnored(const Message& message1,
                                const Message& message2,
-                               const std::vector<SpecificField>& field_path);
+                               const std::vector<SpecificField>& field_path) override;
 
-    virtual void ReportUnknownFieldIgnored(
+    void ReportUnknownFieldIgnored(
         const Message& message1, const Message& message2,
-        const std::vector<SpecificField>& field_path);
+        const std::vector<SpecificField>& field_path) override;
 
    protected:
     // Prints the specified path of fields to the buffer.  message is used to
@@ -683,7 +682,7 @@ class LIBPROTOBUF_EXPORT MessageDifferencer {
    public:
     explicit MapEntryKeyComparator(MessageDifferencer* message_differencer);
     virtual bool IsMatch(const Message& message1, const Message& message2,
-                         const std::vector<SpecificField>& parent_fields) const;
+                         const std::vector<SpecificField>& parent_fields) const override;
 
    private:
     MessageDifferencer* message_differencer_;
@@ -823,7 +822,7 @@ class LIBPROTOBUF_EXPORT MessageDifferencer {
 
   // If "any" is of type google.protobuf.Any, extract its payload using
   // DynamicMessageFactory and store in "data".
-  bool UnpackAny(const Message& any, google::protobuf::scoped_ptr<Message>* data);
+  bool UnpackAny(const Message& any, std::unique_ptr<Message>* data);
 
   // Checks if index is equal to new_index in all the specific fields.
   static bool CheckPathChanged(const std::vector<SpecificField>& parent_fields);
@@ -864,7 +863,7 @@ class LIBPROTOBUF_EXPORT MessageDifferencer {
 
   string* output_string_;
 
-  google::protobuf::scoped_ptr<DynamicMessageFactory> dynamic_message_factory_;
+  std::unique_ptr<DynamicMessageFactory> dynamic_message_factory_;
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(MessageDifferencer);
 };
 

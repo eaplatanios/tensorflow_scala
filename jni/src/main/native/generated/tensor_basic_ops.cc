@@ -740,8 +740,9 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", attr_T);
 
+  int mode_size = env->GetArrayLength(mode);
   jbyte *mode_c_value = env->GetByteArrayElements(mode, nullptr);
-  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value));
+  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value), mode_size);
   env->ReleaseByteArrayElements(mode, mode_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -1074,8 +1075,9 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
   TFE_OpSetAttrInt(op.get(), "block_size", static_cast<int64_t>(block_size));
 
+  int data_format_size = env->GetArrayLength(data_format);
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_size);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -1108,8 +1110,9 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
 
   TFE_OpSetAttrInt(op.get(), "block_size", static_cast<int64_t>(block_size));
 
+  int data_format_size = env->GetArrayLength(data_format);
   jbyte *data_format_c_value = env->GetByteArrayElements(data_format, nullptr);
-  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value));
+  TFE_OpSetAttrString(op.get(), "data_format", reinterpret_cast<const char *>(data_format_c_value), data_format_size);
   env->ReleaseByteArrayElements(data_format, data_format_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -1559,8 +1562,9 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_tensor_handle);
   TFE_OpSetAttrType(op.get(), "T", attr_T);
 
+  int message_size = env->GetArrayLength(message);
   jbyte *message_c_value = env->GetByteArrayElements(message, nullptr);
-  TFE_OpSetAttrString(op.get(), "message", reinterpret_cast<const char *>(message_c_value));
+  TFE_OpSetAttrString(op.get(), "message", reinterpret_cast<const char *>(message_c_value), message_size);
   env->ReleaseByteArrayElements(message, message_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -1786,8 +1790,9 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", attr_T);
 
+  int message_size = env->GetArrayLength(message);
   jbyte *message_c_value = env->GetByteArrayElements(message, nullptr);
-  TFE_OpSetAttrString(op.get(), "message", reinterpret_cast<const char *>(message_c_value));
+  TFE_OpSetAttrString(op.get(), "message", reinterpret_cast<const char *>(message_c_value), message_size);
   env->ReleaseByteArrayElements(message, message_c_value, JNI_ABORT);
 
   const int num_outputs = 1;
@@ -2005,12 +2010,14 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 
   TFE_OpSetAttrType(op.get(), "T", static_cast<TF_DataType>(t));
 
+  int mode_size = env->GetArrayLength(mode);
   jbyte *mode_c_value = env->GetByteArrayElements(mode, nullptr);
-  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value));
+  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value), mode_size);
   env->ReleaseByteArrayElements(mode, mode_c_value, JNI_ABORT);
 
+  int round_mode_size = env->GetArrayLength(round_mode);
   jbyte *round_mode_c_value = env->GetByteArrayElements(round_mode, nullptr);
-  TFE_OpSetAttrString(op.get(), "round_mode", reinterpret_cast<const char *>(round_mode_c_value));
+  TFE_OpSetAttrString(op.get(), "round_mode", reinterpret_cast<const char *>(round_mode_c_value), round_mode_size);
   env->ReleaseByteArrayElements(round_mode, round_mode_c_value, JNI_ABORT);
 
   const int num_outputs = 3;
@@ -2055,8 +2062,9 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Basi
   const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
   TFE_OpSetAttrType(op.get(), "T", attr_T);
 
+  int mode_size = env->GetArrayLength(mode);
   jbyte *mode_c_value = env->GetByteArrayElements(mode, nullptr);
-  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value));
+  TFE_OpSetAttrString(op.get(), "mode", reinterpret_cast<const char *>(mode_c_value), mode_size);
   env->ReleaseByteArrayElements(mode, mode_c_value, JNI_ABORT);
 
   const int num_outputs = 1;

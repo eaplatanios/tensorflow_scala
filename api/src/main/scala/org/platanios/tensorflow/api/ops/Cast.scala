@@ -31,7 +31,7 @@ private[api] trait Cast {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def cast[T <: OutputLike : OutputOps](x: T, dataType: DataType, name: String = "Cast"): T = {
+  def cast[T <: OutputLike : OutputOps](x: T, dataType: DataType, truncate: Boolean = false, name: String = "Cast"): T = {
     if (x.dataType == dataType) {
       x
     } else {
@@ -41,6 +41,7 @@ private[api] trait Cast {
           .applyUnary(x, o => Op.Builder(opType = "Cast", name = name)
               .addInput(o)
               .setAttribute("DstT", dataType)
+              .setAttribute("Truncate", truncate)
               .build().outputs(0))
     }
   }

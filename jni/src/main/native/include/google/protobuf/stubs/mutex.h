@@ -30,11 +30,21 @@
 #ifndef GOOGLE_PROTOBUF_STUBS_MUTEX_H_
 #define GOOGLE_PROTOBUF_STUBS_MUTEX_H_
 
-#ifdef GOOGLE_PROTOBUF_NO_THREADLOCAL
-#include <pthread.h>
-#endif
+#include <mutex>
 
 #include <google/protobuf/stubs/macros.h>
+
+// Define thread-safety annotations for use below, if we are building with
+// Clang.
+#if defined(__clang__) && !defined(SWIG)
+#define GOOGLE_PROTOBUF_ACQUIRE(...) \
+  __attribute__((acquire_capability(__VA_ARGS__)))
+#define GOOGLE_PROTOBUF_RELEASE(...) \
+  __attribute__((release_capability(__VA_ARGS__)))
+#else
+#define GOOGLE_PROTOBUF_ACQUIRE(...)
+#define GOOGLE_PROTOBUF_RELEASE(...)
+#endif
 
 // ===================================================================
 // emulates google3/base/mutex.h
@@ -42,33 +52,25 @@ namespace google {
 namespace protobuf {
 namespace internal {
 
-// A Mutex is a non-reentrant (aka non-recursive) mutex.  At most one thread T
-// may hold a mutex at a given time.  If T attempts to Lock() the same Mutex
-// while holding it, T will deadlock.
-class LIBPROTOBUF_EXPORT Mutex {
+#define GOOGLE_PROTOBUF_LINKER_INITIALIZED
+
+// Mutex is a natural type to wrap. As both google and other organization have
+// specialized mutexes. gRPC also provides an injection mechanism for custom
+// mutexes.
+class LIBPROTOBUF_EXPORT WrappedMutex {
  public:
-  // Create a Mutex that is not held by anybody.
-  Mutex();
-
-  // Destructor
-  ~Mutex();
-
-  // Block if necessary until this Mutex is free, then acquire it exclusively.
-  void Lock();
-
-  // Release this Mutex.  Caller must hold it exclusively.
-  void Unlock();
-
+  WrappedMutex() = default;
+  void Lock() GOOGLE_PROTOBUF_ACQUIRE() { mu_.lock(); }
+  void Unlock() GOOGLE_PROTOBUF_RELEASE() { mu_.unlock(); }
   // Crash if this Mutex is not held exclusively by this thread.
   // May fail to crash when it should; will never crash when it should not.
-  void AssertHeld();
+  void AssertHeld() const {}
 
  private:
-  struct Internal;
-  Internal* mInternal;
-
-  GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(Mutex);
+  std::mutex mu_;
 };
+
+using Mutex = WrappedMutex;
 
 // MutexLock(mu) acquires mu when constructed and releases it when destroyed.
 class LIBPROTOBUF_EXPORT MutexLock {
@@ -84,12 +86,12 @@ class LIBPROTOBUF_EXPORT MutexLock {
 typedef MutexLock ReaderMutexLock;
 typedef MutexLock WriterMutexLock;
 
-// MutexLockMaybe is like MutexLock, but is a no-op when mu is NULL.
+// MutexLockMaybe is like MutexLock, but is a no-op when mu is nullptr.
 class LIBPROTOBUF_EXPORT MutexLockMaybe {
  public:
   explicit MutexLockMaybe(Mutex *mu) :
-    mu_(mu) { if (this->mu_ != NULL) { this->mu_->Lock(); } }
-  ~MutexLockMaybe() { if (this->mu_ != NULL) { this->mu_->Unlock(); } }
+    mu_(mu) { if (this->mu_ != nullptr) { this->mu_->Lock(); } }
+  ~MutexLockMaybe() { if (this->mu_ != nullptr) { this->mu_->Unlock(); } }
  private:
   Mutex *const mu_;
   GOOGLE_DISALLOW_EVIL_CONSTRUCTORS(MutexLockMaybe);
@@ -107,7 +109,7 @@ class ThreadLocalStorage {
   }
   T* Get() {
     T* result = static_cast<T*>(pthread_getspecific(key_));
-    if (result == NULL) {
+    if (result == nullptr) {
       result = new T();
       pthread_setspecific(key_, result);
     }
@@ -133,8 +135,10 @@ using internal::ReaderMutexLock;
 using internal::WriterMutexLock;
 using internal::MutexLockMaybe;
 
-
 }  // namespace protobuf
 }  // namespace google
+
+#undef GOOGLE_PROTOBUF_ACQUIRE
+#undef GOOGLE_PROTOBUF_RELEASE
 
 #endif  // GOOGLE_PROTOBUF_STUBS_MUTEX_H_

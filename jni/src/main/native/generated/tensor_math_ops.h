@@ -34,10 +34,10 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
  * Method:    cast
- * Signature: (JJI)J
+ * Signature: (JJIZ)J
  */
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_cast
-  (JNIEnv *, jobject, jlong, jlong, jint);
+  (JNIEnv *, jobject, jlong, jlong, jint, jboolean);
 
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Math__
