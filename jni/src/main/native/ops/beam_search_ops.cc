@@ -24,9 +24,6 @@ limitations under the License.
 #include <memory>
 #include <vector>
 
-// TODO: [JNI] Remove when op_kernel.h is fixed.
-#include "tensorflow/core/framework/kernel_def.pb.h"
-
 #include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
