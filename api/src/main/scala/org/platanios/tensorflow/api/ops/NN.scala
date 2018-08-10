@@ -1007,13 +1007,13 @@ private[api] trait NN {
 
   /** $OpDocNNBatchNormalization
     *
-    * @param  x               Input tensor of arbitrary dimensionality.
-    * @param  mean            Mean tensor.
-    * @param  variance        Variance tensor.
-    * @param  offset          Optional offset tensor, often denoted `beta` in equations.
-    * @param  scale           Optional scale tensor, often denoted `gamma` in equations.
-    * @param  varianceEpsilon Small floating point number added to the variance to avoid division by zero.
-    * @param  name            Name for the created ops.
+    * @param  x        Input tensor of arbitrary dimensionality.
+    * @param  mean     Mean tensor.
+    * @param  variance Variance tensor.
+    * @param  offset   Optional offset tensor, often denoted `beta` in equations.
+    * @param  scale    Optional scale tensor, often denoted `gamma` in equations.
+    * @param  epsilon  Small floating point number added to the variance to avoid division by zero.
+    * @param  name     Name for the created ops.
     * @return Batch-normalized tensor `x`.
     */
   def batchNormalization(
@@ -1022,11 +1022,11 @@ private[api] trait NN {
       variance: Output,
       offset: Option[Output] = None,
       scale: Option[Output] = None,
-      varianceEpsilon: Output,
+      epsilon: Output,
       name: String = "BatchNormalization"
   ): Output = {
     Op.createWithNameScope(name) {
-      val inv = Math.rsqrt(variance + varianceEpsilon)
+      val inv = Math.rsqrt(variance + epsilon)
       val scaledInv = scale.map(inv * _).getOrElse(inv)
       (x * inv).cast(x.dataType) + offset.map(_ - mean * scaledInv).getOrElse(-mean * scaledInv).cast(x.dataType)
     }

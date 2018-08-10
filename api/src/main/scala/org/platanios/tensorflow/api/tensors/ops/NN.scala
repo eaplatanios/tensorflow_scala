@@ -624,7 +624,7 @@ private[api] trait NN {
 
   //region Convolution Ops
 
-  /** $OpDocConv2D
+  /** $OpDocNNConv2D
     *
     * @group NNOps
     * @param  input         4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
@@ -659,7 +659,7 @@ private[api] trait NN {
       Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
-  /** $OpDocConv2DBackpropInput
+  /** $OpDocNNConv2DBackpropInput
     *
     * @group NNOps
     * @param  inputSizes     Integer vector representing the shape of the original input, which is a 4-D tensor.
@@ -697,7 +697,7 @@ private[api] trait NN {
       Array(dilations._1, dilations._2, dilations._3, dilations._4)))
   }
 
-  /** $OpDocConv2DBackpropFilter
+  /** $OpDocNNConv2DBackpropFilter
     *
     * @group NNOps
     * @param  input          4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
@@ -739,7 +739,7 @@ private[api] trait NN {
 
   //region Pooling Ops
 
-  /** $OpDocMaxPool
+  /** $OpDocNNMaxPool
     *
     * @group NNOps
     * @param  input      4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
@@ -764,7 +764,7 @@ private[api] trait NN {
       dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
-  /** $OpDocMaxPoolGrad
+  /** $OpDocNNMaxPoolGrad
     *
     * @group NNOps
     * @param  originalInput  Original input tensor.
@@ -794,7 +794,7 @@ private[api] trait NN {
       padding.name.getBytes(StandardCharsets.ISO_8859_1), dataFormat.name.getBytes(StandardCharsets.ISO_8859_1)))
   }
 
-  /** $OpDocMaxPoolGradGrad
+  /** $OpDocNNMaxPoolGradGrad
     *
     * @group NNOps
     * @param  originalInput  Original input tensor.
@@ -869,7 +869,7 @@ object NN extends NN {
 
       //region Pooling Ops
 
-      /** $OpDocMaxPool
+      /** $OpDocNNMaxPool
         *
         * @param  windowSize The size of the pooling window for each dimension of the input tensor.
         * @param  stride1    Stride of the sliding window along the second dimension of `input`.
@@ -971,7 +971,7 @@ object NN extends NN {
 
       //region Convolution Ops
 
-      /** $OpDocConv2D
+      /** $OpDocNNConv2D
         *
         * @group NNOps
         * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
