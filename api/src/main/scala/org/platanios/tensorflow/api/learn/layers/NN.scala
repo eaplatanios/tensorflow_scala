@@ -179,8 +179,9 @@ case class BatchNormalization(
           }
           val meanUpdate = assignMovingAverage(movingMean, mean, momentum)
           val varianceUpdate = assignMovingAverage(movingVariance, variance, momentum)
-          // TODO: [LAYERS] Is this correct?
-          (meanUpdate.cast(input.dataType), varianceUpdate.cast(input.dataType))
+          val meanCast = tf.createWith(controlDependencies = Set(meanUpdate.op))(mean.cast(input.dataType))
+          val varianceCast = tf.createWith(controlDependencies = Set(varianceUpdate.op))(variance.cast(input.dataType))
+          (meanCast, varianceCast)
         case _ =>
           (movingMean.value.cast(input.dataType), movingVariance.value.cast(input.dataType))
       }
