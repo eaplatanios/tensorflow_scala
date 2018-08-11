@@ -178,13 +178,12 @@ case class BatchNormalization(
           if (renorm) {
             ??? // TODO: [LAYERS] Batch renorm.
           }
-          val meanUpdate = assignMovingAverage(movingMean, mean, momentum)
-          val varianceUpdate = assignMovingAverage(movingVariance, variance, momentum)
-          val meanCast = tf.createWith(controlDependencies = Set(meanUpdate.op))(mean.cast(input.dataType))
-          val varianceCast = tf.createWith(controlDependencies = Set(varianceUpdate.op))(variance.cast(input.dataType))
-          (meanCast, varianceCast)
+          (mean.cast(input.dataType), variance.cast(input.dataType))
         case _ =>
-          (movingMean.value.cast(input.dataType), movingVariance.value.cast(input.dataType))
+          val (mean, variance) = tf.moments(input, reductionAxes, keepDims = false)
+          val updatedMean = assignMovingAverage(movingMean, mean, momentum)
+          val updatedVariance = assignMovingAverage(movingVariance, variance, momentum)
+          (updatedMean.cast(input.dataType), updatedVariance.cast(input.dataType))
       }
 
       val output = tf.batchNormalization(
