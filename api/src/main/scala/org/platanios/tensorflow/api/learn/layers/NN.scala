@@ -50,7 +50,7 @@ object NN {
 case class BatchNormalization(
     override val name: String,
     axis: Int = -1,
-    momentum: Float = 0.99f,
+    momentum: Float = 0.9f,
     epsilon: Float = 1e-3f,
     center: Boolean = true,
     scale: Boolean = true,
@@ -61,9 +61,8 @@ case class BatchNormalization(
     betaRegularizer: Regularizer = null,
     gammaRegularizer: Regularizer = null,
     renorm: Boolean = false, // TODO: [LAYERS] Renorm clipping
-    renormMomentum: Float = 0.99f,
+    renormMomentum: Float = 0.9f,
     fused: Boolean = true,
-    trainable: Boolean = true,
     dataType: DataType = FLOAT32
 ) extends Layer[Output, Output](name) {
   override val layerType: String = "BatchNormalization"
@@ -178,12 +177,13 @@ case class BatchNormalization(
           if (renorm) {
             ??? // TODO: [LAYERS] Batch renorm.
           }
-          (mean.cast(input.dataType), variance.cast(input.dataType))
+          val meanUpdate = assignMovingAverage(movingMean, mean, momentum)
+          val varianceUpdate = assignMovingAverage(movingVariance, variance, momentum)
+          val meanCast = tf.createWith(controlDependencies = Set(meanUpdate.op))(mean.cast(input.dataType))
+          val varianceCast = tf.createWith(controlDependencies = Set(varianceUpdate.op))(variance.cast(input.dataType))
+          (meanCast, varianceCast)
         case _ =>
-          val (mean, variance) = tf.moments(input, reductionAxes, keepDims = false)
-          val updatedMean = assignMovingAverage(movingMean, mean, momentum)
-          val updatedVariance = assignMovingAverage(movingVariance, variance, momentum)
-          (updatedMean.cast(input.dataType), updatedVariance.cast(input.dataType))
+          (movingMean.value.cast(input.dataType), movingVariance.value.cast(input.dataType))
       }
 
       val output = tf.batchNormalization(
