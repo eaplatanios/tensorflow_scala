@@ -45,13 +45,15 @@ trait Loader {
           outputStream.write(buffer, 0, numBytes)
           progress += numBytes
           val time = System.currentTimeMillis
-          if (time - progressLogTime >= 1e4 && contentLength > 0) {
-            val numBars = Math.floorDiv(10 * progress, contentLength).toInt
-            logger.info(s"[${"=" * numBars}${" " * (10 - numBars)}] $progress / $contentLength bytes downloaded.")
-            progressLogTime = time
-          } else {
-            logger.info(s"$progress bytes downloaded.")
-            progressLogTime = time
+          if (time - progressLogTime >= 1e4) {
+            if (contentLength > 0) {
+              val numBars = Math.floorDiv(10 * progress, contentLength).toInt
+              logger.info(s"[${"=" * numBars}${" " * (10 - numBars)}] $progress / $contentLength bytes downloaded.")
+              progressLogTime = time
+            } else {
+              logger.info(s"$progress bytes downloaded.")
+              progressLogTime = time
+            }
           }
         })
         outputStream.close()
