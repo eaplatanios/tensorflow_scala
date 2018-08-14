@@ -447,7 +447,7 @@ object Output {
             val value = valueOption.get
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             val shape = Shape(
-              (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int]): _*)
+              (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Long].toInt): _*)
             returnShape = returnShape.mergeWith(shape)
           }
           if (returnShape.rank > -1)

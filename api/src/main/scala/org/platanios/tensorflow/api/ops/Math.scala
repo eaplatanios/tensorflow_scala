@@ -1242,6 +1242,8 @@ private[api] trait Math {
       axes
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
+        case o: Output if o.rank == 0 =>
+          Basic.constant(Tensor.zeros(INT32, Shape(0)))
         case o: Output if o.rank > -1 =>
           Basic.constant(0 until o.rank)
         case o: OutputIndexedSlices if o.denseShape.shape.isFullyDefined =>
