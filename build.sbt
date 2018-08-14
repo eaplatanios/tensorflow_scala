@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.9.0-rc2"
+val tensorFlowVersion = "1.10.0"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -61,8 +61,7 @@ nativeCrossCompilationEnabled in ThisBuild := false
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
-    "ch.qos.logback"             %  "logback-classic" % "1.2.3")
-)
+    "ch.qos.logback"             %  "logback-classic" % "1.2.3"))
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
@@ -78,8 +77,7 @@ lazy val testSettings = Seq(
   fork in test := false,
   testForkedParallel in Test := false,
   parallelExecution in Test := false,
-  testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
-)
+  testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
     .aggregate(jni, api, horovod, data, examples, site)
@@ -392,3 +390,12 @@ lazy val publishSettings = Seq(
           s"${Opts.resolver.sonatypeSnapshots.root}/${organization.value.replace(".", "/")}/" :: Nil) ! streams.value.log
   }
 )
+
+lazy val compiler = project
+    .in(file("./compiler"))
+    .dependsOn(jni, api)
+    .settings(moduleName := "tensorflow-compiler", name := "TensorFlow Scala - Compiler")
+    .settings(loggingSettings)
+    .settings(testSettings)
+    .settings(
+      libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value)
