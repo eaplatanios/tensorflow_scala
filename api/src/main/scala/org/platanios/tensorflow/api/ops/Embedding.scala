@@ -57,7 +57,7 @@ private[ops] trait Embedding {
   ): Output = {
     Op.createWithNameScope(name) {
       if (parameters.numPartitions == 1 && (ids.rank == 1 || transformFn == null)) {
-        Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp)) {
+        Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp), ignoreExisting = true) {
           var result = parameters.partitionParameters(0).gather(ids)
           if (maxNorm != null)
             result = Embedding.clipByNorm(result, ids, maxNorm)
@@ -88,7 +88,7 @@ private[ops] trait Embedding {
 
         // Do `parameters.numPartitions` separate lookups, finding embeddings for `plist(p)` in `parameters(p)`.
         val partitionedResult = parameters.partitionParameters.zip(gatherIds).map {
-          case (params, paramIds) => Op.colocateWith(Set(params.colocationOp)) {
+          case (params, paramIds) => Op.colocateWith(Set(params.colocationOp), ignoreExisting = true) {
             var result = params.gather(paramIds)
             // If `transformFn` is provided, the `clipByNorm` precedes the transform and hence must be co-located.
             // See below for the counterpart if `transformFn` is not provided.
@@ -122,7 +122,7 @@ private[ops] trait Embedding {
             elementStaticShape.toOutput()
           } else if (transformFn == null) {
             // It's important that we compute the shape on the right device to avoid data copies.
-            Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp)) {
+            Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp), ignoreExisting = true) {
               parameters.partitionParameters(0).dynamicShape(1 ::)
             }
           } else {
@@ -242,7 +242,7 @@ private[ops] trait Embedding {
             if (p.staticShape.rank != -1 && p.staticShape(0) != -1)
               Basic.constant(p.staticShape(0))
             else
-              Op.colocateWith(Set(p.colocationOp))(p.dynamicShape(0))
+              Op.colocateWith(Set(p.colocationOp), ignoreExisting = true)(p.dynamicShape(0))
           })
           Math.sum(Basic.stack(axis0Sizes).cast(ids.dataType))
         }

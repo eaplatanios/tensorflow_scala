@@ -85,7 +85,7 @@ case class TensorArray private (
     * @return Tensor in the specified position of the tensor array.
     */
   def read(index: Output, name: String = "TensorArrayRead"): Output = {
-    Op.colocateWith(Set(handle.op)) {
+    Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       val value = TensorArray.readOp(handle, index, flow, dataType, name)
       elementShape.foreach(value.setShape)
       value
@@ -118,7 +118,7 @@ case class TensorArray private (
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
   def gather(indices: Output, name: String = "TensorArrayGather"): Output = {
-    Op.colocateWith(Set(handle.op)) {
+    Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       val ind = if (indices.rank == 0) indices.expandDims(0) else indices
       val value = TensorArray.gatherOp(handle, ind, flow, dataType, elementShape.getOrElse(Shape.unknown()), name)
       if (elementShape.isDefined)
@@ -162,7 +162,7 @@ case class TensorArray private (
     */
   def stack(name: String = "TensorArrayStack"): Output = {
     Op.createWithNameScope(name, Set(handle.op)) {
-      Op.colocateWith(Set(handle.op)) {
+      Op.colocateWith(Set(handle.op), ignoreExisting = true) {
         gather(Math.range(Basic.constant(0), size()), name)
       }
     }
@@ -233,7 +233,7 @@ case class TensorArray private (
     * @return Created op output, containing the current size of the tensor array.
     */
   def size(name: String = "TensorArraySize"): Output = {
-    Op.colocateWith(Set(handle.op)) {
+    Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       TensorArray.sizeOp(handle, flow, name)
     }
   }
@@ -284,7 +284,7 @@ case class TensorArray private (
     // `TensorArray.gradientOp` requires a flow input when forward tensor arrays are dynamically sized. This forces the
     // creation of the gradient tensor array only once the final forward array's size is fixed.
     Op.createWithNameScope(name, Set(handle.op)) {
-      Op.colocateWith(Set(handle.op)) {
+      Op.colocateWith(Set(handle.op), ignoreExisting = true) {
         val (gradientHandle, _) = TensorArray.gradientOp(handle, flow, source)
         val gradientFlow = Op.createWith(controlDependencies = Set(gradientHandle.op)) {
           Basic.identity(flow, name = "GradientFlow")
@@ -306,7 +306,7 @@ case class TensorArray private (
     * @return Created op.
     */
   def close(name: String = "TensorArrayClose"): Op = {
-    Op.colocateWith(Set(handle.op)) {
+    Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       TensorArray.closeOp(handle, name)
     }
   }
@@ -319,9 +319,9 @@ case class TensorArray private (
       block
     } else if (colocationOps == null) {
       colocationOps = Seq(op)
-      Op.colocateWith(colocationOps.toSet)(block)
+      Op.colocateWith(colocationOps.toSet, ignoreExisting = true)(block)
     } else {
-      Op.colocateWith(colocationOps.take(1).toSet)(block)
+      Op.colocateWith(colocationOps.take(1).toSet, ignoreExisting = true)(block)
     }
   }
 }

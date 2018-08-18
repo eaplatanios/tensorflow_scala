@@ -39,7 +39,7 @@ object LinearRegression {
     val weights = tf.variable("weights", FLOAT32, Shape(1, 1), tf.ZerosInitializer)
     val predictions = tf.matmul(inputs, weights)
     val loss = tf.sum(tf.square(predictions - outputs))
-    val trainOp = tf.train.AdaGrad(1.0).minimize(loss)
+    val trainOp = tf.train.AdaGrad(1.0f).minimize(loss)
 
     logger.info("Training the linear regression model.")
     val session = Session()

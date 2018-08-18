@@ -113,7 +113,7 @@ private[api] object Slot {
     }
     VariableScope.scope(s"${primary.op.name}/$name", isDefaultName = true) {
       if (colocateWithPrimary)
-        Op.colocateWith(Set(primary.op))(createSlotVariable(primary, initializer, "", inferredDataType, inferredShape))
+        Op.colocateWith(Set(primary.op), ignoreExisting = true)(createSlotVariable(primary, initializer, "", inferredDataType, inferredShape))
       else
         createSlotVariable(primary, initializer, "", inferredDataType, inferredShape)
     }
@@ -154,7 +154,7 @@ private[api] object Slot {
     }
     VariableScope.scope(s"${primary.op.name}/$name", isDefaultName = true) {
       if (colocateWithPrimary)
-        Op.colocateWith(Set(primary.op))(createSlotVariable(primary, initializer, "", inferredDataType, inferredShape))
+        Op.colocateWith(Set(primary.op), ignoreExisting = true)(createSlotVariable(primary, initializer, "", inferredDataType, inferredShape))
       else
         createSlotVariable(primary, initializer, "", inferredDataType, inferredShape)
     }

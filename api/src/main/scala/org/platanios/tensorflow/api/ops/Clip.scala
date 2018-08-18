@@ -97,7 +97,9 @@ private[ops] trait Clip {
         case o: OutputIndexedSlices => o.values
         case o: SparseOutput => o.values
       }
-      val halfSquaredNorms = values.filter(_ != null).map(v => Op.colocateWith(Set(v.op))(NN.l2Loss(v)))
+      val halfSquaredNorms = values.filter(_ != null).map(v => Op.colocateWith(Set(v.op), ignoreExisting = true) {
+        NN.l2Loss(v)
+      })
       val halfSquaredNorm = Math.sum(Basic.stack(halfSquaredNorms))
       Math.sqrt(halfSquaredNorm * 2)
     }
@@ -132,7 +134,7 @@ private[ops] trait Clip {
         if (value == null)
           null
         else
-          Op.colocateWith(Set(value.op))(Basic.identity(value * scale))
+          Op.colocateWith(Set(value.op), ignoreExisting = true)(Basic.identity(value * scale))
       })
       val result = inputs.zip(clippedValues).map {
         case (_: Output, c: Output) => c

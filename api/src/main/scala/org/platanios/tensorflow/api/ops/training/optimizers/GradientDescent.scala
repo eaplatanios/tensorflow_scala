@@ -38,9 +38,9 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @author Emmanouil Antonios Platanios
   */
 class GradientDescent protected (
-    val learningRate: Double,
+    val learningRate: Float,
     val decay: Schedule = FixedSchedule,
-    val momentum: Double = 0.0,
+    val momentum: Float = 0.0f,
     val useNesterov: Boolean = false,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
@@ -54,13 +54,13 @@ class GradientDescent protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(learningRateTensor, variable.dataType)
+    learningRateTensor.cast(variable.dataType).toOutput
   }
 
   protected def getMomentum(variable: Variable): Output = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(momentumTensor, variable.dataType)
+    momentumTensor.cast(variable.dataType).toOutput
   }
 
   override def createSlots(variables: Seq[Variable]): Unit = {
@@ -113,9 +113,9 @@ class GradientDescent protected (
 
 object GradientDescent {
   def apply(
-      learningRate: Double,
+      learningRate: Float,
       decay: Schedule = FixedSchedule,
-      momentum: Double = 0.0,
+      momentum: Float = 0.0f,
       useNesterov: Boolean = false,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,

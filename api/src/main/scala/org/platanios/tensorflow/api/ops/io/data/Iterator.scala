@@ -67,7 +67,7 @@ class Iterator[T, O, D, S] private[io](
       throw new IllegalArgumentException(
         s"Expected output shapes compatible with '$outputShapes', " +
             s"but got dataset with output shapes '${dataset.outputShapes}'.")
-    Op.colocateWith(Set(handle.op)) {
+    Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       Iterator.makeIterator(datasetHandle = dataset.createHandle(), iteratorHandle = handle)
     }
   }
@@ -84,7 +84,7 @@ class Iterator[T, O, D, S] private[io](
     * @return Created op.
     */
   def createInitializerFromHandle(datasetHandle: Output, name: String = s"$name/Initializer"): Op = {
-    Op.colocateWith(Set(handle.op)) {
+    Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       Iterator.makeIterator(datasetHandle = datasetHandle, iteratorHandle = handle)
     }
   }

@@ -257,9 +257,9 @@ class Tensor[+D <: DataType] protected (
     */
   override def toTensorIndexedSlices: TensorIndexedSlices[D] = {
     TensorIndexedSlices(
-      indices = Tensor(0L, 1L until shape(0).toLong: _*),
+      indices = Tensor(0, 1 until shape(0): _*),
       values = this,
-      denseShape = shape.toTensor(INT64))
+      denseShape = shape.toTensor(INT32))
   }
 
   override def toProto: TensorProto = toTensorProto
@@ -599,9 +599,9 @@ object Tensor {
   * @author Emmanouil Antonios Platanios
   */
 final case class TensorIndexedSlices[+D <: DataType](
-    indices: Tensor[INT64],
+    indices: Tensor[INT32],
     values: Tensor[D],
-    denseShape: Tensor[INT64] = null
+    denseShape: Tensor[INT32] = null
 ) extends TensorLike[D] {
   /** Data type of these tensor indexed slices. */
   override val dataType: D = values.dataType
@@ -674,16 +674,16 @@ final case class TensorIndexedSlices[+D <: DataType](
   * For example, the sparse tensor `SparseTensor(indices = [[0, 0], [1, 2]], values = [1, 2], denseShape = [3, 4])`,
   * represents the dense tensor `[[1, 0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0]]`.
   *
-  * @param  indices    Two-dimensional [[INT64]] tensor with shape `[N, rank]`.
+  * @param  indices    Two-dimensional [[INT32]] tensor with shape `[N, rank]`.
   * @param  values     One-dimensional tensor with shape `[N]`.
-  * @param  denseShape One-dimensional [[INT64]] tensor with shape `[rank]`.
+  * @param  denseShape One-dimensional [[INT32]] tensor with shape `[rank]`.
   *
   * @author Emmanouil Antonios Platanios
   */
 final case class SparseTensor[+D <: DataType](
-    indices: Tensor[INT64],
+    indices: Tensor[INT32],
     values: Tensor[D],
-    denseShape: Tensor[INT64]
+    denseShape: Tensor[INT32]
 ) extends TensorLike[D] {
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))

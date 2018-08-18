@@ -109,13 +109,6 @@ private[rnn] trait RNN {
           else
             cell.zeroState(batchSize, processedInput.head.dataType, cell.stateShape)
         }
-        // Perform some shape validation
-        if (sequenceLengths != null) {
-          processedSequenceLength = Op.createWith(
-            controlDependencies = Set(RNN.assertHasShape(processedSequenceLength, batchSize.expandDims(0)))) {
-            Basic.identity(processedSequenceLength, "SequenceLengthShapeValidation")
-          }
-        }
         var finalTuple = RNN.dynamicRNNLoop(
           cell, evO.fromOutputs(input, processedInput), state, parallelIterations, swapMemory,
           processedSequenceLength)(evO, evS)
@@ -367,7 +360,9 @@ object RNN extends RNN {
       if (output.rank == 0)
         newOutput
       else
-        Op.colocateWith(Set(newOutput.op))(Math.select(copyCond, output, newOutput))
+        Op.colocateWith(Set(newOutput.op), ignoreExisting = true) {
+          Math.select(copyCond, output, newOutput)
+        }
     }
 
     def copySomeThrough(newOutput: Seq[Output], newState: Seq[Output]): Seq[Output] = {
@@ -482,14 +477,6 @@ object RNN extends RNN {
         throw InvalidDataTypeException("All state tensors must have the same data type.")
       inferredDataTypes.head
     }
-  }
-
-  /** Creates an assert op that checks whether the shape of `input` matches `shape`. */
-  private[rnn] def assertHasShape(input: Output, shape: Output): Op = {
-    val inputShape = Basic.shape(input)
-    Checks.assert(
-      Math.all(Math.equal(inputShape, shape)),
-      Seq(s"Expected shape for tensor ${input.name} is ", shape, " but saw shape ", inputShape))
   }
 
   /** @define OpDocRNNDynamicRNN

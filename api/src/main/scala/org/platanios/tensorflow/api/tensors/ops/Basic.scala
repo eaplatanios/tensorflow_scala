@@ -610,7 +610,7 @@ private[api] trait Basic {
   @throws[IllegalArgumentException]
   def indexedSlicesMask[D <: DataType](
       input: TensorIndexedSlices[D],
-      maskIndices: Tensor[INT64]
+      maskIndices: Tensor[INT32]
   ): TensorIndexedSlices[D] = {
     val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
     val outputValues = gather(input.values, toGather)

@@ -100,15 +100,17 @@ case class DynamicConstantInitializer(value: Output) extends Initializer {
 
   @throws[ShapeMismatchException]
   override def initialValue(dataType: DataType, shape: Shape, partitionInfo: PartitionInformation): Output = {
-    if (this.shape == null) {
-      Basic.fill(dataType, shape)(value, name = "ConstantInitializer")
-    } else if (shape.isCompatibleWith(this.shape)) {
-      Basic.identity(value, name = "ConstantInitializer")
-    } else if (shape.rank > 0 && this.shape.rank == 0 || (this.shape.rank == 1 && this.shape(0) == 1)) {
-      Basic.fill(dataType, shape)(value, name = "ConstantInitializer")
-    } else {
-      throw ShapeMismatchException(
-        s"The constant value shape '${this.shape}' is not compatible with the requested shape '$shape'.")
+    Op.colocateWith(Set.empty, ignoreExisting = true) {
+      if (this.shape == null) {
+        Basic.fill(dataType, shape)(value, name = "ConstantInitializer")
+      } else if (shape.isCompatibleWith(this.shape)) {
+        Basic.identity(value, name = "ConstantInitializer")
+      } else if (shape.rank > 0 && this.shape.rank == 0 || (this.shape.rank == 1 && this.shape(0) == 1)) {
+        Basic.fill(dataType, shape)(value, name = "ConstantInitializer")
+      } else {
+        throw ShapeMismatchException(
+          s"The constant value shape '${this.shape}' is not compatible with the requested shape '$shape'.")
+      }
     }
   }
 }

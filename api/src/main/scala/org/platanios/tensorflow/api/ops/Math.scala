@@ -4692,7 +4692,7 @@ object Math extends Math {
         if (batchShape.isFullyDefined && matrixShape.isFullyDefined) {
           Basic.constant(tensors.ops.Basic.stack((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
         } else {
-          Op.colocateWith(Set(gradient.op)) {
+          Op.colocateWith(Set(gradient.op), ignoreExisting = true) {
             val gradShape = Basic.shape(gradient)
             val gradRank = Basic.rank(gradient)
             val batchShape = Basic.slice(gradShape, 0, gradRank - 2)

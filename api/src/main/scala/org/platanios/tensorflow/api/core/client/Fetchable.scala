@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, OutputLike, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
-import org.platanios.tensorflow.api.types.{DataType, INT64}
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
@@ -113,7 +113,7 @@ object Fetchable {
           fetchable: OutputIndexedSlices,
           values: Seq[Tensor[DataType]]
       ): (TensorIndexedSlices[DataType], Seq[Tensor[DataType]]) = {
-        (TensorIndexedSlices(values(0).asInstanceOf[Tensor[INT64]], values(1), values(2).asInstanceOf[Tensor[INT64]]),
+        (TensorIndexedSlices(values(0).asInstanceOf[Tensor[INT32]], values(1), values(2).asInstanceOf[Tensor[INT32]]),
             values.drop(3))
       }
     }
@@ -133,7 +133,7 @@ object Fetchable {
           fetchable: SparseOutput,
           values: Seq[Tensor[DataType]]
       ): (SparseTensor[DataType], Seq[Tensor[DataType]]) = {
-        (SparseTensor(values(0).asInstanceOf[Tensor[INT64]], values(1), values(2).asInstanceOf[Tensor[INT64]]),
+        (SparseTensor(values(0).asInstanceOf[Tensor[INT32]], values(1), values(2).asInstanceOf[Tensor[INT32]]),
             values.drop(3))
       }
     }
@@ -163,10 +163,10 @@ object Fetchable {
       fetchable match {
         case _: Output => (values.head, values.tail)
         case _: OutputIndexedSlices =>
-          (TensorIndexedSlices(values(0).asInstanceOf[Tensor[INT64]], values(1), values(2).asInstanceOf[Tensor[INT64]]),
+          (TensorIndexedSlices(values(0).asInstanceOf[Tensor[INT32]], values(1), values(2).asInstanceOf[Tensor[INT32]]),
               values.drop(3))
         case _: SparseOutput =>
-          (SparseTensor(values(0).asInstanceOf[Tensor[INT64]], values(1), values(2).asInstanceOf[Tensor[INT64]]),
+          (SparseTensor(values(0).asInstanceOf[Tensor[INT32]], values(1), values(2).asInstanceOf[Tensor[INT32]]),
               values.drop(3))
       }
     }

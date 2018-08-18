@@ -196,10 +196,12 @@ case class BatchNormalization(
   }
 
   protected def assignMovingAverage(variable: Variable, value: Output, momentum: Output): Output = {
-    Op.createWith(nameScope = s"${variable.name}/AssignMovingAverage", colocationOps = Set(variable.op)) {
-      val decay = (1.0f - momentum).cast(variable.dataType)
-      val updateDelta = (variable.value - value.cast(variable.dataType)) * decay
-      variable.assignSub(updateDelta)
+    Op.createWith(nameScope = s"${variable.name}/AssignMovingAverage") {
+      Op.colocateWith(Set(variable.op), ignoreExisting = true) {
+        val decay = (1.0f - momentum).cast(variable.dataType)
+        val updateDelta = (variable.value - value.cast(variable.dataType)) * decay
+        variable.assignSub(updateDelta)
+      }
     }
   }
 }

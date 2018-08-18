@@ -259,15 +259,17 @@ object ExponentialMovingAverage {
       zeroDebias: Boolean,
       name: String = "Assign"
   ): Output = {
-    Op.createWith(nameScope = name, colocationOps = Set(variable.op)) {
-      val processedDecay = (1 - decay).cast(variable.dataType)
-      val updateDelta = {
-        if (zeroDebias)
-          ExponentialMovingAverage.zeroDebias(variable, value, processedDecay)
-        else
-          (variable.value - value) * processedDecay
+    Op.createWith(nameScope = name) {
+      Op.colocateWith(Set(variable.op), ignoreExisting = true) {
+        val processedDecay = (1 - decay).cast(variable.dataType)
+        val updateDelta = {
+          if (zeroDebias)
+            ExponentialMovingAverage.zeroDebias(variable, value, processedDecay)
+          else
+            (variable.value - value) * processedDecay
+        }
+        variable.assignSub(updateDelta)
       }
-      variable.assignSub(updateDelta)
     }
   }
 
@@ -295,7 +297,7 @@ object ExponentialMovingAverage {
     */
   private[ExponentialMovingAverage] def zeroDebias(unbiasedVariable: Variable, value: Output, decay: Output): Output = {
     VariableScope.scope(unbiasedVariable.name) {
-      Op.colocateWith(Set(unbiasedVariable.op)) {
+      Op.colocateWith(Set(unbiasedVariable.op), ignoreExisting = true) {
         val biased = Variable.getVariable(
           "Biased", unbiasedVariable.dataType, unbiasedVariable.shape, ZerosInitializer, trainable = false)
         val localStep = Variable.getVariable(

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
-import org.platanios.tensorflow.api.types.{DataType, INT64}
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 import org.platanios.tensorflow.jni.{ScalaCallbacksRegistry => NativeCallbacksRegistry, TensorFlow => NativeLibrary}
 
 import scala.collection.SeqLike
@@ -150,14 +150,13 @@ private[ops] object Callback extends Callback {
 
         override def tensors(arg: TensorIndexedSlices[D]): Seq[Tensor[DataType]] = Seq(arg.indices, arg.values, arg.denseShape)
         override def outputs(arg: OutputIndexedSlices): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
-        // TODO: Is INT64 safe here?
-        override def dataTypes(types: D): Seq[DataType] = Seq(INT64, types, INT64)
+        override def dataTypes(types: D): Seq[DataType] = Seq(INT32, types, INT32)
 
         override def decode(tensors: Seq[Tensor[DataType]]): TensorIndexedSlices[D] = {
           TensorIndexedSlices(
-            tensors(0).asInstanceOf[Tensor[INT64]],
+            tensors(0).asInstanceOf[Tensor[INT32]],
             tensors(1).asInstanceOf[Tensor[D]],
-            tensors(2).asInstanceOf[Tensor[INT64]])
+            tensors(2).asInstanceOf[Tensor[INT32]])
         }
 
         override def decodeSymbolic(outputs: Seq[Output]): OutputIndexedSlices = {
@@ -173,14 +172,13 @@ private[ops] object Callback extends Callback {
 
         override def tensors(arg: SparseTensor[D]): Seq[Tensor[DataType]] = Seq(arg.indices, arg.values, arg.denseShape)
         override def outputs(arg: SparseOutput): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
-        // TODO: Is INT64 safe here?
-        override def dataTypes(types: D): Seq[DataType] = Seq(INT64, types, INT64)
+        override def dataTypes(types: D): Seq[DataType] = Seq(INT32, types, INT32)
 
         override def decode(tensors: Seq[Tensor[DataType]]): SparseTensor[D] = {
           SparseTensor(
-            tensors(0).asInstanceOf[Tensor[INT64]],
+            tensors(0).asInstanceOf[Tensor[INT32]],
             tensors(1).asInstanceOf[Tensor[D]],
-            tensors(2).asInstanceOf[Tensor[INT64]])
+            tensors(2).asInstanceOf[Tensor[INT32]])
         }
 
         override def decodeSymbolic(outputs: Seq[Output]): SparseOutput = {
@@ -216,13 +214,13 @@ private[ops] object Callback extends Callback {
         }
 
         // TODO: Is INT64 safe here?
-        override def dataTypes(types: Array[D]): Seq[DataType] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: Array[D]): Seq[DataType] = types.flatMap(Seq(INT32, _, INT32)).toSeq
 
         override def decode(tensors: Seq[Tensor[DataType]]): Array[TensorIndexedSlices[D]] = {
           tensors.grouped(3).map(t => TensorIndexedSlices(
-            t(0).asInstanceOf[Tensor[INT64]],
+            t(0).asInstanceOf[Tensor[INT32]],
             t(1).asInstanceOf[Tensor[D]],
-            t(2).asInstanceOf[Tensor[INT64]])).toArray
+            t(2).asInstanceOf[Tensor[INT32]])).toArray
         }
 
         override def decodeSymbolic(outputs: Seq[Output]): Array[OutputIndexedSlices] = {
@@ -245,13 +243,13 @@ private[ops] object Callback extends Callback {
         }
 
         // TODO: Is INT64 safe here?
-        override def dataTypes(types: Array[D]): Seq[DataType] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: Array[D]): Seq[DataType] = types.flatMap(Seq(INT32, _, INT32)).toSeq
 
         override def decode(tensors: Seq[Tensor[DataType]]): Array[SparseTensor[D]] = {
           tensors.grouped(3).map(t => SparseTensor(
-            t(0).asInstanceOf[Tensor[INT64]],
+            t(0).asInstanceOf[Tensor[INT32]],
             t(1).asInstanceOf[Tensor[D]],
-            t(2).asInstanceOf[Tensor[INT64]])).toArray
+            t(2).asInstanceOf[Tensor[INT32]])).toArray
         }
 
         override def decodeSymbolic(outputs: Seq[Output]): Array[SparseOutput] = {
@@ -292,13 +290,13 @@ private[ops] object Callback extends Callback {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        override def dataTypes(types: CC[D]): Seq[DataType] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: CC[D]): Seq[DataType] = types.flatMap(Seq(INT32, _, INT32)).toSeq
 
         override def decode(tensors: Seq[Tensor[DataType]]): CC[TensorIndexedSlices[D]] = {
           tensors.grouped(3).map(t => TensorIndexedSlices(
-            t(0).asInstanceOf[Tensor[INT64]],
+            t(0).asInstanceOf[Tensor[INT32]],
             t(1).asInstanceOf[Tensor[D]],
-            t(2).asInstanceOf[Tensor[INT64]])).to[CC](cbfTensor)
+            t(2).asInstanceOf[Tensor[INT32]])).to[CC](cbfTensor)
         }
 
         override def decodeSymbolic(outputs: Seq[Output]): CC[OutputIndexedSlices] = {
@@ -323,14 +321,13 @@ private[ops] object Callback extends Callback {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        // TODO: Is INT64 safe here?
-        override def dataTypes(types: CC[D]): Seq[DataType] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: CC[D]): Seq[DataType] = types.flatMap(Seq(INT32, _, INT32)).toSeq
 
         override def decode(tensors: Seq[Tensor[DataType]]): CC[SparseTensor[D]] = {
           tensors.grouped(3).map(t => SparseTensor(
-            t(0).asInstanceOf[Tensor[INT64]],
+            t(0).asInstanceOf[Tensor[INT32]],
             t(1).asInstanceOf[Tensor[D]],
-            t(2).asInstanceOf[Tensor[INT64]])).to[CC](cbfTensor)
+            t(2).asInstanceOf[Tensor[INT32]])).to[CC](cbfTensor)
         }
 
         override def decodeSymbolic(outputs: Seq[Output]): CC[SparseOutput] = {

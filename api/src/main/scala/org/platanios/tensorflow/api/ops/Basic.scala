@@ -116,7 +116,8 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def zeros(dataType: DataType, shape: Output, name: String = "Zeros"): Output = {
-    fill(dataType, shape)(0, name = name)
+    import dataType.evSupportedType
+    fill(dataType, shape)(dataType.cast(0), name = name)
   }
 
   /** $OpDocBasicZerosLike
@@ -161,7 +162,8 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def ones(dataType: DataType, shape: Output, name: String = "Ones"): Output = {
-    fill(dataType, shape)(1, name = name)
+    import dataType.evSupportedType
+    fill(dataType, shape)(dataType.cast(1), name = name)
   }
 
   /** $OpDocBasicOnesLike
@@ -275,23 +277,29 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  input    Tensor whose rank to return.
+    * @param  dataType Optional data type to use for the output of this op.
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  rank value that `input` has at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def rank[T <: OutputLike](input: T, optimize: Boolean = true, name: String = "Rank"): Output = {
+  def rank[T <: OutputLike](
+      input: T,
+      dataType: DataType = INT32,
+      optimize: Boolean = true,
+      name: String = "Rank"
+  ): Output = {
     input match {
       case o: Output =>
         val inputRank = o.rank
         if (optimize && inputRank != -1)
-          constant(Tensor.fill(INT32, Shape())(inputRank), name = name)
+          constant(Tensor.fill(dataType, Shape())(inputRank), name = name)
         else
           Op.Builder(opType = "Rank", name = name)
               .addInput(o)
-              .build().outputs(0)
-      case o: OutputIndexedSlices => size(o.denseShape, optimize = optimize, name = name)
-      case o: SparseOutput => size(o.denseShape, optimize = optimize, name = name)
+              .build().outputs(0).cast(dataType)
+      case o: OutputIndexedSlices => size(o.denseShape, dataType = dataType, optimize = optimize, name = name)
+      case o: SparseOutput => size(o.denseShape, dataType = dataType, optimize = optimize, name = name)
     }
   }
 
@@ -2110,8 +2118,12 @@ object Basic extends Basic {
       * @return Result as a new tensor.
       */
     def oneHot(
-        depth: Output, onValue: Output = null, offValue: Output = null, axis: Int = -1,
-        dataType: DataType = null): Output = Basic.oneHot(output, depth, onValue, offValue, axis, dataType)
+        depth: Output,
+        onValue: Output = null,
+        offValue: Output = null,
+        axis: Int = -1,
+        dataType: DataType = null
+    ): Output = Basic.oneHot(output, depth, onValue, offValue, axis, dataType)
 
     //endregion Output Ungrouped Ops
 
@@ -2459,12 +2471,12 @@ object Basic extends Basic {
       // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
       // and so it's fine to convert it back to INT32 regardless of the truncation.
       val input = op.inputs(0)
-      val inputShape = Op.colocateWith(Set(input.op)) {
+      val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
         val inputShape = shape(input, INT64)
         Cast.cast(inputShape, INT32)
       }
       // Build appropriately shaped 'OutputIndexedSlices'.
-      val indices = op.inputs(1)
+      val indices = op.inputs(1).toInt32
       val indicesSize = expandDims(size(indices), 0)
       val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
       val values = reshape(outputGradients.head, valuesShape)
@@ -2479,8 +2491,10 @@ object Basic extends Basic {
       // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
       // and so it's fine to convert it back to INT32 regardless of the truncation.
       val input = op.inputs(0)
-      val inputShape = Op.colocateWith(Set(input.op))(shape(input, INT32))
-      val indices = op.inputs(1)
+      val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
+        shape(input, INT32)
+      }
+      val indices = op.inputs(1).toInt32
       val indicesSize = expandDims(size(indices), 0)
       val axis = op.inputs(2)
       val axisStatic = Output.constantValue(axis)

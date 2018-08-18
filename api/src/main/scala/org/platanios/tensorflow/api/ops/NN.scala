@@ -44,8 +44,11 @@ private[api] trait NN {
     * @return Created op output.
     */
   def addBias(
-      value: Output, bias: Output, cNNDataFormat: CNNDataFormat = CNNDataFormat.default,
-      name: String = "AddBias"): Output = {
+      value: Output,
+      bias: Output,
+      cNNDataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "AddBias"
+  ): Output = {
     Op.Builder(opType = "BiasAdd", name = name)
         .addInput(value)
         .addInput(bias)
@@ -715,7 +718,7 @@ private[api] trait NN {
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
       val probability = Cast.cast(keepProbability, input.dataType)
       val random = Random.randomUniform(
-        input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
+        input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0f, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
       val binaryTensor = Math.floor(random)
       val output = if (scaleOutput) Math.divide(input, probability) * binaryTensor else input * binaryTensor

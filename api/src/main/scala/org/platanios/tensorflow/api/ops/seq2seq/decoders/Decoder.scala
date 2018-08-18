@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVari
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
