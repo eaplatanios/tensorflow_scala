@@ -21,11 +21,18 @@ import java.io.IOException
 import java.net.URL
 import java.nio.file.{Files, Path}
 
+import scala.io.Source
+import scala.util.matching.Regex
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 trait Loader {
   protected val logger: Logger
+
+  protected val googleDriveConfirmTokenRegex: Regex = {
+    """<a id="uc-download-link".*href="/uc\?export=download&amp;(confirm=.*)&amp;id=.*">Download anyway</a>""".r
+  }
 
   def maybeDownload(path: Path, url: String, bufferSize: Int = 8192): Boolean = {
     if (Files.exists(path)) {
@@ -34,29 +41,17 @@ trait Loader {
       try {
         logger.info(s"Downloading file '$url'.")
         Files.createDirectories(path.getParent)
-        val connection = new URL(url).openConnection()
-        val contentLength = connection.getContentLengthLong
-        val inputStream = connection.getInputStream
-        val outputStream = Files.newOutputStream(path)
-        val buffer = new Array[Byte](bufferSize)
-        var progress = 0L
-        var progressLogTime = System.currentTimeMillis
-        Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(numBytes => {
-          outputStream.write(buffer, 0, numBytes)
-          progress += numBytes
-          val time = System.currentTimeMillis
-          if (time - progressLogTime >= 1e4) {
-            if (contentLength > 0) {
-              val numBars = Math.floorDiv(10 * progress, contentLength).toInt
-              logger.info(s"[${"=" * numBars}${" " * (10 - numBars)}] $progress / $contentLength bytes downloaded.")
-              progressLogTime = time
-            } else {
-              logger.info(s"$progress bytes downloaded.")
-              progressLogTime = time
-            }
+        download(path, url, bufferSize)
+
+        // Small hack to deal with downloading large Google Drive files.
+        if (Files.size(path) < 1024 * 1024 && url.contains("drive.google.com")) {
+          val content = Source.fromFile(path.toFile).getLines().mkString("\n")
+          googleDriveConfirmTokenRegex.findFirstMatchIn(content) match {
+            case Some(confirmToken) => download(path, s"$url&${confirmToken.group(1)}", bufferSize)
+            case None => ()
           }
-        })
-        outputStream.close()
+        }
+
         logger.info(s"Downloaded file '$url'.")
         true
       } catch {
@@ -65,5 +60,31 @@ trait Loader {
           throw e
       }
     }
+  }
+
+  protected def download(path: Path, url: String, bufferSize: Int = 8192): Unit = {
+    val connection = new URL(url).openConnection()
+    val contentLength = connection.getContentLengthLong
+    val inputStream = connection.getInputStream
+    val outputStream = Files.newOutputStream(path)
+    val buffer = new Array[Byte](bufferSize)
+    var progress = 0L
+    var progressLogTime = System.currentTimeMillis
+    Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(numBytes => {
+      outputStream.write(buffer, 0, numBytes)
+      progress += numBytes
+      val time = System.currentTimeMillis
+      if (time - progressLogTime >= 1e4) {
+        if (contentLength > 0) {
+          val numBars = Math.floorDiv(10 * progress, contentLength).toInt
+          logger.info(s"[${"=" * numBars}${" " * (10 - numBars)}] $progress / $contentLength bytes downloaded.")
+          progressLogTime = time
+        } else {
+          logger.info(s"$progress bytes downloaded.")
+          progressLogTime = time
+        }
+      }
+    })
+    outputStream.close()
   }
 }
