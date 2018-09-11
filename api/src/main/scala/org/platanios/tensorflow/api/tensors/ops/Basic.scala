@@ -614,7 +614,7 @@ private[api] trait Basic {
   ): TensorIndexedSlices[D] = {
     val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
     val outputValues = gather(input.values, toGather)
-    TensorIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
+    TensorIndexedSlices(indices = outputIndices.toInt64, values = outputValues, denseShape = input.denseShape)
   }
 
   //endregion Tensor Masking Ops

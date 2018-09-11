@@ -259,7 +259,7 @@ class Tensor[+D <: DataType] protected (
     TensorIndexedSlices(
       indices = Tensor(0, 1 until shape(0): _*),
       values = this,
-      denseShape = shape.toTensor(INT32))
+      denseShape = shape.toTensor(INT64))
   }
 
   override def toProto: TensorProto = toTensorProto
@@ -599,9 +599,9 @@ object Tensor {
   * @author Emmanouil Antonios Platanios
   */
 final case class TensorIndexedSlices[+D <: DataType](
-    indices: Tensor[INT32],
+    indices: Tensor[INT64],
     values: Tensor[D],
-    denseShape: Tensor[INT32] = null
+    denseShape: Tensor[INT64] = null
 ) extends TensorLike[D] {
   /** Data type of these tensor indexed slices. */
   override val dataType: D = values.dataType
@@ -681,9 +681,9 @@ final case class TensorIndexedSlices[+D <: DataType](
   * @author Emmanouil Antonios Platanios
   */
 final case class SparseTensor[+D <: DataType](
-    indices: Tensor[INT32],
+    indices: Tensor[INT64],
     values: Tensor[D],
-    denseShape: Tensor[INT32]
+    denseShape: Tensor[INT64]
 ) extends TensorLike[D] {
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
