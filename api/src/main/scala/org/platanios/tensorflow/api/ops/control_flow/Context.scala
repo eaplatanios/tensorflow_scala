@@ -116,7 +116,10 @@ abstract class Context protected (
     // Use an identity to pull control inputs as data inputs. Note that we ignore ops which do not have any outputs.
     Op.createWith(controlDependencies = Set.empty[Op]) {
       enter()
-      externalInputs.map(op => Basic.identity(op.outputs(0)).op).foreach(ControlFlow.addControlInput(op, _))
+      externalInputs
+          .filter(_.outputs.nonEmpty)
+          .map(op => Basic.identity(op.outputs(0)).op)
+          .foreach(ControlFlow.addControlInput(op, _))
       exit()
     }
     if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {

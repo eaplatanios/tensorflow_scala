@@ -84,7 +84,7 @@ case class Reservoir[K, V](maxSize: Int, seed: Long = 0L, alwaysKeepLast: Boolea
     * @param  item        Item to add.
     * @param  transformFn Transform function for the item to add.
     */
-  def add(key: K, item: V, transformFn: (V) => V = identity[V]): Unit = ItemsLock synchronized {
+  def add(key: K, item: V, transformFn: V => V = identity[V]): Unit = ItemsLock synchronized {
     buckets.getOrElseUpdate(key, ReservoirBucket(maxSize, new Random(seed), alwaysKeepLast)).add(item, transformFn)
   }
 
@@ -103,7 +103,7 @@ case class Reservoir[K, V](maxSize: Int, seed: Long = 0L, alwaysKeepLast: Boolea
     *                  keys in the reservoir are filtered.
     * @return Number of items filtered from this reservoir.
     */
-  def filter(filterFn: (V) => Boolean, key: Option[K] = None): Int = ItemsLock synchronized {
+  def filter(filterFn: V => Boolean, key: Option[K] = None): Int = ItemsLock synchronized {
     if (key.isDefined)
       buckets.get(key.get).map(_.filter(filterFn)).getOrElse(0)
     else
@@ -148,7 +148,7 @@ case class ReservoirBucket[T](maxSize: Int, random: Random = new Random(0), alwa
     * @param  transformFn A function used to transform the item before addition, if the item will be kept in the
     *                     reservoir.
     */
-  def add(item: T, transformFn: (T) => T = identity[T]): Unit = ItemsLock synchronized {
+  def add(item: T, transformFn: T => T = identity[T]): Unit = ItemsLock synchronized {
     if (_items.size < maxSize || maxSize == 0) {
       _items :+= transformFn(item)
     } else {
@@ -176,7 +176,7 @@ case class ReservoirBucket[T](maxSize: Int, random: Random = new Random(0), alwa
     * @param  filterFn Filtering function that returns `true` for the items to be kept in the reservoir.
     * @return Number of items filtered from this reservoir bucket.
     */
-  def filter(filterFn: (T) => Boolean): Int = ItemsLock synchronized {
+  def filter(filterFn: T => Boolean): Int = ItemsLock synchronized {
     val sizeBefore = _items.size
     _items = _items.filter(filterFn)
     val numFiltered = sizeBefore - _items.size
