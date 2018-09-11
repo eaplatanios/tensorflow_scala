@@ -464,7 +464,7 @@ private[api] trait NN {
     if (weights != null && weights.rank != 2)
       throw InvalidShapeException(s"'weights' must have shape [batchSize, sequenceLength], but had: ${weights.shape}.")
     val numClasses = Basic.shape(logits)(2)
-    val flattenedLogits = Basic.reshape(logits, Basic.stack(Seq[Tensor[INT32]](-1, numClasses)))
+    val flattenedLogits = Basic.reshape(logits, Basic.stack(Seq[Tensor[INT64]](-1L, numClasses)))
     val flattenedLabels = Basic.reshape(labels, Shape(-1))
     val epsilon = 1e-12.toTensor.cast(logits.dataType)
     var loss = lossFn(flattenedLogits, flattenedLabels)
@@ -1132,7 +1132,7 @@ object NN extends NN {
   private[ops] def moveAxisToEnd[D <: DataType](
       input: Tensor[D],
       axis: Int,
-      rank: Tensor[INT32]
+      rank: Tensor[INT64]
   ): Tensor[D] = {
     if (axis == -1) {
       input
@@ -1141,8 +1141,8 @@ object NN extends NN {
       Basic.transpose(
         input,
         Basic.concatenate(Seq(
-          Math.range(0, axisOutput),
-          Math.range(axisOutput + 1, rank),
+          Math.range(0L, axisOutput),
+          Math.range(axisOutput + 1L, rank),
           axisOutput), 0))
     }
   }

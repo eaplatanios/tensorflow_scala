@@ -48,12 +48,12 @@ object TensorConvertible {
     }
   }
 
-  implicit val fromShape: TensorConvertible.Aux[Shape, INT32] = {
+  implicit val fromShape: TensorConvertible.Aux[Shape, INT64] = {
     new TensorConvertible[Shape] {
-      override type D = INT32
+      override type D = INT64
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Shape): Tensor[INT32] = value.toTensor
+      @inline override def toTensor(value: Shape): Tensor[INT64] = value.toTensor
     }
   }
 

@@ -4867,7 +4867,7 @@ object Math extends Math {
   private[api] def reducedShape(inputShape: Output, axes: Output): Output = {
     // Cast needed for SparseOutput reductions.
     val intInputShape = Cast.cast(inputShape, INT32)
-    val inputRank = Basic.size(intInputShape)
+    val inputRank = Basic.size(intInputShape, INT32)
     val reshapedAxes = {
       if (axes.rank == 0)
         Basic.reshape(axes, Tensor(1))

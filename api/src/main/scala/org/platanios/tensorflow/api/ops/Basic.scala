@@ -317,7 +317,7 @@ private[api] trait Basic {
     */
   def size[T <: OutputLike](
       input: T,
-      dataType: DataType = INT32,
+      dataType: DataType = INT64,
       optimize: Boolean = true,
       name: String = "Size"
   ): Output = {
@@ -327,7 +327,7 @@ private[api] trait Basic {
         if (optimize && inputShape.isFullyDefined)
           constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
         else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0))
-          constant(0, dataType = dataType, name = name)
+          constant(0L, dataType = dataType, name = name)
         else
           Op.Builder(opType = "Size", name = name)
               .addInput(o)
@@ -357,7 +357,7 @@ private[api] trait Basic {
     */
   def shape[T <: OutputLike](
       input: T,
-      dataType: DataType = INT32,
+      dataType: DataType = INT64,
       optimize: Boolean = true,
       name: String = "Shape"
   ): Output = {
@@ -391,7 +391,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op outputs, all of which are one-dimensional.
     */
-  def shapeN(inputs: Seq[Output], dataType: DataType = INT32, name: String = "ShapeN"): Seq[Output] = {
+  def shapeN(inputs: Seq[Output], dataType: DataType = INT64, name: String = "ShapeN"): Seq[Output] = {
     Op.Builder(opType = "ShapeN", name = name)
         .addInputList(inputs)
         .setAttribute("out_type", dataType)
@@ -2495,7 +2495,7 @@ object Basic extends Basic {
         shape(input, INT32)
       }
       val indices = op.inputs(1).toInt32
-      val indicesSize = expandDims(size(indices), 0)
+      val indicesSize = expandDims(size(indices, INT32), 0)
       val axis = op.inputs(2)
       val axisStatic = Output.constantValue(axis)
       // For axis 0 gathers, we build appropriately shaped indexed slices.

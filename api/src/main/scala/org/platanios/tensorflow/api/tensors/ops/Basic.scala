@@ -45,8 +45,8 @@ private[api] trait Basic {
   def rank[T <: TensorLike[_]](input: T): Tensor[INT32] = {
     input match {
       case t: Tensor[_] => Tensor.fill(INT32, Shape())(t.rank)
-      case t: TensorIndexedSlices[_] => size(t.denseShape)
-      case t: SparseTensor[_] => size(t.denseShape)
+      case t: TensorIndexedSlices[_] => size(t.denseShape, INT32)
+      case t: SparseTensor[_] => size(t.denseShape, INT32)
     }
   }
 
@@ -56,7 +56,7 @@ private[api] trait Basic {
     * @param  input Tensor whose size to return.
     * @return Result as a new tensor.
     */
-  def size[T <: TensorLike[_]](input: T): Tensor[INT32] = size(input, INT32)
+  def size[T <: TensorLike[_]](input: T): Tensor[INT64] = size(input, INT64)
 
   /** $OpDocBasicSize
     *
@@ -79,7 +79,7 @@ private[api] trait Basic {
     * @param  input Tensor whose shape to return.
     * @return Result as a new tensor.
     */
-  def shape[T <: TensorLike[_]](input: T): Tensor[INT32] = shape(input, INT32)
+  def shape[T <: TensorLike[_]](input: T): Tensor[INT64] = shape(input, INT64)
 
   /** $OpDocBasicShape
     *
@@ -102,7 +102,7 @@ private[api] trait Basic {
     * @param  inputs Tensors whose shapes to return.
     * @return Result as a sequence of new tensors.
     */
-  def shapeN(inputs: Seq[Tensor[_]]): Seq[Tensor[INT32]] = shapeN(inputs, INT32)
+  def shapeN(inputs: Seq[Tensor[_]]): Seq[Tensor[INT64]] = shapeN(inputs, INT64)
 
   /** $OpDocBasicShapeN
     *

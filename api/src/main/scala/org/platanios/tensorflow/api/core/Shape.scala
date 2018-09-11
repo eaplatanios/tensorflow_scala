@@ -326,7 +326,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
       Shape.unknown(slice.length(rank))
   }
 
-  def toTensor: Tensor[INT32] = toTensor(INT32)
+  def toTensor: Tensor[INT64] = toTensor(INT64)
 
   /** Converts this shape to a one-dimensional tensor.
     *
@@ -345,7 +345,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput(dataType: DataType = INT32, name: String = "Shape"): Output = {
+  def toOutput(dataType: DataType = INT64, name: String = "Shape"): Output = {
     Basic.constant(toTensor(dataType), name = name)
   }
 

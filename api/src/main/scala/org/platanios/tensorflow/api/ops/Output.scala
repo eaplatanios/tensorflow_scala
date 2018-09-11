@@ -435,7 +435,7 @@ object Output {
                           None
                         } else {
                           val previousShape = constantValueAsShape(tensor.op.inputs(0))
-                          previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.toArray))
+                          previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.toInt).toArray))
                         }
                       })))
         case _ if tensor.rank == -1 =>
@@ -447,7 +447,7 @@ object Output {
             val value = valueOption.get
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             val shape = Shape(
-              (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Int]): _*)
+              (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_).asInstanceOf[Long].toInt): _*)
             returnShape = returnShape.mergeWith(shape)
           }
           if (returnShape.rank > -1)
