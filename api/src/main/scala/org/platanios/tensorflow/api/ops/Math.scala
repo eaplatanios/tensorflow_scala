@@ -2193,7 +2193,7 @@ private[api] trait Math {
             (axes, null)
           }
         }
-        val shapeA = Basic.shape(a)
+        val shapeA = Basic.shape(a, INT32)
         val rankA = Basic.rank(a)
         var axesO = Basic.constant(mappedAxes, name = "Axes")
         axesO = ((axesO >= 0).cast(INT32) * axesO) + ((axesO < 0).cast(INT32) * (axesO + rankA))
