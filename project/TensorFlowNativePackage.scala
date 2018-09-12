@@ -94,7 +94,7 @@ object TensorFlowNativePackage extends AutoPlugin {
   override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(JniCross)(settings)
 
   val tfLibUrlPrefix       : String = "https://storage.googleapis.com/tensorflow/libtensorflow"
-  val tfLibNightlyUrlPrefix: String = "http://ci.tensorflow.org/view/Nightly/job/nightly-libtensorflow"
+  val tfLibNightlyUrlPrefix: String = "https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package"
 
   def tfLibFilename(platform: Platform): String = platform match {
     case LINUX_x86_64 => s"libtensorflow-cpu-${platform.name}.tar.gz"
@@ -109,9 +109,9 @@ object TensorFlowNativePackage extends AutoPlugin {
   }
 
   def tfLibUrl(platform: Platform, version: String): String = (platform, version) match {
-    case (LINUX_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/TYPE=cpu-slave/lastSuccessfulBuild/artifact/lib_package/${tfLibFilename(platform)}"
-    case (LINUX_GPU_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/TYPE=gpu-linux/lastSuccessfulBuild/artifact/lib_package/${tfLibFilename(platform)}"
-    case (DARWIN_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/TYPE=mac-slave/lastSuccessfulBuild/artifact/lib_package/${tfLibFilename(platform)}"
+    case (LINUX_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
+    case (LINUX_GPU_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
+    case (DARWIN_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
     case (LINUX_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
     case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-gpu-${LINUX_x86_64.name}-$v.tar.gz"
     case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
