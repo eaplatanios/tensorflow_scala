@@ -28,14 +28,15 @@ object Activation {
   private[layers] trait API {
     type Activation = layers.Activation
 
-    val Sigmoid : layers.Sigmoid.type  = layers.Sigmoid
-    val ReLU    : layers.ReLU.type     = layers.ReLU
-    val ReLU6   : layers.ReLU6.type    = layers.ReLU6
-    val CReLU   : layers.CReLU.type    = layers.CReLU
-    val ELU     : layers.ELU.type      = layers.ELU
-    val SELU    : layers.SELU.type     = layers.SELU
-    val Softplus: layers.Softplus.type = layers.Softplus
-    val Softsign: layers.Softsign.type = layers.Softsign
+    val Sigmoid   : layers.Sigmoid.type    = layers.Sigmoid
+    val LogSigmoid: layers.LogSigmoid.type = layers.LogSigmoid
+    val ReLU      : layers.ReLU.type       = layers.ReLU
+    val ReLU6     : layers.ReLU6.type      = layers.ReLU6
+    val CReLU     : layers.CReLU.type      = layers.CReLU
+    val ELU       : layers.ELU.type        = layers.ELU
+    val SELU      : layers.SELU.type       = layers.SELU
+    val Softplus  : layers.Softplus.type   = layers.Softplus
+    val Softsign  : layers.Softsign.type   = layers.Softsign
   }
 
   object API extends API
@@ -47,6 +48,15 @@ case class Sigmoid(override val name: String)
 
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     ops.Math.sigmoid(input)
+  }
+}
+
+case class LogSigmoid(override val name: String)
+    extends Activation(name) {
+  override val layerType: String = "LogSigmoid"
+
+  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+    ops.Math.logSigmoid(input)
   }
 }
 
