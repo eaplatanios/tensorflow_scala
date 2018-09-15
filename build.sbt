@@ -390,12 +390,3 @@ lazy val publishSettings = Seq(
           s"${Opts.resolver.sonatypeSnapshots.root}/${organization.value.replace(".", "/")}/" :: Nil) ! streams.value.log
   }
 )
-
-lazy val compiler = project
-    .in(file("./compiler"))
-    .dependsOn(jni, api)
-    .settings(moduleName := "tensorflow-compiler", name := "TensorFlow Scala - Compiler")
-    .settings(loggingSettings)
-    .settings(testSettings)
-    .settings(
-      libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value)
