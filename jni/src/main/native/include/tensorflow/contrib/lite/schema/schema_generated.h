@@ -220,6 +220,15 @@ struct LogicalAndOptionsT;
 struct LogicalNotOptions;
 struct LogicalNotOptionsT;
 
+struct UnpackOptions;
+struct UnpackOptionsT;
+
+struct FloorDivOptions;
+struct FloorDivOptionsT;
+
+struct SquareOptions;
+struct SquareOptionsT;
+
 struct OperatorCode;
 struct OperatorCodeT;
 
@@ -373,11 +382,16 @@ enum BuiltinOperator {
   BuiltinOperator_ONE_HOT = 85,
   BuiltinOperator_LOGICAL_AND = 86,
   BuiltinOperator_LOGICAL_NOT = 87,
+  BuiltinOperator_UNPACK = 88,
+  BuiltinOperator_REDUCE_MIN = 89,
+  BuiltinOperator_FLOOR_DIV = 90,
+  BuiltinOperator_REDUCE_ANY = 91,
+  BuiltinOperator_SQUARE = 92,
   BuiltinOperator_MIN = BuiltinOperator_ADD,
-  BuiltinOperator_MAX = BuiltinOperator_LOGICAL_NOT
+  BuiltinOperator_MAX = BuiltinOperator_SQUARE
 };
 
-inline BuiltinOperator (&EnumValuesBuiltinOperator())[87] {
+inline BuiltinOperator (&EnumValuesBuiltinOperator())[92] {
   static BuiltinOperator values[] = {
     BuiltinOperator_ADD,
     BuiltinOperator_AVERAGE_POOL_2D,
@@ -465,7 +479,12 @@ inline BuiltinOperator (&EnumValuesBuiltinOperator())[87] {
     BuiltinOperator_LOGICAL_OR,
     BuiltinOperator_ONE_HOT,
     BuiltinOperator_LOGICAL_AND,
-    BuiltinOperator_LOGICAL_NOT
+    BuiltinOperator_LOGICAL_NOT,
+    BuiltinOperator_UNPACK,
+    BuiltinOperator_REDUCE_MIN,
+    BuiltinOperator_FLOOR_DIV,
+    BuiltinOperator_REDUCE_ANY,
+    BuiltinOperator_SQUARE
   };
   return values;
 }
@@ -560,6 +579,11 @@ inline const char **EnumNamesBuiltinOperator() {
     "ONE_HOT",
     "LOGICAL_AND",
     "LOGICAL_NOT",
+    "UNPACK",
+    "REDUCE_MIN",
+    "FLOOR_DIV",
+    "REDUCE_ANY",
+    "SQUARE",
     nullptr
   };
   return names;
@@ -635,11 +659,14 @@ enum BuiltinOptions {
   BuiltinOptions_OneHotOptions = 61,
   BuiltinOptions_LogicalAndOptions = 62,
   BuiltinOptions_LogicalNotOptions = 63,
+  BuiltinOptions_UnpackOptions = 64,
+  BuiltinOptions_FloorDivOptions = 65,
+  BuiltinOptions_SquareOptions = 66,
   BuiltinOptions_MIN = BuiltinOptions_NONE,
-  BuiltinOptions_MAX = BuiltinOptions_LogicalNotOptions
+  BuiltinOptions_MAX = BuiltinOptions_SquareOptions
 };
 
-inline BuiltinOptions (&EnumValuesBuiltinOptions())[64] {
+inline BuiltinOptions (&EnumValuesBuiltinOptions())[67] {
   static BuiltinOptions values[] = {
     BuiltinOptions_NONE,
     BuiltinOptions_Conv2DOptions,
@@ -704,7 +731,10 @@ inline BuiltinOptions (&EnumValuesBuiltinOptions())[64] {
     BuiltinOptions_LogicalOrOptions,
     BuiltinOptions_OneHotOptions,
     BuiltinOptions_LogicalAndOptions,
-    BuiltinOptions_LogicalNotOptions
+    BuiltinOptions_LogicalNotOptions,
+    BuiltinOptions_UnpackOptions,
+    BuiltinOptions_FloorDivOptions,
+    BuiltinOptions_SquareOptions
   };
   return values;
 }
@@ -775,6 +805,9 @@ inline const char **EnumNamesBuiltinOptions() {
     "OneHotOptions",
     "LogicalAndOptions",
     "LogicalNotOptions",
+    "UnpackOptions",
+    "FloorDivOptions",
+    "SquareOptions",
     nullptr
   };
   return names;
@@ -1039,6 +1072,18 @@ template<> struct BuiltinOptionsTraits<LogicalAndOptions> {
 
 template<> struct BuiltinOptionsTraits<LogicalNotOptions> {
   static const BuiltinOptions enum_value = BuiltinOptions_LogicalNotOptions;
+};
+
+template<> struct BuiltinOptionsTraits<UnpackOptions> {
+  static const BuiltinOptions enum_value = BuiltinOptions_UnpackOptions;
+};
+
+template<> struct BuiltinOptionsTraits<FloorDivOptions> {
+  static const BuiltinOptions enum_value = BuiltinOptions_FloorDivOptions;
+};
+
+template<> struct BuiltinOptionsTraits<SquareOptions> {
+  static const BuiltinOptions enum_value = BuiltinOptions_SquareOptions;
 };
 
 struct BuiltinOptionsUnion {
@@ -1575,6 +1620,30 @@ struct BuiltinOptionsUnion {
   const LogicalNotOptionsT *AsLogicalNotOptions() const {
     return type == BuiltinOptions_LogicalNotOptions ?
       reinterpret_cast<const LogicalNotOptionsT *>(value) : nullptr;
+  }
+  UnpackOptionsT *AsUnpackOptions() {
+    return type == BuiltinOptions_UnpackOptions ?
+      reinterpret_cast<UnpackOptionsT *>(value) : nullptr;
+  }
+  const UnpackOptionsT *AsUnpackOptions() const {
+    return type == BuiltinOptions_UnpackOptions ?
+      reinterpret_cast<const UnpackOptionsT *>(value) : nullptr;
+  }
+  FloorDivOptionsT *AsFloorDivOptions() {
+    return type == BuiltinOptions_FloorDivOptions ?
+      reinterpret_cast<FloorDivOptionsT *>(value) : nullptr;
+  }
+  const FloorDivOptionsT *AsFloorDivOptions() const {
+    return type == BuiltinOptions_FloorDivOptions ?
+      reinterpret_cast<const FloorDivOptionsT *>(value) : nullptr;
+  }
+  SquareOptionsT *AsSquareOptions() {
+    return type == BuiltinOptions_SquareOptions ?
+      reinterpret_cast<SquareOptionsT *>(value) : nullptr;
+  }
+  const SquareOptionsT *AsSquareOptions() const {
+    return type == BuiltinOptions_SquareOptions ?
+      reinterpret_cast<const SquareOptionsT *>(value) : nullptr;
   }
 };
 
@@ -2270,12 +2339,16 @@ struct DepthwiseConv2DOptionsT : public flatbuffers::NativeTable {
   int32_t stride_h;
   int32_t depth_multiplier;
   ActivationFunctionType fused_activation_function;
+  int32_t dilation_w_factor;
+  int32_t dilation_h_factor;
   DepthwiseConv2DOptionsT()
       : padding(Padding_SAME),
         stride_w(0),
         stride_h(0),
         depth_multiplier(0),
-        fused_activation_function(ActivationFunctionType_NONE) {
+        fused_activation_function(ActivationFunctionType_NONE),
+        dilation_w_factor(1),
+        dilation_h_factor(1) {
   }
 };
 
@@ -2286,7 +2359,9 @@ struct DepthwiseConv2DOptions FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tab
     VT_STRIDE_W = 6,
     VT_STRIDE_H = 8,
     VT_DEPTH_MULTIPLIER = 10,
-    VT_FUSED_ACTIVATION_FUNCTION = 12
+    VT_FUSED_ACTIVATION_FUNCTION = 12,
+    VT_DILATION_W_FACTOR = 14,
+    VT_DILATION_H_FACTOR = 16
   };
   Padding padding() const {
     return static_cast<Padding>(GetField<int8_t>(VT_PADDING, 0));
@@ -2303,6 +2378,12 @@ struct DepthwiseConv2DOptions FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tab
   ActivationFunctionType fused_activation_function() const {
     return static_cast<ActivationFunctionType>(GetField<int8_t>(VT_FUSED_ACTIVATION_FUNCTION, 0));
   }
+  int32_t dilation_w_factor() const {
+    return GetField<int32_t>(VT_DILATION_W_FACTOR, 1);
+  }
+  int32_t dilation_h_factor() const {
+    return GetField<int32_t>(VT_DILATION_H_FACTOR, 1);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int8_t>(verifier, VT_PADDING) &&
@@ -2310,6 +2391,8 @@ struct DepthwiseConv2DOptions FLATBUFFERS_FINAL_CLASS : private flatbuffers::Tab
            VerifyField<int32_t>(verifier, VT_STRIDE_H) &&
            VerifyField<int32_t>(verifier, VT_DEPTH_MULTIPLIER) &&
            VerifyField<int8_t>(verifier, VT_FUSED_ACTIVATION_FUNCTION) &&
+           VerifyField<int32_t>(verifier, VT_DILATION_W_FACTOR) &&
+           VerifyField<int32_t>(verifier, VT_DILATION_H_FACTOR) &&
            verifier.EndTable();
   }
   DepthwiseConv2DOptionsT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -2335,6 +2418,12 @@ struct DepthwiseConv2DOptionsBuilder {
   void add_fused_activation_function(ActivationFunctionType fused_activation_function) {
     fbb_.AddElement<int8_t>(DepthwiseConv2DOptions::VT_FUSED_ACTIVATION_FUNCTION, static_cast<int8_t>(fused_activation_function), 0);
   }
+  void add_dilation_w_factor(int32_t dilation_w_factor) {
+    fbb_.AddElement<int32_t>(DepthwiseConv2DOptions::VT_DILATION_W_FACTOR, dilation_w_factor, 1);
+  }
+  void add_dilation_h_factor(int32_t dilation_h_factor) {
+    fbb_.AddElement<int32_t>(DepthwiseConv2DOptions::VT_DILATION_H_FACTOR, dilation_h_factor, 1);
+  }
   explicit DepthwiseConv2DOptionsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2353,8 +2442,12 @@ inline flatbuffers::Offset<DepthwiseConv2DOptions> CreateDepthwiseConv2DOptions(
     int32_t stride_w = 0,
     int32_t stride_h = 0,
     int32_t depth_multiplier = 0,
-    ActivationFunctionType fused_activation_function = ActivationFunctionType_NONE) {
+    ActivationFunctionType fused_activation_function = ActivationFunctionType_NONE,
+    int32_t dilation_w_factor = 1,
+    int32_t dilation_h_factor = 1) {
   DepthwiseConv2DOptionsBuilder builder_(_fbb);
+  builder_.add_dilation_h_factor(dilation_h_factor);
+  builder_.add_dilation_w_factor(dilation_w_factor);
   builder_.add_depth_multiplier(depth_multiplier);
   builder_.add_stride_h(stride_h);
   builder_.add_stride_w(stride_w);
@@ -5649,6 +5742,152 @@ inline flatbuffers::Offset<LogicalNotOptions> CreateLogicalNotOptions(
 
 flatbuffers::Offset<LogicalNotOptions> CreateLogicalNotOptions(flatbuffers::FlatBufferBuilder &_fbb, const LogicalNotOptionsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
 
+struct UnpackOptionsT : public flatbuffers::NativeTable {
+  typedef UnpackOptions TableType;
+  int32_t num;
+  int32_t axis;
+  UnpackOptionsT()
+      : num(0),
+        axis(0) {
+  }
+};
+
+struct UnpackOptions FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef UnpackOptionsT NativeTableType;
+  enum {
+    VT_NUM = 4,
+    VT_AXIS = 6
+  };
+  int32_t num() const {
+    return GetField<int32_t>(VT_NUM, 0);
+  }
+  int32_t axis() const {
+    return GetField<int32_t>(VT_AXIS, 0);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int32_t>(verifier, VT_NUM) &&
+           VerifyField<int32_t>(verifier, VT_AXIS) &&
+           verifier.EndTable();
+  }
+  UnpackOptionsT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(UnpackOptionsT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<UnpackOptions> Pack(flatbuffers::FlatBufferBuilder &_fbb, const UnpackOptionsT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct UnpackOptionsBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_num(int32_t num) {
+    fbb_.AddElement<int32_t>(UnpackOptions::VT_NUM, num, 0);
+  }
+  void add_axis(int32_t axis) {
+    fbb_.AddElement<int32_t>(UnpackOptions::VT_AXIS, axis, 0);
+  }
+  explicit UnpackOptionsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  UnpackOptionsBuilder &operator=(const UnpackOptionsBuilder &);
+  flatbuffers::Offset<UnpackOptions> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<UnpackOptions>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<UnpackOptions> CreateUnpackOptions(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int32_t num = 0,
+    int32_t axis = 0) {
+  UnpackOptionsBuilder builder_(_fbb);
+  builder_.add_axis(axis);
+  builder_.add_num(num);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<UnpackOptions> CreateUnpackOptions(flatbuffers::FlatBufferBuilder &_fbb, const UnpackOptionsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct FloorDivOptionsT : public flatbuffers::NativeTable {
+  typedef FloorDivOptions TableType;
+  FloorDivOptionsT() {
+  }
+};
+
+struct FloorDivOptions FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef FloorDivOptionsT NativeTableType;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  FloorDivOptionsT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(FloorDivOptionsT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<FloorDivOptions> Pack(flatbuffers::FlatBufferBuilder &_fbb, const FloorDivOptionsT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct FloorDivOptionsBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  explicit FloorDivOptionsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  FloorDivOptionsBuilder &operator=(const FloorDivOptionsBuilder &);
+  flatbuffers::Offset<FloorDivOptions> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<FloorDivOptions>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<FloorDivOptions> CreateFloorDivOptions(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  FloorDivOptionsBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<FloorDivOptions> CreateFloorDivOptions(flatbuffers::FlatBufferBuilder &_fbb, const FloorDivOptionsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
+struct SquareOptionsT : public flatbuffers::NativeTable {
+  typedef SquareOptions TableType;
+  SquareOptionsT() {
+  }
+};
+
+struct SquareOptions FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef SquareOptionsT NativeTableType;
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           verifier.EndTable();
+  }
+  SquareOptionsT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  void UnPackTo(SquareOptionsT *_o, const flatbuffers::resolver_function_t *_resolver = nullptr) const;
+  static flatbuffers::Offset<SquareOptions> Pack(flatbuffers::FlatBufferBuilder &_fbb, const SquareOptionsT* _o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+};
+
+struct SquareOptionsBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  explicit SquareOptionsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  SquareOptionsBuilder &operator=(const SquareOptionsBuilder &);
+  flatbuffers::Offset<SquareOptions> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<SquareOptions>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<SquareOptions> CreateSquareOptions(
+    flatbuffers::FlatBufferBuilder &_fbb) {
+  SquareOptionsBuilder builder_(_fbb);
+  return builder_.Finish();
+}
+
+flatbuffers::Offset<SquareOptions> CreateSquareOptions(flatbuffers::FlatBufferBuilder &_fbb, const SquareOptionsT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
+
 struct OperatorCodeT : public flatbuffers::NativeTable {
   typedef OperatorCode TableType;
   BuiltinOperator builtin_code;
@@ -5971,6 +6210,15 @@ struct Operator FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const LogicalNotOptions *builtin_options_as_LogicalNotOptions() const {
     return builtin_options_type() == BuiltinOptions_LogicalNotOptions ? static_cast<const LogicalNotOptions *>(builtin_options()) : nullptr;
   }
+  const UnpackOptions *builtin_options_as_UnpackOptions() const {
+    return builtin_options_type() == BuiltinOptions_UnpackOptions ? static_cast<const UnpackOptions *>(builtin_options()) : nullptr;
+  }
+  const FloorDivOptions *builtin_options_as_FloorDivOptions() const {
+    return builtin_options_type() == BuiltinOptions_FloorDivOptions ? static_cast<const FloorDivOptions *>(builtin_options()) : nullptr;
+  }
+  const SquareOptions *builtin_options_as_SquareOptions() const {
+    return builtin_options_type() == BuiltinOptions_SquareOptions ? static_cast<const SquareOptions *>(builtin_options()) : nullptr;
+  }
   const flatbuffers::Vector<uint8_t> *custom_options() const {
     return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_CUSTOM_OPTIONS);
   }
@@ -6252,6 +6500,18 @@ template<> inline const LogicalAndOptions *Operator::builtin_options_as<LogicalA
 
 template<> inline const LogicalNotOptions *Operator::builtin_options_as<LogicalNotOptions>() const {
   return builtin_options_as_LogicalNotOptions();
+}
+
+template<> inline const UnpackOptions *Operator::builtin_options_as<UnpackOptions>() const {
+  return builtin_options_as_UnpackOptions();
+}
+
+template<> inline const FloorDivOptions *Operator::builtin_options_as<FloorDivOptions>() const {
+  return builtin_options_as_FloorDivOptions();
+}
+
+template<> inline const SquareOptions *Operator::builtin_options_as<SquareOptions>() const {
+  return builtin_options_as_SquareOptions();
 }
 
 struct OperatorBuilder {
@@ -6828,6 +7088,8 @@ inline void DepthwiseConv2DOptions::UnPackTo(DepthwiseConv2DOptionsT *_o, const 
   { auto _e = stride_h(); _o->stride_h = _e; };
   { auto _e = depth_multiplier(); _o->depth_multiplier = _e; };
   { auto _e = fused_activation_function(); _o->fused_activation_function = _e; };
+  { auto _e = dilation_w_factor(); _o->dilation_w_factor = _e; };
+  { auto _e = dilation_h_factor(); _o->dilation_h_factor = _e; };
 }
 
 inline flatbuffers::Offset<DepthwiseConv2DOptions> DepthwiseConv2DOptions::Pack(flatbuffers::FlatBufferBuilder &_fbb, const DepthwiseConv2DOptionsT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -6843,13 +7105,17 @@ inline flatbuffers::Offset<DepthwiseConv2DOptions> CreateDepthwiseConv2DOptions(
   auto _stride_h = _o->stride_h;
   auto _depth_multiplier = _o->depth_multiplier;
   auto _fused_activation_function = _o->fused_activation_function;
+  auto _dilation_w_factor = _o->dilation_w_factor;
+  auto _dilation_h_factor = _o->dilation_h_factor;
   return tflite::CreateDepthwiseConv2DOptions(
       _fbb,
       _padding,
       _stride_w,
       _stride_h,
       _depth_multiplier,
-      _fused_activation_function);
+      _fused_activation_function,
+      _dilation_w_factor,
+      _dilation_h_factor);
 }
 
 inline ConcatEmbeddingsOptionsT *ConcatEmbeddingsOptions::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -8441,6 +8707,81 @@ inline flatbuffers::Offset<LogicalNotOptions> CreateLogicalNotOptions(flatbuffer
       _fbb);
 }
 
+inline UnpackOptionsT *UnpackOptions::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new UnpackOptionsT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void UnpackOptions::UnPackTo(UnpackOptionsT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+  { auto _e = num(); _o->num = _e; };
+  { auto _e = axis(); _o->axis = _e; };
+}
+
+inline flatbuffers::Offset<UnpackOptions> UnpackOptions::Pack(flatbuffers::FlatBufferBuilder &_fbb, const UnpackOptionsT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateUnpackOptions(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<UnpackOptions> CreateUnpackOptions(flatbuffers::FlatBufferBuilder &_fbb, const UnpackOptionsT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const UnpackOptionsT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  auto _num = _o->num;
+  auto _axis = _o->axis;
+  return tflite::CreateUnpackOptions(
+      _fbb,
+      _num,
+      _axis);
+}
+
+inline FloorDivOptionsT *FloorDivOptions::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new FloorDivOptionsT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void FloorDivOptions::UnPackTo(FloorDivOptionsT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<FloorDivOptions> FloorDivOptions::Pack(flatbuffers::FlatBufferBuilder &_fbb, const FloorDivOptionsT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateFloorDivOptions(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<FloorDivOptions> CreateFloorDivOptions(flatbuffers::FlatBufferBuilder &_fbb, const FloorDivOptionsT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const FloorDivOptionsT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tflite::CreateFloorDivOptions(
+      _fbb);
+}
+
+inline SquareOptionsT *SquareOptions::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
+  auto _o = new SquareOptionsT();
+  UnPackTo(_o, _resolver);
+  return _o;
+}
+
+inline void SquareOptions::UnPackTo(SquareOptionsT *_o, const flatbuffers::resolver_function_t *_resolver) const {
+  (void)_o;
+  (void)_resolver;
+}
+
+inline flatbuffers::Offset<SquareOptions> SquareOptions::Pack(flatbuffers::FlatBufferBuilder &_fbb, const SquareOptionsT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
+  return CreateSquareOptions(_fbb, _o, _rehasher);
+}
+
+inline flatbuffers::Offset<SquareOptions> CreateSquareOptions(flatbuffers::FlatBufferBuilder &_fbb, const SquareOptionsT *_o, const flatbuffers::rehasher_function_t *_rehasher) {
+  (void)_rehasher;
+  (void)_o;
+  struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const SquareOptionsT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
+  return tflite::CreateSquareOptions(
+      _fbb);
+}
+
 inline OperatorCodeT *OperatorCode::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
   auto _o = new OperatorCodeT();
   UnPackTo(_o, _resolver);
@@ -8882,6 +9223,18 @@ inline bool VerifyBuiltinOptions(flatbuffers::Verifier &verifier, const void *ob
       auto ptr = reinterpret_cast<const LogicalNotOptions *>(obj);
       return verifier.VerifyTable(ptr);
     }
+    case BuiltinOptions_UnpackOptions: {
+      auto ptr = reinterpret_cast<const UnpackOptions *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case BuiltinOptions_FloorDivOptions: {
+      auto ptr = reinterpret_cast<const FloorDivOptions *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case BuiltinOptions_SquareOptions: {
+      auto ptr = reinterpret_cast<const SquareOptions *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
     default: return false;
   }
 }
@@ -9152,6 +9505,18 @@ inline void *BuiltinOptionsUnion::UnPack(const void *obj, BuiltinOptions type, c
       auto ptr = reinterpret_cast<const LogicalNotOptions *>(obj);
       return ptr->UnPack(resolver);
     }
+    case BuiltinOptions_UnpackOptions: {
+      auto ptr = reinterpret_cast<const UnpackOptions *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case BuiltinOptions_FloorDivOptions: {
+      auto ptr = reinterpret_cast<const FloorDivOptions *>(obj);
+      return ptr->UnPack(resolver);
+    }
+    case BuiltinOptions_SquareOptions: {
+      auto ptr = reinterpret_cast<const SquareOptions *>(obj);
+      return ptr->UnPack(resolver);
+    }
     default: return nullptr;
   }
 }
@@ -9410,6 +9775,18 @@ inline flatbuffers::Offset<void> BuiltinOptionsUnion::Pack(flatbuffers::FlatBuff
       auto ptr = reinterpret_cast<const LogicalNotOptionsT *>(value);
       return CreateLogicalNotOptions(_fbb, ptr, _rehasher).Union();
     }
+    case BuiltinOptions_UnpackOptions: {
+      auto ptr = reinterpret_cast<const UnpackOptionsT *>(value);
+      return CreateUnpackOptions(_fbb, ptr, _rehasher).Union();
+    }
+    case BuiltinOptions_FloorDivOptions: {
+      auto ptr = reinterpret_cast<const FloorDivOptionsT *>(value);
+      return CreateFloorDivOptions(_fbb, ptr, _rehasher).Union();
+    }
+    case BuiltinOptions_SquareOptions: {
+      auto ptr = reinterpret_cast<const SquareOptionsT *>(value);
+      return CreateSquareOptions(_fbb, ptr, _rehasher).Union();
+    }
     default: return 0;
   }
 }
@@ -9666,6 +10043,18 @@ inline BuiltinOptionsUnion::BuiltinOptionsUnion(const BuiltinOptionsUnion &u) FL
     }
     case BuiltinOptions_LogicalNotOptions: {
       value = new LogicalNotOptionsT(*reinterpret_cast<LogicalNotOptionsT *>(u.value));
+      break;
+    }
+    case BuiltinOptions_UnpackOptions: {
+      value = new UnpackOptionsT(*reinterpret_cast<UnpackOptionsT *>(u.value));
+      break;
+    }
+    case BuiltinOptions_FloorDivOptions: {
+      value = new FloorDivOptionsT(*reinterpret_cast<FloorDivOptionsT *>(u.value));
+      break;
+    }
+    case BuiltinOptions_SquareOptions: {
+      value = new SquareOptionsT(*reinterpret_cast<SquareOptionsT *>(u.value));
       break;
     }
     default:
@@ -9987,6 +10376,21 @@ inline void BuiltinOptionsUnion::Reset() {
     }
     case BuiltinOptions_LogicalNotOptions: {
       auto ptr = reinterpret_cast<LogicalNotOptionsT *>(value);
+      delete ptr;
+      break;
+    }
+    case BuiltinOptions_UnpackOptions: {
+      auto ptr = reinterpret_cast<UnpackOptionsT *>(value);
+      delete ptr;
+      break;
+    }
+    case BuiltinOptions_FloorDivOptions: {
+      auto ptr = reinterpret_cast<FloorDivOptionsT *>(value);
+      delete ptr;
+      break;
+    }
+    case BuiltinOptions_SquareOptions: {
+      auto ptr = reinterpret_cast<SquareOptionsT *>(value);
       delete ptr;
       break;
     }
