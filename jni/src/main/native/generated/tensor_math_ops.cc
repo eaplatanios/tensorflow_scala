@@ -192,7 +192,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math_00024_cast(
-    JNIEnv* env, jobject object, jlong context_handle, jlong x, jint dstT) {
+    JNIEnv* env, jobject object, jlong context_handle, jlong x, jint dstT, jboolean truncate) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
@@ -211,6 +211,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Math
   TFE_OpSetAttrType(op.get(), "SrcT", attr_SrcT);
 
   TFE_OpSetAttrType(op.get(), "DstT", static_cast<TF_DataType>(dstT));
+
+  TFE_OpSetAttrBool(op.get(), "Truncate", static_cast<unsigned char>(truncate));
 
   const int num_outputs = 1;
   std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);

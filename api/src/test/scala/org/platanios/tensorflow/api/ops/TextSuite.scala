@@ -65,7 +65,7 @@ class TextSuite extends JUnitSuite {
       val session = Session()
       assert(intercept[InvalidArgumentException](session.run(fetches = output)).getMessage ===
           "Invalid pattern: A[, error: missing ]: [\n\t " +
-              "[[Node: RegexReplace = RegexReplace[replace_global=true, " +
+              "[[{{node RegexReplace}} = RegexReplace[replace_global=true, " +
               "_device=\"/job:localhost/replica:0/task:0/device:CPU:0\"](Constant, Constant_1, Constant_2)]]")
     }
   }

@@ -53,6 +53,7 @@ object Op {
   @native def getAttrTypeList(handle: Long, name: String): Array[Int]
   @native def getAttrTensor(handle: Long, name: String): Long
   @native def getAttrShape(handle: Long, name: String): Array[Long]
+  @native def toNodeDef(handle: Long): Array[Byte]
   @native def allOps: Array[Byte]
 
   // Operation Builder
@@ -85,6 +86,5 @@ object Op {
   @native def setAttrProto(handle: Long, name: String, value: Array[Byte]): Unit
 
   @native def toOpDef(graphHandle: Long, opType: String): Array[Byte]
-  @native def toNodeDef(handle: Long): Array[Byte]
   @native def tryEvaluateConstant(graphHandle: Long, opHandle: Long, outputIndex: Int): Long
 }

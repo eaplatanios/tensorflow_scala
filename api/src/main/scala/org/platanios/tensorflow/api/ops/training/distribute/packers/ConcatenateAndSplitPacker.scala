@@ -45,7 +45,7 @@ class ConcatenateAndSplitPacker protected(val numPacks: Int)
       grouped: Seq[Seq[OutputLike]]
   ): (Seq[Seq[OutputLike]], Option[ConcatenateAndSplitPacker.PackInformation]) = {
     val packed = grouped.map(values => {
-      Op.colocateWith(Set(values.head.op)) {
+      Op.colocateWith(Set(values.head.op), ignoreExisting = true) {
         // Flatten all the values.
         val flattened = values.map(v => Basic.reshape(v, Shape(-1)))
         // Remember the original shapes and sizes of all the values.
@@ -93,7 +93,7 @@ class ConcatenateAndSplitPacker protected(val numPacks: Int)
             case (deviceValues, (shapes, sizes)) =>
               // Reverse the previous operations that `pack` applied, in order to convert the packed values back
               // into their original shapes.
-              Op.colocateWith(Set(deviceValues.head.op)) {
+              Op.colocateWith(Set(deviceValues.head.op), ignoreExisting = true) {
                 // Concatenate the packed values into a big flat tensor.
                 val concatenatedDeviceValues = Basic.concatenate(deviceValues.map(_.toOutput))
                 // Split the tensors back into their original sizes.

@@ -48,9 +48,9 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   * @author Emmanouil Antonios Platanios
   */
 class AdaGrad protected (
-    val learningRate: Double = 0.01,
+    val learningRate: Float = 0.01f,
     val decay: Schedule = FixedSchedule,
-    val epsilon: Double = 1e-8,
+    val epsilon: Float = 1e-8f,
     override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
@@ -61,7 +61,7 @@ class AdaGrad protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(learningRateTensor, variable.dataType)
+    learningRateTensor.cast(variable.dataType).toOutput
   }
 
   override def createSlots(variables: Seq[Variable]): Unit = {
@@ -91,9 +91,9 @@ class AdaGrad protected (
 
 object AdaGrad {
   def apply(
-      learningRate: Double = 0.01,
+      learningRate: Float = 0.01f,
       decay: Schedule = FixedSchedule,
-      epsilon: Double = 1e-8,
+      epsilon: Float = 1e-8f,
       ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,

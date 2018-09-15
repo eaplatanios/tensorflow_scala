@@ -166,7 +166,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testSwitchWithOutputIndexedSlicesWithDenseShape(): Unit = withNewGraph {
-    val data = OutputIndexedSlices(Tensor(0, 1), Tensor(1, 2, 3), Tensor(3))
+    val data = OutputIndexedSlices(Tensor(0L, 1L), Tensor(1, 2, 3), Tensor(3L))
     val zero = Basic.constant(0)
     val one = Basic.constant(1)
     val less = Math.less(zero, one)
@@ -174,7 +174,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val switchTrue = session.run(fetches = switch._2)
     session.close()
-    assert(switchTrue.indices === Tensor(0, 1))
+    assert(switchTrue.indices === Tensor(0L, 1L))
     assert(switchTrue.values === Tensor(1, 2, 3))
   }
 
@@ -316,7 +316,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val t = () => (x.value * 2f).sum()
     val f = () => Basic.constant(0.0f)
     val loss = ControlFlow.cond(p, t, f)
-    val optimizer = GradientDescent(0.1)
+    val optimizer = GradientDescent(0.1f)
     val trainOp = optimizer.minimize(loss)
     val session = Session()
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
@@ -358,7 +358,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val p = (v: (Output, Output)) => v._1 < 5
     val b = (v: (Output, Output)) => (v._1 + 1, v._2 + (x.value * 2.0f).sum())
     val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0, INT32), Basic.constant(0.0f)))
-    val optimizer = GradientDescent(0.1)
+    val optimizer = GradientDescent(0.1f)
     val trainOp = optimizer.minimize(loss)
     val session = Session()
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
@@ -373,7 +373,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
       (v: (Output, Output)) => v._1 < 5,
       (v: (Output, Output)) => (v._1 + 1, v._2 + 2.0f * Embedding.embeddingLookup(embeddingMatrix, 0).sum()),
       (Basic.constant(0, INT32), Basic.constant(0.0f)))
-    val optimizer = GradientDescent(0.1)
+    val optimizer = GradientDescent(0.1f)
     val trainOp = optimizer.minimize(loss)
     val session = Session()
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
@@ -471,7 +471,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
         },
         (Basic.constant(0, INT32), Basic.zerosLike(input)))
       val loss = finalOutput.sum()
-      val optimizer = GradientDescent(0.1)
+      val optimizer = GradientDescent(0.1f)
       val trainOp = optimizer.minimize(loss)
       val session = Session()
       session.run(targets = Op.currentGraph.globalVariablesInitializer())

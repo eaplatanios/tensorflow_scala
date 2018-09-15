@@ -38,6 +38,7 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -48,7 +49,6 @@
 
 // TODO(liujisi): Remove the following includes after the include clean-up.
 #include <google/protobuf/stubs/logging.h>
-#include <google/protobuf/stubs/scoped_ptr.h>
 #include <google/protobuf/stubs/mutex.h>
 #include <google/protobuf/stubs/callback.h>
 
@@ -101,27 +101,27 @@ namespace internal {
 
 // The current version, represented as a single integer to make comparison
 // easier:  major * 10^6 + minor * 10^3 + micro
-#define GOOGLE_PROTOBUF_VERSION 3005000
+#define GOOGLE_PROTOBUF_VERSION 3006001
 
 // A suffix string for alpha, beta or rc releases. Empty for stable releases.
 #define GOOGLE_PROTOBUF_VERSION_SUFFIX ""
 
 // The minimum library version which works with the current version of the
 // headers.
-#define GOOGLE_PROTOBUF_MIN_LIBRARY_VERSION 3005000
+#define GOOGLE_PROTOBUF_MIN_LIBRARY_VERSION 3006001
 
 // The minimum header version which works with the current version of
 // the library.  This constant should only be used by protoc's C++ code
 // generator.
-static const int kMinHeaderVersionForLibrary = 3005000;
+static const int kMinHeaderVersionForLibrary = 3006001;
 
 // The minimum protoc version which works with the current version of the
 // headers.
-#define GOOGLE_PROTOBUF_MIN_PROTOC_VERSION 3005000
+#define GOOGLE_PROTOBUF_MIN_PROTOC_VERSION 3006001
 
 // The minimum header version which works with the current version of
 // protoc.  This constant should only be used in VerifyVersion().
-static const int kMinHeaderVersionForProtoc = 3005000;
+static const int kMinHeaderVersionForProtoc = 3006001;
 
 // Verifies that the headers and libraries are compatible.  Use the macro
 // below to call this.
@@ -193,17 +193,22 @@ LIBPROTOBUF_EXPORT char* UTF8CoerceToStructurallyValid(
 //
 // It is safe to call this multiple times.  However, it is not safe to use
 // any other part of the protocol buffers library after
-// ShutdownProtobufLibrary() has been called.
+// ShutdownProtobufLibrary() has been called. Furthermore this call is not
+// thread safe, user needs to synchronize multiple calls.
 LIBPROTOBUF_EXPORT void ShutdownProtobufLibrary();
 
 namespace internal {
 
 // Register a function to be called when ShutdownProtocolBuffers() is called.
 LIBPROTOBUF_EXPORT void OnShutdown(void (*func)());
-// Destroy the string (call string destructor)
-LIBPROTOBUF_EXPORT void OnShutdownDestroyString(const std::string* ptr);
-// Destroy (not delete) the message
-LIBPROTOBUF_EXPORT void OnShutdownDestroyMessage(const void* ptr);
+// Run an arbitrary function on an arg
+LIBPROTOBUF_EXPORT void OnShutdownRun(void (*f)(const void*), const void* arg);
+
+template <typename T>
+T* OnShutdownDelete(T* p) {
+  OnShutdownRun([](const void* pp) { delete static_cast<const T*>(pp); }, p);
+  return p;
+}
 
 }  // namespace internal
 
@@ -229,12 +234,7 @@ class FatalException : public std::exception {
 
 // This is at the end of the file instead of the beginning to work around a bug
 // in some versions of MSVC.
-// TODO(acozzette): remove these using statements
-using std::istream;
-using std::ostream;
-using std::pair;
 using std::string;
-using std::vector;
 
 }  // namespace protobuf
 }  // namespace google

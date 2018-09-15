@@ -366,7 +366,7 @@ object XCLoader extends Loader {
 
     val labelIndicesBuffer = ByteBuffer.wrap(labelIndicesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     labelIndicesStream.close()
-    val labelIndices = Tensor.fromBuffer(INT64, Shape(labelsCount, 2), labelsCount * 2 * 8, labelIndicesBuffer)
+    val labelIndices = Tensor.fromBuffer(INT64, Shape(labelsCount, 2), labelsCount * 2 * 8, labelIndicesBuffer).toInt32
 
     val labelValuesBuffer = ByteBuffer.wrap(labelValuesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     labelValuesStream.close()
@@ -374,7 +374,7 @@ object XCLoader extends Loader {
 
     val featureIndicesBuffer = ByteBuffer.wrap(featureIndicesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     featureIndicesStream.close()
-    val featureIndices = Tensor.fromBuffer(INT64, Shape(featuresCount, 2), featuresCount * 2 * 8, featureIndicesBuffer)
+    val featureIndices = Tensor.fromBuffer(INT64, Shape(featuresCount, 2), featuresCount * 2 * 8, featureIndicesBuffer).toInt32
 
     val featureValuesBuffer = ByteBuffer.wrap(featureValuesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     featureValuesStream.close()

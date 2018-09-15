@@ -184,13 +184,8 @@ object Attention {
     } else {
       val rank = if (values.rank != -1) Basic.constant(values.rank) else Basic.rank(values)
       val extraOnes = Basic.ones(INT32, Basic.expandDims(rank - 2, 0))
-      val mBatchSize = if (values.shape(0) != -1) Basic.constant(values.shape(0)) else Basic.shape(values)(0)
-      Op.createWith(controlDependencies = Set(Checks.assertEqual(
-        batchSize, mBatchSize,
-        "The memory tensor batch sizes do not match with the provided sequence lengths batch size."))) {
-        val mask = sequenceMask.reshape(Basic.concatenate(Seq(Basic.shape(sequenceMask), extraOnes), 0))
-        values * mask
-      }
+      val mask = sequenceMask.reshape(Basic.concatenate(Seq(Basic.shape(sequenceMask), extraOnes), 0))
+      values * mask
     }
   }
 
@@ -201,11 +196,8 @@ object Attention {
     if (sequenceLengths != null) {
       score
     } else {
-      Op.createWith(controlDependencies = Set(Checks.assertNonPositive(
-        sequenceLengths, "All provided in memory sequence lengths must greater than zero."))) {
-        val scoreMask = Basic.sequenceMask(sequenceLengths, Basic.shape(score)(1))
-        Math.select(scoreMask, score, scoreMaskValue * Basic.onesLike(score))
-      }
+      val scoreMask = Basic.sequenceMask(sequenceLengths, Basic.shape(score)(1))
+      Math.select(scoreMask, score, scoreMaskValue * Basic.onesLike(score))
     }
   }
 }

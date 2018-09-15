@@ -83,18 +83,9 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
         val state = evS.outputs(initialCellState).last
         val inferredDataType = if (dataType == null) state.dataType else dataType
         val batchSize: Output = if (state.rank != -1 && state.shape(0) != -1) state.shape(0) else Basic.shape(state)(0)
-        val checkedCellState = Op.createWith(controlDependencies = attentions.map(a => Checks.assertEqual(
-          a.batchSize, batchSize,
-          message = s"When calling `initialState` of `AttentionWrapperCell` '$name': " +
-              "Non-matching batch sizes between the memory (encoder output) and the requested batch size.")).toSet) {
-          evS.map(initialCellState, {
-            case s: TensorArray => s.identity
-            case s: OutputLike => Basic.identity(s, "CheckedInitialCellState")
-          })
-        }
         val initialAlignments = attentions.map(_.initialAlignment)
         AttentionWrapperState(
-          cellState = checkedCellState,
+          cellState = initialCellState,
           time = Basic.zeros(INT32, Shape.scalar()),
           attention = Basic.fill(inferredDataType, Basic.stack(Seq(batchSize, attentionLayersSize)))(0),
           alignments = initialAlignments,
@@ -131,9 +122,9 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
     *  - Step 3: Score the cell's output with `attentionMechanism`.
     *  - Step 4: Calculate the alignments by passing the score through the `normalizer`.
     *  - Step 5: Calculate the context vector as the inner product between the alignments and the attention mechanism's
-    *            values (memory).
+    * values (memory).
     *  - Step 6: Calculate the attention output by concatenating the cell output and context through the attention layer
-    *            (a linear layer with `attentionLayerWeights.shape(-1)` outputs).
+    * (a linear layer with `attentionLayerWeights.shape(-1)` outputs).
     *
     * @param  input Input tuple to the attention wrapper cell.
     * @return Next tuple.
@@ -146,16 +137,10 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
     val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
     val output = nextTuple.output
     val batchSize: Output = if (output.rank != -1 && output.shape(0) != -1) output.shape(0) else Basic.shape(output)(0)
-    val checkedOutput = Op.createWith(controlDependencies = attentions.map(a => Checks.assertEqual(
-      a.batchSize, batchSize, message =
-          s"When calling `initialState` of `AttentionWrapperCell` '$name': Non-matching batch sizes between the " +
-              "memory (encoder output) and the requested batch size.")).toSet) {
-      Basic.identity(output, "CheckedCellOutput")
-    }
     val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentions.map(_ => null)
     val (allAttentions, allAlignments, allStates) = (attentions, input.state.attentionState, weights).zipped.map {
       case (mechanism, previousState, w) =>
-        val (alignments, state) = mechanism.alignment(checkedOutput, previousState)
+        val (alignments, state) = mechanism.alignment(output, previousState)
         // Reshape from [batchSize, memoryTime] to [batchSize, 1, memoryTime]
         val expandedAlignments = alignments.expandDims(1)
         // Context is the inner product of alignments and values along the memory time dimension.
@@ -166,7 +151,7 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
         val context = Math.matmul(expandedAlignments, mechanism.values).squeeze(Seq(1))
         val attention = {
           if (w != null)
-            Math.matmul(Basic.concatenate(Seq(checkedOutput, context), 1), w)
+            Math.matmul(Basic.concatenate(Seq(output, context), 1), w)
           else
             context
         }
@@ -185,7 +170,7 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
     if (outputAttention)
       Tuple(attention, nextState)
     else
-      Tuple(checkedOutput, nextState)
+      Tuple(output, nextState)
   }
 }
 

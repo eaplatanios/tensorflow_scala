@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, Summary}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -71,12 +71,12 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @author Emmanouil Antonios Platanios
   */
 class AMSGrad protected (
-    val learningRate: Double = 0.001,
+    val learningRate: Float = 0.001f,
     val decay: Schedule = FixedSchedule,
-    val beta1: Double = 0.9,
-    val beta2: Double = 0.999,
+    val beta1: Float = 0.9f,
+    val beta2: Float = 0.999f,
     val useNesterov: Boolean = false,
-    val epsilon: Double = 1e-8,
+    val epsilon: Float = 1e-8f,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
     val name: String = "AMSGrad"
@@ -91,25 +91,25 @@ class AMSGrad protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(learningRateTensor, variable.dataType)
+    learningRateTensor.cast(variable.dataType).toOutput
   }
 
   protected def getBeta1(variable: Variable): Output = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(beta1Tensor, variable.dataType)
+    beta1Tensor.cast(variable.dataType).toOutput
   }
 
   protected def getBeta2(variable: Variable): Output = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(beta2Tensor, variable.dataType)
+    beta2Tensor.cast(variable.dataType).toOutput
   }
 
   protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(epsilonTensor, variable.dataType)
+    epsilonTensor.cast(variable.dataType).toOutput
   }
 
   protected def getBetaPowerAccumulators: (Variable, Variable) = {
@@ -127,8 +127,8 @@ class AMSGrad protected (
     // list to make sure this device is consistent across workers (these need to go on the same parameter server,
     // otherwise some updates are silently ignored).
     val firstVariable = variables.minBy(_.name)
-    getOrCreateNonSlotVariable("Beta1Power", beta1, Set(firstVariable.op))
-    getOrCreateNonSlotVariable("Beta2Power", beta2, Set(firstVariable.op))
+    getOrCreateNonSlotVariable("Beta1Power", beta1, Set(firstVariable.op), ignoreExisting = true)
+    getOrCreateNonSlotVariable("Beta2Power", beta2, Set(firstVariable.op), ignoreExisting = true)
   }
 
   override def prepare(iteration: Option[Variable]): Unit = {
@@ -171,7 +171,7 @@ class AMSGrad protected (
     // Update the power accumulators.
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val updateBetaPowerOps = Op.createWith(controlDependencies = updateOps) {
-      Op.colocateWith(Set(beta1Power.op)) {
+      Op.colocateWith(Set(beta1Power.op), ignoreExisting = true) {
         val updateBeta1Power = beta1Power.assign(beta1Power.value * beta1Tensor)
         val updateBeta2Power = beta2Power.assign(beta2Power.value * beta2Tensor)
         Set(updateBeta1Power.op, updateBeta2Power.op)
@@ -216,12 +216,12 @@ class AMSGrad protected (
 
 object AMSGrad {
   def apply(
-      learningRate: Double = 0.001,
+      learningRate: Float = 0.001f,
       decay: Schedule = FixedSchedule,
-      beta1: Double = 0.9,
-      beta2: Double = 0.999,
+      beta1: Float = 0.9f,
+      beta2: Float = 0.999f,
       useNesterov: Boolean = false,
-      epsilon: Double = 1e-8,
+      epsilon: Float = 1e-8f,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
       name: String = "AMSGrad"

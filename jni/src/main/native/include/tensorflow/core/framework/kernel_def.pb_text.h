@@ -29,6 +29,16 @@ bool ProtoParseFromString(
     ::tensorflow::KernelDef* msg)
         TF_MUST_USE_RESULT;
 
+// Message-text conversion for tensorflow.KernelList
+string ProtoDebugString(
+    const ::tensorflow::KernelList& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::KernelList& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::KernelList* msg)
+        TF_MUST_USE_RESULT;
+
 }  // namespace tensorflow
 
 #endif  // tensorflow_core_framework_kernel_def_proto_H_

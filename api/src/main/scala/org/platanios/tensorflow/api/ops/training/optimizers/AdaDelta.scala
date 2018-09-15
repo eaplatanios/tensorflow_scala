@@ -50,10 +50,10 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @author Emmanouil Antonios Platanios
   */
 class AdaDelta protected (
-    val learningRate: Double = 0.01,
+    val learningRate: Float = 0.01f,
     val decay: Schedule = FixedSchedule,
-    val rho: Double = 0.95,
-    val epsilon: Double = 1e-8,
+    val rho: Float = 0.95f,
+    val epsilon: Float = 1e-8f,
     override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
@@ -66,19 +66,19 @@ class AdaDelta protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(learningRateTensor, variable.dataType)
+    learningRateTensor.cast(variable.dataType).toOutput
   }
 
   protected def getRho(variable: Variable): Output = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(rhoTensor, variable.dataType)
+    rhoTensor.cast(variable.dataType).toOutput
   }
 
   protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(epsilonTensor, variable.dataType)
+    epsilonTensor.cast(variable.dataType).toOutput
   }
 
   override def createSlots(variables: Seq[Variable]): Unit = {
@@ -128,10 +128,10 @@ class AdaDelta protected (
 
 object AdaDelta {
   def apply(
-      learningRate: Double = 0.01,
+      learningRate: Float = 0.01f,
       decay: Schedule = FixedSchedule,
-      rho: Double = 0.95,
-      epsilon: Double = 1e-8,
+      rho: Float = 0.95f,
+      epsilon: Float = 1e-8f,
       ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,

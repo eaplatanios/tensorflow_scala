@@ -15,9 +15,10 @@
 
 package org.platanios.tensorflow.api.ops.rnn.attention
 
+import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Math, NN, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
 
 /** Bahdanau-style (multiplicative) attention scoring.
   *
@@ -61,11 +62,23 @@ class BahdanauAttention(
     override protected val memorySequenceLengths: Output = null,
     protected val normalizationFactor: Output = null,
     protected val normalizationBias: Output = null,
-    protected val probabilityFn: (Output) => Output = NN.softmax(_, name = "Probability"),
+    protected val probabilityFn: Output => Output = NN.softmax(_, name = "Probability"),
     override val scoreMaskValue: Output = Float.NegativeInfinity,
     override val name: String = "BahdanauAttention"
 ) extends SimpleAttention(memory, memorySequenceLengths, checkInnerDimensionsDefined = true, scoreMaskValue, name) {
-  override lazy val keys: Output = NN.linear(values, memoryWeights)
+  override lazy val keys: Output = {
+    if (values.rank == 3) {
+      val reshapedLogits = Basic.reshape(values, Basic.stack(Seq(Basic.constant(-1), Basic.shape(values)(-1))))
+      val product = Math.matmul(reshapedLogits, memoryWeights)
+      val reshapedProduct = Basic.reshape(
+        product,
+        Basic.concatenate(Seq(Basic.shape(values)(0 :: -1), Basic.shape(memoryWeights)(-1, NewAxis)), axis = 0))
+      reshapedProduct.setShape(values.shape(0 :: -1) + memoryWeights.shape(-1))
+      reshapedProduct
+    } else {
+      Math.matmul(values, memoryWeights)
+    }
+  }
 
   @throws[InvalidArgumentException]
   override protected def score(query: Output, previousAlignment: Output): Output = {

@@ -51,10 +51,24 @@ bool ProtoParseFromScanner(
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
-    const ::tensorflow::SessionStatus& msg);
+    const ::tensorflow::WatchdogConfig& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
-    ::tensorflow::SessionStatus* msg);
+    ::tensorflow::WatchdogConfig* msg);
+
+void AppendProtoDebugString(
+    ::tensorflow::strings::ProtoTextOutput* o,
+    const ::tensorflow::WorkerHeartbeatRequest& msg);
+bool ProtoParseFromScanner(
+    ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
+    ::tensorflow::WorkerHeartbeatRequest* msg);
+
+void AppendProtoDebugString(
+    ::tensorflow::strings::ProtoTextOutput* o,
+    const ::tensorflow::WorkerHeartbeatResponse& msg);
+bool ProtoParseFromScanner(
+    ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
+    ::tensorflow::WorkerHeartbeatResponse* msg);
 
 }  // namespace internal
 

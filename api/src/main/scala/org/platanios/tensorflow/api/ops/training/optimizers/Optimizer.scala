@@ -171,7 +171,7 @@ trait Optimizer {
       for ((g, v, p) <- gradientsAndVariables.map(p => (p._1, p._2, getVariableProcessor(p._2))).filter(_._1 != null)) {
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"Update/${v.op.name}") {
-          Op.colocateWith(Set(v.op)) {
+          Op.colocateWith(Set(v.op), ignoreExisting = true) {
             updateOps.add(p.updateOp(this, g, iteration))
           }
         }
@@ -181,7 +181,7 @@ trait Optimizer {
       val applyUpdates = {
         iteration match {
           case Some(i) => Op.createWith(controlDependencies = Set(finish(updateOps.toSet, "Finish"))) {
-            Op.colocateWith(Set(i.op)) {
+            Op.colocateWith(Set(i.op), ignoreExisting = true) {
               // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
               Variable.assignAdd(i.handle, Basic.constant(1, dataType = i.dataType), name)
             }
@@ -316,7 +316,7 @@ trait Optimizer {
       dataType: DataType,
       variableScope: String
   ): Variable = {
-    Op.colocateWith(Set(variable.op)) {
+    Op.colocateWith(Set(variable.op), ignoreExisting = true) {
       slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
     }
   }
@@ -339,8 +339,8 @@ trait Optimizer {
     * @return Requested slot variable.
     */
   protected final def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
-    Op.colocateWith(Set(variable.op)) {
-      slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, variableScope))
+    Op.colocateWith(Set(variable.op), ignoreExisting = true) {
+      slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, s"$variableScope/$name"))
     }
   }
 
@@ -354,11 +354,12 @@ trait Optimizer {
   protected final def getOrCreateNonSlotVariable(
       name: String,
       initialValue: Tensor[_ <: DataType],
-      colocationOps: Set[Op] = Set.empty
+      colocationOps: Set[Op] = Set.empty,
+      ignoreExisting: Boolean = false
   ): Variable = {
     nonSlotVariables.getOrElseUpdate(
       (name, colocationOps.map(_.graph).headOption),
-      Op.colocateWith(colocationOps) {
+      Op.colocateWith(colocationOps, ignoreExisting) {
         Variable.getVariable(name, initializer = ConstantInitializer(initialValue), trainable = false)
       })
   }

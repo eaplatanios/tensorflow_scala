@@ -87,6 +87,16 @@ bool ProtoParseFromString(
     ::tensorflow::RPCOptions* msg)
         TF_MUST_USE_RESULT;
 
+// Message-text conversion for tensorflow.ConfigProto.Experimental
+string ProtoDebugString(
+    const ::tensorflow::ConfigProto_Experimental& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::ConfigProto_Experimental& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::ConfigProto_Experimental* msg)
+        TF_MUST_USE_RESULT;
+
 // Message-text conversion for tensorflow.ConfigProto
 string ProtoDebugString(
     const ::tensorflow::ConfigProto& msg);
@@ -100,6 +110,16 @@ bool ProtoParseFromString(
 // Enum text output for tensorflow.RunOptions.TraceLevel
 const char* EnumName_RunOptions_TraceLevel(
     ::tensorflow::RunOptions_TraceLevel value);
+
+// Message-text conversion for tensorflow.RunOptions.Experimental
+string ProtoDebugString(
+    const ::tensorflow::RunOptions_Experimental& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::RunOptions_Experimental& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::RunOptions_Experimental* msg)
+        TF_MUST_USE_RESULT;
 
 // Message-text conversion for tensorflow.RunOptions
 string ProtoDebugString(
@@ -119,6 +139,16 @@ string ProtoShortDebugString(
 bool ProtoParseFromString(
     const string& s,
     ::tensorflow::RunMetadata* msg)
+        TF_MUST_USE_RESULT;
+
+// Message-text conversion for tensorflow.TensorConnection
+string ProtoDebugString(
+    const ::tensorflow::TensorConnection& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::TensorConnection& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::TensorConnection* msg)
         TF_MUST_USE_RESULT;
 
 // Message-text conversion for tensorflow.CallableOptions

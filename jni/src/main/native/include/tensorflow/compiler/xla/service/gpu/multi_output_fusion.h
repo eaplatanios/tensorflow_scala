@@ -22,7 +22,7 @@ namespace xla {
 namespace gpu {
 
 // Multi-output fusion of sibling and producer-consumer instructions for the
-// Jellyfish backend.
+// GPU backend.
 class GpuMultiOutputFusion : public MultiOutputFusion {
  public:
   GpuMultiOutputFusion();
@@ -45,6 +45,9 @@ class GpuMultiOutputFusion : public MultiOutputFusion {
 
   // Test if it's legal to fuse instr1 and instr2 into one fusion instruction.
   bool LegalToFuse(HloInstruction* instr1, HloInstruction* instr2) override;
+
+  // Fuse loop fusions into reduce fusions.
+  bool DoProducerConsumerMultiOutputFusion() override;
 };
 
 }  // namespace gpu

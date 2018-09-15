@@ -297,7 +297,7 @@ object GradientState {
       if (state.isEmpty)
         state = Some(new GradientState())
       if (colocateGradientsWithOps)
-        Op.colocateWith(Set(op))(state.foreach(_.addWhileLoopContext(op, between, betweenList)))
+        Op.colocateWith(Set(op), ignoreExisting = true)(state.foreach(_.addWhileLoopContext(op, between, betweenList)))
       else
         state.foreach(_.addWhileLoopContext(op, between, betweenList))
     })

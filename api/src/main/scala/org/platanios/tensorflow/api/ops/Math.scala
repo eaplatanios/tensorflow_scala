@@ -1242,6 +1242,8 @@ private[api] trait Math {
       axes
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
+        case o: Output if o.rank == 0 =>
+          Basic.constant(Tensor.zeros(INT32, Shape(0)))
         case o: Output if o.rank > -1 =>
           Basic.constant(0 until o.rank)
         case o: OutputIndexedSlices if o.denseShape.shape.isFullyDefined =>
@@ -2191,7 +2193,7 @@ private[api] trait Math {
             (axes, null)
           }
         }
-        val shapeA = Basic.shape(a)
+        val shapeA = Basic.shape(a, INT32)
         val rankA = Basic.rank(a)
         var axesO = Basic.constant(mappedAxes, name = "Axes")
         axesO = ((axesO >= 0).cast(INT32) * axesO) + ((axesO < 0).cast(INT32) * (axesO + rankA))
@@ -4690,7 +4692,7 @@ object Math extends Math {
         if (batchShape.isFullyDefined && matrixShape.isFullyDefined) {
           Basic.constant(tensors.ops.Basic.stack((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
         } else {
-          Op.colocateWith(Set(gradient.op)) {
+          Op.colocateWith(Set(gradient.op), ignoreExisting = true) {
             val gradShape = Basic.shape(gradient)
             val gradRank = Basic.rank(gradient)
             val batchShape = Basic.slice(gradShape, 0, gradRank - 2)
@@ -4865,7 +4867,7 @@ object Math extends Math {
   private[api] def reducedShape(inputShape: Output, axes: Output): Output = {
     // Cast needed for SparseOutput reductions.
     val intInputShape = Cast.cast(inputShape, INT32)
-    val inputRank = Basic.size(intInputShape)
+    val inputRank = Basic.size(intInputShape, INT32)
     val reshapedAxes = {
       if (axes.rank == 0)
         Basic.reshape(axes, Tensor(1))

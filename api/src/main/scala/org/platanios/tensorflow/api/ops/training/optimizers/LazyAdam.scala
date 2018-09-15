@@ -85,12 +85,12 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @author Emmanouil Antonios Platanios
   */
 class LazyAdam protected (
-    override val learningRate: Double = 0.001,
+    override val learningRate: Float = 0.001f,
     override val decay: Schedule = FixedSchedule,
-    override val beta1: Double = 0.9,
-    override val beta2: Double = 0.999,
+    override val beta1: Float = 0.9f,
+    override val beta2: Float = 0.999f,
     override val useNesterov: Boolean = false,
-    override val epsilon: Double = 1e-8,
+    override val epsilon: Float = 1e-8f,
     override val useLocking: Boolean = false,
     override val learningRateSummaryTag: String = null,
     override val name: String = "LazyAdam"
@@ -130,12 +130,12 @@ class LazyAdam protected (
 
 object LazyAdam {
   def apply(
-      learningRate: Double = 0.001,
+      learningRate: Float = 0.001f,
       decay: Schedule = FixedSchedule,
-      beta1: Double = 0.9,
-      beta2: Double = 0.999,
+      beta1: Float = 0.9f,
+      beta2: Float = 0.999f,
       useNesterov: Boolean = false,
-      epsilon: Double = 1e-8,
+      epsilon: Float = 1e-8f,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
       name: String = "LazyAdam"

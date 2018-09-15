@@ -99,9 +99,10 @@ case class Variable private (
     if (cachedValue != null) {
       cachedValue
     } else {
-      Op.createWith(graph = graph, colocationOps = Set.empty[Op], device = handle.device) {
-        // Manually assign reads to the handle's device to avoid log messages
-        Op.createWith(device = handle.device)(Variable.readVariable(handle, dataType))
+      Op.createWith(graph = graph, device = handle.device) {
+        Op.colocateWith(Set(handle.op), ignoreExisting = true) {
+          Variable.readVariable(handle, dataType)
+        }
       }
     }
   }
@@ -126,7 +127,9 @@ case class Variable private (
     * }}}
     */
   override val initializedValue: Output = Op.initialization {
-    ControlFlow.cond(isInitialized, () => value, () => Op.createWith(controlDependencies = Set(initializer))(value))
+    value
+    // TODO: [VARIABLES] Fix this.
+    // ControlFlow.cond(isInitialized, () => value, () => Op.createWith(controlDependencies = Set(initializer))(value))
   }
 
   /** Contains the partition/save-slice information for this variable. */
@@ -559,7 +562,7 @@ private[api] object Variable {
         val trueName = Op.convertNameScopeToName(nameScope)
         val variableHandle = variable(inferredShape, inferredDataType, sharedName = trueName, name = nameScope)
         val initialValue = Op.createWith(nameScope = "Initializer") {
-          Op.colocateWith(Set(variableHandle.op)) {
+          Op.colocateWith(Set(variableHandle.op), ignoreExisting = true) {
             initializer(inferredDataType, inferredShape, null)
           }
         }
@@ -567,7 +570,7 @@ private[api] object Variable {
           variableHandle,
           tryGuardAgainstUninitializedDependencies(name, initialValue), name = "InitializationAssign")
         val (graphElement, cachedValue) = Op.createWith(nameScope = "Read") {
-          Op.colocateWith(Set(variableHandle.op)) {
+          Op.colocateWith(Set(variableHandle.op), ignoreExisting = true) {
             // Manually assign reads to the handle's device to avoid log messages
             val value = Op.createWith(device = variableHandle.device) {
               readVariable(variableHandle, inferredDataType)
@@ -579,7 +582,9 @@ private[api] object Variable {
                 // and/or would not expect the current device context to be merged with the caching device
                 // specification. Therefore, we reset the colocation stack before creating the cached value. Note that
                 // resetting the colocation stack will also reset the device stack.
-                Op.createWith(colocationOps = Set.empty[Op], deviceFunction = cachingDevice)(Basic.identity(value))
+                Op.colocateWith(Set.empty, ignoreExisting = true) {
+                  Op.createWith(deviceFunction = cachingDevice)(Basic.identity(value))
+                }
               } else {
                 null
               }

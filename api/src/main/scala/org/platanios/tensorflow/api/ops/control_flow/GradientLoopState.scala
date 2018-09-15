@@ -185,7 +185,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     val currentContext = Op.currentControlFlowContext
     Op.createWith(controlDependencies = Set.empty[Op]) {
       currentContext.foreach(_.enter())
-      val accumulator = Op.colocateWith(Set(value.op)) {
+      val accumulator = Op.colocateWith(Set(value.op), ignoreExisting = true) {
         // We only need to pass `maximumIterations` to the stack if we are inside an XLA context.
         val maxSize = {
           if (value.op.isInXLAContext)

@@ -9,6 +9,14 @@
 
 namespace tensorflow {
 
+// Enum text output for tensorflow.WorkerHealth
+const char* EnumName_WorkerHealth(
+    ::tensorflow::WorkerHealth value);
+
+// Enum text output for tensorflow.WorkerShutdownMode
+const char* EnumName_WorkerShutdownMode(
+    ::tensorflow::WorkerShutdownMode value);
+
 // Message-text conversion for tensorflow.Event
 string ProtoDebugString(
     const ::tensorflow::Event& msg);
@@ -57,14 +65,34 @@ bool ProtoParseFromString(
     ::tensorflow::TaggedRunMetadata* msg)
         TF_MUST_USE_RESULT;
 
-// Message-text conversion for tensorflow.SessionStatus
+// Message-text conversion for tensorflow.WatchdogConfig
 string ProtoDebugString(
-    const ::tensorflow::SessionStatus& msg);
+    const ::tensorflow::WatchdogConfig& msg);
 string ProtoShortDebugString(
-    const ::tensorflow::SessionStatus& msg);
+    const ::tensorflow::WatchdogConfig& msg);
 bool ProtoParseFromString(
     const string& s,
-    ::tensorflow::SessionStatus* msg)
+    ::tensorflow::WatchdogConfig* msg)
+        TF_MUST_USE_RESULT;
+
+// Message-text conversion for tensorflow.WorkerHeartbeatRequest
+string ProtoDebugString(
+    const ::tensorflow::WorkerHeartbeatRequest& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::WorkerHeartbeatRequest& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::WorkerHeartbeatRequest* msg)
+        TF_MUST_USE_RESULT;
+
+// Message-text conversion for tensorflow.WorkerHeartbeatResponse
+string ProtoDebugString(
+    const ::tensorflow::WorkerHeartbeatResponse& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::WorkerHeartbeatResponse& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::WorkerHeartbeatResponse* msg)
         TF_MUST_USE_RESULT;
 
 }  // namespace tensorflow

@@ -49,7 +49,7 @@ private[api] trait ControlFlow {
   private[api] def withControlDependencies[T <: OutputLike](
       dependencies: Set[Op], input: T, name: String = "WithControlDependencies"): T = {
     Op.createWithNameScope(name, dependencies + input.op) {
-      Op.colocateWith(Set[Op](input.op)) {
+      Op.colocateWith(Set[Op](input.op), ignoreExisting = true) {
         Op.createWith(controlDependencies = dependencies) {
           Basic.identity(input)
         }

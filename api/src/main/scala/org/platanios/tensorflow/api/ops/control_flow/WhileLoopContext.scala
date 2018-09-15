@@ -479,7 +479,7 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val forwardContext = context.gradientLoopState.get.forwardContext
                 forwardContext.outerContext.foreach(_.enter())
                 val zerosShape = Basic.concatenate(
-                  Seq(Tensor(1), resourceSafeShape(value).slice(1 ::)), axis = 0)
+                  Seq(Tensor(1L), resourceSafeShape(value).slice(1 ::)), axis = 0)
                 forwardContext.outerContext.foreach(_.exit())
                 val outerGradientLoopState = context.gradientLoopState.get.outerGradientLoopState.get
                 val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
@@ -492,7 +492,7 @@ private[api] case class WhileLoopContext private[control_flow] (
                 acc
               case _ =>
                 val zerosShape = Basic.concatenate(
-                  Seq(Tensor(1), resourceSafeShape(op.inputs(0)).slice(1 ::)), axis = 0)
+                  Seq(Tensor(1L), resourceSafeShape(op.inputs(0)).slice(1 ::)), axis = 0)
                 Basic.zeros(g.values.dataType, zerosShape)
             }
           }

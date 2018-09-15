@@ -70,7 +70,7 @@ object MNIST {
     val trainingInputLayer = tf.learn.Cast("TrainInput/Cast", INT64)
     val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
         tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
-    // val optimizer = tf.train.AdaGrad(0.1)
+    // val optimizer = tf.train.AdaGrad(0.1f)
     val optimizer = tf.train.YellowFin()
     val model = tf.learn.Model.supervised(input, layer, trainInput, trainingInputLayer, loss, optimizer, clipGradients = ClipGradientsByGlobalNorm(5.0f))
 

@@ -66,12 +66,7 @@ object Gradients {
 
       // Initialize the pending counts for ops in the connected sub-graph between the ys and xs.
       val sourceOps = xs.map(_.op).toSet
-      val destinationOps = {
-        if (ys.lengthCompare(1) > 0)
-          ys.map(y => if (y.consumers.nonEmpty) Basic.identity(y).op else y.op).toSet
-        else
-          ys.map(_.op).toSet
-      }
+      val destinationOps = ys.map(_.op).toSet
 
       // `pendingCounts(op)` is a count-down counter for the expected gradients to accumulate for `op`. When
       // `pendingCounts(op)` becomes zero, we have collected all the backpropagation gradients for all outputs of `op`.
@@ -530,10 +525,7 @@ object Gradients {
            }
          }
          val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
-           case (_, outputs) =>
-             Op.colocateWithForGradient(Set[Op](gradients.head.op), gradientUID, ignoreExisting = true) {
-               addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
-             }
+           case (_, outputs) => addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
          }
          addNOutputIndexedSlices(deviceContributions)
       } else {
@@ -572,10 +564,7 @@ object Gradients {
           }
         }
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
-          case (_, outputs) =>
-            Op.colocateWithForGradient(Set[Op](gradients.head.op), gradientUID, ignoreExisting = true) {
-              addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
-            }
+          case (_, outputs) => addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
         }
         addNOutputIndexedSlices(deviceContributions)
       } else {

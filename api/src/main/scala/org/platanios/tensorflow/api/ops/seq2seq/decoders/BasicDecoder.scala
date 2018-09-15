@@ -306,7 +306,7 @@ object BasicDecoder {
 
     /** Returns a zero-valued sample for this helper. */
     def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): ops.Output = Op.createWithNameScope(name) {
-      Basic.fill(INT32, batchSize.expandDims(0))(0, name)
+      Basic.fill(endToken.dataType, batchSize.expandDims(0))(0, name)
     }
 
     /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
@@ -320,7 +320,7 @@ object BasicDecoder {
     /** Returns a sample for the provided time, input, and state. */
     override def sample(time: ops.Output, input: ops.Output, state: S): ops.Output = {
       Op.createWithNameScope(s"$name/Sample", Set(time.op, input.op)) {
-        Math.argmax(input, axes = -1, outputDataType = INT32)
+        Math.argmax(input, axes = -1, outputDataType = endToken.dataType)
       }
     }
 

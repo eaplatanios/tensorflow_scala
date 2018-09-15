@@ -37,12 +37,13 @@ are a few useful links:
   ```scala
   import org.platanios.tensorflow.api._
   import org.platanios.tensorflow.api.tf.learn._
-  import org.platanios.tensorflow.data.loaders.MNISTLoader
+  import org.platanios.tensorflow.api.ops.training.optimizers.GradientDescent
+  import org.platanios.tensorflow.data.image.MNISTLoader
   
   // Load and batch data using pre-fetching.
   val dataSet = MNISTLoader.load(Paths.get("/tmp"))
-  val trainImages = DatasetFromSlices(dataSet.trainImages)
-  val trainLabels = DatasetFromSlices(dataSet.trainLabels)
+  val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
+  val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
   val trainData =
     trainImages.zip(trainLabels)
         .repeat()
@@ -53,26 +54,26 @@ are a few useful links:
   // Create the MLP model.
   val input = Input(UINT8, Shape(-1, 28, 28))
   val trainInput = Input(UINT8, Shape(-1))
-  val layer = Flatten() >> Cast(FLOAT32) >> 
-      Linear(128, name = "Layer_0") >> ReLU(0.1f) >>
-      Linear(64, name = "Layer_1") >> ReLU(0.1f) >>
-      Linear(32, name = "Layer_2") >> ReLU(0.1f) >>
-      Linear(10, name = "OutputLayer")
-  val trainingInputLayer = Cast(INT64)
-  val loss = SparseSoftmaxCrossEntropy() >> Mean()
+  val layer = Flatten("Input/Flatten") >> Cast(FLOAT32) >> 
+      Linear("Layer0", 128) >> ReLU("Layer0/Activation", 0.1f) >>
+      Linear("Layer1", 64) >> ReLU("Layer1/Activation", 0.1f) >>
+      Linear("Layer2", 32) >> ReLU("Layer2/Activation", 0.1f) >>
+      Linear("OutputLayer", 10)
+  val trainingInputLayer = Cast("TrainInput/Cast", INT64)
+  val loss = SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >> Mean("Loss/Mean")
   val optimizer = GradientDescent(1e-6)
   val model = Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
   
   // Create an estimator and train the model.
   val estimator = Estimator(model)
-  estimator.train(trainData, StopCriteria(maxSteps = Some(1000000)))
+  estimator.train(() => trainData, StopCriteria(maxSteps = Some(1000000)))
   ```
   
   And by changing a few lines to the following code, you can get checkpoint capability, summaries, and seamless 
   integration with TensorBoard:
   
   ```scala
-  loss = loss >> tf.learn.ScalarSummary("Loss")                  // Collect loss summaries for plotting
+  loss = loss >> tf.learn.ScalarSummary("Loss/Summary", "Loss")  // Collect loss summaries for plotting
   val summariesDir = Paths.get("/tmp/summaries")                 // Directory in which to save summaries and checkpoints
   val estimator = Estimator(model, Configuration(Some(summariesDir)))
   estimator.train(

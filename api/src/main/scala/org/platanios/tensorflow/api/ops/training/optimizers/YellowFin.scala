@@ -52,9 +52,9 @@ import org.platanios.tensorflow.api.types.{FLOAT32, INT32}
   * @author Emmanouil Antonios Platanios
   */
 class YellowFin protected (
-    override val learningRate: Double = 1.0,
+    override val learningRate: Float = 1.0f,
     override val decay: Schedule = FixedSchedule,
-    override val momentum: Double = 0.0,
+    override val momentum: Float = 0.0f,
     val beta: Float = 0.999f,
     val curvatureWindowWidth: Int = 20,
     val zeroDebias: Boolean = true,
@@ -78,13 +78,13 @@ class YellowFin protected (
   override protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(learningRateTensor, variable.dataType)
+    learningRateTensor.cast(variable.dataType)
   }
 
   override protected def getMomentum(variable: Variable): Output = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(momentumTensor, variable.dataType)
+    momentumTensor.cast(variable.dataType)
   }
 
   override def createSlots(variables: Seq[Variable]): Unit = {
@@ -162,7 +162,7 @@ class YellowFin protected (
   }
 
   protected def yellowFinUpdate(gradientsAndVariables: Seq[(OutputLike, Variable)]): Op = {
-    val gradSquared = gradientsAndVariables.map(gv => Op.colocateWith(Set(gv._2.op))(Math.square(gv._1)))
+    val gradSquared = gradientsAndVariables.map(gv => Op.colocateWith(Set(gv._2.op), ignoreExisting = true)(Math.square(gv._1)))
     val gradNormSquared = gradSquared.map(Math.sum(_))
     val gradNormSquaredAvgOp = movingAverage.computeForValues(gradNormSquared.toSet)
     val (gradNormSquaredSum, gradNormSquaredAvg) = Op.createWith(controlDependencies = Set(gradNormSquaredAvgOp)) {
@@ -310,9 +310,9 @@ class YellowFin protected (
 
 object YellowFin {
   def apply(
-      learningRate: Double = 1.0,
+      learningRate: Float = 1.0f,
       decay: Schedule = FixedSchedule,
-      momentum: Double = 0.0,
+      momentum: Float = 0.0f,
       beta: Float = 0.999f,
       curvatureWindowWidth: Int = 20,
       zeroDebias: Boolean = true,

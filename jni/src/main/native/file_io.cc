@@ -22,6 +22,7 @@
 #include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/buffered_inputstream.h"
 #include "tensorflow/core/lib/io/inputstream_interface.h"
 #include "tensorflow/core/lib/io/path.h"
@@ -342,7 +343,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_appendToWr
     JNIEnv* env, jobject object, jlong file_handle, jstring file_content) {
   REQUIRE_HANDLE(file, tensorflow::WritableFile, file_handle, void());
   const char* c_file_content = env->GetStringUTFChars(file_content, nullptr);
-  tensorflow::Status s = file->Append(std::string(c_file_content));
+  tensorflow::Status s = file->Append(c_file_content);
   env->ReleaseStringUTFChars(file_content, c_file_content);
   if (!s.ok()) {
     std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);

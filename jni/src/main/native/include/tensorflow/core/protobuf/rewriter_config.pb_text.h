@@ -19,6 +19,16 @@ bool ProtoParseFromString(
     ::tensorflow::AutoParallelOptions* msg)
         TF_MUST_USE_RESULT;
 
+// Message-text conversion for tensorflow.ScopedAllocatorOptions
+string ProtoDebugString(
+    const ::tensorflow::ScopedAllocatorOptions& msg);
+string ProtoShortDebugString(
+    const ::tensorflow::ScopedAllocatorOptions& msg);
+bool ProtoParseFromString(
+    const string& s,
+    ::tensorflow::ScopedAllocatorOptions* msg)
+        TF_MUST_USE_RESULT;
+
 // Enum text output for tensorflow.RewriterConfig.Toggle
 const char* EnumName_RewriterConfig_Toggle(
     ::tensorflow::RewriterConfig_Toggle value);

@@ -305,7 +305,7 @@ abstract class DistributionStrategy {
           cachingDevice: OpSpecification => String,
           underlyingGetter: VariableGetter
       ): Variable = {
-        Op.colocateWith(colocationOps) {
+        Op.colocateWith(colocationOps, ignoreExisting = true) {
           underlyingGetter(
             name, dataType, shape, initializer, regularizer, trainable = false, reuse, collections, cachingDevice,
             null)

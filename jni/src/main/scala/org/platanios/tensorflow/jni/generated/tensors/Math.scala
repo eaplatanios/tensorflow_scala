@@ -25,7 +25,7 @@ object Math {
   @native def select(contextHandle: Long, condition: Long, t: Long, e: Long): Long
   @native def range(contextHandle: Long, start: Long, limit: Long, delta: Long): Long
   @native def linSpace(contextHandle: Long, start: Long, stop: Long, num: Long): Long
-  @native def cast(contextHandle: Long, x: Long, dstT: Int): Long
+  @native def cast(contextHandle: Long, x: Long, dstT: Int, truncate: Boolean): Long
   @native def bitcast(contextHandle: Long, input: Long, _type: Int): Long
   @native def addN(contextHandle: Long, inputs: Array[Long]): Long
   @native def abs(contextHandle: Long, x: Long): Long

@@ -30,7 +30,6 @@
 #ifndef GOOGLE_PROTOBUF_STUBS_SINGLETON_H__
 #define GOOGLE_PROTOBUF_STUBS_SINGLETON_H__
 
-#include <google/protobuf/stubs/atomicops.h>
 #include <google/protobuf/stubs/common.h>
 #include <google/protobuf/stubs/once.h>
 
@@ -46,7 +45,7 @@ class Singleton {
   }
   static void ShutDown() {
     delete instance_;
-    instance_ = NULL;
+    instance_ = nullptr;
   }
  private:
   static void Init() {
@@ -60,7 +59,7 @@ template<typename T>
 ProtobufOnceType Singleton<T>::once_;
 
 template<typename T>
-T* Singleton<T>::instance_ = NULL;
+T* Singleton<T>::instance_ = nullptr;
 }  // namespace internal
 }  // namespace protobuf
 }  // namespace google

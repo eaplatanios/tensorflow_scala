@@ -35,7 +35,7 @@ class GradientDescentSpec extends FlatSpec with Matchers {
         val variable1 = tf.variable("v1", dataType, Shape(2), tf.ConstantInitializer(Tensor(3, 4)))
         val gradient0 = tf.constant(Tensor(0.1, 0.1), dataType = dataType)
         val gradient1 = tf.constant(Tensor(0.01, 0.01), dataType = dataType)
-        val gdOp = GradientDescent(3.0).applyGradients(Seq((gradient0, variable0), (gradient1, variable1)))
+        val gdOp = GradientDescent(3.0f).applyGradients(Seq((gradient0, variable0), (gradient1, variable1)))
         (variable0, variable1, gdOp)
       }
       val session = Session(graph)

@@ -24,7 +24,7 @@ crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.9.0-rc2"
+val tensorFlowVersion = "1.10.0"
 val circeVersion = "0.9.1" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
@@ -61,8 +61,7 @@ nativeCrossCompilationEnabled in ThisBuild := false
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
     "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
-    "ch.qos.logback"             %  "logback-classic" % "1.2.3")
-)
+    "ch.qos.logback"             %  "logback-classic" % "1.2.3"))
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
@@ -78,8 +77,7 @@ lazy val testSettings = Seq(
   fork in test := false,
   testForkedParallel in Test := false,
   parallelExecution in Test := false,
-  testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
-)
+  testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
     .aggregate(jni, api, horovod, data, examples, site)
@@ -161,7 +159,7 @@ lazy val jni = (project in file("./jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
       nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tfBinaryVersion in JniCross := tensorFlowVersion,
+      tfBinaryVersion in JniCross := "nightly", // tensorFlowVersion,
       tfLibCompile in JniCross := false,
       tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch in JniCross := "master",

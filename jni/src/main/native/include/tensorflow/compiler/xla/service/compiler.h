@@ -26,6 +26,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "tensorflow/compiler/xla/service/buffer_value.h"
 #include "tensorflow/compiler/xla/service/executable.h"
 #include "tensorflow/compiler/xla/service/hlo_instruction.h"
@@ -34,7 +35,6 @@ limitations under the License.
 #include "tensorflow/compiler/xla/service/logical_buffer.h"
 #include "tensorflow/compiler/xla/statusor.h"
 #include "tensorflow/compiler/xla/types.h"
-#include "tensorflow/core/lib/gtl/array_slice.h"
 #include "tensorflow/core/platform/mutex.h"
 #include "tensorflow/core/platform/protobuf.h"
 #include "tensorflow/core/platform/stream_executor_no_cuda.h"
@@ -47,11 +47,6 @@ namespace xla {
 // Contains the object file data created as a result of ahead-of-time
 // compuation.
 using ObjectFileData = std::vector<char>;
-
-// Contains the buffer sizes information needed to allocate buffers to execute
-// an ahead-of-time computation.  Entries which contain -1 designate a parameter
-// which should be skipped over during allocation.
-using BufferSizes = std::vector<int64>;
 
 // Abstract superclass describing the result of an ahead-of-time compilation.
 class AotCompilationResult {
@@ -178,6 +173,16 @@ class Compiler {
   virtual std::vector<std::unique_ptr<tensorflow::protobuf::Message>>
   ComputeBackendConfigs(const HloInstruction& hlo,
                         se::StreamExecutor* executor) const;
+
+  // Returns the backend configuration that the backend chooses by default for
+  // the given HLO. Returns no configuration if the backend does not support
+  // configurations for the given HLO.
+  //
+  // The stream executor is passed in to provide information about the hardware
+  // that the backend configurations would be targeting.
+  virtual std::unique_ptr<tensorflow::protobuf::Message>
+  ComputeDefaultBackendConfig(const HloInstruction& hlo,
+                              se::StreamExecutor* executor) const;
 
   // Compiles the HLO module for ahead-of-time execution.  This is intended for
   // use in static compilation.

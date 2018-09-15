@@ -30,6 +30,13 @@ bool ProtoParseFromScanner(
 
 void AppendProtoDebugString(
     ::tensorflow::strings::ProtoTextOutput* o,
+    const ::tensorflow::ScopedAllocatorOptions& msg);
+bool ProtoParseFromScanner(
+    ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,
+    ::tensorflow::ScopedAllocatorOptions* msg);
+
+void AppendProtoDebugString(
+    ::tensorflow::strings::ProtoTextOutput* o,
     const ::tensorflow::RewriterConfig_CustomGraphOptimizer& msg);
 bool ProtoParseFromScanner(
     ::tensorflow::strings::Scanner* scanner, bool nested, bool close_curly,

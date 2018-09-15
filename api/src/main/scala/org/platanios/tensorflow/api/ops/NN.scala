@@ -44,8 +44,11 @@ private[api] trait NN {
     * @return Created op output.
     */
   def addBias(
-      value: Output, bias: Output, cNNDataFormat: CNNDataFormat = CNNDataFormat.default,
-      name: String = "AddBias"): Output = {
+      value: Output,
+      bias: Output,
+      cNNDataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "AddBias"
+  ): Output = {
     Op.Builder(opType = "BiasAdd", name = name)
         .addInput(value)
         .addInput(bias)
@@ -715,7 +718,7 @@ private[api] trait NN {
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
       val probability = Cast.cast(keepProbability, input.dataType)
       val random = Random.randomUniform(
-        input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0, seed = seed)
+        input.dataType, inferredNoiseShape, minValue = probability, maxValue = probability + 1.0f, seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
       val binaryTensor = Math.floor(random)
       val output = if (scaleOutput) Math.divide(input, probability) * binaryTensor else input * binaryTensor
@@ -788,7 +791,7 @@ private[api] trait NN {
   case object NWCFormat extends CNNDataFormat { override val name: String = "NHWC" }
   case object NCWFormat extends CNNDataFormat { override val name: String = "NCHW" }
 
-  /** $OpDocConv2D
+  /** $OpDocNNConv2D
     *
     * @param  input         4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
     * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
@@ -828,7 +831,7 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** $OpDocConv2DBackpropInput
+  /** $OpDocNNConv2DBackpropInput
     *
     * @param  inputSizes     Integer vector representing the shape of the original input, which is a 4-D tensor.
     * @param  filter         4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
@@ -872,7 +875,7 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** $OpDocConv2DBackpropFilter
+  /** $OpDocNNConv2DBackpropFilter
     *
     * @param  input          4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
     * @param  filterSizes    Integer vector representing the shape of the original filter, which is a 4-D tensor.
@@ -920,7 +923,7 @@ private[api] trait NN {
 
   //region Pooling Ops
 
-  /** $OpDocMaxPool
+  /** $OpDocNNMaxPool
     *
     * @param  input      4-D tensor whose dimension order is interpreted according to the value of `dataFormat`.
     * @param  windowSize The size of the pooling window for each dimension of the input tensor.
@@ -943,7 +946,7 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** $OpDocMaxPoolGrad
+  /** $OpDocNNMaxPoolGrad
     *
     * @param  originalInput  Original input tensor.
     * @param  originalOutput Original output tensor.
@@ -972,7 +975,7 @@ private[api] trait NN {
         .build().outputs(0)
   }
 
-  /** $OpDocMaxPoolGradGrad
+  /** $OpDocNNMaxPoolGradGrad
     *
     * @param  originalInput  Original input tensor.
     * @param  originalOutput Original output tensor.
@@ -1002,6 +1005,79 @@ private[api] trait NN {
   }
 
   //endregion Pooling Ops
+
+  //region Normalization Ops
+
+  /** $OpDocNNBatchNormalization
+    *
+    * @param  x        Input tensor of arbitrary dimensionality.
+    * @param  mean     Mean tensor.
+    * @param  variance Variance tensor.
+    * @param  offset   Optional offset tensor, often denoted `beta` in equations.
+    * @param  scale    Optional scale tensor, often denoted `gamma` in equations.
+    * @param  epsilon  Small floating point number added to the variance to avoid division by zero.
+    * @param  name     Name for the created ops.
+    * @return Batch-normalized tensor `x`.
+    */
+  def batchNormalization(
+      x: Output,
+      mean: Output,
+      variance: Output,
+      offset: Option[Output] = None,
+      scale: Option[Output] = None,
+      epsilon: Output,
+      name: String = "BatchNormalization"
+  ): Output = {
+    Op.createWithNameScope(name) {
+      val inv = Math.rsqrt(variance + epsilon)
+      val scaledInv = scale.map(inv * _).getOrElse(inv)
+      (x * inv).cast(x.dataType) + offset.map(_ - mean * scaledInv).getOrElse(-mean * scaledInv).cast(x.dataType)
+    }
+  }
+
+  /** $OpDocNNFusedBatchNormalization
+    *
+    * @param  x          Input tensor with 4 dimensions.
+    * @param  scale      Vector used for scaling.
+    * @param  offset     Vector used as an added offset.
+    * @param  mean       Optional population mean vector, used for inference only.
+    * @param  variance   Optional population variance vector, used for inference only.
+    * @param  epsilon    Small floating point number added to the variance to avoid division by zero.
+    * @param  dataFormat Data format for `x`.
+    * @param  isTraining Boolean value indicating whether the operation is used for training or inference.
+    * @param  name       Name for the created ops.
+    * @return Batch normalized tensor `x`, along with the a batch mean vector, and a batch variance vector.
+    */
+  def fusedBatchNormalization(
+      x: Output,
+      scale: Output,
+      offset: Output,
+      mean: Option[Output] = None,
+      variance: Option[Output] = None,
+      epsilon: Float = 0.001f,
+      dataFormat: CNNDataFormat = NWCFormat,
+      isTraining: Boolean = true,
+      name: String = "FusedBatchNormalization"
+  ): (Output, Output, Output) = {
+    require(
+      !isTraining || (mean.isEmpty && variance.isEmpty),
+      "Both `mean` and `variance` must be `None` if `isTraining == true`.")
+    // Set a minimum epsilon to 1.001e-5f, which is a requirement by CuDNN to prevent an exception.
+    val minEpsilon = 1.001e-5f
+    val outputs = Op.Builder(opType = "FusedBatchNormV2", name = name)
+        .addInput(x)
+        .addInput(scale.toFloat32)
+        .addInput(offset.toFloat32)
+        .addInput(mean.map(_.toFloat32).getOrElse(Basic.zeros(FLOAT32, Shape(0))))
+        .addInput(variance.map(_.toFloat32).getOrElse(Basic.zeros(FLOAT32, Shape(0))))
+        .setAttribute("epsilon", if (epsilon > minEpsilon) epsilon else minEpsilon)
+        .setAttribute("data_format", dataFormat.name)
+        .setAttribute("is_training", isTraining)
+        .build().outputs
+    (outputs(0), outputs(1), outputs(2))
+  }
+
+  //endregion Normalization Ops
 }
 
 object NN extends NN {
@@ -1218,7 +1294,7 @@ object NN extends NN {
 
     //region Convolution Ops
 
-    /** $OpDocConv2D
+    /** $OpDocNNConv2D
       *
       * @param  filter        4-D tensor with shape `[filterHeight, filterWidth, inChannels, outChannels]`.
       * @param  stride1       Stride of the sliding window along the second dimension of this tensor.
@@ -1252,7 +1328,7 @@ object NN extends NN {
 
     //region Pooling Ops
 
-    /** $OpDocMaxPool
+    /** $OpDocNNMaxPool
       *
       * @param  windowSize The size of the pooling window for each dimension of the input tensor.
       * @param  stride1    Stride of the sliding window along the second dimension of `input`.
@@ -1358,6 +1434,7 @@ object NN extends NN {
     GradientsRegistry.register("TopKV2", topKGradient)
     GradientsRegistry.register("BatchNormWithGlobalNormalization", batchNormalizationWithGlobalNormalizationGradient)
     GradientsRegistry.register("FusedBatchNorm", fusedBatchNormalizationGradient)
+    GradientsRegistry.register("FusedBatchNormV2", fusedBatchNormalizationV2Gradient)
     GradientsRegistry.register("Conv2D", conv2DGradient)
     GradientsRegistry.register("MaxPool", maxPoolGradient)
     GradientsRegistry.register("MaxPoolGrad", maxPoolHessian)
@@ -1647,17 +1724,69 @@ object NN extends NN {
   }
 
   private[this] def fusedBatchNormalizationGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    Op.Builder(opType = "FusedBatchNormGrad", name = "FusedBatchNormalizationGradient")
-        .addInput(outputGradient)
-        .addInput(op.inputs(0))
-        .addInput(op.inputs(1))
-        .addInput(op.outputs(3))
-        .addInput(op.outputs(4))
-        .setAttribute("epsilon", op.floatAttribute("epsilon"))
-        .setAttribute("data_format", op.stringAttribute("data_format"))
-        .setAttribute("is_training", op.booleanAttribute("is_training"))
-        .build().outputs.asInstanceOf[Seq[OutputLike]]
+    baseFusedBatchNormalizationGradient(op, outputGradients, useV2 = false)
+  }
+
+  private[this] def fusedBatchNormalizationV2Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    baseFusedBatchNormalizationGradient(op, outputGradients, useV2 = true)
+  }
+
+  private[this] def baseFusedBatchNormalizationGradient(
+      op: Op,
+      outputGradients: Seq[OutputLike],
+      useV2: Boolean
+  ): Seq[OutputLike] = {
+    var x = op.inputs(0)
+    var gradY = outputGradients.head.toOutput
+    val scale = op.inputs(1)
+    val epsilon = op.floatAttribute("epsilon")
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    val isTraining = op.booleanAttribute("is_training")
+
+    if (!isTraining && dataFormat == NCWFormat) {
+      x = Basic.transpose(x, Seq(0, 2, 3, 1))
+      gradY = Basic.transpose(gradY, Seq(0, 2, 3, 1))
+    }
+
+    val (popMean, popVariance) = {
+      if (isTraining)
+        (op.outputs(3), op.outputs(4))
+      else
+        (op.inputs(3), op.inputs(4))
+    }
+
+    val gradients = {
+      if (useV2) {
+        Op.Builder(opType = "FusedBatchNormGradV2", name = "FusedBatchNormalizationGradient")
+            .addInput(gradY)
+            .addInput(x)
+            .addInput(scale)
+            .addInput(popMean)
+            .addInput(popVariance)
+            .setAttribute("epsilon", epsilon)
+            .setAttribute("data_format", if (isTraining) dataFormat.name else NWCFormat.name)
+            .setAttribute("is_training", isTraining)
+            .build().outputs
+      } else {
+        Op.Builder(opType = "FusedBatchNormGrad", name = "FusedBatchNormalizationGradient")
+            .addInput(gradY)
+            .addInput(x)
+            .addInput(scale)
+            .addInput(popMean)
+            .addInput(popVariance)
+            .setAttribute("epsilon", epsilon)
+            .setAttribute("data_format", if (isTraining) dataFormat.name else NWCFormat.name)
+            .setAttribute("is_training", isTraining)
+            .build().outputs
+      }
+    }
+
+    if (isTraining) {
+      gradients.asInstanceOf[Seq[OutputLike]]
+    } else {
+      val dx = if (dataFormat == NCWFormat) Basic.transpose(gradients(0), Seq(0, 3, 1, 2)) else gradients(0)
+      Seq[OutputLike](dx, gradients(1), gradients(2), null, null)
+    }
   }
 
   private[this] def conv2DGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
@@ -1966,7 +2095,7 @@ object NN extends NN {
     *     - `output(i)` be the output for example `i`.
     *   Then `output(i) = predictions(i, targets(i)) \in TopKIncludingTies(predictions(i))`.
     *
-    * @define OpDocConv2D
+    * @define OpDocNNConv2D
     *   The `conv2D` op computes a 2-D convolution given 4-D `input` and `filter` tensors.
     *
     *   Given an input tensor of shape `[batch, inHeight, inWidth, inChannels]` and a filter / kernel tensor of shape
@@ -1985,20 +2114,42 @@ object NN extends NN {
     *   Must have `strides[0] = strides[3] = 1`.  For the most common case of the same horizontal and vertices strides,
     *   `strides = [1, stride, stride, 1]`.
     *
-    * @define OpDocConv2DBackpropInput
+    * @define OpDocNNConv2DBackpropInput
     *   The `conv2DBackpropInput` op computes the gradient of the `conv2D` op with respect to its input tensor.
     *
-    * @define OpDocConv2DBackpropFilter
+    * @define OpDocNNConv2DBackpropFilter
     *   The `conv2DBackpropFilter` op computes the gradient of the `conv2D` op with respect to its filter tensor.
     *
-    * @define OpDocMaxPool
+    * @define OpDocNNMaxPool
     *   The `maxPool` op performs max pooling on the input tensor.
     *
-    * @define OpDocMaxPoolGrad
+    * @define OpDocNNMaxPoolGrad
     *   The `maxPoolGrad` op computes the gradient of the `maxPool` op.
     *
-    * @define OpDocMaxPoolGradGrad
+    * @define OpDocNNMaxPoolGradGrad
     *   The `maxPoolGradGrad` op computes the gradient of the `maxPoolGrad` op.
+    * 
+    * @define OpDocNNBatchNormalization
+    *   The `batchNormalization` op applies batch normalization to input `x`, as described in 
+    *   [[http://arxiv.org/abs/1502.03167]].
+    * 
+    *   The op normalizes a tensor by `mean` and `variance`, and optionally applies a `scale` and `offset` to it 
+    *   `beta + scale * (x - mean) / variance`. `mean`, `variance`, `offset` and `scale` are all expected to be of one 
+    *   of two shapes:
+    * 
+    *     - In all generality, they can have the same number of dimensions as the input `x`, with identical sizes as `x` 
+    *       for the dimensions that are not normalized over the "depth" dimension(s), and size 1 for the others, which 
+    *       are being normalized over. `mean` and `variance` in this case would typically be the outputs of 
+    *       `tf.moments(..., keepDims = true)` during training, or running averages thereof during inference.
+    *     - In the common case where the "depth" dimension is the last dimension in the input tensor `x`, they may be 
+    *       one-dimensional tensors of the same size as the "depth" dimension. This is the case, for example, for the 
+    *       common `[batch, depth]` layout of fully-connected layers, and `[batch, height, width, depth]` for 
+    *       convolutions. `mean` and `variance` in this case would typically be the outputs of 
+    *       `tf.moments(..., keepDims = false)` during training, or running averages thereof during inference.
+    * 
+    * @define OpDocNNFusedBatchNormalization
+    *   The `fusedBatchNormalization` applies batch normalization to input `x`, as described in 
+    *   [[http://arxiv.org/abs/1502.03167]].
     */
   private[ops] trait Documentation
 }

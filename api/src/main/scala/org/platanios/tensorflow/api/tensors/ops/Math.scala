@@ -1005,18 +1005,18 @@ private[api] trait Math {
   private[this] def reductionAxes[T <: TensorLike[_]](
       tensor: T,
       axes: Tensor[INT32]
-  ): Tensor[INT32] = {
+  ): Tensor[INT64] = {
     if (axes != null) {
       axes
     } else {
       tensor match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
-        case t: Tensor[_] if t.rank > -1 => 0 until t.rank
+        case t: Tensor[_] if t.rank > -1 => (0L until t.rank.toLong).toArray[Long]
         // case t: TensorIndexedSlices if t.denseShape.shape.isFullyDefined =>
         //   Basic.constant(0 until t.denseShape.shape(0))
         // case t: SparseTensor if t.denseShape.shape.isFullyDefined =>
         //   Basic.constant(0 until t.denseShape.shape(0))
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
-          range(0, Basic.rank(tensor))
+          range(0L, Basic.rank(tensor))
       }
     }
   }
@@ -1760,7 +1760,7 @@ private[api] trait Math {
     def tensorDotReshape(a: Tensor[D], axes: Tensor[INT32], flipped: Boolean = false): (Tensor[D], Tensor[INT32]) = {
       val shapeA = Basic.shape(a)
       val rankA = Basic.rank(a)
-      val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA))
+      val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA.cast(INT32)))
       val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes)
       val freeAxes = Basic.gather(shapeA, free)
       val axesAxes = Basic.gather(shapeA, mappedAxes)
@@ -1778,7 +1778,7 @@ private[api] trait Math {
         }
       }
       val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
-      (reshapedA, freeAxes)
+      (reshapedA, freeAxes.cast(INT32))
     }
 
     val (reshapedA, freeA) = tensorDotReshape(a, axesA)

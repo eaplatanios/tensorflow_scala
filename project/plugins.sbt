@@ -15,7 +15,7 @@
 
 logLevel := Level.Warn
 
-val tensorFlowVersion = "1.9.0-rc2"
+val tensorFlowVersion = "1.10.0"
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
@@ -23,7 +23,7 @@ libraryDependencies ++= Seq(
   "org.tensorflow" % "proto" % tensorFlowVersion)
 
 // addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC3")
-addSbtPlugin("org.scalameta" % "sbt-metals" % "0.1.0-M1+267-28b92d0a")
+// addSbtPlugin("org.scalameta" % "sbt-metals" % "0.1.0-M1+267-28b92d0a")
 
 // addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
@@ -38,4 +38,4 @@ addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "1.1.1")
 addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.0")
 
 // Generally useful plugins
-addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.3") // Provides fast dependency resolution.
+// addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.3") // Provides fast dependency resolution.

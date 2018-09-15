@@ -58,11 +58,11 @@ import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output, OutputIndexedS
   * @author Emmanouil Antonios Platanios
   */
 class RMSProp protected (
-    val learningRate: Double = 0.01,
+    val learningRate: Float = 0.01f,
     val decay: Schedule = FixedSchedule,
-    val rho: Double = 0.9,
-    val momentum: Double = 0.0,
-    val epsilon: Double = 1e-10,
+    val rho: Float = 0.9f,
+    val momentum: Float = 0.0f,
+    val epsilon: Float = 1e-10f,
     val centered: Boolean = false,
     override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
@@ -77,25 +77,25 @@ class RMSProp protected (
   protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(learningRateTensor, variable.dataType)
+    learningRateTensor.cast(variable.dataType).toOutput
   }
 
   protected def getRho(variable: Variable): Output = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(rhoTensor, variable.dataType)
+    rhoTensor.cast(variable.dataType).toOutput
   }
 
   protected def getMomentum(variable: Variable): Output = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(momentumTensor, variable.dataType)
+    momentumTensor.cast(variable.dataType).toOutput
   }
 
   protected def getEpsilon(variable: Variable): Output = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    Cast.cast(epsilonTensor, variable.dataType)
+    epsilonTensor.cast(variable.dataType).toOutput
   }
 
   override def createSlots(variables: Seq[Variable]): Unit = {
@@ -155,11 +155,11 @@ class RMSProp protected (
 
 object RMSProp {
   def apply(
-      learningRate: Double = 0.01,
+      learningRate: Float = 0.01f,
       decay: Schedule = FixedSchedule,
-      rho: Double = 0.9,
-      momentum: Double = 0.0,
-      epsilon: Double = 1e-10,
+      rho: Float = 0.9f,
+      momentum: Float = 0.0f,
+      epsilon: Float = 1e-10f,
       centered: Boolean = false,
       ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,

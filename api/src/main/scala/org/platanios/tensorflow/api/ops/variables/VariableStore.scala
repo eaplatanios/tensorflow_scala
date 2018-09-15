@@ -116,7 +116,7 @@ case class VariableStore private[variables]() {
       // TODO: [LOGGING]
       // Run the regularizer if specified and save the resulting loss.
       if (regularizer != null) {
-        Op.colocateWith(Set(variable.op)) {
+        Op.colocateWith(Set(variable.op), ignoreExisting = true) {
           val loss = Op.createWithNameScope(s"$name/Regularizer")(regularizer(variable.value))
           if (loss != null)
             Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)

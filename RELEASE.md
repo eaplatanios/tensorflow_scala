@@ -23,6 +23,7 @@ Other new features include:
     can also access the current training step
     (using `Layer.currentStep`).
   - Layers now support `.map(...)`.
+  - Added support for batch normalization.
 - Added support for `tf.logSigmoid` and `tf.lrn`.
 - Added support for the following new metrics:
   - Grouped precision.
