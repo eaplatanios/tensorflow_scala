@@ -1400,13 +1400,17 @@ private[api] trait Math {
     * @return Created op output.
     */
   def logSumExp(
-      input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "LogSumExp"): Output = {
+      input: Output,
+      axes: Output = null,
+      keepDims: Boolean = false,
+      name: String = "LogSumExp"
+  ): Output = {
     if (input.rank == 0)
       input
     else
       Op.createWith(nameScope = name) {
         val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
-        var result = log(sum(exp(input - maxValue), axes, keepDims = true))
+        var result = log(sum(exp(input - maxValue), axes, keepDims = keepDims))
         if (!keepDims)
           result += Basic.reshape(maxValue, Basic.shape(result))
         else
@@ -1425,7 +1429,11 @@ private[api] trait Math {
     * @return Created op output with `INT64` data type.
     */
   def countNonZero(
-      input: Output, axes: Output = null, keepDims: Boolean = false, name: String = "CountNonZero"): Output = {
+      input: Output,
+      axes: Output = null,
+      keepDims: Boolean = false,
+      name: String = "CountNonZero"
+  ): Output = {
     Op.createWith(nameScope = name) {
       sum(Cast.cast(notEqual(input, Basic.zeros(input.dataType, Shape())), INT64), axes, keepDims)
     }
