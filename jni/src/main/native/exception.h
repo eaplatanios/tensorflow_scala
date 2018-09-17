@@ -13,8 +13,8 @@
  * the License.
  */
 
-#ifndef TENSORFLOW_JAVA_EXCEPTION_JNI_H_
-#define TENSORFLOW_JAVA_EXCEPTION_JNI_H_
+#ifndef TENSORFLOW_JNI_EXCEPTIONS_H_
+#define TENSORFLOW_JNI_EXCEPTIONS_H_
 
 #include <jni.h>
 #include <stdlib.h>
@@ -139,7 +139,7 @@ inline TF_Code tf_error_code(std::string jvm_name) {
 inline void throw_exception(JNIEnv *env, const char *clazz, const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  // Using vsnprintf() instead of vasprintf() because the latter doesn't seem to be easily available on Windows
+  // Using vsnprintf() instead of vasprintf() because the latter doesn't seem to be easily available on Windows.
   const size_t max_msg_len = 512;
   char *message = static_cast<char *>(malloc(max_msg_len));
   if (vsnprintf(message, max_msg_len, fmt, args) >= 0)
@@ -166,4 +166,4 @@ inline bool throw_exception_if_not_ok(JNIEnv *env, const TF_Status *status) {
 #ifdef __cplusplus
 }  // extern "C"
 #endif  // __cplusplus
-#endif  // TENSORFLOW_JAVA_EXCEPTION_JNI_H_
+#endif  // TENSORFLOW_JNI_EXCEPTIONS_H_

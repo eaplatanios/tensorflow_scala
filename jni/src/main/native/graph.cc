@@ -15,6 +15,7 @@
 
 #include "exception.h"
 #include "graph.h"
+#include "utilities.h"
 
 #include <limits>
 #include <memory>
@@ -23,28 +24,13 @@
 #include "tensorflow/c/c_api.h"
 
 namespace {
-  template<class T>
-  T *require_handle_helper(JNIEnv *env, jlong handle, const char *closed_error_msg) {
-    static_assert(sizeof(jlong) >= sizeof(T *),
-                  "Cannot package C object pointers as a Java long");
-    if (handle == 0) {
-      throw_exception(env, tf_invalid_argument_exception, closed_error_msg);
-      return nullptr;
-    }
-    return reinterpret_cast<T *>(handle);
-  }
-
-  TF_Operation *require_operation_handle(JNIEnv *env, jlong handle) {
-    return require_handle_helper<TF_Operation>(env, handle, "close() has been called on this operation.");
-  }
-
-  TF_Graph *require_graph_handle(JNIEnv *env, jlong handle) {
-    return require_handle_helper<TF_Graph>(env, handle, "close() has been called on this graph.");
-  }
-
   std::unique_ptr<TF_Output[]> to_tf_output_array(
-      JNIEnv *env, jobjectArray java_array, jfieldID output_op_handle_field_id,
-      jfieldID output_op_index_field_id) {
+    JNIEnv *env,
+    jobjectArray
+    java_array,
+    jfieldID output_op_handle_field_id,
+    jfieldID output_op_index_field_id
+  ) {
     if (java_array == nullptr) return nullptr;
     int array_length = env->GetArrayLength(java_array);
     std::unique_ptr<TF_Output[]> array(new TF_Output[array_length]);
@@ -52,28 +38,36 @@ namespace {
       jobject object = env->GetObjectArrayElement(java_array, i);
       jlong op_handle = env->GetLongField(object, output_op_handle_field_id);
       jint output_index = env->GetIntField(object, output_op_index_field_id);
-      TF_Operation *op = require_operation_handle(env, op_handle);
-      if (op == nullptr) return nullptr;
+      REQUIRE_HANDLE(op, TF_Operation, op_handle, nullptr);
       array[i] = {op, output_index};
     }
     return array;
   }
 }  // namespace
 
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_allocate(JNIEnv* env, jobject object) {
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_allocate(
+  JNIEnv* env,
+  jobject object
+) {
   return reinterpret_cast<jlong>(TF_NewGraph());
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_delete(
-    JNIEnv* env, jobject object, jlong graph_handle) {
-  if (graph_handle == 0) return;
-  TF_DeleteGraph(reinterpret_cast<TF_Graph *>(graph_handle));
+  JNIEnv* env,
+  jobject object,
+  jlong graph_handle
+) {
+  REQUIRE_HANDLE(g, TF_Graph, graph_handle, void());
+  TF_DeleteGraph(g);
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp(
-    JNIEnv* env, jobject object, jlong graph_handle, jstring op_name) {
-  TF_Graph *g = require_graph_handle(env, graph_handle);
-  if (g == nullptr) return 0;
+  JNIEnv* env,
+  jobject object,
+  jlong graph_handle,
+  jstring op_name
+) {
+  REQUIRE_HANDLE(g, TF_Graph, graph_handle, 0);
   const char *op_name_c_string = env->GetStringUTFChars(op_name, nullptr);
   TF_Operation *op = TF_GraphOperationByName(g, op_name_c_string);
   env->ReleaseStringUTFChars(op_name, op_name_c_string);
@@ -81,18 +75,20 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_findOp(
 }
 
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_ops(
-    JNIEnv* env, jobject object, jlong graph_handle) {
-  TF_Graph *g = require_graph_handle(env, graph_handle);
-  if (g == nullptr) return 0;
+  JNIEnv* env,
+  jobject object,
+  jlong graph_handle
+) {
+  REQUIRE_HANDLE(g, TF_Graph, graph_handle, nullptr);
 
-  // Call the C API "TF_GraphNextOperation" repeatedly to obtain all ops in the graph
+  // Call the C API "TF_GraphNextOperation" repeatedly to obtain all ops in the graph.
   std::vector<TF_Operation *> ops;
   size_t pos = 0;
   TF_Operation *op;
   while ((op = TF_GraphNextOperation(g, &pos)) != nullptr)
     ops.push_back(op);
 
-  // Construct the return array
+  // Construct the return array.
   jlongArray return_array = env->NewLongArray(static_cast<jsize>(ops.size()));
   jlong *op_handles_array = env->GetLongArrayElements(return_array, nullptr);
   for (int i = 0; i < ops.size(); ++i)
@@ -102,10 +98,14 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_ops(
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_addGradients(
-        JNIEnv* env, jobject object, jlong graph_handle, jobjectArray y_array, jobjectArray x_array,
-        jobjectArray dx_array) {
-  TF_Graph *g = require_graph_handle(env, graph_handle);
-  if (g == nullptr) return nullptr;
+  JNIEnv* env,
+  jobject object,
+  jlong graph_handle,
+  jobjectArray y_array,
+  jobjectArray x_array,
+  jobjectArray dx_array
+) {
+  REQUIRE_HANDLE(g, TF_Graph, graph_handle, nullptr);
 
   // Convert the inputs to their C API equivalent data structures
   jclass output_class = env->FindClass("org/platanios/tensorflow/jni/Output");
@@ -124,14 +124,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_add
       env, dx_array, output_op_handle_field_id, output_op_index_field_id);
   std::unique_ptr<TF_Output[]> dy(new TF_Output[nx]);
 
-  // Call the C API "TF_AddGradients" function and throw an exception if an error occurs
-  TF_Status *status = TF_NewStatus();
-  TF_AddGradients(g, y.get(), ny, x.get(), nx, dx.get(), status, dy.get());
-  if (!throw_exception_if_not_ok(env, status)) {
-    TF_DeleteStatus(status);
-    return nullptr;
-  }
-  TF_DeleteStatus(status);
+  // Call the C API "TF_AddGradients" function and throw an exception if an error occurs.
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_AddGradients(g, y.get(), ny, x.get(), nx, dx.get(), status.get(), dy.get());
+  CHECK_STATUS(env, status.get(), nullptr);
 
   // Construct the return gradients array
   jmethodID output_class_constructor = env->GetStaticMethodID(
@@ -140,28 +136,36 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_add
   for (int i = 0; i < nx; ++i) {
     env->SetObjectArrayElement(
         gradients_array, i, env->CallStaticObjectMethod(
-            output_class, output_class_constructor, reinterpret_cast<jlong>(dy[i].oper), dy[i].index));
+            output_class, output_class_constructor,
+            reinterpret_cast<jlong>(dy[i].oper), dy[i].index));
   }
   return gradients_array;
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraphDef(
-    JNIEnv* env, jobject object, jlong graph_handle, jbyteArray graph_def, jstring name_prefix,
-    jobjectArray input_map_key_ops, jintArray input_map_key_outputs, jlongArray input_map_value_ops,
-    jintArray input_map_value_outputs,
-    jobjectArray control_dependency_map_key_ops, jlongArray control_dependency_map_value_ops,
-    jlongArray control_dependencies) {
-  TF_Graph *g = require_graph_handle(env, graph_handle);
-  if (g == nullptr) return;
+  JNIEnv* env,
+  jobject object,
+  jlong graph_handle,
+  jbyteArray graph_def,
+  jstring name_prefix,
+  jobjectArray input_map_key_ops,
+  jintArray input_map_key_outputs,
+  jlongArray input_map_value_ops,
+  jintArray input_map_value_outputs,
+  jobjectArray control_dependency_map_key_ops,
+  jlongArray control_dependency_map_value_ops,
+  jlongArray control_dependencies
+) {
+  REQUIRE_HANDLE(g, TF_Graph, graph_handle, void());
 
   TF_ImportGraphDefOptions *options = TF_NewImportGraphDefOptions();
 
-  // Handle the name prefix argument
+  // Handle the name prefix argument.
   const char *name_prefix_c_string = env->GetStringUTFChars(name_prefix, nullptr);
   TF_ImportGraphDefOptionsSetPrefix(options, name_prefix_c_string);
   env->ReleaseStringUTFChars(name_prefix, name_prefix_c_string);
 
-  // Handle the input map arguments
+  // Handle the input map arguments.
   if (input_map_key_ops != nullptr) {
     int input_map_length = env->GetArrayLength(input_map_key_ops);
     if (input_map_length != env->GetArrayLength(input_map_key_outputs) ||
@@ -175,9 +179,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
       jstring input_map_key_op = reinterpret_cast<jstring>(env->GetObjectArrayElement(input_map_key_ops, i));
       const char *input_map_key_op_c_string = env->GetStringUTFChars(input_map_key_op, nullptr);
       int input_map_key_output = reinterpret_cast<int>(input_map_key_outputs_elements[i]);
-      TF_Operation *op = require_operation_handle(env, input_map_value_ops_elements[i]);
-      if (op == nullptr)
-        throw_exception(env, tf_invalid_argument_exception, "Provided input map destination op cannot be found.");
+      REQUIRE_HANDLE(op, TF_Operation, input_map_value_ops_elements[i], void());
       int output_index = reinterpret_cast<int>(input_map_value_outputs_elements[i]);
       TF_Output output{op, output_index};
       TF_ImportGraphDefOptionsAddInputMapping(options, input_map_key_op_c_string, input_map_key_output, output);
@@ -200,10 +202,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
         reinterpret_cast<jstring>(env->GetObjectArrayElement(control_dependency_map_key_ops, i));
       const char *control_dependency_map_key_op_c_string =
         env->GetStringUTFChars(control_dependency_map_key_op, nullptr);
-      TF_Operation *op = require_operation_handle(env, control_dependency_map_value_ops_elements[i]);
-      if (op == nullptr)
-        throw_exception(
-          env, tf_invalid_argument_exception, "Provided control dependency map destination op cannot be found.");
+      REQUIRE_HANDLE(op, TF_Operation, control_dependency_map_value_ops_elements[i], void());
       TF_ImportGraphDefOptionsRemapControlDependency(options, control_dependency_map_key_op_c_string, op);
       env->ReleaseStringUTFChars(control_dependency_map_key_op, control_dependency_map_key_op_c_string);
     }
@@ -215,9 +214,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
     int control_dependencies_length = env->GetArrayLength(control_dependencies);
     jlong *control_dependencies_elements = env->GetLongArrayElements(control_dependencies, 0);
     for (int i = 0; i < control_dependencies_length; ++i) {
-      TF_Operation *op = require_operation_handle(env, control_dependencies_elements[i]);
-      if (op == nullptr)
-        throw_exception(env, tf_invalid_argument_exception, "Provided control dependency op cannot be found.");
+      REQUIRE_HANDLE(op, TF_Operation, control_dependencies_elements[i], void());
       TF_ImportGraphDefOptionsAddControlDependency(options, op);
     }
     env->ReleaseLongArrayElements(control_dependencies, control_dependencies_elements, 0);
@@ -227,28 +224,29 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
   static_assert(sizeof(jbyte) == 1, "unexpected size of the jbyte type");
   jbyte *bytes = env->GetByteArrayElements(graph_def, nullptr);
   TF_Buffer *buffer = TF_NewBufferFromString(bytes, static_cast<size_t>(env->GetArrayLength(graph_def)));
-  TF_Status *status = TF_NewStatus();
-  TF_GraphImportGraphDef(g, buffer, options, status);
-  throw_exception_if_not_ok(env, status);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_GraphImportGraphDef(g, buffer, options, status.get());
+  CHECK_STATUS(env, status.get(), void());
 
-  // Continue cleaning up resources even if an exception was thrown
-  TF_DeleteStatus(status);
+  // Continue cleaning up resources even if an exception was thrown.
   TF_DeleteBuffer(buffer);
   env->ReleaseByteArrayElements(graph_def, bytes, JNI_ABORT);
   TF_DeleteImportGraphDefOptions(options);
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_toGraphDef(
-    JNIEnv* env, jobject object, jlong graph_handle) {
-  TF_Graph *g = require_graph_handle(env, graph_handle);
-  if (g == nullptr) return nullptr;
+  JNIEnv* env,
+  jobject object,
+  jlong graph_handle
+) {
+  REQUIRE_HANDLE(g, TF_Graph, graph_handle, nullptr);
 
   // Call the C API "TF_GraphToGraphDef" function and throw an exception if an error occurs
   jbyteArray return_array = nullptr;
   TF_Buffer *buf = TF_NewBuffer();
-  TF_Status *status = TF_NewStatus();
-  TF_GraphToGraphDef(g, buf, status);
-  if (throw_exception_if_not_ok(env, status)) {
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_GraphToGraphDef(g, buf, status.get());
+  if (throw_exception_if_not_ok(env, status.get())) {
     // sizeof(jsize) is less than sizeof(size_t) on some platforms.
     if (buf->length > std::numeric_limits<jint>::max()) {
       throw_exception(env, tf_invalid_argument_exception,
@@ -261,8 +259,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_toGra
     }
   }
 
-  // Clean up and return the byte array
-  TF_DeleteStatus(status);
+  // Clean up and return the byte array.
   TF_DeleteBuffer(buf);
   return return_array;
 }

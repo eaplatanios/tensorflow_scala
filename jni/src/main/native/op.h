@@ -7,6 +7,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+//region Operation
+
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    name
@@ -141,7 +144,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape
  * Signature: (JJI[JI)V
  */
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setShape
-        (JNIEnv *, jobject, jlong, jlong, jint, jlongArray, jint);
+  (JNIEnv *, jobject, jlong, jlong, jint, jlongArray, jint);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
@@ -241,11 +244,39 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrS
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
- * Method:    listAll
+ * Method:    toNodeDef
+ * Signature: (J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toNodeDef
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    allOps
  * Signature: ()[B
  */
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps
   (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    tryEvaluateConstant
+ * Signature: (JJI)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_tryEvaluateConstant
+  (JNIEnv *, jobject, jlong, jlong, jint);
+
+//endregion Operation
+
+//region Operation Builder
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    toOpDef
+ * Signature: (JLjava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toOpDef
+  (JNIEnv *, jobject, jlong, jstring);
   
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
@@ -431,29 +462,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrFuncNam
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Op_00024_setAttrProto
   (JNIEnv *, jobject, jlong, jstring, jbyteArray);
 
-/*
- * Class:     org_platanios_tensorflow_jni_Op__
- * Method:    toOpDef
- * Signature: (JLjava/lang/String;)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toOpDef
-  (JNIEnv *, jobject, jlong, jstring);
-
-/*
- * Class:     org_platanios_tensorflow_jni_Op__
- * Method:    toNodeDef
- * Signature: (J)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_toNodeDef
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     org_platanios_tensorflow_jni_Op__
- * Method:    tryEvaluateConstant
- * Signature: (JJI)J
- */
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_tryEvaluateConstant
-  (JNIEnv *, jobject, jlong, jlong, jint);
+//endregion Operation Builder
 
 #ifdef __cplusplus
 }

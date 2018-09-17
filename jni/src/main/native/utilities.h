@@ -22,14 +22,20 @@
 
 namespace {
   template <typename T>
-  std::string pointerToString(T pointer, typename std::enable_if<std::is_pointer<T>::value>::type* = nullptr) {
+  std::string pointerToString(
+      T pointer,
+      typename std::enable_if<std::is_pointer<T>::value>::type* = nullptr
+  ) {
     std::stringstream ss;
     ss << pointer;
     return ss.str();
   }
 
   template <typename T>
-  T pointerFromString(const std::string &text, typename std::enable_if<std::is_pointer<T>::value>::type* = nullptr) {
+  T pointerFromString(
+      const std::string &text,
+      typename std::enable_if<std::is_pointer<T>::value>::type* = nullptr
+  ) {
     std::stringstream ss(text);
     void* pointer;
     ss >> pointer;
@@ -37,7 +43,11 @@ namespace {
   }
 
   template <class T>
-  inline T* require_handle(JNIEnv* env, jlong handle, const char* object_name) {
+  inline T* require_handle(
+      JNIEnv* env,
+      jlong handle,
+      const char* object_name
+  ) {
     static_assert(sizeof(jlong) >= sizeof(T*), "Cannot package C object pointers as a Java long");
     if (handle == 0) {
       std::stringstream msg;
@@ -47,9 +57,14 @@ namespace {
     }
     return reinterpret_cast<T*>(handle);
   }
-  
+
   template<class T>
-  inline void require_handles(JNIEnv* env, jlongArray src_array, T** dst_array, jint src_array_length) {
+  inline void require_handles(
+      JNIEnv* env,
+      jlongArray src_array,
+      T** dst_array,
+      jint src_array_length
+  ) {
     jint len = env->GetArrayLength(src_array);
     if (len != src_array_length) {
       std::stringstream msg;
@@ -72,7 +87,12 @@ namespace {
   }
 
   inline void require_outputs(
-      JNIEnv* env, jlongArray src_ops, jintArray src_indices, TF_Output* dst_array, jint src_ops_length) {
+      JNIEnv* env,
+      jlongArray src_ops,
+      jintArray src_indices,
+      TF_Output* dst_array,
+      jint src_ops_length
+  ) {
     jint len = env->GetArrayLength(src_ops);
     if (len != src_ops_length) {
       std::stringstream msg;
@@ -103,16 +123,16 @@ namespace {
   }
 }  // namespace
 
-#define REQUIRE_HANDLE(name, type, variable_name, null_return_value)       \
-  type* name = require_handle<type>(env, variable_name, #variable_name);   \
+#define REQUIRE_HANDLE(name, type, variable_name, null_return_value)                        \
+  type* name = require_handle<type>(env, variable_name, #variable_name);                    \
   if (name == nullptr) return null_return_value;
 
-#define REQUIRE_HANDLES(src_array, dst_array, src_array_length, null_return_value)   \
-  require_handles(env, src_array, dst_array, src_array_length);                      \
+#define REQUIRE_HANDLES(src_array, dst_array, src_array_length, null_return_value)          \
+  require_handles(env, src_array, dst_array, src_array_length);                             \
   if (env->ExceptionCheck()) return null_return_value;
 
-#define REQUIRE_OUTPUTS(src_ops, src_indices, dst_array, src_ops_length, null_return_value)   \
-  require_outputs(env, src_ops, src_indices, dst_array, src_ops_length);                      \
+#define REQUIRE_OUTPUTS(src_ops, src_indices, dst_array, src_ops_length, null_return_value) \
+  require_outputs(env, src_ops, src_indices, dst_array, src_ops_length);                    \
   if (env->ExceptionCheck()) return null_return_value;
 
 #endif  // TENSORFLOW_JNI_UTILITIES_H_

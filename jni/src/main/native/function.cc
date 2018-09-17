@@ -23,9 +23,18 @@
 #include "tensorflow/c/c_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphToFunction(
-  JNIEnv* env, jobject object, jlong fn_body_graph_handle, jstring fn_name, jboolean append_hash_to_fn_name,
-  jlongArray op_handles, jlongArray input_op_handles, jintArray input_op_indices, jlongArray output_op_handles,
-  jintArray output_op_indices, jobjectArray output_names) {
+  JNIEnv* env,
+  jobject object,
+  jlong fn_body_graph_handle,
+  jstring fn_name,
+  jboolean append_hash_to_fn_name,
+  jlongArray op_handles,
+  jlongArray input_op_handles,
+  jintArray input_op_indices,
+  jlongArray output_op_handles,
+  jintArray output_op_indices,
+  jobjectArray output_names
+) {
   REQUIRE_HANDLE(fn_body_graph, TF_Graph, fn_body_graph_handle, 0);
 
   const char *c_fn_name = env->GetStringUTFChars(fn_name, nullptr);
@@ -44,9 +53,8 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
   std::unique_ptr<TF_Output[]> inputs(new TF_Output[num_inputs]);
   std::unique_ptr<TF_Output[]> outputs(new TF_Output[num_outputs]);
 
-  if (num_ops > 0) {
+  if (num_ops > 0)
     REQUIRE_HANDLES(op_handles, ops.get(), num_ops, 0);
-  }
 
   REQUIRE_OUTPUTS(input_op_handles, input_op_indices, inputs.get(), num_inputs, 0);
   REQUIRE_OUTPUTS(output_op_handles, output_op_indices, outputs.get(), num_outputs, 0);
@@ -67,15 +75,19 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Function_00024_graphTo
   CHECK_STATUS(env, status.get(), 0);
 
   env->ReleaseStringUTFChars(fn_name, c_fn_name);
-  for (int i = 0; i < num_output_names; i++) {
+  for (int i = 0; i < num_output_names; i++)
     env->ReleaseStringUTFChars(j_output_names[i], c_output_names[i]);
-  }
 
   return reinterpret_cast<jlong>(function);
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Function_00024_copyToGraph(
-  JNIEnv* env, jobject object, jlong graph_handle, jlong function_handle, jlong gradient_handle) {
+  JNIEnv* env,
+  jobject object,
+  jlong graph_handle,
+  jlong function_handle,
+  jlong gradient_handle
+) {
   REQUIRE_HANDLE(graph, TF_Graph, graph_handle, void());
   REQUIRE_HANDLE(function, TF_Function, function_handle, void());
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
@@ -84,7 +96,10 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Function_00024_copyToGr
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Function_00024_toFunctionDef(
-    JNIEnv* env, jobject object, jlong function_handle) {
+  JNIEnv* env,
+  jobject object,
+  jlong function_handle
+) {
   REQUIRE_HANDLE(function, TF_Function, function_handle, nullptr);
 
   // Call the C API "TF_GraphToGraphDef" function and throw an exception if an error occurs
@@ -102,7 +117,9 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Function_00024_to
     static_assert(sizeof(jbyte) == 1, "Unexpected size of the Java byte type.");
     jint return_array_length = static_cast<jint>(buffer->length);
     return_array = env->NewByteArray(return_array_length);
-    env->SetByteArrayRegion(return_array, 0, return_array_length, static_cast<const jbyte *>(buffer->data));
+    env->SetByteArrayRegion(
+        return_array, 0, return_array_length,
+        static_cast<const jbyte *>(buffer->data));
   }
 
   // Clean up and return the byte array
@@ -111,7 +128,10 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Function_00024_to
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Function_00024_delete(
-    JNIEnv* env, jobject object, jlong function_handle) {
+  JNIEnv* env,
+  jobject object,
+  jlong function_handle
+) {
   REQUIRE_HANDLE(function, TF_Function, function_handle, void());
   TF_DeleteFunction(function);
 }

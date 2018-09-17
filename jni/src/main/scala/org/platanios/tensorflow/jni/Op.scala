@@ -23,7 +23,8 @@ case class Output(opHandle: Long, outputIndex: Int)
 object Op {
   TensorFlow.load()
 
-  // Operation
+  //region Operation
+
   @native def name(handle: Long): String
   @native def opType(handle: Long): String
   @native def device(handle: Long): String
@@ -55,8 +56,13 @@ object Op {
   @native def getAttrShape(handle: Long, name: String): Array[Long]
   @native def toNodeDef(handle: Long): Array[Byte]
   @native def allOps: Array[Byte]
+  @native def tryEvaluateConstant(graphHandle: Long, opHandle: Long, outputIndex: Int): Long
 
-  // Operation Builder
+  //endregion Operation
+
+  //region Operation Builder
+
+  @native def toOpDef(graphHandle: Long, opType: String): Array[Byte]
   @native def allocate(graphHandle: Long, opType: String, name: String): Long
   @native def finish(handle: Long): Long
   @native def addInput(handle: Long, operationHandle: Long, index: Int): Unit
@@ -64,9 +70,6 @@ object Op {
   @native def addControlInput(handle: Long, inputOpHandle: Long): Unit
   @native def setDevice(handle: Long, device: String): Unit
   @native def colocateWith(handle: Long, colocationOpHandle: Long): Unit
-
-  // The names of all the setAttr* family functions below correspond to the C library types, not the
-  // Java library types. Roughly, setAttrFoo calls the TensorFlow C library function: TF_SetAttrFoo.
   @native def setAttrString(handle: Long, name: String, value: Array[Byte]): Unit
   @native def setAttrStringList(handle: Long, name: String, value: Array[Array[Byte]]): Unit
   @native def setAttrInt(handle: Long, name: String, value: Long): Unit
@@ -80,11 +83,9 @@ object Op {
   @native def setAttrTensor(handle: Long, name: String, tensorHandle: Long): Unit
   @native def setAttrTensorList(handle: Long, name: String, tensorHandle: Array[Long]): Unit
   @native def setAttrShape(handle: Long, name: String, shape: Array[Long], numDims: Int): Unit
-  @native def setAttrShapeList(
-      handle: Long, name: String, shapes: Array[Array[Long]], numDims: Array[Int], numShapes: Int): Unit
+  @native def setAttrShapeList(handle: Long, name: String, shapes: Array[Array[Long]], numDims: Array[Int], numShapes: Int): Unit
   @native def setAttrFuncName(handle: Long, name: String, value: Array[Byte]): Unit
   @native def setAttrProto(handle: Long, name: String, value: Array[Byte]): Unit
 
-  @native def toOpDef(graphHandle: Long, opType: String): Array[Byte]
-  @native def tryEvaluateConstant(graphHandle: Long, opHandle: Long, outputIndex: Int): Long
+  //endregion Operation Builder
 }

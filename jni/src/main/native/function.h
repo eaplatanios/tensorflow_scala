@@ -7,6 +7,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 /*
  * Class:     org_platanios_tensorflow_jni_Function__
  * Method:    graphToFunction

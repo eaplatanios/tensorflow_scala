@@ -25,12 +25,25 @@ object Graph {
   @native def delete(handle: Long): Unit
   @native def findOp(handle: Long, name: String): Long
   @native def ops(handle: Long): Array[Long]
-  @native def addGradients(handle: Long, y: Array[Output], x: Array[Output], dx: Array[Output]): Array[Output]
-  @throws[IllegalArgumentException]
+
+  @native def addGradients(
+      handle: Long,
+      y: Array[Output],
+      x: Array[Output],
+      dx: Array[Output]
+  ): Array[Output]
+
   @native def importGraphDef(
-      handle: Long, graphDef: Array[Byte], prefix: String, inputsMapSourceOpNames: Array[String],
-      inputsMapSourceOutputIndices: Array[Int], inputsMapDestinationOpHandles: Array[Long],
-      inputsMapDestinationOutputIndices: Array[Int], controlDependenciesMapSourceOpNames: Array[String],
-      controlDependenciesMapDestinationOpHandles: Array[Long], controlDependenciesOpHandles: Array[Long]): Unit
+      handle: Long,
+      graphDef: Array[Byte],
+      prefix: String,
+      inputsMapSourceOpNames: Array[String],
+      inputsMapSourceOutputIndices: Array[Int],
+      inputsMapDestinationOpHandles: Array[Long],
+      inputsMapDestinationOutputIndices: Array[Int],
+      controlDependenciesMapSourceOpNames: Array[String],
+      controlDependenciesMapDestinationOpHandles: Array[Long],
+      controlDependenciesOpHandles: Array[Long]): Unit
+
   @native def toGraphDef(handle: Long): Array[Byte]
 }

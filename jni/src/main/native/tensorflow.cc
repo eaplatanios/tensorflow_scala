@@ -63,19 +63,27 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_cal
 }
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_version(
-  JNIEnv* env, jobject object) {
+  JNIEnv* env,
+  jobject object
+) {
   return env->NewStringUTF(TF_Version());
 }
 
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_dataTypeSize(
-  JNIEnv* env, jobject object, jint data_type_c_value) {
+  JNIEnv* env,
+  jobject object,
+  jint data_type_c_value
+) {
   return (jint) TF_DataTypeSize((TF_DataType) data_type_c_value);
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_loadOpLibrary(
-  JNIEnv* env, jobject object, jstring library_filename) {
-  const char *c_library_filename = env->GetStringUTFChars(library_filename, nullptr);
+  JNIEnv* env,
+  jobject object,
+  jstring library_filename
+) {
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  const char *c_library_filename = env->GetStringUTFChars(library_filename, nullptr);
   TF_Library* library = TF_LoadLibrary(c_library_filename, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
   TF_Buffer op_list_buffer = TF_GetOpList(library);

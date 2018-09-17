@@ -23,17 +23,18 @@ import java.nio.ByteBuffer
 object Tensor {
   TensorFlow.load()
 
+  //region TensorFlow C Tensors
+
   @native def allocate(dataType: Int, shape: Array[Long], numBytes: Long): Long
   @native def fromBuffer(dataType: Int, shape: Array[Long], numBytes: Long, buffer: ByteBuffer): Long
   @native def dataType(handle: Long): Int
   @native def shape(handle: Long): Array[Long]
   @native def buffer(handle: Long): ByteBuffer
   @native def delete(handle: Long): Unit
-  @native def getEncodedStringSize(numStringBytes: Int): Int
-  @native def setStringBytes(stringBytes: Array[Byte], buffer: ByteBuffer): Int
-  @native def getStringBytes(buffer: ByteBuffer): Array[Byte]
 
-  //region Eager Execution API
+  //endregion TensorFlow C Tensors
+
+  //region TensorFlow Eager Tensors
 
   @native def eagerAllocateContext(configProto: Array[Byte]): Long
   @native def eagerDeleteContext(handle: Long): Unit
@@ -46,5 +47,13 @@ object Tensor {
   @native def eagerCopyToDevice(handle: Long, contextHandle: Long, device: String): Long
   @native def eagerSetOpDevice(opHandle: Long, device: String): Unit
 
-  //endregion Eager Execution API
+  //endregion TensorFlow Eager Tensors
+
+  //region String Helpers
+
+  @native def setStringBytes(stringBytes: Array[Byte], buffer: ByteBuffer): Int
+  @native def getStringBytes(buffer: ByteBuffer): Array[Byte]
+  @native def getEncodedStringSize(numStringBytes: Int): Int
+
+  //endregion String Helpers
 }
