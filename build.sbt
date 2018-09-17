@@ -79,8 +79,8 @@ lazy val testSettings = Seq(
   parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
-lazy val all = (project in file("."))
-    .aggregate(jni, api, horovod, data, examples, site)
+lazy val all = (project in file("./modules"))
+    .aggregate(jni, api, data, examples, site)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
@@ -100,7 +100,7 @@ lazy val all = (project in file("."))
         }
       })
 
-lazy val jni = (project in file("./jni"))
+lazy val jni = (project in file("./modules/jni"))
     .enablePlugins(JniNative, TensorFlowGenerateTensorOps, JniCrossPackage, TensorFlowNativePackage)
     .settings(moduleName := "tensorflow-jni", name := "TensorFlow Scala - JNI Bindings")
     .settings(commonSettings)
@@ -166,7 +166,7 @@ lazy val jni = (project in file("./jni"))
       // Specify the order in which the different compilation tasks are executed
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
 
-lazy val api = (project in file("./api"))
+lazy val api = (project in file("./modules/api"))
     .dependsOn(jni)
     .enablePlugins(ProtobufPlugin)
     .settings(moduleName := "tensorflow-api", name := "TensorFlow Scala - API")
@@ -192,7 +192,7 @@ lazy val api = (project in file("./api"))
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
       unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value)
 
-lazy val horovod = (project in file("./horovod"))
+lazy val horovod = (project in file("./modules/horovod"))
     .dependsOn(jni, api)
     .enablePlugins(JniNative, JniCrossPackage)
     .settings(moduleName := "tensorflow-horovod", name := "TensorFlow Scala - Horovod")
@@ -234,7 +234,7 @@ lazy val horovod = (project in file("./horovod"))
         }).toMap
       })
 
-lazy val data = (project in file("./data"))
+lazy val data = (project in file("./modules/data"))
     .dependsOn(api)
     .settings(moduleName := "tensorflow-data", name := "TensorFlow Scala - Data")
     .settings(commonSettings)
@@ -243,7 +243,7 @@ lazy val data = (project in file("./data"))
     .settings(
       libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15")
 
-lazy val examples = (project in file("./examples"))
+lazy val examples = (project in file("./modules/examples"))
     .dependsOn(api, data)
     .settings(moduleName := "tensorflow-examples", name := "TensorFlow Scala - Examples")
     .settings(commonSettings)

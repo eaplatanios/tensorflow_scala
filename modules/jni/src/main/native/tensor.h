@@ -134,8 +134,6 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerReso
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopyToDevice
   (JNIEnv *, jobject, jlong, jlong, jstring);
 
-@native def eagerNewOp(contextHandle: Long, opOrFunctionName: String): Long
-
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
  * Method:    eagerNewOp

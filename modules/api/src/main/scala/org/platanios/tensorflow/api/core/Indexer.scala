@@ -252,7 +252,7 @@ object Indexer {
     val begin = Array.fill(indexers.length)(0)
     val end = Array.fill(indexers.length)(0)
     val strides = Array.fill(indexers.length)(1)
-    var beginMask: Long = 0 // TODO: Use this.
+    val beginMask: Long = 0 // TODO: Use this.
     var endMask: Long = 0
     var ellipsisMask: Long = 0
     var newAxisMask: Long = 0

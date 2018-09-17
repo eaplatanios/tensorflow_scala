@@ -32,7 +32,7 @@ import org.platanios.tensorflow.api.ops.OpSpecification
   */
 class ReplicaDevicePlacer private[distributed](
     psNumTasks: Int, psDevice: String, workerDevice: String, psOpTypes: Set[String],
-    psStrategy: (OpSpecification) => Int) {
+    psStrategy: OpSpecification => Int) {
   def apply(opSpecification: OpSpecification): String = {
     val currentDevice = DeviceSpecification.fromString(opSpecification.device)
 
@@ -102,7 +102,7 @@ object ReplicaDevicePlacer {
   def apply(
       psNumTasks: Int = 0, psDevice: String = "/job:ps", workerDevice: String = "/job:worker",
       clusterConfig: ClusterConfig = null, psOpTypes: Set[String] = Set("Variable", "VariableV2", "VarHandleOp"),
-      psStrategy: (OpSpecification) => Int = null): ReplicaDevicePlacer = {
+      psStrategy: OpSpecification => Int = null): ReplicaDevicePlacer = {
     val numTasks = {
       if (clusterConfig != null) {
         // Get `psJob` from `psDevice` by stripping "/job:".
