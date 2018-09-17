@@ -134,6 +134,24 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerReso
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopyToDevice
   (JNIEnv *, jobject, jlong, jlong, jstring);
 
+@native def eagerNewOp(contextHandle: Long, opOrFunctionName: String): Long
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerNewOp
+ * Signature: (JLjava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerNewOp
+  (JNIEnv *, jobject, jlong, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Tensor__
+ * Method:    eagerDeleteOp
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDeleteOp
+  (JNIEnv *, jobject, jlong);
+
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
  * Method:    eagerSetOpDevice

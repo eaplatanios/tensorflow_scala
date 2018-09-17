@@ -252,11 +252,35 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerCopy
   return reinterpret_cast<jlong>(eager_tensor);
 }
 
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerNewOp(
+  JNIEnv* env,
+  jobject object,
+  jlong context_handle,
+  jstring op_or_function_name
+) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  const char* c_op_or_function_name = env->GetStringUTFChars(op_or_function_name, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TFE_Op* op = TFE_NewOp(context, c_op_or_function_name, status.get());
+  env->ReleaseStringUTFChars(op_or_function_name, c_op_or_function_name);
+  CHECK_STATUS(env, status.get(), 0);
+  return reinterpret_cast<jlong>(op);
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerDeleteOp(
+  JNIEnv* env,
+  jobject object,
+  jlong op_handle
+) {
+  REQUIRE_HANDLE(op, TFE_Op, op_handle, void());
+  TFE_DeleteOp(op);
+}
+
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_eagerSetOpDevice(
-    JNIEnv* env,
-    jobject object,
-    jlong op_handle,
-    jstring device
+  JNIEnv* env,
+  jobject object,
+  jlong op_handle,
+  jstring device
 ) {
   REQUIRE_HANDLE(op, TFE_Op, op_handle, void());
   const char* c_device = env->GetStringUTFChars(device, nullptr);

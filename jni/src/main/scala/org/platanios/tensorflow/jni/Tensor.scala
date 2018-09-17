@@ -45,6 +45,9 @@ object Tensor {
   @native def eagerDelete(handle: Long): Unit
   @native def eagerResolve(handle: Long): Long
   @native def eagerCopyToDevice(handle: Long, contextHandle: Long, device: String): Long
+
+  @native def eagerNewOp(contextHandle: Long, opOrFunctionName: String): Long
+  @native def eagerDeleteOp(opHandle: Long): Unit
   @native def eagerSetOpDevice(opHandle: Long, device: String): Unit
 
   //endregion TensorFlow Eager Tensors
