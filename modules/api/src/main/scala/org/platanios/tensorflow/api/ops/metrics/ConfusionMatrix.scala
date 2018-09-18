@@ -60,9 +60,9 @@ import org.platanios.tensorflow.api.types._
   */
 class ConfusionMatrix(
     val nameScope: String,
-    protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
+    protected val defaultWeights: Option[Tensor[Float]] = None,
     val numClasses: Int = -1,
-    val dataType: DataType = FLOAT64,
+    val dataType: DataType[_] = FLOAT64,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
     val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
@@ -74,7 +74,7 @@ class ConfusionMatrix(
   override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  override def weights: Option[Tensor[FLOAT32]] = defaultWeights
+  override def weights: Option[Tensor[Float]] = defaultWeights
 
   /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
     *
@@ -179,8 +179,9 @@ object ConfusionMatrix {
     */
   def apply(
       nameScope: String,
-      defaultWeights: Option[Tensor[FLOAT32]] = None,
-      numClasses: Int = -1, dataType: DataType = FLOAT64,
+      defaultWeights: Option[Tensor[Float]] = None,
+      numClasses: Int = -1,
+      dataType: DataType[_] = FLOAT64,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
       updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),

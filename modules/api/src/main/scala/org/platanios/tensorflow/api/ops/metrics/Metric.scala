@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
+import org.platanios.tensorflow.api.types.DataType
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.
@@ -35,7 +35,7 @@ trait Metric[T, R] {
   def name: String
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  def weights: Option[Tensor[FLOAT32]] = None
+  def weights: Option[Tensor[Float]] = None
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
@@ -100,7 +100,7 @@ object Metric {
   /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
   def variable(
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       initializer: Initializer = ZerosInitializer,
       collections: Set[Graph.Key[Variable]] = Set.empty

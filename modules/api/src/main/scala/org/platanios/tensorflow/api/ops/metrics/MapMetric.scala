@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Map metric wrapper.
   *
@@ -37,7 +36,7 @@ class MapMetric[S, T, R](
   override def name: String = metric.name
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  override def weights: Option[Tensor[FLOAT32]] = metric.weights
+  override def weights: Option[Tensor[Float]] = metric.weights
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
