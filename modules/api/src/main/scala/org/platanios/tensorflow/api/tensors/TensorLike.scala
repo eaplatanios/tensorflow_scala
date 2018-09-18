@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorLike[+D <: DataType] {
+trait TensorLike[+D <: DataType] {
   /** Data type of this tensor. */
   val dataType: D
 

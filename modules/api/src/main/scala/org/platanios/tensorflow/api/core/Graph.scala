@@ -860,7 +860,8 @@ object Graph {
           }
           if (!done) {
             nativeHandleWrapper.cleanupFunctions.foreach(_ ())
-            NativeGraph.delete(nativeHandleWrapper.handle)
+            if (nativeHandleWrapper.handle != 0)
+              NativeGraph.delete(nativeHandleWrapper.handle)
             nativeHandleWrapper.handle = 0
           }
         }
