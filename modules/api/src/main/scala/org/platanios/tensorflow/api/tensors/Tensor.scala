@@ -510,6 +510,13 @@ object Tensor {
 
   @throws[IllegalArgumentException]
   def fromBuffer[D <: DataType](dataType: D, shape: Shape, numBytes: Long, buffer: ByteBuffer): Tensor[D] = {
+    if (dataType.byteSize != -1 && dataType.byteSize * shape.numElements != numBytes) {
+      throw InvalidArgumentException(
+        s"Trying to load a $dataType tensor with ${shape.numElements} elements, " +
+            s"each of size ${dataType.byteSize} bytes, from the first $numBytes " +
+            "stored in the provided byte buffer. Either change the data type or the " +
+            "`numBytes` argument, to an appropriate value.")
+    }
     this synchronized {
       // TODO: May behave weirdly for direct byte buffers allocated on the Scala side.
       val directBuffer = {
