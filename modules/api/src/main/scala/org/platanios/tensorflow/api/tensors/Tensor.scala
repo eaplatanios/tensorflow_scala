@@ -263,7 +263,7 @@ class Tensor[T] protected (
   /** Returns the tensor indexed slices that has the same value as this tensor. */
   override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
     TensorIndexedSlices(
-      indices = Tensor(0, 1 until shape(0): _*),
+      indices = Tensor(0, 1 until shape(0): _*).toInt64,
       values = this,
       denseShape = shape.toTensor(INT64))
   }

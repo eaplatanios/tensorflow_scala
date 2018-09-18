@@ -23,15 +23,15 @@ import org.platanios.tensorflow.api.types._
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits extends LowPriorityImplicits {
-  implicit def tensorFromTensorConvertible[T, D <: DataType](value: T)(implicit
-      ev: TensorConvertible.Aux[T, D]
-  ): Tensor[D] = {
+  implicit def tensorFromTensorConvertible[TC, T](value: TC)(implicit
+      ev: TensorConvertible.Aux[TC, T]
+  ): Tensor[T] = {
     ev.toTensor(value)
   }
 
   // TODO: !!! [TYPES] This does not currently lets us cast an S tensor to a T tensor, when S is preceding (e.g., `Tensor[S] + Tensor[T]` fails to compile).
 
-  implicit def cast[T, TL[D <: DataType] <: TensorLike[D], SOURCE <: DataType, TARGET <: DataType](value: TL[SOURCE])(implicit
+  implicit def cast[T, TL[A] <: TensorLike[A], SOURCE, TARGET](value: TL[SOURCE])(implicit
       evAllowedCast: AllowedCast.Aux[SOURCE, TARGET],
       ev: TensorOps.Aux[TL, SOURCE]
   ): TL[TARGET] = Cast.cast(value, evAllowedCast.targetDataType)
