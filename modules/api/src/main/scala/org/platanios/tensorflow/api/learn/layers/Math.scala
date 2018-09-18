@@ -44,7 +44,7 @@ object Math {
   object API extends API
 }
 
-case class Cast(override val name: String, dataType: DataType)
+case class Cast(override val name: String, dataType: DataType[_])
     extends Layer[Output, Output](name) {
   override val layerType: String = s"Cast[$dataType]"
 

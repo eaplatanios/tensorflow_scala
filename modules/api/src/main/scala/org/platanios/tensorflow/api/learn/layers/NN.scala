@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables._
+import org.platanios.tensorflow.api.types.DataType
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -63,7 +64,7 @@ case class BatchNormalization(
     renorm: Boolean = false, // TODO: [LAYERS] Renorm clipping
     renormMomentum: Float = 0.9f,
     fused: Boolean = true,
-    dataType: DataType = FLOAT32
+    dataType: DataType[_] = FLOAT32
 ) extends Layer[Output, Output](name) {
   override val layerType: String = "BatchNormalization"
 

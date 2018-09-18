@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
+import org.platanios.tensorflow.api.types.DataType
 
 /** $OpDocRNNCellBasicRNNCell
   *
@@ -34,7 +35,7 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
 class BasicRNNCell(
     override val name: String,
     val numUnits: Int,
-    val dataType: DataType,
+    val dataType: DataType[_],
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
@@ -53,7 +54,7 @@ object BasicRNNCell {
   def apply(
       variableScope: String,
       numUnits: Int,
-      dataType: DataType,
+      dataType: DataType[_],
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,
       biasInitializer: Initializer = ZerosInitializer

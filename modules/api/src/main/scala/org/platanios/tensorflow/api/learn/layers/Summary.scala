@@ -20,9 +20,7 @@ import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, UINT8}
-
-import spire.math.UByte
+import org.platanios.tensorflow.api.types.{UByte, UINT8}
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -76,7 +74,7 @@ case class HistogramSummary(
 case class ImageSummary(
     override val name: String,
     tag: String,
-    badColor: Tensor[DataType] = Tensor(UINT8, UByte(255), UByte(0), UByte(0), UByte(255)),
+    badColor: Tensor[_] = Tensor(UINT8, UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
     maxOutputs: Int = 3,
     family: String = null,
     collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
@@ -92,7 +90,7 @@ case class ImageSummary(
 case class AudioSummary(
     override val name: String,
     tag: String,
-    samplingRate: Tensor[DataType],
+    samplingRate: Tensor[_],
     maxOutputs: Int = 3,
     family: String = null,
     collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)

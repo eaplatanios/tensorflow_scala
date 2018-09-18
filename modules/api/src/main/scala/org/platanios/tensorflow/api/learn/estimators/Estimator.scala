@@ -29,7 +29,6 @@ import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
-import org.platanios.tensorflow.api.types.FLOAT32
 
 import com.typesafe.scalalogging.Logger
 import org.tensorflow.framework.Summary
@@ -115,7 +114,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   }
 
   /** Device function used by this estimator for managing replica device placement when using distributed training. */
-  val deviceFunction: Option[(OpSpecification) => String] = Estimator.getReplicaDeviceSetter(configuration).map(_.apply)
+  val deviceFunction: Option[OpSpecification => String] = Estimator.getReplicaDeviceSetter(configuration).map(_.apply)
 
   /** Working directory used by this estimator, used to save model parameters, graph, etc. It can also be used to load
     * checkpoints for a previously saved model. */
@@ -213,12 +212,12 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
       name: String = null
-  ): Seq[Tensor[FLOAT32]]
+  ): Seq[Tensor[Float]]
 
   protected def saveEvaluationSummaries(
       step: Long,
       metrics: Seq[Metric[EI, Output]],
-      metricValues: Seq[Tensor[FLOAT32]],
+      metricValues: Seq[Tensor[Float]],
       name: String = null
   ): Unit = {
     // Setup the output directory.

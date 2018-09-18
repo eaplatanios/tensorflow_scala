@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -47,7 +46,7 @@ class TensorLogger protected (
     val tensors: Map[String, String],
     val trigger: HookTrigger = StepHookTrigger(1),
     val triggerAtEnd: Boolean = true,
-    val formatter: Map[String, Tensor[DataType]] => String = null
+    val formatter: Map[String, Tensor[_]] => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd) {
   private[this] val tensorTags : Seq[String] = tensors.keys.toSeq
   private[this] val tensorNames: Seq[String] = tensors.values.toSeq
@@ -63,7 +62,7 @@ class TensorLogger protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]],
       session: Session
   ): Unit = {
     val tensors = tensorTags.zip(runResult.values.tail)
@@ -89,7 +88,7 @@ object TensorLogger {
       tensors: Map[String, String],
       trigger: HookTrigger = StepHookTrigger(1),
       triggerAtEnd: Boolean = true,
-      formatter: Map[String, Tensor[DataType]] => String = null
+      formatter: Map[String, Tensor[_]] => String = null
   ): TensorLogger = {
     new TensorLogger(tensors, trigger, triggerAtEnd, formatter)
   }

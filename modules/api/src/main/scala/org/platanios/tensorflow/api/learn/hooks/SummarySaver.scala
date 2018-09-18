@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.ops.{Output, Summary}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import org.tensorflow.util.SessionLog
 
@@ -61,7 +60,7 @@ class SummarySaver protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]],
       session: Session
   ): Unit = {
     summaryWriter.foreach(writer => {

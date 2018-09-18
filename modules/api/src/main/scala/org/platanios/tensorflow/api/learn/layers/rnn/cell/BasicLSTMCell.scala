@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
+import org.platanios.tensorflow.api.types.DataType
 
 /** $OpDocRNNCellBasicLSTMCell
   *
@@ -35,7 +36,7 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
 class BasicLSTMCell(
     override val name: String,
     val numUnits: Int,
-    val dataType: DataType,
+    val dataType: DataType[_],
     val forgetBias: Float = 1.0f,
     val activation: Output => Output = ops.Math.tanh(_),
     val kernelInitializer: Initializer = null,
@@ -55,7 +56,7 @@ object BasicLSTMCell {
   def apply(
       variableScope: String,
       numUnits: Int,
-      dataType: DataType,
+      dataType: DataType[_],
       forgetBias: Float = 1.0f,
       activation: Output => Output = ops.Math.tanh(_),
       kernelInitializer: Initializer = null,

@@ -71,7 +71,7 @@ abstract class Layer[T, R](
 
   final def getParameter(
       name: String,
-      dataType: DataType,
+      dataType: DataType[_],
       shape: Shape,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -116,7 +116,7 @@ object Layer {
     }
 
     def variableScope[R](
-        name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+        name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType[_] = null,
         initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
         cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null,
         isDefaultName: Boolean = false, isPure: Boolean = false
@@ -126,7 +126,7 @@ object Layer {
     }
 
     def updatedVariableScope[R](
-        variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+        variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType[_] = null,
         initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
         cachingDevice: OpSpecification => String = null, customGetter: VariableGetter = null, isPure: Boolean = false
     )(block: => R): R = {
@@ -186,7 +186,7 @@ object Layer {
   // TODO: There is a lot of code duplicated between here and the variables package.
 
   private[api] def createWithVariableScope[R](
-      name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null, initializer: Initializer = null,
+      name: String, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType[_] = null, initializer: Initializer = null,
       regularizer: Regularizer = null, partitioner: Partitioner = null, cachingDevice: OpSpecification => String = null,
       underlyingGetter: VariableGetter = null, isDefaultName: Boolean = false, isPure: Boolean = false
   )(block: => R): R = {
@@ -227,7 +227,7 @@ object Layer {
   }
 
   private[api] def createWithUpdatedVariableScope[R](
-      variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType = null,
+      variableScope: VariableScope, reuse: ReuseAllowed = ReuseOrCreateNew, dataType: DataType[_] = null,
       initializer: Initializer = null, regularizer: Regularizer = null, partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null, underlyingGetter: VariableGetter = null, isPure: Boolean = false
   )(block: => R): R = {

@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.types.DataType
 import scala.collection.mutable
 
 class RBM(
-    val input: Input[Tensor[DataType], Output, DataType, Shape],
+    val input: Input[Tensor[_], Output, DataType[_], Shape],
     val numHidden: Int,
     val meanField: Boolean = true,
     val numSamples: Int = 100,
@@ -37,13 +37,13 @@ class RBM(
     val cdSteps: Int = 1,
     val optimizer: Optimizer,
     val name: String = "RBM"
-) extends UnsupervisedTrainableModel[Tensor[DataType], Output, DataType, Shape, Output] {
-  type InferOps = Model.InferOps[Tensor[DataType], Output, DataType, Shape, Output]
-  type TrainOps = Model.UnsupervisedTrainOps[Tensor[DataType], Output, DataType, Shape, Output]
-  type EvalOps = Model.EvaluateOps[Tensor[DataType], Output, DataType, Shape, Output]
+) extends UnsupervisedTrainableModel[Tensor[_], Output, DataType[_], Shape, Output] {
+  type InferOps = Model.InferOps[Tensor[_], Output, DataType[_], Shape, Output]
+  type TrainOps = Model.UnsupervisedTrainOps[Tensor[_], Output, DataType[_], Shape, Output]
+  type EvalOps = Model.EvaluateOps[Tensor[_], Output, DataType[_], Shape, Output]
 
-  val dataType : DataType = input.dataType
-  val numInputs: Int      = input.shape(1)
+  val dataType : DataType[_] = input.dataType
+  val numInputs: Int         = input.shape(1)
 
   private[this] val nextInputCache: mutable.Map[Graph, Output]                         = mutable.Map.empty
   private[this] val variablesCache: mutable.Map[Graph, (Variable, Variable, Variable)] = mutable.Map.empty
@@ -132,7 +132,7 @@ class RBM(
 
 object RBM {
   def apply(
-      input: Input[Tensor[DataType], Output, DataType, Shape],
+      input: Input[Tensor[_], Output, DataType[_], Shape],
       numHidden: Int,
       meanField: Boolean = true,
       numSamples: Int = 100,

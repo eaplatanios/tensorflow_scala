@@ -21,7 +21,6 @@ import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 /** Creates a bidirectional dynamic RNN layer.
   *
@@ -41,7 +40,7 @@ import org.platanios.tensorflow.api.types.DataType
   *                            `[batch, time, depth]`).
   * @param  parallelIterations Number of RNN loop iterations allowed to run in parallel.
   * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
-  * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
+  * @param  sequenceLengths    Optional tensor with shape `[batchSize]` containing the sequence lengths for
   *                            each row in the batch.
   *
   * @author Emmanouil Antonios Platanios
@@ -55,7 +54,7 @@ class BidirectionalRNN[O, OS, S, SS](
     val timeMajor: Boolean = false,
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
-    val sequenceLengths: Tensor[DataType] = null
+    val sequenceLengths: Tensor[Int] = null
 )(implicit
     evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
     evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
@@ -99,7 +98,7 @@ object BidirectionalRNN {
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Tensor[DataType] = null
+      sequenceLengths: Tensor[Int] = null
   )(implicit
       evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
       evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]

@@ -29,7 +29,6 @@ import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
 import org.platanios.tensorflow.api.ops.{Op, Output, Resources}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -343,7 +342,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       metrics: Seq[Metric[EI, Output]] = this.evaluationMetrics,
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
-      name: String = null): Seq[Tensor[FLOAT32]] = {
+      name: String = null): Seq[Tensor[Float]] = {
     evaluateWithHooks(data, metrics, maxSteps, saveSummaries = saveSummaries, name = name)
   }
 
@@ -392,7 +391,7 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
       checkpointPath: Path = null,
       saveSummaries: Boolean = true,
       name: String = null
-  ): Seq[Tensor[FLOAT32]] = {
+  ): Seq[Tensor[Float]] = {
     Op.createWithNameScope("Estimator/Evaluate") {
       if (hooks.exists(_.isInstanceOf[Stopper]))
         Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
@@ -448,11 +447,11 @@ class FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
               } catch {
                 case _: OutOfRangeException => session.setShouldStop(true)
               }
-            (step, session.run(fetches = evaluateOps.metricValues).asInstanceOf[Seq[Tensor[FLOAT32]]])
+            (step, session.run(fetches = evaluateOps.metricValues).asInstanceOf[Seq[Tensor[Float]]])
           } catch {
             case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) =>
               session.close()
-              (-1L, Seq.empty[Tensor[FLOAT32]])
+              (-1L, Seq.empty[Tensor[Float]])
             case t: Throwable =>
               session.closeWithoutHookEnd()
               throw t

@@ -35,10 +35,10 @@ case class Embedding(
     override val name: String,
     vocabularySize: Int,
     embeddingSize: Int,
-    dataType: DataType,
+    dataType: DataType[_],
     partitionStrategy: ops.Embedding.PartitionStrategy = ops.Embedding.ModStrategy,
     transformFn: Output => Output = null,
-    maxNorm: Tensor[DataType] = null
+    maxNorm: Tensor[_] = null
 ) extends Layer[Output, Output](name) {
   override val layerType: String = "Embedding"
 

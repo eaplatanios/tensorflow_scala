@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
+import org.platanios.tensorflow.api.types.DataType
 
 /** $OpDocRNNCellLSTMCell
   *
@@ -40,7 +41,7 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer
 class LSTMCell(
     override val name: String,
     val numUnits: Int,
-    val dataType: DataType,
+    val dataType: DataType[_],
     val forgetBias: Float = 1.0f,
     val usePeepholes: Boolean = false,
     val cellClip: Float = -1,
@@ -86,7 +87,7 @@ object LSTMCell {
   def apply(
       variableScope: String,
       numUnits: Int,
-      dataType: DataType,
+      dataType: DataType[_],
       forgetBias: Float = 1.0f,
       usePeepholes: Boolean = false,
       cellClip: Float = -1,

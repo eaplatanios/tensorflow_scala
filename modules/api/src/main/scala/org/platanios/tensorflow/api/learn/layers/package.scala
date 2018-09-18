@@ -33,7 +33,7 @@ package object layers {
   trait ParameterGetter {
     def get(
         name: String,
-        dataType: DataType,
+        dataType: DataType[_],
         shape: Shape,
         initializer: Initializer = null,
         regularizer: Regularizer = null,
@@ -45,7 +45,7 @@ package object layers {
 
     def apply(
         name: String,
-        dataType: DataType,
+        dataType: DataType[_],
         shape: Shape,
         initializer: Initializer = null,
         regularizer: Regularizer = null,
@@ -65,7 +65,7 @@ package object layers {
   private[this] object DefaultParameterGetter extends ParameterGetter {
     override def get(
         name: String,
-        dataType: DataType,
+        dataType: DataType[_],
         shape: Shape,
         initializer: Initializer = null,
         regularizer: Regularizer = null,
