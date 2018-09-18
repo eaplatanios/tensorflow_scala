@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.tensors.ops
 
-import org.platanios.tensorflow.api.tensors.{Tensor, TensorLike, TensorOps, executionContext}
+import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Math => NativeTensorOpsMath}
 
@@ -31,11 +31,13 @@ private[api] trait Cast {
     * @param  dataType Target data type.
     * @return Result as a new tensor.
     */
-  def cast[D <: DataType, DR <: DataType, TL[DD <: DataType] <: TensorLike[DD]](x: TL[D], dataType: DR, truncate: Boolean = false)(implicit
-      ev: TensorOps.Aux[TL, D]
-  ): TL[DR] = {
+  def cast[T, R, TL[TT] <: TensorLike[TT]](
+      x: TL[T],
+      dataType: DataType[R],
+      truncate: Boolean = false
+  )(implicit ev: TensorOps.Aux[TL, T]): TL[R] = {
     if (x.dataType == dataType) {
-      x.asInstanceOf[TL[DR]]
+      x.asInstanceOf[TL[R]]
     } else {
       ev.applyUnary(x, t => {
         Tensor.fromNativeHandle(NativeTensorOpsMath.cast(
@@ -53,22 +55,22 @@ private[api] trait Cast {
     * @param  dataType Target data type.
     * @return Result as a new tensor.
     */
-  def bitcast[D <: ReducibleDataType, DR <: DataType](input: Tensor[D], dataType: DR): Tensor[DR] = {
-    Tensor.fromNativeHandle[DR](NativeTensorOpsMath.bitcast(
+  def bitcast[T: IsNumeric, R](input: Tensor[T], dataType: DataType[R]): Tensor[R] = {
+    Tensor.fromNativeHandle(NativeTensorOpsMath.bitcast(
       executionContext.value.nativeHandle, input.nativeHandle, dataType.cValue))
   }
 }
 
 object Cast extends Cast {
   private[tensors] trait Implicits {
-    implicit class CastOps[D <: DataType](val tensor: Tensor[D]) {
+    implicit class CastOps[T](val tensor: Tensor[T]) {
       /** $OpDocCastCast
         *
         * @group CastOps
         * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
-      def cast[DR <: DataType](dataType: DR): Tensor[DR] = Cast.cast(tensor, dataType)
+      def cast[R](dataType: DataType[R]): Tensor[R] = Cast.cast(tensor, dataType)
 
       def toStringTensor: Tensor[STRING] = cast(STRING)
       def toBoolean: Tensor[BOOLEAN] = cast(BOOLEAN)
@@ -93,17 +95,26 @@ object Cast extends Cast {
       def toQUInt16: Tensor[QUINT16] = cast(QUINT16)
     }
 
-    implicit class ReducibleCastOps[D <: ReducibleDataType](val tensor: Tensor[D]) {
+    implicit class NumericCastOps[T: IsNumeric](val tensor: Tensor[T]) {
       /** $OpDocCastBitcast
         *
         * @group CastOps
         * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
-      def bitcast[DR <: DataType](dataType: DR): Tensor[DR] = Cast.bitcast(tensor, dataType)
+      def bitcast[R](dataType: DataType[R]): Tensor[R] = Cast.bitcast(tensor, dataType)
     }
 
-    implicit def tensorConvertibleToCastOps[D <: DataType, T](value: T)(implicit f: T => Tensor[D]): CastOps[D] = new CastOps(f(value))
-    implicit def tensorConvertibleToReducibleCastOps[D <: ReducibleDataType, T](value: T)(implicit f: T => Tensor[D]): ReducibleCastOps[D] = new ReducibleCastOps(f(value))
+    implicit def tensorConvertibleToCastOps[T, TC](
+        value: TC
+    )(implicit f: TC => Tensor[T]): CastOps[T] = {
+      new CastOps(f(value))
+    }
+
+    implicit def tensorConvertibleToReducibleCastOps[T: IsNumeric, TC](
+        value: TC
+    )(implicit f: TC => Tensor[T]): NumericCastOps[T] = {
+      new NumericCastOps(f(value))
+    }
   }
 }
