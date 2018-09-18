@@ -38,7 +38,7 @@ class DeviceWrapper[O, OS, S, SS] protected (
   override def outputShape: OS = cell.outputShape
   override def stateShape: SS = cell.stateShape
 
-  override def zeroState(batchSize: Output, dataType: DataType, shape: SS, name: String = "ZeroState"): S = {
+  override def zeroState(batchSize: Output, dataType: DataType[_], shape: SS, name: String = "ZeroState"): S = {
     Op.createWith(device = device, deviceFunction = deviceFunction) {
       super.zeroState(batchSize, dataType, shape, name)
     }

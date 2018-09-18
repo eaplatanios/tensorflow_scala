@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Checks, Math, Op, OpSpecification, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 
@@ -466,7 +466,7 @@ object RNN extends RNN {
     */
   @throws[InvalidArgumentException]
   @throws[InvalidDataTypeException]
-  private[rnn] def inferStateDataType(dataType: DataType, state: Seq[Output]): DataType = {
+  private[rnn] def inferStateDataType(dataType: DataType[_], state: Seq[Output]): DataType[_] = {
     if (dataType != null) {
       dataType
     } else {

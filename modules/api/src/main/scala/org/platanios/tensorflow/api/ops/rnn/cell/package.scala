@@ -48,7 +48,7 @@ package object cell {
 
         override def zero(
             batchSize: Output,
-            dataType: DataType,
+            dataType: DataType[_],
             shape: (Shape, Shape),
             name: String = "Zero"
         ): LSTMState = Op.createWithNameScope(name) {

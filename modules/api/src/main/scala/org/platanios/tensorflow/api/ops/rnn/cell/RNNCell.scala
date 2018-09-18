@@ -33,7 +33,7 @@ abstract class RNNCell[O, OS, S, SS](implicit
   def outputShape: OS
   def stateShape: SS
 
-  def zeroState(batchSize: Output, dataType: DataType, shape: SS, name: String = "ZeroState"): S = {
+  def zeroState(batchSize: Output, dataType: DataType[_], shape: SS, name: String = "ZeroState"): S = {
     evS.zero(batchSize, dataType, shape, name)
   }
 

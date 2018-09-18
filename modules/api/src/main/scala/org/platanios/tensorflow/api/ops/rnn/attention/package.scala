@@ -56,7 +56,7 @@ package object attention {
 
         override def zero(
             batchSize: Output,
-            dataType: DataType,
+            dataType: DataType[_],
             shape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS),
             name: String = "Zero"
         ): AttentionWrapperState[S, SS, AS, ASS] = Op.createWithNameScope(name) {

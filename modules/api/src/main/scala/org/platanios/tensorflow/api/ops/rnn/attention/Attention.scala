@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, NN, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 import scala.language.postfixOps
@@ -65,7 +65,7 @@ abstract class Attention[AS, ASS](
 
   def stateSize: ASS
 
-  lazy val dataType: DataType = keys.dataType
+  lazy val dataType: DataType[_] = keys.dataType
 
   /** Initial alignment value.
     *
@@ -176,7 +176,7 @@ object Attention {
           else
             Basic.shape(sequenceLengths)(0)
         }
-        (batchSize, Basic.sequenceMask(sequenceLengths, Basic.shape(values)(1), values.dataType))
+        (batchSize, Basic.sequenceMask(sequenceLengths, Basic.shape(values)(1)).cast(values.dataType))
       }
     }
     if (sequenceMask == null) {

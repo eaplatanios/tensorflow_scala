@@ -75,7 +75,10 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
     *                          `initialCellState`.
     * @return Initial state for this attention cell wrapper.
     */
-  def initialState(initialCellState: S, dataType: DataType = null): AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]] = {
+  def initialState(
+      initialCellState: S,
+      dataType: DataType[_] = null
+  ): AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]] = {
     if (initialCellState == null) {
       null
     } else {
