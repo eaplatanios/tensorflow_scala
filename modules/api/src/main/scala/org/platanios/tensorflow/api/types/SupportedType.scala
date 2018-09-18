@@ -20,11 +20,11 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 /**
   * @author Emmanouil Antonios Platanios
   */
-sealed trait SupportedType[+T] {
+sealed trait SupportedType[T] {
   @inline def dataType: DataType[T]
 
   @throws[InvalidDataTypeException]
-  @inline def cast(value: Any): T = {
+  @inline def cast[R: SupportedType](value: R): T = {
     throw InvalidDataTypeException("The Scala type of this data type is not supported.")
   }
 }
@@ -41,12 +41,12 @@ object SupportedType {
 
   implicit val stringIsSupported: SupportedType[String] = new SupportedType[String] {
     @inline override def dataType: DataType[String] = STRING
-    @inline override def cast(value: Any): String = value.toString
+    @inline override def cast[R: SupportedType](value: R): String = value.toString
   }
 
   implicit val booleanIsSupported: SupportedType[Boolean] = new SupportedType[Boolean] {
     @inline override def dataType: DataType[Boolean] = BOOLEAN
-    @inline override def cast(value: Any): Boolean = value match {
+    @inline override def cast[R: SupportedType](value: R): Boolean = value match {
       case value: Boolean => value
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to a boolean.")
     }
@@ -54,7 +54,7 @@ object SupportedType {
 
   implicit val floatIsSupported: SupportedType[Float] = new SupportedType[Float] {
     @inline override def dataType: DataType[Float] = FLOAT32
-    @inline override def cast(value: Any): Float = value match {
+    @inline override def cast[R: SupportedType](value: R): Float = value match {
       case value: Boolean => if (value) 1.0f else 0.0f
       case value: Float => value.toFloat
       case value: Double => value.toFloat
@@ -68,7 +68,7 @@ object SupportedType {
 
   implicit val doubleIsSupported: SupportedType[Double] = new SupportedType[Double] {
     @inline override def dataType: DataType[Double] = FLOAT64
-    @inline override def cast(value: Any): Double = value match {
+    @inline override def cast[R: SupportedType](value: R): Double = value match {
       case value: Boolean => if (value) 1.0 else 0.0
       case value: Float => value.toDouble
       case value: Double => value.toDouble
@@ -82,7 +82,7 @@ object SupportedType {
 
   implicit val byteIsSupported: SupportedType[Byte] = new SupportedType[Byte] {
     @inline override def dataType: DataType[Byte] = INT8
-    @inline override def cast(value: Any): Byte = value match {
+    @inline override def cast[R: SupportedType](value: R): Byte = value match {
       case value: Boolean => if (value) 1 else 0
       case value: Float => value.toByte
       case value: Double => value.toByte
@@ -96,7 +96,7 @@ object SupportedType {
 
   implicit val shortIsSupported: SupportedType[Short] = new SupportedType[Short] {
     @inline override def dataType: DataType[Short] = INT16
-    @inline override def cast(value: Any): Short = value match {
+    @inline override def cast[R: SupportedType](value: R): Short = value match {
       case value: Boolean => if (value) 1 else 0
       case value: Float => value.toShort
       case value: Double => value.toShort
@@ -110,7 +110,7 @@ object SupportedType {
 
   implicit val intIsSupported: SupportedType[Int] = new SupportedType[Int] {
     @inline override def dataType: DataType[Int] = INT32
-    @inline override def cast(value: Any): Int = value match {
+    @inline override def cast[R: SupportedType](value: R): Int = value match {
       case value: Boolean => if (value) 1 else 0
       case value: Float => value.toInt
       case value: Double => value.toInt
@@ -124,7 +124,7 @@ object SupportedType {
 
   implicit val longIsSupported: SupportedType[Long] = new SupportedType[Long] {
     @inline override def dataType: DataType[Long] = INT64
-    @inline override def cast(value: Any): Long = value match {
+    @inline override def cast[R: SupportedType](value: R): Long = value match {
       case value: Boolean => if (value) 1L else 0L
       case value: Float => value.toLong
       case value: Double => value.toLong
@@ -138,14 +138,14 @@ object SupportedType {
 
   implicit val uByteIsSupported: SupportedType[UByte] = new SupportedType[UByte] {
     @inline override def dataType: DataType[UByte] = UINT8
-    @inline override def cast(value: Any): UByte = value match {
+    @inline override def cast[R: SupportedType](value: R): UByte = value match {
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned byte.")
     }
   }
 
   implicit val uShortIsSupported: SupportedType[UShort] = new SupportedType[UShort] {
     @inline override def dataType: DataType[UShort] = UINT16
-    @inline override def cast(value: Any): UShort = value match {
+    @inline override def cast[R: SupportedType](value: R): UShort = value match {
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned short.")
     }
   }

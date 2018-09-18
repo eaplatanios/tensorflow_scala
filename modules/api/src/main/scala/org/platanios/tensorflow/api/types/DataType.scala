@@ -33,12 +33,12 @@ import java.nio.ByteBuffer
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class DataType[T: SupportedType](
+abstract class DataType[T](
     val name: String,
     private[api] val cValue: Int,
     val byteSize: Option[Int],
     val protoType: org.tensorflow.framework.DataType
-) {
+)(implicit val evSupportedType: SupportedType[T]) {
   //region Data Type Properties
 
   /** Size in bytes of each value with this data type, as returned by the native TensorFlow library. Returns `None` if
@@ -107,7 +107,7 @@ abstract class DataType[T: SupportedType](
     */
   @throws[UnsupportedOperationException]
   @inline def cast[R](value: R)(implicit ev: SupportedType[R]): T = {
-    implicitly[SupportedType[T]].cast(value)
+    evSupportedType.cast(value)
   }
 
   /** Puts an element of this data type into the provided byte buffer.
