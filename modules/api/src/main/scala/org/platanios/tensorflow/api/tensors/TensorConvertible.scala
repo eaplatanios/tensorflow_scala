@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors.ops.Basic.stack
-import org.platanios.tensorflow.api.types.{DataType, INT32, INT64, SupportedType}
+import org.platanios.tensorflow.api.types.SupportedType
 
 import scala.collection.{TraversableLike, breakOut}
 
@@ -26,76 +26,76 @@ import scala.collection.{TraversableLike, breakOut}
   *
   * @author Emmanouil Antonios Platanios
   */
-trait TensorConvertible[T] {
-  type D <: DataType
+trait TensorConvertible[TC] {
+  type T
 
-  // TODO: Add data type argument.
+  // TODO: [TENSORS] Add data type argument.
   /** Converts `value` to a dense tensor. */
-  @inline def toTensor(value: T): Tensor[D]
+  @inline def toTensor(value: TC): Tensor[T]
 }
 
 object TensorConvertible {
-  type Aux[T, DD <: DataType] = TensorConvertible[T] {
-    type D = DD
+  type Aux[TC, TT] = TensorConvertible[TC] {
+    type T = TT
   }
 
-  implicit def fromTensorLike[DR <: DataType, TL[DD <: DataType] <: TensorLike[DD]]: TensorConvertible.Aux[TL[DR], DR] = {
-    new TensorConvertible[TL[DR]] {
-      override type D = DR
+  implicit def fromTensorLike[TT, TL[A] <: TensorLike[A]]: TensorConvertible.Aux[TL[TT], TT] = {
+    new TensorConvertible[TL[TT]] {
+      override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: TL[DR]): Tensor[DR] = value.toTensor
+      @inline override def toTensor(value: TL[TT]): Tensor[TT] = value.toTensor
     }
   }
 
-  implicit val fromShape: TensorConvertible.Aux[Shape, INT64] = {
+  implicit val fromShape: TensorConvertible.Aux[Shape, Long] = {
     new TensorConvertible[Shape] {
-      override type D = INT64
+      override type T = Long
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Shape): Tensor[INT64] = value.toTensor
+      @inline override def toTensor(value: Shape): Tensor[Long] = value.toTensor
     }
   }
 
-  implicit val fromRange: TensorConvertible.Aux[Range, INT32] = {
+  implicit val fromRange: TensorConvertible.Aux[Range, Int] = {
     new TensorConvertible[Range] {
-      override type D = INT32
+      override type T = Int
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Range): Tensor[INT32] = stack(value.map(_.toTensor))
+      @inline override def toTensor(value: Range): Tensor[Int] = stack(value.map(_.toTensor))
     }
   }
 
-  implicit def fromSupportedType[T, DD <: DataType](implicit
-      evSupported: SupportedType.Aux[T, DD]
-  ): TensorConvertible.Aux[T, DD] = {
-    new TensorConvertible[T] {
-      override type D = DD
+  implicit def fromSupportedType[TT](implicit
+      evSupported: SupportedType[TT]
+  ): TensorConvertible.Aux[TT, TT] = {
+    new TensorConvertible[TT] {
+      override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: T): Tensor[DD] = Tensor.fill(evSupported.dataType, Shape())(value)
+      @inline override def toTensor(value: TT): Tensor[TT] = Tensor.fill(evSupported.dataType, Shape())(value)
     }
   }
 
-  implicit def fromArray[T, DD <: DataType](implicit
-      ev: TensorConvertible.Aux[T, DD]
-  ): TensorConvertible.Aux[Array[T], DD] = {
-    new TensorConvertible[Array[T]] {
-      override type D = DD
+  implicit def fromArray[TC, TT](implicit
+      ev: TensorConvertible.Aux[TC, TT]
+  ): TensorConvertible.Aux[Array[TC], TT] = {
+    new TensorConvertible[Array[TC]] {
+      override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Array[T]): Tensor[D] = stack(value.map(ev.toTensor))
+      @inline override def toTensor(value: Array[TC]): Tensor[TT] = stack(value.map(ev.toTensor))
     }
   }
 
-  implicit def fromTraversable[T, DD <: DataType, CC[A] <: TraversableLike[A, CC[A]]](implicit
-      ev: TensorConvertible.Aux[T, DD]
-  ): TensorConvertible.Aux[CC[T], DD] = {
-    new TensorConvertible[CC[T]] {
-      override type D = DD
+  implicit def fromTraversable[TC, TT, CC[A] <: TraversableLike[A, CC[A]]](implicit
+      ev: TensorConvertible.Aux[TC, TT]
+  ): TensorConvertible.Aux[CC[TC], TT] = {
+    new TensorConvertible[CC[TC]] {
+      override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: CC[T]): Tensor[D] = stack(value.map(ev.toTensor)(breakOut))
+      @inline override def toTensor(value: CC[TC]): Tensor[TT] = stack(value.map(ev.toTensor)(breakOut))
     }
   }
 }

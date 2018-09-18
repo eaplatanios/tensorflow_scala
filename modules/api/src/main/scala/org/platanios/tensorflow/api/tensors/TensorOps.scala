@@ -15,77 +15,80 @@
 
 package org.platanios.tensorflow.api.tensors
 
-import org.platanios.tensorflow.api.types.DataType
-
 /** Type trait for defining functions operating on and returning tensors.
   *
   * @author Emmanouil Antonios Platanios
   */
-trait TensorOps[TL[DD <: DataType] <: TensorLike[DD]] {
-  type D <: DataType
+trait TensorOps[TL[TT] <: TensorLike[TT]] {
+  type T
 
   /** Applies a unary function to the provided tensor and returns the result.
     *
     * @param  tensorLike Tensor-like object to apply the unary op function on.
-    * @param  function   Unary function to apply.
+    * @param  fn         Unary function to apply.
     * @return Resulting tensor-like object that matches the type of `tensorLike`.
     */
-  @inline def applyUnary[DR <: DataType](tensorLike: TL[D], function: Tensor[D] => Tensor[DR]): TL[DR]
+  @inline def applyUnary[R](tensorLike: TL[T], fn: Tensor[T] => Tensor[R]): TL[R]
 }
 
-/** Companion object that defines supported [[TensorOps]] implicit values. */
+/** Companion object that defines supported tensor ops implicit values. */
 object TensorOps {
-  type Aux[TL[DDD <: DataType] <: TensorLike[DDD], DD <: DataType] = TensorOps[TL] {
-    type D = DD
+  type Aux[TL[TTT] <: TensorLike[TTT], TT] = TensorOps[TL] {
+    type T = TT
   }
 
-  implicit def tensorOps[DD <: DataType]: TensorOps.Aux[Tensor, DD] = {
+  implicit def tensorOps[TT]: TensorOps.Aux[Tensor, TT] = {
     new TensorOps[Tensor] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: Tensor[D],
-          function: Tensor[D] => Tensor[DR]
-      ): Tensor[DR] = {
-        function(tensorLike)
+      override type T = TT
+
+      @inline override def applyUnary[R](
+          tensorLike: Tensor[T],
+          fn: Tensor[T] => Tensor[R]
+      ): Tensor[R] = {
+        fn(tensorLike)
       }
     }
   }
 
-  implicit def tensorIndexedSlicesOps[DD <: DataType]: TensorOps.Aux[TensorIndexedSlices, DD] = {
+  implicit def tensorIndexedSlicesOps[TT]: TensorOps.Aux[TensorIndexedSlices, TT] = {
     new TensorOps[TensorIndexedSlices] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: TensorIndexedSlices[D],
-          function: Tensor[D] => Tensor[DR]
-      ): TensorIndexedSlices[DR] = {
-        tensorLike.copy(values = function(tensorLike.values))
+      override type T = TT
+
+      @inline override def applyUnary[R](
+          tensorLike: TensorIndexedSlices[T],
+          fn: Tensor[T] => Tensor[R]
+      ): TensorIndexedSlices[R] = {
+        tensorLike.copy(values = fn(tensorLike.values))
       }
     }
   }
 
-  implicit def sparseTensorOps[DD <: DataType]: TensorOps.Aux[SparseTensor, DD] = {
+  implicit def sparseTensorOps[TT]: TensorOps.Aux[SparseTensor, TT] = {
     new TensorOps[SparseTensor] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: SparseTensor[D],
-          function: Tensor[D] => Tensor[DR]
-      ): SparseTensor[DR] = {
-        tensorLike.copy(values = function(tensorLike.values))
+      override type T = TT
+
+      @inline override def applyUnary[R](
+          tensorLike: SparseTensor[T],
+          fn: Tensor[T] => Tensor[R]
+      ): SparseTensor[R] = {
+        tensorLike.copy(values = fn(tensorLike.values))
       }
     }
   }
 
-  implicit def tensorLikeOps[DD <: DataType]: TensorOps.Aux[TensorLike, DD] = {
+  implicit def tensorLikeOps[TT]: TensorOps.Aux[TensorLike, TT] = {
     new TensorOps[TensorLike] {
-      override type D = DD
-      @inline override def applyUnary[DR <: DataType](
-          tensorLike: TensorLike[D],
-          function: Tensor[D] => Tensor[DR]
-      ): TensorLike[DR] = {
+      override type T = TT
+
+      @inline override def applyUnary[R](
+          tensorLike: TensorLike[T],
+          fn: Tensor[T] => Tensor[R]
+      ): TensorLike[R] = {
         tensorLike match {
-          case t: Tensor[D] => function(t)
-          case t: TensorIndexedSlices[D] => t.copy(values = function(t.values))
-          case t: SparseTensor[D] => t.copy(values = function(t.values))
+          case t: Tensor[T] => fn(t)
+          case t: TensorIndexedSlices[T] => t.copy(values = fn(t.values))
+          case t: SparseTensor[T] => t.copy(values = fn(t.values))
+          case _ => ??? // TODO: [TENSORS] Remove this by making tensor-like sealed.
         }
       }
     }
