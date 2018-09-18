@@ -832,7 +832,7 @@ trait WhileLoopVariable[T] {
   type ShapeType
 
   /** Helper used by the RNN construction code to create default states. */
-  def zero(batchSize: Output, dataType: DataType, shape: ShapeType, name: String = "Zero"): T
+  def zero(batchSize: Output, dataType: DataType[_], shape: ShapeType, name: String = "Zero"): T
 
   def size(output: T): Int
   def outputs(output: T): Seq[Output]
@@ -855,7 +855,7 @@ object WhileLoopVariable {
   implicit val outputWhileLoopVariable: Aux[Output, Shape] = new WhileLoopVariable[Output] {
     override type ShapeType = Shape
 
-    override def zero(batchSize: Output, dataType: DataType, shape: Shape, name: String = "Zero"): Output = {
+    override def zero(batchSize: Output, dataType: DataType[_], shape: Shape, name: String = "Zero"): Output = {
       val staticBatchSize = Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1)
       Op.createWithNameScope(name, Set(batchSize.op)) {
         val fullShape = Basic.concatenate(
@@ -897,7 +897,7 @@ object WhileLoopVariable {
 
       override def zero(
           batchSize: Output,
-          dataType: DataType,
+          dataType: DataType[_],
           shape: Shape,
           name: String = "Zero"
       ): OutputIndexedSlices = {
@@ -953,7 +953,7 @@ object WhileLoopVariable {
 
       override def zero(
           batchSize: Output,
-          dataType: DataType,
+          dataType: DataType[_],
           shape: Shape,
           name: String = "Zero"
       ): SparseOutput = {
@@ -996,7 +996,7 @@ object WhileLoopVariable {
   implicit val tensorArrayWhileLoopVariable: Aux[TensorArray, Shape] = new WhileLoopVariable[TensorArray] {
     override type ShapeType = Shape
 
-    override def zero(batchSize: Output, dataType: DataType, shape: Shape, name: String = "Zero"): TensorArray = ???
+    override def zero(batchSize: Output, dataType: DataType[_], shape: Shape, name: String = "Zero"): TensorArray = ???
 
     override def size(output: TensorArray): Int = 1
     override def outputs(output: TensorArray): Seq[Output] = Seq(output.flow)
@@ -1029,7 +1029,7 @@ object WhileLoopVariable {
     new WhileLoopVariable[Array[T]] {
       override type ShapeType = Array[TS]
 
-      override def zero(batchSize: Output, dataType: DataType, shape: Array[TS], name: String): Array[T] = {
+      override def zero(batchSize: Output, dataType: DataType[_], shape: Array[TS], name: String): Array[T] = {
         Op.createWithNameScope(name) {
           shape.map(ev.zero(batchSize, dataType, _))
         }
@@ -1074,7 +1074,7 @@ object WhileLoopVariable {
     new WhileLoopVariable[CC[T]] {
       override type ShapeType = CC[TS]
 
-      override def zero(batchSize: Output, dataType: DataType, shape: CC[TS], name: String): CC[T] = {
+      override def zero(batchSize: Output, dataType: DataType[_], shape: CC[TS], name: String): CC[T] = {
         Op.createWithNameScope(name) {
           shape.map(ev.zero(batchSize, dataType, _))(cbfTST)
         }
@@ -1116,7 +1116,7 @@ object WhileLoopVariable {
     new WhileLoopVariable[Map[MK, T]] {
       override type ShapeType = Map[MK, TS]
 
-      override def zero(batchSize: Output, dataType: DataType, shape: Map[MK, TS], name: String): Map[MK, T] = {
+      override def zero(batchSize: Output, dataType: DataType[_], shape: Map[MK, TS], name: String): Map[MK, T] = {
         Op.createWithNameScope(name) {
           shape.mapValues(ev.zero(batchSize, dataType, _))
         }
@@ -1159,7 +1159,7 @@ object WhileLoopVariable {
   implicit val hnil: Aux[HNil, HNil] = new WhileLoopVariable[HNil] {
     override type ShapeType = HNil
 
-    override def zero(batchSize: Output, dataType: DataType, shape: HNil, name: String = "Zero"): HNil = HNil
+    override def zero(batchSize: Output, dataType: DataType[_], shape: HNil, name: String = "Zero"): HNil = HNil
     override def size(output: HNil): Int = 0
     override def outputs(output: HNil): Seq[Output] = Seq.empty[Output]
     override def shapes(shape: HNil): Seq[Shape] = Seq.empty[Shape]
@@ -1181,7 +1181,7 @@ object WhileLoopVariable {
   ): Aux[H :: T, HS :: TS] = new WhileLoopVariable[H :: T] {
     override type ShapeType = HS :: TS
 
-    override def zero(batchSize: Output, dataType: DataType, shape: HS :: TS, name: String = "Zero"): H :: T = {
+    override def zero(batchSize: Output, dataType: DataType[_], shape: HS :: TS, name: String = "Zero"): H :: T = {
       Op.createWithNameScope(name) {
         evHead.value.zero(batchSize, dataType, shape.head) :: evTail.zero(batchSize, dataType, shape.tail)
       }
@@ -1231,7 +1231,7 @@ object WhileLoopVariable {
   ): Aux[P, PS] = new WhileLoopVariable[P] {
     override type ShapeType = PS
 
-    override def zero(batchSize: Output, dataType: DataType, shape: PS, name: String = "Zero"): P = {
+    override def zero(batchSize: Output, dataType: DataType[_], shape: PS, name: String = "Zero"): P = {
       tuplerP(evL.zero(batchSize, dataType, genS.to(shape), name))
     }
 
