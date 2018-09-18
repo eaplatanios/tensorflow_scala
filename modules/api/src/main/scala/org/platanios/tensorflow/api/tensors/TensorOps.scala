@@ -88,7 +88,6 @@ object TensorOps {
           case t: Tensor[T] => fn(t)
           case t: TensorIndexedSlices[T] => t.copy(values = fn(t.values))
           case t: SparseTensor[T] => t.copy(values = fn(t.values))
-          case _ => ??? // TODO: [TENSORS] Remove this by making tensor-like sealed.
         }
       }
     }
