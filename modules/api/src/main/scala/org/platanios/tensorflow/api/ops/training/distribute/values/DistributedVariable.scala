@@ -50,7 +50,7 @@ trait DistributedVariable extends ProtoSerializable {
   val name: String = primaryVariable.name
 
   /** Data type of this variable. */
-  val dataType: DataType = primaryVariable.dataType
+  val dataType: DataType[_] = primaryVariable.dataType
 
   /** Shape of this variable. */
   val shape: Shape = primaryVariable.shape

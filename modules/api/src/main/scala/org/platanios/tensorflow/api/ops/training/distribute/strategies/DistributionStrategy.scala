@@ -190,7 +190,7 @@ abstract class DistributionStrategy {
     val getter = new VariableGetter {
       def apply(
           name: String,
-          dataType: DataType = FLOAT32,
+          dataType: DataType[_] = FLOAT32,
           shape: Shape = null,
           initializer: Initializer = null,
           regularizer: Regularizer = null,
@@ -240,7 +240,7 @@ abstract class DistributionStrategy {
     val towerLocalVariableGetter = new ReductionVariableGetter(reduction) {
       override def apply(
           name: String,
-          dataType: DataType,
+          dataType: DataType[_],
           shape: Shape,
           initializer: Initializer,
           regularizer: Regularizer,
@@ -295,7 +295,7 @@ abstract class DistributionStrategy {
     val colocatedVariableGetter = new ColocatedVariableGetter(colocationOps) {
       override def apply(
           name: String,
-          dataType: DataType,
+          dataType: DataType[_],
           shape: Shape,
           initializer: Initializer,
           regularizer: Regularizer,

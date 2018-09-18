@@ -135,7 +135,7 @@ class ExponentialMovingAverage protected (
     */
   def computeForVariables(variables: Set[Variable] = Op.currentGraph.trainableVariables): Op = {
     variables.foreach(v => {
-      if (!Set[DataType](FLOAT16, FLOAT32, FLOAT64).contains(v.dataType))
+      if (!Set[DataType[_]](FLOAT16, FLOAT32, FLOAT64).contains(v.dataType))
         throw InvalidArgumentException(
           s"Moving averages can only be computed for `FLOAT16`, `FLOAT32`, and `FLOAT64` variables " +
               s"(i.e., not for `${v.dataType}` variables).")
@@ -169,7 +169,7 @@ class ExponentialMovingAverage protected (
   def computeForValues(values: Set[Output]): Op = {
     val zeroDebiasVariables = mutable.Set.empty[Variable]
     values.foreach(v => {
-      if (!Set[DataType](FLOAT16, FLOAT32, FLOAT64).contains(v.dataType))
+      if (!Set[DataType[_]](FLOAT16, FLOAT32, FLOAT64).contains(v.dataType))
         throw InvalidArgumentException(
           s"Moving averages can only be computed for `FLOAT16`, `FLOAT32`, and `FLOAT64` values " +
               s"(i.e., not for `${v.dataType}` values).")

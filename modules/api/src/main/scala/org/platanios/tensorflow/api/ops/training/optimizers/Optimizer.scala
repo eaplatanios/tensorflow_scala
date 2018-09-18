@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Initializer, Variable, VariableScope}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
+import org.platanios.tensorflow.api.types._
 
 import scala.collection.mutable
 
@@ -199,7 +199,7 @@ trait Optimizer {
 
   /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
     * field allow other float types. */
-  val supportedDataTypes: Set[DataType] = Set[DataType](FLOAT32, FLOAT64)
+  val supportedDataTypes: Set[DataType[_]] = Set(FLOAT32, FLOAT64)
 
   /** Asserts that the provided `outputs` all have data types that are supported by this optimizer.
     *
@@ -313,7 +313,7 @@ trait Optimizer {
       variable: Variable,
       initializer: Initializer,
       shape: Shape,
-      dataType: DataType,
+      dataType: DataType[_],
       variableScope: String
   ): Variable = {
     Op.colocateWith(Set(variable.op), ignoreExisting = true) {
@@ -353,7 +353,7 @@ trait Optimizer {
     */
   protected final def getOrCreateNonSlotVariable(
       name: String,
-      initialValue: Tensor[_ <: DataType],
+      initialValue: Tensor[_],
       colocationOps: Set[Op] = Set.empty,
       ignoreExisting: Boolean = false
   ): Variable = {
@@ -433,7 +433,7 @@ private[optimizers] object Optimizer {
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
   private[Optimizer] def deDuplicateOutputIndexedSlices(input: OutputIndexedSlices): OutputIndexedSlices = {
-    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0))
+    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0), INT32)
     val summedValues = Math.unsortedSegmentSum(input.values, newIndexPositions, Basic.shape(uniqueIndices)(0))
     OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
   }
