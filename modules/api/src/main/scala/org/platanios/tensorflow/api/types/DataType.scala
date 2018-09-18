@@ -15,13 +15,12 @@
 
 package org.platanios.tensorflow.api.types
 
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
 import org.tensorflow.framework.TensorProto
 
 import java.nio.ByteBuffer
-
-// TODO: Add "isSigned" information.
 
 /** Represents the data type of the elements in a tensor.
   *
@@ -103,6 +102,12 @@ abstract class DataType[T](
 
   /** Returns the largest value that can be represented by this data type. */
   def max: T = throw new UnsupportedOperationException(s"Cannot determine max value for '$this' data type.")
+
+  // TODO: [TYPES] !!! Remove the next two methods.
+
+  def minTensor: Tensor[T] = Tensor(min)
+
+  def maxTensor: Tensor[T] = Tensor(max)
 
   /** Casts the provided value to this data type.
     *

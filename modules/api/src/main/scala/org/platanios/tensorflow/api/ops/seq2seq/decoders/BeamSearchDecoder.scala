@@ -140,12 +140,11 @@ class BeamSearchDecoder[S, SS](
         indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
         onValue = false, offValue = true, dataType = BOOLEAN)
       val dataType = evS.outputs(processedInitialCellState).head.dataType
-      val minValue = Tensor.fill(dataType, Shape())(dataType.min)(dataType.evSupportedType)
       val initialState = BeamSearchDecoder.State[S, SS](
         rnnState = processedInitialCellState,
         logProbabilities = Basic.oneHot(
           indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
-          onValue = Basic.constant(0, dataType), offValue = Basic.constant(minValue, dataType),
+          onValue = Basic.constant(0, dataType), offValue = Basic.constant(dataType.minTensor, dataType),
           dataType = dataType),
         finished = finished,
         sequenceLengths = Basic.zeros(INT64, Basic.stack(Seq(batchSize, beamWidth))))
@@ -530,8 +529,7 @@ object BeamSearchDecoder {
     val vocabSize = Basic.shape(logProbabilities)(2)
     // Finished examples are replaced with a vector that has all its probability mass on `endToken`
     val dType = logProbabilities.dataType
-    val dTypeMin = Tensor.fill(dType, Shape())(dType.min)(dType.evSupportedType)
-    val finishedRow = Basic.oneHot(endToken, vocabSize, Basic.zeros(dType, Shape()), Basic.constant(dTypeMin))
+    val finishedRow = Basic.oneHot(endToken, vocabSize, Basic.zeros(dType, Shape()), Basic.constant(dType.minTensor))
     val finishedLogProbabilities = Basic.tile(
       finishedRow.reshape(Shape(1, 1, -1)), Basic.concatenate(Seq(Basic.shape(finished), Tensor(1)), 0))
     val finishedMask = Basic.tile(finished.expandDims(2), Basic.stack(Seq(1, 1, vocabSize)))
