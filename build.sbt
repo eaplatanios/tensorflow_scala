@@ -249,7 +249,7 @@ lazy val examples = (project in file("./modules/examples"))
     .settings(commonSettings)
     .settings(publishSettings)
 
-lazy val site = (project in file("./site"))
+lazy val site = (project in file("./docs/site"))
     .dependsOn(api)
     .enablePlugins(ScalaUnidocPlugin, MicrositesPlugin)
     .settings(moduleName := "tensorflow-site", name := "TensorFlow Scala - Site")
