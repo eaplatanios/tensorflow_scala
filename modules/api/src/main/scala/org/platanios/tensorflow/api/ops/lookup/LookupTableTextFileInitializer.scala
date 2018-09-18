@@ -64,8 +64,8 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   */
 class LookupTableTextFileInitializer protected (
     val filename: Output,
-    override val keysDataType: DataType,
-    override val valuesDataType: DataType,
+    override val keysDataType: DataType[_],
+    override val valuesDataType: DataType[_],
     val keysExtractor: TextFileFieldExtractor,
     val valuesExtractor: TextFileFieldExtractor,
     val delimiter: String = "\t",
@@ -98,9 +98,14 @@ class LookupTableTextFileInitializer protected (
 
 object LookupTableTextFileInitializer {
   def apply(
-      filename: Output, keysDataType: DataType, valuesDataType: DataType,
-      keysExtractor: TextFileFieldExtractor, valuesExtractor: TextFileFieldExtractor, delimiter: String = "\t",
-      vocabularySize: Int = -1): LookupTableTextFileInitializer = {
+      filename: Output,
+      keysDataType: DataType[_],
+      valuesDataType: DataType[_],
+      keysExtractor: TextFileFieldExtractor,
+      valuesExtractor: TextFileFieldExtractor,
+      delimiter: String = "\t",
+      vocabularySize: Int = -1
+  ): LookupTableTextFileInitializer = {
     new LookupTableTextFileInitializer(
       filename, keysDataType, valuesDataType, keysExtractor, valuesExtractor, delimiter, vocabularySize)
   }

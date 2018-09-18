@@ -26,8 +26,8 @@ import org.platanios.tensorflow.api.types.DataType
   * @author Emmanouil Antonios Platanios
   */
 abstract class LookupTableInitializer(
-    val keysDataType: DataType,
-    val valuesDataType: DataType
+    val keysDataType: DataType[_],
+    val valuesDataType: DataType[_]
 ) {
   /** Creates and returns an op that initializes the provided table.
     *

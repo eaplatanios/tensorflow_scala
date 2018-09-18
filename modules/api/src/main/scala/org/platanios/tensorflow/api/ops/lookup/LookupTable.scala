@@ -28,7 +28,7 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class LookupTable(val keysDataType: DataType, val valuesDataType: DataType, val name: String) {
+abstract class LookupTable(val keysDataType: DataType[_], val valuesDataType: DataType[_], val name: String) {
   /** Creates an op used to initialize this table.
     *
     * @param  name Name for the created op.
@@ -61,7 +61,7 @@ abstract class LookupTable(val keysDataType: DataType, val valuesDataType: DataT
     * @throws InvalidDataTypeException If any of the provided data type does not match the corresponding expected type.
     */
   @throws[InvalidDataTypeException]
-  def checkDataTypes(keysDataType: DataType, valuesDataType: DataType): Unit = {
+  def checkDataTypes(keysDataType: DataType[_], valuesDataType: DataType[_]): Unit = {
     if (keysDataType != this.keysDataType)
       throw InvalidDataTypeException(s"Invalid keys data type $keysDataType (expected ${this.keysDataType}).")
     if (valuesDataType != this.valuesDataType)

@@ -70,9 +70,14 @@ private[lookup] trait Lookup {
     * @return Created table.
     */
   def indexTableFromFile(
-      filename: String, delimiter: String = "\t", vocabularySize: Int = -1, defaultValue: Long = -1L,
-      numOOVBuckets: Int = 0, hashSpecification: HashSpecification = FAST_HASH,
-      keysDataType: DataType = STRING, name: String = "IndexTableFromFile"
+      filename: String,
+      delimiter: String = "\t",
+      vocabularySize: Int = -1,
+      defaultValue: Long = -1L,
+      numOOVBuckets: Int = 0,
+      hashSpecification: HashSpecification = FAST_HASH,
+      keysDataType: DataType[_] = STRING,
+      name: String = "IndexTableFromFile"
   ): LookupTable = {
     Op.createWithNameScope(name) {
       Op.createWithNameScope("HashTable") {
@@ -145,7 +150,11 @@ object Lookup extends Lookup {
     * @return Created op output.
     */
   private[lookup] def lookupTableFind(
-      handle: Output, keys: Output, defaultValue: Output, name: String = "LookupTableFind"): Output = {
+      handle: Output,
+      keys: Output,
+      defaultValue: Output,
+      name: String = "LookupTableFind"
+  ): Output = {
     Op.Builder("LookupTableFindV2", name)
         .addInput(handle)
         .addInput(keys)
@@ -169,8 +178,13 @@ object Lookup extends Lookup {
     * @return Created op.
     */
   private[lookup] def createHashTable(
-      keysDataType: DataType, valuesDataType: DataType, container: String = "", sharedName: String = "",
-      useNodeNameSharing: Boolean = false, name: String = "HashTable"): Output = {
+      keysDataType: DataType[_],
+      valuesDataType: DataType[_],
+      container: String = "",
+      sharedName: String = "",
+      useNodeNameSharing: Boolean = false,
+      name: String = "HashTable"
+  ): Output = {
     Op.Builder("HashTableV2", name)
         .setAttribute("key_dtype", keysDataType)
         .setAttribute("value_dtype", valuesDataType)
@@ -189,7 +203,11 @@ object Lookup extends Lookup {
     * @return Created op.
     */
   private[lookup] def createLookupTableTensorInitializer(
-      handle: Output, keys: Output, values: Output, name: String = "InitializeLookupTable"): Op = {
+      handle: Output,
+      keys: Output,
+      values: Output,
+      name: String = "InitializeLookupTable"
+  ): Op = {
     Op.Builder("InitializeTableV2", name)
         .addInput(handle)
         .addInput(keys)
@@ -216,8 +234,14 @@ object Lookup extends Lookup {
     * @return Created op.
     */
   private[lookup] def createLookupTableTextFileInitializer(
-      handle: Output, filename: Output, keyIndex: Int = -2, valueIndex: Int = -2, vocabularySize: Int = -1,
-      delimiter: String = "\t", name: String = "InitializeLookupTableFromTextFile"): Op = {
+      handle: Output,
+      filename: Output,
+      keyIndex: Int = -2,
+      valueIndex: Int = -2,
+      vocabularySize: Int = -1,
+      delimiter: String = "\t",
+      name: String = "InitializeLookupTableFromTextFile"
+  ): Op = {
     Op.Builder("InitializeTableFromTextFileV2", name)
         .addInput(handle)
         .addInput(filename)

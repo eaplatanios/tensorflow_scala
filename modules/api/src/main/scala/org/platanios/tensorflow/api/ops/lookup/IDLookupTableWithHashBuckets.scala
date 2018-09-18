@@ -64,10 +64,10 @@ class IDLookupTableWithHashBuckets(
     val table: HashTable,
     val numOOVBuckets: Int,
     val hashSpecification: HashSpecification = FAST_HASH,
-    override val keysDataType: DataType = null,
+    override val keysDataType: DataType[_] = null,
     override val name: String = "IDLookupTableWithHashBuckets"
 ) extends LookupTable(keysDataType, INT64, name) {
-  private[this] var inferredKeysDataType: DataType = keysDataType
+  private[this] var inferredKeysDataType: DataType[_] = keysDataType
   if (table != null) {
     if (inferredKeysDataType == null)
       inferredKeysDataType = table.keysDataType
@@ -145,8 +145,12 @@ class IDLookupTableWithHashBuckets(
 
 object IDLookupTableWithHashBuckets {
   def apply(
-      table: HashTable, numOOVBuckets: Int, hashSpecification: HashSpecification = FAST_HASH,
-      keysDataType: DataType = null, name: String = "IDLookupTableWithHashBuckets"): IDLookupTableWithHashBuckets = {
+      table: HashTable,
+      numOOVBuckets: Int,
+      hashSpecification: HashSpecification = FAST_HASH,
+      keysDataType: DataType[_] = null,
+      name: String = "IDLookupTableWithHashBuckets"
+  ): IDLookupTableWithHashBuckets = {
     new IDLookupTableWithHashBuckets(table, numOOVBuckets, hashSpecification, keysDataType, name)
   }
 }
