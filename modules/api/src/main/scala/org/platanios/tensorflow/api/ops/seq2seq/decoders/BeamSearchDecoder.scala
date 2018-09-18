@@ -140,12 +140,12 @@ class BeamSearchDecoder[S, SS](
         indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
         onValue = false, offValue = true, dataType = BOOLEAN)
       val dataType = evS.outputs(processedInitialCellState).head.dataType
-      import dataType.evSupportedType
+      val minValue = Tensor.fill(dataType, Shape())(dataType.min)(dataType.evSupportedType)
       val initialState = BeamSearchDecoder.State[S, SS](
         rnnState = processedInitialCellState,
         logProbabilities = Basic.oneHot(
           indices = Basic.zeros(INT32, batchSize.expandDims(0)), depth = beamWidth,
-          onValue = Basic.constant(0, dataType), offValue = Basic.constant(dataType.min, dataType),
+          onValue = Basic.constant(0, dataType), offValue = Basic.constant(minValue, dataType),
           dataType = dataType),
         finished = finished,
         sequenceLengths = Basic.zeros(INT64, Basic.stack(Seq(batchSize, beamWidth))))
@@ -311,7 +311,10 @@ object BeamSearchDecoder {
         override type ShapeType = (Shape, Shape, Shape)
 
         override def zero(
-            batchSize: ops.Output, dataType: DataType, shape: (Shape, Shape, Shape), name: String = "Zero"
+            batchSize: ops.Output,
+            dataType: DataType[_],
+            shape: (Shape, Shape, Shape),
+            name: String = "Zero"
         ): Output = Op.createWithNameScope(name) {
           Output(
             evOutput.zero(batchSize, dataType, shape._1, "Scores"),
@@ -378,7 +381,10 @@ object BeamSearchDecoder {
         override type ShapeType = (SS, Shape, Shape, Shape)
 
         override def zero(
-            batchSize: ops.Output, dataType: DataType, shape: (SS, Shape, Shape, Shape), name: String = "Zero"
+            batchSize: ops.Output,
+            dataType: DataType[_],
+            shape: (SS, Shape, Shape, Shape),
+            name: String = "Zero"
         ): State[S, SS] = Op.createWithNameScope(name) {
           State(
             evS.zero(batchSize, dataType, shape._1, "RNNState"),
@@ -452,7 +458,10 @@ object BeamSearchDecoder {
         override type ShapeType = (Shape, (Shape, Shape, Shape))
 
         override def zero(
-            batchSize: ops.Output, dataType: DataType, shape: (Shape, (Shape, Shape, Shape)), name: String = "Zero"
+            batchSize: ops.Output,
+            dataType: DataType[_],
+            shape: (Shape, (Shape, Shape, Shape)),
+            name: String = "Zero"
         ): FinalOutput = Op.createWithNameScope(name) {
           FinalOutput(
             evOpsOutput.zero(batchSize, dataType, shape._1, "PredictedIDs"),
@@ -521,8 +530,7 @@ object BeamSearchDecoder {
     val vocabSize = Basic.shape(logProbabilities)(2)
     // Finished examples are replaced with a vector that has all its probability mass on `endToken`
     val dType = logProbabilities.dataType
-    import dType.evSupportedType
-    val dTypeMin = Tensor(dType.min).slice(0)
+    val dTypeMin = Tensor.fill(dType, Shape())(dType.min)(dType.evSupportedType)
     val finishedRow = Basic.oneHot(endToken, vocabSize, Basic.zeros(dType, Shape()), Basic.constant(dTypeMin))
     val finishedLogProbabilities = Basic.tile(
       finishedRow.reshape(Shape(1, 1, -1)), Basic.concatenate(Seq(Basic.shape(finished), Tensor(1)), 0))
@@ -921,7 +929,7 @@ object BeamSearchDecoder {
           val searchStateIndices = Basic.tile(
             Math.range(0, beamWidth)(NewAxis, NewAxis),
             Basic.stack(Seq(maxTime, batchSize, 1)))
-          val mask = Basic.sequenceMask(sequenceLengths, maxTime, INT32).transpose(Seq(2, 0, 1))
+          val mask = Basic.sequenceMask(sequenceLengths, maxTime).cast(INT32).transpose(Seq(2, 0, 1))
 
           // Use `beamWidth + 1` to mark the end of the beam.
           val maskedSearchStateIndices = (searchStateIndices * mask) + (1 - mask) * (beamWidth + 1)

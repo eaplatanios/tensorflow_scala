@@ -126,7 +126,7 @@ object BasicDecoder {
     ): WhileLoopVariable.Aux[Output[O, OS], (OS, OS)] = new WhileLoopVariable[Output[O, OS]] {
       override type ShapeType = (OS, OS)
 
-      override def zero(batchSize: ops.Output, dataType: DataType, shape: (OS, OS), name: String): Output[O, OS] = {
+      override def zero(batchSize: ops.Output, dataType: DataType[_], shape: (OS, OS), name: String): Output[O, OS] = {
         Output(whileLoopEvO.zero(batchSize, dataType, shape._1), whileLoopEvO.zero(batchSize, dataType, shape._2))
       }
 
