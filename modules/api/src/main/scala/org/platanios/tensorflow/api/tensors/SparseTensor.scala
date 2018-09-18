@@ -62,16 +62,16 @@ import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOps
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseTensor[+D <: DataType](
-    indices: Tensor[INT64],
-    values: Tensor[D],
-    denseShape: Tensor[INT64]
-) extends TensorLike[D] {
+final case class SparseTensor[T](
+    indices: Tensor[Long],
+    values: Tensor[T],
+    denseShape: Tensor[Long]
+) extends TensorLike[T] {
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 
   /** Data type of this sparse op output. */
-  override val dataType: D = values.dataType
+  override val dataType: DataType[T] = values.dataType
 
   /** Shape of this sparse tensor. */
   override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.toSeq: _*)
@@ -80,7 +80,7 @@ final case class SparseTensor[+D <: DataType](
   override val device: String = values.device
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
-  override def toTensor: Tensor[D] = toTensor()
+  override def toTensor: Tensor[T] = toTensor()
 
   /** Converts this sparse tensor to a dense tensor.
     *
@@ -108,11 +108,11 @@ final case class SparseTensor[+D <: DataType](
     *                         lexicographic order and that there are no repeats.
     * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toTensor[DD >: D <: DataType](
-      defaultValue: Tensor[DD] = Tensor.zeros(dataType, Shape()),
+  def toTensor(
+      defaultValue: Tensor[T] = Tensor.zeros(dataType, Shape()),
       validateIndices: Boolean = true
-  ): Tensor[DD] = {
-    Tensor.fromNativeHandle[DD](NativeTensorOpsSparse.sparseToDense(
+  ): Tensor[T] = {
+    Tensor.fromNativeHandle[T](NativeTensorOpsSparse.sparseToDense(
       executionContext.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
       defaultValue.nativeHandle, validateIndices))
   }
@@ -122,7 +122,7 @@ final case class SparseTensor[+D <: DataType](
     * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     */
   @throws[UnsupportedOperationException]
-  override def toTensorIndexedSlices: TensorIndexedSlices[D] = {
+  override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
     throw new UnsupportedOperationException(s"Cannot convert sparse tensor '$this' to tensor indexed slices.")
   }
 
