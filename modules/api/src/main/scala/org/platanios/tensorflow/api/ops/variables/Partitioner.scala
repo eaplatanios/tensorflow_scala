@@ -25,5 +25,5 @@ import org.platanios.tensorflow.api.types.DataType
   * @author Emmanouil Antonios Platanios
   */
 trait Partitioner {
-  def apply(dataType: DataType, shape: Shape): Array[Int]
+  def apply(dataType: DataType[_], shape: Shape): Array[Int]
 }

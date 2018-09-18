@@ -45,7 +45,7 @@ import org.platanios.tensorflow.api.types.DataType
 case class VariableScope private[variables](
     reuse: Reuse,
     name: String = "",
-    dataType: DataType = null,
+    dataType: DataType[_] = null,
     initializer: Initializer = null,
     regularizer: Regularizer = null,
     partitioner: Partitioner = null,
@@ -89,7 +89,7 @@ case class VariableScope private[variables](
   def getVariable(
       store: VariableStore,
       name: String,
-      dataType: DataType = this.dataType,
+      dataType: DataType[_] = this.dataType,
       shape: Shape = null,
       initializer: Initializer = this.initializer,
       regularizer: Regularizer = this.regularizer,
@@ -146,7 +146,7 @@ case class VariableScope private[variables](
   def getPartitionedVariable(
       store: VariableStore,
       name: String,
-      dataType: DataType = this.dataType,
+      dataType: DataType[_] = this.dataType,
       shape: Shape = null,
       initializer: Initializer = this.initializer,
       regularizer: Regularizer = this.regularizer,
@@ -201,7 +201,7 @@ private[api] object VariableScope {
   private[api] def scope[R](
       name: String,
       reuse: Reuse = ReuseOrCreateNew,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
       partitioner: Partitioner = null,
@@ -268,7 +268,7 @@ private[api] object VariableScope {
   private[api] def updatedScope[R](
       variableScope: VariableScope = VariableScope.current,
       reuse: Reuse = ReuseOrCreateNew,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
       partitioner: Partitioner = null,
@@ -320,7 +320,7 @@ private[api] object VariableScope {
       new VariableGetter {
         override def apply(
             name: String,
-            dataType: DataType,
+            dataType: DataType[_],
             shape: Shape,
             initializer: Initializer,
             regularizer: Regularizer,
@@ -333,7 +333,7 @@ private[api] object VariableScope {
           val baseGetter: VariableGetter = new VariableGetter {
             override def apply(
                 name: String,
-                dataType: DataType,
+                dataType: DataType[_],
                 shape: Shape,
                 initializer: Initializer,
                 regularizer: Regularizer,

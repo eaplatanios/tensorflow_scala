@@ -47,7 +47,7 @@ import scala.math.Ordering.Implicits._
 @throws[IllegalArgumentException]
 case class PartitionedVariable private[variables](
     override val name: String,
-    override val dataType: DataType,
+    override val dataType: DataType[_],
     override val shape: Shape,
     private val wrappedVariables: Seq[Variable],
     partitions: Array[Int]

@@ -189,7 +189,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
         val modelCheckpointPath = absoluteSavePath.getFileSystem.getPath(
           // TODO: [SESSION] !!! Feed mappers for string inputs.
           session.run(
-            feeds = Map[Output, Tensor[DataType]](filenameTensor -> checkpointFile.toString.toTensor),
+            feeds = Map[Output, Tensor[_]](filenameTensor -> checkpointFile.toString.toTensor),
             fetches = saveTensor).scalar.asInstanceOf[String])
         if (writeCheckpointState) {
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
@@ -235,7 +235,7 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     val filenameTensor = session.graph.getOutputByName(saverDef.getFilenameTensorName)
     val restoreOp = session.graph.getOpByName(saverDef.getRestoreOpName)
     // TODO: [SESSION] !!! Feed mappers for string inputs.
-    session.run(feeds = Map[Output, Tensor[DataType]](filenameTensor -> savePath.toString.toTensor), targets = restoreOp)
+    session.run(feeds = Map[Output, Tensor[_]](filenameTensor -> savePath.toString.toTensor), targets = restoreOp)
   }
 
   /** Returns the sequence of the latest and not-yet-deleted checkpoint filenames, sorted from oldest to newest. You can
@@ -906,7 +906,7 @@ trait SaverDefBuilder {
     val (tensorNames, slices, dataTypes) =
       saveable.saveSpecifications
           .map(s => (s.name, s.saveSliceSpecification, s.value().dataType))
-          .unzip3[String, String, DataType]
+          .unzip3[String, String, DataType[_]]
     SaverDefBuilder.restoreV2Op(prefix, tensorNames, slices, dataTypes, name)
   }
 
@@ -1403,7 +1403,7 @@ object SaverDefBuilder {
       prefix: Output,
       tensorNames: Seq[String],
       slices: Seq[String],
-      dataTypes: Seq[DataType],
+      dataTypes: Seq[DataType[_]],
       name: String = "Restore"
   ): Seq[Output] = {
     if (tensorNames.length != slices.length)

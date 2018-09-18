@@ -32,7 +32,7 @@ trait VariableLike extends OutputConvertible {
   val name: String
 
   /** Data type of this variable. */
-  val dataType: DataType
+  val dataType: DataType[_]
 
   /** Shape of this variable. */
   val shape: Shape

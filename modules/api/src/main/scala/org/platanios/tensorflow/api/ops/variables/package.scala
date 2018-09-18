@@ -55,7 +55,7 @@ package object variables {
 
     val ZerosInitializer: variables.ZerosInitializer.type = variables.ZerosInitializer
     val OnesInitializer : variables.OnesInitializer.type  = variables.OnesInitializer
-    def ConstantInitializer(value: Tensor[DataType]): variables.Initializer = variables.ConstantInitializer(value)
+    def ConstantInitializer(value: Tensor[_]): variables.Initializer = variables.ConstantInitializer(value)
     def ConstantInitializer(value: Output): variables.Initializer = variables.DynamicConstantInitializer(value)
     val RandomUniformInitializer        : variables.RandomUniformInitializer.type         = variables.RandomUniformInitializer
     val RandomNormalInitializer         : variables.RandomNormalInitializer.type          = variables.RandomNormalInitializer
@@ -80,7 +80,7 @@ package object variables {
     }
 
     def variable(
-        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null
@@ -90,7 +90,7 @@ package object variables {
     }
 
     def partitionedVariable(
-        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
         reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null
@@ -100,7 +100,7 @@ package object variables {
     }
 
     def localVariable(
-        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null
@@ -109,7 +109,7 @@ package object variables {
     }
 
     def localPartitionedVariable(
-        name: String, dataType: DataType = null, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable]] = Set.empty,
         cachingDevice: OpSpecification => String = null
@@ -121,7 +121,7 @@ package object variables {
     def variableScope[R](
         name: String,
         reuse: VariableReuse = ReuseOrCreateNewVariable,
-        dataType: DataType = null,
+        dataType: DataType[_] = null,
         initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null,
@@ -138,7 +138,7 @@ package object variables {
     def updatedVariableScope[R](
         variableScope: VariableScope = VariableScope.current,
         reuse: VariableReuse = ReuseOrCreateNewVariable,
-        dataType: DataType = null,
+        dataType: DataType[_] = null,
         initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null,
         partitioner: VariablePartitioner = null,
@@ -172,7 +172,7 @@ package object variables {
     * @throws IllegalArgumentException If no default initializer is defined for the specified data type.
     */
   @throws[IllegalArgumentException]
-  def defaultInitializer(name: String, dataType: DataType = FLOAT32): Initializer = {
+  def defaultInitializer(name: String, dataType: DataType[_] = FLOAT32): Initializer = {
     if (dataType.isFloatingPoint)
       GlorotUniformInitializer()
     else if (dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
@@ -186,7 +186,7 @@ package object variables {
   val defaultGetter: VariableGetter = new VariableGetter {
     override def apply(
         name: String,
-        dataType: DataType,
+        dataType: DataType[_],
         shape: Shape,
         initializer: Initializer,
         regularizer: Regularizer,
@@ -212,7 +212,7 @@ package object variables {
       currentGetter = new VariableGetter {
         override def apply(
             name: String,
-            dataType: DataType,
+            dataType: DataType[_],
             shape: Shape,
             initializer: Initializer,
             regularizer: Regularizer,

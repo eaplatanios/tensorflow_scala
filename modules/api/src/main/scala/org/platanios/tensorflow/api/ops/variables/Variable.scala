@@ -58,7 +58,7 @@ import scala.language.postfixOps
   * @author Emmanouil Antonios Platanios
   */
 case class Variable private (
-    override val dataType: DataType,
+    override val dataType: DataType[_],
     private val variableHandle: Output,
     private val initializeOp: Op,
     private val cachedValue: Output,
@@ -371,7 +371,7 @@ private[api] object Variable {
     */
   private[api] def getVariable(
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -419,7 +419,7 @@ private[api] object Variable {
     */
   private[api] def getPartitionedVariable(
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -463,7 +463,7 @@ private[api] object Variable {
     */
   private[api] def getLocalVariable(
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -509,7 +509,7 @@ private[api] object Variable {
     */
   private[api] def getLocalPartitionedVariable(
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -544,7 +544,7 @@ private[api] object Variable {
     */
   private[variables] def apply(
       initializer: Initializer,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       trainable: Boolean = true,
       collections: Set[Graph.Key[Variable]] = Set.empty,
@@ -649,7 +649,7 @@ private[api] object Variable {
   trait VariableGetter {
     def apply(
         name: String,
-        dataType: DataType = FLOAT32,
+        dataType: DataType[_] = FLOAT32,
         shape: Shape = null,
         initializer: Initializer = null,
         regularizer: Regularizer = null,
@@ -1013,7 +1013,7 @@ private[api] object Variable {
     */
   private[ops] def variable(
       shape: Shape,
-      dataType: DataType,
+      dataType: DataType[_],
       container: String = "",
       sharedName: String = "",
       name: String = "Variable"
@@ -1053,7 +1053,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def readVariable(variable: Output, dataType: DataType, name: String = "ReadVariable"): Output = {
+  private[ops] def readVariable(variable: Output, dataType: DataType[_], name: String = "ReadVariable"): Output = {
     Op.Builder(opType = "ReadVariableOp", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
@@ -1074,7 +1074,7 @@ private[api] object Variable {
     */
   private[ops] def unsafeReadVariable(
       variable: Output,
-      dataType: DataType,
+      dataType: DataType[_],
       name: String = "UnsafeReadVariable"
   ): Output = {
     Op.Builder(opType = "_UnsafeReadVariable", name = name)
@@ -1181,7 +1181,7 @@ private[api] object Variable {
   private[ops] def gather(
       variable: Output,
       indices: Output,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       validateIndices: Boolean = true,
       name: String = "VariableGather"
   ): Output = {

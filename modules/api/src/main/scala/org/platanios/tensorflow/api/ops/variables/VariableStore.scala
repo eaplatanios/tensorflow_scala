@@ -67,7 +67,7 @@ case class VariableStore private[variables]() {
   @throws[InvalidDataTypeException]
   def getVariable(
       name: String,
-      dataType: DataType = FLOAT32,
+      dataType: DataType[_] = FLOAT32,
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -163,7 +163,7 @@ case class VariableStore private[variables]() {
   @throws[InvalidDataTypeException]
   def getPartitionedVariable(
       name: String,
-      dataType: DataType = FLOAT32,
+      dataType: DataType[_] = FLOAT32,
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
