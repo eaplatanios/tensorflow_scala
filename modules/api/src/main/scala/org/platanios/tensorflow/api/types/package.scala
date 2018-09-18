@@ -729,8 +729,11 @@ package object types {
 
   trait IsInt32OrInt64[T]
 
-  object IsInt32OrInt64 {
-    implicit val intEvidence : IsInt32OrInt64[Int]  = new IsInt32OrInt64[Int] {}
+  object IsInt32OrInt64 extends IsInt32OrInt64LowPriority {
+    implicit val intEvidence: IsInt32OrInt64[Int] = new IsInt32OrInt64[Int] {}
+  }
+
+  trait IsInt32OrInt64LowPriority {
     implicit val longEvidence: IsInt32OrInt64[Long] = new IsInt32OrInt64[Long] {}
   }
 

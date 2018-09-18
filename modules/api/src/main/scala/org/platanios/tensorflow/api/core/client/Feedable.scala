@@ -159,6 +159,7 @@ object FeedMap {
 
   val empty = new FeedMap()
 
+  implicit def feedMap(feeds: Map[Output, Tensor[_]]): FeedMap = FeedMap(feeds)
   implicit def feedMap[T, V](feed: (T, V))(implicit ev: Feedable.Aux[T, V]): FeedMap = FeedMap(feed)
   implicit def feedMap[T, V](feeds: Map[T, V])(implicit ev: Feedable.Aux[T, V]): FeedMap = FeedMap(feeds)
   implicit def feedMap(feedMaps: Seq[FeedMap]): FeedMap = FeedMap(feedMaps)
