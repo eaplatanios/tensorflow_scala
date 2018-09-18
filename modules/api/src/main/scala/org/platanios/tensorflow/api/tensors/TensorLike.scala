@@ -22,9 +22,9 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-trait TensorLike[+D <: DataType] {
+trait TensorLike[T] {
   /** Data type of this tensor. */
-  val dataType: D
+  val dataType: DataType[T]
 
   /** Shape of this tensor. */
   val shape: Shape
@@ -32,12 +32,9 @@ trait TensorLike[+D <: DataType] {
   /** Device on which this tensor is stored. */
   val device: String
 
-  /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
-  def toTensor: Tensor[D]
+  /** Returns the tensor that this tensor-like object represents. */
+  def toTensor: Tensor[T]
 
-  /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
-    *
-    * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
-    */
-  def toTensorIndexedSlices: TensorIndexedSlices[D]
+  /** Returns the tensor indexed slices that has the same value as this tensor-like object. */
+  def toTensorIndexedSlices: TensorIndexedSlices[T]
 }
