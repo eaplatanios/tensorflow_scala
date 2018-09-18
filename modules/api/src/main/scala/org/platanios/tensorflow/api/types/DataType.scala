@@ -21,35 +21,32 @@ import org.tensorflow.framework.TensorProto
 
 import java.nio.ByteBuffer
 
-// TODO: Add min/max-value and "isSigned" information.
-// TODO: Casts are unsafe (i.e., downcasting is allowed).
+// TODO: Add "isSigned" information.
 
 /** Represents the data type of the elements in a tensor.
   *
+  * @param  name      Name of this data type (mainly useful for logging purposes).
+  * @param  cValue    Represents this data type in the `TF_DataType` enum of the TensorFlow C API.
+  * @param  byteSize  Size in bytes of each value with this data type. Set to `None` if the size is not fixed.
+  * @param  protoType ProtoBuf data type used in serialized representations of tensors.
+  * @tparam T         Corresponding Scala type for this TensorFlow data type.
+  *
   * @author Emmanouil Antonios Platanios
   */
-trait DataType {
-  type ScalaType
-
-  private[api] implicit val evSupportedType: SupportedType.Aux[ScalaType, this.type]
-
+abstract class DataType[T: SupportedType](
+    val name: String,
+    private[api] val cValue: Int,
+    val byteSize: Option[Int],
+    val protoType: org.tensorflow.framework.DataType
+) {
   //region Data Type Properties
-
-  /** Name of the data type (mainly useful for logging purposes). */
-  val name: String
-
-  /** Integer representing this data type in the `TF_DataType` enum of the TensorFlow C API. */
-  private[api] val cValue: Int
-
-  /** Size in bytes of each value with this data type. Returns `-1` if the size is not available. */
-  val byteSize: Int
 
   /** Size in bytes of each value with this data type, as returned by the native TensorFlow library. Returns `None` if
     * the size is not available.
     *
     * Note that this value is currently not used anywhere within the TensorFlow Scala API.
     */
-  private[api] lazy val nativeByteSize: Option[Int] = {
+  private[types] lazy val nativeByteSize: Option[Int] = {
     val nativeLibrarySize = NativeLibrary.dataTypeSize(cValue)
     if (nativeLibrarySize == 0)
       None
@@ -57,20 +54,19 @@ trait DataType {
       Some(nativeLibrarySize)
   }
 
-  private[api] val priority: Int
+  // TODO: [TYPES] Remove once the symbolic API becomes generic.
 
-  /** ProtoBuf data type used in serialized representations of tensors. */
-  def protoType: org.tensorflow.framework.DataType
+  private[api] val priority: Int
 
   //endregion Data Type Properties
 
   //region Data Type Set Helper Methods
 
   /** Zero value for this data type. */
-  def zero: ScalaType
+  def zero: T
 
   /** One value for this data type. */
-  def one: ScalaType
+  def one: T
 
   /** Returns `true` if this data type represents a non-quantized floating-point data type. */
   def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(this)
@@ -95,20 +91,11 @@ trait DataType {
 
   //endregion Data Type Set Helper Methods
 
-  /** Returns a data type that corresponds to this data type's real part. */
-  def real: DataType = this match {
-    case COMPLEX64 => FLOAT32
-    case COMPLEX128 => FLOAT64
-    case _ => this
-  }
-
   /** Returns the smallest value that can be represented by this data type. */
-  def min: ScalaType = throw new UnsupportedOperationException(s"Cannot determine max value for '$this' data type.")
+  def min: T = throw new UnsupportedOperationException(s"Cannot determine min value for '$this' data type.")
 
   /** Returns the largest value that can be represented by this data type. */
-  def max: ScalaType = throw new UnsupportedOperationException(s"Cannot determine max value for '$this' data type.")
-
-  // TODO: !!! [TYPES] Make this safer.
+  def max: T = throw new UnsupportedOperationException(s"Cannot determine max value for '$this' data type.")
 
   /** Casts the provided value to this data type.
     *
@@ -119,7 +106,9 @@ trait DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  @inline def cast[R](value: R)(implicit ev: SupportedType.Aux[R, _]): ScalaType = evSupportedType.cast(value)
+  @inline def cast[R](value: R)(implicit ev: SupportedType[R]): T = {
+    implicitly[SupportedType[T]].cast(value)
+  }
 
   /** Puts an element of this data type into the provided byte buffer.
     *
@@ -131,7 +120,7 @@ trait DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def putElementInBuffer(buffer: ByteBuffer, index: Int, element: ScalaType): Int
+  private[api] def putElementInBuffer(buffer: ByteBuffer, index: Int, element: T): Int
 
   /** Gets an element of this data type from the provided byte buffer.
     *
@@ -141,14 +130,14 @@ trait DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def getElementFromBuffer(buffer: ByteBuffer, index: Int): ScalaType
+  private[api] def getElementFromBuffer(buffer: ByteBuffer, index: Int): T
 
-  private[api] def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: ScalaType): Unit
+  private[api] def addToTensorProtoBuilder(tensorProtoBuilder: TensorProto.Builder, value: T): Unit
 
   override def toString: String = name
 
   override def equals(that: Any): Boolean = that match {
-    case that: DataType => this.cValue == that.cValue
+    case that: DataType[T] => this.cValue == that.cValue
     case _ => false
   }
 
@@ -160,32 +149,32 @@ object DataType {
   //region Data Type Sets
 
   /** Set of all floating-point data types. */
-  val floatingPointDataTypes: Set[DataType] = {
+  val floatingPointDataTypes: Set[DataType[_]] = {
     Set(FLOAT16, FLOAT32, FLOAT64, BFLOAT16)
   }
 
   /** Set of all complex data types. */
-  val complexDataTypes: Set[DataType] = {
+  val complexDataTypes: Set[DataType[_]] = {
     Set(COMPLEX64, COMPLEX128)
   }
 
   /** Set of all integer data types. */
-  val integerDataTypes: Set[DataType] = {
+  val integerDataTypes: Set[DataType[_]] = {
     Set(INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, QINT8, QINT16, QINT32, QUINT8, QUINT16)
   }
 
   /** Set of all quantized data types. */
-  val quantizedDataTypes: Set[DataType] = {
+  val quantizedDataTypes: Set[DataType[_]] = {
     Set(BFLOAT16, QINT8, QINT16, QINT32, QUINT8, QUINT16)
   }
 
   /** Set of all unsigned data types. */
-  val unsignedDataTypes: Set[DataType] = {
+  val unsignedDataTypes: Set[DataType[_]] = {
     Set(UINT8, UINT16, UINT32, UINT64, QUINT8, QUINT16)
   }
 
   /** Set of all numeric data types. */
-  val numericDataTypes: Set[DataType] = {
+  val numericDataTypes: Set[DataType[_]] = {
     floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
   }
 
@@ -198,8 +187,8 @@ object DataType {
     * @param  value Value whose data type to return.
     * @return Data type of the provided value.
     */
-  @inline def dataTypeOf[T, D <: DataType](value: T)(implicit evSupported: SupportedType.Aux[T, D]): D = {
-    evSupported.dataType
+  @inline def dataTypeOf[T](value: T)(implicit ev: SupportedType[T]): DataType[T] = {
+    ev.dataType
   }
 
   /** Returns the data type corresponding to the provided C value.
@@ -212,7 +201,7 @@ object DataType {
     * @throws IllegalArgumentException If an invalid C value is provided.
     */
   @throws[IllegalArgumentException]
-  private[api] def fromCValue[D <: DataType](cValue: Int): D = {
+  private[api] def fromCValue[T](cValue: Int): DataType[T] = {
     val dataType = cValue match {
       case BOOLEAN.cValue => BOOLEAN
       case STRING.cValue => STRING
@@ -240,7 +229,7 @@ object DataType {
       case value => throw new IllegalArgumentException(
         s"Data type C value '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
     }
-    dataType.asInstanceOf[D]
+    dataType.asInstanceOf[DataType[T]]
   }
 
   /** Returns the data type corresponding to the provided name.
@@ -250,7 +239,7 @@ object DataType {
     * @throws IllegalArgumentException If an invalid data type name is provided.
     */
   @throws[IllegalArgumentException]
-  private[api] def fromName[D <: DataType](name: String): D = {
+  private[api] def fromName[T](name: String): DataType[T] = {
     val dataType = name match {
       case "BOOLEAN" => BOOLEAN
       case "STRING" => STRING
@@ -278,7 +267,7 @@ object DataType {
       case value => throw new IllegalArgumentException(
         s"Data type name '$value' is not recognized in Scala (TensorFlow version ${NativeLibrary.version}).")
     }
-    dataType.asInstanceOf[D]
+    dataType.asInstanceOf[DataType[T]]
   }
 
   /** Returns the most precise data type out of the provided data types, based on their `priority` field.
@@ -286,29 +275,14 @@ object DataType {
     * @param  dataTypes Data types out of which to pick the most precise.
     * @return Most precise data type in `dataTypes`.
     */
-  def mostPrecise(dataTypes: DataType*): DataType = dataTypes.maxBy(_.priority)
+  def mostPrecise(dataTypes: DataType[_]*): DataType[_] = dataTypes.maxBy(_.priority)
 
   /** Returns the most precise data type out of the provided data types, based on their `priority` field.
     *
     * @param  dataTypes Data types out of which to pick the most precise.
     * @return Most precise data type in `dataTypes`.
     */
-  def leastPrecise(dataTypes: DataType*): DataType = dataTypes.minBy(_.priority)
+  def leastPrecise(dataTypes: DataType[_]*): DataType[_] = dataTypes.minBy(_.priority)
 
   //endregion Helper Methods
-
-  private[types] trait API {
-    @inline def dataTypeOf[T, D <: DataType](value: T)(implicit evSupportedType: SupportedType.Aux[T, D]): D = {
-      DataType.dataTypeOf(value)
-    }
-
-    @throws[IllegalArgumentException]
-    def dataType(cValue: Int): DataType = DataType.fromCValue(cValue)
-
-    @throws[IllegalArgumentException]
-    def dataType(name: String): DataType = DataType.fromName(name)
-
-    def mostPreciseDataType(dataTypes: DataType*): DataType = DataType.mostPrecise(dataTypes: _*)
-    def leastPreciseDataType(dataTypes: DataType*): DataType = DataType.leastPrecise(dataTypes: _*)
-  }
 }

@@ -104,7 +104,7 @@ package object api extends implicits.Implicits with Documentation {
 
   //region Data Types API
 
-  type DataType = types.DataType
+  // TODO: type DataType = types.DataType
 
   type STRING = types.STRING.type
   type BOOLEAN = types.BOOLEAN.type
@@ -204,8 +204,7 @@ package object api extends implicits.Implicits with Documentation {
     */
   object tf
       extends core.API
-          with ops.API
-          with types.API {
+          with ops.API {
     object data extends api.ops.io.API
     object distribute extends api.ops.training.distribute.API
     object learn extends api.learn.API
@@ -254,5 +253,4 @@ package object api extends implicits.Implicits with Documentation {
   object tfi
       extends core.API
           with tensors.API
-          with types.API
 }
