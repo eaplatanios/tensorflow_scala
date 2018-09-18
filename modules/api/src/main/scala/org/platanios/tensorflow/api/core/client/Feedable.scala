@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
-import org.platanios.tensorflow.api.types.DataType
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -41,7 +40,7 @@ import scala.language.higherKinds
   */
 trait Feedable[T] {
   type ValueType
-  def feed(feedable: T, value: ValueType): Map[Output, Tensor[DataType]]
+  def feed(feedable: T, value: ValueType): Map[Output, Tensor[_]]
 }
 
 object Feedable {
@@ -49,24 +48,24 @@ object Feedable {
 
   def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
 
-  implicit def outputFeedable[D <: DataType]: Aux[Output, Tensor[D]] = new Feedable[Output] {
-    override type ValueType = Tensor[D]
-    override def feed(feedable: Output, value: ValueType): Map[Output, Tensor[DataType]] = Map(feedable -> value)
+  implicit def outputFeedable[T]: Aux[Output, Tensor[T]] = new Feedable[Output] {
+    override type ValueType = Tensor[T]
+    override def feed(feedable: Output, value: ValueType): Map[Output, Tensor[_]] = Map(feedable -> value)
   }
 
-  implicit def outputIndexedSlicesFeedable[D <: DataType]: Aux[OutputIndexedSlices, TensorIndexedSlices[D]] = {
+  implicit def outputIndexedSlicesFeedable[T]: Aux[OutputIndexedSlices, TensorIndexedSlices[T]] = {
     new Feedable[OutputIndexedSlices] {
-      override type ValueType = TensorIndexedSlices[D]
-      override def feed(feedable: OutputIndexedSlices, value: ValueType): Map[Output, Tensor[DataType]] = {
+      override type ValueType = TensorIndexedSlices[T]
+      override def feed(feedable: OutputIndexedSlices, value: ValueType): Map[Output, Tensor[_]] = {
         Map(feedable.indices -> value.indices, feedable.values -> value.values, feedable.denseShape -> value.denseShape)
       }
     }
   }
 
-  implicit def sparseOutputFeedable[D <: DataType]: Aux[SparseOutput, SparseTensor[D]] = {
+  implicit def sparseOutputFeedable[T]: Aux[SparseOutput, SparseTensor[T]] = {
     new Feedable[SparseOutput] {
-      override type ValueType = SparseTensor[D]
-      override def feed(feedable: SparseOutput, value: ValueType): Map[Output, Tensor[DataType]] = {
+      override type ValueType = SparseTensor[T]
+      override def feed(feedable: SparseOutput, value: ValueType): Map[Output, Tensor[_]] = {
         Map(feedable.indices -> value.indices, feedable.values -> value.values, feedable.denseShape -> value.denseShape)
       }
     }
@@ -75,8 +74,8 @@ object Feedable {
   implicit def feedableArray[T, V](implicit ev: Aux[T, V]): Aux[Array[T], Array[V]] = {
     new Feedable[Array[T]] {
       override type ValueType = Array[V]
-      override def feed(feedable: Array[T], value: Array[V]): Map[Output, Tensor[DataType]] = {
-        feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output, Tensor[DataType]])({
+      override def feed(feedable: Array[T], value: Array[V]): Map[Output, Tensor[_]] = {
+        feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output, Tensor[_]])({
           case (feedMap, pair) => feedMap ++ ev.feed(pair._1, pair._2)
         })
       }
@@ -86,8 +85,8 @@ object Feedable {
   implicit def feedableSeq[T, V, CC[A] <: SeqLike[A, CC[A]]](implicit ev: Aux[T, V]): Aux[CC[T], CC[V]] = {
     new Feedable[CC[T]] {
       override type ValueType = CC[V]
-      override def feed(feedable: CC[T], value: CC[V]): Map[Output, Tensor[DataType]] = {
-        feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output, Tensor[DataType]])({
+      override def feed(feedable: CC[T], value: CC[V]): Map[Output, Tensor[_]] = {
+        feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output, Tensor[_]])({
           case (feedMap, pair) => feedMap ++ ev.feed(pair._1, pair._2)
         })
       }
@@ -98,8 +97,8 @@ object Feedable {
 
   implicit val hnil: Aux[HNil, HNil] = new Feedable[HNil] {
     override type ValueType = HNil
-    override def feed(feedable: HNil, value: HNil): Map[Output, Tensor[DataType]] = {
-      Map.empty[Output, Tensor[DataType]]
+    override def feed(feedable: HNil, value: HNil): Map[Output, Tensor[_]] = {
+      Map.empty[Output, Tensor[_]]
     }
   }
 
@@ -108,7 +107,7 @@ object Feedable {
       feedableTail: Aux[T, TO]
   ): Aux[H :: T, R :: TO] = new Feedable[H :: T] {
     override type ValueType = R :: TO
-    override def feed(feedable: H :: T, value: R :: TO): Map[Output, Tensor[DataType]] = {
+    override def feed(feedable: H :: T, value: R :: TO): Map[Output, Tensor[_]] = {
       feedableHead.value.feed(feedable.head, value.head) ++ feedableTail.feed(feedable.tail, value.tail)
     }
   }
@@ -120,7 +119,7 @@ object Feedable {
       genR: Generic.Aux[R, LO]
   ): Aux[P, R] = new Feedable[P] {
     override type ValueType = R
-    override def feed(feedable: P, value: R): Map[Output, Tensor[DataType]] = {
+    override def feed(feedable: P, value: R): Map[Output, Tensor[_]] = {
       feedableL.feed(genP.to(feedable), genR.to(value))
     }
   }
@@ -132,12 +131,12 @@ object Feedable {
   *
   * @param  values Map from tensors in a graph to their values.
   */
-class FeedMap private[client](val values: Map[Output, Tensor[DataType]] = Map.empty) {
+class FeedMap private[client](val values: Map[Output, Tensor[_]] = Map.empty) {
   def feed[T, V](feedable: T, value: V)(implicit ev: Feedable.Aux[T, V]): FeedMap = {
     FeedMap(values ++ ev.feed(feedable, value))
   }
 
-  def +(value: (Output, Tensor[DataType])): FeedMap = FeedMap(values + value)
+  def +(value: (Output, Tensor[_])): FeedMap = FeedMap(values + value)
   def ++(other: FeedMap): FeedMap = FeedMap(values ++ other.values)
 
   def isEmpty: Boolean = values.isEmpty
@@ -148,7 +147,7 @@ class FeedMap private[client](val values: Map[Output, Tensor[DataType]] = Map.em
 }
 
 object FeedMap {
-  def apply(values: Map[Output, Tensor[DataType]]): FeedMap = new FeedMap(values)
+  def apply(values: Map[Output, Tensor[_]]): FeedMap = new FeedMap(values)
 
   def apply[T, V](feed: (T, V))(implicit ev: Feedable.Aux[T, V]): FeedMap = FeedMap(ev.feed(feed._1, feed._2))
 
