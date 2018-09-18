@@ -676,6 +676,8 @@ package object types {
 
   //region Type Traits
 
+  // TODO: Complete/Generalize this.
+
   trait IsFloat32OrFloat64[T]
 
   object IsFloat32OrFloat64 {
@@ -689,6 +691,8 @@ package object types {
     implicit val halfEvidence  : IsFloat16OrFloat32OrFloat64[Half]   = new IsFloat16OrFloat32OrFloat64[Half] {}
     implicit val floatEvidence : IsFloat16OrFloat32OrFloat64[Float]  = new IsFloat16OrFloat32OrFloat64[Float] {}
     implicit val doubleEvidence: IsFloat16OrFloat32OrFloat64[Double] = new IsFloat16OrFloat32OrFloat64[Double] {}
+
+    implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
   }
 
   trait IsBFloat16OrFloat32OrFloat64[T]
@@ -697,6 +701,8 @@ package object types {
     implicit val truncatedHalfEvidence: IsBFloat16OrFloat32OrFloat64[TruncatedHalf] = new IsBFloat16OrFloat32OrFloat64[TruncatedHalf] {}
     implicit val floatEvidence        : IsBFloat16OrFloat32OrFloat64[Float]         = new IsBFloat16OrFloat32OrFloat64[Float] {}
     implicit val doubleEvidence       : IsBFloat16OrFloat32OrFloat64[Double]        = new IsBFloat16OrFloat32OrFloat64[Double] {}
+
+    implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsBFloat16OrFloat32OrFloat64[T] = new IsBFloat16OrFloat32OrFloat64[T] {}
   }
 
   trait IsBFloat16OrFloat16OrFloat32[T]
@@ -714,6 +720,11 @@ package object types {
     implicit val floatEvidence        : IsDecimal[Float]         = new IsDecimal[Float] {}
     implicit val doubleEvidence       : IsDecimal[Double]        = new IsDecimal[Double] {}
     implicit val truncatedHalfEvidence: IsDecimal[TruncatedHalf] = new IsDecimal[TruncatedHalf] {}
+
+    implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsDecimal[T] = new IsDecimal[T] {}
+    implicit def float16OrFloat32OrFloat64Evidence[T: IsFloat16OrFloat32OrFloat64]: IsDecimal[T] = new IsDecimal[T] {}
+    implicit def bFloat16OrFloat32OrFloat64Evidence[T: IsBFloat16OrFloat32OrFloat64]: IsDecimal[T] = new IsDecimal[T] {}
+    implicit def bFloat16OrFloat16OrFloat32Evidence[T: IsBFloat16OrFloat16OrFloat32]: IsDecimal[T] = new IsDecimal[T] {}
   }
 
   trait IsInt32OrInt64[T]
@@ -730,6 +741,9 @@ package object types {
     implicit val doubleEvidence: IsInt32OrInt64OrFloat32OrFloat64[Double] = new IsInt32OrInt64OrFloat32OrFloat64[Double] {}
     implicit val intEvidence   : IsInt32OrInt64OrFloat32OrFloat64[Int]    = new IsInt32OrInt64OrFloat32OrFloat64[Int] {}
     implicit val longEvidence  : IsInt32OrInt64OrFloat32OrFloat64[Long]   = new IsInt32OrInt64OrFloat32OrFloat64[Long] {}
+
+    implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsInt32OrInt64OrFloat32OrFloat64[T] = new IsInt32OrInt64OrFloat32OrFloat64[T] {}
+    implicit def float16OrFloat32OrFloat64Evidence[T: IsFloat16OrFloat32OrFloat64]: IsInt32OrInt64OrFloat32OrFloat64[T] = new IsInt32OrInt64OrFloat32OrFloat64[T] {}
   }
 
   trait IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T]
@@ -740,6 +754,9 @@ package object types {
     implicit val doubleEvidence: IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Double] = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Double] {}
     implicit val intEvidence   : IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Int]    = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Int] {}
     implicit val longEvidence  : IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Long]   = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Long] {}
+
+    implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T] = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T] {}
+    implicit def float16OrFloat32OrFloat64Evidence[T: IsFloat16OrFloat32OrFloat64]: IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T] = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T] {}
   }
 
   trait IsInt32OrInt64OrUInt8[T]
@@ -780,6 +797,8 @@ package object types {
   trait IsNotQuantized[T]
 
   object IsNotQuantized {
+    implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsNotQuantized[T] = new IsNotQuantized[T] {}
+
     implicit def realEvidence[T: IsReal]: IsNotQuantized[T] = new IsNotQuantized[T] {}
     implicit def complexEvidence[T: IsComplex]: IsNotQuantized[T] = new IsNotQuantized[T] {}
   }

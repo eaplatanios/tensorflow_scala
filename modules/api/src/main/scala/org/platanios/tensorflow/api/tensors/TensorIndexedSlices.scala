@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.ops.Math
-import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
+import org.platanios.tensorflow.api.types.{DataType, INT32}
 
 /** Sparse representation of a set of tensor slices at given indices.
   *
@@ -47,13 +47,13 @@ import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class TensorIndexedSlices[+D <: DataType](
-    indices: Tensor[INT64],
-    values: Tensor[D],
-    denseShape: Tensor[INT64] = null
-) extends TensorLike[D] {
+final case class TensorIndexedSlices[T](
+    indices: Tensor[Long],
+    values: Tensor[T],
+    denseShape: Tensor[Long] = null
+) extends TensorLike[T] {
   /** Data type of these tensor indexed slices. */
-  override val dataType: D = values.dataType
+  override val dataType: DataType[T] = values.dataType
 
   /** Shape of these tensor indexed slices. */
   override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.toSeq: _*)
@@ -63,7 +63,7 @@ final case class TensorIndexedSlices[+D <: DataType](
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
   @throws[IllegalStateException]
-  override def toTensor: Tensor[D] = {
+  override def toTensor: Tensor[T] = {
     if (denseShape != null)
       throw new IllegalStateException(
         s"Conversion of 'TensorIndexedSlices', '$this', " +
@@ -79,7 +79,7 @@ final case class TensorIndexedSlices[+D <: DataType](
     *
     * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     */
-  override def toTensorIndexedSlices: TensorIndexedSlices[D] = this
+  override def toTensorIndexedSlices: TensorIndexedSlices[T] = this
 
   override def toString: String = {
     s"TensorIndexedSlices(values = $values, indices = $indices, denseShape = $denseShape, device = $device)}"
