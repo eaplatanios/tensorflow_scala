@@ -89,6 +89,13 @@ abstract class DataType[T](
   /** Returns `true` if this data type represents a boolean data type. */
   def isBoolean: Boolean = this == BOOLEAN
 
+  // TODO: [TYPES] Removes this after we properly support data types.
+  def real: DataType[_] = this match {
+    case _: DataType[ComplexFloat] => FLOAT32
+    case _: DataType[ComplexDouble] => FLOAT64
+    case d => d
+  }
+
   //endregion Data Type Set Helper Methods
 
   /** Returns the smallest value that can be represented by this data type. */

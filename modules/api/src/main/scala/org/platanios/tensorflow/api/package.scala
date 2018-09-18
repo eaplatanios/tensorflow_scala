@@ -79,10 +79,10 @@ package object api extends implicits.Implicits with Documentation {
   val NewAxis: Indexer = core.NewAxis
   val ::     : Slice   = core.Slice.::
 
-  type TensorLike[D <: DataType] = tensors.TensorLike[D]
-  type Tensor[D <: DataType] = tensors.Tensor[D]
-  type TensorIndexedSlices[D <: DataType] = tensors.TensorIndexedSlices[D]
-  type SparseTensor[D <: DataType] = tensors.SparseTensor[D]
+  type TensorLike[T] = tensors.TensorLike[T]
+  type Tensor[T] = tensors.Tensor[T]
+  type TensorIndexedSlices[T] = tensors.TensorIndexedSlices[T]
+  type SparseTensor[T] = tensors.SparseTensor[T]
 
   val Tensor             : tensors.Tensor.type              = tensors.Tensor
   val TensorIndexedSlices: tensors.TensorIndexedSlices.type = tensors.TensorIndexedSlices
@@ -104,7 +104,7 @@ package object api extends implicits.Implicits with Documentation {
 
   //region Data Types API
 
-  // TODO: type DataType = types.DataType
+  type DataType[T] = types.DataType[T]
 
   type STRING = types.STRING.type
   type BOOLEAN = types.BOOLEAN.type

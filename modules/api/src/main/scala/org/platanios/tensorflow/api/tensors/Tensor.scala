@@ -20,9 +20,9 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
-import org.platanios.tensorflow.api.ops.{Basic, Math, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.stack
-import org.platanios.tensorflow.api.tensors.ops.Random
+import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
@@ -142,7 +142,7 @@ class Tensor[T] protected (
   private[api] def getElementAtFlattenedIndex(index: Int): T = {
     val resolvedHandle = resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
-    val offset = dataType.asInstanceOf[DataType] match {
+    val offset = dataType.asInstanceOf[DataType[_]] match {
       case STRING => INT64.byteSize.get * size.toInt + INT64.getElementFromBuffer(buffer, index * INT64.byteSize.get).toInt
       case _ => index * dataType.byteSize.get
     }
@@ -570,7 +570,7 @@ object Tensor {
   }
 
   @throws[InvalidArgumentException]
-  def makeProto[T, D <: DataType[_]](value: Tensor[T], dataType: D): TensorProto = {
+  def makeProto[T, R](value: Tensor[T], dataType: DataType[R]): TensorProto = {
     makeProto(value, dataType, value.shape)
   }
 
@@ -645,7 +645,7 @@ final case class TensorIndexedSlices[T](
   override val dataType: DataType[T] = values.dataType
 
   /** Shape of these tensor indexed slices. */
-  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.toSeq: _*)
+  override val shape: Shape = Shape(denseShape.toInt32.entriesIterator.toSeq: _*)
 
   /** Device on which these tensor indexed slices will be placed. */
   override val device: String = values.device
@@ -661,7 +661,7 @@ final case class TensorIndexedSlices[T](
       Tensor.logger.warn(
         "Converting large (> 100000000 elements) tensor indexed slices object to a tensor " +
             "(may consume too much memory).")
-    Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0).cast(INT32))
+    Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0).toInt32)
   }
 
   /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
