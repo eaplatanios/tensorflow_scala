@@ -68,30 +68,12 @@ package object types {
   type RESOURCE = types.RESOURCE.type
   type VARIANT = types.VARIANT.type
 
-  trait ReducibleDataType[T] extends DataType[T]
-  trait NumericDataType[T] extends ReducibleDataType[T]
-  trait NonQuantizedDataType[T] extends NumericDataType[T]
-  trait MathDataType[T] extends NonQuantizedDataType[T]
-  trait RealDataType[T] extends MathDataType[T]
-  trait ComplexDataType[T] extends MathDataType[T]
-  trait Int32OrInt64OrFloat16OrFloat32OrFloat64[T] extends RealDataType[T]
-  trait IntOrUInt[T] extends RealDataType[T]
-  trait UInt8OrInt32OrInt64[T] extends IntOrUInt[T] with Int32OrInt64OrFloat16OrFloat32OrFloat64[T]
-  trait Int32OrInt64[T] extends UInt8OrInt32OrInt64[T]
-  trait DecimalDataType[T] extends RealDataType[T]
-  trait BFloat16OrFloat32OrFloat64[T] extends DecimalDataType[T]
-  trait BFloat16OrFloat16OrFloat32[T] extends DecimalDataType[T]
-  trait Float16OrFloat32OrFloat64[T] extends DecimalDataType[T] with Int32OrInt64OrFloat16OrFloat32OrFloat64[T] with BFloat16OrFloat32OrFloat64[T]
-  trait Float32OrFloat64[T] extends Float16OrFloat32OrFloat64[T]
-  trait Int32OrInt64OrFloat32OrFloat64[T] extends Float32OrFloat64[T] with Int32OrInt64[T]
-  trait QuantizedDataType[T] extends NumericDataType[T]
-
   object STRING extends DataType[String](
     name = "STRING",
     cValue = 7,
     byteSize = None,
     protoType = DT_STRING
-  ) with ReducibleDataType[String] {
+  ) {
     override val priority: Int    = 1000
 
     override def zero: String = ""
@@ -117,7 +99,7 @@ package object types {
     cValue = 10,
     byteSize = Some(1),
     protoType = DT_BOOL
-  ) with ReducibleDataType[Boolean] {
+  ) {
     override val priority: Int    = 0
 
     override def zero: Boolean = false
@@ -144,7 +126,7 @@ package object types {
     cValue = 19,
     byteSize = Some(2),
     protoType = DT_HALF
-  ) with Float16OrFloat32OrFloat64[Half] with BFloat16OrFloat16OrFloat32[Half] {
+  ) {
     override val priority: Int    = -1
 
     override def zero: Half = ??? // 0.0f
@@ -170,7 +152,7 @@ package object types {
     cValue = 1,
     byteSize = Some(4),
     protoType = DT_FLOAT
-  ) with Float32OrFloat64[Float] with BFloat16OrFloat16OrFloat32[Float] {
+  ) {
     override val priority: Int    = 220
 
     override def zero: Float = 0.0f
@@ -197,7 +179,7 @@ package object types {
     cValue = 2,
     byteSize = Some(8),
     protoType = DT_DOUBLE
-  ) with Float32OrFloat64[Double] {
+  ) {
     override val priority: Int    = 230
 
     override def zero: Double = 0.0
@@ -224,7 +206,7 @@ package object types {
     cValue = 14,
     byteSize = Some(2),
     protoType = DT_BFLOAT16
-  ) with BFloat16OrFloat32OrFloat64[TruncatedHalf] with BFloat16OrFloat16OrFloat32[TruncatedHalf] {
+  ) {
     override val priority: Int    = -1
 
     override def zero: TruncatedHalf = ??? // 0.0f
@@ -250,7 +232,7 @@ package object types {
     cValue = 8,
     byteSize = Some(8),
     protoType = DT_COMPLEX64
-  ) with ComplexDataType[ComplexFloat] {
+  ) {
     override val priority: Int    = -1
 
     override def zero: ComplexFloat = ???
@@ -276,8 +258,7 @@ package object types {
     cValue = 18,
     byteSize = Some(16),
     protoType = DT_COMPLEX128
-  )
-      with ComplexDataType[ComplexDouble] {
+  ) {
     override val priority: Int    = -1
 
     override def zero: ComplexDouble = ???
@@ -303,7 +284,7 @@ package object types {
     cValue = 6,
     byteSize = Some(1),
     protoType = DT_INT8
-  ) with IntOrUInt[Byte] {
+  ) {
     override val priority: Int    = 40
 
     override def zero: Byte = 0
@@ -330,7 +311,7 @@ package object types {
     cValue = 5,
     byteSize = Some(2),
     protoType = DT_INT16
-  ) with IntOrUInt[Short] {
+  ) {
     override val priority: Int    = 80
 
     override def zero: Short = 0
@@ -357,7 +338,7 @@ package object types {
     cValue = 3,
     byteSize = Some(4),
     protoType = DT_INT32
-  ) with Int32OrInt64[Int] {
+  ) {
     override val priority: Int    = 100
 
     override def zero: Int = 0
@@ -384,7 +365,7 @@ package object types {
     cValue = 9,
     byteSize = Some(8),
     protoType = DT_INT64
-  ) with Int32OrInt64[Long] {
+  ) {
     override val priority: Int    = 110
 
     override def zero: Long = 0L
@@ -411,7 +392,7 @@ package object types {
     cValue = 4,
     byteSize = Some(1),
     protoType = DT_UINT8
-  ) with UInt8OrInt32OrInt64[UByte] {
+  ) {
     override val priority: Int    = 20
 
     override def zero: UByte = ??? // UByte(0)
@@ -438,7 +419,7 @@ package object types {
     cValue = 17,
     byteSize = Some(2),
     protoType = DT_UINT16
-  ) with IntOrUInt[UShort] {
+  ) {
     override val priority: Int    = 60
 
     override def zero: UShort = ??? // UShort(0)
@@ -465,7 +446,7 @@ package object types {
     cValue = 22,
     byteSize = Some(4),
     protoType = DT_UINT32
-  ) with IntOrUInt[UInt] {
+  ) {
     override val priority: Int    = 85
 
     override def zero: UInt = ??? // 0L
@@ -492,8 +473,7 @@ package object types {
     cValue = 23,
     byteSize = Some(8),
     protoType = DT_UINT64
-  )
-      with IntOrUInt[ULong] {
+  ) {
     override val priority: Int    = 105
 
     override def zero: ULong = ???
@@ -519,7 +499,7 @@ package object types {
     cValue = 11,
     byteSize = Some(1),
     protoType = DT_QINT8
-  ) with QuantizedDataType[QByte] {
+  ) {
     override val priority: Int    = 30
 
     override def zero: QByte = ???
@@ -545,7 +525,7 @@ package object types {
     cValue = 15,
     byteSize = Some(2),
     protoType = DT_QINT16
-  ) with QuantizedDataType[QShort] {
+  ) {
     override val priority: Int    = 70
 
     override def zero: QShort = ???
@@ -571,7 +551,7 @@ package object types {
     cValue = 13,
     byteSize = Some(4),
     protoType = DT_QINT32
-  ) with QuantizedDataType[QInt] {
+  ) {
     override val priority: Int    = 90
 
     override def zero: QInt = ???
@@ -597,7 +577,7 @@ package object types {
     cValue = 12,
     byteSize = Some(1),
     protoType = DT_QUINT8
-  ) with QuantizedDataType[QUByte] {
+  ) {
     override val priority: Int    = 10
 
     override def zero: QUByte = ???
@@ -623,7 +603,7 @@ package object types {
     cValue = 16,
     byteSize = Some(2),
     protoType = DT_QUINT16
-  ) with QuantizedDataType[QUShort] {
+  ) {
     override val priority: Int    = 50
 
     override def zero: QUShort = ???
@@ -693,4 +673,133 @@ package object types {
       ???
     }
   }
+
+  //region Type Traits
+
+  trait IsFloat32OrFloat64[T]
+
+  object IsFloat32OrFloat64 {
+    implicit val floatEvidence : IsFloat32OrFloat64[Float]  = new IsFloat32OrFloat64[Float] {}
+    implicit val doubleEvidence: IsFloat32OrFloat64[Double] = new IsFloat32OrFloat64[Double] {}
+  }
+
+  trait IsFloat16OrFloat32OrFloat64[T]
+
+  object IsFloat16OrFloat32OrFloat64 {
+    implicit val halfEvidence  : IsFloat16OrFloat32OrFloat64[Half]   = new IsFloat16OrFloat32OrFloat64[Half] {}
+    implicit val floatEvidence : IsFloat16OrFloat32OrFloat64[Float]  = new IsFloat16OrFloat32OrFloat64[Float] {}
+    implicit val doubleEvidence: IsFloat16OrFloat32OrFloat64[Double] = new IsFloat16OrFloat32OrFloat64[Double] {}
+  }
+
+  trait IsBFloat16OrFloat32OrFloat64[T]
+
+  object IsBFloat16OrFloat32OrFloat64 {
+    implicit val truncatedHalfEvidence: IsBFloat16OrFloat32OrFloat64[TruncatedHalf] = new IsBFloat16OrFloat32OrFloat64[TruncatedHalf] {}
+    implicit val floatEvidence        : IsBFloat16OrFloat32OrFloat64[Float]         = new IsBFloat16OrFloat32OrFloat64[Float] {}
+    implicit val doubleEvidence       : IsBFloat16OrFloat32OrFloat64[Double]        = new IsBFloat16OrFloat32OrFloat64[Double] {}
+  }
+
+  trait IsBFloat16OrFloat16OrFloat32[T]
+
+  object IsBFloat16OrFloat16OrFloat32 {
+    implicit val truncatedHalfEvidence: IsBFloat16OrFloat16OrFloat32[TruncatedHalf] = new IsBFloat16OrFloat16OrFloat32[TruncatedHalf] {}
+    implicit val halfEvidence         : IsBFloat16OrFloat16OrFloat32[Half]          = new IsBFloat16OrFloat16OrFloat32[Half] {}
+    implicit val floatEvidence        : IsBFloat16OrFloat16OrFloat32[Float]         = new IsBFloat16OrFloat16OrFloat32[Float] {}
+  }
+
+  trait IsDecimal[T]
+
+  object IsDecimal {
+    implicit val halfEvidence         : IsDecimal[Half]          = new IsDecimal[Half] {}
+    implicit val floatEvidence        : IsDecimal[Float]         = new IsDecimal[Float] {}
+    implicit val doubleEvidence       : IsDecimal[Double]        = new IsDecimal[Double] {}
+    implicit val truncatedHalfEvidence: IsDecimal[TruncatedHalf] = new IsDecimal[TruncatedHalf] {}
+  }
+
+  trait IsInt32OrInt64[T]
+
+  object IsInt32OrInt64 {
+    implicit val intEvidence : IsInt32OrInt64[Int]  = new IsInt32OrInt64[Int] {}
+    implicit val longEvidence: IsInt32OrInt64[Long] = new IsInt32OrInt64[Long] {}
+  }
+
+  trait IsInt32OrInt64OrFloat32OrFloat64[T]
+
+  object IsInt32OrInt64OrFloat32OrFloat64 {
+    implicit val floatEvidence : IsInt32OrInt64OrFloat32OrFloat64[Float]  = new IsInt32OrInt64OrFloat32OrFloat64[Float] {}
+    implicit val doubleEvidence: IsInt32OrInt64OrFloat32OrFloat64[Double] = new IsInt32OrInt64OrFloat32OrFloat64[Double] {}
+    implicit val intEvidence   : IsInt32OrInt64OrFloat32OrFloat64[Int]    = new IsInt32OrInt64OrFloat32OrFloat64[Int] {}
+    implicit val longEvidence  : IsInt32OrInt64OrFloat32OrFloat64[Long]   = new IsInt32OrInt64OrFloat32OrFloat64[Long] {}
+  }
+
+  trait IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T]
+
+  object IsInt32OrInt64OrFloat16OrFloat32OrFloat64 {
+    implicit val halfEvidence  : IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Half]   = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Half] {}
+    implicit val floatEvidence : IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Float]  = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Float] {}
+    implicit val doubleEvidence: IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Double] = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Double] {}
+    implicit val intEvidence   : IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Int]    = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Int] {}
+    implicit val longEvidence  : IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Long]   = new IsInt32OrInt64OrFloat16OrFloat32OrFloat64[Long] {}
+  }
+
+  trait IsInt32OrInt64OrUInt8[T]
+
+  object IsInt32OrInt64OrUInt8 {
+    implicit val uByteEvidence: IsInt32OrInt64OrUInt8[UByte] = new IsInt32OrInt64OrUInt8[UByte] {}
+    implicit val intEvidence  : IsInt32OrInt64OrUInt8[Int]   = new IsInt32OrInt64OrUInt8[Int] {}
+    implicit val longEvidence : IsInt32OrInt64OrUInt8[Long]  = new IsInt32OrInt64OrUInt8[Long] {}
+  }
+
+  trait IsIntOrUInt[T]
+
+  object IsIntOrUInt {
+    implicit val byteEvidence  : IsIntOrUInt[Byte]   = new IsIntOrUInt[Byte] {}
+    implicit val shortEvidence : IsIntOrUInt[Short]  = new IsIntOrUInt[Short] {}
+    implicit val intEvidence   : IsIntOrUInt[Int]    = new IsIntOrUInt[Int] {}
+    implicit val longEvidence  : IsIntOrUInt[Long]   = new IsIntOrUInt[Long] {}
+    implicit val uByteEvidence : IsIntOrUInt[UByte]  = new IsIntOrUInt[UByte] {}
+    implicit val uShortEvidence: IsIntOrUInt[UShort] = new IsIntOrUInt[UShort] {}
+    implicit val uIntEvidence  : IsIntOrUInt[UInt]   = new IsIntOrUInt[UInt] {}
+    implicit val uLongEvidence : IsIntOrUInt[ULong]  = new IsIntOrUInt[ULong] {}
+  }
+
+  trait IsReal[T]
+
+  object IsReal {
+    implicit def decimalEvidence[T: IsDecimal]: IsReal[T] = new IsReal[T] {}
+    implicit def intOrUIntEvidence[T: IsIntOrUInt]: IsReal[T] = new IsReal[T] {}
+  }
+
+  trait IsComplex[T]
+
+  object IsComplex {
+    implicit val complexFloatEvidence : IsComplex[ComplexFloat]  = new IsComplex[ComplexFloat] {}
+    implicit val complexDoubleEvidence: IsComplex[ComplexDouble] = new IsComplex[ComplexDouble] {}
+  }
+
+  trait IsNotQuantized[T]
+
+  object IsNotQuantized {
+    implicit def realEvidence[T: IsReal]: IsNotQuantized[T] = new IsNotQuantized[T] {}
+    implicit def complexEvidence[T: IsComplex]: IsNotQuantized[T] = new IsNotQuantized[T] {}
+  }
+
+  trait IsQuantized[T]
+
+  object IsQuantized {
+    implicit val qByteEvidence  : IsQuantized[QByte]   = new IsQuantized[QByte] {}
+    implicit val qShortEvidence : IsQuantized[QShort]  = new IsQuantized[QShort] {}
+    implicit val qIntEvidence   : IsQuantized[QInt]    = new IsQuantized[QInt] {}
+    implicit val qUByteEvidence : IsQuantized[QUByte]  = new IsQuantized[QUByte] {}
+    implicit val qUShortEvidence: IsQuantized[QUShort] = new IsQuantized[QUShort] {}
+  }
+
+  trait IsNumeric[T]
+
+  object IsNumeric {
+    implicit def notQuantizedEvidence[T: IsNotQuantized]: IsNumeric[T] = new IsNumeric[T] {}
+    implicit def quantizedEvidence[T: IsQuantized]: IsNumeric[T] = new IsNumeric[T] {}
+  }
+
+  //endregion Type Traits
 }
