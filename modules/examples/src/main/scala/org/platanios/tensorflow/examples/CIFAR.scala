@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.types.UByte
 import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.CIFARLoader
 
@@ -32,8 +33,8 @@ object CIFAR {
 
   def main(args: Array[String]): Unit = {
     val dataSet = CIFARLoader.load(Paths.get("datasets/CIFAR"), CIFARLoader.CIFAR_10)
-    val trainImages = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainImages)
-    val trainLabels = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainLabels)
+    val trainImages = tf.data.TensorSlicesDataset[Tensor[UByte], Output, UINT8, Shape](dataSet.trainImages)
+    val trainLabels = tf.data.TensorSlicesDataset[Tensor[UByte], Output, UINT8, Shape](dataSet.trainLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()
@@ -43,9 +44,7 @@ object CIFAR {
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2), dataSet.trainImages.shape(3)))
-        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
     val trainInput = tf.learn.Input(UINT8, Shape(-1))
-        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
     val layer = tf.learn.Cast("Input/Cast", FLOAT32) >>
         tf.learn.Conv2D("Layer_0/Conv2D", Shape(2, 2, 3, 16), 1, 1, SameConvPadding) >>
         tf.learn.AddBias("Layer_0/Bias") >>
@@ -77,11 +76,11 @@ object CIFAR {
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
 
-    def accuracy(images: Tensor[DataType], labels: Tensor[DataType]): Float = {
+    def accuracy(images: Tensor[UByte], labels: Tensor[UByte]): Float = {
       val predictions = estimator.infer(() => images)
-      predictions.asInstanceOf[Tensor[FLOAT32]]
+      predictions.asInstanceOf[Tensor[Float]]
           .argmax(1).cast(UINT8)
-          .equal(labels.asInstanceOf[Tensor[UINT8]]).cast(FLOAT32)
+          .equal(labels.asInstanceOf[Tensor[UByte]]).cast(FLOAT32)
           .mean().scalar
     }
 

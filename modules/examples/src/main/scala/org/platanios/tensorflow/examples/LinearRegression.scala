@@ -57,7 +57,7 @@ object LinearRegression {
     logger.info(s"True weight value: $weight")
   }
 
-  def batch(batchSize: Int): (Tensor[FLOAT32], Tensor[FLOAT32]) = {
+  def batch(batchSize: Int): (Tensor[Float], Tensor[Float]) = {
     val inputs = ArrayBuffer.empty[Float]
     val outputs = ArrayBuffer.empty[Float]
     var i = 0

@@ -4,10 +4,10 @@ import java.io._
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.Logger
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.FeedMap
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.{FLOAT64, Op, Session, Shape, Tensor, tf}
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.MetaGraphDef
 
@@ -82,7 +82,7 @@ object LinearRegressionFromRestoredPythonModel {
 
 
   // UTILIY METHODS
-  def batch(batchSize: Int): (Tensor[FLOAT64], Tensor[FLOAT64]) = {
+  def batch(batchSize: Int): (Tensor[Double], Tensor[Double]) = {
     val inputs = ArrayBuffer.empty[Double]
     val outputs = ArrayBuffer.empty[Double]
     for (_ <- 0 until batchSize) {

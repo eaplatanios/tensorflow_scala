@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.types.UByte
 import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.STL10Loader
 
@@ -32,8 +33,8 @@ object STL10 {
 
   def main(args: Array[String]): Unit = {
     val dataSet = STL10Loader.load(Paths.get("datasets/STL10"), loadUnlabeled = false)
-    val trainImages = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainImages)
-    val trainLabels = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainLabels)
+    val trainImages = tf.data.TensorSlicesDataset[Tensor[_], Output, DataType[_], Shape](dataSet.trainImages)
+    val trainLabels = tf.data.TensorSlicesDataset[Tensor[_], Output, DataType[_], Shape](dataSet.trainLabels)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()
@@ -43,9 +44,9 @@ object STL10 {
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2), dataSet.trainImages.shape(3)))
-        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
+        .asInstanceOf[tf.learn.Input[Tensor[_], Output, DataType[_], Shape]]
     val trainInput = tf.learn.Input(UINT8, Shape(-1))
-        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
+        .asInstanceOf[tf.learn.Input[Tensor[_], Output, DataType[_], Shape]]
     val layer = tf.learn.Cast("Input/Cast", FLOAT32) >>
         tf.learn.Conv2D("Layer_0/Conv2D", Shape(5, 5, 3, 32), 1, 1, SameConvPadding) >>
         tf.learn.AddBias("Layer_0/Bias") >>
@@ -77,15 +78,15 @@ object STL10 {
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
-    def accuracy(images: Tensor[DataType], labels: Tensor[DataType]): Float = {
+    def accuracy(images: Tensor[_], labels: Tensor[_]): Float = {
       val imageBatches = images.splitEvenly(100)
       val labelBatches = labels.splitEvenly(100)
       var accuracy = 0.0f
       (0 until 100).foreach(i => {
         val predictions = estimator.infer(() => imageBatches(i))
-        accuracy += predictions.asInstanceOf[Tensor[FLOAT32]]
+        accuracy += predictions.asInstanceOf[Tensor[Float]]
             .argmax(1).cast(UINT8)
-            .equal(labelBatches(i).asInstanceOf[Tensor[UINT8]]).cast(FLOAT32)
+            .equal(labelBatches(i).asInstanceOf[Tensor[UByte]]).cast(FLOAT32)
             .sum().scalar
       })
       accuracy / images.shape(0)

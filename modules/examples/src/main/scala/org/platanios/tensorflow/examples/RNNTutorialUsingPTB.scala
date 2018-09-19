@@ -35,11 +35,11 @@ object RNNTutorialUsingPTB {
   val numSteps    : Int = 20
   val prefetchSize: Int = 10
 
-  val dataType              : DataType = FLOAT32
-  val vocabularySize        : Int      = 10000
-  val numHidden             : Int      = 200
-  val numLayers             : Int      = 1
-  val dropoutKeepProbability: Float    = 0.5f
+  val dataType              : DataType[Float] = FLOAT32
+  val vocabularySize        : Int             = 10000
+  val numHidden             : Int             = 200
+  val numLayers             : Int             = 1
+  val dropoutKeepProbability: Float           = 0.5f
 
   object RNNOutputLayer extends tf.learn.Layer[LSTMTuple, Output]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
