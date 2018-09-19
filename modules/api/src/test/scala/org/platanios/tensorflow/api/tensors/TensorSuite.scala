@@ -27,7 +27,7 @@ import scala.language.postfixOps
   */
 class TensorSuite extends JUnitSuite {
   @Test def testCreateNumericTensor(): Unit = {
-    val tensor1: Tensor[INT32] = -2
+    val tensor1: Tensor[Int] = -2
     assert(tensor1.dataType === INT32)
     assert(tensor1.shape === Shape())
     assert(tensor1.scalar === -2)
@@ -43,7 +43,7 @@ class TensorSuite extends JUnitSuite {
     assert(tensor3.dataType === FLOAT64)
     assert(tensor3.shape === Shape(3, 3, 2))
     assert(tensor3(1, 1, 1).scalar === -5.0)
-    val tensor4: Tensor[FLOAT64] = Tensor(5, 6.0)
+    val tensor4: Tensor[Double] = Tensor(5, 6.0)
     assert(tensor4.dataType === FLOAT64)
     assert(tensor4.shape === Shape(2))
     assert(tensor4(0).scalar === 5.0)
@@ -68,11 +68,11 @@ class TensorSuite extends JUnitSuite {
   }
 
   @Test def testCreateStringTensor(): Unit = {
-    val tensor1: Tensor[STRING] = "foo"
+    val tensor1: Tensor[String] = "foo"
     assert(tensor1.dataType === STRING)
     assert(tensor1.shape === Shape())
     assert(tensor1.scalar === "foo")
-    val tensor2: Tensor[STRING] = Tensor("foo", "bar")
+    val tensor2: Tensor[String] = Tensor("foo", "bar")
     assert(tensor2.dataType === STRING)
     assert(tensor2.shape === Shape(2))
     assert(tensor2(0).scalar === "foo")

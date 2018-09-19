@@ -207,7 +207,7 @@ class GraphSpec extends FlatSpec with Matchers {
       graph.addToCollection(output, OUTPUTS)
 
       val outputValue = session.run(Map(input -> Tensor(-10f)), output)
-      assert(outputValue.scalar === 32)
+      assert(outputValue.scalar == 32)
     }
 
     // Generate the 'MetaGraphDef' object.
@@ -235,7 +235,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
     // Verify that the new graph computes the same result as the original.
     val newOutputValue = newSession.run(Map(newInput -> Tensor(-10f)), newOutput)
-    assert(newOutputValue.scalar === 32)
+    assert(newOutputValue.scalar == 32)
 
     newSession.close()
   }

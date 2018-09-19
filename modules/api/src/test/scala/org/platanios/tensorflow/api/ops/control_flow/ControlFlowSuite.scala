@@ -175,7 +175,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val switchTrue = session.run(fetches = switch._2)
     session.close()
     assert(switchTrue.indices === Tensor(0L, 1L))
-    assert(switchTrue.values === Tensor(1, 2, 3))
+    assert(switchTrue.values == Tensor(1, 2, 3))
   }
 
   @Test def testGradientThroughSingleBranchOutsideOfContext(): Unit = withNewGraph {
@@ -187,8 +187,8 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val (xFG, xTG) = session.run(fetches = (xFalseGradient, xTrueGradient))
     session.close()
-    assert(xFG.scalar === 0.0)
-    assert(xTG.scalar === 1.0)
+    assert(xFG.scalar == 0.0)
+    assert(xTG.scalar == 1.0)
   }
 
   //endregion switch
@@ -264,7 +264,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val result = session.run(fetches = z)
     session.close()
-    assert(result.scalar === 34)
+    assert(result.scalar == 34)
   }
 
   @Test def testCondFalse(): Unit = withNewGraph {
@@ -274,7 +274,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val result = session.run(fetches = z)
     session.close()
-    assert(result.scalar === 24)
+    assert(result.scalar == 24)
   }
 
   @Test def testCondModifyPredicate(): Unit = withNewGraph {
@@ -295,7 +295,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val result = session.run(fetches = r)
     session.close()
-    assert(result.scalar === false)
+    assert(result.scalar == false)
   }
 
   @Test def testCondWithOutputSequence(): Unit = withNewGraph {
@@ -337,7 +337,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val result = session.run(fetches = r)
     session.close()
-    assert(result.scalar === 10)
+    assert(result.scalar == 10)
   }
 
   @Test def testWhileLoopResourceRead(): Unit = withNewGraph {
@@ -350,7 +350,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
     val result = session.run(fetches = r)
     session.close()
-    assert(result.scalar === 10)
+    assert(result.scalar == 10)
   }
 
   @Test def testWhileLoopGradientWithOutput(): Unit = withNewGraph {
@@ -427,8 +427,8 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
         val (os, g) = session.run(
           feeds = inputs -> Tensor(dataType, 4, 6, 0, 7, 0, 0, 1, 2, 0),
           fetches = (outputsSum, gradients))
-        assert(os.scalar === 20)
-        assert(g === Tensor.ones(dataType, Shape(numIterations)))
+        assert(os.scalar == 20)
+        assert(g == Tensor.ones(dataType, Shape(numIterations)))
       }
     }
   }
@@ -450,8 +450,8 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
         val (os, g) = session.run(
           feeds = inputs -> Tensor(dataType, 1, 2, 3),
           fetches = (outputsSum, gradients))
-        assert(os.scalar === 6)
-        assert(g === Tensor.ones(dataType, Shape(3)))
+        assert(os.scalar == 6)
+        assert(g == Tensor.ones(dataType, Shape(3)))
       }
     }
   }

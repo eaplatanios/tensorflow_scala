@@ -35,7 +35,7 @@ class SessionSpec extends FlatSpec with Matchers {
     val fetches = graph.getOutputByName("Y:0")
     val output = session.run(feeds, fetches)
     val expectedResult = Tensor(Tensor(-30))
-    assert(output.scalar === expectedResult.scalar)
+    assert(output.scalar == expectedResult.scalar)
     graph.close()
   }
 }

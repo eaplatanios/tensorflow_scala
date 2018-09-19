@@ -29,15 +29,15 @@ class VariableSpec extends FlatSpec with Matchers {
       val initializer = tf.ConstantInitializer(Tensor(Tensor(2, 3)))
       tf.variable("variable", INT64, Shape(1, 2), initializer)
     }
-    assert(variable.dataType === INT64)
+    assert(variable.dataType == INT64)
     assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
     assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
     val session = Session(graph = graph)
     session.run(targets = variable.initializer)
     val outputs = session.run(fetches = variable.value)
     val expectedResult = Tensor(INT64, Tensor(2, 3))
-    assert(outputs(0, 0).scalar === expectedResult(0, 0).scalar)
-    assert(outputs(0, 1).scalar === expectedResult(0, 1).scalar)
+    assert(outputs(0, 0).scalar == expectedResult(0, 0).scalar)
+    assert(outputs(0, 1).scalar == expectedResult(0, 1).scalar)
     session.close()
     graph.close()
   }
@@ -51,7 +51,7 @@ class VariableSpec extends FlatSpec with Matchers {
       val variableAssignment = variable.assign(a)
       (variable, variableAssignment)
     }
-    assert(variable.dataType === INT64)
+    assert(variable.dataType == INT64)
     assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
     assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
     val session = Session(graph = graph)
@@ -59,8 +59,8 @@ class VariableSpec extends FlatSpec with Matchers {
     session.run(targets = variableAssignment)
     val output = session.run(fetches = variable.value)
     val expectedResult = Tensor(INT64, Tensor(5, 7))
-    assert(output(0, 0).scalar === expectedResult(0, 0).scalar)
-    assert(output(0, 1).scalar === expectedResult(0, 1).scalar)
+    assert(output(0, 0).scalar == expectedResult(0, 0).scalar)
+    assert(output(0, 1).scalar == expectedResult(0, 1).scalar)
     session.close()
     graph.close()
   }

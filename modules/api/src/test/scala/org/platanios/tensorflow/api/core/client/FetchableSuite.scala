@@ -40,17 +40,17 @@ class FetchableSuite extends JUnitSuite {
       val processed3 = Fetchable.process(fetchable3)
       assert(processed1._1.length === 1)
       assert(processed1._1(0).name === "Constant:0")
-      assert(processed1._2(Seq.fill(1)(Tensor(0))).isInstanceOf[Tensor[DataType]])
+      assert(processed1._2(Seq.fill(1)(Tensor(0))).isInstanceOf[Tensor[_]])
       assert(processed2._1.length === 3)
       assert(processed2._1(0).name === "Constant_1:0")
       assert(processed2._1(1).name === "Constant_2:0")
       assert(processed2._1(2).name === "Constant_3:0")
-      assert(processed2._2(Seq.fill(3)(Tensor(0L))).isInstanceOf[TensorIndexedSlices[DataType]])
+      assert(processed2._2(Seq.fill(3)(Tensor(0L))).isInstanceOf[TensorIndexedSlices[_]])
       assert(processed3._1.length === 3)
       assert(processed3._1(0).name === "Constant_4:0")
       assert(processed3._1(1).name === "Constant_5:0")
       assert(processed3._1(2).name === "Constant_6:0")
-      assert(processed3._2(Seq(Tensor(Tensor(2L), Tensor(1L)), Tensor(2L, 1L), Tensor(3L))).isInstanceOf[SparseTensor[DataType]])
+      assert(processed3._2(Seq(Tensor(Tensor(2L), Tensor(1L)), Tensor(2L, 1L), Tensor(3L))).isInstanceOf[SparseTensor[_]])
     }
   }
 
@@ -63,9 +63,9 @@ class FetchableSuite extends JUnitSuite {
       assert(processedSeq._1(2).name === "Constant_2:0")
       val results = processedSeq._2(Seq.fill(3)(Tensor(0)))
       assert(results.length === 3)
-      assert(results(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1).isInstanceOf[Tensor[DataType]])
-      assert(results(2).isInstanceOf[Tensor[DataType]])
+      assert(results(0).isInstanceOf[Tensor[_]])
+      assert(results(1).isInstanceOf[Tensor[_]])
+      assert(results(2).isInstanceOf[Tensor[_]])
     }
   }
 
@@ -78,9 +78,9 @@ class FetchableSuite extends JUnitSuite {
       assert(processedList._1(2).name === "Constant_2:0")
       val results = processedList._2(Seq.fill(3)(Tensor(0)))
       assert(results.length === 3)
-      assert(results(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1).isInstanceOf[Tensor[DataType]])
-      assert(results(2).isInstanceOf[Tensor[DataType]])
+      assert(results(0).isInstanceOf[Tensor[_]])
+      assert(results(1).isInstanceOf[Tensor[_]])
+      assert(results(2).isInstanceOf[Tensor[_]])
     }
   }
 
@@ -93,9 +93,9 @@ class FetchableSuite extends JUnitSuite {
       assert(processedList._1(2).name === "Constant_2:0")
       val results = processedList._2(Seq.fill(3)(Tensor(0)))
       assert(results.length === 3)
-      assert(results(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1).isInstanceOf[Tensor[DataType]])
-      assert(results(2).isInstanceOf[Tensor[DataType]])
+      assert(results(0).isInstanceOf[Tensor[_]])
+      assert(results(1).isInstanceOf[Tensor[_]])
+      assert(results(2).isInstanceOf[Tensor[_]])
     }
   }
 
@@ -109,9 +109,9 @@ class FetchableSuite extends JUnitSuite {
       assert(processedMap._1(2).name === "Constant_2:0")
       val results = processedMap._2(Seq.fill(3)(Tensor(0)))
       assert(results.size === 3)
-      assert(results("1").isInstanceOf[Tensor[DataType]])
-      assert(results("2").isInstanceOf[Tensor[DataType]])
-      assert(results("3").isInstanceOf[Tensor[DataType]])
+      assert(results("1").isInstanceOf[Tensor[_]])
+      assert(results("2").isInstanceOf[Tensor[_]])
+      assert(results("3").isInstanceOf[Tensor[_]])
     }
   }
 
@@ -127,11 +127,11 @@ class FetchableSuite extends JUnitSuite {
       assert(processedSeq._1(2).name === "Constant_2:0")
       val results = processedSeq._2(Seq.fill(3)(Tensor(0)))
       assert(results.length === 5)
-      assert(results(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1).isInstanceOf[Tensor[DataType]])
-      assert(results(2).isInstanceOf[Tensor[DataType]])
-      assert(results(3).isInstanceOf[Tensor[DataType]])
-      assert(results(4).isInstanceOf[Tensor[DataType]])
+      assert(results(0).isInstanceOf[Tensor[_]])
+      assert(results(1).isInstanceOf[Tensor[_]])
+      assert(results(2).isInstanceOf[Tensor[_]])
+      assert(results(3).isInstanceOf[Tensor[_]])
+      assert(results(4).isInstanceOf[Tensor[_]])
     }
   }
 
@@ -148,11 +148,11 @@ class FetchableSuite extends JUnitSuite {
       assert(processedMap._1(2).name === "Constant_2:0")
       val results = processedMap._2(Seq.fill(3)(Tensor(0)))
       assert(results.size === 5)
-      assert(results("1_1").isInstanceOf[Tensor[DataType]])
-      assert(results("1_2").isInstanceOf[Tensor[DataType]])
-      assert(results("2_1").isInstanceOf[Tensor[DataType]])
-      assert(results("2_2").isInstanceOf[Tensor[DataType]])
-      assert(results("3").isInstanceOf[Tensor[DataType]])
+      assert(results("1_1").isInstanceOf[Tensor[_]])
+      assert(results("1_2").isInstanceOf[Tensor[_]])
+      assert(results("2_1").isInstanceOf[Tensor[_]])
+      assert(results("2_2").isInstanceOf[Tensor[_]])
+      assert(results("3").isInstanceOf[Tensor[_]])
     }
   }
 
@@ -167,9 +167,9 @@ class FetchableSuite extends JUnitSuite {
       assert(results.length === 2)
       assert(results(0).length === 1)
       assert(results(1).length === 2)
-      assert(results(0)(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1)(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1)(1).isInstanceOf[Tensor[DataType]])
+      assert(results(0)(0).isInstanceOf[Tensor[_]])
+      assert(results(1)(0).isInstanceOf[Tensor[_]])
+      assert(results(1)(1).isInstanceOf[Tensor[_]])
     }
   }
 
@@ -185,9 +185,9 @@ class FetchableSuite extends JUnitSuite {
       assert(results.length === 2)
       assert(results(0).length === 1)
       assert(results(1).length === 2)
-      assert(results(0)(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1)(0).isInstanceOf[Tensor[DataType]])
-      assert(results(1)(1).isInstanceOf[Tensor[DataType]])
+      assert(results(0)(0).isInstanceOf[Tensor[_]])
+      assert(results(1)(0).isInstanceOf[Tensor[_]])
+      assert(results(1)(1).isInstanceOf[Tensor[_]])
     }
   }
 
@@ -204,9 +204,9 @@ class FetchableSuite extends JUnitSuite {
       assert(results.size === 2)
       assert(results("1").size === 1)
       assert(results("2").size === 2)
-      assert(results("1")("1").isInstanceOf[Tensor[DataType]])
-      assert(results("2")("2").isInstanceOf[Tensor[DataType]])
-      assert(results("2")("3").isInstanceOf[Tensor[DataType]])
+      assert(results("1")("1").isInstanceOf[Tensor[_]])
+      assert(results("2")("2").isInstanceOf[Tensor[_]])
+      assert(results("2")("3").isInstanceOf[Tensor[_]])
     }
   }
 
@@ -222,9 +222,9 @@ class FetchableSuite extends JUnitSuite {
       assert(results.size === 2)
       assert(results("1").length === 1)
       assert(results("2").length === 2)
-      assert(results("1")(0).isInstanceOf[Tensor[DataType]])
-      assert(results("2")(0).isInstanceOf[Tensor[DataType]])
-      assert(results("2")(1).isInstanceOf[Tensor[DataType]])
+      assert(results("1")(0).isInstanceOf[Tensor[_]])
+      assert(results("2")(0).isInstanceOf[Tensor[_]])
+      assert(results("2")(1).isInstanceOf[Tensor[_]])
     }
   }
 
@@ -235,7 +235,7 @@ class FetchableSuite extends JUnitSuite {
       assert(processedTuple._1(0).name === "Constant:0")
       assert(processedTuple._1(1).name === "Constant_1:0")
       val results = processedTuple._2(Seq.fill(2)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor[DataType], Tensor[DataType])])
+      assert(results.isInstanceOf[(Tensor[_], Tensor[_])])
     }
   }
 
@@ -247,7 +247,7 @@ class FetchableSuite extends JUnitSuite {
       assert(processedTuple._1(1).name === "Constant_1:0")
       assert(processedTuple._1(2).name === "Constant_2:0")
       val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor[DataType], (Tensor[DataType], Tensor[DataType]))])
+      assert(results.isInstanceOf[(Tensor[_], (Tensor[_], Tensor[_]))])
     }
   }
 
@@ -259,7 +259,7 @@ class FetchableSuite extends JUnitSuite {
       assert(processedTuple._1(1).name === "Constant_1:0")
       assert(processedTuple._1(2).name === "Constant_2:0")
       val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor[DataType], Array[Tensor[DataType]])])
+      assert(results.isInstanceOf[(Tensor[_], Array[Tensor[_]])])
     }
   }
 
@@ -272,7 +272,7 @@ class FetchableSuite extends JUnitSuite {
       assert(processedTuple._1(1).name === "Constant_1:0")
       assert(processedTuple._1(2).name === "Constant_2:0")
       val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor[DataType], Map[String, Tensor[DataType]])])
+      assert(results.isInstanceOf[(Tensor[_], Map[String, Tensor[_]])])
     }
   }
 }

@@ -24,7 +24,7 @@ import org.scalatest._
   */
 class GradientDescentSpec extends FlatSpec with Matchers {
   "Gradient descent" must "work for dense updates to resource-based variables" in {
-    for (dataType <- Set[DataType](FLOAT32, FLOAT64)) {
+    for (dataType <- Set[DataType[_]](FLOAT32, FLOAT64)) {
       val value0 = Tensor(dataType, 1.0, 2.0)
       val value1 = Tensor(dataType, 3.0, 4.0)
       val updatedValue0 = Tensor(dataType, 1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)

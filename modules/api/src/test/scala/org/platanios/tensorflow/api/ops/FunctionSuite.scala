@@ -36,9 +36,9 @@ class FunctionSuite extends JUnitSuite {
       val output = function(input)
       val session = Session()
       val outputValue = session.run(fetches = output)
-      assert(outputValue.dataType === FLOAT64)
-      assert(outputValue.shape === Shape(2))
-      assert(outputValue.entriesIterator.toSeq === Seq(2.4, -5.6))
+      assert(outputValue.dataType == FLOAT64)
+      assert(outputValue.shape == Shape(2))
+      assert(outputValue.entriesIterator.toSeq == Seq(2.4, -5.6))
     }
   }
 
@@ -49,16 +49,16 @@ class FunctionSuite extends JUnitSuite {
       val flattenOutput = flatten(input)
       val session = Session()
       val flattenOutputValue = session.run(fetches = flattenOutput)
-      assert(flattenOutputValue.dataType === FLOAT64)
-      assert(flattenOutputValue.shape === Shape(4))
-      assert(flattenOutputValue.entriesIterator.toSeq === Seq(2.4, -5.6, -0.3, 1.9))
+      assert(flattenOutputValue.dataType == FLOAT64)
+      assert(flattenOutputValue.shape == Shape(4))
+      assert(flattenOutputValue.entriesIterator.toSeq == Seq(2.4, -5.6, -0.3, 1.9))
 
       val toInt32 = Function("cast", (o: Output) => o.cast(INT32))
       val toInt32Output = toInt32(input)
       val toInt32OutputValue = session.run(fetches = toInt32Output)
-      assert(toInt32OutputValue.dataType === INT32)
-      assert(toInt32OutputValue.shape === Shape(2, 2))
-      assert(toInt32OutputValue.entriesIterator.toList === Seq(2, -5, 0, 1))
+      assert(toInt32OutputValue.dataType == INT32)
+      assert(toInt32OutputValue.shape == Shape(2, 2))
+      assert(toInt32OutputValue.entriesIterator.toList == Seq(2, -5, 0, 1))
     }
   }
 
@@ -70,9 +70,9 @@ class FunctionSuite extends JUnitSuite {
       val addOneOutput = addOne(input)
       val session = Session()
       val addOneOutputValue = session.run(fetches = addOneOutput)
-      assert(addOneOutputValue.dataType === FLOAT64)
-      assert(addOneOutputValue.shape === Shape(2, 2))
-      assert(addOneOutputValue.entriesIterator.toList === Seq(3.4, -4.6, 0.7, 2.9))
+      assert(addOneOutputValue.dataType == FLOAT64)
+      assert(addOneOutputValue.shape == Shape(2, 2))
+      assert(addOneOutputValue.entriesIterator.toList == Seq(3.4, -4.6, 0.7, 2.9))
     }
   }
 }
