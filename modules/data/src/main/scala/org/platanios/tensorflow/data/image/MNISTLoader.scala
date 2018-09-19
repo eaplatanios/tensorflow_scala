@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.types.UByte
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.UniformSplit
 
@@ -83,7 +84,7 @@ object MNISTLoader extends Loader {
     MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
 
-  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
+  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
     logger.info(s"Extracting images from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -105,7 +106,7 @@ object MNISTLoader extends Loader {
     tensor
   }
 
-  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
+  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
     logger.info(s"Extracting labels from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -128,10 +129,10 @@ object MNISTLoader extends Loader {
 
 case class MNISTDataset(
     datasetType: MNISTLoader.DatasetType,
-    trainImages: Tensor[UINT8],
-    trainLabels: Tensor[UINT8],
-    testImages: Tensor[UINT8],
-    testLabels: Tensor[UINT8]
+    trainImages: Tensor[UByte],
+    trainLabels: Tensor[UByte],
+    testImages: Tensor[UByte],
+    testLabels: Tensor[UByte]
 ) {
   def splitRandomly(trainPortion: Float, seed: Option[Long] = None): MNISTDataset = {
     if (trainPortion == 1.0f) {

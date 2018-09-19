@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.types.UByte
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.UniformSplit
 
@@ -72,13 +73,13 @@ object STL10Loader extends Loader {
           // TODO: Make this more efficient.
           // We have to split this tensor in parts because its size exceeds the maximum allowed byte buffer size.
           val maxNumBytesPerPart = Int.MaxValue / 2
-          val parts = mutable.ListBuffer.empty[Tensor[UINT8]]
+          val parts = mutable.ListBuffer.empty[Tensor[UByte]]
           val dataType = UINT8
           val buffer = new Array[Byte](bufferSize)
           var numRemainingBytes = entry.getSize
           while (numRemainingBytes > maxNumBytesPerPart) {
-            val numElementsToRead = math.floor(maxNumBytesPerPart / dataType.byteSize).toInt
-            val numBytesToRead = numElementsToRead * dataType.byteSize
+            val numElementsToRead = math.floor(maxNumBytesPerPart / dataType.byteSize.get).toInt
+            val numBytesToRead = numElementsToRead * dataType.byteSize.get
             val numSamplesToRead = numElementsToRead / (imageChannels * imageHeight * imageWidth)
             val shape = Shape(numSamplesToRead, imageChannels, imageHeight, imageWidth)
             val outputStream = new ByteArrayOutputStream()
@@ -131,11 +132,11 @@ object STL10Loader extends Loader {
 }
 
 case class STL10Dataset(
-    trainImages: Tensor[UINT8],
-    trainLabels: Tensor[UINT8],
-    testImages: Tensor[UINT8],
-    testLabels: Tensor[UINT8],
-    unlabeledImages: Tensor[UINT8]
+    trainImages: Tensor[UByte],
+    trainLabels: Tensor[UByte],
+    testImages: Tensor[UByte],
+    testLabels: Tensor[UByte],
+    unlabeledImages: Tensor[UByte]
 ) {
   def splitRandomly(trainPortion: Float, seed: Option[Long] = None): STL10Dataset = {
     if (trainPortion == 1.0f) {

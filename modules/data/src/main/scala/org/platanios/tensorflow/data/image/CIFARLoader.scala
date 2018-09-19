@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.types.UByte
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.UniformSplit
 
@@ -119,7 +120,7 @@ object CIFARLoader extends Loader {
       entry: TarArchiveEntry,
       datasetType: DatasetType = CIFAR_10,
       bufferSize: Int = 8192
-  ): (Tensor[UINT8], Tensor[UINT8]) = {
+  ): (Tensor[UByte], Tensor[UByte]) = {
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
     Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
@@ -137,10 +138,10 @@ object CIFARLoader extends Loader {
 
 case class CIFARDataset(
     datasetType: CIFARLoader.DatasetType,
-    trainImages: Tensor[UINT8],
-    trainLabels: Tensor[UINT8],
-    testImages: Tensor[UINT8],
-    testLabels: Tensor[UINT8]
+    trainImages: Tensor[UByte],
+    trainLabels: Tensor[UByte],
+    testImages: Tensor[UByte],
+    testLabels: Tensor[UByte]
 ) {
   def splitRandomly(trainPortion: Float, seed: Option[Long] = None): CIFARDataset = {
     if (trainPortion == 1.0f) {
