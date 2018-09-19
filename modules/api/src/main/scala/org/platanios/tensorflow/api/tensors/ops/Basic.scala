@@ -886,27 +886,13 @@ private[api] trait Basic {
   def oneHot[T, I: IsInt32OrInt64OrUInt8](
       indices: Tensor[I],
       depth: Tensor[Int],
+      dataType: DataType[T],
       onValue: Tensor[T] = null,
       offValue: Tensor[T] = null,
-      axis: Int = -1,
-      dataType: DataType[T] = null
+      axis: Int = -1
   ): Tensor[T] = {
-    val inferredDataType = {
-      if (dataType != null) {
-        dataType
-      } else {
-        if (onValue != null && offValue != null)
-          DataType.mostPrecise(onValue.dataType, offValue.dataType)
-        else if (onValue != null)
-          onValue.dataType
-        else if (offValue != null)
-          offValue.dataType
-        else
-          FLOAT32
-      }
-    }
-    val actualOnValue = if (onValue != null) onValue else Cast.cast(1, inferredDataType)
-    val actualOffValue = if (offValue != null) offValue else Cast.cast(0, inferredDataType)
+    val actualOnValue = if (onValue != null) onValue else Tensor(1).cast(dataType)
+    val actualOffValue = if (offValue != null) offValue else Tensor(0).cast(dataType)
     Tensor.fromNativeHandle[T](NativeTensorOpsBasic.oneHot(
       executionContext.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
       actualOffValue.nativeHandle, axis))

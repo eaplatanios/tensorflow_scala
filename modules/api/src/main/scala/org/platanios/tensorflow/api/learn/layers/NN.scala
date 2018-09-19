@@ -251,7 +251,7 @@ case class Dropout(
   override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
     mode match {
       case TRAINING =>
-        val noise = if (noiseShape == null) null else noiseShape.toOutput()
+        val noise = if (noiseShape == null) null else noiseShape.toOutput(INT64)
         ops.NN.dropout(input, keepProbability, scaleOutput, noise, seed, name)
       case _ => input
     }

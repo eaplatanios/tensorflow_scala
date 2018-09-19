@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, OutputLike, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
+import org.platanios.tensorflow.api.types.SupportedType
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
@@ -112,7 +113,7 @@ object Fetchable {
           fetchable: OutputIndexedSlices,
           values: Seq[Tensor[_]]
       ): (TensorIndexedSlices[_], Seq[Tensor[_]]) = {
-        (TensorIndexedSlices(values(0).asInstanceOf[Tensor[Int]], values(1), values(2).asInstanceOf[Tensor[Int]]),
+        (TensorIndexedSlices(values(0).asInstanceOf[Tensor[Long]], values(1), values(2).asInstanceOf[Tensor[Long]]),
             values.drop(3))
       }
     }
@@ -132,7 +133,7 @@ object Fetchable {
           fetchable: SparseOutput,
           values: Seq[Tensor[_]]
       ): (SparseTensor[_], Seq[Tensor[_]]) = {
-        (SparseTensor(values(0).asInstanceOf[Tensor[Int]], values(1), values(2).asInstanceOf[Tensor[Int]]),
+        (SparseTensor(values(0).asInstanceOf[Tensor[Long]], values(1), values(2).asInstanceOf[Tensor[Long]]),
             values.drop(3))
       }
     }
@@ -162,10 +163,10 @@ object Fetchable {
       fetchable match {
         case _: Output => (values.head, values.tail)
         case _: OutputIndexedSlices =>
-          (TensorIndexedSlices(values(0).asInstanceOf[Tensor[Int]], values(1), values(2).asInstanceOf[Tensor[Int]]),
+          (TensorIndexedSlices(values(0).asInstanceOf[Tensor[Long]], values(1), values(2).asInstanceOf[Tensor[Long]]),
               values.drop(3))
         case _: SparseOutput =>
-          (SparseTensor(values(0).asInstanceOf[Tensor[Int]], values(1), values(2).asInstanceOf[Tensor[Int]]),
+          (SparseTensor(values(0).asInstanceOf[Tensor[Long]], values(1), values(2).asInstanceOf[Tensor[Long]]),
               values.drop(3))
       }
     }

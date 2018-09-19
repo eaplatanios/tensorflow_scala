@@ -310,8 +310,8 @@ private[api] trait NN {
     // The output shape should be the input shape without the axis over which the cross entropy was computed.
     val outputShape = Basic.slice(
       inputShape,
-      Tensor.fill(inputShape.dataType, Shape(1))(0),
-      Basic.expandDims(Math.subtract(inputRank, 1), -1))
+      Tensor.fill(INT64, Shape(1))(0L),
+      Basic.expandDims(Math.subtract(inputRank.toInt64, 1L), -1))
     Basic.reshape(output, outputShape)
   }
 
@@ -585,7 +585,7 @@ private[api] trait NN {
         dataType = input.dataType,
         shape = inferredNoiseShape)(
         minValue = probability,
-        maxValue = probability + 1.toTensor.cast(probability.dataType),
+        maxValue = probability + Cast.cast(Tensor(1), probability.dataType),
         seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
       val binaryTensor = Math.floor(random)
@@ -1135,7 +1135,7 @@ object NN extends NN {
   private[ops] def moveAxisToEnd[T](
       input: Tensor[T],
       axis: Int,
-      rank: Tensor[Long]
+      rank: Tensor[Int]
   ): Tensor[T] = {
     if (axis == -1) {
       input
@@ -1144,8 +1144,8 @@ object NN extends NN {
       Basic.transpose(
         input,
         Basic.concatenate(Seq(
-          Math.range(0L, axisOutput),
-          Math.range(axisOutput + 1L, rank),
+          Math.range(0, axisOutput),
+          Math.range(axisOutput + 1, rank),
           axisOutput), 0))
     }
   }

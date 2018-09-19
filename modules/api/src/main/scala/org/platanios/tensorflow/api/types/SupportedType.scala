@@ -52,6 +52,13 @@ object SupportedType {
     }
   }
 
+  implicit val halfIsSupported: SupportedType[Half] = new SupportedType[Half] {
+    @inline override def dataType: DataType[Half] = FLOAT16
+    @inline override def cast[R: SupportedType](value: R): Half = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a half.")
+    }
+  }
+
   implicit val floatIsSupported: SupportedType[Float] = new SupportedType[Float] {
     @inline override def dataType: DataType[Float] = FLOAT32
     @inline override def cast[R: SupportedType](value: R): Float = value match {
@@ -77,6 +84,27 @@ object SupportedType {
       case value: Int => value.toDouble
       case value: Long => value.toDouble
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to a double.")
+    }
+  }
+
+  implicit val truncatedHalfIsSupported: SupportedType[TruncatedHalf] = new SupportedType[TruncatedHalf] {
+    @inline override def dataType: DataType[TruncatedHalf] = BFLOAT16
+    @inline override def cast[R: SupportedType](value: R): TruncatedHalf = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a truncated half.")
+    }
+  }
+
+  implicit val complexFloatIsSupported: SupportedType[ComplexFloat] = new SupportedType[ComplexFloat] {
+    @inline override def dataType: DataType[ComplexFloat] = COMPLEX64
+    @inline override def cast[R: SupportedType](value: R): ComplexFloat = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a complex float.")
+    }
+  }
+
+  implicit val complexDoubleIsSupported: SupportedType[ComplexDouble] = new SupportedType[ComplexDouble] {
+    @inline override def dataType: DataType[ComplexDouble] = COMPLEX128
+    @inline override def cast[R: SupportedType](value: R): ComplexDouble = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a complex double.")
     }
   }
 
@@ -147,6 +175,55 @@ object SupportedType {
     @inline override def dataType: DataType[UShort] = UINT16
     @inline override def cast[R: SupportedType](value: R): UShort = value match {
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned short.")
+    }
+  }
+
+  implicit val uIntIsSupported: SupportedType[UInt] = new SupportedType[UInt] {
+    @inline override def dataType: DataType[UInt] = UINT32
+    @inline override def cast[R: SupportedType](value: R): UInt = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned integer.")
+    }
+  }
+
+  implicit val uLongIsSupported: SupportedType[ULong] = new SupportedType[ULong] {
+    @inline override def dataType: DataType[ULong] = UINT64
+    @inline override def cast[R: SupportedType](value: R): ULong = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned long.")
+    }
+  }
+
+  implicit val qByteIsSupported: SupportedType[QByte] = new SupportedType[QByte] {
+    @inline override def dataType: DataType[QByte] = QINT8
+    @inline override def cast[R: SupportedType](value: R): QByte = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a quantized byte.")
+    }
+  }
+
+  implicit val qShortIsSupported: SupportedType[QShort] = new SupportedType[QShort] {
+    @inline override def dataType: DataType[QShort] = QINT16
+    @inline override def cast[R: SupportedType](value: R): QShort = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a quantized short.")
+    }
+  }
+
+  implicit val qIntIsSupported: SupportedType[QInt] = new SupportedType[QInt] {
+    @inline override def dataType: DataType[QInt] = QINT32
+    @inline override def cast[R: SupportedType](value: R): QInt = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a quantized integer.")
+    }
+  }
+
+  implicit val qUByteIsSupported: SupportedType[QUByte] = new SupportedType[QUByte] {
+    @inline override def dataType: DataType[QUByte] = QUINT8
+    @inline override def cast[R: SupportedType](value: R): QUByte = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned quantized byte.")
+    }
+  }
+
+  implicit val qUShortIsSupported: SupportedType[QUShort] = new SupportedType[QUShort] {
+    @inline override def dataType: DataType[QUShort] = QUINT16
+    @inline override def cast[R: SupportedType](value: R): QUShort = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned quantized short.")
     }
   }
 }

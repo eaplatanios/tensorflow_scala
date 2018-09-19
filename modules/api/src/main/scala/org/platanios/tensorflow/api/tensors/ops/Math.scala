@@ -1004,7 +1004,7 @@ private[api] trait Math {
 
   private[this] def reductionAxes[T <: TensorLike[_]](tensorLike: T, axes: Tensor[Int]): Tensor[Long] = {
     if (axes != null) {
-      axes
+      axes.toInt64
     } else {
       tensorLike match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
         case t: Tensor[_] if t.rank > -1 => (0L until t.rank.toLong).toArray[Long]
@@ -1013,7 +1013,7 @@ private[api] trait Math {
         // case t: SparseTensor if t.denseShape.shape.isFullyDefined =>
         //   Basic.constant(0 until t.denseShape.shape(0))
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
-          range(0L, Basic.rank(tensorLike))
+          range(0L, Basic.rank(tensorLike).toInt64)
       }
     }
   }
@@ -1267,7 +1267,7 @@ private[api] trait Math {
       maxLength: Tensor[Int] = null,
       dataType: DataType[T] = null
   ): Tensor[T] = {
-    val inputNonEmpty = greater(prod(Basic.shape(input)), 0)
+    val inputNonEmpty = greater(prod(Basic.shape(input, INT32)), 0)
     var outputSize = Cast.cast(inputNonEmpty, INT32) * add(max(input), Tensor.ones(INT32, Shape()))
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)

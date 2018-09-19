@@ -341,9 +341,6 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
       Tensor(asArray.head, asArray.tail: _*).cast(dataType)
   }
 
-  /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output). */
-  def toOutput(name: String = "Shape"): Output = toOutput(INT64, name)
-
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
     *
     * @param  dataType Data type to use for the tensor.

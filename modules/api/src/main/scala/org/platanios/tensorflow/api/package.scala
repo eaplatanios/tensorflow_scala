@@ -104,54 +104,57 @@ package object api extends implicits.Implicits with Documentation {
 
   //region Data Types API
 
+  // TODO: [TYPES] !!! Move the value classes here.
+
   type DataType[T] = types.DataType[T]
 
-  type STRING = types.STRING.type
-  type BOOLEAN = types.BOOLEAN.type
-  type FLOAT16 = types.FLOAT16.type
-  type FLOAT32 = types.FLOAT32.type
-  type FLOAT64 = types.FLOAT64.type
-  type BFLOAT16 = types.BFLOAT16.type
-  type COMPLEX64 = types.COMPLEX64.type
-  type COMPLEX128 = types.COMPLEX128.type
-  type INT8 = types.INT8.type
-  type INT16 = types.INT16.type
-  type INT32 = types.INT32.type
-  type INT64 = types.INT64.type
-  type UINT8 = types.UINT8.type
-  type UINT16 = types.UINT16.type
-  type UINT32 = types.UINT32.type
-  type UINT64 = types.UINT64.type
-  type QINT8 = types.QINT8.type
-  type QINT16 = types.QINT16.type
-  type QINT32 = types.QINT32.type
-  type QUINT8 = types.QUINT8.type
-  type QUINT16 = types.QUINT16.type
-  type RESOURCE = types.RESOURCE.type
-  type VARIANT = types.VARIANT.type
+  type STRING = types.DataType[String]
+  type BOOLEAN = types.DataType[Boolean]
+  type FLOAT16 = types.DataType[types.Half]
+  type FLOAT32 = types.DataType[Float]
+  type FLOAT64 = types.DataType[Double]
+  type BFLOAT16 = types.DataType[types.TruncatedHalf]
+  type COMPLEX64 = types.DataType[types.ComplexFloat]
+  type COMPLEX128 = types.DataType[types.ComplexDouble]
+  type INT8 = types.DataType[Byte]
+  type INT16 = types.DataType[Short]
+  type INT32 = types.DataType[Int]
+  type INT64 = types.DataType[Long]
+  type UINT8 = types.DataType[types.UByte]
+  type UINT16 = types.DataType[types.UShort]
+  type UINT32 = types.DataType[types.UInt]
+  type UINT64 = types.DataType[types.ULong]
+  type QINT8 = types.DataType[types.QByte]
+  type QINT16 = types.DataType[types.QShort]
+  type QINT32 = types.DataType[types.QInt]
+  type QUINT8 = types.DataType[types.QUByte]
+  type QUINT16 = types.DataType[types.QUShort]
+  type RESOURCE = types.DataType[Long]
+  type VARIANT = types.DataType[Long]
 
-  val STRING    : STRING     = types.STRING
-  val BOOLEAN   : BOOLEAN    = types.BOOLEAN
-  val FLOAT16   : FLOAT16    = types.FLOAT16
-  val FLOAT32   : FLOAT32    = types.FLOAT32
-  val FLOAT64   : FLOAT64    = types.FLOAT64
-  val BFLOAT16  : BFLOAT16   = types.BFLOAT16
-  val COMPLEX64 : COMPLEX64  = types.COMPLEX64
-  val COMPLEX128: COMPLEX128 = types.COMPLEX128
-  val INT8      : INT8       = types.INT8
-  val INT16     : INT16      = types.INT16
-  val INT32     : INT32      = types.INT32
-  val INT64     : INT64      = types.INT64
-  val UINT8     : UINT8      = types.UINT8
-  val UINT16    : UINT16     = types.UINT16
-  val UINT32    : UINT32     = types.UINT32
-  val QINT8     : QINT8      = types.QINT8
-  val QINT16    : QINT16     = types.QINT16
-  val QINT32    : QINT32     = types.QINT32
-  val QUINT8    : QUINT8     = types.QUINT8
-  val QUINT16   : QUINT16    = types.QUINT16
-  val RESOURCE  : RESOURCE   = types.RESOURCE
-  val VARIANT   : VARIANT    = types.VARIANT
+  val STRING    : STRING     = types.DataType.STRING
+  val BOOLEAN   : BOOLEAN    = types.DataType.BOOLEAN
+  val FLOAT16   : FLOAT16    = types.DataType.FLOAT16
+  val FLOAT32   : FLOAT32    = types.DataType.FLOAT32
+  val FLOAT64   : FLOAT64    = types.DataType.FLOAT64
+  val BFLOAT16  : BFLOAT16   = types.DataType.BFLOAT16
+  val COMPLEX64 : COMPLEX64  = types.DataType.COMPLEX64
+  val COMPLEX128: COMPLEX128 = types.DataType.COMPLEX128
+  val INT8      : INT8       = types.DataType.INT8
+  val INT16     : INT16      = types.DataType.INT16
+  val INT32     : INT32      = types.DataType.INT32
+  val INT64     : INT64      = types.DataType.INT64
+  val UINT8     : UINT8      = types.DataType.UINT8
+  val UINT16    : UINT16     = types.DataType.UINT16
+  val UINT32    : UINT32     = types.DataType.UINT32
+  val UINT64    : UINT64     = types.DataType.UINT64
+  val QINT8     : QINT8      = types.DataType.QINT8
+  val QINT16    : QINT16     = types.DataType.QINT16
+  val QINT32    : QINT32     = types.DataType.QINT32
+  val QUINT8    : QUINT8     = types.DataType.QUINT8
+  val QUINT16   : QUINT16    = types.DataType.QUINT16
+  val RESOURCE  : RESOURCE   = types.DataType.RESOURCE
+  val VARIANT   : VARIANT    = types.DataType.VARIANT
 
   //endregion Data Types API
 

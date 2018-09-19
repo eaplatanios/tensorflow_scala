@@ -198,7 +198,7 @@ class Tensor[T] protected (
         assert(resolved.handle != 0)
 
         val nextElement: T = dataType match {
-          case _: STRING =>
+          case STRING =>
             val offset = INT64.byteSize.get * (i + remaining)
             dataType.getElementFromBuffer(
               buffer,

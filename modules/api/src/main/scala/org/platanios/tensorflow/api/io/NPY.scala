@@ -36,9 +36,9 @@ object NPY {
   protected val dtypeParser: Regex = """^[<=>]?(\w\d*)$""".r
 
   /** Represents an NPY file header. */
-  case class Header[D <: DataType](description: String, fortranOrder: Boolean, shape: Shape) {
-    val dataType: D = description match {
-      case dtypeParser(t) => numpyDTypeToDataType(t).asInstanceOf[D]
+  case class Header[T](description: String, fortranOrder: Boolean, shape: Shape) {
+    val dataType: DataType[T] = description match {
+      case dtypeParser(t) => numpyDTypeToDataType(t).asInstanceOf[DataType[T]]
     }
 
     def byteOrder: ByteOrder = description.head match {
@@ -56,7 +56,8 @@ object NPY {
 
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
   @throws[InvalidDataTypeException]
-  def read[D <: DataType](file: Path): Tensor[D] = {
+  @throws[IllegalArgumentException]
+  def read[T](file: Path): Tensor[T] = {
     val byteBuffer = ByteBuffer.wrap(Files.readAllBytes(file))
 
     // Check the first byte in the magic string.
@@ -86,23 +87,23 @@ object NPY {
       case headerPattern(description, fortranOrderString, shapeString) =>
         val fortranOrder = fortranOrderString == "True"
         val shape = shapeString.trim.split(", ").map(_.toInt)
-        Header[D](description, fortranOrder, Shape.fromSeq(shape))
+        Header[T](description, fortranOrder, Shape.fromSeq(shape))
       case _ => throw new Exception("wrong header")
     }
 
     // Read the data.
     byteBuffer.order(header.byteOrder)
-    val numBytes = header.shape.numElements * header.dataType.byteSize
+    val numBytes = header.shape.numElements * header.dataType.byteSize.get
     if (header.fortranOrder)
-      Tensor.fromBuffer[D](header.dataType, Shape.fromSeq(header.shape.asArray.reverse), numBytes, byteBuffer).transpose()
+      Tensor.fromBuffer(header.dataType, Shape.fromSeq(header.shape.asArray.reverse), numBytes, byteBuffer).transpose()
     else
-      Tensor.fromBuffer[D](header.dataType, header.shape, numBytes, byteBuffer)
+      Tensor.fromBuffer(header.dataType, header.shape, numBytes, byteBuffer)
   }
 
   /** Writes the provided tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method
     * will replace the file, if it already exists. */
   @throws[InvalidDataTypeException]
-  def write[D <: DataType](tensor: Tensor[D], file: Path, fortranOrder: Boolean = false): Unit = {
+  def write[T](tensor: Tensor[T], file: Path, fortranOrder: Boolean = false): Unit = {
     val description = ">" + dataTypeToNumpyDType(tensor.dataType)
     val header = Header(description, fortranOrder, tensor.shape).toString
 
@@ -146,26 +147,29 @@ object NPY {
 
   /** Returns the TensorFlow data type equivalent to the provided Numpy data type string. */
   @throws[InvalidDataTypeException]
-  def numpyDTypeToDataType(dtype: String): DataType = dtype match {
-    case "b" => BOOLEAN
-    case "f2" => FLOAT16
-    case "f4" => FLOAT32
-    case "f8" => FLOAT64
-    // case "f16" => ??? // FLOAT128
-    case "i1" => INT8
-    case "i2" => INT16
-    case "i4" => INT32
-    case "i8" => INT64
-    case "u1" => UINT8
-    case "u2" => UINT16
-    case "u4" => UINT32
-    case "u8" => UINT64
-    case t => throw InvalidDataTypeException(s"Numpy data type '$t' cannot be converted to a TensorFlow data type.")
+  def numpyDTypeToDataType[T](dtype: String): DataType[T] = {
+    val dataType = dtype match {
+      case "b" => BOOLEAN
+      case "f2" => FLOAT16
+      case "f4" => FLOAT32
+      case "f8" => FLOAT64
+      // case "f16" => ??? // FLOAT128
+      case "i1" => INT8
+      case "i2" => INT16
+      case "i4" => INT32
+      case "i8" => INT64
+      case "u1" => UINT8
+      case "u2" => UINT16
+      case "u4" => UINT32
+      case "u8" => UINT64
+      case t => throw InvalidDataTypeException(s"Numpy data type '$t' cannot be converted to a TensorFlow data type.")
+    }
+    dataType.asInstanceOf[DataType[T]]
   }
 
   /** Returns the Numpy data type string equivalent to the provided TensorFlow data type. */
   @throws[InvalidDataTypeException]
-  def dataTypeToNumpyDType(dataType: DataType): String = dataType match {
+  def dataTypeToNumpyDType[T](dataType: DataType[T]): String = dataType match {
     case BOOLEAN => "b"
     case FLOAT16 => "f2"
     case FLOAT32 => "f4"
