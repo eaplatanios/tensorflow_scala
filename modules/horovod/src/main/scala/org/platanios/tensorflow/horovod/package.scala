@@ -245,7 +245,7 @@ package object horovod {
 
       /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
         * field allow other float types. */
-      override val supportedDataTypes: Set[DataType] = {
+      override val supportedDataTypes: Set[DataType[_]] = {
         optimizer.supportedDataTypes
       }
 
