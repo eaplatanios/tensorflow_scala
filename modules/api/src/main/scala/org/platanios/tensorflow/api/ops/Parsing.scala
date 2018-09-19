@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64, STRING, UINT8}
+import org.platanios.tensorflow.api.types._
 
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
@@ -52,7 +52,11 @@ trait Parsing {
     * @throws IllegalArgumentException If `data` is not a [[STRING]] tensor.
     */
   @throws[IllegalArgumentException]
-  def decodeTensor(data: Output, dataType: DataType, name: String = "DecodeTensor"): Output = {
+  def decodeTensor(
+      data: Output,
+      dataType: DataType[_],
+      name: String = "DecodeTensor"
+  ): Output = {
     require(data.dataType == STRING, s"Tensor data type was ${data.dataType}, while STRING was expected.")
     Op.Builder(opType = "ParseTensor", name = name)
         .addInput(data)
@@ -72,7 +76,12 @@ trait Parsing {
     * @throws IllegalArgumentException If `bytes` is not a [[STRING]] tensor.
     */
   @throws[IllegalArgumentException]
-  def decodeRaw(bytes: Output, dataType: DataType, littleEndian: Boolean = true, name: String = "DecodeRaw"): Output = {
+  def decodeRaw(
+      bytes: Output,
+      dataType: DataType[_],
+      littleEndian: Boolean = true,
+      name: String = "DecodeRaw"
+  ): Output = {
     require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
     Op.Builder(opType = "DecodeRaw", name = name)
         .addInput(bytes)
@@ -98,8 +107,13 @@ trait Parsing {
     */
   @throws[IllegalArgumentException]
   def decodeCSV(
-      records: Output, recordDefaults: Seq[Output], dataTypes: Seq[DataType], delimiter: String = ",",
-      useQuoteDelimiters: Boolean = true, name: String = "DecodeCSV"): Seq[Output] = {
+      records: Output,
+      recordDefaults: Seq[Output],
+      dataTypes: Seq[DataType[_]],
+      delimiter: String = ",",
+      useQuoteDelimiters: Boolean = true,
+      name: String = "DecodeCSV"
+  ): Seq[Output] = {
     require(records.dataType == STRING, s"Tensor data type was ${records.dataType}, while STRING was expected.")
     Op.Builder(opType = "DecodeCSV", name = name)
         .addInput(records)
@@ -120,7 +134,11 @@ trait Parsing {
     * @throws IllegalArgumentException If `data` is not a [[STRING]] tensor.
     */
   @throws[IllegalArgumentException]
-  def stringToNumber(data: Output, dataType: DataType, name: String = "StringToNumber"): Output = {
+  def stringToNumber(
+      data: Output,
+      dataType: DataType[_],
+      name: String = "StringToNumber"
+  ): Output = {
     require(data.dataType == STRING, s"Tensor data type was ${data.dataType}, while STRING was expected.")
     Op.Builder(opType = "StringToNumber", name = name)
         .addInput(data)
@@ -154,7 +172,7 @@ private[ops] object Parsing extends Parsing {
     *
     * @param  dataType Data type of the input feature.
     */
-  case class VariableLengthFeature(dataType: DataType) extends Feature
+  case class VariableLengthFeature(dataType: DataType[_]) extends Feature
 
   /** Configuration for parsing a fixed-length input feature.
     *
@@ -165,10 +183,10 @@ private[ops] object Parsing extends Parsing {
     * @param  shape        Shape of the input feature.
     * @param  defaultValue Value to be used if an example is missing this feature. It must match the specified `shape`.
     */
-  case class FixedLengthFeature[D <: DataType](
-      dataType: D,
+  case class FixedLengthFeature[T](
+      dataType: DataType[T],
       shape: Shape,
-      defaultValue: Tensor[D] = null
+      defaultValue: Tensor[T] = null
   ) extends Feature {
     require(defaultValue == null || defaultValue.shape == shape,
             s"The default value shape (${defaultValue.shape}) does not match the expected $shape.")
@@ -192,11 +210,11 @@ private[ops] object Parsing extends Parsing {
     *                      for parsing a single `Example` or `SequenceExample`. Defaults to `""` for data type
     *                      [[STRING]] and to `0` otherwise.
     */
-  case class FixedLengthSequenceFeature[D <: DataType](
-      dataType: DataType,
+  case class FixedLengthSequenceFeature[T](
+      dataType: DataType[T],
       shape: Shape,
       allowMissing: Boolean = false,
-      defaultValue: Tensor[D]= null
+      defaultValue: Tensor[T] = null
   ) extends Feature
 
   /** Configuration for parsing a sparse input feature.
@@ -254,7 +272,7 @@ private[ops] object Parsing extends Parsing {
   case class SparseFeature(
       indexKey: Seq[String],
       valueKey: String,
-      dataType: DataType,
+      dataType: DataType[_],
       size: Seq[Int],
       alreadySorted: Boolean = false
   ) extends Feature
@@ -263,21 +281,21 @@ private[ops] object Parsing extends Parsing {
     * [[ListMap]] for `denseDefaults` because ignoring the ordering would cause graph equality to fail in some tests. */
   private[this] case class RawParameters(
       sparseKeys: Seq[String],
-      sparseTypes: Seq[DataType],
+      sparseTypes: Seq[DataType[_]],
       denseKeys: Seq[String],
-      denseTypes: Seq[DataType],
+      denseTypes: Seq[DataType[_]],
       denseShapes: Seq[Shape],
-      denseDefaults: ListMap[String, Tensor[DataType]])
+      denseDefaults: ListMap[String, Tensor[_]])
 
   /** Converts the provides features into a [[RawParameters]] object to be fed into the parsing ops. */
   @throws[IllegalArgumentException]
   private[this] def featuresToRawParameters(features: Map[String, Feature]): RawParameters = {
     val sparseKeys = mutable.ListBuffer.empty[String]
-    val sparseTypes = mutable.ListBuffer.empty[DataType]
+    val sparseTypes = mutable.ListBuffer.empty[DataType[_]]
     val denseKeys = mutable.ListBuffer.empty[String]
-    val denseTypes = mutable.ListBuffer.empty[DataType]
+    val denseTypes = mutable.ListBuffer.empty[DataType[_]]
     val denseShapes = mutable.ListBuffer.empty[Shape]
-    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor[DataType])]
+    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor[_])]
     // We iterate over sorted keys to keep things deterministic.
     features.toSeq.sortBy(_._1).foreach({
       case (key, VariableLengthFeature(dataType)) =>
@@ -377,9 +395,15 @@ private[ops] object Parsing extends Parsing {
     */
   @throws[IllegalArgumentException]
   private[Parsing] def parseExample(
-      bytes: Output, sparseKeys: Seq[Output], sparseTypes: Seq[DataType], denseKeys: Seq[Output],
-      denseShapes: Seq[Shape], denseDefaults: Seq[Output], debugNames: Output,
-      name: String = "ParseExample"): (Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
+      bytes: Output,
+      sparseKeys: Seq[Output],
+      sparseTypes: Seq[DataType[_]],
+      denseKeys: Seq[Output],
+      denseShapes: Seq[Shape],
+      denseDefaults: Seq[Output],
+      debugNames: Output,
+      name: String = "ParseExample"
+  ): (Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
     require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
     require(!sparseKeys.exists(_.dataType == STRING), "The sparse keys must all be STRING tensors.")
     require(!denseKeys.exists(_.dataType == STRING), "The dense keys must all be STRING tensors.")
@@ -462,12 +486,19 @@ private[ops] object Parsing extends Parsing {
     */
   private[Parsing] def parseSingleSequenceExample(
       bytes: Output,
-      contextSparseKeys: Seq[Output], contextSparseTypes: Seq[DataType],
-      contextDenseKeys: Seq[Output], contextDenseShapes: Seq[Shape], contextDenseDefaults: Seq[Output],
-      featureListSparseKeys: Seq[Output], featureListSparseTypes: Seq[DataType],
-      featureListDenseKeys: Seq[Output], featureListDenseShapes: Seq[Shape],
-      featureListDenseMissingAssumedEmpty: Output, debugName: Output, name: String = "ParseSingleSequenceExample"):
-  (Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
+      contextSparseKeys: Seq[Output],
+      contextSparseTypes: Seq[DataType[_]],
+      contextDenseKeys: Seq[Output],
+      contextDenseShapes: Seq[Shape],
+      contextDenseDefaults: Seq[Output],
+      featureListSparseKeys: Seq[Output],
+      featureListSparseTypes: Seq[DataType[_]],
+      featureListDenseKeys: Seq[Output],
+      featureListDenseShapes: Seq[Shape],
+      featureListDenseMissingAssumedEmpty: Output,
+      debugName: Output,
+      name: String = "ParseSingleSequenceExample"
+  ): (Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
     require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
     require(!contextSparseKeys.exists(_.dataType == STRING), "The context sparse keys must all be STRING tensors.")
     require(!contextDenseKeys.exists(_.dataType == STRING), "The context dense keys must all be STRING tensors.")

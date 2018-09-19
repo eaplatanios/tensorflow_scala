@@ -132,7 +132,7 @@ private[api] trait Sets {
 }
 
 private[api] object Sets extends Sets {
-  private[Sets] val supportedDataTypes: Set[DataType] = Set(INT8, INT16, INT32, INT64, UINT8, UINT16, STRING)
+  private[Sets] val supportedDataTypes: Set[DataType[_]] = Set(INT8, INT16, INT32, INT64, UINT8, UINT16, STRING)
 
   private[Sets] def setOperation[A, B](
       a: A,
@@ -308,8 +308,8 @@ private[api] object Sets extends Sets {
 /** Type trait specifying the supported types for set operation inputs. */
 trait SetOps[A] {
   type ArgType
-  @inline def dataTypeA(a: A): DataType
-  @inline def dataTypeB(b: ArgType): DataType
+  @inline def dataTypeA(a: A): DataType[_]
+  @inline def dataTypeB(b: ArgType): DataType[_]
   @inline def applyOperation(
       a: A,
       b: ArgType,
@@ -324,8 +324,8 @@ object SetOps {
 
   implicit val outputOutputSetOps: SetOps.Aux[Output, Output] = new SetOps[Output] {
     override type ArgType = Output
-    @inline override def dataTypeA(a: Output): DataType = a.dataType
-    @inline override def dataTypeB(b: Output): DataType = b.dataType
+    @inline override def dataTypeA(a: Output): DataType[_] = a.dataType
+    @inline override def dataTypeB(b: Output): DataType[_] = b.dataType
     @inline override def applyOperation(
         a: Output,
         b: Output,
@@ -345,8 +345,8 @@ object SetOps {
 
   implicit val outputSparseOutputSetOps: SetOps.Aux[Output, SparseOutput] = new SetOps[Output] {
     override type ArgType = SparseOutput
-    @inline override def dataTypeA(a: Output): DataType = a.dataType
-    @inline override def dataTypeB(b: SparseOutput): DataType = b.dataType
+    @inline override def dataTypeA(a: Output): DataType[_] = a.dataType
+    @inline override def dataTypeB(b: SparseOutput): DataType[_] = b.dataType
     @inline override def applyOperation(
         a: Output,
         b: SparseOutput,
@@ -368,8 +368,8 @@ object SetOps {
 
   implicit val sparseOutputSparseOutputSetOps: SetOps.Aux[SparseOutput, SparseOutput] = new SetOps[SparseOutput] {
     override type ArgType = SparseOutput
-    @inline override def dataTypeA(a: SparseOutput): DataType = a.dataType
-    @inline override def dataTypeB(b: SparseOutput): DataType = b.dataType
+    @inline override def dataTypeA(a: SparseOutput): DataType[_] = a.dataType
+    @inline override def dataTypeB(b: SparseOutput): DataType[_] = b.dataType
     @inline override def applyOperation(
         a: SparseOutput,
         b: SparseOutput,

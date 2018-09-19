@@ -41,7 +41,7 @@ private[api] object Slot {
   private[api] def zeros(
       primary: Variable,
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       colocateWithPrimary: Boolean = true
   ): Variable = {
     val inferredDataType = if (dataType == null) primary.dataType else dataType
@@ -65,7 +65,7 @@ private[api] object Slot {
   private[api] def zerosForOutput(
       primary: Output,
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       colocateWithPrimary: Boolean = true
   ): Variable = {
     val inferredDataType = if (dataType == null) primary.dataType else dataType
@@ -94,7 +94,7 @@ private[api] object Slot {
       primary: Variable,
       initializer: Initializer,
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       colocateWithPrimary: Boolean = true
   ): Variable = {
@@ -135,7 +135,7 @@ private[api] object Slot {
       primary: Output,
       initializer: Initializer,
       name: String,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       shape: Shape = null,
       colocateWithPrimary: Boolean = true
   ): Variable = {
@@ -165,7 +165,7 @@ private[api] object Slot {
       primary: Variable,
       initializer: Initializer,
       scope: String,
-      dataType: DataType,
+      dataType: DataType[_],
       shape: Shape
   ): Variable = {
     // TODO: [VARIABLES] When variables and partitioned variables are merged, makes sure this returns a normal variable.
@@ -191,7 +191,7 @@ private[api] object Slot {
       primary: Output,
       initializer: Initializer,
       scope: String,
-      dataType: DataType,
+      dataType: DataType[_],
       shape: Shape
   ): Variable = {
     Variable.getVariable(scope, dataType, shape, initializer, trainable = false)

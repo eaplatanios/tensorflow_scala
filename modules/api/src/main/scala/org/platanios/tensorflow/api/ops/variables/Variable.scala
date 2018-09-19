@@ -1291,7 +1291,7 @@ private[api] object Variable {
       var handle = op.inputs(0)
       while (handle.op.opType != "VarHandleOp")
         handle = handle.op.inputs(0)
-      val parametersShape = handle.op.shapeAttribute("shape").toOutput()
+      val parametersShape = handle.op.shapeAttribute("shape").toOutput(INT64)
       val indices = op.inputs(1)
       val size = Basic.expandDims(Basic.size(indices), 0)
       val valuesShape = Basic.concatenate(Seq(size, parametersShape(1 ::)), 0)

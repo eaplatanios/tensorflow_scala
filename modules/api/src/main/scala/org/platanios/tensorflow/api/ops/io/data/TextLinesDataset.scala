@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.STRING
+import org.platanios.tensorflow.api.types.{DataType, STRING}
 
 /** Dataset with elements read from text files (each line in each file corresponds to an element).
   *
@@ -33,11 +33,11 @@ import org.platanios.tensorflow.api.types.STRING
   * @author Emmanouil Antonios Platanios
   */
 case class TextLinesDataset(
-    filenames: Tensor[STRING],
+    filenames: Tensor[String],
     compressionType: CompressionType = NoCompression,
     bufferSize: Long = 256 * 1024,
     override val name: String = "TextLineDataset"
-) extends Dataset[Tensor[STRING], Output, STRING, Shape](name) {
+) extends Dataset[Tensor[String], Output, DataType[String], Shape](name) {
   if (filenames.rank != -1 && filenames.rank > 1)
     throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
 
@@ -49,7 +49,7 @@ case class TextLinesDataset(
         .build().outputs(0)
   }
 
-  override def outputDataTypes: STRING = STRING
+  override def outputDataTypes: DataType[String] = STRING
   override def outputShapes: Shape = Shape.scalar()
 }
 
@@ -69,7 +69,7 @@ case class DynamicTextLinesDataset(
     compressionType: CompressionType = NoCompression,
     bufferSize: Long = 256 * 1024,
     override val name: String = "TextLineDataset"
-) extends Dataset[Tensor[STRING], Output, STRING, Shape](name) {
+) extends Dataset[Tensor[String], Output, DataType[String], Shape](name) {
   if (filenames.dataType != STRING)
     throw new IllegalArgumentException(s"'filenames' (dataType = ${filenames.dataType}) must be a STRING tensor.")
   if (filenames.rank != -1 && filenames.rank > 1)
@@ -83,6 +83,6 @@ case class DynamicTextLinesDataset(
         .build().outputs(0)
   }
 
-  override def outputDataTypes: STRING = STRING
+  override def outputDataTypes: DataType[String] = STRING
   override def outputShapes: Shape = Shape.scalar()
 }

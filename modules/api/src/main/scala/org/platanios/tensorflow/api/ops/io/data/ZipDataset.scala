@@ -200,7 +200,7 @@ object ZipDataset {
     */
   private[data] def datasetZip(
       datasets: Seq[Output],
-      outputDataTypes: Seq[DataType],
+      outputDataTypes: Seq[DataType[_]],
       outputShapes: Seq[Shape],
       name: String = "DatasetZip"
   ): Output = {

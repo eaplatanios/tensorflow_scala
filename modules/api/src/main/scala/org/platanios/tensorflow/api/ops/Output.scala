@@ -39,7 +39,7 @@ sealed trait OutputLike extends OutputConvertible {
   def name: String
 
   /** Data type of this op output. */
-  def dataType: DataType
+  def dataType: DataType[_]
 
   /** Device on which this op output will be placed. */
   def device: String
@@ -143,8 +143,8 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
   override def name: String = s"${op.name}:$index"
 
   /** Data type of this op output. */
-  override def dataType: DataType = using(graph.reference) { r =>
-    DataType.fromCValue[DataType](NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index))
+  override def dataType: DataType[_] = using(graph.reference) { r =>
+    DataType.fromCValue[DataType[_]](NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index))
   }
 
   /** Device on which this op output will be placed. */
@@ -241,7 +241,7 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
   override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = {
-    val denseShape = Basic.shape(this, dataType = INT32, optimize = optimize)
+    val denseShape = Basic.shape(this, optimize = optimize).toInt32
     val indices = Math.range(Basic.constant(0), denseShape(0))
     OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
   }
@@ -276,7 +276,7 @@ object Output {
   }
 
   /** Returns the constant value of the given tensor, if efficiently calculable. */
-  private[api] def constantValue(tensor: Output): Option[Tensor[DataType]] = {
+  private[api] def constantValue(tensor: Output): Option[Tensor[_]] = {
     val value = using(tensor.graph.reference)(r => {
       val result = NativeOp.tryEvaluateConstant(r.nativeHandle, tensor.op.nativeHandle, tensor.index)
       if (result == 0L)
@@ -305,9 +305,9 @@ object Output {
             .flatMap(start => constantValue(tensor.op.inputs(1))
                 .flatMap(limit => constantValue(tensor.op.inputs(2))
                     .map(delta => TensorMath.range(
-                      start.asInstanceOf[Tensor[NumericDataType]],
-                      limit.asInstanceOf[Tensor[NumericDataType]],
-                      delta.asInstanceOf[Tensor[NumericDataType]]))))
+                      start.asInstanceOf[Tensor[Int]],
+                      limit.asInstanceOf[Tensor[Int]],
+                      delta.asInstanceOf[Tensor[Int]]))))
       case "Cast" =>
         constantValue(tensor.op.inputs(0)).map(preCast => {
           preCast.cast(tensor.op.dataTypeAttribute("DstT"))
@@ -315,10 +315,11 @@ object Output {
       case "Concat" =>
         constantValue(tensor.op.inputs(0)).flatMap(axis => {
           val values = tensor.op.inputs.tail.map(constantValue)
+          // TODO: [TYPES] !!! The following usages of 'Any' will fail.
           if (values.contains(None))
             None
           else
-            Some(TensorBasic.concatenate(values.map(_.get), axis.asInstanceOf[Tensor[INT32]]))
+            Some(TensorBasic.concatenate[Any](values.map(_.get.asInstanceOf[Tensor[Any]]), axis.asInstanceOf[Tensor[Int]]))
         })
       case "ConcatV2" =>
         constantValue(tensor.op.inputs(tensor.op.numInputs - 1)).flatMap(axis => {
@@ -326,36 +327,36 @@ object Output {
           if (values.contains(None))
             None
           else
-            Some(TensorBasic.concatenate(values.map(_.get), axis.asInstanceOf[Tensor[INT32]]))
+            Some(TensorBasic.concatenate[Any](values.map(_.get.asInstanceOf[Tensor[Any]]), axis.asInstanceOf[Tensor[Int]]))
         })
       case "Pack" =>
         val values = tensor.op.inputs.map(constantValue)
         if (values.contains(None)) {
           None
         } else {
-          Some(TensorBasic.stack(values.map(_.get)))
+          Some(TensorBasic.stack[Any](values.map(_.get.asInstanceOf[Tensor[Any]])))
         }
       case "Fill" =>
         val fillShape = tensor.shape
         val fillValue = constantValue(tensor.op.inputs(0))
         if (fillShape.isFullyDefined && fillValue.isDefined) {
-          val value = fillValue.get
+          val value = fillValue.get.asInstanceOf[Tensor[Any]]
           Some(Tensor.fill(value.dataType, fillShape)(value.scalar)(value.dataType.evSupportedType))
         } else {
           None
         }
-      case "Equal" =>
-        constantValue(tensor.op.inputs(0))
-            .flatMap(value1 => constantValue(tensor.op.inputs(1))
-                .map(value2 => TensorMath.equal(
-                  value1.asInstanceOf[Tensor[ReducibleDataType]],
-                  value2.asInstanceOf[Tensor[ReducibleDataType]])))
-      case "NotEqual" =>
-        constantValue(tensor.op.inputs(0))
-            .flatMap(value1 => constantValue(tensor.op.inputs(1))
-                .map(value2 => TensorMath.notEqual(
-                  value1.asInstanceOf[Tensor[ReducibleDataType]],
-                  value2.asInstanceOf[Tensor[ReducibleDataType]])))
+//      case "Equal" =>
+//        constantValue(tensor.op.inputs(0))
+//            .flatMap(value1 => constantValue(tensor.op.inputs(1))
+//                .map(value2 => TensorMath.equal(
+//                  value1.asInstanceOf[Tensor[Any]],
+//                  value2.asInstanceOf[Tensor[Any]])))
+//      case "NotEqual" =>
+//        constantValue(tensor.op.inputs(0))
+//            .flatMap(value1 => constantValue(tensor.op.inputs(1))
+//                .map(value2 => TensorMath.notEqual(
+//                  value1.asInstanceOf[Tensor[Any]],
+//                  value2.asInstanceOf[Tensor[Any]])))
       case _ => None
     })
     // If defined, the caller may now depend on the constant value, and so we prevent 'tensor' from being fed.
@@ -496,7 +497,7 @@ final case class OutputIndexedSlices(indices: Output, values: Output, denseShape
       (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
 
   /** Data type of these op output indexed slices. */
-  override def dataType: DataType = values.dataType
+  override def dataType: DataType[_] = values.dataType
 
   /** Device on which these op output indexed slices will be placed. */
   override def device: String = values.device
@@ -624,7 +625,7 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
       (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
 
   /** Data type of this sparse op output. */
-  override def dataType: DataType = values.dataType
+  override def dataType: DataType[_] = values.dataType
 
   /** Device on which this sparse op output will be placed. */
   override def device: String = values.device

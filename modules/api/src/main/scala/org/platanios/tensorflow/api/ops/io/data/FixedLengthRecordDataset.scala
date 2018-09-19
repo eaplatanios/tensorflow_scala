@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.STRING
+import org.platanios.tensorflow.api.types.{DataType, STRING}
 
 /** Dataset with elements read from binary files.
   *
@@ -32,13 +32,13 @@ import org.platanios.tensorflow.api.types.STRING
   * @author Emmanouil Antonios Platanios
   */
 case class FixedLengthRecordDataset(
-    filenames: Tensor[STRING],
+    filenames: Tensor[String],
     recordNumBytes: Long,
     headerNumBytes: Long,
     footerNumBytes: Long,
     bufferSize: Long = 256 * 1024,
     override val name: String = "FixedLengthRecordDataset"
-) extends Dataset[Tensor[STRING], Output, STRING, Shape](name) {
+) extends Dataset[Tensor[String], Output, DataType[String], Shape](name) {
   if (filenames.rank != -1 && filenames.rank > 1)
     throw new IllegalArgumentException(s"'filenames' (rank = ${filenames.rank}) must be at most 1.")
 
@@ -52,6 +52,6 @@ case class FixedLengthRecordDataset(
         .build().outputs(0)
   }
 
-  override def outputDataTypes: STRING = STRING
+  override def outputDataTypes: DataType[String] = STRING
   override def outputShapes: Shape = Shape.scalar()
 }

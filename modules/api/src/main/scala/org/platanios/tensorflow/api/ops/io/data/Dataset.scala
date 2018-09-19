@@ -26,7 +26,8 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 import java.util.concurrent.atomic.AtomicLong
 
-import scala.collection.mutable
+import scala.collection.generic.CanBuildFrom
+import scala.collection.{SeqLike, mutable}
 import scala.language.postfixOps
 
 /** Represents a potentially large set of elements.
@@ -78,9 +79,9 @@ abstract class Dataset[T, O, D, S](
   /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
   def outputShapes: S
 
-  /** Returns a sequence of [[DataType]]s that correspond to the flattened data types of the nested [[Output]] structure
+  /** Returns a sequence of data types that correspond to the flattened data types of the nested [[Output]] structure
     * of the elements of this dataset. */
-  private[io] def flattenedOutputDataTypes: Seq[DataType] = evData.flattenedDataTypes(outputDataTypes)
+  private[io] def flattenedOutputDataTypes: Seq[DataType[_]] = evData.flattenedDataTypes(outputDataTypes)
 
   /** Returns a sequence of [[Shape]]s that correspond to the flattened shapes of the nested [[Output]] structure of the
     * elements of this dataset. */
@@ -165,8 +166,8 @@ object Dataset {
     type OutputDataset[T, O, D, S] = data.OutputDataset[T, O, D, S]
     type TensorSlicesDataset[T, O, D, S] = data.TensorSlicesDataset[T, O, D, S]
     type OutputSlicesDataset[T, O, D, S] = data.OutputSlicesDataset[T, O, D, S]
-    type SparseTensorSlicesDataset[D <: DataType] = data.SparseTensorSlicesDataset[D]
-    type SparseOutputSlicesDataset = data.SparseOutputSlicesDataset
+    type SparseTensorSlicesDataset[T] = data.SparseTensorSlicesDataset[T]
+    type SparseOutputSlicesDataset[T] = data.SparseOutputSlicesDataset[T]
     type TextLinesDataset = data.TextLinesDataset
     type DynamicTextLinesDataset = data.DynamicTextLinesDataset
     type FixedLengthRecordDataset = data.FixedLengthRecordDataset
@@ -318,7 +319,7 @@ object Dataset {
     def generatorMapFn(iteratorId: Output): O = {
       /** Scala callback function that will be called to invoke the iterator. */
       @throws[OutOfRangeException]
-      def generatorScalaCallback(iteratorId: Tensor[INT64]): Seq[Tensor[DataType]] = {
+      def generatorScalaCallback(iteratorId: Tensor[Long]): Seq[Tensor[_]] = {
         val iterator = generatorState.getIterator(iteratorId.scalar)
         val value = {
           if (iterator.hasNext)
@@ -340,6 +341,22 @@ object Dataset {
                   s"where an element with shape $shape was expected.")
         })
         flattenedTensors
+      }
+
+      implicit def tensorSeqArgType[CC[A] <: SeqLike[A, CC[A]]](implicit
+          cbfTensor: CanBuildFrom[Seq[Tensor[_]], Tensor[_], CC[Tensor[_]]],
+          cbfOutput: CanBuildFrom[Seq[Output], Output, CC[Output]]
+      ): Callback.ArgType.Aux[CC[Tensor[_]], CC[Output], CC[DataType[_]]] = {
+        new Callback.ArgType[CC[Tensor[_]]] {
+          override type TS = CC[Output]
+          override type TD = CC[DataType[_]]
+
+          override def tensors(arg: CC[Tensor[_]]): Seq[Tensor[_]] = arg.toSeq
+          override def outputs(arg: CC[Output]): Seq[Output] = arg.toSeq
+          override def dataTypes(types: CC[DataType[_]]): Seq[DataType[_]] = types.toSeq
+          override def decode(tensors: Seq[Tensor[_]]): CC[Tensor[_]] = tensors.to[CC](cbfTensor)
+          override def decodeSymbolic(outputs: Seq[Output]): CC[Output] = outputs.to[CC](cbfOutput)
+        }
       }
 
       val flattenedValues = Callback.callback(generatorScalaCallback, iteratorId, flattenedTypes, stateful = true)

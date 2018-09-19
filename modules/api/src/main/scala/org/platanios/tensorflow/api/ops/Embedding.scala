@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.types.{INT32, INT64}
 
 import scala.language.postfixOps
 
@@ -119,7 +119,7 @@ private[ops] trait Embedding {
         // Compute the dynamic element shape.
         val elementDynamicShape = {
           if (elementStaticShape.isFullyDefined) {
-            elementStaticShape.toOutput()
+            elementStaticShape.toOutput(INT64)
           } else if (transformFn == null) {
             // It's important that we compute the shape on the right device to avoid data copies.
             Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp), ignoreExisting = true) {
@@ -183,7 +183,7 @@ private[ops] trait Embedding {
     }
     Op.createWithNameScope(name) {
       val segmentIds = sparseIds.indices(::, 0).cast(INT32)
-      val (ids, idx) = Basic.unique(sparseIds.values, 0)
+      val (ids, idx) = Basic.unique(sparseIds.values, 0, INT32)
       var embeddings = embeddingLookup(parameters, ids, partitionStrategy, maxNorm = maxNorm)
       if (ignoreWeights) {
         combiner.combine(embeddings, idx, segmentIds)

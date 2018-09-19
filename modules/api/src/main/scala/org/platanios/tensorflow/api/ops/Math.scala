@@ -63,7 +63,7 @@ private[api] trait Math {
       start: Output,
       limit: Output,
       delta: Output = Basic.constant(1),
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       name: String = "Range"
   ): Output = {
     var castedStart: Output = start
@@ -1468,7 +1468,7 @@ private[api] trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def argmax(input: Output, axes: Output = 0, outputDataType: DataType = INT64, name: String = "ArgMax"): Output = {
+  def argmax(input: Output, axes: Output = 0, outputDataType: DataType[_] = INT64, name: String = "ArgMax"): Output = {
     Op.Builder(opType = "ArgMax", name = name)
         .addInput(input)
         .addInput(axes)
@@ -1487,7 +1487,7 @@ private[api] trait Math {
     * @throws IllegalArgumentException If `axes` data type or `outputDataType` is not [[INT32]] or [[INT64]].
     */
   @throws[IllegalArgumentException]
-  def argmin(input: Output, axes: Output = 0, outputDataType: DataType = INT64, name: String = "ArgMin"): Output = {
+  def argmin(input: Output, axes: Output = 0, outputDataType: DataType[_] = INT64, name: String = "ArgMin"): Output = {
     Op.Builder(opType = "ArgMin", name = name)
         .addInput(input)
         .addInput(axes)
@@ -1512,7 +1512,7 @@ private[api] trait Math {
     */
   def binCount(
       input: Output, weights: Output = null, minLength: Output = null, maxLength: Output = null,
-      dataType: DataType = INT32, name: String = "BinCount"): Output = {
+      dataType: DataType[_] = INT32, name: String = "BinCount"): Output = {
     val inputNonEmpty = greater(prod(Basic.shape(input)), 0)
     var outputSize = Cast.cast(inputNonEmpty, INT32) * (max(input) + 1)
     if (minLength != null)
@@ -2034,7 +2034,7 @@ private[api] trait Math {
       conjugateB: Boolean = false, aIsSparse: Boolean = false, bIsSparse: Boolean = false,
       name: String = "MatMul"): Output = {
     val (cA, cB) = castArgs(a, b)
-    val sparseMatMulDataTypes = Set[DataType](BFLOAT16, FLOAT32)
+    val sparseMatMulDataTypes = Set[DataType[_]](BFLOAT16, FLOAT32)
     if (!aIsSparse && !bIsSparse && (cA.rank == -1 || cA.rank > 2) && (cB.rank == -1 || cB.rank > 2)) {
       // "BatchMatMul" does not support transpose, so we conjugate the matrix and use adjoint instead.
       // The "conj" op is a no-op for real matrices.
@@ -2201,11 +2201,11 @@ private[api] trait Math {
             (axes, null)
           }
         }
-        val shapeA = Basic.shape(a, INT32)
+        val shapeA = Basic.shape(a).toInt32
         val rankA = Basic.rank(a)
         var axesO = Basic.constant(mappedAxes, name = "Axes")
-        axesO = ((axesO >= 0).cast(INT32) * axesO) + ((axesO < 0).cast(INT32) * (axesO + rankA))
-        val (free, _) = Basic.listDiff(Math.range(0, rankA), axesO)
+        axesO = ((axesO >= 0).toInt32 * axesO) + ((axesO < 0).toInt32 * (axesO + rankA))
+        val (free, _) = Basic.listDiff(Math.range(0, rankA), axesO, INT32)
         val freeAxes = Basic.gather(shapeA, free)
         val axesAxes = Basic.gather(shapeA, axesO)
         val prodFree = freeAxes.prod()
@@ -2316,7 +2316,7 @@ private[api] trait Math {
       val shapeA = Basic.shape(a)
       val rankA = Basic.rank(a)
       val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA))
-      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes)
+      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
       val freeAxes = Basic.gather(shapeA, free)
       val axesAxes = Basic.gather(shapeA, mappedAxes)
       val prodFree = freeAxes.prod()
@@ -3212,7 +3212,7 @@ object Math extends Math {
       * @param  outputDataType Data type for the output tensor. Must be `INT32` or `INT64`.
       * @return Result as a new tensor.
       */
-    def argmax(axes: Output = 0, outputDataType: DataType = INT64): Output = Math.argmax(output, axes, outputDataType)
+    def argmax(axes: Output = 0, outputDataType: DataType[_] = INT64): Output = Math.argmax(output, axes, outputDataType)
 
     /** $OpDocMathArgmin
       *
@@ -3221,7 +3221,7 @@ object Math extends Math {
       * @param  outputDataType Data type for the output tensor. Must be `INT32` or `INT64`.
       * @return Result as a new tensor.
       */
-    def argmin(axes: Output = 0, outputDataType: DataType = INT64): Output = Math.argmin(output, axes, outputDataType)
+    def argmin(axes: Output = 0, outputDataType: DataType[_] = INT64): Output = Math.argmin(output, axes, outputDataType)
 
     /** $OpDocMathBinCount
       *
@@ -3238,7 +3238,7 @@ object Math extends Math {
       */
     def binCount(
         weights: Output = null, minLength: Output = null, maxLength: Output = null,
-        dataType: DataType = INT32): Output = {
+        dataType: DataType[_] = INT32): Output = {
       Math.binCount(output, weights, minLength, maxLength, dataType)
     }
 
@@ -4405,7 +4405,7 @@ object Math extends Math {
         val inputShape = {
           // If the shape is not fully defined but the rank is, we use the shape op.
           if (input.shape.isFullyDefined)
-            input.shape.toOutput()
+            input.shape.toOutput(INT64)
           else
             Basic.shape(input)
         }
@@ -4457,7 +4457,7 @@ object Math extends Math {
         val reductionIndices = floorMod(add(Basic.reshape(op.inputs(1), -1), rank), rank)
         val reduced = Cast.cast(reductionIndices, INT32)
         val indices = range(Basic.constant(0), rank)
-        val (other, _) = Basic.listDiff(indices, reduced)
+        val (other, _) = Basic.listDiff(indices, reduced, INT32)
         (Basic.concatenate(Seq(reduced, other), 0),
             prod(Basic.gather(inputShape, reduced)),
             prod(Basic.gather(inputShape, other)))
@@ -4791,7 +4791,7 @@ object Math extends Math {
       val gradIsSparse = outputGradient.op.opType == "ReluGrad"
 
       def helper(
-          a: Output, b: Output, dataType: DataType,
+          a: Output, b: Output, dataType: DataType[_],
           tA: Boolean = false, tB: Boolean = false,
           sA: Boolean = false, sB: Boolean = false): Output = {
         Cast.cast(matmul(
@@ -4874,15 +4874,15 @@ object Math extends Math {
     */
   private[api] def reducedShape(inputShape: Output, axes: Output): Output = {
     // Cast needed for SparseOutput reductions.
-    val intInputShape = Cast.cast(inputShape, INT32)
-    val inputRank = Basic.size(intInputShape, INT32)
+    val intInputShape = inputShape.toInt32
+    val inputRank = Basic.size(intInputShape).toInt32
     val reshapedAxes = {
       if (axes.rank == 0)
         Basic.reshape(axes, Tensor(1))
       else
         axes
     }
-    val intAxes = floorMod(add(Cast.cast(reshapedAxes, INT32), inputRank), inputRank)
+    val intAxes = floorMod(add(reshapedAxes.toInt32, inputRank), inputRank)
     val axesShape = Basic.shape(intAxes)
     DataFlow.dynamicStitch(
       Seq(range(Basic.constant(0), inputRank), intAxes),

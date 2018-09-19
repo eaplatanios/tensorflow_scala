@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Accuracy metric.
   *
@@ -48,7 +47,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
   */
 class Accuracy(
     val nameScope: String,
-    protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
+    protected val defaultWeights: Option[Tensor[Float]] = None,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
     val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
@@ -62,7 +61,7 @@ class Accuracy(
   override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  override def weights: Option[Tensor[FLOAT32]] = defaultWeights
+  override def weights: Option[Tensor[Float]] = defaultWeights
 
   /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
     *
@@ -118,7 +117,7 @@ object Accuracy {
     */
   def apply(
       nameScope: String,
-      defaultWeights: Option[Tensor[FLOAT32]] = None,
+      defaultWeights: Option[Tensor[Float]] = None,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
       updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),

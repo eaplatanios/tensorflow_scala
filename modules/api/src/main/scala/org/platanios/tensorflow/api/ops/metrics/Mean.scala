@@ -45,7 +45,7 @@ import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
   */
 class Mean(
     val nameScope: String,
-    protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
+    protected val defaultWeights: Option[Tensor[Float]] = None,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
     val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
@@ -55,7 +55,7 @@ class Mean(
   override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  override def weights: Option[Tensor[FLOAT32]] = defaultWeights
+  override def weights: Option[Tensor[Float]] = defaultWeights
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
@@ -150,7 +150,7 @@ object Mean {
     */
   def apply(
       nameScope: String,
-      defaultWeights: Option[Tensor[FLOAT32]] = None,
+      defaultWeights: Option[Tensor[Float]] = None,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
       updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),

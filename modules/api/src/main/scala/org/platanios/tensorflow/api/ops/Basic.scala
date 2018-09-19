@@ -53,8 +53,8 @@ private[api] trait Basic {
     */
   @throws[InvalidShapeException]
   def constant(
-      tensor: Tensor[DataType],
-      dataType: DataType = null,
+      tensor: Tensor[_],
+      dataType: DataType[_] = null,
       shape: Shape = null,
       name: String = "Constant"
   ): Output = {
@@ -94,7 +94,7 @@ private[api] trait Basic {
     * @return Created op output.
     */
   private[ops] def immutableConstant(
-      dataType: DataType,
+      dataType: DataType[_],
       shape: Shape,
       memoryRegionName: String,
       name: String = "ImmutableConstant"
@@ -115,7 +115,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def zeros(dataType: DataType, shape: Output, name: String = "Zeros"): Output = {
+  def zeros[T](dataType: DataType[T], shape: Output, name: String = "Zeros"): Output = {
     import dataType.evSupportedType
     fill(dataType, shape)(dataType.cast(0), name = name)
   }
@@ -133,7 +133,7 @@ private[api] trait Basic {
     */
   def zerosLike(
       input: Output,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       optimize: Boolean = true,
       name: String = "ZerosLike"
   ): Output = {
@@ -161,7 +161,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def ones(dataType: DataType, shape: Output, name: String = "Ones"): Output = {
+  def ones[T](dataType: DataType[T], shape: Output, name: String = "Ones"): Output = {
     import dataType.evSupportedType
     fill(dataType, shape)(dataType.cast(1), name = name)
   }
@@ -179,7 +179,7 @@ private[api] trait Basic {
     */
   def onesLike(
       input: Output,
-      dataType: DataType = null,
+      dataType: DataType[_] = null,
       optimize: Boolean = true,
       name: String = "OnesLike"
   ): Output = {
@@ -208,7 +208,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def fill(dataType: DataType = null, shape: Output = null)(value: Output, name: String = "Fill"): Output = {
+  def fill(dataType: DataType[_] = null, shape: Output = null)(value: Output, name: String = "Fill"): Output = {
     Op.Builder(opType = "Fill", name = name)
         .addInput(if (shape == null) Basic.shape(value) else shape)
         .addInput(if (dataType == null || dataType == value.dataType) value else Cast.cast(value, dataType))
@@ -225,7 +225,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def placeholder(dataType: DataType, shape: Shape = null, name: String = "Placeholder"): Output = {
+  def placeholder(dataType: DataType[_], shape: Shape = null, name: String = "Placeholder"): Output = {
     val opBuilder = Op.Builder(opType = "Placeholder", name = name)
         .setAttribute("dtype", dataType)
     if (shape != null && shape.rank != -1)
@@ -261,7 +261,11 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sparsePlaceholder(dataType: DataType, shape: Shape = null, name: String = "SparsePlaceholder"): SparseOutput = {
+  def sparsePlaceholder(
+      dataType: DataType[_],
+      shape: Shape = null,
+      name: String = "SparsePlaceholder"
+  ): SparseOutput = {
     SparseOutput(
       indices = placeholder(dataType, Shape(-1, -1), name + "/Indices"),
       values = placeholder(INT64, Shape(-1), name + "/Values"),
@@ -277,15 +281,13 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  input    Tensor whose rank to return.
-    * @param  dataType Optional data type to use for the output of this op.
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  rank value that `input` has at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def rank[T <: OutputLike](
-      input: T,
-      dataType: DataType = INT32,
+  def rank[O <: OutputLike, T](
+      input: O,
       optimize: Boolean = true,
       name: String = "Rank"
   ): Output = {
@@ -293,13 +295,13 @@ private[api] trait Basic {
       case o: Output =>
         val inputRank = o.rank
         if (optimize && inputRank != -1)
-          constant(Tensor.fill(dataType, Shape())(inputRank), name = name)
+          constant(Tensor.fill(INT32, Shape())(inputRank), name = name)
         else
           Op.Builder(opType = "Rank", name = name)
               .addInput(o)
-              .build().outputs(0).cast(dataType)
-      case o: OutputIndexedSlices => size(o.denseShape, dataType = dataType, optimize = optimize, name = name)
-      case o: SparseOutput => size(o.denseShape, dataType = dataType, optimize = optimize, name = name)
+              .build().outputs(0).cast(INT32)
+      case o: OutputIndexedSlices => size(o.denseShape, optimize = optimize, name = name).cast(INT32)
+      case o: SparseOutput => size(o.denseShape, optimize = optimize, name = name).cast(INT32)
     }
   }
 
@@ -308,16 +310,14 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  input    Tensor whose size to return.
-    * @param  dataType Optional data type to use for the output of this op.
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  number of elements provided by the shape of that `input` at graph creation time (instead of
     *                  execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def size[T <: OutputLike](
-      input: T,
-      dataType: DataType = INT64,
+  def size[O <: OutputLike, T](
+      input: O,
       optimize: Boolean = true,
       name: String = "Size"
   ): Output = {
@@ -325,21 +325,21 @@ private[api] trait Basic {
       case o: Output =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined)
-          constant(Tensor.fill(dataType, Shape())(inputShape.numElements), name = name)
+          constant(Tensor.fill(INT64, Shape())(inputShape.numElements), name = name)
         else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0))
-          constant(0L, dataType = dataType, name = name)
+          constant(0L, dataType = INT64, name = name)
         else
           Op.Builder(opType = "Size", name = name)
               .addInput(o)
-              .setAttribute("out_type", dataType)
+              .setAttribute("out_type", INT64)
               .build().outputs(0)
       case o: OutputIndexedSlices =>
         Op.createWith(nameScope = name) {
-          Math.prod(Cast.cast(o.denseShape, dataType), Seq(0))
+          Math.prod(o.denseShape, Seq(0))
         }
       case o: SparseOutput =>
         Op.createWith(nameScope = name) {
-          Math.prod(Cast.cast(o.denseShape, dataType), Seq(0))
+          Math.prod(o.denseShape, Seq(0))
         }
     }
   }
@@ -349,15 +349,13 @@ private[api] trait Basic {
     * @group BasicOps
     *
     * @param  input    Tensor whose shape to return.
-    * @param  dataType Optional data type to use for the output of this op.
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  shape of that `input` at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op output, which is one-dimensional.
     */
-  def shape[T <: OutputLike](
-      input: T,
-      dataType: DataType = INT64,
+  def shape[O <: OutputLike, T](
+      input: O,
       optimize: Boolean = true,
       name: String = "Shape"
   ): Output = {
@@ -365,20 +363,14 @@ private[api] trait Basic {
       case o: Output =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined)
-          constant(inputShape.toTensor(dataType), name = name)
+          constant(inputShape.toTensor(INT64), name = name)
         else
           Op.Builder(opType = "Shape", name = name)
               .addInput(o)
-              .setAttribute("out_type", dataType)
+              .setAttribute("out_type", INT64)
               .build().outputs(0)
-      case o: OutputIndexedSlices =>
-        Op.createWith(nameScope = name) {
-          Cast.cast(o.denseShape, dataType, name = name)
-        }
-      case o: SparseOutput =>
-        Op.createWith(nameScope = name) {
-          Cast.cast(o.denseShape, dataType, name = name)
-        }
+      case o: OutputIndexedSlices => o.denseShape
+      case o: SparseOutput => o.denseShape
     }
   }
 
@@ -391,7 +383,7 @@ private[api] trait Basic {
     * @param  name     Name for the created op.
     * @return Created op outputs, all of which are one-dimensional.
     */
-  def shapeN(inputs: Seq[Output], dataType: DataType = INT64, name: String = "ShapeN"): Seq[Output] = {
+  def shapeN[T](inputs: Seq[Output], dataType: DataType[T], name: String = "ShapeN"): Seq[Output] = {
     Op.Builder(opType = "ShapeN", name = name)
         .addInputList(inputs)
         .setAttribute("out_type", dataType)
@@ -669,7 +661,7 @@ private[api] trait Basic {
       * @param  paddings `INT32` or `INT64` tensor containing the paddings.
       * @return Result as a new tensor.
       */
-    private[api] def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D]
+    private[api] def pad[T, I: IsInt32OrInt64](input: Tensor[T], paddings: Tensor[I]): Tensor[T]
   }
 
   private[ops] object PaddingMode {
@@ -702,7 +694,7 @@ private[api] trait Basic {
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  case class ConstantPadding(value: Option[Tensor[_ <: DataType]] = None) extends PaddingMode {
+  case class ConstantPadding(value: Option[Tensor[_]] = None) extends PaddingMode {
     override def pad(input: Output, paddings: Output, name: String): Output = {
       Op.Builder(opType = "PadV2", name = name)
           .addInput(input)
@@ -711,8 +703,8 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
-      Tensor.fromNativeHandle(NativeTensorOpsBasic.padV2(
+    override private[api] def pad[T, I: IsInt32OrInt64](input: Tensor[T], paddings: Tensor[I]): Tensor[T] = {
+      Tensor.fromNativeHandle[T](NativeTensorOpsBasic.padV2(
         executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
         value.map(_.cast(input.dataType)).getOrElse(Tensor.zeros(input.dataType, Shape())).nativeHandle))
     }
@@ -749,8 +741,8 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
-      Tensor.fromNativeHandle(NativeTensorOpsBasic.mirrorPad(
+    override private[api] def pad[T, I: IsInt32OrInt64](input: Tensor[T], paddings: Tensor[I]): Tensor[T] = {
+      Tensor.fromNativeHandle[T](NativeTensorOpsBasic.mirrorPad(
         executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
         "REFLECT".getBytes()))
     }
@@ -787,8 +779,8 @@ private[api] trait Basic {
           .build().outputs(0)
     }
 
-    override def pad[D <: DataType, I <: Int32OrInt64](input: Tensor[D], paddings: Tensor[I]): Tensor[D] = {
-      Tensor.fromNativeHandle(NativeTensorOpsBasic.mirrorPad(
+    override private[api] def pad[T, I: IsInt32OrInt64](input: Tensor[T], paddings: Tensor[I]): Tensor[T] = {
+      Tensor.fromNativeHandle[T](NativeTensorOpsBasic.mirrorPad(
         executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
         "SYMMETRIC".getBytes()))
     }
@@ -1074,9 +1066,9 @@ private[api] trait Basic {
         val cBlockShape = Output.constantValue(blockShape)
         val cBasePaddings = Output.constantValue(actualBasePaddings)
         if (cInputShape.isDefined && cBlockShape.isDefined && cBasePaddings.isDefined) {
-          val ccInputShape = cInputShape.get.asInstanceOf[Tensor[Int32OrInt64]]
-          val ccBlockShape = cBlockShape.get.asInstanceOf[Tensor[Int32OrInt64]]
-          val ccBasePaddings = cBasePaddings.get.asInstanceOf[Tensor[Int32OrInt64]]
+          val ccInputShape = cInputShape.get.asInstanceOf[Tensor[Int]]
+          val ccBlockShape = cBlockShape.get.asInstanceOf[Tensor[Int]]
+          val ccBasePaddings = cBasePaddings.get.asInstanceOf[Tensor[Int]]
           val padStart = ccBasePaddings(::, 0)
           val originalPadEnd = ccBasePaddings(::, 1)
           val fullInputShape = ccInputShape + padStart + originalPadEnd
@@ -1114,8 +1106,11 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def spaceToDepth(
-      input: Output, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default,
-      name: String = "SpaceToDepth"): Output = {
+      input: Output,
+      blockSize: Int,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "SpaceToDepth"
+  ): Output = {
     Op.Builder(opType = "SpaceToDepth", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
@@ -1200,7 +1195,6 @@ private[api] trait Basic {
     *                   provided, then all values in `lengths` must be smaller than `maxLength`.
     * @param  maxLength Scalar integer tensor representing the maximum length of each row. Defaults to the maximum value
     *                   in `lengths`.
-    * @param  dataType  Data type for the output tensor.
     * @param  name      Name for the created op.
     * @return Created op output.
     * @throws IllegalArgumentException If `maxLength` is not a scalar.
@@ -1209,7 +1203,6 @@ private[api] trait Basic {
   def sequenceMask(
       lengths: Output,
       maxLength: Output = null,
-      dataType: DataType = BOOLEAN,
       name: String = "SequenceMask"
   ): Output = {
     require(maxLength == null || maxLength.rank == -1 || maxLength.rank == 0, "'maxLength' must be a scalar.")
@@ -1223,8 +1216,7 @@ private[api] trait Basic {
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
       val matrix = Cast.cast(expandDims(lengths, -1), maxLen.dataType)
-      val result = Math.less(rowVector, matrix)
-      Cast.cast(result, dataType)
+      Math.less(rowVector, matrix)
     }
   }
 
@@ -1238,9 +1230,12 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def indexedSlicesMask(
-      input: OutputIndexedSlices, maskIndices: Output, name: String = "IndexedSlicesMask"): OutputIndexedSlices = {
+      input: OutputIndexedSlices,
+      maskIndices: Output,
+      name: String = "IndexedSlicesMask"
+  ): OutputIndexedSlices = {
     Op.createWithNameScope(name, Set(input.indices.op, input.values.op, input.denseShape.op, maskIndices.op)) {
-      val (outputIndices, toGather) = listDiff(input.indices, maskIndices)
+      val (outputIndices, toGather) = listDiff(input.indices.toInt32, maskIndices.toInt32, INT32)
       val outputValues = gather(input.values, toGather)
       OutputIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
     }
@@ -1256,12 +1251,16 @@ private[api] trait Basic {
     *
     * @param  input           Input tensor.
     * @param  axis            Axis along which to compute the unique values.
-    * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
+    * @param  indicesDataType Data type of the returned indices.
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`.
     */
-  def unique(
-      input: Output, axis: Output, indicesDataType: DataType = INT32, name: String = "Unique"): (Output, Output) = {
+  def unique[I: IsInt32OrInt64](
+      input: Output,
+      axis: Output,
+      indicesDataType: DataType[I],
+      name: String = "Unique"
+  ): (Output, Output) = {
     val outputs = Op.Builder(opType = "UniqueV2", name = name)
         .addInput(input)
         .addInput(axis)
@@ -1276,14 +1275,14 @@ private[api] trait Basic {
     *
     * @param  input           Input tensor.
     * @param  axis            Axis along which to count the unique elements.
-    * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
+    * @param  indicesDataType Data type of the returned indices.
     * @param  name            Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
-  def uniqueWithCounts(
+  def uniqueWithCounts[I: IsInt32OrInt64](
       input: Output,
+      indicesDataType: DataType[I],
       axis: Output = 0,
-      indicesDataType: DataType = INT32,
       name: String = "UniqueWithCounts"
   ): (Output, Output, Output) = {
     val outputs = Op.Builder(opType = "UniqueWithCountsV2", name = name)
@@ -1304,7 +1303,12 @@ private[api] trait Basic {
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
     */
-  def listDiff(x: Output, y: Output, indicesDataType: DataType = INT32, name: String = "ListDiff"): (Output, Output) = {
+  def listDiff[I: IsInt32OrInt64](
+      x: Output,
+      y: Output,
+      indicesDataType: DataType[I],
+      name: String = "ListDiff"
+  ): (Output, Output) = {
     val outputs = Op.Builder(opType = "ListDiff", name = name)
         .addInput(x)
         .addInput(y)
@@ -1544,8 +1548,11 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def editDistance(
-      hypothesis: SparseOutput, truth: SparseOutput, normalize: Boolean = true,
-      name: String = "EditDistance"): Output = {
+      hypothesis: SparseOutput,
+      truth: SparseOutput,
+      normalize: Boolean = true,
+      name: String = "EditDistance"
+  ): Output = {
     Op.Builder(opType = "EditDistance", name = name)
         .addInput(hypothesis.indices)
         .addInput(hypothesis.values)
@@ -1575,8 +1582,14 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def oneHot(
-      indices: Output, depth: Output, onValue: Output = null, offValue: Output = null, axis: Int = -1,
-      dataType: DataType = null, name: String = "OneHot"): Output = {
+      indices: Output,
+      depth: Output,
+      onValue: Output = null,
+      offValue: Output = null,
+      axis: Int = -1,
+      dataType: DataType[_] = null,
+      name: String = "OneHot"
+  ): Output = {
     val inferredDataType = {
       if (dataType != null) {
         dataType
@@ -1985,11 +1998,10 @@ object Basic extends Basic {
       *
       * @param  maxLength Scalar integer tensor representing the maximum length of each row. Defaults to the maximum
       *                   value in this tensor.
-      * @param  dataType  Data type for the output tensor.
       * @return Result as a new tensor.
       */
-    def sequenceMask(maxLength: Output = null, dataType: DataType = BOOLEAN): Output = {
-      Basic.sequenceMask(output, maxLength, dataType)
+    def sequenceMask(maxLength: Output = null): Output = {
+      Basic.sequenceMask(output, maxLength)
     }
 
     //endregion Output Masking Ops
@@ -2001,10 +2013,10 @@ object Basic extends Basic {
       * @group BasicOps
       *
       * @param  axis            Axis along which to compute the unique values.
-      * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
+      * @param  indicesDataType Data type of the returned indices.
       * @return Tuple containing `output` and `indices`.
       */
-    def unique(axis: Output, indicesDataType: DataType = INT32): (Output, Output) = {
+    def unique[I: IsInt32OrInt64](axis: Output, indicesDataType: DataType[I]): (Output, Output) = {
       Basic.unique(output, axis, indicesDataType)
     }
 
@@ -2016,8 +2028,11 @@ object Basic extends Basic {
       * @param  indicesDataType Data type of the returned indices. Must be [[INT32]] or [[INT64]].
       * @return Tuple containing `output`, `indices`, and `counts`.
       */
-    def uniqueWithCounts(axis: Output = 0, indicesDataType: DataType = INT32): (Output, Output, Output) = {
-      Basic.uniqueWithCounts(output, axis, indicesDataType)
+    def uniqueWithCounts[I: IsInt32OrInt64](
+        axis: Output = 0,
+        indicesDataType: DataType[I]
+    ): (Output, Output, Output) = {
+      Basic.uniqueWithCounts(output, indicesDataType, axis)
     }
 
     /** $OpDocBasicListDiff
@@ -2025,10 +2040,10 @@ object Basic extends Basic {
       * @group BasicOps
       *
       * @param  other           One-dimensional tensor containing the values to remove.
-      * @param  indicesDataType Data type to use for the output indices of this op. Must be [[INT32]] or [[INT64]].
+      * @param  indicesDataType Data type to use for the output indices of this op.
       * @return Tuple containing `output` and `indices`, from the method description.
       */
-    def listDiff(other: Output, indicesDataType: DataType = INT32): (Output, Output) = {
+    def listDiff[I: IsInt32OrInt64](other: Output, indicesDataType: DataType[I]): (Output, Output) = {
       Basic.listDiff(output, other, indicesDataType)
     }
 
@@ -2122,7 +2137,7 @@ object Basic extends Basic {
         onValue: Output = null,
         offValue: Output = null,
         axis: Int = -1,
-        dataType: DataType = null
+        dataType: DataType[_] = null
     ): Output = Basic.oneHot(output, depth, onValue, offValue, axis, dataType)
 
     //endregion Output Ungrouped Ops
@@ -2261,7 +2276,7 @@ object Basic extends Basic {
             // concatenate op implementation to be within the allowed '[-rank, rank)' range.
             val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
             // Get the inputs' tensor shapes.
-            val shapes = shapeN(inputValues)
+            val shapes = shapeN(inputValues, INT64)
             // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
             // GPU. A speedup was seen in a large majority of cases when switching implementations at N = 16, but it is
             // possible that there will be a small number of performance regressions.
@@ -2472,7 +2487,7 @@ object Basic extends Basic {
       // and so it's fine to convert it back to INT32 regardless of the truncation.
       val input = op.inputs(0)
       val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
-        val inputShape = shape(input, INT64)
+        val inputShape = shape(input)
         Cast.cast(inputShape, INT32)
       }
       // Build appropriately shaped 'OutputIndexedSlices'.
@@ -2492,10 +2507,10 @@ object Basic extends Basic {
       // and so it's fine to convert it back to INT32 regardless of the truncation.
       val input = op.inputs(0)
       val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
-        shape(input, INT32)
+        shape(input).toInt32
       }
       val indices = op.inputs(1).toInt32
-      val indicesSize = expandDims(size(indices, INT32), 0)
+      val indicesSize = expandDims(size(indices).toInt32, 0)
       val axis = op.inputs(2)
       val axisStatic = Output.constantValue(axis)
       // For axis 0 gathers, we build appropriately shaped indexed slices.
@@ -2509,7 +2524,7 @@ object Basic extends Basic {
         val expandedAxis = axis.expandDims(0)
         val outerShape = Basic.slice(inputShape, Tensor(0), expandedAxis)
         val outerSize = Basic.size(outerShape)
-        val innerShape = Basic.slice(inputShape, expandedAxis, Basic.size(inputShape).expandDims(0))(1 ::)
+        val innerShape = Basic.slice(inputShape, expandedAxis, Basic.size(inputShape).toInt32.expandDims(0))(1 ::)
         val innerSize = Basic.size(innerShape)
         val outerAxesIndices = Math.range(0, outerSize)
         val innerAxesIndices = Math.range(outerSize + 1, outerSize + 1 + innerSize)
@@ -2534,7 +2549,7 @@ object Basic extends Basic {
     private[this] def gatherNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
       val input = op.inputs(0)
       val indices = op.inputs(1)
-      val inputShape = shape(input, indices.dataType)
+      val inputShape = shape(input).cast(indices.dataType)
       if (indices.rank == 2 && indices.shape(-1) == 1)
         Seq(OutputIndexedSlices(outputGradients.head, Basic.squeeze(indices, axes = Seq(-1)), inputShape), null)
       else
@@ -2563,7 +2578,7 @@ object Basic extends Basic {
 
   private[this] def stridedSliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
     val gradient = Op.Builder(opType = "StridedSliceGrad", name = "StridedSliceGradient")
-        .addInput(shape(op.inputs(0), dataType = op.inputs(1).dataType))
+        .addInput(shape(op.inputs(0)).cast(op.inputs(1).dataType))
         .addInput(op.inputs(1))
         .addInput(op.inputs(2))
         .addInput(op.inputs(3))

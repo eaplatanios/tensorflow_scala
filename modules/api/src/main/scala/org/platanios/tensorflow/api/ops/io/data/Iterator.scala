@@ -131,7 +131,7 @@ class Iterator[T, O, D, S] private[io](
 
   /** Returns a sequence of data types that correspond to the flattened data types of the nested outputs structure
     * of the elements of this iterator. */
-  private[this] def flattenedOutputDataTypes: Seq[DataType] = ev.flattenedDataTypes(outputDataTypes)
+  private[this] def flattenedOutputDataTypes: Seq[DataType[_]] = ev.flattenedDataTypes(outputDataTypes)
 
   /** Returns a sequence of shapes that correspond to the flattened shapes of the nested outputs structure of the
     * elements of this iterator. */
@@ -382,7 +382,7 @@ object Iterator {
   private[io] def createIterator(
       container: String = "",
       sharedName: String = "",
-      outputDataTypes: Seq[DataType],
+      outputDataTypes: Seq[DataType[_]],
       outputShapes: Seq[Shape],
       name: String = "Iterator"
   ): Output = {
@@ -424,7 +424,7 @@ object Iterator {
     */
   private[io] def iteratorGetNext(
       iteratorHandle: Output,
-      outputDataTypes: Seq[DataType],
+      outputDataTypes: Seq[DataType[_]],
       outputShapes: Seq[Shape],
       name: String = "IteratorGetNext"
   ): Seq[Output] = {
@@ -468,7 +468,7 @@ object Iterator {
     */
   private[io] def iteratorFromStringHandle(
       stringHandle: Output,
-      outputDataTypes: Seq[DataType],
+      outputDataTypes: Seq[DataType[_]],
       outputShapes: Seq[Shape],
       name: String = "IteratorFromStringHandle"
   ): Output = {

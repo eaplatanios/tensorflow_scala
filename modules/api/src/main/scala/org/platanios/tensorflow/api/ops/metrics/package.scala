@@ -50,7 +50,7 @@ package object metrics {
     */
   private[metrics] def selectID(ids: Output, selectedID: Output): SparseOutput = {
     // The shape of filled IDs is the same as `ids` with the last axis size collapsed to 1.
-    val idsShape = Basic.shape(ids, dataType = INT64)
+    val idsShape = Basic.shape(ids)
     val idsLastAxis = Basic.size(idsShape) - 1
     val filledSelectedIDShape = Math.reducedShape(idsShape, Basic.reshape(idsLastAxis, Shape(1)))
 

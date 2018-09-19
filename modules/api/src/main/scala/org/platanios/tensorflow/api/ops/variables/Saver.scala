@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.types.{DataType, INT32, INT64}
 import org.platanios.tensorflow.api.utilities.Proto
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
@@ -1029,7 +1029,7 @@ trait SaverDefBuilder {
             // Compute the shapes and let the restore op decide if and how to do the reshape.
             saveable.saveSpecifications.map(s => {
               if (s.value().shape.isFullyDefined)
-                s.value().shape.toOutput()
+                s.value().shape.toOutput(INT64)
               else
                 Basic.shape(s.value())
             })

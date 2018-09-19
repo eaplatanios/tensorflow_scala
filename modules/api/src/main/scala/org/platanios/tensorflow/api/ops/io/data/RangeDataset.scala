@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.INT64
+import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 /** Dataset that wraps the application of the `range` op.
   *
@@ -36,7 +36,7 @@ case class RangeDataset(
     limit: Long,
     delta: Long = 1L,
     override val name: String = "RangeDataset"
-) extends Dataset[Tensor[INT64], Output, INT64, Shape](name) {
+) extends Dataset[Tensor[Long], Output, DataType[Long], Shape](name) {
   override def createHandle(): Output = {
     Op.Builder(opType = "RangeDataset", name = name)
         .addInput(Op.createWithNameScope(name)(Basic.constant(start)))
@@ -47,7 +47,7 @@ case class RangeDataset(
         .build().outputs(0)
   }
 
-  override def outputDataTypes: INT64 = INT64
+  override def outputDataTypes: DataType[Long] = INT64
   override def outputShapes: Shape = Shape.scalar()
 }
 

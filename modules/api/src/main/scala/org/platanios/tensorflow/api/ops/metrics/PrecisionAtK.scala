@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.ops.{NN, Op, Output}
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Precision@K metric.
   *
@@ -54,7 +53,7 @@ import org.platanios.tensorflow.api.types.FLOAT32
 class PrecisionAtK(
     val nameScope: String,
     val k: Int,
-    protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
+    protected val defaultWeights: Option[Tensor[Float]] = None,
     val labelID: Option[Int] = None,
     val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
     val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
@@ -71,7 +70,7 @@ class PrecisionAtK(
   override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  override def weights: Option[Tensor[FLOAT32]] = defaultWeights
+  override def weights: Option[Tensor[Float]] = defaultWeights
 
   /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
     *
@@ -136,7 +135,7 @@ object PrecisionAtK {
   def apply(
       nameScope: String,
       k: Int,
-      defaultWeights: Option[Tensor[FLOAT32]] = None,
+      defaultWeights: Option[Tensor[Float]] = None,
       labelID: Option[Int] = None,
       variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
       valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),

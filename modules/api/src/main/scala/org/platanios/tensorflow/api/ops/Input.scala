@@ -34,7 +34,7 @@ final case class Input private[ops](op: Op, index: Int) {
   lazy val name: String = s"${op.name}:$index"
 
   /** Data type of this op input. */
-  lazy val dataType: DataType = using(graph.reference) { r =>
+  lazy val dataType: DataType[_] = using(graph.reference) { r =>
     DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, op.nativeHandle, index))
   }
 

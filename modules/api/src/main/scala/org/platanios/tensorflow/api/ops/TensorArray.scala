@@ -47,7 +47,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT64}
 case class TensorArray private (
     handle: Output,
     flow: Output,
-    dataType: DataType,
+    dataType: DataType[_],
     inferShape: Boolean,
     private[ops] var elementShape: Option[Shape],
     colocateWithFirstWrite: Boolean = true,
@@ -352,7 +352,7 @@ object TensorArray {
     */
   def create(
       size: Output,
-      dataType: DataType,
+      dataType: DataType[_],
       dynamicSize: Boolean = false,
       clearAfterRead: Boolean = true,
       tensorArrayName: String = "",
@@ -397,7 +397,7 @@ object TensorArray {
   private[api] def createFromHandle(
       handle: Output,
       flow: Output,
-      dataType: DataType,
+      dataType: DataType[_],
       inferShape: Boolean = true,
       elementShape: Shape = Shape.unknown(),
       colocateWithFirstWrite: Boolean = true
@@ -433,7 +433,7 @@ object TensorArray {
     */
   private[TensorArray] def createOp(
       size: Output,
-      dataType: DataType,
+      dataType: DataType[_],
       elementShape: Shape = Shape.unknown(),
       dynamicSize: Boolean = false,
       clearAfterRead: Boolean = true,
@@ -465,7 +465,7 @@ object TensorArray {
       handle: Output,
       index: Output,
       flow: Output,
-      dataType: DataType,
+      dataType: DataType[_],
       name: String = "TensorArrayRead"
   ): Output = {
     Op.Builder(opType = "TensorArrayReadV3", name = name)
@@ -517,7 +517,7 @@ object TensorArray {
       handle: Output,
       indices: Output,
       flow: Output,
-      dataType: DataType,
+      dataType: DataType[_],
       shape: Shape = Shape.unknown(),
       name: String = "TensorArrayGather"
   ): Output = {
@@ -577,7 +577,7 @@ object TensorArray {
   private[TensorArray] def concatenateOp(
       handle: Output,
       flow: Output,
-      dataType: DataType,
+      dataType: DataType[_],
       shapeTail: Shape = Shape.unknown(),
       name: String = "TensorArrayConcatenate"
   ): (Output, Output) = {

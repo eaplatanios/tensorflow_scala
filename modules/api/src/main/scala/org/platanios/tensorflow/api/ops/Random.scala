@@ -60,14 +60,14 @@ private[api] trait Random {
     */
   @throws[IllegalArgumentException]
   def randomUniform(
-      dataType: DataType = FLOAT32,
+      dataType: DataType[_] = FLOAT32,
       shape: Output = Shape.scalar(),
       minValue: Output = 0.0,
       maxValue: Output = 1.0,
       seed: Option[Int] = None,
       name: String = "RandomUniform"
   ): Output = {
-    if (!Set[DataType](FLOAT16, FLOAT32, FLOAT64, INT32, INT64).contains(dataType))
+    if (!Set[DataType[_]](FLOAT16, FLOAT32, FLOAT64, INT32, INT64).contains(dataType))
       throw new IllegalArgumentException(
         s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, FLOAT64, INT32, or INT64.")
     Op.createWithNameScope(name, Set(shape.op, minValue.op, maxValue.op)) {
@@ -111,7 +111,7 @@ private[api] trait Random {
     */
   @throws[IllegalArgumentException]
   def randomNormal(
-      dataType: DataType = FLOAT32,
+      dataType: DataType[_] = FLOAT32,
       shape: Output = Shape.scalar(),
       mean: Output = 0.0,
       standardDeviation: Output = 1.0,
@@ -151,7 +151,7 @@ private[api] trait Random {
     */
   @throws[IllegalArgumentException]
   def randomTruncatedNormal(
-      dataType: DataType = FLOAT32,
+      dataType: DataType[_] = FLOAT32,
       shape: Output = Shape.scalar(),
       mean: Output = 0.0,
       standardDeviation: Output = 1.0,

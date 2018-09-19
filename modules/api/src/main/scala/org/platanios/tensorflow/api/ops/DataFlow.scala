@@ -139,7 +139,12 @@ private[api] trait DataFlow {
     * @param  name        Name for the created op.
     * @return Created op output, which is a handle to the new stack resource.
     */
-  def newStack(maxSize: Output, elementType: DataType, stackName: String = "", name: String = "NewStack"): Output = {
+  def newStack(
+      maxSize: Output,
+      elementType: DataType[_],
+      stackName: String = "",
+      name: String = "NewStack"
+  ): Output = {
     Op.Builder("StackV2", name)
         .addInput(maxSize)
         .setAttribute("elem_type", elementType)
@@ -156,7 +161,11 @@ private[api] trait DataFlow {
     * @return Created op output, which has the same value as `element`.
     */
   def stackPush(
-      stackHandle: Output, element: Output, swapMemory: Boolean = false, name: String = "StackPush"): Output = {
+      stackHandle: Output,
+      element: Output,
+      swapMemory: Boolean = false,
+      name: String = "StackPush"
+  ): Output = {
     Op.Builder("StackPushV2", name)
         .addInput(stackHandle)
         .addInput(element)
@@ -171,7 +180,11 @@ private[api] trait DataFlow {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def stackPop(stackHandle: Output, elementType: DataType, name: String = "StackPop"): Output = {
+  def stackPop(
+      stackHandle: Output,
+      elementType: DataType[_],
+      name: String = "StackPop"
+  ): Output = {
     Op.Builder("StackPopV2", name)
         .addInput(stackHandle)
         .setAttribute("elem_type", elementType)

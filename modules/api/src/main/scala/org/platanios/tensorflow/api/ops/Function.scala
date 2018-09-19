@@ -55,7 +55,7 @@ case class Function[I, O](name: String, function: I => O)(implicit
   }
 
   def instantiate(
-      inputDataTypes: Seq[DataType],
+      inputDataTypes: Seq[DataType[_]],
       inputShapes: Seq[Shape] = null,
       input: Option[I] = None,
       captureByValue: Boolean = false,
@@ -72,7 +72,7 @@ object Function {
   trait ArgType[O] {
     def numOutputs: Int
     def outputs(arg: O): Seq[Output]
-    def dataTypes(arg: O): Seq[DataType]
+    def dataTypes(arg: O): Seq[DataType[_]]
     def outputsDecoder(outputs: Seq[Output]): (O, Seq[Output])
     def outputsDecoderWithKnownArg(arg: O, outputs: Seq[Output]): (O, Seq[Output])
   }
@@ -83,7 +83,7 @@ object Function {
     implicit val outputArgType: ArgType[Output] = new ArgType[Output] {
       override def numOutputs: Int = 1
       override def outputs(arg: Output): Seq[Output] = Seq(arg)
-      override def dataTypes(arg: Output): Seq[DataType] = Seq(arg.dataType)
+      override def dataTypes(arg: Output): Seq[DataType[_]] = Seq(arg.dataType)
       override def outputsDecoder(outputs: Seq[Output]): (Output, Seq[Output]) = (outputs.head, outputs.tail)
       override def outputsDecoderWithKnownArg(arg: Output, outputs: Seq[Output]): (Output, Seq[Output]) = {
         (outputs.head, outputs.tail)
@@ -94,7 +94,7 @@ object Function {
       override def numOutputs: Int = 3
       override def outputs(arg: OutputIndexedSlices): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
 
-      override def dataTypes(arg: OutputIndexedSlices): Seq[DataType] = {
+      override def dataTypes(arg: OutputIndexedSlices): Seq[DataType[_]] = {
         Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
       }
 
@@ -114,7 +114,7 @@ object Function {
       override def numOutputs: Int = 3
       override def outputs(arg: SparseOutput): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
 
-      override def dataTypes(arg: SparseOutput): Seq[DataType] = {
+      override def dataTypes(arg: SparseOutput): Seq[DataType[_]] = {
         Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
       }
 
@@ -155,7 +155,7 @@ object Function {
     ): ArgType[Dataset[T, O, D, S]] = new ArgType[Dataset[T, O, D, S]] {
       override def numOutputs: Int = 1
       override def outputs(arg: Dataset[T, O, D, S]): Seq[Output] = Seq(arg.createHandle())
-      override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType] = Seq(VARIANT)
+      override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType[_]] = Seq(VARIANT)
 
       override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = {
         (VariantDataset(outputs.head), outputs.drop(1))
@@ -170,7 +170,7 @@ object Function {
     implicit val hnil: ArgType[HNil] = new ArgType[HNil] {
       override def numOutputs: Int = 0
       override def outputs(arg: HNil): Seq[Output] = Seq.empty[Output]
-      override def dataTypes(arg: HNil): Seq[DataType] = Seq.empty[DataType]
+      override def dataTypes(arg: HNil): Seq[DataType[_]] = Seq.empty[DataType[_]]
       override def outputsDecoder(outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
       override def outputsDecoderWithKnownArg(arg: HNil, outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
     }
@@ -185,7 +185,7 @@ object Function {
         argTypeHead.value.outputs(arg.head) ++ argTypeTail.outputs(arg.tail)
       }
 
-      override def dataTypes(arg: H :: T): Seq[DataType] = {
+      override def dataTypes(arg: H :: T): Seq[DataType[_]] = {
         argTypeHead.value.dataTypes(arg.head) ++ argTypeTail.dataTypes(arg.tail)
       }
 
@@ -210,7 +210,7 @@ object Function {
     ): ArgType[P] = new ArgType[P] {
       override def numOutputs: Int = argTypeL.numOutputs
       override def outputs(arg: P): Seq[Output] = argTypeL.outputs(gen.to(arg))
-      override def dataTypes(arg: P): Seq[DataType] = argTypeL.dataTypes(gen.to(arg))
+      override def dataTypes(arg: P): Seq[DataType[_]] = argTypeL.dataTypes(gen.to(arg))
 
       override def outputsDecoder(outputs: Seq[Output]): (P, Seq[Output]) = {
         val (decoded, tail) = argTypeL.outputsDecoder(outputs)
@@ -230,7 +230,7 @@ private[api] class InstantiatedFunction[I, O] protected (
     val inputNames: Seq[String],
     val outputNames: Seq[String],
     private[ops] val dummyOutputs: O,
-    val outputDataTypes: Seq[DataType],
+    val outputDataTypes: Seq[DataType[_]],
     val outputShapes: Seq[Shape],
     val subFunctions: Set[InstantiatedFunction[_, _]],
     val extraInputs: Seq[Output],
@@ -311,7 +311,7 @@ object InstantiatedFunction {
   private[api] def apply[I, O](
       name: String,
       function: I => O,
-      inputDataTypes: Seq[DataType],
+      inputDataTypes: Seq[DataType[_]],
       inputShapes: Option[Seq[Shape]] = None,
       input: Option[I] = None,
       captureByValue: Boolean = false,
@@ -504,10 +504,10 @@ class FunctionGraph(
   }
 
   /** Custom variable getter for variables created within this function graph. */
-  private[ops] val customVariableGetter = new VariableGetter {
+  private[ops] val customVariableGetter: VariableGetter = new VariableGetter {
     override def apply(
         name: String,
-        dataType: DataType = FLOAT32,
+        dataType: DataType[_] = FLOAT32,
         shape: Shape = null,
         initializer: Initializer = null,
         regularizer: Regularizer = null,

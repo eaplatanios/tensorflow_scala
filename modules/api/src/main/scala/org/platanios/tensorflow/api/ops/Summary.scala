@@ -18,11 +18,10 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT64, STRING, UINT8}
+import org.platanios.tensorflow.api.types._
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import spire.math.UByte
 
 import java.nio.file.Path
 
@@ -118,7 +117,7 @@ private[api] trait Summary {
   def image(
       name: String,
       tensor: Output,
-      badColor: Tensor[DataType] = Tensor(UINT8, UByte(255), UByte(0), UByte(0), UByte(255)),
+      badColor: Tensor[_] = Tensor(UINT8, UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
       maxOutputs: Int = 3,
       collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
       family: String = null
@@ -362,7 +361,7 @@ private[api] object Summary extends Summary {
     */
   private[Summary] def imageSummary(
       tensor: Output,
-      badColor: Tensor[DataType],
+      badColor: Tensor[_],
       tag: Output,
       maxOutputs: Int = 3,
       name: String = "ImageSummary"

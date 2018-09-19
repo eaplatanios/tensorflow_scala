@@ -1796,7 +1796,7 @@ object NN extends NN {
     val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
     val dilations = op.longArrayAttribute("dilations")
     val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
-    val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)))
+    val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)), INT64)
     Seq(
       NN.conv2DBackpropInput(
         inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,

@@ -31,7 +31,7 @@ private[api] trait Cast {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def cast[T <: OutputLike : OutputOps](x: T, dataType: DataType, truncate: Boolean = false, name: String = "Cast"): T = {
+  def cast[T <: OutputLike : OutputOps](x: T, dataType: DataType[_], truncate: Boolean = false, name: String = "Cast"): T = {
     if (x.dataType == dataType) {
       x
     } else {
@@ -56,7 +56,7 @@ private[api] trait Cast {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def bitcast(input: Output, dataType: DataType, name: String = "Bitcast"): Output = {
+  def bitcast(input: Output, dataType: DataType[_], name: String = "Bitcast"): Output = {
     Op.Builder(opType = "Bitcast", name = name)
         .addInput(input)
         .setAttribute("type", dataType)
@@ -72,7 +72,7 @@ object Cast extends Cast {
       * @param  dataType Target data type.
       * @return Result as a new tensor.
       */
-    def cast(dataType: DataType): Output = Cast.cast(output, dataType)
+    def cast(dataType: DataType[_]): Output = Cast.cast(output, dataType)
 
     /** $OpDocMathBitcast
       *
@@ -80,7 +80,7 @@ object Cast extends Cast {
       * @param  dataType Target data type.
       * @return Result as a new tensor.
       */
-    def bitcast(dataType: DataType): Output = Cast.bitcast(output, dataType)
+    def bitcast(dataType: DataType[_]): Output = Cast.bitcast(output, dataType)
 
     def toStringTensor: Output = cast(STRING)
     def toBoolean: Output = cast(BOOLEAN)

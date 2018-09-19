@@ -305,9 +305,9 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no data type attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def dataTypeAttribute(name: String): DataType = using(graph.reference) { _ =>
+  def dataTypeAttribute[T](name: String): DataType[T] = using(graph.reference) { _ =>
     try {
-      DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
+      DataType.fromCValue[T](NativeOp.getAttrType(nativeHandle, name))
     } catch {
       case e: Exception => throw new IllegalArgumentException(
         s"Op has no data type attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
@@ -321,7 +321,7 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no data type array attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def dataTypeArrayAttribute(name: String): Array[DataType] = using(graph.reference) { _ =>
+  def dataTypeArrayAttribute(name: String): Array[DataType[_]] = using(graph.reference) { _ =>
     try {
       NativeOp.getAttrTypeList(nativeHandle, name).map(DataType.fromCValue)
     } catch {
@@ -337,9 +337,9 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no tensor attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def tensorAttribute(name: String): Tensor[DataType] = using(graph.reference) { _ =>
+  def tensorAttribute[T](name: String): Tensor[T] = using(graph.reference) { _ =>
     try {
-      Tensor.fromHostNativeHandle[DataType](NativeOp.getAttrTensor(nativeHandle, name))
+      Tensor.fromHostNativeHandle[T](NativeOp.getAttrTensor(nativeHandle, name))
     } catch {
       case e: Exception => throw new IllegalArgumentException(
         s"Op has no tensor attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
@@ -1439,9 +1439,9 @@ object Op {
             NativeOp.setAttrBool(nativeHandle, attribute._1, value)
           case value: Array[Boolean] =>
             NativeOp.setAttrBoolList(nativeHandle, attribute._1, value)
-          case value: DataType =>
+          case value: DataType[_] =>
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
-          case value: Array[DataType] =>
+          case value: Array[DataType[_]] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
           case value: Tensor[_] =>
             val handle = value.resolve()
@@ -1538,22 +1538,22 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: DataType): Builder = {
+    def setAttribute(name: String, value: DataType[_]): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[DataType]): Builder = {
+    def setAttribute(name: String, value: Array[DataType[_]]): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Tensor[_ <: DataType]): Builder = {
+    def setAttribute(name: String, value: Tensor[_]): Builder = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor[_ <: DataType]]): Builder = {
+    def setAttribute(name: String, value: Array[Tensor[_]]): Builder = {
       attributes += name -> value
       this
     }

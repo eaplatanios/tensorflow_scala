@@ -275,7 +275,7 @@ object Gradients {
   /** Returns a boolean value indicating whether the data type of `tensor` is trainable. This means whether its
     * gradients can be computed. */
   private[this] def isTrainable(tensor: OutputLike): Boolean = {
-    Set[DataType](FLOAT16, FLOAT32, FLOAT64, COMPLEX64, COMPLEX128).contains(tensor.dataType)
+    Set[DataType[_]](FLOAT16, FLOAT32, FLOAT64, COMPLEX64, COMPLEX128).contains(tensor.dataType)
   }
 
   /** Computes initial values for the provided gradients, and checks whether their data types are correct.
