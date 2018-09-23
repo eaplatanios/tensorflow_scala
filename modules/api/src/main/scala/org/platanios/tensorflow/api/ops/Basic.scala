@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.core.{Indexer, Shape}
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.{executionContext, Tensor}
@@ -79,6 +78,7 @@ private[api] trait Basic {
   def guaranteeConstant(input: Output, name: String = "GuaranteeConstant"): Output = {
     Op.Builder(opType = "GuaranteeConst", name = name)
         .addInput(input)
+        .setGradientFn(identityGradient)
         .build().outputs(0)
   }
 
@@ -212,7 +212,12 @@ private[api] trait Basic {
     Op.Builder(opType = "Fill", name = name)
         .addInput(if (shape == null) Basic.shape(value) else shape)
         .addInput(if (dataType == null || dataType == value.dataType) value else Cast.cast(value, dataType))
+        .setGradientFn(fillGradient)
         .build().outputs(0)
+  }
+
+  protected def fillGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(null, Math.sum(outputGradients.head))
   }
 
   /** $OpDocBasicPlaceholder
@@ -247,6 +252,7 @@ private[api] trait Basic {
     Op.Builder(opType = "PlaceholderWithDefault", name = name)
         .addInput(default)
         .setAttribute("shape", shape)
+        .setGradientFn(identityGradient)
         .build().outputs(0)
   }
 
@@ -408,6 +414,7 @@ private[api] trait Basic {
         case i: Output =>
           Op.Builder(opType = "Identity", name = name)
               .addInput(i)
+              .setGradientFn(identityGradient)
               .build().outputs(0)
         case i: OutputIndexedSlices =>
           val values = identity(i.values, name = "ValuesIdentity")
@@ -421,6 +428,10 @@ private[api] trait Basic {
           SparseOutput(indices = indices, values = values, denseShape = denseShape)
       }
     }.asInstanceOf[T]
+  }
+
+  protected def identityGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    outputGradients
   }
 
   // TODO: [BASIC] Add support for "identityN".
@@ -438,6 +449,7 @@ private[api] trait Basic {
     Op.Builder(opType = "ExpandDims", name = name)
         .addInput(input)
         .addInput(axis)
+        .setGradientFn(expandDimsGradient)
         .build().outputs(0)
   }
 
@@ -456,7 +468,22 @@ private[api] trait Basic {
         .addInput(input)
     if (axes != null)
       builder.setAttribute("squeeze_dims", axes.map(_.asInstanceOf[Long]).toArray)
-    builder.build().outputs(0)
+    builder
+        .setGradientFn(squeezeGradient)
+        .build().outputs(0)
+  }
+
+  /** Reshapes the gradient to the shape of the original input. */
+  protected def reshapeToInput(op: Op, gradient: Output): Output = {
+    reshape(gradient, shape(op.inputs(0)))
+  }
+
+  protected def expandDimsGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(reshapeToInput(op, outputGradients.head), null)
+  }
+
+  protected def squeezeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(reshapeToInput(op, outputGradients.head))
   }
 
   /** $OpDocBasicStack
@@ -472,7 +499,14 @@ private[api] trait Basic {
     Op.Builder(opType = "Pack", name = name)
         .addInputList(inputs)
         .setAttribute("axis", axis)
+        .setGradientFn(stackGradient)
         .build().outputs(0)
+  }
+
+  protected def stackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    unstack(
+      input = outputGradients.head, number = op.longAttribute("N").toInt,
+      axis = op.longAttribute("axis").toInt)
   }
 
   /** $OpDocBasicParallelStack
@@ -526,7 +560,12 @@ private[api] trait Basic {
         .addInput(input)
         .setAttribute("num", num)
         .setAttribute("axis", axis)
+        .setGradientFn(unstackGradient)
         .build().outputs.toSeq
+  }
+
+  protected def unstackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(stack(inputs = outputGradients.map(_.toOutput), axis = op.longAttribute("axis").toInt))
   }
 
   /** $OpDocBasicConcatenate
@@ -547,7 +586,121 @@ private[api] trait Basic {
       Op.Builder(opType = "ConcatV2", name = name)
           .addInputList(inputs)
           .addInput(axis)
+          .setGradientFn(concatenateGradient)
           .build().outputs(0)
+    }
+  }
+
+  protected def concatenateGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val gradient = outputGradients.head
+    if (op.inputs.length == 2) {
+      // Degenerate concatenation.
+      Seq(gradient, null)
+    } else {
+      val inputValues = op.inputs.take(op.inputs.length - 1)
+      val outputGradients: Seq[OutputLike] = gradient match {
+        case g: Output =>
+          var concatenationAxis = op.inputs.last
+          Output.constantValue(concatenationAxis) match {
+            case Some(axis) =>
+              // If `concatenationAxis` is a constant defined in a different context, then we duplicate it in the
+              // current context to avoid passing it through an `enter` node. This is a small optimization in general,
+              // but it is required when compiling with XLA, as XLA needs the concatenation op input to be folded into
+              // a constant.
+              val gradientContext = ControlFlow.getOutputContext(gradient.op)
+              val axisContext = ControlFlow.getOutputContext(concatenationAxis.op)
+              if (axisContext != gradientContext) {
+                concatenationAxis = constant(axis)
+              }
+            case None => ()
+          }
+          // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
+          // concatenate op implementation to be within the allowed '[-rank, rank)' range.
+          val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
+          // Get the inputs' tensor shapes.
+          val shapes = shapeN(inputValues, INT64)
+          // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
+          // GPU. A speedup was seen in a large majority of cases when switching implementations at N = 16, but it is
+          // possible that there will be a small number of performance regressions.
+          if (shapes.length > 16) {
+            // Extract the size of each input along the concatenation axis.
+            val sizes = squeeze(slice(
+              stack(shapes, 1),
+              stack(Seq(nonNegativeConcatenationAxis, 0)),
+              Tensor(1, -1)))
+            split(g, sizes, nonNegativeConcatenationAxis)
+          } else {
+            val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
+            offset.zip(shapes).map(t => slice(g, t._1, t._2))
+          }
+        case g: OutputIndexedSlices =>
+          val concatenationAxis = op.inputs.last
+          val staticConcatenationAxis = {
+            val axis = Output.constantValue(concatenationAxis)
+            if (axis.isEmpty)
+              throw new IllegalArgumentException(
+                "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
+                    "concatenation axis is statically-known.")
+            val realNumericAxis = axis.get.scalar.asInstanceOf[Int]
+            if (realNumericAxis < 0) {
+              val staticRank = Output.constantValue(rank(inputValues(0)))
+              if (staticRank.isEmpty)
+                throw new IllegalArgumentException(
+                  "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
+                      "first value rank is statically-known.")
+              realNumericAxis % staticRank.get.scalar.asInstanceOf[Int]
+            } else {
+              realNumericAxis
+            }
+          }
+          // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
+          // concatenate op implementation to be within the allowed '[-rank, rank)' range.
+          val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
+          // Get the input tensor shapes.
+          val shapes = inputValues.map(shape(_))
+          if (staticConcatenationAxis > 0) {
+            // 'nonNegativeConcatenationAxis' > 0. Each input gets OutputIndexedSlices gradients with all the indices,
+            // but with the values sliced accordingly. This is like the Output case, except that shape(g.values)(0) is
+            // not equal to shape(shapes(i))(0), since only a subset of the axis-0 values are stored.
+
+            // The following creates variables for iteratively slicing a dense gradients tensor.
+            // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
+            val shapeOfShape = shape(shapes(0))
+            // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
+            val zero = constant(Tensor(INT32, 0))
+            val one = constant(Tensor(INT32, 1))
+            val mask = concatenate(Seq(
+              fill(INT32, expandDims(nonNegativeConcatenationAxis, 0))(zero),
+              constant(Tensor(INT32, 1)),
+              fill(INT32, shapeOfShape - nonNegativeConcatenationAxis - one)(zero)
+            ), zero)
+            var begin = fill(INT32, shapeOfShape)(zero)
+            shapes.map(shape => {
+              val newValues = slice(g.values, begin, concatenate(Seq(Tensor(-1), slice(shape, 1, -1)), 0))
+              begin = Math.add(begin, shape * mask)
+              OutputIndexedSlices(g.indices, newValues, shape)
+            })
+          } else {
+            // 'nonNegativeConcatenationAxis' == 0. Each input gets OutputIndexedSlices gradients but only for the
+            // relevant indices.
+            var start = constant(0, g.indices.dataType)
+            var end = start
+            shapes.map(shape => {
+              val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis).cast(g.indices.dataType)
+              end = start + shapeConcatenationAxis
+              // Compute the 1-D Output of indices relevant for this input.
+              val indicesToSelect = squeeze(
+                where(Math.logicalAnd(g.indices >= start, g.indices < end)), axes = Seq(1))
+              val newIndices = gather(g.indices, indicesToSelect) - start
+              val newValues = gather(g.values, indicesToSelect)
+              start = end
+              OutputIndexedSlices(newIndices, newValues, shape)
+            })
+          }
+        case _ => throw new IllegalArgumentException(
+          "Only 'Output' and 'OutputIndexedSlices' gradients are supported for the concatenation op.")
+      }
+      outputGradients :+ null
     }
   }
 
@@ -562,7 +715,10 @@ private[api] trait Basic {
     *         concatenated output.
     */
   private[ops] def concatenateOffset(
-      shapes: Seq[Output], axis: Output, name: String = "ConcatenateOffset"): Seq[Output] = {
+      shapes: Seq[Output],
+      axis: Output,
+      name: String = "ConcatenateOffset"
+  ): Seq[Output] = {
     Op.Builder(opType = "ConcatOffset", name = name)
         .addInput(axis)
         .addInputList(shapes)
@@ -584,7 +740,12 @@ private[api] trait Basic {
         .addInput(axis)
         .addInput(input)
         .setAttribute("num_split", numSplits)
+        .setGradientFn(splitEvenlyGradient)
         .build().outputs.toSeq
+  }
+
+  protected def splitEvenlyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(null, concatenate(outputGradients.map(_.toOutput), axis = op.inputs(0)))
   }
 
   /** $OpDocBasicSplit
@@ -606,7 +767,12 @@ private[api] trait Basic {
         .addInput(Op.createWith(nameScope = name)(splitSizes))
         .addInput(Op.createWith(nameScope = name)(axis))
         .setAttribute("num_split", splitSizesShape(0))
+        .setGradientFn(splitGradient)
         .build().outputs.toSeq
+  }
+
+  protected def splitGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    concatenate(outputGradients.map(_.toOutput), axis = op.inputs(2)) +: Seq.fill(op.inputs.length - 1)(null)
   }
 
   /** $OpDocBasicTile
@@ -623,7 +789,32 @@ private[api] trait Basic {
     Op.Builder(opType = "Tile", name = name)
         .addInput(input)
         .addInput(multiples)
+        .setGradientFn(tileGradient)
         .build().outputs(0)
+  }
+
+  protected def tileGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val inputShape = shape(op.inputs(0))
+    // We interleave 'multiples' and 'inputShape' to get 'splitShape', reshape the output gradient to 'splitShape',
+    // and reduce along all even dimensions (the tiled dimensions) to get the result with shape 'inputShape'.
+    // For example:
+    //   inputShape = [20, 30, 40]
+    //   multiples = [2, 3, 4]
+    //   splitShape = [2, 20, 3, 30, 4, 40]
+    //   axes = [0, 2, 4]
+    val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), Shape(-1))
+    val axes = Math.range(0, size(splitShape), 2)
+    // Sum reduces grad along the first dimension for indexed slices.
+    val (outputGradient, processedSplitShape) = outputGradients.head match {
+      case g: OutputIndexedSlices => (
+          Math.unsortedSegmentSum(g.values, Math.mod(g.indices, inputShape(0)), inputShape(0)),
+          concatenate(Seq(Tensor(1), splitShape(1 ::)), axis = 0))
+      case g => (g, splitShape)
+    }
+    val inputGradient = Math.sum(reshape(outputGradient, processedSplitShape), axes)
+    // Fix shape inference.
+    inputGradient.setShape(op.inputs(0).shape)
+    Seq(inputGradient, null)
   }
 
   /** Padding mode. */
@@ -700,6 +891,7 @@ private[api] trait Basic {
           .addInput(input)
           .addInput(paddings)
           .addInput(value.map(Basic.constant(_, input.dataType)).getOrElse(Basic.zeros(input.dataType, Shape())))
+          .setGradientFn(padGradient)
           .build().outputs(0)
     }
 
@@ -738,6 +930,7 @@ private[api] trait Basic {
           .addInput(input)
           .addInput(paddings)
           .setAttribute("mode", "REFLECT")
+          .setGradientFn(mirrorPadGradient)
           .build().outputs(0)
     }
 
@@ -776,6 +969,7 @@ private[api] trait Basic {
           .addInput(input)
           .addInput(paddings)
           .setAttribute("mode", "SYMMETRIC")
+          .setGradientFn(mirrorPadGradient)
           .build().outputs(0)
     }
 
@@ -805,6 +999,35 @@ private[api] trait Basic {
     mode.pad(input, paddings, name)
   }
 
+  protected def padGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // Pad introduces values around the original tensor, and so the gradient function slices the original shape out of
+    // the gradient.
+    val x = op.inputs(0)
+    val a = op.inputs(1) // == [rank(x), 2]
+    // Take a slice of 'a' (the 1st column: [rank(x), 1]).
+    val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
+    // Make it a one-dimensional tensor and return it.
+    val xGradient = slice(outputGradients.head, reshape(padBefore, Shape(-1)), shape(x))
+    if (op.inputs.length == 3)
+      Seq(xGradient, null, null)
+    else
+      Seq(xGradient, null)
+  }
+
+  protected def mirrorPadGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val gradient = Op.Builder(opType = "MirrorPadGrad", name = "MirrorPadGradient")
+        .addInput(outputGradients.head)
+        .addInput(op.inputs(1))
+        .setAttribute("mode", op.stringAttribute("mode"))
+        .setGradientFn(mirrorPadHessian)
+        .build().outputs(0)
+    Seq(gradient, null)
+  }
+
+  protected def mirrorPadHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(pad(outputGradients.head, op.inputs(1), PaddingMode.fromString(op.stringAttribute("mode"))), null)
+  }
+
   /** $OpDocBasicReshape
     *
     * @group BasicOps
@@ -818,7 +1041,12 @@ private[api] trait Basic {
     Op.Builder(opType = "Reshape", name = name)
         .addInput(input)
         .addInput(shape)
+        .setGradientFn(reshapeGradient)
         .build().outputs(0)
+  }
+
+  protected def reshapeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(reshape(outputGradients.head, shape(op.inputs(0))), null)
   }
 
   /** $OpDocBasicTranspose
@@ -845,6 +1073,7 @@ private[api] trait Basic {
         val transposed = Op.Builder(opType = opType, name = name)
             .addInput(input)
             .addInput(reversePermutation)
+            .setGradientFn(if (opType == "Transpose") transposeGradient else conjugateTransposeGradient)
             .build().outputs(0)
         // Setting the shape explicitly because transpose is not handled by the shape function.
         val inputShape = transposed.op.inputs(0).shape
@@ -856,8 +1085,17 @@ private[api] trait Basic {
       Op.Builder(opType = opType, name = name)
           .addInput(input)
           .addInput(permutation)
+          .setGradientFn(if (opType == "Transpose") transposeGradient else conjugateTransposeGradient)
           .build().outputs(0)
     }
+  }
+
+  protected def transposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1))), null)
+  }
+
+  protected def conjugateTransposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1)), conjugate = true), null)
   }
 
   /** $OpDocBasicMatrixTranspose
@@ -884,8 +1122,10 @@ private[api] trait Basic {
         val inputRank = rank(input)
         val inputRankMinus1 = inputRank - constant(1)
         val inputRankMinus2 = inputRank - constant(2)
-        val permutation = concatenate(
-          Array(Math.range(constant(0), inputRankMinus2, constant(1)), inputRankMinus1, inputRankMinus2))
+        val permutation = concatenate(Seq(
+          Math.range(constant(0), inputRankMinus2, constant(1)),
+          inputRankMinus1,
+          inputRankMinus2))
         transpose(input, permutation, conjugate)
       }
     }
@@ -918,7 +1158,12 @@ private[api] trait Basic {
     Op.Builder(opType = "ReverseV2", name = name)
         .addInput(input)
         .addInput(if (axes.rank < 1) axes else axes(NewAxis))
+        .setGradientFn(reverseGradient)
         .build().outputs(0)
+  }
+
+  protected def reverseGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(reverse(outputGradients.head, op.inputs(1)), null)
   }
 
   /** $OpDocBasicReverseSequence
@@ -945,7 +1190,16 @@ private[api] trait Basic {
         .addInput(sequenceLengths)
         .setAttribute("seq_dim", sequenceAxis)
         .setAttribute("batch_dim", batchAxis)
+        .setGradientFn(reverseSequenceGradient)
         .build().outputs(0)
+  }
+
+  protected def reverseSequenceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(reverseSequence(
+      input = outputGradients.head,
+      sequenceLengths = op.inputs(1),
+      sequenceAxis = op.longAttribute("seq_dim").toInt,
+      batchAxis = op.longAttribute("batch_dim").toInt), null)
   }
 
   /** $OpDocBasicSpaceToBatch
@@ -985,7 +1239,12 @@ private[api] trait Basic {
         .addInput(input)
         .addInput(blockShape)
         .addInput(paddings)
+        .setGradientFn(spaceToBatchNDGradient)
         .build().outputs(0)
+  }
+
+  protected def spaceToBatchNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(batchToSpaceND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
   }
 
   /** $OpDocBasicBatchToSpace
@@ -1026,7 +1285,12 @@ private[api] trait Basic {
         .addInput(input)
         .addInput(blockShape)
         .addInput(crops)
+        .setGradientFn(batchToSpaceNDGradient)
         .build().outputs(0)
+  }
+
+  protected def batchToSpaceNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(spaceToBatchND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
   }
 
   /** $OpDocBasicRequiredSpaceToBatchPaddingsAndCrops
@@ -1115,7 +1379,17 @@ private[api] trait Basic {
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
         .setAttribute("data_format", dataFormat.name)
+        .setGradientFn(spaceToDepthGradient)
         .build().outputs(0)
+  }
+
+  @throws[InvalidArgumentException]
+  protected def spaceToDepthGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    if (op.stringAttribute("data_format") == "NCHW_VECT_C")
+      throw InvalidArgumentException(
+        "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
+            "This format requires 'QINT8' data type.")
+    Seq(depthToSpace(outputGradients.head, op.longAttribute("block_size").toInt))
   }
 
   /** $OpDocBasicDepthToSpace
@@ -1129,13 +1403,26 @@ private[api] trait Basic {
     * @return Created op output.
     */
   def depthToSpace(
-      input: Output, blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default,
-      name: String = "DepthToSpace"): Output = {
+      input: Output,
+      blockSize: Int,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "DepthToSpace"
+  ): Output = {
     Op.Builder(opType = "DepthToSpace", name = name)
         .addInput(input)
         .setAttribute("block_size", blockSize.toLong)
         .setAttribute("data_format", dataFormat.name)
+        .setGradientFn(depthToSpaceGradient)
         .build().outputs(0)
+  }
+
+  @throws[InvalidArgumentException]
+  protected def depthToSpaceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    if (op.stringAttribute("data_format") == "NCHW_VECT_C")
+      throw InvalidArgumentException(
+        "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
+            "This format requires 'QINT8' data type.")
+    Seq(spaceToDepth(outputGradients.head, op.longAttribute("block_size").toInt))
   }
 
   //endregion Tensor Manipulation Ops
@@ -1336,7 +1623,54 @@ private[api] trait Basic {
         .addInput(input)
         .addInput(indices)
         .addInput(axis)
+        .setGradientFn(gatherGradient)
         .build().outputs(0)
+  }
+
+  protected def gatherGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // The input can be large, so we colocate the shape calculation with it.
+    // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
+    // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
+    // and so it's fine to convert it back to INT32 regardless of the truncation.
+    val input = op.inputs(0)
+    val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
+      shape(input).toInt32
+    }
+    val indices = op.inputs(1).toInt32
+    val indicesSize = expandDims(size(indices).toInt32, 0)
+    val axis = op.inputs(2)
+    val axisStatic = Output.constantValue(axis)
+    // For axis 0 gathers, we build appropriately shaped indexed slices.
+    if (axisStatic.map(_.scalar).getOrElse(-1) == 0) {
+      val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
+      val values = reshape(outputGradients.head, valuesShape)
+      val reshapedIndices = reshape(indices, indicesSize)
+      val gradient = OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = inputShape)
+      Seq(gradient, null, null)
+    } else {
+      val expandedAxis = axis.expandDims(0)
+      val outerShape = Basic.slice(inputShape, Tensor(0), expandedAxis)
+      val outerSize = Basic.size(outerShape)
+      val innerShape = Basic.slice(inputShape, expandedAxis, Basic.size(inputShape).toInt32.expandDims(0))(1 ::)
+      val innerSize = Basic.size(innerShape)
+      val outerAxesIndices = Math.range(0, outerSize)
+      val innerAxesIndices = Math.range(outerSize + 1, outerSize + 1 + innerSize)
+      val valuesShape = concatenate(Seq(outerShape, indicesSize, innerShape), 0)
+      val values = reshape(outputGradients.head, valuesShape)
+      val reshapedIndices = reshape(indices, indicesSize)
+      // We need to sum up every slice `values(..., i, ...)` corresponding to `input(..., indices(i), ...)`. Since
+      // `unsortedSegmentSum` does not support an axis parameter, we transpose the gather dimension to the front, and
+      // then use `unsortedSegmentSum` to build a `[gatherAxis, outerAxes, innerAxes]` tensor containing all the
+      // gradients affecting each index in `gatherAxis` summed up.
+      val transposeAxes = Basic.concatenate(Seq(outerSize.expandDims(0), outerAxesIndices, innerAxesIndices), 0)
+      val valuesTranspose = Basic.transpose(values, transposeAxes)
+      val numSegments = inputShape.gather(axis)
+      val inputGradient = Math.unsortedSegmentSum(valuesTranspose, reshapedIndices, numSegments)
+      // We now invert the above transpose by moving dimension 0 back to its original position.
+      val transposeAxesInverse = Basic.concatenate(Seq(outerAxesIndices + 1, Tensor(0), innerAxesIndices), 0)
+      val inputGradientTranspose = Basic.transpose(inputGradient, transposeAxesInverse)
+      Seq(inputGradientTranspose, null, null)
+    }
   }
 
   /** $OpDocBasicGatherND
@@ -1353,7 +1687,18 @@ private[api] trait Basic {
     Op.Builder(opType = "GatherNd", name = name)
         .addInput(input)
         .addInput(indices)
+        .setGradientFn(gatherNDGradient)
         .build().outputs(0)
+  }
+
+  protected def gatherNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val input = op.inputs(0)
+    val indices = op.inputs(1)
+    val inputShape = shape(input).cast(indices.dataType)
+    if (indices.rank == 2 && indices.shape(-1) == 1)
+      Seq(OutputIndexedSlices(outputGradients.head, Basic.squeeze(indices, axes = Seq(-1)), inputShape), null)
+    else
+      Seq(scatterND(indices, outputGradients.head, inputShape), null)
   }
 
   /** $OpDocBasicScatterND
@@ -1371,7 +1716,12 @@ private[api] trait Basic {
         .addInput(indices)
         .addInput(updates)
         .addInput(shape)
+        .setGradientFn(scatterNDGradient)
         .build().outputs(0)
+  }
+
+  protected def scatterNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(null, gatherND(outputGradients.head, op.inputs(0)), null)
   }
 
   /** $OpDocBasicSlice
@@ -1393,7 +1743,23 @@ private[api] trait Basic {
         .addInput(input)
         .addInput(begin)
         .addInput(size)
+        .setGradientFn(sliceGradient)
         .build().outputs(0)
+  }
+
+  protected def sliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // Create an N x 2 padding where the first column represents how many zeros are to be prepended for each
+    // dimension, and the second column indicates how many zeros are to be appended. The number of zeros to append
+    // corresponds to the shape of the input elementwise-subtracted by both the begin vector and sizes vector. Some
+    // more reshaping is needed to assemble this tensor with the right dimensions.
+    val inputVector = op.inputs(0)
+    val beginVector = op.inputs(1)
+    val inputRank = rank(inputVector)
+    val padShape = stack(Seq(inputRank, 1))
+    val beforePad = reshape(beginVector, padShape)
+    val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
+    val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
+    Seq(pad(outputGradients.head, paddings), null, null)
   }
 
   /** $OpDocBasicStridedSlice
@@ -1456,7 +1822,39 @@ private[api] trait Basic {
         .setAttribute("ellipsis_mask", ellipsisMask)
         .setAttribute("new_axis_mask", newAxisMask)
         .setAttribute("shrink_axis_mask", shrinkAxisMask)
+        .setGradientFn(stridedSliceGradient)
         .build().outputs(0)
+  }
+
+  protected def stridedSliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val gradient = Op.Builder(opType = "StridedSliceGrad", name = "StridedSliceGradient")
+        .addInput(shape(op.inputs(0)).cast(op.inputs(1).dataType))
+        .addInput(op.inputs(1))
+        .addInput(op.inputs(2))
+        .addInput(op.inputs(3))
+        .addInput(outputGradients.head)
+        .setAttribute("begin_mask", op.longAttribute("begin_mask"))
+        .setAttribute("end_mask", op.longAttribute("end_mask"))
+        .setAttribute("ellipsis_mask", op.longAttribute("ellipsis_mask"))
+        .setAttribute("new_axis_mask", op.longAttribute("new_axis_mask"))
+        .setAttribute("shrink_axis_mask", op.longAttribute("shrink_axis_mask"))
+        .setGradientFn(stridedSliceHessian)
+        .build().outputs(0)
+    Seq(gradient, null, null, null)
+  }
+
+  protected def stridedSliceHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val gradient = stridedSlice(
+      input = outputGradients.head,
+      begin = op.inputs(1),
+      end = op.inputs(2),
+      strides = op.inputs(3),
+      beginMask = op.longAttribute("begin_mask").toInt,
+      endMask = op.longAttribute("end_mask").toInt,
+      ellipsisMask = op.longAttribute("ellipsis_mask").toInt,
+      newAxisMask = op.longAttribute("new_axis_mask").toInt,
+      shrinkAxisMask = op.longAttribute("shrink_axis_mask").toInt)
+    Seq(null, null, null, null, gradient)
   }
 
   /** $OpDocBasicStridedSliceAssign
@@ -1533,7 +1931,12 @@ private[api] trait Basic {
     Op.Builder(opType = "CheckNumerics", name = name)
         .addInput(input)
         .setAttribute("message", message)
+        .setGradientFn(checkNumericsGradient)
         .build().outputs(0)
+  }
+
+  protected def checkNumericsGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(checkNumerics(outputGradients.head, "Not a number (NaN) or infinity (Inf) values detected in the gradient."))
   }
 
   /** $OpDocBasicEditDistance
@@ -1753,7 +2156,13 @@ private[api] trait Basic {
     Op.Builder(opType = "PreventGradient", name = name)
         .addInput(input)
         .setAttribute("message", message)
+        .setGradientFn(preventGradientGradient)
         .build().outputs(0)
+  }
+
+  @throws[IllegalArgumentException]
+  protected def preventGradientGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    throw new IllegalArgumentException(s"Gradient explicitly disabled. Reason: ${op.stringAttribute("message")}.")
   }
 
   //endregion Tensor Gradient Ops
@@ -2162,460 +2571,6 @@ object Basic extends Basic {
     def preventGradient(message: String = ""): Output = Basic.preventGradient(output, message)
 
     //endregion Output Gradient Ops
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("Const")
-    GradientsRegistry.registerNonDifferentiable("ZerosLike")
-    GradientsRegistry.registerNonDifferentiable("OnesLike")
-    GradientsRegistry.registerNonDifferentiable("Rank")
-    GradientsRegistry.registerNonDifferentiable("Size")
-    GradientsRegistry.registerNonDifferentiable("Shape")
-    GradientsRegistry.registerNonDifferentiable("ShapeN")
-    GradientsRegistry.registerNonDifferentiable("ConcatOffset")
-    GradientsRegistry.registerNonDifferentiable("InvertPermutation")
-    GradientsRegistry.registerNonDifferentiable("OneHot")
-    GradientsRegistry.registerNonDifferentiable("EditDistance")
-    GradientsRegistry.registerNonDifferentiable("BroadcastGradientArgs")
-    GradientsRegistry.registerNonDifferentiable("StopGradient")
-
-    GradientsRegistry.register("GuaranteeConst", identityGradient)
-    GradientsRegistry.register("Fill", fillGradient)
-    GradientsRegistry.register("PlaceholderWithDefault", identityGradient)
-    GradientsRegistry.register("Identity", identityGradient)
-    GradientsRegistry.register("ExpandDims", expandDimsGradient)
-    GradientsRegistry.register("Squeeze", squeezeGradient)
-    GradientsRegistry.register("Pack", stackGradient)
-    GradientsRegistry.register("Unpack", unstackGradient)
-    GradientsRegistry.register("ConcatV2", concatenateGradient)
-    GradientsRegistry.register("Split", splitEvenlyGradient)
-    GradientsRegistry.register("SplitV", splitGradient)
-    GradientsRegistry.register("Tile", tileGradient)
-    GradientsRegistry.register("Pad", padGradient)
-    GradientsRegistry.register("PadV2", padGradient)
-    GradientsRegistry.register("MirrorPad", mirrorPadGradient)
-    GradientsRegistry.register("MirrorPadGrad", mirrorPadHessian)
-    GradientsRegistry.register("Reshape", reshapeGradient)
-    GradientsRegistry.register("Transpose", transposeGradient)
-    GradientsRegistry.register("ConjugateTranspose", conjugateTransposeGradient)
-    GradientsRegistry.register("ReverseV2", reverseGradient)
-    GradientsRegistry.register("ReverseSequence", reverseSequenceGradient)
-    GradientsRegistry.register("SpaceToBatch", spaceToBatchGradient)
-    GradientsRegistry.register("SpaceToBatchND", spaceToBatchNDGradient)
-    GradientsRegistry.register("BatchToSpace", batchToSpaceGradient)
-    GradientsRegistry.register("BatchToSpaceND", batchToSpaceNDGradient)
-    GradientsRegistry.register("SpaceToDepth", spaceToDepthGradient)
-    GradientsRegistry.register("DepthToSpace", depthToSpaceGradient)
-    GradientsRegistry.register("Gather", gatherGradient)
-    GradientsRegistry.register("GatherV2", gatherV2Gradient)
-    GradientsRegistry.register("GatherNd", gatherNDGradient)
-    GradientsRegistry.register("ScatterNd", scatterNDGradient)
-    GradientsRegistry.register("Slice", sliceGradient)
-    GradientsRegistry.register("StridedSlice", stridedSliceGradient)
-    GradientsRegistry.register("StridedSliceGrad", stridedSliceHessian)
-    GradientsRegistry.register("CheckNumerics", checkNumericsGradient)
-    GradientsRegistry.register("QuantizeAndDequantize", identityGradient)
-    GradientsRegistry.register("QuantizeAndDequantizeV2", quantizeAndDequantizeGradient)
-    GradientsRegistry.register("PreventGradient", preventGradientGradient)
-
-    private[this] def fillGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null, Math.sum(outputGradients.head))
-    }
-
-    private[this] def identityGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      outputGradients
-    }
-
-    /** Reshapes the gradient to the shape of the original input. */
-    private[this] def reshapeToInput(op: Op, gradient: Output): Output = {
-      reshape(gradient, shape(op.inputs(0)))
-    }
-
-    private[this] def expandDimsGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(reshapeToInput(op, outputGradients.head), null)
-    }
-
-    private[this] def squeezeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(reshapeToInput(op, outputGradients.head))
-    }
-
-    private[this] def stackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      unstack(
-        input = outputGradients.head, number = op.longAttribute("N").toInt,
-        axis = op.longAttribute("axis").toInt)
-    }
-
-    private[this] def unstackGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(stack(inputs = outputGradients.map(_.toOutput), axis = op.longAttribute("axis").toInt))
-    }
-
-    private[this] def concatenateGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val gradient = outputGradients.head
-      if (op.inputs.length == 2) {
-        // Degenerate concatenation.
-        Seq(gradient, null)
-      } else {
-        val inputValues = op.inputs.take(op.inputs.length - 1)
-        val outputGradients: Seq[OutputLike] = gradient match {
-          case g: Output =>
-            var concatenationAxis = op.inputs.last
-            Output.constantValue(concatenationAxis) match {
-              case Some(axis) =>
-                // If `concatenationAxis` is a constant defined in a different context, then we duplicate it in the
-                // current context to avoid passing it through an `enter` node. This is a small optimization in general,
-                // but it is required when compiling with XLA, as XLA needs the concatenation op input to be folded into
-                // a constant.
-                val gradientContext = ControlFlow.getOutputContext(gradient.op)
-                val axisContext = ControlFlow.getOutputContext(concatenationAxis.op)
-                if (axisContext != gradientContext) {
-                  concatenationAxis = constant(axis)
-                }
-              case None => ()
-            }
-            // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
-            // concatenate op implementation to be within the allowed '[-rank, rank)' range.
-            val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
-            // Get the inputs' tensor shapes.
-            val shapes = shapeN(inputValues, INT64)
-            // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
-            // GPU. A speedup was seen in a large majority of cases when switching implementations at N = 16, but it is
-            // possible that there will be a small number of performance regressions.
-            if (shapes.length > 16) {
-              // Extract the size of each input along the concatenation axis.
-              val sizes = squeeze(slice(
-                stack(shapes, 1),
-                stack(Seq(nonNegativeConcatenationAxis, 0)),
-                Tensor(1, -1)))
-              split(g, sizes, nonNegativeConcatenationAxis)
-            } else {
-              val offset = concatenateOffset(shapes, nonNegativeConcatenationAxis)
-              offset.zip(shapes).map(t => slice(g, t._1, t._2))
-            }
-          case g: OutputIndexedSlices =>
-            val concatenationAxis = op.inputs.last
-            val staticConcatenationAxis = {
-              val axis = Output.constantValue(concatenationAxis)
-              if (axis.isEmpty)
-                throw new IllegalArgumentException(
-                  "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
-                      "concatenation axis is statically-known.")
-              val realNumericAxis = axis.get.scalar.asInstanceOf[Int]
-              if (realNumericAxis < 0) {
-                val staticRank = Output.constantValue(rank(inputValues(0)))
-                if (staticRank.isEmpty)
-                  throw new IllegalArgumentException(
-                    "Can only compute 'OutputIndexedSlices' gradients for the concatenation op when the " +
-                        "first value rank is statically-known.")
-                realNumericAxis % staticRank.get.scalar.asInstanceOf[Int]
-              } else {
-                realNumericAxis
-              }
-            }
-            // Using modulus here for convenience since the 'concatenationAxis' value is already verified in the
-            // concatenate op implementation to be within the allowed '[-rank, rank)' range.
-            val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
-            // Get the input tensor shapes.
-            val shapes = inputValues.map(shape(_))
-            if (staticConcatenationAxis > 0) {
-              // 'nonNegativeConcatenationAxis' > 0. Each input gets OutputIndexedSlices gradients with all the indices,
-              // but with the values sliced accordingly. This is like the Output case, except that shape(g.values)(0) is
-              // not equal to shape(shapes(i))(0), since only a subset of the axis-0 values are stored.
-
-              // The following creates variables for iteratively slicing a dense gradients tensor.
-              // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
-              val shapeOfShape = shape(shapes(0))
-              // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
-              val zero = constant(Tensor(INT32, 0))
-              val one = constant(Tensor(INT32, 1))
-              val mask = concatenate(Seq(
-                fill(INT32, expandDims(nonNegativeConcatenationAxis, 0))(zero),
-                constant(Tensor(INT32, 1)),
-                fill(INT32, shapeOfShape - nonNegativeConcatenationAxis - one)(zero)
-              ), zero)
-              var begin = fill(INT32, shapeOfShape)(zero)
-              shapes.map(shape => {
-                val newValues = slice(g.values, begin, concatenate(Seq(Tensor(-1), slice(shape, 1, -1)), 0))
-                begin = Math.add(begin, shape * mask)
-                OutputIndexedSlices(g.indices, newValues, shape)
-              })
-            } else {
-              // 'nonNegativeConcatenationAxis' == 0. Each input gets OutputIndexedSlices gradients but only for the
-              // relevant indices.
-              var start = constant(0, g.indices.dataType)
-              var end = start
-              shapes.map(shape => {
-                val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis).cast(g.indices.dataType)
-                end = start + shapeConcatenationAxis
-                // Compute the 1-D Output of indices relevant for this input.
-                val indicesToSelect = squeeze(
-                  where(Math.logicalAnd(g.indices >= start, g.indices < end)), axes = Seq(1))
-                val newIndices = gather(g.indices, indicesToSelect) - start
-                val newValues = gather(g.values, indicesToSelect)
-                start = end
-                OutputIndexedSlices(newIndices, newValues, shape)
-              })
-            }
-          case _ => throw new IllegalArgumentException(
-            "Only 'Output' and 'OutputIndexedSlices' gradients are supported for the concatenation op.")
-        }
-        outputGradients :+ null
-      }
-    }
-
-    private[this] def splitEvenlyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null, concatenate(outputGradients.map(_.toOutput), axis = op.inputs(0)))
-    }
-
-    private[this] def splitGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      concatenate(outputGradients.map(_.toOutput), axis = op.inputs(2)) +: Seq.fill(op.inputs.length - 1)(null)
-    }
-
-    private[this] def tileGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val inputShape = shape(op.inputs(0))
-      // We interleave 'multiples' and 'inputShape' to get 'splitShape', reshape the output gradient to 'splitShape',
-      // and reduce along all even dimensions (the tiled dimensions) to get the result with shape 'inputShape'.
-      // For example:
-      //   inputShape = [20, 30, 40]
-      //   multiples = [2, 3, 4]
-      //   splitShape = [2, 20, 3, 30, 4, 40]
-      //   axes = [0, 2, 4]
-      val splitShape = reshape(transpose(stack(Seq(op.inputs(1), inputShape))), Shape(-1))
-      val axes = Math.range(0, size(splitShape), 2)
-      // Sum reduces grad along the first dimension for indexed slices.
-      val (outputGradient, processedSplitShape) = outputGradients.head match {
-        case g: OutputIndexedSlices => (
-            Math.unsortedSegmentSum(g.values, Math.mod(g.indices, inputShape(0)), inputShape(0)),
-            concatenate(Seq(Tensor(1), splitShape(1 ::)), axis = 0))
-        case g => (g, splitShape)
-      }
-      val inputGradient = Math.sum(reshape(outputGradient, processedSplitShape), axes)
-      // Fix shape inference.
-      inputGradient.setShape(op.inputs(0).shape)
-      Seq(inputGradient, null)
-    }
-
-    private[this] def padGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // Pad introduces values around the original tensor, and so the gradient function slices the original shape out of
-      // the gradient.
-      val x = op.inputs(0)
-      val a = op.inputs(1) // == [rank(x), 2]
-      // Take a slice of 'a' (the 1st column: [rank(x), 1]).
-      val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
-      // Make it a one-dimensional tensor and return it.
-      val xGradient = slice(outputGradients.head, reshape(padBefore, Shape(-1)), shape(x))
-      if (op.inputs.length == 3)
-        Seq(xGradient, null, null)
-      else
-        Seq(xGradient, null)
-    }
-
-    private[this] def mirrorPadGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val gradient = Op.Builder(opType = "MirrorPadGrad", name = "MirrorPadGradient")
-          .addInput(outputGradients.head)
-          .addInput(op.inputs(1))
-          .setAttribute("mode", op.stringAttribute("mode"))
-          .build().outputs(0)
-      Seq(gradient, null)
-    }
-
-    private[this] def mirrorPadHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(pad(outputGradients.head, op.inputs(1), PaddingMode.fromString(op.stringAttribute("mode"))), null)
-    }
-
-    private[this] def reshapeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(reshape(outputGradients.head, shape(op.inputs(0))), null)
-    }
-
-    private[this] def transposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1))), null)
-    }
-
-    private[this] def conjugateTransposeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(transpose(outputGradients.head, invertPermutation(op.inputs(1)), conjugate = true), null)
-    }
-
-    private[this] def reverseGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(reverse(outputGradients.head, op.inputs(1)), null)
-    }
-
-    private[this] def reverseSequenceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(reverseSequence(
-        input = outputGradients.head,
-        sequenceLengths = op.inputs(1),
-        sequenceAxis = op.longAttribute("seq_dim").toInt,
-        batchAxis = op.longAttribute("batch_dim").toInt), null)
-    }
-
-    private[this] def spaceToBatchGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(batchToSpace(outputGradients.head, op.longAttribute("block_size").toInt, op.inputs(1)), null)
-    }
-
-    private[this] def spaceToBatchNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(batchToSpaceND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
-    }
-
-    private[this] def batchToSpaceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(spaceToBatch(outputGradients.head, op.longAttribute("block_size").toInt, op.inputs(1)), null)
-    }
-
-    private[this] def batchToSpaceNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(spaceToBatchND(outputGradients.head, op.inputs(1), op.inputs(2)), null, null)
-    }
-
-    @throws[InvalidArgumentException]
-    private[this] def spaceToDepthGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      if (op.stringAttribute("data_format") == "NCHW_VECT_C")
-        throw InvalidArgumentException(
-          "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
-              "This format requires 'QINT8' data type.")
-      Seq(depthToSpace(outputGradients.head, op.longAttribute("block_size").toInt))
-    }
-
-    @throws[InvalidArgumentException]
-    private[this] def depthToSpaceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      if (op.stringAttribute("data_format") == "NCHW_VECT_C")
-        throw InvalidArgumentException(
-          "Cannot compute 'spaceToDepth' gradient with 'NCHW_VECT_C' data format. " +
-              "This format requires 'QINT8' data type.")
-      Seq(spaceToDepth(outputGradients.head, op.longAttribute("block_size").toInt))
-    }
-
-    private[this] def gatherGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // The input can be large, so we colocate the shape calculation with it.
-      // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
-      // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
-      // and so it's fine to convert it back to INT32 regardless of the truncation.
-      val input = op.inputs(0)
-      val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
-        val inputShape = shape(input)
-        Cast.cast(inputShape, INT32)
-      }
-      // Build appropriately shaped 'OutputIndexedSlices'.
-      val indices = op.inputs(1).toInt32
-      val indicesSize = expandDims(size(indices), 0)
-      val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
-      val values = reshape(outputGradients.head, valuesShape)
-      val reshapedIndices = reshape(indices, indicesSize)
-      val gradient = OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = inputShape)
-      Seq(gradient, null)
-    }
-
-    private[this] def gatherV2Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // The input can be large, so we colocate the shape calculation with it.
-      // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
-      // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
-      // and so it's fine to convert it back to INT32 regardless of the truncation.
-      val input = op.inputs(0)
-      val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
-        shape(input).toInt32
-      }
-      val indices = op.inputs(1).toInt32
-      val indicesSize = expandDims(size(indices).toInt32, 0)
-      val axis = op.inputs(2)
-      val axisStatic = Output.constantValue(axis)
-      // For axis 0 gathers, we build appropriately shaped indexed slices.
-      if (axisStatic.map(_.scalar).getOrElse(-1) == 0) {
-        val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
-        val values = reshape(outputGradients.head, valuesShape)
-        val reshapedIndices = reshape(indices, indicesSize)
-        val gradient = OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = inputShape)
-        Seq(gradient, null, null)
-      } else {
-        val expandedAxis = axis.expandDims(0)
-        val outerShape = Basic.slice(inputShape, Tensor(0), expandedAxis)
-        val outerSize = Basic.size(outerShape)
-        val innerShape = Basic.slice(inputShape, expandedAxis, Basic.size(inputShape).toInt32.expandDims(0))(1 ::)
-        val innerSize = Basic.size(innerShape)
-        val outerAxesIndices = Math.range(0, outerSize)
-        val innerAxesIndices = Math.range(outerSize + 1, outerSize + 1 + innerSize)
-        val valuesShape = concatenate(Seq(outerShape, indicesSize, innerShape), 0)
-        val values = reshape(outputGradients.head, valuesShape)
-        val reshapedIndices = reshape(indices, indicesSize)
-        // We need to sum up every slice `values(..., i, ...)` corresponding to `input(..., indices(i), ...)`. Since
-        // `unsortedSegmentSum` does not support an axis parameter, we transpose the gather dimension to the front, and
-        // then use `unsortedSegmentSum` to build a `[gatherAxis, outerAxes, innerAxes]` tensor containing all the
-        // gradients affecting each index in `gatherAxis` summed up.
-        val transposeAxes = Basic.concatenate(Seq(outerSize.expandDims(0), outerAxesIndices, innerAxesIndices), 0)
-        val valuesTranspose = Basic.transpose(values, transposeAxes)
-        val numSegments = inputShape.gather(axis)
-        val inputGradient = Math.unsortedSegmentSum(valuesTranspose, reshapedIndices, numSegments)
-        // We now invert the above transpose by moving dimension 0 back to its original position.
-        val transposeAxesInverse = Basic.concatenate(Seq(outerAxesIndices + 1, Tensor(0), innerAxesIndices), 0)
-        val inputGradientTranspose = Basic.transpose(inputGradient, transposeAxesInverse)
-        Seq(inputGradientTranspose, null, null)
-      }
-    }
-
-    private[this] def gatherNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val input = op.inputs(0)
-      val indices = op.inputs(1)
-      val inputShape = shape(input).cast(indices.dataType)
-      if (indices.rank == 2 && indices.shape(-1) == 1)
-        Seq(OutputIndexedSlices(outputGradients.head, Basic.squeeze(indices, axes = Seq(-1)), inputShape), null)
-      else
-        Seq(scatterND(indices, outputGradients.head, inputShape), null)
-    }
-
-    private[this] def scatterNDGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null, gatherND(outputGradients.head, op.inputs(0)), null)
-    }
-
-    private[this] def sliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // Create an N x 2 padding where the first column represents how many zeros are to be prepended for each
-      // dimension, and the second column indicates how many zeros are to be appended. The number of zeros to append
-      // corresponds to the shape of the input elementwise-subtracted by both the begin vector and sizes vector. Some
-      // more reshaping is needed to assemble this tensor with the right dimensions.
-      val inputVector = op.inputs(0)
-      val beginVector = op.inputs(1)
-      val inputRank = rank(inputVector)
-      val padShape = stack(Seq(inputRank, 1))
-      val beforePad = reshape(beginVector, padShape)
-      val afterPad = reshape(shape(inputVector) - shape(op.outputs(0)) - beginVector, padShape)
-      val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
-      Seq(pad(outputGradients.head, paddings), null, null)
-    }
-  }
-
-  private[this] def stridedSliceGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val gradient = Op.Builder(opType = "StridedSliceGrad", name = "StridedSliceGradient")
-        .addInput(shape(op.inputs(0)).cast(op.inputs(1).dataType))
-        .addInput(op.inputs(1))
-        .addInput(op.inputs(2))
-        .addInput(op.inputs(3))
-        .addInput(outputGradients.head)
-        .setAttribute("begin_mask", op.longAttribute("begin_mask"))
-        .setAttribute("end_mask", op.longAttribute("end_mask"))
-        .setAttribute("ellipsis_mask", op.longAttribute("ellipsis_mask"))
-        .setAttribute("new_axis_mask", op.longAttribute("new_axis_mask"))
-        .setAttribute("shrink_axis_mask", op.longAttribute("shrink_axis_mask"))
-        .build().outputs(0)
-    Seq(gradient, null, null, null)
-  }
-
-  private[this] def stridedSliceHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val gradient = stridedSlice(
-      input = outputGradients.head,
-      begin = op.inputs(1),
-      end = op.inputs(2),
-      strides = op.inputs(3),
-      beginMask = op.longAttribute("begin_mask").toInt,
-      endMask = op.longAttribute("end_mask").toInt,
-      ellipsisMask = op.longAttribute("ellipsis_mask").toInt,
-      newAxisMask = op.longAttribute("new_axis_mask").toInt,
-      shrinkAxisMask = op.longAttribute("shrink_axis_mask").toInt)
-    Seq(null, null, null, null, gradient)
-  }
-
-  private[this] def checkNumericsGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    Seq(checkNumerics(outputGradients.head, "Not a number (NaN) or infinity (Inf) values detected in the gradient."))
-  }
-
-  private[this] def quantizeAndDequantizeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    Seq(outputGradients.head, null, null)
-  }
-
-  private[this] def preventGradientGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    throw new IllegalArgumentException(s"Gradient explicitly disabled. Reason: ${op.stringAttribute("message")}.")
   }
 
   /** @define OpDocBasicConstant

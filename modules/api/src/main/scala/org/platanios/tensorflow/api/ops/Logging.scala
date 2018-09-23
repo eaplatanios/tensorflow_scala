@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-
 /** Contains functions for constructing ops related to logging.
   *
   * @author Emmanouil Antonios Platanios
@@ -35,8 +33,13 @@ private[api] trait Logging {
     * @return Created op output.
     */
   def print[T: OutputOps](
-      input: T, data: Seq[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
-      name: String = "Print"): T = {
+      input: T,
+      data: Seq[Output],
+      message: String = "",
+      firstN: Int = -1,
+      summarize: Int = 3,
+      name: String = "Print"
+  ): T = {
     implicitly[OutputOps[T]].applyUnary(input, i => {
       Op.Builder("Print", name)
           .addInput(i)
@@ -44,8 +47,13 @@ private[api] trait Logging {
           .setAttribute("message", message)
           .setAttribute("first_n", firstN)
           .setAttribute("summarize", summarize)
+          .setGradientFn(printGradient)
           .build().outputs(0)
     })
+  }
+
+  protected def printGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    outputGradients ++ Seq.fill(op.inputs.length - 1)(null)
   }
 
   /** $OpDocLoggingTimestamp
@@ -61,16 +69,6 @@ private[api] trait Logging {
 }
 
 private[api] object Logging extends Logging {
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("Timestamp")
-
-    GradientsRegistry.register("Print", printGradient)
-
-    private[this] def printGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      outputGradients ++ Seq.fill(op.inputs.length - 1)(null)
-    }
-  }
-
   /** @define OpDocLoggingPrint
     *   The `print` op prints a list of tensors.
     *

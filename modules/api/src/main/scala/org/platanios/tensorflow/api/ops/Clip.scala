@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types.INT32
 
 /** Contains functions for constructing ops related to clipping tensor values.
@@ -39,7 +38,30 @@ private[ops] trait Clip {
         .addInput(input)
         .addInput(clipValueMin)
         .addInput(clipValueMax)
+        .setGradientFn(clipByValueGradient)
         .build().outputs(0)
+  }
+
+  protected def clipByValueGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val x = op.inputs(0)
+    val y = op.inputs(1)
+    val z = op.inputs(2)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
+    val zShape = Basic.shape(z)
+    val outputGradient = outputGradients.head.toOutput
+    val zeros = Basic.zerosLike(outputGradient)
+    val xyMask = Math.less(x, y)
+    val xzMask = Math.greater(x, z)
+    val xGradient = Math.select(Math.logicalOr(xyMask, xzMask), zeros, outputGradient)
+    val yGradient = Math.select(xyMask, outputGradient, zeros)
+    val zGradient = Math.select(xzMask, outputGradient, zeros)
+    val (_, ry) = Basic.broadcastGradientArguments(xShape, yShape)
+    val (rx, rz) = Basic.broadcastGradientArguments(xShape, zShape)
+    Seq(
+      Math.sum(xGradient, rx).reshape(xShape),
+      Math.sum(yGradient, ry).reshape(yShape),
+      Math.sum(zGradient, rz).reshape(zShape))
   }
 
   /** $OpDocClipClipByNorm
@@ -55,7 +77,7 @@ private[ops] trait Clip {
   def clipByNorm(input: Output, clipNorm: Output, axes: Output = null, name: String = "ClipByNorm"): Output = {
     Op.createWithNameScope(name) {
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val l2Norm = Math.sum(input.square(), axes, keepDims = true).sqrt()
+      val l2Norm = Math.sum(input.square, axes, keepDims = true).sqrt()
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(intermediate.shape)
@@ -75,7 +97,7 @@ private[ops] trait Clip {
     Op.createWithNameScope(name) {
       // Calculate the l2-norm per element and clip elements by the ratio of `clipNorm` to that l2-norm.
       val numElements = Basic.size(input).cast(INT32)
-      val l2NormInv = Math.sum(input.square(), keepDims = true).rsqrt()
+      val l2NormInv = Math.sum(input.square, keepDims = true).rsqrt()
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(intermediate.shape)
@@ -185,32 +207,6 @@ object Clip extends Clip {
       */
     def clipByAverageNorm(input: Output, clipNorm: Output, name: String = "ClipByAverageNorm"): Output = {
       Clip.clipByAverageNorm(output, clipNorm, name)
-    }
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.register("ClipByValue", clipByValueGradient)
-
-    private[this] def clipByValueGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val x = op.inputs(0)
-      val y = op.inputs(1)
-      val z = op.inputs(2)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val zShape = Basic.shape(z)
-      val outputGradient = outputGradients.head.toOutput
-      val zeros = Basic.zerosLike(outputGradient)
-      val xyMask = Math.less(x, y)
-      val xzMask = Math.greater(x, z)
-      val xGradient = Math.select(Math.logicalOr(xyMask, xzMask), zeros, outputGradient)
-      val yGradient = Math.select(xyMask, outputGradient, zeros)
-      val zGradient = Math.select(xzMask, outputGradient, zeros)
-      val (_, ry) = Basic.broadcastGradientArguments(xShape, yShape)
-      val (rx, rz) = Basic.broadcastGradientArguments(xShape, zShape)
-      Seq(
-        Math.sum(xGradient, rx).reshape(xShape),
-        Math.sum(yGradient, ry).reshape(yShape),
-        Math.sum(zGradient, rz).reshape(zShape))
     }
   }
 

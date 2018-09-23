@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops.io.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.types.DataType
 
@@ -477,15 +476,5 @@ object Iterator {
         .setAttribute("output_types", outputDataTypes.toArray)
         .setAttribute("output_shapes", outputShapes.toArray)
         .build().outputs(0)
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("Iterator")
-    GradientsRegistry.registerNonDifferentiable("MakeIterator")
-    GradientsRegistry.registerNonDifferentiable("OneShotIterator")
-    GradientsRegistry.registerNonDifferentiable("IteratorGetNext")
-    GradientsRegistry.registerNonDifferentiable("IteratorDispose")
-    GradientsRegistry.registerNonDifferentiable("IteratorToStringHandle")
-    GradientsRegistry.registerNonDifferentiable("IteratorFromStringHandle")
   }
 }

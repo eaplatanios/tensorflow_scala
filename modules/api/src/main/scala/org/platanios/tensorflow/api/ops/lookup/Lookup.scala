@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
 
@@ -250,26 +249,5 @@ object Lookup extends Lookup {
         .setAttribute("vocab_size", vocabularySize)
         .setAttribute("delimiter", delimiter)
         .build()
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("LookupTableFind")
-    GradientsRegistry.registerNonDifferentiable("LookupTableFindV2")
-    GradientsRegistry.registerNonDifferentiable("LookupTableInsert")
-    GradientsRegistry.registerNonDifferentiable("LookupTableInsertV2")
-    GradientsRegistry.registerNonDifferentiable("LookupTableSize")
-    GradientsRegistry.registerNonDifferentiable("LookupTableSizeV2")
-    GradientsRegistry.registerNonDifferentiable("HashTable")
-    GradientsRegistry.registerNonDifferentiable("HashTableV2")
-    GradientsRegistry.registerNonDifferentiable("InitializeTable")
-    GradientsRegistry.registerNonDifferentiable("InitializeTableV2")
-    GradientsRegistry.registerNonDifferentiable("InitializeTableFromTextFile")
-    GradientsRegistry.registerNonDifferentiable("InitializeTableFromTextFileV2")
-    GradientsRegistry.registerNonDifferentiable("MutableDenseHashTable")
-    GradientsRegistry.registerNonDifferentiable("MutableDenseHashTableV2")
-    GradientsRegistry.registerNonDifferentiable("MutableHashTable")
-    GradientsRegistry.registerNonDifferentiable("MutableHashTableV2")
-    GradientsRegistry.registerNonDifferentiable("MutableHashTableOfTensors")
-    GradientsRegistry.registerNonDifferentiable("MutableHashTableOfTensorsV2")
   }
 }

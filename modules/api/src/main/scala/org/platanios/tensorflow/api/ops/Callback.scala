@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 import org.platanios.tensorflow.jni.{ScalaCallbacksRegistry => NativeCallbacksRegistry, TensorFlow => NativeLibrary}
@@ -89,11 +88,6 @@ private[api] trait Callback {
 
 /** Contains helpers for dealing with callbacks. */
 private[ops] object Callback extends Callback {
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("JVMCallback")
-    GradientsRegistry.registerNonDifferentiable("JVMCallbackStateless")
-  }
-
   /** Type trait representing valid callback function argument/output types. */
   trait ArgType[T] {
     /** Represents the corresponding symbolic type of `T` where tensors are replaced with their symbolic equivalent. */

@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to sets.
@@ -142,13 +141,6 @@ private[api] object Sets extends Sets {
       name: String
   )(implicit ev: SetOps.Aux[A, B]): SparseOutput = {
     ev.applyOperation(a, b, operation, validateIndices, name)
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("SetSize")
-    GradientsRegistry.registerNonDifferentiable("DenseToDenseSetOperation")
-    GradientsRegistry.registerNonDifferentiable("DenseToSparseSetOperation")
-    GradientsRegistry.registerNonDifferentiable("SparseToSparseSetOperation")
   }
 
   /** @define OpDocSetsSetSize

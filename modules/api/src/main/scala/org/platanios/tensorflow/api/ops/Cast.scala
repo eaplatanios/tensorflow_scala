@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing general cast-related ops.
@@ -42,8 +41,19 @@ private[api] trait Cast {
               .addInput(o)
               .setAttribute("DstT", dataType)
               .setAttribute("Truncate", truncate)
+              .setGradientFn(castGradient)
               .build().outputs(0))
     }
+  }
+
+  protected def castGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val supportedDataTypes = Seq(FLOAT16, FLOAT32, FLOAT64, BFLOAT16, COMPLEX64, COMPLEX128)
+    val sourceDataType = op.inputs(0).dataType
+    val destinationDataType = outputGradients.head.dataType
+    if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType))
+      Seq(cast(outputGradients.head, sourceDataType))
+    else
+      Seq(null)
   }
 
   // TODO: [OPS] saturateCast
@@ -103,20 +113,6 @@ object Cast extends Cast {
     def toQInt32: Output = cast(QINT32)
     def toQUInt8: Output = cast(QUINT8)
     def toQUInt16: Output = cast(QUINT16)
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.register("Cast", castGradient)
-
-    private[this] def castGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val supportedDataTypes = Seq(FLOAT16, FLOAT32, FLOAT64, BFLOAT16, COMPLEX64, COMPLEX128)
-      val sourceDataType = op.inputs(0).dataType
-      val destinationDataType = outputGradients.head.dataType
-      if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType))
-        Seq(cast(outputGradients.head, sourceDataType))
-      else
-        Seq(null)
-    }
   }
 
   /** @define OpDocCastCast

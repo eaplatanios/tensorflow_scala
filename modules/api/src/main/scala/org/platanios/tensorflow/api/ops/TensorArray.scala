@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 /** Class wrapping dynamic-sized, per-time-step, write-once tensor arrays.
@@ -473,7 +472,20 @@ object TensorArray {
         .addInput(index)
         .addInput(flow)
         .setAttribute("dtype", dataType)
+        .setGradientFn(readOpGradient)
         .build().outputs(0)
+  }
+
+  protected def readOpGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // Note that the forward flow dependency in the call to `gradient()` is necessary for the case of dynamically
+    // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
+    // known. For this we need to wait until it has been created by depending on the input flow of the original op.
+    Seq(
+      null, null,
+      TensorArray.createFromHandle(
+        op.inputs(0), op.inputs(2), op.dataTypeAttribute("dtype"), colocateWithFirstWrite = false)
+          .gradient(getGradientSource(outputGradients.head.name), op.inputs(2))
+          .write(op.inputs(1), outputGradients.head.toOutput).flow)
   }
 
   /** Creates an op that writes an element to the provided tensor array.
@@ -497,7 +509,19 @@ object TensorArray {
         .addInput(index)
         .addInput(value)
         .addInput(flow)
+        .setGradientFn(writeOpGradient)
         .build().outputs(0)
+  }
+
+  protected def writeOpGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val flow = outputGradients.head.toOutput
+    Seq(
+      null, null,
+      TensorArray.createFromHandle(
+        op.inputs(0), flow, op.dataTypeAttribute("T"), colocateWithFirstWrite = false)
+          .gradient(getGradientSource(flow.name), flow)
+          .read(op.inputs(1)),
+      flow)
   }
 
   /** Creates an op that gathers specific elements from the provided tensor array.
@@ -527,7 +551,20 @@ object TensorArray {
         .addInput(flow)
         .setAttribute("dtype", dataType)
         .setAttribute("element_shape", shape)
+        .setGradientFn(gatherOpGradient)
         .build().outputs(0)
+  }
+
+  protected def gatherOpGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // Note that the forward flow dependency in the call to `gradient()` is necessary for the case of dynamically
+    // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
+    // known. For this we need to wait until it has been created by depending on the input flow of the original op.
+    Seq(
+      null, null,
+      TensorArray.createFromHandle(
+        op.inputs(0), op.inputs(2), op.dataTypeAttribute("dtype"), colocateWithFirstWrite = false)
+          .gradient(getGradientSource(outputGradients.head.name), op.inputs(2))
+          .scatter(op.inputs(1), outputGradients.head.toOutput).flow)
   }
 
   /** Creates an op that scatters the provided elements along indices of the provided tensor array.
@@ -553,7 +590,19 @@ object TensorArray {
         .addInput(indices)
         .addInput(value)
         .addInput(flow)
+        .setGradientFn(scatterOpGradient)
         .build().outputs(0)
+  }
+
+  protected def scatterOpGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val flow = outputGradients.head.toOutput
+    Seq(
+      null, null,
+      TensorArray.createFromHandle(
+        op.inputs(0), flow, op.dataTypeAttribute("T"), colocateWithFirstWrite = false)
+          .gradient(getGradientSource(flow.name), flow)
+          .gather(op.inputs(1)),
+      flow)
   }
 
   /** Creates an op that concatenates the elements of the tensor array.
@@ -586,8 +635,21 @@ object TensorArray {
         .addInput(flow)
         .setAttribute("dtype", dataType)
         .setAttribute("element_shape_except0", shapeTail)
+        .setGradientFn(concatenateOpGradient)
         .build().outputs
     (outputs(0), outputs(1))
+  }
+
+  protected def concatenateOpGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // Note that the forward flow dependency in the call to `gradient()` is necessary for the case of dynamically
+    // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
+    // known. For this we need to wait until it has been created by depending on the input flow of the original op.
+    Seq(
+      null,
+      TensorArray.createFromHandle(
+        op.inputs(0), op.inputs(1), op.dataTypeAttribute("dtype"), colocateWithFirstWrite = false)
+          .gradient(getGradientSource(outputGradients.head.toOutput.name), op.inputs(1))
+          .split(outputGradients.head.toOutput, op.outputs(1)).flow)
   }
 
   /** Creates an op that splits the data from the input value into tensor array elements.
@@ -617,7 +679,19 @@ object TensorArray {
         .addInput(value)
         .addInput(lengths)
         .addInput(flow)
+        .setGradientFn(splitOpGradient)
         .build().outputs(0)
+  }
+
+  protected def splitOpGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val flow = outputGradients.head.toOutput
+    Seq(
+      null,
+      TensorArray.createFromHandle(
+        op.inputs(0), flow, op.dataTypeAttribute("T"), colocateWithFirstWrite = false)
+          .gradient(getGradientSource(flow.name), flow)
+          .concatenate(),
+      null, flow)
   }
 
   /** Creates an op that gets the current size of the tensor array.
@@ -703,138 +777,26 @@ object TensorArray {
         .build()
   }
 
-  private[ops] object Gradients {
-    // TODO: [TENSOR_ARRAYS] These ops may be differentiable and there may be latent bugs here.
-    GradientsRegistry.registerNonDifferentiable("TensorArray")
-    GradientsRegistry.registerNonDifferentiable("TensorArrayGrad")
-    GradientsRegistry.registerNonDifferentiable("TensorArraySize")
-    GradientsRegistry.registerNonDifferentiable("TensorArrayClose")
-
-    GradientsRegistry.registerNonDifferentiable("TensorArrayV2")
-    GradientsRegistry.registerNonDifferentiable("TensorArrayGradV2")
-    GradientsRegistry.registerNonDifferentiable("TensorArraySizeV2")
-    GradientsRegistry.registerNonDifferentiable("TensorArrayCloseV2")
-
-    GradientsRegistry.registerNonDifferentiable("TensorArrayV3")
-    GradientsRegistry.registerNonDifferentiable("TensorArrayGradV3")
-    GradientsRegistry.registerNonDifferentiable("TensorArrayGradWithShape")
-    GradientsRegistry.registerNonDifferentiable("TensorArraySizeV3")
-    GradientsRegistry.registerNonDifferentiable("TensorArrayCloseV3")
-
-    GradientsRegistry.register("TensorArrayRead", tensorArrayReadGradient)
-    GradientsRegistry.register("TensorArrayReadV2", tensorArrayReadGradient)
-    GradientsRegistry.register("TensorArrayReadV3", tensorArrayReadGradient)
-
-    GradientsRegistry.register("TensorArrayWrite", tensorArrayWriteGradient)
-    GradientsRegistry.register("TensorArrayWriteV2", tensorArrayWriteGradient)
-    GradientsRegistry.register("TensorArrayWriteV3", tensorArrayWriteGradient)
-
-    GradientsRegistry.register("TensorArrayGather", tensorArrayGatherGradient)
-    GradientsRegistry.register("TensorArrayGatherV2", tensorArrayGatherGradient)
-    GradientsRegistry.register("TensorArrayGatherV3", tensorArrayGatherGradient)
-
-    GradientsRegistry.register("TensorArrayScatter", tensorArrayScatterGradient)
-    GradientsRegistry.register("TensorArrayScatterV2", tensorArrayScatterGradient)
-    GradientsRegistry.register("TensorArrayScatterV3", tensorArrayScatterGradient)
-
-    GradientsRegistry.register("TensorArrayConcat", tensorArrayConcatenateGradient)
-    GradientsRegistry.register("TensorArrayConcatV2", tensorArrayConcatenateGradient)
-    GradientsRegistry.register("TensorArrayConcatV3", tensorArrayConcatenateGradient)
-
-    GradientsRegistry.register("TensorArraySplit", tensorArraySplitGradient)
-    GradientsRegistry.register("TensorArraySplitV2", tensorArraySplitGradient)
-    GradientsRegistry.register("TensorArraySplitV3", tensorArraySplitGradient)
-
-    /** Identifies which call to `gradients()` created the provided gradient op or op output.
-      *
-      * Tensor array gradient calls use an accumulator tensor array object. If multiple gradients are calculated and run
-      * in the same session, the multiple gradient nodes may accidentally flow through the same accumulator tensor
-      * array. This double counting breaks the tensor array gradient flow.
-      *
-      * The solution is to identify which gradient call this particular tensor array gradient is being called in, by
-      * looking at the input gradient tensor's name, and create or lookup an accumulator gradient tensor array
-      * associated with this specific call. This resolves any confusion and ensures different gradients from the same
-      * forward graph get their own accumulators.
-      *
-      * @param  opOrOutputName Name of gradient op or op output.
-      * @return Unique label associated with the `gradients()` call that is used to create the gradient tensor array.
-      */
-    private[this] def getGradientSource(opOrOutputName: String): String = {
-      val nameParts = opOrOutputName.split("/")
-      val gradPosition = nameParts.lastIndexWhere(_.startsWith("Gradient"))
-      if (gradPosition == -1)
-        throw InvalidArgumentException(
-          s"Expected op/tensor name to start with 'Gradient' (excluding scope), but got instead: $opOrOutputName.")
-      nameParts.take(gradPosition + 1).mkString("/")
-    }
-
-    private[this] def tensorArrayReadGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // Note that the forward flow dependency in the call to `gradient()` is necessary for the case of dynamically
-      // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
-      // known. For this we need to wait until it has been created by depending on the input flow of the original op.
-      Seq(
-        null, null,
-        TensorArray.createFromHandle(
-          op.inputs(0), op.inputs(2), op.dataTypeAttribute("dtype"), colocateWithFirstWrite = false)
-            .gradient(getGradientSource(outputGradients.head.name), op.inputs(2))
-            .write(op.inputs(1), outputGradients.head.toOutput).flow)
-    }
-
-    private[this] def tensorArrayWriteGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val flow = outputGradients.head.toOutput
-      Seq(
-        null, null,
-        TensorArray.createFromHandle(
-          op.inputs(0), flow, op.dataTypeAttribute("T"), colocateWithFirstWrite = false)
-            .gradient(getGradientSource(flow.name), flow)
-            .read(op.inputs(1)),
-        flow)
-    }
-
-    private[this] def tensorArrayGatherGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // Note that the forward flow dependency in the call to `gradient()` is necessary for the case of dynamically
-      // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
-      // known. For this we need to wait until it has been created by depending on the input flow of the original op.
-      Seq(
-        null, null,
-        TensorArray.createFromHandle(
-          op.inputs(0), op.inputs(2), op.dataTypeAttribute("dtype"), colocateWithFirstWrite = false)
-            .gradient(getGradientSource(outputGradients.head.name), op.inputs(2))
-            .scatter(op.inputs(1), outputGradients.head.toOutput).flow)
-    }
-
-    private[this] def tensorArrayScatterGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val flow = outputGradients.head.toOutput
-      Seq(
-        null, null,
-        TensorArray.createFromHandle(
-          op.inputs(0), flow, op.dataTypeAttribute("T"), colocateWithFirstWrite = false)
-            .gradient(getGradientSource(flow.name), flow)
-            .gather(op.inputs(1)),
-        flow)
-    }
-
-    private[this] def tensorArrayConcatenateGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // Note that the forward flow dependency in the call to `gradient()` is necessary for the case of dynamically
-      // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
-      // known. For this we need to wait until it has been created by depending on the input flow of the original op.
-      Seq(
-        null,
-        TensorArray.createFromHandle(
-          op.inputs(0), op.inputs(1), op.dataTypeAttribute("dtype"), colocateWithFirstWrite = false)
-            .gradient(getGradientSource(outputGradients.head.toOutput.name), op.inputs(1))
-            .split(outputGradients.head.toOutput, op.outputs(1)).flow)
-    }
-
-    private[this] def tensorArraySplitGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val flow = outputGradients.head.toOutput
-      Seq(
-        null,
-        TensorArray.createFromHandle(
-          op.inputs(0), flow, op.dataTypeAttribute("T"), colocateWithFirstWrite = false)
-            .gradient(getGradientSource(flow.name), flow)
-            .concatenate(),
-        null, flow)
-    }
+  /** Identifies which call to `gradients()` created the provided gradient op or op output.
+    *
+    * Tensor array gradient calls use an accumulator tensor array object. If multiple gradients are calculated and run
+    * in the same session, the multiple gradient nodes may accidentally flow through the same accumulator tensor
+    * array. This double counting breaks the tensor array gradient flow.
+    *
+    * The solution is to identify which gradient call this particular tensor array gradient is being called in, by
+    * looking at the input gradient tensor's name, and create or lookup an accumulator gradient tensor array
+    * associated with this specific call. This resolves any confusion and ensures different gradients from the same
+    * forward graph get their own accumulators.
+    *
+    * @param  opOrOutputName Name of gradient op or op output.
+    * @return Unique label associated with the `gradients()` call that is used to create the gradient tensor array.
+    */
+  protected def getGradientSource(opOrOutputName: String): String = {
+    val nameParts = opOrOutputName.split("/")
+    val gradPosition = nameParts.lastIndexWhere(_.startsWith("Gradient"))
+    if (gradPosition == -1)
+      throw InvalidArgumentException(
+        s"Expected op/tensor name to start with 'Gradient' (excluding scope), but got instead: $opOrOutputName.")
+    nameParts.take(gradPosition + 1).mkString("/")
   }
 }

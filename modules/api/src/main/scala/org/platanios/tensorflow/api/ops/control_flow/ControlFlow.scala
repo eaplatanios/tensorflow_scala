@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{INT32, RESOURCE}
 import org.platanios.tensorflow.api.utilities.using
@@ -608,6 +607,7 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Created op output, which has the same value as the input tensor.
     */
   private[control_flow] def loopCond(input: Output, name: String = "LoopCond"): Output = {
+    // We stop back-propagation for the predicate of a while loop and so no gradient function is provided.
     Op.Builder(opType = "LoopCond", name = name)
         .addInput(input)
         .build().outputs(0)
@@ -625,6 +625,7 @@ private[api] object ControlFlow extends ControlFlow {
         case i: Output =>
           Op.Builder("NextIteration", name)
               .addInput(i)
+              .setGradientFn(nextIterationGradient)
               .build().outputs(0)
         case i: OutputIndexedSlices => Op.createWithNameScope(name) {
           val values = nextIteration(i.values, "Values")
@@ -648,6 +649,12 @@ private[api] object ControlFlow extends ControlFlow {
     result.asInstanceOf[T]
   }
 
+  /** A forward next-iteration op is translated into a back-propagation identity op. Note that the back-propagation
+    * next-iteration op is added in switch op gradient. */
+  protected def nextIterationGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    outputGradients
+  }
+
   /** Creates an op that creates or finds a child frame, and makes `input` available to that child frame.
     *
     * The op is used together with `exit` to create loops in the graph. The unique `frameName` is used by the `Executor`
@@ -663,8 +670,13 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Created op output, which is the same as `input`.
     */
   private[control_flow] def enter[T <: OutputLike](
-      input: T, frameName: String, isConstant: Boolean = false, parallelIterations: Int = 10,
-      useInputShape: Boolean = true, name: String = "Enter"): T = {
+      input: T,
+      frameName: String,
+      isConstant: Boolean = false,
+      parallelIterations: Int = 10,
+      useInputShape: Boolean = true,
+      name: String = "Enter"
+  ): T = {
     val result = {
       input match {
         case i: Output =>
@@ -673,6 +685,7 @@ private[api] object ControlFlow extends ControlFlow {
               .setAttribute("frame_name", frameName)
               .setAttribute("is_constant", isConstant)
               .setAttribute("parallel_iterations", parallelIterations)
+              .setGradientFn(enterGradient)
               .build().outputs(0)
           if (useInputShape)
             result.setShape(i.shape)
@@ -700,6 +713,41 @@ private[api] object ControlFlow extends ControlFlow {
     result.asInstanceOf[T]
   }
 
+  /** Gradients for an enter op are calculated using an exit op. For loop variables, `outputGradients` is the gradient
+    * and so we just add an exit op. For loop invariants, we need to add an accumulator loop. */
+  protected def enterGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Op.currentControlFlowContext.map(gradientContext => {
+      if (!gradientContext.backPropagate) {
+        // We skip gradient computation in this case.
+        outputGradients
+      } else if (gradientContext.gradientLoopState.isEmpty) {
+        // We pass the gradient through if we are not in a gradient while-loop context.
+        outputGradients
+      } else if (op.booleanAttribute("is_constant")) {
+        // We add a gradient accumulator for each while-loop invariant.
+        Seq(gradientContext.asInstanceOf[WhileLoopContext].addBackwardAccumulator(op, outputGradients.head))
+      } else {
+        val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
+        val result = Seq(exit(outputGradients.head))
+        result(0) match {
+          case o: Output => gradientWhileLoopContext.loopExits += o
+          case o: OutputIndexedSlices =>
+            gradientWhileLoopContext.loopExits += o.indices
+            gradientWhileLoopContext.loopExits += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopExits += o.denseShape
+          case o: SparseOutput =>
+            gradientWhileLoopContext.loopExits += o.indices
+            gradientWhileLoopContext.loopExits += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopExits += o.denseShape
+        }
+        gradientContext.exitResult(result)
+        result
+      }
+    }).get
+  }
+
   /** Creates an op that exits from the current frame to its parent frame.
     *
     * The op makes `input` available to the parent frame.
@@ -714,6 +762,7 @@ private[api] object ControlFlow extends ControlFlow {
         case i: Output =>
           Op.Builder("Exit", name)
               .addInput(i)
+              .setGradientFn(exitGradient)
               .build().outputs(0)
         case i: OutputIndexedSlices => Op.createWithNameScope(name) {
           val values = exit(i.values, "Values")
@@ -742,6 +791,56 @@ private[api] object ControlFlow extends ControlFlow {
     result.asInstanceOf[T]
   }
 
+  /** Gradients for an exit op are calculated using an enter op. */
+  @throws[UnimplementedException]
+  protected def exitGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Op.currentControlFlowContext.map(gradientContext => {
+      if (!gradientContext.backPropagate) {
+        // We skip gradient computation in this case.
+        Seq(null)
+      } else if (op.controlFlowContext.flatMap(_.gradientLoopState).isDefined) {
+        throw UnimplementedException("Second-order gradients are not supported for while loops.")
+      } else {
+        outputGradients.head match {
+          case o: Output => gradientContext.values += o.name
+          case o: OutputIndexedSlices =>
+            gradientContext.values += o.indices.name
+            gradientContext.values += o.values.name
+            if (o.denseShape != null)
+              gradientContext.values += o.denseShape.name
+          case o: SparseOutput =>
+            gradientContext.values += o.indices.name
+            gradientContext.values += o.values.name
+            if (o.denseShape != null)
+              gradientContext.values += o.denseShape.name
+        }
+        val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
+        gradientContext.enter()
+        val result = Seq(enter(
+          outputGradients.head,
+          gradientContext.name,
+          isConstant = false,
+          parallelIterations = gradientWhileLoopContext.parallelIterations,
+          name = "ExitGradient"))
+        result(0) match {
+          case o: Output => gradientWhileLoopContext.loopEnters += o
+          case o: OutputIndexedSlices =>
+            gradientWhileLoopContext.loopEnters += o.indices
+            gradientWhileLoopContext.loopEnters += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopEnters += o.denseShape
+          case o: SparseOutput =>
+            gradientWhileLoopContext.loopEnters += o.indices
+            gradientWhileLoopContext.loopEnters += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopEnters += o.denseShape
+        }
+        gradientContext.exit()
+        result
+      }
+    }).get
+  }
+
   /** Creates an op that forwards `input` to the output port determined by `predicate`.
     *
     * If `predicate` is `true`, then `input` is forwarded to `outputTrue`. Otherwise, it goes to `outputFalse`.
@@ -758,6 +857,7 @@ private[api] object ControlFlow extends ControlFlow {
           val outputs = Op.Builder("Switch", name)
               .addInput(i)
               .addInput(predicate)
+              .setGradientFn(switchGradient)
               .build().outputs
           (outputs(0), outputs(1))
         case i: OutputIndexedSlices => Op.createWithNameScope(name) {
@@ -789,6 +889,72 @@ private[api] object ControlFlow extends ControlFlow {
     result.asInstanceOf[(T, T)]
   }
 
+  /** Gradients for a switch op are calculated using a merge op. If the switch is a loop switch, it will be visited
+    * twice. We create the merge op on the first visit, and we update the second input of the merge on the second
+    * visit. A next-iteration op is also added in the second visit. */
+  protected def switchGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val gradientContext = Op.currentControlFlowContext
+    op.controlFlowContext match {
+      case Some(opContext: CondContext) =>
+        if (outputGradients(1 - opContext.branch.value) != null) {
+          Seq(merge(outputGradients, name = "CondGradient")._1, null)
+        } else if (op.inputs(0).dataType == RESOURCE) {
+          // At this point, we have created `zeroGradient` guarded by the right switch. Unfortunately, we may still
+          // get `null` here for non-trainable data types or for some types of ops (e.g., `ResourceGather`) created
+          // within only one branch.
+          // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
+          val goodGradient = outputGradients(opContext.branch.value)
+          val zeros = goodGradient match {
+            case o: Output => Basic.zerosLike(o)
+            case o: OutputIndexedSlices =>
+              OutputIndexedSlices(
+                Basic.zeros(o.indices.dataType, Shape(1)),
+                Basic.zeros(o.values.dataType, Shape(1, o.values.shape(1))),
+                o.denseShape)
+            case o: SparseOutput =>
+              SparseOutput(
+                Basic.zeros(o.indices.dataType, Shape(1, o.indices.shape(1))),
+                Basic.zeros(o.values.dataType, Shape(1)),
+                o.denseShape)
+          }
+          val zeroGradient = opContext.branch.other.selectSwitchResult(
+            ControlFlow.colocatedSwitch(zeros, opContext.predicate))
+          if (opContext.branch.value == 0)
+            Seq(merge(Seq(goodGradient, zeroGradient), name = "CondGradient")._1, null)
+          else
+            Seq(merge(Seq(zeroGradient, goodGradient), name = "CondGradient")._1, null)
+        } else {
+          Seq(null, null)
+        }
+      case Some(_: WhileLoopContext) =>
+        gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
+          case Some(mergeGradient) =>
+            // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
+            // and so we update the second input to the merge node.
+            if (outputGradients(1) != null)
+              WhileLoopContext.addNextIterationAndBackEdge(
+                mergeGradient, outputGradients(1), enforceShapeInvariant = false)
+            Seq(null, null)
+          case None if outputGradients.head != null =>
+            // This is the first time this switch node is visited. It comes from the exit branch of the switch, which
+            // is `outputGradients(0)`. `outputGradients(1)` is empty at this point. We use `outputGradients(0)` for
+            // both inputs to the merge for now, but we update the second input of the merge node when we visit this
+            // switch node for a second time.
+            val mergeGradient = merge(Seq(outputGradients(0), outputGradients(0)), name = "SwitchGradient")._1
+            gradientContext.flatMap(_.gradientLoopState).map(_.switchMap).foreach(_ += op -> mergeGradient)
+            Seq(mergeGradient, null)
+          case _ =>
+            // This is the first time this switch node is visited. It comes from the identity branch. Such a switch
+            // has `null` gradient for the exit branch, meaning that the output is not differentiable.
+            Seq(null, null)
+        }
+      case _ =>
+        val falseGradient = switch(outputGradients(0), op.inputs(1))._1
+        val trueGradient = switch(outputGradients(1), op.inputs(1))._2
+        Seq(merge(Seq(falseGradient, trueGradient))._1, null)
+    }
+  }
+
   /** Creates an op that forwards the value of an available tensor from `inputs` to `output`.
     *
     * The op tests each of the tensors in `inputs` in turn to determine if any of them is available. If it finds an
@@ -814,6 +980,7 @@ private[api] object ControlFlow extends ControlFlow {
         case i if i.forall(_.isInstanceOf[Output]) =>
           val outputs = Op.Builder("Merge", name)
               .addInputList(i.map(_.asInstanceOf[Output]))
+              .setGradientFn(mergeGradient)
               .build().outputs
           (outputs(0), outputs(1))
         case i if i.forall(_.isInstanceOf[SparseOutput]) => Op.createWithNameScope(name) {
@@ -847,6 +1014,39 @@ private[api] object ControlFlow extends ControlFlow {
       }
     }
     result.asInstanceOf[(T, Output)]
+  }
+
+  /** Gradients for a merge op are calculated using a switch op. */
+  protected def mergeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val gradientContext = Op.currentControlFlowContext
+    ControlFlow.getOutputContext(op.inputs(0).op) match {
+      case Some(opContext: CondContext) =>
+        val predicate = gradientContext.flatMap(_.gradientLoopState).map(gradientLoopState => {
+          // This merge node is part of a conditional structure within a loop. The back-propagation needs to have the
+          // value of this predicate for every iteration and so, we must have its values accumulated in the forward,
+          // and use the accumulated values as the predicate for this back-propagation switch.
+          gradientLoopState.historyMap.getOrElse(opContext.predicate.name, {
+            // We want to remember the value of the predicate for every iteration.
+            gradientLoopState.backwardContext.exit()
+            val historyPredicate = gradientLoopState.addForwardAccumulator(opContext.predicate)
+            gradientLoopState.backwardContext.enter()
+            // We now add the stack pop op. If `opContext.predicate.op` is in a (possibly outer) `CondContext`, then
+            // the stack pop op will be guarded with a switch.
+            val realPredicate = gradientLoopState.addBackwardAccumulatedValue(historyPredicate, opContext.predicate)
+            gradientLoopState.historyMap += opContext.predicate.name -> realPredicate
+            realPredicate
+          })
+        }).getOrElse(opContext.predicate)
+        val switch = colocatedSwitch(outputGradients.head, predicate)
+        Seq(switch._1, switch._2)
+      case Some(_: WhileLoopContext) =>
+        val switch = colocatedSwitch(outputGradients.head, gradientContext.get.asInstanceOf[WhileLoopContext].pivot)
+        Seq(switch._1, switch._2)
+      case _ =>
+        (0 until op.numInputs).map(i => {
+          colocatedSwitch(outputGradients.head, Math.equal(op.outputs(1), i))._2
+        })
+    }
   }
 
   //endregion Low Level Ops
@@ -888,221 +1088,6 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   //endregion Native Library Functions
-
-  //region Gradients
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("ControlTrigger")
-
-    GradientsRegistry.register("LoopCond", loopCondGradient)
-    GradientsRegistry.register("NextIteration", nextIterationGradient)
-    GradientsRegistry.register("RefNextIteration", nextIterationGradient)
-    GradientsRegistry.register("Enter", enterGradient)
-    GradientsRegistry.register("RefEnter", enterGradient)
-    GradientsRegistry.register("Exit", exitGradient)
-    GradientsRegistry.register("RefExit", exitGradient)
-    GradientsRegistry.register("Switch", switchGradient)
-    GradientsRegistry.register("RefSwitch", switchGradient)
-    GradientsRegistry.register("Merge", mergeGradient)
-    GradientsRegistry.register("RefMerge", mergeGradient)
-
-    /** We stop back-propagation for the predicate of a while loop. */
-    private[this] def loopCondGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null)
-    }
-
-    /** A forward next-iteration op is translated into a back-propagation identity op. Note that the back-propagation
-      * next-iteration op is added in switch op gradient. */
-    private[this] def nextIterationGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      outputGradients
-    }
-
-    /** Gradients for an enter op are calculated using an exit op. For loop variables, `outputGradients` is the gradient
-      * and so we just add an exit op. For loop invariants, we need to add an accumulator loop. */
-    private[this] def enterGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Op.currentControlFlowContext.map(gradientContext => {
-        if (!gradientContext.backPropagate) {
-          // We skip gradient computation in this case.
-          outputGradients
-        } else if (gradientContext.gradientLoopState.isEmpty) {
-          // We pass the gradient through if we are not in a gradient while-loop context.
-          outputGradients
-        } else if (op.booleanAttribute("is_constant")) {
-          // We add a gradient accumulator for each while-loop invariant.
-          Seq(gradientContext.asInstanceOf[WhileLoopContext].addBackwardAccumulator(op, outputGradients.head))
-        } else {
-          val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
-          val result = Seq(exit(outputGradients.head))
-          result(0) match {
-            case o: Output => gradientWhileLoopContext.loopExits += o
-            case o: OutputIndexedSlices =>
-              gradientWhileLoopContext.loopExits += o.indices
-              gradientWhileLoopContext.loopExits += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopExits += o.denseShape
-            case o: SparseOutput =>
-              gradientWhileLoopContext.loopExits += o.indices
-              gradientWhileLoopContext.loopExits += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopExits += o.denseShape
-          }
-          gradientContext.exitResult(result)
-          result
-        }
-      }).get
-    }
-
-    /** Gradients for an exit op are calculated using an enter op. */
-    @throws[UnimplementedException]
-    private[this] def exitGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Op.currentControlFlowContext.map(gradientContext => {
-        if (!gradientContext.backPropagate) {
-          // We skip gradient computation in this case.
-          Seq(null)
-        } else if (op.controlFlowContext.flatMap(_.gradientLoopState).isDefined) {
-          throw UnimplementedException("Second-order gradients are not supported for while loops.")
-        } else {
-          outputGradients.head match {
-            case o: Output => gradientContext.values += o.name
-            case o: OutputIndexedSlices =>
-              gradientContext.values += o.indices.name
-              gradientContext.values += o.values.name
-              if (o.denseShape != null)
-                gradientContext.values += o.denseShape.name
-            case o: SparseOutput =>
-              gradientContext.values += o.indices.name
-              gradientContext.values += o.values.name
-              if (o.denseShape != null)
-                gradientContext.values += o.denseShape.name
-          }
-          val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
-          gradientContext.enter()
-          val result = Seq(enter(
-            outputGradients.head,
-            gradientContext.name,
-            isConstant = false,
-            parallelIterations = gradientWhileLoopContext.parallelIterations,
-            name = "ExitGradient"))
-          result(0) match {
-            case o: Output => gradientWhileLoopContext.loopEnters += o
-            case o: OutputIndexedSlices =>
-              gradientWhileLoopContext.loopEnters += o.indices
-              gradientWhileLoopContext.loopEnters += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopEnters += o.denseShape
-            case o: SparseOutput =>
-              gradientWhileLoopContext.loopEnters += o.indices
-              gradientWhileLoopContext.loopEnters += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopEnters += o.denseShape
-          }
-          gradientContext.exit()
-          result
-        }
-      }).get
-    }
-
-    /** Gradients for a switch op are calculated using a merge op. If the switch is a loop switch, it will be visited
-      * twice. We create the merge op on the first visit, and we update the second input of the merge on the second
-      * visit. A next-iteration op is also added in the second visit. */
-    private[this] def switchGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val gradientContext = Op.currentControlFlowContext
-      op.controlFlowContext match {
-        case Some(opContext: CondContext) =>
-          if (outputGradients(1 - opContext.branch.value) != null) {
-            Seq(merge(outputGradients, name = "CondGradient")._1, null)
-          } else if (op.inputs(0).dataType == RESOURCE) {
-            // At this point, we have created `zeroGradient` guarded by the right switch. Unfortunately, we may still
-            // get `null` here for non-trainable data types or for some types of ops (e.g., `ResourceGather`) created
-            // within only one branch.
-            // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
-            val goodGradient = outputGradients(opContext.branch.value)
-            val zeros = goodGradient match {
-              case o: Output => Basic.zerosLike(o)
-              case o: OutputIndexedSlices =>
-                OutputIndexedSlices(
-                  Basic.zeros(o.indices.dataType, Shape(1)),
-                  Basic.zeros(o.values.dataType, Shape(1, o.values.shape(1))),
-                  o.denseShape)
-              case o: SparseOutput =>
-                SparseOutput(
-                  Basic.zeros(o.indices.dataType, Shape(1, o.indices.shape(1))),
-                  Basic.zeros(o.values.dataType, Shape(1)),
-                  o.denseShape)
-            }
-            val zeroGradient = opContext.branch.other.selectSwitchResult(
-              ControlFlow.colocatedSwitch(zeros, opContext.predicate))
-            if (opContext.branch.value == 0)
-              Seq(merge(Seq(goodGradient, zeroGradient), name = "CondGradient")._1, null)
-            else
-              Seq(merge(Seq(zeroGradient, goodGradient), name = "CondGradient")._1, null)
-          } else {
-            Seq(null, null)
-          }
-        case Some(_: WhileLoopContext) =>
-          gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
-            case Some(mergeGradient) =>
-              // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
-              // and so we update the second input to the merge node.
-              if (outputGradients(1) != null)
-                WhileLoopContext.addNextIterationAndBackEdge(
-                  mergeGradient, outputGradients(1), enforceShapeInvariant = false)
-              Seq(null, null)
-            case None if outputGradients.head != null =>
-              // This is the first time this switch node is visited. It comes from the exit branch of the switch, which
-              // is `outputGradients(0)`. `outputGradients(1)` is empty at this point. We use `outputGradients(0)` for
-              // both inputs to the merge for now, but we update the second input of the merge node when we visit this
-              // switch node for a second time.
-              val mergeGradient = merge(Seq(outputGradients(0), outputGradients(0)), name = "SwitchGradient")._1
-              gradientContext.flatMap(_.gradientLoopState).map(_.switchMap).foreach(_ += op -> mergeGradient)
-              Seq(mergeGradient, null)
-            case _ =>
-              // This is the first time this switch node is visited. It comes from the identity branch. Such a switch
-              // has `null` gradient for the exit branch, meaning that the output is not differentiable.
-              Seq(null, null)
-          }
-        case _ =>
-          val falseGradient = switch(outputGradients(0), op.inputs(1))._1
-          val trueGradient = switch(outputGradients(1), op.inputs(1))._2
-          Seq(merge(Seq(falseGradient, trueGradient))._1, null)
-      }
-    }
-
-    /** Gradients for a merge op are calculated using a switch op. */
-    private[this] def mergeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val gradientContext = Op.currentControlFlowContext
-      ControlFlow.getOutputContext(op.inputs(0).op) match {
-        case Some(opContext: CondContext) =>
-          val predicate = gradientContext.flatMap(_.gradientLoopState).map(gradientLoopState => {
-            // This merge node is part of a conditional structure within a loop. The back-propagation needs to have the
-            // value of this predicate for every iteration and so, we must have its values accumulated in the forward,
-            // and use the accumulated values as the predicate for this back-propagation switch.
-            gradientLoopState.historyMap.getOrElse(opContext.predicate.name, {
-              // We want to remember the value of the predicate for every iteration.
-              gradientLoopState.backwardContext.exit()
-              val historyPredicate = gradientLoopState.addForwardAccumulator(opContext.predicate)
-              gradientLoopState.backwardContext.enter()
-              // We now add the stack pop op. If `opContext.predicate.op` is in a (possibly outer) `CondContext`, then
-              // the stack pop op will be guarded with a switch.
-              val realPredicate = gradientLoopState.addBackwardAccumulatedValue(historyPredicate, opContext.predicate)
-              gradientLoopState.historyMap += opContext.predicate.name -> realPredicate
-              realPredicate
-            })
-          }).getOrElse(opContext.predicate)
-          val switch = colocatedSwitch(outputGradients.head, predicate)
-          Seq(switch._1, switch._2)
-        case Some(_: WhileLoopContext) =>
-          val switch = colocatedSwitch(outputGradients.head, gradientContext.get.asInstanceOf[WhileLoopContext].pivot)
-          Seq(switch._1, switch._2)
-        case _ =>
-          (0 until op.numInputs).map(i => {
-            colocatedSwitch(outputGradients.head, Math.equal(op.outputs(1), i))._2
-          })
-      }
-    }
-  }
-
-  //endregion Gradients
 
   /** @define OpDocControlFlowGroup
     *   The `group` op groups multiple ops together.

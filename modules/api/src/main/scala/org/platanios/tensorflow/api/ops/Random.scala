@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to random numbers and tensors.
@@ -176,13 +175,6 @@ private[api] trait Random {
 }
 
 private[api] object Random extends Random {
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("RandomShuffle")
-    GradientsRegistry.registerNonDifferentiable("RandomUniform")
-    GradientsRegistry.registerNonDifferentiable("RandomUniformInt")
-    GradientsRegistry.registerNonDifferentiable("RandomStandardNormal")
-  }
-
   /** @define OpDocRandomRandomShuffle
     *   The `randomShuffle` op randomly shuffles a tensor along its first axis.
     *

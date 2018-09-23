@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops.io
 
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
 /** Class that supports all TensorFlow reader implementations.
   *
@@ -159,9 +158,14 @@ object Reader {
       * @return Constructed reader.
       */
     def fixedLengthRecordReader(
-        recordBytes: Int, headerBytes: Int = 0, footerBytes: Int = 0, hopBytes: Int = 0,
-        compressionType: CompressionType = NoCompression, sharedName: String = "",
-        name: String = "FixedLengthRecordReader"): Reader = {
+        recordBytes: Int,
+        headerBytes: Int = 0,
+        footerBytes: Int = 0,
+        hopBytes: Int = 0,
+        compressionType: CompressionType = NoCompression,
+        sharedName: String = "",
+        name: String = "FixedLengthRecordReader"
+    ): Reader = {
       new Reader(createFixedLengthRecordReader(
         recordBytes, headerBytes, footerBytes, hopBytes, compressionType.name, sharedName = sharedName, name = name))
     }
@@ -175,8 +179,10 @@ object Reader {
       * @return Constructed reader.
       */
     def tfRecordReader(
-        compressionType: CompressionType = NoCompression, sharedName: String = "",
-        name: String = "TFRecordReader"): Reader = {
+        compressionType: CompressionType = NoCompression,
+        sharedName: String = "",
+        name: String = "TFRecordReader"
+    ): Reader = {
       new Reader(createTFRecordReader(compressionType.name, sharedName = sharedName, name = name))
     }
 
@@ -208,7 +214,10 @@ object Reader {
     * @return Created op output, which is a handle to constructed reader.
     */
   private[io] def createWholeFileReader(
-      container: String = "", sharedName: String = "", name: String = "WholeFileReader"): Output = {
+      container: String = "",
+      sharedName: String = "",
+      name: String = "WholeFileReader"
+  ): Output = {
     Op.Builder(opType = "WholeFileReaderV2", name = name)
         .setAttribute("container", container)
         .setAttribute("shared_name", sharedName)
@@ -228,8 +237,11 @@ object Reader {
     * @return Created op output, which is a handle to constructed reader.
     */
   private[io] def createTextLineReader(
-      skipHeaderLines: Int = 0, container: String = "", sharedName: String = "",
-      name: String = "TextLineReader"): Output = {
+      skipHeaderLines: Int = 0,
+      container: String = "",
+      sharedName: String = "",
+      name: String = "TextLineReader"
+  ): Output = {
     Op.Builder(opType = "TextLineReaderV2", name = name)
         .setAttribute("skip_header_lines", skipHeaderLines)
         .setAttribute("container", container)
@@ -253,8 +265,15 @@ object Reader {
     * @return Created op output, which is a handle to constructed reader.
     */
   private[io] def createFixedLengthRecordReader(
-      recordBytes: Int, headerBytes: Int = 0, footerBytes: Int = 0, hopBytes: Int = 0, compressionType: String = "",
-      container: String = "", sharedName: String = "", name: String = "FixedLengthRecordReader"): Output = {
+      recordBytes: Int,
+      headerBytes: Int = 0,
+      footerBytes: Int = 0,
+      hopBytes: Int = 0,
+      compressionType: String = "",
+      container: String = "",
+      sharedName: String = "",
+      name: String = "FixedLengthRecordReader"
+  ): Output = {
     Op.Builder(opType = "FixedLengthRecordReaderV2", name = name)
         .setAttribute("record_bytes", recordBytes)
         .setAttribute("header_bytes", headerBytes)
@@ -278,8 +297,11 @@ object Reader {
     * @return Created op output, which is a handle to constructed reader.
     */
   private[io] def createTFRecordReader(
-      compressionType: String = "", container: String = "", sharedName: String = "",
-      name: String = "TFRecordReader"): Output = {
+      compressionType: String = "",
+      container: String = "",
+      sharedName: String = "",
+      name: String = "TFRecordReader"
+  ): Output = {
     Op.Builder(opType = "TFRecordReaderV2", name = name)
         .setAttribute("compression_type", compressionType)
         .setAttribute("container", container)
@@ -300,7 +322,10 @@ object Reader {
     * @return Created op output, which is a handle to constructed reader.
     */
   private[io] def createIdentityReader(
-      container: String = "", sharedName: String = "", name: String = "IdentityReader"): Output = {
+      container: String = "",
+      sharedName: String = "",
+      name: String = "IdentityReader"
+  ): Output = {
     Op.Builder(opType = "IdentityReaderV2", name = name)
         .setAttribute("container", container)
         .setAttribute("shared_name", sharedName)
@@ -318,7 +343,10 @@ object Reader {
     * @return Created op outputs as a key-value pair.
     */
   private[io] def readerRead(
-      readerHandle: Output, queueHandle: Output, name: String = "ReaderRead"): (Output, Output) = {
+      readerHandle: Output,
+      queueHandle: Output,
+      name: String = "ReaderRead"
+  ): (Output, Output) = {
     val outputs = Op.Builder(opType = "ReaderReadV2", name = name)
         .addInput(readerHandle)
         .addInput(queueHandle)
@@ -338,8 +366,11 @@ object Reader {
     * @return Created op outputs as a key-value pair of one-dimensional tensors,
     */
   private[io] def readerReadUpTo(
-      readerHandle: Output, queueHandle: Output, numRecords: Output,
-      name: String = "ReaderReadUpTo"): (Output, Output) = {
+      readerHandle: Output,
+      queueHandle: Output,
+      numRecords: Output,
+      name: String = "ReaderReadUpTo"
+  ): (Output, Output) = {
     val outputs = Op.Builder(opType = "ReaderReadUpToV2", name = name)
         .addInput(readerHandle)
         .addInput(queueHandle)
@@ -401,8 +432,7 @@ object Reader {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[io] def readerRestoreState(
-      readerHandle: Output, state: Output, name: String = "ReaderRestoreState"): Op = {
+  private[io] def readerRestoreState(readerHandle: Output, state: Output, name: String = "ReaderRestoreState"): Op = {
     Op.Builder(opType = "ReaderRestoreStateV2", name = name)
         .addInput(readerHandle)
         .addInput(state)
@@ -419,33 +449,5 @@ object Reader {
     Op.Builder(opType = "ReaderResetV2", name = name)
         .addInput(readerHandle)
         .build()
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("WholeFileReader")
-    GradientsRegistry.registerNonDifferentiable("WholeFileReaderV2")
-    GradientsRegistry.registerNonDifferentiable("TextLineReader")
-    GradientsRegistry.registerNonDifferentiable("TextLineReaderV2")
-    GradientsRegistry.registerNonDifferentiable("FixedLengthRecordReader")
-    GradientsRegistry.registerNonDifferentiable("FixedLengthRecordReaderV2")
-    GradientsRegistry.registerNonDifferentiable("TFRecordReader")
-    GradientsRegistry.registerNonDifferentiable("TFRecordReaderV2")
-    GradientsRegistry.registerNonDifferentiable("LMDBReader")
-    GradientsRegistry.registerNonDifferentiable("IdentityReader")
-    GradientsRegistry.registerNonDifferentiable("IdentityReaderV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderRead")
-    GradientsRegistry.registerNonDifferentiable("ReaderReadV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderReadUpTo")
-    GradientsRegistry.registerNonDifferentiable("ReaderReadUpToV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumRecordsProduced")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumRecordsProducedV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumWorkUnitsCompleted")
-    GradientsRegistry.registerNonDifferentiable("ReaderNumWorkUnitsCompletedV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderSerializeState")
-    GradientsRegistry.registerNonDifferentiable("ReaderSerializeStateV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderRestoreState")
-    GradientsRegistry.registerNonDifferentiable("ReaderRestoreStateV2")
-    GradientsRegistry.registerNonDifferentiable("ReaderReset")
-    GradientsRegistry.registerNonDifferentiable("ReaderResetV2")
   }
 }

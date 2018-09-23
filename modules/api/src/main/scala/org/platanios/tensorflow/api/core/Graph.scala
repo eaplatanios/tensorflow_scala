@@ -167,7 +167,7 @@ class Graph private[api](
     assertNotFrozen()
     if (!functionsMap.contains(function.hashedName)) {
       // TODO: !!! [FUNCTIONS] Add support for function gradients.
-      NativeFunction.copyToGraph(nativeHandle, function.nativeHandle, 0)
+      NativeFunction.copyToGraph(nativeHandle, function.nativeHandle, gradientHandle = 0)
       functionsMap.update(function.hashedName, function)
     }
   }
@@ -427,7 +427,7 @@ class Graph private[api](
     if (opHandle == 0)
       None
     else
-      Some(opsCache.getOrElseUpdate(opHandle, Op(this, opHandle)))
+      Some(opsCache.getOrElseUpdate(opHandle, Op(this, None, opHandle))) // TODO: [OPS] !!!
   }
 
   /** Returns all ops of this graph.
@@ -436,7 +436,7 @@ class Graph private[api](
     * @return Array containing all ops of this graph.
     */
   def ops: Array[Op] = NativeHandleLock.synchronized {
-    NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, handle)))
+    NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, None, handle))) // TODO: [OPS] !!!
   }
 
   /** Returns the op referred to by the provided name, in this graph.

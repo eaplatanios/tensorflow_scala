@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops.io
 
 import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 
 private[io] trait Files {
   /** Creates an op that reads and outputs the entire contents of the file pointed to by the input filename.
@@ -67,10 +66,4 @@ private[io] trait Files {
   *
   * @author Emmanouil Antonios Platanios
   */
-object Files extends Files {
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("ReadFile")
-    GradientsRegistry.registerNonDifferentiable("WriteFile")
-    GradientsRegistry.registerNonDifferentiable("MatchingFiles")
-  }
-}
+object Files extends Files

@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -266,19 +264,6 @@ object Text extends Text {
     def decodeBase64(name: String = "DecodeBase64"): Output = {
       Text.decodeBase64(output, name)
     }
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("RegexReplace")
-    GradientsRegistry.registerNonDifferentiable("ReduceJoin")
-    GradientsRegistry.registerNonDifferentiable("StringJoin")
-    GradientsRegistry.registerNonDifferentiable("StringSplit")
-    GradientsRegistry.registerNonDifferentiable("AsString")
-    GradientsRegistry.registerNonDifferentiable("EncodeBase64")
-    GradientsRegistry.registerNonDifferentiable("DecodeBase64")
-    GradientsRegistry.registerNonDifferentiable("StringToHashBucket")
-    GradientsRegistry.registerNonDifferentiable("StringToHashBucketFast")
-    GradientsRegistry.registerNonDifferentiable("StringToHashBucketStrong")
   }
 
   /** @define OpDocTextRegexReplace

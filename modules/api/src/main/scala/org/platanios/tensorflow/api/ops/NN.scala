@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.types._
 
@@ -53,7 +52,53 @@ private[api] trait NN {
         .addInput(value)
         .addInput(bias)
         .setAttribute("data_format", cNNDataFormat.toString)
+        .setGradientFn(addBiasGradient)
         .build().outputs(0)
+  }
+
+  protected def addBiasGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val cNNDataFormatName = {
+      try {
+        op.stringAttribute("data_format")
+      } catch {
+        case _: Throwable => CNNDataFormat.default.toString
+      }
+    }
+    val gradient = Op.Builder(opType = "BiasAddGrad", name = "BiasAddGradient")
+        .addInput(outputGradient)
+        .setAttribute("data_format", cNNDataFormatName)
+        .setGradientFn(addBiasHessian)
+        .build().outputs(0)
+    outputGradients :+ gradient
+  }
+
+  protected def addBiasHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val cNNDataFormatName = {
+      try {
+        op.stringAttribute("data_format")
+      } catch {
+        case _: Throwable => CNNDataFormat.default.toString
+      }
+    }
+    val valueShape = Basic.shape(op.inputs(0))
+    val biasShape = Basic.shape(outputGradient)
+    val (expandedShape, tileMultiples) = cNNDataFormatName match {
+      case "NHWC" =>
+        val valuesLeft = valueShape(0 :: -1)
+        val expandedShape = Basic.concatenate(Seq(Basic.onesLike(valuesLeft), biasShape), axis = 0)
+        val tileMultiples = Basic.concatenate(Seq(valuesLeft, 1), 0)
+        (expandedShape, tileMultiples)
+      case "NCHW" =>
+        val valuesLeft = valueShape(0 :: -3)
+        val valuesRight = valueShape(-2 ::)
+        val expandedShape = Basic.concatenate(
+          Seq(Basic.onesLike(valuesLeft), biasShape, Basic.onesLike(valuesRight)), axis = 0)
+        val tileMultiples = Basic.concatenate(Seq(valuesLeft, 1, valuesRight), 0)
+        (expandedShape, tileMultiples)
+    }
+    Seq(Basic.tile(Basic.reshape(outputGradient, expandedShape), tileMultiples))
   }
 
   /** $OpDocNNLinear
@@ -119,6 +164,7 @@ private[api] trait NN {
         val oFloat = if (o.dataType.isInteger) o.cast(FLOAT32) else o
         Op.Builder(opType = "Relu", name = n)
             .addInput(oFloat)
+            .setGradientFn(reluGradient)
             .build().outputs(0)
       })
     }
@@ -133,6 +179,25 @@ private[api] trait NN {
     }
   }
 
+  protected def reluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Op.Builder(opType = "ReluGrad", name = "ReLUGradient")
+        .addInput(outputGradient)
+        .addInput(op.outputs(0))
+        .setGradientFn(reluHessian)
+        .build().outputs(0))
+  }
+
+  protected def reluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val x = op.inputs(1)
+    Seq(Op.Builder(opType = "ReluGrad", name = "ReLUHessian")
+        .addInput(outputGradient)
+        .addInput(x)
+        .setGradientFn(reluHessian)
+        .build().outputs(0), Basic.zerosLike(x))
+  }
+
   /** $OpDocNNRelu6
     *
     * @group NNOps
@@ -145,8 +210,28 @@ private[api] trait NN {
         .applyUnary(x, o => {
           Op.Builder(opType = "ReLU6", name = name)
               .addInput(o)
+              .setGradientFn(relu6Gradient)
               .build().outputs(0)
         })
+  }
+
+  protected def relu6Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Op.Builder(opType = "Relu6Grad", name = "ReLU6Gradient")
+        .addInput(outputGradient)
+        .addInput(op.inputs(0))
+        .setGradientFn(relu6Hessian)
+        .build().outputs(0))
+  }
+
+  protected def relu6Hessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val x = op.inputs(1)
+    Seq(Op.Builder(opType = "Relu6Grad", name = "ReLU6Hessian")
+        .addInput(outputGradient)
+        .addInput(x)
+        .setGradientFn(relu6Hessian)
+        .build().outputs(0), Basic.zerosLike(x))
   }
 
   /** $OpDocNNCrelu
@@ -175,8 +260,34 @@ private[api] trait NN {
         .applyUnary(x, o => {
           Op.Builder(opType = "Elu", name = name)
               .addInput(o)
+              .setGradientFn(eluGradient)
               .build().outputs(0)
         })
+  }
+
+  protected def eluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
+        .addInput(outputGradient)
+        .addInput(op.outputs(0))
+        .setGradientFn(eluHessian)
+        .build().outputs(0))
+  }
+
+  protected def eluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val x = op.inputs(1)
+    Op.createWithNameScope("ELUHessian", Set(op)) {
+      Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
+          .addInput(outputGradient)
+          .addInput(op.outputs(0))
+          .setGradientFn(eluHessian)
+          .build().outputs(0),
+        Math.select(
+          Math.less(x, 0),
+          Math.multiply(outputGradient, op.inputs(0)),
+          Basic.zerosLike(x)))
+    }
   }
 
   /** $OpDocNNSelu
@@ -191,8 +302,39 @@ private[api] trait NN {
         .applyUnary(x, o => {
           Op.Builder(opType = "Selu", name = name)
               .addInput(o)
+              .setGradientFn(seluGradient)
               .build().outputs(0)
         })
+  }
+
+  protected def seluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Op.Builder(opType = "SeluGrad", name = "SELUGradient")
+        .addInput(outputGradient)
+        .addInput(op.outputs(0))
+        .setGradientFn(seluHessian)
+        .build().outputs(0))
+  }
+
+  protected def seluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val x = op.inputs(1)
+    val alpha = 1.7580993408473768599402175208123
+    Op.createWithNameScope("SELUHessian", Set(op)) {
+      Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
+          .addInput(outputGradient)
+          .addInput(op.outputs(0))
+          .setGradientFn(eluHessian)
+          .build().outputs(0),
+        Math.select(
+          Math.less(x, 0),
+          Op.Builder(opType = "EluGrad", name = "ELUGradient")
+              .addInput(outputGradient)
+              .addInput(Math.add(op.outputs(0), alpha))
+              .setGradientFn(eluHessian)
+              .build().outputs(0),
+          Basic.zerosLike(x)))
+    }
   }
 
   /** $OpDocNNSoftplus
@@ -207,8 +349,33 @@ private[api] trait NN {
         .applyUnary(x, o => {
           Op.Builder(opType = "Softplus", name = name)
               .addInput(o)
+              .setGradientFn(softplusGradient)
               .build().outputs(0)
         })
+  }
+
+  protected def softplusGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Op.Builder(opType = "SoftplusGrad", name = "SoftplusGradient")
+        .addInput(outputGradient)
+        .addInput(op.inputs(0))
+        .setGradientFn(softplusHessian)
+        .build().outputs(0))
+  }
+
+  protected def softplusHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val dy = op.inputs(0)
+    val x = op.inputs(1)
+    Op.createWith(nameScope = "SoftplusHessian", controlDependencies = Set(outputGradient.op)) {
+      val ddy = Op.Builder(opType = "SoftplusGrad", name = "SoftplusGradient")
+          .addInput(outputGradient)
+          .addInput(x)
+          .setGradientFn(softplusHessian)
+          .build().outputs(0)
+      val d2x = Math.multiply(outputGradient, dy) / (Math.exp(-x) + 2.0 + Math.exp(x))
+      Seq(ddy, d2x)
+    }
   }
 
   /** $OpDocNNSoftsign
@@ -223,8 +390,17 @@ private[api] trait NN {
         .applyUnary(x, o => {
           Op.Builder(opType = "Softsign", name = name)
               .addInput(o)
+              .setGradientFn(softsignGradient)
               .build().outputs(0)
         })
+  }
+
+  protected def softsignGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Op.Builder(opType = "SoftsignGrad", name = "SoftsignGradient")
+        .addInput(outputGradient)
+        .addInput(op.inputs(0))
+        .build().outputs(0))
   }
 
   //endregion Activation Ops
@@ -239,6 +415,7 @@ private[api] trait NN {
     if (shape.rank == 2 && isLastAxis) {
       Op.Builder(opType = opType, name = name)
           .addInput(logits)
+          .setGradientFn(if (opType == "Softmax") softmaxGradient else logSoftmaxGradient)
           .build().outputs(0)
     } else if (isLastAxis) {
       Op.createWithNameScope(name) {
@@ -247,6 +424,7 @@ private[api] trait NN {
         val flattenedLogits = flattenOuterAxes(logits)
         val output = Op.Builder(opType = opType, name = name)
             .addInput(flattenedLogits)
+            .setGradientFn(if (opType == "Softmax") softmaxGradient else logSoftmaxGradient)
             .build().outputs(0)
         Basic.reshape(output, inputShape)
       }
@@ -264,6 +442,7 @@ private[api] trait NN {
         // We perform the actual softmax on the last axis.
         var output = Op.Builder(opType = opType, name = name)
             .addInput(flattenedLogits)
+            .setGradientFn(if (opType == "Softmax") softmaxGradient else logSoftmaxGradient)
             .build().outputs(0)
         // We transform back the output tensor.
         output = Basic.reshape(output, shapeAfterSwap)
@@ -299,6 +478,18 @@ private[api] trait NN {
     softmaxHelper(logits, "LogSoftmax", axis, name)
   }
 
+  protected def softmaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val softmax = op.outputs(0)
+    Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
+  }
+
+  protected def logSoftmaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val softmax = Math.exp(op.outputs(0))
+    Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
+  }
+
   //region Loss Ops
 
   /** $OpDocNNL2Loss
@@ -311,7 +502,13 @@ private[api] trait NN {
   def l2Loss(input: Output, name: String = "L2Loss"): Output = {
     Op.Builder(opType = "L2Loss", name = name)
         .addInput(input)
+        .setGradientFn(l2LossGradient)
         .build().outputs(0)
+  }
+
+  protected def l2LossGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Seq(Math.multiply(op.inputs(0), outputGradient))
   }
 
   /** $OpDocNNSoftmaxCrossEntropy
@@ -351,6 +548,7 @@ private[api] trait NN {
       val output = Op.Builder(opType = "SoftmaxCrossEntropyWithLogits", name = name)
           .addInput(flattenedLogits)
           .addInput(flattenedLabels)
+          .setGradientFn(softmaxCrossEntropyGradient)
           .build().outputs(0)
       // The output shape should be the input shape without the axis over which the cross entropy was computed.
       val outputShape = Basic.slice(
@@ -373,6 +571,41 @@ private[api] trait NN {
         Cast.cast(reshapedOutput, FLOAT16)
       else
         reshapedOutput
+    }
+  }
+
+  protected def softmaxCrossEntropyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // outputGradients(0) is the back-propagated gradient for the cross entropy, and we multiply it with the gradients
+    // (which is op.outputs(1)). outputGradients(1) is the back-propagated gradient for the softmax gradient. There is
+    // no gradient for the labels.
+    val lossGradient = outputGradients(0).toOutput
+    val gradGradient = outputGradients(1).toOutput
+    val softmaxGradient = op.outputs(1)
+    val outputGradient = Basic.expandDims(lossGradient, -1) * softmaxGradient
+
+    // Some introspection to check if the gradient is feeding zeros.
+    val isGradGradientZero = {
+      if (gradGradient.op.opType == "Zeros" || gradGradient.op.opType == "ZerosLike") {
+        true
+      } else {
+        val constantFillValue = Output.constantValue(gradGradient)
+        constantFillValue.isDefined && constantFillValue.get.entriesIterator.forall(_ == 0)
+      }
+    }
+
+    val logits = op.inputs(0)
+    val labelsGradient = Basic.expandDims(lossGradient, -1) * - logSoftmax(logits)
+    if (!isGradGradientZero) {
+      val logitsSoftmax = softmax(logits)
+      val gradient = outputGradient + (
+          (gradGradient - Basic.squeeze(
+            Math.matmul(
+              Basic.expandDims(gradGradient, 1),
+              Basic.expandDims(logitsSoftmax, 2)),
+            Array(1))) * logitsSoftmax)
+      Seq(gradient, labelsGradient)
+    } else {
+      Seq(outputGradient, labelsGradient)
     }
   }
 
@@ -407,6 +640,7 @@ private[api] trait NN {
           Op.Builder(opType = "SparseSoftmaxCrossEntropyWithLogits", name = name)
               .addInput(preciseLogits)
               .addInput(labels)
+              .setGradientFn(sparseSoftmaxCrossEntropyGradient)
               .build().outputs(0)
         } else {
           // Reshape logits to rank 2 and labels to rank 1.
@@ -417,6 +651,7 @@ private[api] trait NN {
           val output = Op.Builder(opType = "SparseSoftmaxCrossEntropyWithLogits", name = name)
               .addInput(flattenedLogits)
               .addInput(flattenedLabels)
+              .setGradientFn(sparseSoftmaxCrossEntropyGradient)
               .build().outputs(0)
           val reshapedOutput = Basic.reshape(output, Basic.shape(labels))
           reshapedOutput.setShape(labels.shape)
@@ -429,6 +664,19 @@ private[api] trait NN {
       else
         output
     }
+  }
+
+  protected def sparseSoftmaxCrossEntropyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // outputGradients(0) is the back-propagated gradient for the cross entropy, and we multiply it with the gradients
+    // (which is op.outputs(1)). There is no gradient for the labels.
+    val lossGradient = outputGradients(0).toOutput
+    // Currently there is no way to take the second derivative of this op due to the fused implementation's
+    // interaction with tf.gradients(). Therefore, we make sure we silently prevent incorrect results by raising an
+    // error if the second derivative is requested via Basic.preventGradient().
+    val softmaxGradient = Basic.preventGradient(
+      op.outputs(1), message = "Currently there is no way to take the second derivative of " +
+          "SparseSoftmaxCrossEntropyWithLogits due to the fused implementation's interaction with tf.gradients().")
+    Seq(Basic.expandDims(lossGradient, -1) * softmaxGradient, null)
   }
 
   /** $OpDocNNSigmoidCrossEntropy
@@ -503,8 +751,11 @@ private[api] trait NN {
     * @return Created op output.
     */
   def logPoissonLoss(
-      logPredictions: Output, targets: Output, computeFullLoss: Boolean = false,
-      name: String = "LogPoissonLoss"): Output = {
+      logPredictions: Output,
+      targets: Output,
+      computeFullLoss: Boolean = false,
+      name: String = "LogPoissonLoss"
+  ): Output = {
     Op.createWithNameScope(name, Set(logPredictions.op, targets.op)) {
       val output = Math.exp(logPredictions) - (logPredictions * targets)
       if (computeFullLoss) {
@@ -645,7 +896,21 @@ private[api] trait NN {
         .setAttribute("bias", bias)
         .setAttribute("alpha", alpha)
         .setAttribute("beta", beta)
+        .setGradientFn(lrnGradient)
         .build().outputs(0)
+  }
+
+  protected def lrnGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    Op.Builder(opType = "LRNGrad", name = "LRNGrad")
+        .addInput(outputGradient)
+        .addInput(op.inputs(0))
+        .addInput(op.outputs(0))
+        .setAttribute("depth_radius", op.longAttribute("depth_radius"))
+        .setAttribute("bias", op.floatAttribute("bias"))
+        .setAttribute("alpha", op.floatAttribute("alpha"))
+        .setAttribute("beta", op.floatAttribute("beta"))
+        .build().outputs.toSeq.asInstanceOf[Seq[OutputLike]]
   }
 
   //endregion Normalization Ops
@@ -743,8 +1008,34 @@ private[api] trait NN {
         .addInput(input)
         .addInput(k)
         .setAttribute("sorted", sorted)
+        .setGradientFn(topKGradient)
         .build().outputs
     (outputs(0), outputs(1))
+  }
+
+  protected def topKGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    // Flatten indices to 2-D.
+    val indicesShape = Basic.shape(op.outputs(1))
+    val indicesLastAxis = Basic.gather(indicesShape, Basic.size(indicesShape) - 1)
+    val indices2D = Basic.reshape(op.outputs(1), Basic.stack(Seq(-1, indicesLastAxis)))
+
+    val inputShape = Basic.shape(op.inputs(0))
+    val inputLastAxis = Basic.gather(inputShape, Basic.size(inputShape) - 1)
+    val outerAxis = Basic.shape(indices2D)(0)
+
+    // Compute linear indices (flattened to 1-D).
+    val flattenedIndices = Basic.reshape(
+      indices2D + Basic.expandDims(Math.range(0, outerAxis * indicesLastAxis, inputLastAxis), -1), -1)
+
+    // Substitute gradient to appropriate locations and fill the rest with zeros, finally reshaping it to the original
+    // input shape.
+    Seq(Basic.reshape(
+      SparseOutput(
+        indices = flattenedIndices,
+        values = Basic.reshape(outputGradient, -1),
+        denseShape = Basic.reshape(Math.prod(inputShape), 1)).toOutput(validateIndices = false),
+      inputShape), Basic.zeros(INT32, Shape.scalar()))
   }
 
   /** $OpDocNNInTopK
@@ -828,7 +1119,25 @@ private[api] trait NN {
         .setAttribute("data_format", dataFormat.name)
         .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
+        .setGradientFn(conv2DGradient)
         .build().outputs(0)
+  }
+
+  protected def conv2DGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val strides = op.longArrayAttribute("strides")
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    val dilations = op.longArrayAttribute("dilations")
+    val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
+    val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)), INT64)
+    Seq(
+      conv2DBackpropInput(
+        inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
+        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU),
+      conv2DBackpropFilter(
+        op.inputs(0), inputShapes(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
+        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU))
   }
 
   /** $OpDocNNConv2DBackpropInput
@@ -935,15 +1244,34 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPool(
-      input: Output, windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
-      dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
+      input: Output,
+      windowSize: Seq[Long],
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "MaxPool"
+  ): Output = {
     Op.Builder(opType = "MaxPool", name = name)
         .addInput(input)
         .setAttribute("ksize", windowSize.toArray)
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setGradientFn(maxPoolGradient)
         .build().outputs(0)
+  }
+
+  protected def maxPoolGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val windowSizes = op.longArrayAttribute("ksize")
+    val strides = op.longArrayAttribute("strides")
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    Seq(
+      maxPoolGrad(
+        op.inputs(0), op.outputs(0), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat))
   }
 
   /** $OpDocNNMaxPoolGrad
@@ -961,9 +1289,16 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGrad(
-      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
-      name: String = "MaxPoolGrad"): Output = {
+      originalInput: Output,
+      originalOutput: Output,
+      outputGradient: Output,
+      windowSize: Seq[Long],
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "MaxPoolGrad"
+  ): Output = {
     Op.Builder(opType = "MaxPoolGrad", name = name)
         .addInput(originalInput)
         .addInput(originalOutput)
@@ -972,7 +1307,22 @@ private[api] trait NN {
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setGradientFn(maxPoolHessian)
         .build().outputs(0)
+  }
+
+  protected def maxPoolHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val windowSizes = op.longArrayAttribute("ksize")
+    val strides = op.longArrayAttribute("strides")
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    Seq(
+      Basic.zerosLike(op.inputs(0)),
+      Basic.zerosLike(op.inputs(1)),
+      maxPoolGradGrad(
+        op.inputs(0), op.inputs(1), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat))
   }
 
   /** $OpDocNNMaxPoolGradGrad
@@ -990,9 +1340,16 @@ private[api] trait NN {
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
   def maxPoolGradGrad(
-      originalInput: Output, originalOutput: Output, outputGradient: Output, windowSize: Seq[Long],
-      stride1: Long, stride2: Long, padding: ConvPaddingMode, dataFormat: CNNDataFormat = CNNDataFormat.default,
-      name: String = "MaxPoolGradGrad"): Output = {
+      originalInput: Output,
+      originalOutput: Output,
+      outputGradient: Output,
+      windowSize: Seq[Long],
+      stride1: Long,
+      stride2: Long,
+      padding: ConvPaddingMode,
+      dataFormat: CNNDataFormat = CNNDataFormat.default,
+      name: String = "MaxPoolGradGrad"
+  ): Output = {
     Op.Builder(opType = "MaxPoolGradGrad", name = name)
         .addInput(originalInput)
         .addInput(originalOutput)
@@ -1001,7 +1358,22 @@ private[api] trait NN {
         .setAttribute("strides", Array[Long](1, stride1, stride2, 1))
         .setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
+        .setGradientFn(maxPoolHessianGradient)
         .build().outputs(0)
+  }
+
+  protected def maxPoolHessianGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head.toOutput
+    val windowSizes = op.longArrayAttribute("ksize")
+    val strides = op.longArrayAttribute("strides")
+    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    Seq(
+      Basic.zerosLike(op.inputs(0)),
+      Basic.zerosLike(op.inputs(1)),
+      maxPoolGrad(
+        op.inputs(0), op.inputs(1), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
+        padding, dataFormat))
   }
 
   //endregion Pooling Ops
@@ -1073,8 +1445,48 @@ private[api] trait NN {
         .setAttribute("epsilon", if (epsilon > minEpsilon) epsilon else minEpsilon)
         .setAttribute("data_format", dataFormat.name)
         .setAttribute("is_training", isTraining)
+        .setGradientFn(fusedBatchNormalizationGradient)
         .build().outputs
     (outputs(0), outputs(1), outputs(2))
+  }
+
+  protected def fusedBatchNormalizationGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    var x = op.inputs(0)
+    var gradY = outputGradients.head.toOutput
+    val scale = op.inputs(1)
+    val epsilon = op.floatAttribute("epsilon")
+    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
+    val isTraining = op.booleanAttribute("is_training")
+
+    if (!isTraining && dataFormat == NCWFormat) {
+      x = Basic.transpose(x, Seq(0, 2, 3, 1))
+      gradY = Basic.transpose(gradY, Seq(0, 2, 3, 1))
+    }
+
+    val (popMean, popVariance) = {
+      if (isTraining)
+        (op.outputs(3), op.outputs(4))
+      else
+        (op.inputs(3), op.inputs(4))
+    }
+
+    val gradients = Op.Builder(opType = "FusedBatchNormGradV2", name = "FusedBatchNormalizationGradient")
+        .addInput(gradY)
+        .addInput(x)
+        .addInput(scale)
+        .addInput(popMean)
+        .addInput(popVariance)
+        .setAttribute("epsilon", epsilon)
+        .setAttribute("data_format", if (isTraining) dataFormat.name else NWCFormat.name)
+        .setAttribute("is_training", isTraining)
+        .build().outputs
+
+    if (isTraining) {
+      gradients.asInstanceOf[Seq[OutputLike]]
+    } else {
+      val dx = if (dataFormat == NCWFormat) Basic.transpose(gradients(0), Seq(0, 3, 1, 2)) else gradients(0)
+      Seq[OutputLike](dx, gradients(1), gradients(2), null, null)
+    }
   }
 
   //endregion Normalization Ops
@@ -1339,8 +1751,13 @@ object NN extends NN {
       * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
       */
     def maxPool(
-        windowSize: Seq[Long], stride1: Long, stride2: Long, padding: ConvPaddingMode,
-        dataFormat: CNNDataFormat = CNNDataFormat.default, name: String = "MaxPool"): Output = {
+        windowSize: Seq[Long],
+        stride1: Long,
+        stride2: Long,
+        padding: ConvPaddingMode,
+        dataFormat: CNNDataFormat = CNNDataFormat.default,
+        name: String = "MaxPool"
+    ): Output = {
       NN.maxPool(output, windowSize, stride1, stride2, padding, dataFormat, name)
     }
 
@@ -1408,442 +1825,6 @@ object NN extends NN {
         conjugate = false,
         name)
     }
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.register("BiasAdd", biasAddGradient)
-    GradientsRegistry.register("BiasAddGrad", biasAddHessian)
-    GradientsRegistry.register("Relu", reluGradient)
-    GradientsRegistry.register("ReluGrad", reluHessian)
-    GradientsRegistry.register("Relu6", relu6Gradient)
-    GradientsRegistry.register("Relu6Grad", relu6Hessian)
-    GradientsRegistry.register("Elu", eluGradient)
-    GradientsRegistry.register("EluGrad", eluHessian)
-    GradientsRegistry.register("Selu", seluGradient)
-    GradientsRegistry.register("Softplus", softplusGradient)
-    GradientsRegistry.register("SoftplusGrad", softplusHessian)
-    GradientsRegistry.register("Softsign", softsignGradient)
-    GradientsRegistry.register("SeluGrad", seluHessian)
-    GradientsRegistry.register("Softmax", softmaxGradient)
-    GradientsRegistry.register("LogSoftmax", logSoftmaxGradient)
-    GradientsRegistry.register("LRN", lrnGradient)
-    GradientsRegistry.register("SoftmaxCrossEntropyWithLogits", softmaxCrossEntropyGradient)
-    GradientsRegistry.register("SparseSoftmaxCrossEntropyWithLogits", sparseSoftmaxCrossEntropyGradient)
-    GradientsRegistry.register("L2Loss", l2LossGradient)
-    GradientsRegistry.register("TopK", topKGradient)
-    GradientsRegistry.register("TopKV2", topKGradient)
-    GradientsRegistry.register("BatchNormWithGlobalNormalization", batchNormalizationWithGlobalNormalizationGradient)
-    GradientsRegistry.register("FusedBatchNorm", fusedBatchNormalizationGradient)
-    GradientsRegistry.register("FusedBatchNormV2", fusedBatchNormalizationV2Gradient)
-    GradientsRegistry.register("Conv2D", conv2DGradient)
-    GradientsRegistry.register("MaxPool", maxPoolGradient)
-    GradientsRegistry.register("MaxPoolGrad", maxPoolHessian)
-    GradientsRegistry.register("MaxPoolGradGrad", maxPoolHessianGradient)
-
-    private[this] def biasAddGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val cNNDataFormatName = {
-        try {
-          op.stringAttribute("data_format")
-        } catch {
-          case _: Throwable => CNNDataFormat.default.toString
-        }
-      }
-      val gradient = Op.Builder(opType = "BiasAddGrad", name = "BiasAddGradient")
-          .addInput(outputGradient)
-          .setAttribute("data_format", cNNDataFormatName)
-          .build().outputs(0)
-      outputGradients :+ gradient
-    }
-
-    private[this] def biasAddHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val cNNDataFormatName = {
-        try {
-          op.stringAttribute("data_format")
-        } catch {
-          case _: Throwable => CNNDataFormat.default.toString
-        }
-      }
-      val valueShape = Basic.shape(op.inputs(0))
-      val biasShape = Basic.shape(outputGradient)
-      val (expandedShape, tileMultiples) = cNNDataFormatName match {
-        case "NHWC" =>
-          val valuesLeft = valueShape(0 :: -1)
-          val expandedShape = Basic.concatenate(Seq(Basic.onesLike(valuesLeft), biasShape), axis = 0)
-          val tileMultiples = Basic.concatenate(Seq(valuesLeft, 1), 0)
-          (expandedShape, tileMultiples)
-        case "NCHW" =>
-          val valuesLeft = valueShape(0 :: -3)
-          val valuesRight = valueShape(-2 ::)
-          val expandedShape = Basic.concatenate(
-            Seq(Basic.onesLike(valuesLeft), biasShape, Basic.onesLike(valuesRight)), axis = 0)
-          val tileMultiples = Basic.concatenate(Seq(valuesLeft, 1, valuesRight), 0)
-          (expandedShape, tileMultiples)
-      }
-      Seq(Basic.tile(Basic.reshape(outputGradient, expandedShape), tileMultiples))
-    }
-
-    private[this] def reluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      Seq(Op.Builder(opType = "ReluGrad", name = "ReLUGradient")
-              .addInput(outputGradient)
-              .addInput(op.outputs(0))
-              .build().outputs(0))
-    }
-
-    private[this] def reluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val x = op.inputs(1)
-      Seq(Op.Builder(opType = "ReluGrad", name = "ReLUHessian")
-              .addInput(outputGradient)
-              .addInput(x)
-              .build().outputs(0), Basic.zerosLike(x))
-    }
-
-    private[this] def relu6Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      Seq(Op.Builder(opType = "Relu6Grad", name = "ReLU6Gradient")
-              .addInput(outputGradient)
-              .addInput(op.inputs(0))
-              .build().outputs(0))
-    }
-
-    private[this] def relu6Hessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val x = op.inputs(1)
-      Seq(Op.Builder(opType = "Relu6Grad", name = "ReLU6Hessian")
-              .addInput(outputGradient)
-              .addInput(x)
-              .build().outputs(0), Basic.zerosLike(x))
-    }
-
-    private[this] def eluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
-              .addInput(outputGradient)
-              .addInput(op.outputs(0))
-              .build().outputs(0))
-    }
-
-    private[this] def eluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val x = op.inputs(1)
-      Op.createWithNameScope("ELUHessian", Set(op)) {
-        Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
-                .addInput(outputGradient)
-                .addInput(op.outputs(0))
-                .build().outputs(0),
-            Math.select(
-              Math.less(x, 0),
-              Math.multiply(outputGradient, op.inputs(0)),
-              Basic.zerosLike(x)))
-      }
-    }
-
-    private[this] def seluGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      Seq(Op.Builder(opType = "SeluGrad", name = "SELUGradient")
-              .addInput(outputGradient)
-              .addInput(op.outputs(0))
-              .build().outputs(0))
-    }
-
-    private[this] def seluHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val x = op.inputs(1)
-      val alpha = 1.7580993408473768599402175208123
-      Op.createWithNameScope("SELUHessian", Set(op)) {
-        Seq(Op.Builder(opType = "EluGrad", name = "ELUGradient")
-                .addInput(outputGradient)
-                .addInput(op.outputs(0))
-                .build().outputs(0),
-            Math.select(
-              Math.less(x, 0),
-              Op.Builder(opType = "EluGrad", name = "ELUGradient")
-                  .addInput(outputGradient)
-                  .addInput(Math.add(op.outputs(0), alpha))
-                  .build().outputs(0),
-              Basic.zerosLike(x)))
-      }
-    }
-
-    private[this] def softplusGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      Seq(Op.Builder(opType = "SoftplusGrad", name = "SoftplusGradient")
-              .addInput(outputGradient)
-              .addInput(op.inputs(0))
-              .build().outputs(0))
-    }
-
-    private[this] def softplusHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val dy = op.inputs(0)
-      val x = op.inputs(1)
-      Op.createWith(nameScope = "SoftplusHessian", controlDependencies = Set(outputGradient.op)) {
-        val ddy = Op.Builder(opType = "SoftplusGrad", name = "SoftplusGradient")
-            .addInput(outputGradient)
-            .addInput(x)
-            .build().outputs(0)
-        val d2x = Math.multiply(outputGradient, dy) / (Math.exp(-x) + 2.0 + Math.exp(x))
-        Seq(ddy, d2x)
-      }
-    }
-
-    private[this] def softsignGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      Seq(Op.Builder(opType = "SoftsignGrad", name = "SoftsignGradient")
-              .addInput(outputGradient)
-              .addInput(op.inputs(0))
-              .build().outputs(0))
-    }
-
-    private[this] def softmaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val softmax = op.outputs(0)
-      Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
-    }
-
-    private[this] def logSoftmaxGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      val softmax = Math.exp(op.outputs(0))
-      Seq((outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax)
-    }
-
-    private[this] def lrnGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val outputGradient = outputGradients.head.toOutput
-      Op.Builder(opType = "LRNGrad", name = "LRNGrad")
-          .addInput(outputGradient)
-          .addInput(op.inputs(0))
-          .addInput(op.outputs(0))
-          .setAttribute("depth_radius", op.longAttribute("depth_radius"))
-          .setAttribute("bias", op.floatAttribute("bias"))
-          .setAttribute("alpha", op.floatAttribute("alpha"))
-          .setAttribute("beta", op.floatAttribute("beta"))
-          .build().outputs.toSeq.asInstanceOf[Seq[OutputLike]]
-    }
-
-    private[this] def broadcastMultiply(vector: Output, matrix: Output): Output = {
-      Basic.expandDims(vector, -1) * matrix
-    }
-
-    private[this] def softmaxCrossEntropyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // outputGradients(0) is the back-propagated gradient for the cross entropy, and we multiply it with the gradients
-      // (which is op.outputs(1)). outputGradients(1) is the back-propagated gradient for the softmax gradient. There is
-      // no gradient for the labels.
-      val lossGradient = outputGradients(0).toOutput
-      val gradGradient = outputGradients(1).toOutput
-      val softmaxGradient = op.outputs(1)
-      val outputGradient = broadcastMultiply(lossGradient, softmaxGradient)
-
-      // Some introspection to check if the gradient is feeding zeros.
-      val isGradGradientZero = {
-        if (gradGradient.op.opType == "Zeros" || gradGradient.op.opType == "ZerosLike") {
-          true
-        } else {
-          val constantFillValue = Output.constantValue(gradGradient)
-          constantFillValue.isDefined && constantFillValue.get.entriesIterator.forall(_ == 0)
-        }
-      }
-
-      val logits = op.inputs(0)
-      val labelsGradient = broadcastMultiply(lossGradient, -NN.logSoftmax(logits))
-      if (!isGradGradientZero) {
-        val logitsSoftmax = NN.softmax(logits)
-        val gradient = outputGradient + (
-            (gradGradient - Basic.squeeze(
-              Math.matmul(
-                Basic.expandDims(gradGradient, 1),
-                Basic.expandDims(logitsSoftmax, 2)),
-              Array(1))) * logitsSoftmax)
-        Seq(gradient, labelsGradient)
-      } else {
-        Seq(outputGradient, labelsGradient)
-      }
-    }
-
-    private[this] def sparseSoftmaxCrossEntropyGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // outputGradients(0) is the back-propagated gradient for the cross entropy, and we multiply it with the gradients
-      // (which is op.outputs(1)). There is no gradient for the labels.
-      val lossGradient = outputGradients(0).toOutput
-      // Currently there is no way to take the second derivative of this op due to the fused implementation's
-      // interaction with tf.gradients(). Therefore, we make sure we silently prevent incorrect results by raising an
-      // error if the second derivative is requested via Basic.preventGradient().
-      val softmaxGradient = Basic.preventGradient(
-        op.outputs(1), message = "Currently there is no way to take the second derivative of " +
-            "SparseSoftmaxCrossEntropyWithLogits due to the fused implementation's interaction with tf.gradients().")
-      Seq(broadcastMultiply(lossGradient, softmaxGradient), null)
-    }
-  }
-
-  private[this] def l2LossGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    Seq(Math.multiply(op.inputs(0), outputGradient))
-  }
-
-  private[this] def topKGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    // Flatten indices to 2-D.
-    val indicesShape = Basic.shape(op.outputs(1))
-    val indicesLastAxis = Basic.gather(indicesShape, Basic.size(indicesShape) - 1)
-    val indices2D = Basic.reshape(op.outputs(1), Basic.stack(Seq(-1, indicesLastAxis)))
-
-    val inputShape = Basic.shape(op.inputs(0))
-    val inputLastAxis = Basic.gather(inputShape, Basic.size(inputShape) - 1)
-    val outerAxis = Basic.shape(indices2D)(0)
-
-    // Compute linear indices (flattened to 1-D).
-    val flattenedIndices = Basic.reshape(
-      indices2D + Basic.expandDims(Math.range(0, outerAxis * indicesLastAxis, inputLastAxis), -1), -1)
-
-    // Substitute gradient to appropriate locations and fill the rest with zeros, finally reshaping it to the original
-    // input shape.
-    Seq(Basic.reshape(
-      SparseOutput(
-        indices = flattenedIndices,
-        values = Basic.reshape(outputGradient, -1),
-        denseShape = Basic.reshape(Math.prod(inputShape), 1)).toOutput(validateIndices = false),
-      inputShape), Basic.zeros(INT32, Shape.scalar()))
-  }
-
-  private[this] def batchNormalizationWithGlobalNormalizationGradient(
-      op: Op,
-      outputGradients: Seq[OutputLike]
-  ): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    Op.Builder(
-      opType = "BatchNormWithGlobalNormalizationGrad", name = "BatchNormalizationWithGlobalNormalizationGradient")
-        .addInput(op.inputs(0))
-        .addInput(op.inputs(1))
-        .addInput(op.inputs(2))
-        .addInput(op.inputs(4))
-        .addInput(outputGradient)
-        .setAttribute("variance_epsilon", op.floatAttribute("variance_epsilon"))
-        .setAttribute("scale_after_normalization", op.booleanAttribute("scale_after_normalization"))
-        .build().outputs.asInstanceOf[Seq[OutputLike]]
-  }
-
-  private[this] def fusedBatchNormalizationGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    baseFusedBatchNormalizationGradient(op, outputGradients, useV2 = false)
-  }
-
-  private[this] def fusedBatchNormalizationV2Gradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    baseFusedBatchNormalizationGradient(op, outputGradients, useV2 = true)
-  }
-
-  private[this] def baseFusedBatchNormalizationGradient(
-      op: Op,
-      outputGradients: Seq[OutputLike],
-      useV2: Boolean
-  ): Seq[OutputLike] = {
-    var x = op.inputs(0)
-    var gradY = outputGradients.head.toOutput
-    val scale = op.inputs(1)
-    val epsilon = op.floatAttribute("epsilon")
-    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
-    val isTraining = op.booleanAttribute("is_training")
-
-    if (!isTraining && dataFormat == NCWFormat) {
-      x = Basic.transpose(x, Seq(0, 2, 3, 1))
-      gradY = Basic.transpose(gradY, Seq(0, 2, 3, 1))
-    }
-
-    val (popMean, popVariance) = {
-      if (isTraining)
-        (op.outputs(3), op.outputs(4))
-      else
-        (op.inputs(3), op.inputs(4))
-    }
-
-    val gradients = {
-      if (useV2) {
-        Op.Builder(opType = "FusedBatchNormGradV2", name = "FusedBatchNormalizationGradient")
-            .addInput(gradY)
-            .addInput(x)
-            .addInput(scale)
-            .addInput(popMean)
-            .addInput(popVariance)
-            .setAttribute("epsilon", epsilon)
-            .setAttribute("data_format", if (isTraining) dataFormat.name else NWCFormat.name)
-            .setAttribute("is_training", isTraining)
-            .build().outputs
-      } else {
-        Op.Builder(opType = "FusedBatchNormGrad", name = "FusedBatchNormalizationGradient")
-            .addInput(gradY)
-            .addInput(x)
-            .addInput(scale)
-            .addInput(popMean)
-            .addInput(popVariance)
-            .setAttribute("epsilon", epsilon)
-            .setAttribute("data_format", if (isTraining) dataFormat.name else NWCFormat.name)
-            .setAttribute("is_training", isTraining)
-            .build().outputs
-      }
-    }
-
-    if (isTraining) {
-      gradients.asInstanceOf[Seq[OutputLike]]
-    } else {
-      val dx = if (dataFormat == NCWFormat) Basic.transpose(gradients(0), Seq(0, 3, 1, 2)) else gradients(0)
-      Seq[OutputLike](dx, gradients(1), gradients(2), null, null)
-    }
-  }
-
-  private[this] def conv2DGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    val strides = op.longArrayAttribute("strides")
-    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
-    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
-    val dilations = op.longArrayAttribute("dilations")
-    val useCuDNNOnGPU = op.booleanAttribute("use_cudnn_on_gpu")
-    val inputShapes = Basic.shapeN(Seq(op.inputs(0), op.inputs(1)), INT64)
-    Seq(
-      NN.conv2DBackpropInput(
-        inputShapes(0), op.inputs(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
-        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU),
-      NN.conv2DBackpropFilter(
-        op.inputs(0), inputShapes(1), outputGradient, strides(1).toInt, strides(2).toInt, padding, dataFormat,
-        (dilations(0).toInt, dilations(1).toInt, dilations(2).toInt, dilations(3).toInt), useCuDNNOnGPU))
-  }
-
-  private[this] def maxPoolGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    val windowSizes = op.longArrayAttribute("ksize")
-    val strides = op.longArrayAttribute("strides")
-    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
-    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
-    Seq(
-      NN.maxPoolGrad(
-        op.inputs(0), op.outputs(0), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
-        padding, dataFormat))
-  }
-
-  private[this] def maxPoolHessian(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    val windowSizes = op.longArrayAttribute("ksize")
-    val strides = op.longArrayAttribute("strides")
-    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
-    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
-    Seq(
-      Basic.zerosLike(op.inputs(0)),
-      Basic.zerosLike(op.inputs(1)),
-      NN.maxPoolGradGrad(
-        op.inputs(0), op.inputs(1), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
-        padding, dataFormat))
-  }
-
-  private[this] def maxPoolHessianGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    val windowSizes = op.longArrayAttribute("ksize")
-    val strides = op.longArrayAttribute("strides")
-    val padding = ConvPaddingMode.fromName(op.stringAttribute("padding"))
-    val dataFormat = CNNDataFormat.fromName(op.stringAttribute("data_format"))
-    Seq(
-      Basic.zerosLike(op.inputs(0)),
-      Basic.zerosLike(op.inputs(1)),
-      NN.maxPoolGrad(
-        op.inputs(0), op.inputs(1), outputGradient, windowSizes, strides(1).toInt, strides(2).toInt,
-        padding, dataFormat))
   }
 
   /** @define OpDocNNAddBias

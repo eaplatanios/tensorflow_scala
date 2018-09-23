@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
 import org.platanios.tensorflow.api.types._
 
@@ -555,17 +554,6 @@ private[ops] object Parsing extends Parsing {
     val featureListDenseValues = outputs.slice(index, index + numFeatureListDense)
     (contextSparseIndices, contextSparseValues, contextSparseShapes, contextDenseValues,
         featureListSparseIndices, featureListSparseValues, featureListSparseShapes, featureListDenseValues)
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("SerializeTensor")
-    GradientsRegistry.registerNonDifferentiable("ParseTensor")
-    GradientsRegistry.registerNonDifferentiable("DecodeRaw")
-    GradientsRegistry.registerNonDifferentiable("DecodeCSV")
-    GradientsRegistry.registerNonDifferentiable("ParseExample")
-    GradientsRegistry.registerNonDifferentiable("ParseSingleSequenceExample")
-    GradientsRegistry.registerNonDifferentiable("StringToNumber")
-    GradientsRegistry.registerNonDifferentiable("DecodeJSONExample")
   }
 
   /** @define OpDocParsingEncodeTensor

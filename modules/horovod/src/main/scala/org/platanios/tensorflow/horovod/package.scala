@@ -399,8 +399,4 @@ package object horovod {
         .setAttribute("root_rank", rootRank)
         .build().outputs(0)
   }
-
-  tf.gradientsRegistry.registerNonDifferentiable("HorovodAllreduce")
-  tf.gradientsRegistry.registerNonDifferentiable("HorovodAllgather")
-  tf.gradientsRegistry.registerNonDifferentiable("HorovodBroadcast")
 }

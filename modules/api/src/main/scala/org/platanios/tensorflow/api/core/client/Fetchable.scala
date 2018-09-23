@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, OutputLike, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
-import org.platanios.tensorflow.api.types.SupportedType
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
@@ -267,7 +266,7 @@ object Fetchable {
   }
 
   // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-  implicit def productConstructor[P <: Product, R <: Product, L <: HList, LO <: HList](implicit
+  implicit def productConstructor[P, R, L <: HList, LO <: HList](implicit
       gen: Generic.Aux[P, L],
       fetchableL: Aux[L, LO],
       tupler: Tupler.Aux[LO, R]

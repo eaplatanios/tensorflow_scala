@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.helpers.{StructureFromDataType, StructureFromOutput, StructureFromTensor}
 import org.platanios.tensorflow.api.ops.{Callback, Function, Math, Op, Output}
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops.io.data
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT64}
@@ -444,33 +443,5 @@ object Dataset {
         .addInputList(paddingValues)
         .setAttribute("output_shapes", outputShapes.toArray)
         .build().outputs(0)
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("TensorDataset")
-    GradientsRegistry.registerNonDifferentiable("TensorSliceDataset")
-    GradientsRegistry.registerNonDifferentiable("SparseTensorSliceDataset")
-    GradientsRegistry.registerNonDifferentiable("RangeDataset")
-    GradientsRegistry.registerNonDifferentiable("TextLineDataset")
-    GradientsRegistry.registerNonDifferentiable("FixedLengthRecordDataset")
-    GradientsRegistry.registerNonDifferentiable("TFRecordDataset")
-    GradientsRegistry.registerNonDifferentiable("BatchDataset")
-    GradientsRegistry.registerNonDifferentiable("PaddedBatchDataset")
-    GradientsRegistry.registerNonDifferentiable("RepeatDataset")
-    GradientsRegistry.registerNonDifferentiable("CacheDataset")
-    GradientsRegistry.registerNonDifferentiable("ShuffleDataset")
-    GradientsRegistry.registerNonDifferentiable("TakeDataset")
-    GradientsRegistry.registerNonDifferentiable("SkipDataset")
-    GradientsRegistry.registerNonDifferentiable("ZipDataset")
-    GradientsRegistry.registerNonDifferentiable("ConcatenateDataset")
-    GradientsRegistry.registerNonDifferentiable("MapDataset")
-    GradientsRegistry.registerNonDifferentiable("ParallelMapDataset")
-    GradientsRegistry.registerNonDifferentiable("FlatMapDataset")
-    GradientsRegistry.registerNonDifferentiable("FilterDataset")
-    GradientsRegistry.registerNonDifferentiable("InterleaveDataset")
-    GradientsRegistry.registerNonDifferentiable("GroupByWindowDataset")
-    GradientsRegistry.registerNonDifferentiable("PrefetchDataset")
-    GradientsRegistry.registerNonDifferentiable("IgnoreErrorsDataset")
-    GradientsRegistry.registerNonDifferentiable("DenseToSparseBatchDataset")
   }
 }

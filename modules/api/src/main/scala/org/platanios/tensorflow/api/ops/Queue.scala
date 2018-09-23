@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 import java.nio.ByteBuffer
@@ -779,33 +778,5 @@ private[api] object Queue {
     Op.Builder(opType = "QueueSizeV2", name = name)
         .addInput(queueHandle)
         .build().outputs(0)
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("FIFOQueue")
-    GradientsRegistry.registerNonDifferentiable("FIFOQueueV2")
-    GradientsRegistry.registerNonDifferentiable("PaddingFIFOQueue")
-    GradientsRegistry.registerNonDifferentiable("PaddingFIFOQueueV2")
-    GradientsRegistry.registerNonDifferentiable("PriorityQueue")
-    GradientsRegistry.registerNonDifferentiable("PriorityQueueV2")
-    GradientsRegistry.registerNonDifferentiable("RandomShuffleQueue")
-    GradientsRegistry.registerNonDifferentiable("RandomShuffleQueueV2")
-    GradientsRegistry.registerNonDifferentiable("FakeQueue")
-    GradientsRegistry.registerNonDifferentiable("QueueEnqueue")
-    GradientsRegistry.registerNonDifferentiable("QueueEnqueueV2")
-    GradientsRegistry.registerNonDifferentiable("QueueEnqueueMany")
-    GradientsRegistry.registerNonDifferentiable("QueueEnqueueManyV2")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeue")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeueV2")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeueMany")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeueManyV2")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeueUpTo")
-    GradientsRegistry.registerNonDifferentiable("QueueDequeueUpToV2")
-    GradientsRegistry.registerNonDifferentiable("QueueClose")
-    GradientsRegistry.registerNonDifferentiable("QueueCloseV2")
-    GradientsRegistry.registerNonDifferentiable("QueueIsClosed")
-    GradientsRegistry.registerNonDifferentiable("QueueIsClosedV2")
-    GradientsRegistry.registerNonDifferentiable("QueueSize")
-    GradientsRegistry.registerNonDifferentiable("QueueSizeV2")
   }
 }

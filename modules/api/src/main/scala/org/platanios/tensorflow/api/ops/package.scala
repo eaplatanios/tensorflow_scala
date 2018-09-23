@@ -69,26 +69,6 @@ package object ops {
     outputs.map(_.cast(dataType))
   }
 
-  ops.Basic.Gradients
-  ops.Cast.Gradients
-  ops.DataFlow.Gradients
-  ops.Logging.Gradients
-  ops.Math.Gradients
-  ops.NN.Gradients
-  ops.Queue.Gradients
-  ops.Parsing.Gradients
-  ops.Random.Gradients
-  ops.Sets.Gradients
-  ops.TensorArray.Gradients
-  ops.Text.Gradients
-  ops.control_flow.ControlFlow.Gradients
-  ops.io.Files.Gradients
-  ops.io.Reader.Gradients
-  ops.io.data.Dataset.Gradients
-  ops.io.data.Iterator.Gradients
-  ops.lookup.Lookup.Gradients
-  ops.variables.Variable.Gradients
-
   private[api] trait API
       extends Basic
           with Callback

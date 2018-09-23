@@ -32,9 +32,10 @@ import scala.collection.mutable
 object Gradients {
   val logger = Logger(LoggerFactory.getLogger("Gradients"))
 
+  type GradientFunction = (Op, Seq[OutputLike]) => Seq[OutputLike]
+
   private[ops] trait API {
-    val gradients        : ops.Gradients.type          = ops.Gradients
-    val gradientsRegistry: ops.Gradients.Registry.type = ops.Gradients.Registry
+    val gradients: ops.Gradients.type = ops.Gradients
   }
 
   // TODO: [API] Expose in "tf".
@@ -101,9 +102,9 @@ object Gradients {
           val opGradients = aggregationMethod.aggregateGradients(accumulatedGradients, op, gradientUID)
           controlFlowGradientState.foreach(_.exitGradientWhileLoopContext(op, before = true))
           val hasOutputGradients = opGradients.nonEmpty
-          val gradientFunction: Registry.GradientFunction = {
+          val gradientFunction: GradientFunction = {
             if (hasOutputGradients && !stopOps.contains(op)) {
-              Registry(op.opType)
+              op.gradientFn.orNull
             } else {
               null
             }
@@ -500,7 +501,7 @@ object Gradients {
         gradients: Seq[OutputLike],
         gradientUID: Option[String] = None
     ): OutputLike = {
-       if (gradients.forall(_.isInstanceOf[Output])) {
+      if (gradients.forall(_.isInstanceOf[Output])) {
         // This function adds op outputs from potentially different devices.
         // We add the tensors of each device separately first, and we then add up the partial results.
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
@@ -511,23 +512,24 @@ object Gradients {
         }
         Math.addN(deviceContributions)
       } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices])) {
-         def addNOutputIndexedSlices(gradients: Seq[OutputIndexedSlices]): OutputIndexedSlices = {
-           if (gradients.isEmpty) {
-             throw new IllegalArgumentException(
-               "Can not aggregate empty gradients list.")
-           } else if (gradients.length == 1) {
-             gradients.head
-           } else {
-             OutputIndexedSlices(
-               Basic.concatenate(gradients.map(_.indices)),
-               Basic.concatenate(gradients.map(_.values)),
-               gradients.head.denseShape)
-           }
-         }
-         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
-           case (_, outputs) => addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
-         }
-         addNOutputIndexedSlices(deviceContributions)
+        def addNOutputIndexedSlices(gradients: Seq[OutputIndexedSlices]): OutputIndexedSlices = {
+          if (gradients.isEmpty) {
+            throw new IllegalArgumentException(
+              "Can not aggregate empty gradients list.")
+          } else if (gradients.length == 1) {
+            gradients.head
+          } else {
+            OutputIndexedSlices(
+              Basic.concatenate(gradients.map(_.indices)),
+              Basic.concatenate(gradients.map(_.values)),
+              gradients.head.denseShape)
+          }
+        }
+
+        val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
+          case (_, outputs) => addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
+        }
+        addNOutputIndexedSlices(deviceContributions)
       } else {
         throw new IllegalArgumentException(
           "The gradients being aggregated need to be all of type 'Output' or 'OutputIndexedSlices'.")
@@ -563,6 +565,7 @@ object Gradients {
               gradients.head.denseShape)
           }
         }
+
         val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
           case (_, outputs) => addNOutputIndexedSlices(outputs.map(_.asInstanceOf[OutputIndexedSlices]))
         }
@@ -574,52 +577,37 @@ object Gradients {
     }
   }
 
-  /** Registry that contains the gradient functions to be used when creating gradient ops. Gradient functions for all
-    * types of ops that are being differentiated need to be registered using either the [[Registry.register]] or the
-    * [[Registry.registerNonDifferentiable]] functions. In an attempt to obtain the gradient of an op whose type has no
-    * gradient function registered, a [[NoSuchElementException]] will be thrown. */
-  object Registry {
-    type GradientFunction = (Op, Seq[OutputLike]) => Seq[OutputLike]
-
-    private[this] val registry = mutable.Map.empty[String, GradientFunction]
-
-    /** Registers the provided gradient function to the gradient function registry.
-      *
-      * Note that if a gradient function for an op of the same type already exists in the registry, then it will be
-      * overriden by the provided gradient function.
-      *
-      * @param  opType   Op type for which a gradient function is being registered.
-      * @param  function Gradient function (takes op and output gradients as inputs and returns the input gradients).
-      */
-    def register(opType: String, function: GradientFunction): Unit = registry.update(opType, function)
-
-    /** Registers the provided op type as non-differentiable (i.e., having `null` as its registered gradient function).
-      *
-      * This function should *not* be used for ops that have a well-defined gradient that is not yet implemented. It
-      * should only be used when defining a new op type. It may be used for ops such as `size` that are not
-      * differentiable.
-      *
-      * The gradient computed for 'opType' will then propagate zeros.
-      *
-      * For ops that have a well-defined gradient but are not yet implemented, no declaration should be made, and an error
-      * *must* be thrown if an attempt to request their gradient is made.
-      *
-      * @param  opType Op type to register as non-differentiable.
-      */
-    def registerNonDifferentiable(opType: String): Unit = registry.update(opType, null)
-
-    /** Gets the registered gradient function for the provided op type.
-      *
-      * @param  opType Op type whose gradient function is being looked up.
-      * @return Gradient function registered for the provided op type.
-      * @throws NoSuchElementException If no gradient has been registered for the provided op type.
-      */
-    @throws[NoSuchElementException]
-    def apply(opType: String): GradientFunction = {
-      if (!registry.contains(opType))
-        throw new NoSuchElementException(s"No gradient registered for op type '$opType'.")
-      registry(opType)
+  def unaryHelper(
+      output: Output,
+      outputGradients: Seq[OutputLike],
+      opType: String,
+      name: String,
+      gradientFn: Option[Gradients.GradientFunction] = None
+  ): Seq[OutputLike] = {
+    val outputGradient = outputGradients.head
+    val gradient = outputGradient match {
+      case g: Output =>
+        Op.Builder(opType = opType, name = name)
+            .addInput(output)
+            .addInput(g)
+            .setGradientFnHelper(gradientFn)
+            .build().outputs(0)
+      case g: OutputIndexedSlices =>
+        val values = Op.Builder(opType = opType, name = name)
+            .addInput(output)
+            .addInput(g)
+            .setGradientFnHelper(gradientFn)
+            .build().outputs(0)
+        OutputIndexedSlices(indices = g.indices, values = values, denseShape = g.denseShape)
+      case g: SparseOutput =>
+        val values = Op.Builder(opType = opType, name = name)
+            .addInput(output)
+            .addInput(g)
+            .setGradientFnHelper(gradientFn)
+            .build().outputs(0)
+        SparseOutput(indices = g.indices, values = values, denseShape = g.denseShape)
     }
+    Seq(gradient)
   }
 
   /** Adds ops to the graph to compute the partial derivatives of the sum of `y`s with respect to the `x`s, using the
@@ -657,7 +645,7 @@ object Gradients {
     // Add the gradients to the graph and collect them to the array that is returned
     val jniGradients = NativeGraph.addGradients(graph.nativeHandle, yJNI, xJNI, dxJNI)
     jniGradients.map(o => {
-      val op = graph.opsCache.getOrElseUpdate(o.opHandle, Op(graph, o.opHandle))
+      val op = graph.opsCache.getOrElseUpdate(o.opHandle, Op(graph, None, o.opHandle)) // TODO: [OPS] What about the `None`?
       Output(op, o.outputIndex)
     })
   }

@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -57,7 +56,11 @@ import scala.util.Try
   *       TODO: Add `Op.run` use example, once that is supported.
   * @author Emmanouil Antonios Platanios
   */
-final case class Op private (graph: Graph, private[api] val nativeHandle: Long) {
+final case class Op private (
+    graph: Graph,
+    gradientFn: Option[Gradients.GradientFunction],
+    private[api] val nativeHandle: Long
+) {
   // Update the ops cache of the graph with the current op.
   graph.opsCache.update(nativeHandle, this)
 
@@ -115,10 +118,11 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 
   private[this] def _loadInputs(): Array[Output] = using(graph.reference) { _ =>
     NativeOp.inputs(nativeHandle).map(i => {
-      val op = graph.opsCache.getOrElseUpdate(
-        i.opHandle,
-        Op(graph, i.opHandle))
+       val op = graph.opsCache.getOrElseUpdate(
+         i.opHandle,
+         Op(graph, None, i.opHandle)) // TODO: [OPS]
       op.outputs(i.outputIndex)
+      // graph.opsCache(i.opHandle).outputs(i.outputIndex)
     })
   }
 
@@ -128,7 +132,8 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
 
   private[this] def _loadControlInputs(): Set[Op] = using(graph.reference) { _ =>
     NativeOp.controlInputs(nativeHandle)
-        .map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
+        //.map(handle => graph.opsCache(handle)).toSet
+        .map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, None, handle))).toSet // TODO: [OPS]
   }
 
   /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
@@ -167,8 +172,10 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     */
   def controlOutputs: Set[Op] = {
     val controlOutputHandles = using(graph.reference) { _ => NativeOp.controlOutputs(nativeHandle) }
-    controlOutputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
+    controlOutputHandles.map(handle => graph.opsCache(handle)).toSet //.getOrElseUpdate(handle, Op(graph, ???, handle))).toSet
   }
+
+  //region Attributes
 
   /** Gets the value of a string-valued attribute of this op with name `name`.
     *
@@ -362,11 +369,17 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     }
   }
 
+  //endregion Attributes
+
+  //region Serialization
+
   /** Constructs and returns a [[OpDef]] object, which is a serialized version of this op. */
   def toOpDef: OpDef = OpDef.parseFrom(NativeOp.toOpDef(graph.nativeHandle, opType))
 
   /** Constructs and returns a [[NodeDef]] object, which is a serialized version of this op. */
   def toNodeDef: NodeDef = NodeDef.parseFrom(NativeOp.toNodeDef(nativeHandle))
+
+  //endregion Serialization
 
   override def toString: String = name
 
@@ -1348,7 +1361,7 @@ object Op {
       newOps ++ newOps.foldLeft(newOps)((collected, op) => transitiveColocationOps(Set(op), collected))
   }
 
-  final case class Builder(opType: String, name: String)  {
+  final case class Builder(opType: String, name: String) {
     private[this] val scope = graphConstructionScope.value
 
     scope.graph.assertNotFrozen()
@@ -1358,13 +1371,11 @@ object Op {
 
     private val graph: Graph = scope.graph
 
-    private var built         : Boolean           = false
-    // TODO: [OP] Avoid using this extra input functions sequence.
-    private var inputFunctions: Seq[Long => Unit] = Seq.empty
-    private var inputs        : Seq[Output]       = Seq.empty
-    private var inputLists    : Seq[Seq[Output]]  = Seq.empty
-    private var device        : Option[String]    = None
-    private var attributes    : Map[String, Any]  = Map.empty
+    private var built     : Boolean                            = false
+    private var inputs    : Seq[Builder.Input]                 = Seq.empty
+    private var device    : Option[String]                     = None
+    private var attributes: Map[String, Any]                   = Map.empty
+    private var gradientFn: Option[Gradients.GradientFunction] = None
 
     def build(): Op = graph.synchronized {
       using(graph.reference) { r =>
@@ -1378,12 +1389,26 @@ object Op {
           else
             graph.uniqueName(this.name)
         }
-        val nativeHandle: Long = NativeOp.allocate(r.nativeHandle, opType, name)
-        inputFunctions.foreach(_ (nativeHandle))
+        val nativeHandle = NativeOp.allocate(r.nativeHandle, opType, name)
+
+        // Add inputs and prune the control dependencies while doing that.
         val controlDependencies: mutable.Set[Op] = mutable.Set(scope.controlDependencies.toSeq: _*)
-        inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
-        inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
+        inputs.foreach {
+          case Builder.InputTensor(input) =>
+            pruneControlDependencies(controlDependencies, input.op)
+            val processedInput = graph.processOpInput(input)
+            NativeOp.addInput(nativeHandle, processedInput.op.nativeHandle, processedInput.index)
+          case Builder.InputTensorList(inputList) =>
+            inputList.foreach(input => pruneControlDependencies(controlDependencies, input.op))
+            val processedInputList = inputList.map(graph.processOpInput)
+            NativeOp.addInputList(
+              nativeHandle, processedInputList.map(_.op.nativeHandle).toArray, processedInputList.map(_.index).toArray)
+        }
+
+        // Add the pruned control dependencies.
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
+
+        // Add colocation constraints.
         val colocationOps = transitiveColocationOps(scope.colocationOps.filter(_ != null))
         val opDevice = device match {
           case None | Some("") => colocationOps.find(_.device != "").map(_.device).getOrElse("")
@@ -1400,10 +1425,15 @@ object Op {
             NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
           }
         })
+
+        // Add attributes.
         mergeAttributes(scope.attributes)
         setAttributes(nativeHandle)
+
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
-        val op = Op(graph, NativeOp.finish(nativeHandle))
+
+        // Build the op and set its requested placement device.
+        val op = Op(graph, gradientFn, NativeOp.finish(nativeHandle))
         NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = scope.controlFlowContext
         op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
@@ -1474,22 +1504,12 @@ object Op {
     private def encodeString(value: String): Array[Byte] = value.getBytes(Charset.forName("UTF-8"))
 
     def addInput(input: Output): Builder = {
-      val processedInput = graph.processOpInput(input)
-      this.inputFunctions :+= {
-        nativeHandle: Long => NativeOp.addInput(nativeHandle, processedInput.op.nativeHandle, processedInput.index)
-      }
-      this.inputs :+= input
+      this.inputs :+= Builder.InputTensor(input)
       this
     }
 
     def addInputList(inputList: Seq[Output]): Builder = {
-      val processedInputList = inputList.map(graph.processOpInput)
-      this.inputFunctions :+= {
-        nativeHandle: Long =>
-          NativeOp.addInputList(
-            nativeHandle, processedInputList.map(_.nativeHandle).toArray, processedInputList.map(_.index).toArray)
-      }
-      this.inputLists :+= inputList
+      this.inputs :+= Builder.InputTensorList(inputList)
       this
     }
 
@@ -1578,5 +1598,21 @@ object Op {
       attributes += name -> value
       this
     }
+
+    def setGradientFn(gradientFn: Gradients.GradientFunction): Builder = {
+      this.gradientFn = Some(gradientFn)
+      this
+    }
+
+    def setGradientFnHelper(gradientFn: Option[Gradients.GradientFunction]): Builder = {
+      this.gradientFn = gradientFn
+      this
+    }
+  }
+
+  object Builder {
+    sealed trait Input
+    case class InputTensor(input: Output) extends Input
+    case class InputTensorList(inputList: Seq[Output]) extends Input
   }
 }

@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.Op
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -1057,7 +1056,12 @@ private[api] object Variable {
     Op.Builder(opType = "ReadVariableOp", name = name)
         .addInput(variable)
         .setAttribute("dtype", dataType)
+        .setGradientFn(readVariableGradient)
         .build().outputs(0)
+  }
+
+  protected def readVariableGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    Seq(outputGradients.head)
   }
 
   /** Creates an op that reads the current value of a variable resource, without any memory model.
@@ -1194,7 +1198,24 @@ private[api] object Variable {
         .addInput(indices)
         .setAttribute("dtype", if (dataType == null) variable.dataType else dataType)
         .setAttribute("validate_indices", validateIndices)
+        .setGradientFn(gatherGradient)
         .build().outputs(0)
+  }
+
+  protected def gatherGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+    // Build appropriately shaped indexed slices.
+    // Walk graph back until the original handle is found.
+    // TODO: Find a more robust way to get the shape.
+    var handle = op.inputs(0)
+    while (handle.op.opType != "VarHandleOp")
+      handle = handle.op.inputs(0)
+    val parametersShape = handle.op.shapeAttribute("shape").toOutput(INT64)
+    val indices = op.inputs(1)
+    val size = Basic.expandDims(Basic.size(indices), 0)
+    val valuesShape = Basic.concatenate(Seq(size, parametersShape(1 ::)), 0)
+    val values = Basic.reshape(outputGradients.head.toOutput, valuesShape)
+    val reshapedIndices = Basic.reshape(indices, size)
+    Seq(OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = parametersShape), null)
   }
 
   /** Creates an op that applies sparse updates to `variable`.
@@ -1274,30 +1295,5 @@ private[api] object Variable {
         .addInput(indices)
         .addInput(updates)
         .build()
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.register("ReadVariableOp", readGradient)
-    GradientsRegistry.register("ResourceGather", gatherGradient)
-
-    private[this] def readGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(outputGradients.head)
-    }
-
-    private[this] def gatherGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      // Build appropriately shaped indexed slices.
-      // Walk graph back until the original handle is found.
-      // TODO: Find a more robust way to get the shape.
-      var handle = op.inputs(0)
-      while (handle.op.opType != "VarHandleOp")
-        handle = handle.op.inputs(0)
-      val parametersShape = handle.op.shapeAttribute("shape").toOutput(INT64)
-      val indices = op.inputs(1)
-      val size = Basic.expandDims(Basic.size(indices), 0)
-      val valuesShape = Basic.concatenate(Seq(size, parametersShape(1 ::)), 0)
-      val values = Basic.reshape(outputGradients.head.toOutput, valuesShape)
-      val reshapedIndices = Basic.reshape(indices, size)
-      Seq(OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = parametersShape), null)
-    }
   }
 }
