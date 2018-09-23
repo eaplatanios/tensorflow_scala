@@ -110,8 +110,8 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QINT32.byteSize === Some(4))
     assert(QUINT8.byteSize === Some(1))
     assert(QUINT16.byteSize === Some(2))
-    assert(RESOURCE.byteSize === None)
-    assert(VARIANT.byteSize === None)
+    assert(RESOURCE.byteSize === Some(1))
+    assert(VARIANT.byteSize === Some(1))
   }
 
   // TODO: Add checks for data type priorities.

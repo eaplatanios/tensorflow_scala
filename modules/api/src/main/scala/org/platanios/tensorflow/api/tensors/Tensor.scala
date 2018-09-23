@@ -590,7 +590,7 @@ object Tensor {
       TensorProto.newBuilder()
           .setDtype(dataType.protoType)
           .setTensorShape(shape.toTensorShapeProto)
-    if (dataType.byteSize.get * value.size >= Int.MaxValue)
+    if (value.dataType != STRING && dataType.byteSize.get * value.size >= Int.MaxValue)
       throw InvalidArgumentException("Cannot serialize tensors whose content is larger than 2GB.")
     if (value.dataType != STRING && value.size == shape.numElements) {
       val resolvedHandle = castedValue.resolve()
