@@ -157,7 +157,7 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
       Array.empty[Input]
     } else {
       array.map(jniOutput => {
-        val op = graph.opsCache.getOrElseUpdate(jniOutput.opHandle, Op(graph, None, jniOutput.opHandle)) // TODO: [OPS]
+        val op = graph.opsCache.getOrElseUpdate(jniOutput.opHandle, Op(graph, None, jniOutput.opHandle))
         Input(op = op, index = index)
       })
     }

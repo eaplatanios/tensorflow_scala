@@ -120,9 +120,8 @@ final case class Op private (
     NativeOp.inputs(nativeHandle).map(i => {
        val op = graph.opsCache.getOrElseUpdate(
          i.opHandle,
-         Op(graph, None, i.opHandle)) // TODO: [OPS]
+         Op(graph, None, i.opHandle))
       op.outputs(i.outputIndex)
-      // graph.opsCache(i.opHandle).outputs(i.outputIndex)
     })
   }
 
@@ -132,8 +131,7 @@ final case class Op private (
 
   private[this] def _loadControlInputs(): Set[Op] = using(graph.reference) { _ =>
     NativeOp.controlInputs(nativeHandle)
-        //.map(handle => graph.opsCache(handle)).toSet
-        .map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, None, handle))).toSet // TODO: [OPS]
+        .map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, None, handle))).toSet
   }
 
   /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
@@ -172,7 +170,7 @@ final case class Op private (
     */
   def controlOutputs: Set[Op] = {
     val controlOutputHandles = using(graph.reference) { _ => NativeOp.controlOutputs(nativeHandle) }
-    controlOutputHandles.map(handle => graph.opsCache(handle)).toSet //.getOrElseUpdate(handle, Op(graph, ???, handle))).toSet
+    controlOutputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, None, handle))).toSet
   }
 
   //region Attributes

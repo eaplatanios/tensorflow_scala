@@ -427,7 +427,7 @@ class Graph private[api](
     if (opHandle == 0)
       None
     else
-      Some(opsCache.getOrElseUpdate(opHandle, Op(this, None, opHandle))) // TODO: [OPS] !!!
+      Some(opsCache.getOrElseUpdate(opHandle, Op(this, None, opHandle)))
   }
 
   /** Returns all ops of this graph.
@@ -436,7 +436,7 @@ class Graph private[api](
     * @return Array containing all ops of this graph.
     */
   def ops: Array[Op] = NativeHandleLock.synchronized {
-    NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, None, handle))) // TODO: [OPS] !!!
+    NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, None, handle)))
   }
 
   /** Returns the op referred to by the provided name, in this graph.

@@ -38,8 +38,21 @@ object Gradients {
     val gradients: ops.Gradients.type = ops.Gradients
   }
 
-  // TODO: [API] Expose in "tf".
   // TODO: [DOC] Document the "gradients" function.
+
+  /**
+    *
+    * Note that ops/graphs created outside TensorFlow Scala are not differentiable.
+    *
+    * @param ys
+    * @param xs
+    * @param dys
+    * @param gateGradients
+    * @param aggregationMethod
+    * @param colocateGradientsWithOps
+    * @param name
+    * @return
+    */
   def gradients(
       ys: Seq[Output],
       xs: Seq[Output],
@@ -645,7 +658,7 @@ object Gradients {
     // Add the gradients to the graph and collect them to the array that is returned
     val jniGradients = NativeGraph.addGradients(graph.nativeHandle, yJNI, xJNI, dxJNI)
     jniGradients.map(o => {
-      val op = graph.opsCache.getOrElseUpdate(o.opHandle, Op(graph, None, o.opHandle)) // TODO: [OPS] What about the `None`?
+      val op = graph.opsCache.getOrElseUpdate(o.opHandle, Op(graph, None, o.opHandle))
       Output(op, o.outputIndex)
     })
   }
