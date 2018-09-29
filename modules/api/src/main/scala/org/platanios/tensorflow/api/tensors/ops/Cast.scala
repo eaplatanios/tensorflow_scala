@@ -23,10 +23,11 @@ import org.platanios.tensorflow.jni.generated.tensors.{Math => NativeTensorOpsMa
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Cast {
-  /** $OpDocMathCast
+trait Cast {
+  /** $OpDocCastCast
     *
-    * @group MathOps
+    * @group CastOps
+    *
     * @param  x        Tensor to cast.
     * @param  dataType Target data type.
     * @return Result as a new tensor.
@@ -48,9 +49,10 @@ private[api] trait Cast {
 
   // TODO: [OPS] saturateCast
 
-  /** $OpDocMathBitcast
+  /** $OpDocCastBitcast
     *
-    * @group MathOps
+    * @group CastOps
+    *
     * @param  input    Input tensor.
     * @param  dataType Target data type.
     * @return Result as a new tensor.
@@ -67,6 +69,7 @@ object Cast extends Cast {
       /** $OpDocCastCast
         *
         * @group CastOps
+        *
         * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
@@ -99,6 +102,7 @@ object Cast extends Cast {
       /** $OpDocCastBitcast
         *
         * @group CastOps
+        *
         * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
@@ -111,7 +115,7 @@ object Cast extends Cast {
       new CastOps(f(value))
     }
 
-    implicit def tensorConvertibleToReducibleCastOps[T: IsNumeric, TC](
+    implicit def tensorConvertibleToNumericCastOps[T: IsNumeric, TC](
         value: TC
     )(implicit f: TC => Tensor[T]): NumericCastOps[T] = {
       new NumericCastOps(f(value))

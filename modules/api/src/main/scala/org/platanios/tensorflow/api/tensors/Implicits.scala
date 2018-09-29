@@ -31,10 +31,10 @@ private[api] trait Implicits extends LowPriorityImplicits {
 
   // TODO: !!! [TYPES] This does not currently lets us cast an S tensor to a T tensor, when S is preceding (e.g., `Tensor[S] + Tensor[T]` fails to compile).
 
-//  implicit def cast[SOURCE, TARGET, TL[A] <: TensorLike[A]](value: TL[SOURCE])(implicit
-//      evAllowedCast: AllowedCast.Aux[SOURCE, TARGET],
-//      ev: TensorOps.Aux[TL, SOURCE]
-//  ): TL[TARGET] = Cast.cast(value, evAllowedCast.targetDataType)
+  //  implicit def cast[SOURCE, TARGET, TL[A] <: TensorLike[A]](value: TL[SOURCE])(implicit
+  //      evAllowedCast: AllowedCast.Aux[SOURCE, TARGET],
+  //      ev: TensorOps.Aux[TL, SOURCE]
+  //  ): TL[TARGET] = Cast.cast(value, evAllowedCast.targetDataType)
 }
 
 private[api] trait LowPriorityImplicits

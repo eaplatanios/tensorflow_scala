@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.tensors.ops
 
-import org.platanios.tensorflow.api.core._
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
@@ -33,7 +33,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Basic {
+trait Basic {
   //region Tensor Shape Ops
 
   /** $OpDocBasicRank
@@ -53,19 +53,11 @@ private[api] trait Basic {
   /** $OpDocBasicSize
     *
     * @group BasicOps
-    * @param  input Tensor whose size to return.
-    * @return Result as a new tensor.
-    */
-  def size[T <: TensorLike[_]](input: T): Tensor[Long] = size(input, INT64)
-
-  /** $OpDocBasicSize
-    *
-    * @group BasicOps
     * @param  input    Tensor whose size to return.
     * @param  dataType Optional data type to use for the output of this op.
     * @return Result as a new tensor.
     */
-  def size[T <: TensorLike[_], R: IsNumeric](input: T, dataType: DataType[R]): Tensor[R] = {
+  def size[T <: TensorLike[_], R: IsInt32OrInt64](input: T, dataType: DataType[R]): Tensor[R] = {
     input match {
       case t: Tensor[_] => Tensor.fill(dataType, Shape())(t.size)
       case t: TensorIndexedSlices[_] => Math.prod(Cast.cast(t.denseShape, dataType), Array(0))
@@ -76,19 +68,11 @@ private[api] trait Basic {
   /** $OpDocBasicShape
     *
     * @group BasicOps
-    * @param  input Tensor whose shape to return.
-    * @return Result as a new tensor.
-    */
-  def shape[T <: TensorLike[_]](input: T): Tensor[Long] = shape(input, INT64)
-
-  /** $OpDocBasicShape
-    *
-    * @group BasicOps
     * @param  input    Tensor whose shape to return.
-    * @param  dataType Optional data type to use for the output of this op.
+    * @param  dataType Data type for the resulting tensor.
     * @return Result as a new tensor.
     */
-  def shape[T <: TensorLike[_], R](input: T, dataType: DataType[R]): Tensor[R] = {
+  def shape[T <: TensorLike[_], I: IsInt32OrInt64](input: T, dataType: DataType[I]): Tensor[I] = {
     input match {
       case t: Tensor[_] => t.shape.toTensor(dataType)
       case t: TensorIndexedSlices[_] => Cast.cast(t.denseShape, dataType)
@@ -99,19 +83,11 @@ private[api] trait Basic {
   /** $OpDocBasicShapeN
     *
     * @group BasicOps
-    * @param  inputs Tensors whose shapes to return.
-    * @return Result as a sequence of new tensors.
-    */
-  def shapeN(inputs: Seq[Tensor[_]]): Seq[Tensor[Long]] = shapeN(inputs, INT64)
-
-  /** $OpDocBasicShapeN
-    *
-    * @group BasicOps
     * @param  inputs   Tensors whose shapes to return.
-    * @param  dataType Optional data type to use for the outputs of this op.
+    * @param  dataType Data type for the resulting tensors.
     * @return Result as a sequence of new tensors.
     */
-  def shapeN[R](inputs: Seq[Tensor[_]], dataType: DataType[R]): Seq[Tensor[R]] = {
+  def shapeN[I: IsInt32OrInt64](inputs: Seq[Tensor[_]], dataType: DataType[I]): Seq[Tensor[I]] = {
     inputs.map(_.shape.toTensor(dataType))
   }
 
@@ -126,7 +102,7 @@ private[api] trait Basic {
     * @param  axis  Dimension index at which to expand the shape of `input`.
     * @return Result as a new tensor.
     */
-  def expandDims[T](input: Tensor[T], axis: Tensor[Int]): Tensor[T] = {
+  def expandDims[T, I: IsInt32OrInt64](input: Tensor[T], axis: Tensor[I]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsBasic.expandDims(
       executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle))
   }
@@ -239,7 +215,7 @@ private[api] trait Basic {
     * @param  axis       Dimension along which to split the input tensor.
     * @return Result as a new tensor.
     */
-  def split[T, I: IsIntOrUInt](
+  def split[T, I: IsInt32OrInt64](
       input: Tensor[T],
       splitSizes: Tensor[I],
       axis: Tensor[Int] = 0
@@ -553,7 +529,7 @@ private[api] trait Basic {
     * @param  input Input boolean tensor.
     * @return Result as a new tensor.
     */
-  def where(input: Tensor[Boolean]): Tensor[Long] = {
+  def where[T: IsBooleanOrNumeric](input: Tensor[T]): Tensor[Long] = {
     Tensor.fromNativeHandle[Long](NativeTensorOpsBasic.where(
       executionContext.value.nativeHandle, input.nativeHandle))
   }
@@ -566,8 +542,8 @@ private[api] trait Basic {
     * @return Result as a new tensor.
     */
   def booleanMask[T](input: Tensor[T], mask: Tensor[Boolean]): Tensor[T] = {
-    val maskShape: Shape = mask.shape
-    val maskRank: Int = maskShape.rank
+    val maskShape = mask.shape
+    val maskRank = maskShape.rank
     val leadingSize = reshape(Math.prod(input.shape(0 :: maskRank), Seq(0)), Shape(1))
     val reshapedInput = reshape(
       input,
@@ -580,15 +556,15 @@ private[api] trait Basic {
   /** $OpDocBasicSequenceMask
     *
     * @group BasicOps
-    * @param  lengths   One-dimensional integer tensor containing the lengths to keep for each row. If `maxLength` is
+    * @param  lengths   One-dimensional tensor containing the lengths to keep for each row. If `maxLength` is
     *                   provided, then all values in `lengths` must be smaller than `maxLength`.
-    * @param  maxLength Scalar integer tensor representing the maximum length of each row. Defaults to the maximum value
+    * @param  maxLength Scalar tensor representing the maximum length of each row. Defaults to the maximum value
     *                   in `lengths`.
     * @return Result as a new tensor.
     * @throws IllegalArgumentException If `maxLength` is not a scalar.
     */
   @throws[IllegalArgumentException]
-  def sequenceMask[T: IsNumeric](
+  def sequenceMask[T: IsIntOrUInt](
       lengths: Tensor[T],
       maxLength: Tensor[T] = null
   ): Tensor[Boolean] = {
@@ -616,7 +592,7 @@ private[api] trait Basic {
       input: TensorIndexedSlices[T],
       maskIndices: Tensor[Int]
   ): TensorIndexedSlices[T] = {
-    val (outputIndices, toGather) = listDiff(input.indices, maskIndices.toInt64)
+    val (outputIndices, toGather) = listDiff(input.indices, maskIndices.toInt64, INT32)
     val outputValues = gather(input.values, toGather)
     TensorIndexedSlices(indices = outputIndices.toInt64, values = outputValues, denseShape = input.denseShape)
   }
@@ -625,13 +601,7 @@ private[api] trait Basic {
 
   //region Tensor Counting and Set Ops
 
-  /** $OpDocBasicUnique
-    *
-    * @group BasicOps
-    * @param  input One-dimensional input tensor.
-    * @return Tuple containing `output` and `indices`.
-    */
-  def unique[T](input: Tensor[T]): (Tensor[T], Tensor[Int]) = unique(input, INT32)
+  // TODO: [TENSORS] Update to 'uniqueV2' and 'uniqueWithCountsV2'.
 
   /** $OpDocBasicUnique
     *
@@ -640,20 +610,13 @@ private[api] trait Basic {
     * @param  indicesDataType Data type of the returned indices.
     * @return Tuple containing `output` and `indices`.
     */
-  def unique[T, I: IsInt32OrInt64](input: Tensor[T], indicesDataType: DataType[I]): (Tensor[T], Tensor[I]) = {
+  def unique[T, I: IsInt32OrInt64](
+      input: Tensor[T],
+      indicesDataType: DataType[I]
+  ): (Tensor[T], Tensor[I]) = {
     val tensors = NativeTensorOpsBasic.unique(
       executionContext.value.nativeHandle, input.nativeHandle, indicesDataType.cValue)
     (Tensor.fromNativeHandle[T](tensors(0)), Tensor.fromNativeHandle[I](tensors(1)))
-  }
-
-  /** $OpDocBasicUniqueWithCounts
-    *
-    * @group BasicOps
-    * @param  input One-dimensional input tensor.
-    * @return Tuple containing `output`, `indices`, and `counts`.
-    */
-  def uniqueWithCounts[T](input: Tensor[T]): (Tensor[T], Tensor[Int], Tensor[Int]) = {
-    uniqueWithCounts(input, INT32)
   }
 
   /** $OpDocBasicUniqueWithCounts
@@ -672,17 +635,6 @@ private[api] trait Basic {
     (Tensor.fromNativeHandle[T](tensors(0)),
         Tensor.fromNativeHandle[I](tensors(1)),
         Tensor.fromNativeHandle[I](tensors(2)))
-  }
-
-  /** $OpDocBasicListDiff
-    *
-    * @group BasicOps
-    * @param  x One-dimensional tensor containing the values to keep.
-    * @param  y One-dimensional tensor containing the values to remove.
-    * @return Tuple containing `output` and `indices`, from the method description.
-    */
-  def listDiff[T](x: Tensor[T], y: Tensor[T]): (Tensor[T], Tensor[Int]) = {
-    listDiff(x, y, INT32)
   }
 
   /** $OpDocBasicListDiff
@@ -715,10 +667,10 @@ private[api] trait Basic {
     * @param  axis    Tensor containing the axis along which to gather.
     * @return Result as a new tensor.
     */
-  def gather[T, I: IsInt32OrInt64](
+  def gather[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
       input: Tensor[T],
-      indices: Tensor[I],
-      axis: Tensor[I] = null
+      indices: Tensor[I1],
+      axis: Tensor[I2] = null
   ): Tensor[T] = {
     val axisWithDefault = if (axis == null) Tensor.zeros(INT32, Shape()) else axis
     Tensor.fromNativeHandle[T](NativeTensorOpsBasic.gatherV2(
@@ -811,7 +763,7 @@ private[api] trait Basic {
     *                        tensor with shape `[4, 2]`.
     * @return Result as a new tensor.
     */
-  private[ops] def stridedSlice[T, I: IsIntOrUInt](
+  private[tensors] def stridedSlice[T, I: IsInt32OrInt64](
       input: Tensor[T],
       begin: Tensor[I],
       end: Tensor[I],
@@ -900,8 +852,8 @@ private[api] trait Basic {
 
   //endregion Tensor Ungrouped Ops
 
-  // TODO: Add support for all the quantization ops.
-  // TODO: Add support for all the broadcasting ops.
+  // TODO: [TENSORS] Add support for all the quantization ops.
+  // TODO: [TENSORS] Add support for all the broadcasting ops.
 
   //region Tensor Gradient Ops
 
@@ -980,7 +932,7 @@ object Basic extends Basic {
         * @param  axis       Dimension along which to split the input tensor.
         * @return Result as a new tensor.
         */
-      def split[I: IsIntOrUInt](splitSizes: Tensor[I], axis: Tensor[Int] = 0): Seq[Tensor[T]] = {
+      def split[I: IsInt32OrInt64](splitSizes: Tensor[I], axis: Tensor[Int] = 0): Seq[Tensor[T]] = {
         Basic.split(tensor, splitSizes, axis)
       }
 
@@ -1229,26 +1181,6 @@ object Basic extends Basic {
         */
       def gatherND[I: IsInt32OrInt64](indices: Tensor[I]): Tensor[T] = Basic.gatherND(tensor, indices)
 
-      /** Slices this tensor according to the provided indexers.
-        *
-        * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
-        *
-        * @group BasicOps
-        * @param  firstIndexer  First indexer to use.
-        * @param  otherIndexers Rest of the indexers to use.
-        * @return Resulting tensor.
-        */
-      def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[T] = {
-        val stridedSlice = Indexer.toStridedSlice(firstIndexer, otherIndexers: _*)
-        val beginTensor: Tensor[Int] = stridedSlice._1
-        val endTensor: Tensor[Int] = stridedSlice._2
-        val stridesTensor: Tensor[Int] = stridedSlice._3
-        val result = Basic.stridedSlice(
-          tensor, beginTensor, endTensor, stridesTensor, stridedSlice._4, stridedSlice._5, stridedSlice._6,
-          stridedSlice._7, stridedSlice._8)
-        result
-      }
-
       //endregion Tensor Slicing Ops
 
       //region Tensor Gradient Ops
@@ -1271,7 +1203,34 @@ object Basic extends Basic {
       //endregion Tensor Gradient Ops
     }
 
-    implicit class NumericBasicOps[T: IsNumeric](val tensor: Tensor[T]) {
+    implicit class DecimalBasicOps[T: IsDecimal](val tensor: Tensor[T]) {
+      //region Tensor Ungrouped Ops
+
+      /** $OpDocBasicCheckNumerics
+        *
+        * @group BasicOps
+        * @param  message Prefix to print for the error message.
+        * @return Result as a new tensor which has the same value as the input tensor.
+        */
+      def checkNumerics(message: String = ""): Tensor[T] = Basic.checkNumerics(tensor)
+
+      //endregion Tensor Ungrouped Ops
+    }
+
+    implicit class BooleanOrNumericBasicOps[T: IsBooleanOrNumeric](val tensor: Tensor[T]) {
+      //region Tensor Masking Ops
+
+      /** $OpDocBasicWhere
+        *
+        * @group BasicOps
+        * @return Result as a new tensor.
+        */
+      def where(): Tensor[Long] = Basic.where(tensor)
+
+      //endregion Tensor Masking Ops
+    }
+
+    implicit class IntOrUIntBasicOps[T: IsIntOrUInt](val tensor: Tensor[T]) {
       //region Tensor Masking Ops
 
       /** $OpDocBasicSequenceMask
@@ -1288,20 +1247,6 @@ object Basic extends Basic {
       //endregion Tensor Masking Ops
     }
 
-    implicit class DecimalBasicOps[T: IsDecimal](val tensor: Tensor[T]) {
-      //region Tensor Ungrouped Ops
-
-      /** $OpDocBasicCheckNumerics
-        *
-        * @group BasicOps
-        * @param  message Prefix to print for the error message.
-        * @return Result as a new tensor which has the same value as the input tensor.
-        */
-      def checkNumerics(message: String = ""): Tensor[T] = Basic.checkNumerics(tensor)
-
-      //endregion Tensor Ungrouped Ops
-    }
-
     implicit class Int32OrInt64BasicOps[T: IsInt32OrInt64](val tensor: Tensor[T]) {
       //region Tensor Manipulation Ops
 
@@ -1315,23 +1260,10 @@ object Basic extends Basic {
       //endregion Tensor Manipulation Ops
     }
 
-    implicit class BooleanBasicOps(val tensor: Tensor[Boolean]) {
-      //region Tensor Masking Ops
-
-      /** $OpDocBasicWhere
-        *
-        * @group BasicOps
-        * @return Result as a new tensor.
-        */
-      def where(): Tensor[Long] = Basic.where(tensor)
-
-      //endregion Tensor Masking Ops
-    }
-
     implicit def tensorConvertibleToBasicOps[TC, T](value: TC)(implicit f: TC => Tensor[T]): BasicOps[T] = new BasicOps(f(value))
-    implicit def tensorConvertibleToNumericBasicOps[TC, T: IsNumeric](value: TC)(implicit f: TC => Tensor[T]): NumericBasicOps[T] = new NumericBasicOps(f(value))
     implicit def tensorConvertibleToDecimalBasicOps[TC, T: IsDecimal](value: TC)(implicit f: TC => Tensor[T]): DecimalBasicOps[T] = new DecimalBasicOps(f(value))
+    implicit def tensorConvertibleToBooleanOrNumericBasicOps[TC, T: IsBooleanOrNumeric](value: TC)(implicit f: TC => Tensor[T]): BooleanOrNumericBasicOps[T] = new BooleanOrNumericBasicOps(f(value))
+    implicit def tensorConvertibleToIntOrUIntBasicOps[TC, T: IsIntOrUInt](value: TC)(implicit f: TC => Tensor[T]): IntOrUIntBasicOps[T] = new IntOrUIntBasicOps(f(value))
     implicit def tensorConvertibleToInt32OrInt64BasicOps[TC, T: IsInt32OrInt64](value: TC)(implicit f: TC => Tensor[T]): Int32OrInt64BasicOps[T] = new Int32OrInt64BasicOps(f(value))
-    implicit def tensorConvertibleToBooleanBasicOps[TC](value: TC)(implicit f: TC => Tensor[Boolean]): BooleanBasicOps = new BooleanBasicOps(f(value))
   }
 }

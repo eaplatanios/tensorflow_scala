@@ -85,7 +85,7 @@ package object types {
 
   //region Type Traits
 
-  // TODO: Complete/Generalize this.
+  // TODO: Complete/generalize this (potentially using union types).
 
   trait IsFloat32OrFloat64[T]
 
@@ -227,6 +227,7 @@ package object types {
 
   trait IsNotQuantizedPriority3 extends IsNotQuantizedPriority2 {
     implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsNotQuantized[T] = new IsNotQuantized[T] {}
+    implicit def int32OrInt64Evidence[T: IsInt32OrInt64]: IsNotQuantized[T] = new IsNotQuantized[T] {}
   }
 
   trait IsNotQuantizedPriority2 extends IsNotQuantizedPriority1 {
@@ -275,8 +276,39 @@ package object types {
     implicit val qUByteEvidence       : IsNumeric[QUByte]        = new IsNumeric[QUByte] {}
     implicit val qUShortEvidence      : IsNumeric[QUShort]       = new IsNumeric[QUShort] {}
 
+    implicit def int32OrInt64Evidence[T: IsInt32OrInt64]: IsNumeric[T] = new IsNumeric[T] {}
     implicit def notQuantizedEvidence[T: IsNotQuantized]: IsNumeric[T] = new IsNumeric[T] {}
     implicit def quantizedEvidence[T: IsQuantized]: IsNumeric[T] = new IsNumeric[T] {}
+  }
+
+  trait IsBooleanOrNumeric[T]
+
+  object IsBooleanOrNumeric {
+    implicit val booleanEvidence      : IsBooleanOrNumeric[Boolean]       = new IsBooleanOrNumeric[Boolean] {}
+    implicit val halfEvidence         : IsBooleanOrNumeric[Half]          = new IsBooleanOrNumeric[Half] {}
+    implicit val floatEvidence        : IsBooleanOrNumeric[Float]         = new IsBooleanOrNumeric[Float] {}
+    implicit val doubleEvidence       : IsBooleanOrNumeric[Double]        = new IsBooleanOrNumeric[Double] {}
+    implicit val truncatedHalfEvidence: IsBooleanOrNumeric[TruncatedHalf] = new IsBooleanOrNumeric[TruncatedHalf] {}
+    implicit val complexFloatEvidence : IsBooleanOrNumeric[ComplexFloat]  = new IsBooleanOrNumeric[ComplexFloat] {}
+    implicit val complexDoubleEvidence: IsBooleanOrNumeric[ComplexDouble] = new IsBooleanOrNumeric[ComplexDouble] {}
+    implicit val byteEvidence         : IsBooleanOrNumeric[Byte]          = new IsBooleanOrNumeric[Byte] {}
+    implicit val shortEvidence        : IsBooleanOrNumeric[Short]         = new IsBooleanOrNumeric[Short] {}
+    implicit val intEvidence          : IsBooleanOrNumeric[Int]           = new IsBooleanOrNumeric[Int] {}
+    implicit val longEvidence         : IsBooleanOrNumeric[Long]          = new IsBooleanOrNumeric[Long] {}
+    implicit val uByteEvidence        : IsBooleanOrNumeric[UByte]         = new IsBooleanOrNumeric[UByte] {}
+    implicit val uShortEvidence       : IsBooleanOrNumeric[UShort]        = new IsBooleanOrNumeric[UShort] {}
+    implicit val uIntEvidence         : IsBooleanOrNumeric[UInt]          = new IsBooleanOrNumeric[UInt] {}
+    implicit val uLongEvidence        : IsBooleanOrNumeric[ULong]         = new IsBooleanOrNumeric[ULong] {}
+    implicit val qByteEvidence        : IsBooleanOrNumeric[QByte]         = new IsBooleanOrNumeric[QByte] {}
+    implicit val qShortEvidence       : IsBooleanOrNumeric[QShort]        = new IsBooleanOrNumeric[QShort] {}
+    implicit val qIntEvidence         : IsBooleanOrNumeric[QInt]          = new IsBooleanOrNumeric[QInt] {}
+    implicit val qUByteEvidence       : IsBooleanOrNumeric[QUByte]        = new IsBooleanOrNumeric[QUByte] {}
+    implicit val qUShortEvidence      : IsBooleanOrNumeric[QUShort]       = new IsBooleanOrNumeric[QUShort] {}
+
+    implicit def int32OrInt64Evidence[T: IsInt32OrInt64]: IsNumeric[T] = new IsNumeric[T] {}
+    implicit def notQuantizedEvidence[T: IsNotQuantized]: IsBooleanOrNumeric[T] = new IsBooleanOrNumeric[T] {}
+    implicit def quantizedEvidence[T: IsQuantized]: IsBooleanOrNumeric[T] = new IsBooleanOrNumeric[T] {}
+    implicit def numericEvidence[T: IsNumeric]: IsBooleanOrNumeric[T] = new IsBooleanOrNumeric[T] {}
   }
 
   //endregion Type Traits

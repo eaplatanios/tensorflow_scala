@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
-import org.platanios.tensorflow.api.ops.{Basic, Output}
+import org.platanios.tensorflow.api.ops2.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.stack
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._
@@ -45,7 +45,7 @@ import scala.language.{higherKinds, postfixOps}
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorLike[T] {
+sealed trait TensorLike[+T] {
   /** Data type of this tensor. */
   val dataType: DataType[T]
 
@@ -89,41 +89,59 @@ sealed trait TensorLike[T] {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor[T] protected (
+class Tensor[+T] protected (
     private[api] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
 ) extends TensorLike[T]
     with Closeable
     with ProtoSerializable {
   /** Lock for the native handle. */
-  private[api] def NativeHandleLock = nativeHandleWrapper.Lock
+  private[api] def NativeHandleLock = {
+    nativeHandleWrapper.Lock
+  }
 
   /** Native handle of this tensor. */
-  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
+  private[api] def nativeHandle: Long = {
+    nativeHandleWrapper.handle
+  }
 
   /** Data type of this tensor. */
-  override val dataType: DataType[T] = DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
+  override val dataType: DataType[T] = {
+    DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
+  }
 
   /** Shape of this tensor. */
-  override val shape: Shape = Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
+  override val shape: Shape = {
+    Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
+  }
 
   /** Rank of this tensor (i.e., number of dimensions). */
-  def rank: Int = shape.rank
+  def rank: Int = {
+    shape.rank
+  }
 
   /** Number of elements contained in this tensor. */
-  def size: Long = shape.numElements
+  def size: Long = {
+    shape.numElements
+  }
 
   /** Device in which the tensor is stored. */
-  override val device: String = NativeTensor.eagerDevice(nativeHandle)
+  override val device: String = {
+    NativeTensor.eagerDevice(nativeHandle)
+  }
 
   /** Returns a copy of this tensor on the CPU. */
-  def cpu(): Tensor[T] = copyToDevice("CPU:0")
+  def cpu(): Tensor[T] = {
+    copyToDevice("CPU:0")
+  }
 
   /** Returns a copy of this tensor on the GPU.
     *
     * @param  gpuIndex Index of the GPU to use.
     */
-  def gpu(gpuIndex: Int = 0): Tensor[T] = copyToDevice(s"GPU:$gpuIndex")
+  def gpu(gpuIndex: Int = 0): Tensor[T] = {
+    copyToDevice(s"GPU:$gpuIndex")
+  }
 
   /** Returns a copy of this tensor on the provided device.
     *
@@ -131,7 +149,8 @@ class Tensor[T] protected (
     */
   def copyToDevice(device: String): Tensor[T] = {
     val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
-    val handle = NativeTensor.eagerCopyToDevice(nativeHandle, executionContext.value.nativeHandle, parsedDevice)
+    val handle = NativeTensor.eagerCopyToDevice(
+      nativeHandle, executionContext.value.nativeHandle, parsedDevice)
     Tensor.fromNativeHandle(handle)
   }
 
@@ -143,10 +162,13 @@ class Tensor[T] protected (
     val resolvedHandle = resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     val offset = dataType.asInstanceOf[DataType[_]] match {
-      case STRING => INT64.byteSize.get * size.toInt + INT64.getElementFromBuffer(buffer, index * INT64.byteSize.get).toInt
+      case STRING =>
+        val lengthsOffset = INT64.byteSize.get * size.toInt
+        val length = DataType.getElementFromBuffer(buffer, index * INT64.byteSize.get, INT64).toInt
+        lengthsOffset + length
       case _ => index * dataType.byteSize.get
     }
-    val value = dataType.getElementFromBuffer(buffer, offset)
+    val value = DataType.getElementFromBuffer(buffer, offset, dataType)
     NativeHandleLock synchronized {
       if (resolvedHandle != 0)
         NativeTensor.delete(resolvedHandle)
@@ -156,9 +178,11 @@ class Tensor[T] protected (
 
   @throws[InvalidShapeException]
   def scalar: T = {
-    if (size != 1)
+    if (size != 1) {
       throw InvalidShapeException(
-        "'Tensor.scalar' can only be called for scalar tensors (i.e., containing only one element).")
+        "'Tensor.scalar' can only be called for scalar tensors " +
+            "(i.e., containing only one element).")
+    }
     getElementAtFlattenedIndex(0)
   }
 
@@ -199,11 +223,14 @@ class Tensor[T] protected (
 
         val nextElement: T = dataType match {
           case STRING =>
-            val offset = INT64.byteSize.get * (i + remaining)
-            dataType.getElementFromBuffer(
+            val lengthsOffset = INT64.byteSize.get * (i + remaining)
+            val length = DataType.getElementFromBuffer(buffer, i * INT64.byteSize.get, INT64)
+            DataType.getElementFromBuffer(
               buffer,
-              offset + INT64.getElementFromBuffer(buffer, i * INT64.byteSize.get).ensuring(_ <= Int.MaxValue).toInt)
-          case _ => dataType.getElementFromBuffer(buffer, i * dataType.byteSize.get)
+              lengthsOffset + length.ensuring(_ <= Int.MaxValue).toInt,
+              dataType)
+          case _ =>
+            DataType.getElementFromBuffer(buffer, i * dataType.byteSize.get, dataType)
         }
 
         i += 1
@@ -224,12 +251,32 @@ class Tensor[T] protected (
     }
   }
 
-  def apply(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[T] = {
+  def apply(
+      firstIndexer: Indexer,
+      otherIndexers: Indexer*
+  ): Tensor[T] = {
     this.slice(firstIndexer, otherIndexers: _*)
   }
 
-  def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[T] = {
-    new BasicOps(this).slice(firstIndexer, otherIndexers: _*)
+  /** Slices this tensor according to the provided indexers.
+    *
+    * More details into how to construct and use indexers are provided in the [[Indexer]] documentation.
+    *
+    * @param  firstIndexer  First indexer to use.
+    * @param  otherIndexers Rest of the indexers to use.
+    * @return Resulting tensor.
+    */
+  def slice(
+      firstIndexer: Indexer,
+      otherIndexers: Indexer*
+  ): Tensor[T] = {
+    val stridedSlice = Indexer.toStridedSlice(firstIndexer, otherIndexers: _*)
+    val beginTensor: Tensor[Int] = stridedSlice._1
+    val endTensor: Tensor[Int] = stridedSlice._2
+    val stridesTensor: Tensor[Int] = stridedSlice._3
+    ops.Basic.stridedSlice(
+      this, beginTensor, endTensor, stridesTensor, stridedSlice._4,
+      stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8)
   }
 
   /** Returns a summary of the contents of this tensor.
@@ -243,7 +290,11 @@ class Tensor[T] protected (
     *                     Otherwise, they are not.
     * @return Tensor summary.
     */
-  def summarize(maxEntries: Int = 6, flattened: Boolean = false, includeInfo: Boolean = true): String = {
+  def summarize(
+      maxEntries: Int = 6,
+      flattened: Boolean = false,
+      includeInfo: Boolean = true
+  ): String = {
     def summarize(tensor: Tensor[T], maxEntries: Int): String =
       tensor.rank match {
         case 0 => tensor.scalar.toString
@@ -277,10 +328,10 @@ class Tensor[T] protected (
       summarize(this, maxEntries)
   }
 
-  override def toString: String = s"$dataType$shape"
-
   /** Returns this tensor. */
-  override def toTensor: Tensor[T] = this
+  override def toTensor: Tensor[T] = {
+    this
+  }
 
   /** Returns the tensor indexed slices that has the same value as this tensor. */
   override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
@@ -290,17 +341,31 @@ class Tensor[T] protected (
       denseShape = shape.toTensor(INT64))
   }
 
-  override def toProto: TensorProto = toTensorProto
+  def toOutput: Output[T] = {
+    Basic.constant(cpu())
+  }
+
+  override def toProto: TensorProto = {
+    toTensorProto
+  }
 
   /** Constructs and returns a [[TensorProto]] object that represents this tensor.
     *
     * @return Constructed [[TensorProto]].
     */
-  def toTensorProto: TensorProto = Tensor.makeProto(this)
+  def toTensorProto: TensorProto = {
+    Tensor.makeProto(this)
+  }
 
   /** Writes this tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method will
     * replace the file, if it already exists. */
-  def writeNPY(file: Path, fortranOrder: Boolean = false): Unit = NPY.write(this, file, fortranOrder)
+  def writeNPY(file: Path, fortranOrder: Boolean = false): Unit = {
+    NPY.write(this, file, fortranOrder)
+  }
+
+  override def toString: String = {
+    s"$dataType$shape"
+  }
 
   override def equals(that: Any): Boolean = that match {
     // TODO: !!! [TENSORS] Find a more efficient way to do this.
@@ -321,17 +386,19 @@ class Tensor[T] protected (
     result
   }
 
-  def toOutput: Output = Basic.constant(cpu())
-
   /** Closes this [[Tensor]] and releases any resources associated with it. Note that an [[Tensor]] is not
     * usable after it has been closed. */
-  override def close(): Unit = closeFn()
+  override def close(): Unit = {
+    closeFn()
+  }
 }
 
 object Tensor {
   private[tensors] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
-  private[api] def fromNativeHandle[T](nativeHandle: Long): Tensor[T] = {
+  private[api] def fromNativeHandle[T](
+      nativeHandle: Long
+  ): Tensor[T] = {
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
       nativeHandleWrapper.Lock.synchronized {
@@ -349,21 +416,28 @@ object Tensor {
     tensor
   }
 
-  private[api] def fromHostNativeHandle[T](nativeHandle: Long): Tensor[T] = {
+  private[api] def fromHostNativeHandle[T](
+      nativeHandle: Long
+  ): Tensor[T] = {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
   }
 
-  def apply[TC, T](head: TC, tail: TC*)(implicit
-      ev: TensorConvertible.Aux[TC, T]
-  ): Tensor[T] = {
+  def apply[TC, T](
+      head: TC,
+      tail: TC*
+  )(implicit ev: TensorConvertible.Aux[TC, T]): Tensor[T] = {
     stack((head +: tail).map(ev.toTensor), axis = 0)
   }
 
-  def apply[T](dataType: DataType[T]): Tensor[T] = Tensor.allocate(dataType, Shape(0))
+  def apply[T](dataType: DataType[T]): Tensor[T] = {
+    Tensor.allocate(dataType, Shape(0))
+  }
 
-  def apply[TC, T, R](dataType: DataType[R], head: TC, tail: TC*)(implicit
-      ev: TensorConvertible.Aux[TC, T]
-  ): Tensor[R] = {
+  def apply[TC, T, R](
+      dataType: DataType[R],
+      head: TC,
+      tail: TC*
+  )(implicit ev: TensorConvertible.Aux[TC, T]): Tensor[R] = {
     stack((head +: tail).map(ev.toTensor), axis = 0).cast(dataType)
   }
 
@@ -379,11 +453,13 @@ object Tensor {
     * @return Constructed tensor.
     */
   def zeros[T](dataType: DataType[T], shape: Shape): Tensor[T] = {
-    Tensor.fill(dataType, shape)(dataType.zero)(dataType.evSupportedType)
+    Tensor.fill(dataType, shape)(DataType.zero(dataType))(dataType.evSupportedType)
   }
 
   /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to zero. */
-  def zerosLike[T](tensor: Tensor[T]): Tensor[T] = zeros(tensor.dataType, tensor.shape)
+  def zerosLike[T](tensor: Tensor[T]): Tensor[T] = {
+    zeros(tensor.dataType, tensor.shape)
+  }
 
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to ones.
     *
@@ -397,11 +473,13 @@ object Tensor {
     * @return Constructed tensor.
     */
   def ones[T](dataType: DataType[T], shape: Shape): Tensor[T] = {
-    Tensor.fill(dataType, shape)(dataType.one)(dataType.evSupportedType)
+    Tensor.fill(dataType, shape)(DataType.one(dataType))(dataType.evSupportedType)
   }
 
   /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to one. */
-  def onesLike[T](tensor: Tensor[T]): Tensor[T] = ones(tensor.dataType, tensor.shape)
+  def onesLike[T](tensor: Tensor[T]): Tensor[T] = {
+    ones(tensor.dataType, tensor.shape)
+  }
 
   /** $OpDocRandomRandomUniform
     *
@@ -466,9 +544,6 @@ object Tensor {
     * @return Constructed tensor.
     */
   def fill[T, V: SupportedType](dataType: DataType[T], shape: Shape)(value: V): Tensor[T] = {
-    // TODO: [TENSORS] Do we want to keep this warning?
-    // if (inferredDataType.priority < ev.dataType.priority)
-    //   logger.warn(s"Downcasting value '$value' while creating tensor with '$dataType' data type.")
     shape.assertFullyDefined()
     val hostHandle = dataType match {
       case STRING =>
@@ -481,8 +556,9 @@ object Tensor {
         var index = 0
         var i = 0
         while (i < shape.numElements) {
-          val numEncodedBytes = STRING.putElementInBuffer(buffer, baseOffset + index, STRING.cast(value))
-          INT64.putElementInBuffer(buffer, i * INT64.byteSize.get, index.toLong)
+          val numEncodedBytes = DataType.putElementInBuffer(
+            buffer, baseOffset + index, STRING, STRING.cast(value))
+          DataType.putElementInBuffer(buffer, i * INT64.byteSize.get, INT64, index.toLong)
           index += numEncodedBytes
           i += 1
         }
@@ -494,7 +570,7 @@ object Tensor {
         var index = 0
         var i = 0
         while (i < shape.numElements) {
-          dataType.putElementInBuffer(buffer, index, dataType.cast(value))
+          DataType.putElementInBuffer(buffer, index, dataType, dataType.cast(value))
           index += dataType.byteSize.get
           i += 1
         }
@@ -516,9 +592,11 @@ object Tensor {
   @throws[IllegalArgumentException]
   private[api] def allocate[T](dataType: DataType[T], shape: Shape): Tensor[T] = {
     val hostHandle = dataType match {
-      case STRING if shape.numElements == 0 => NativeTensor.allocate(dataType.cValue, Array[Long](0), 0)
-      case STRING => throw new IllegalArgumentException(
-        "Cannot pre-allocate string tensors because their size is not known.")
+      case STRING if shape.numElements == 0 =>
+        NativeTensor.allocate(dataType.cValue, Array[Long](0), 0)
+      case STRING =>
+        throw new IllegalArgumentException(
+          "Cannot pre-allocate string tensors because their size is not known.")
       case _ =>
         shape.assertFullyDefined()
         val numBytes = shape.numElements * dataType.byteSize.get
@@ -540,6 +618,7 @@ object Tensor {
               "`numBytes` argument, to an appropriate value.")
       case _ => ()
     }
+
     this synchronized {
       // TODO: May behave weirdly for direct byte buffers allocated on the Scala side.
       val directBuffer = {
@@ -562,7 +641,9 @@ object Tensor {
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
   @throws[InvalidDataTypeException]
   @throws[IllegalArgumentException]
-  def fromNPY[T](file: Path): Tensor[T] = NPY.read(file)
+  def fromNPY[T](file: Path): Tensor[T] = {
+    NPY.read(file)
+  }
 
   @throws[InvalidArgumentException]
   def makeProto[T](value: Tensor[T]): TensorProto = {
@@ -602,7 +683,7 @@ object Tensor {
       }
     } else {
       castedValue.entriesIterator.foreach(v => {
-        dataType.addToTensorProtoBuilder(tensorProtoBuilder, v)
+        DataType.addToTensorProtoBuilder(tensorProtoBuilder, dataType, v)
       })
     }
     tensorProtoBuilder.build()
@@ -636,19 +717,25 @@ object Tensor {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class TensorIndexedSlices[T](
+final case class TensorIndexedSlices[+T](
     indices: Tensor[Long],
     values: Tensor[T],
     denseShape: Tensor[Long] = null
 ) extends TensorLike[T] {
   /** Data type of these tensor indexed slices. */
-  override val dataType: DataType[T] = values.dataType
+  override val dataType: DataType[T] = {
+    values.dataType
+  }
 
   /** Shape of these tensor indexed slices. */
-  override val shape: Shape = Shape(denseShape.toInt32.entriesIterator.toSeq: _*)
+  override val shape: Shape = {
+    Shape(denseShape.toInt32.entriesIterator.toSeq: _*)
+  }
 
   /** Device on which these tensor indexed slices will be placed. */
-  override val device: String = values.device
+  override val device: String = {
+    values.device
+  }
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
   @throws[IllegalStateException]
@@ -661,6 +748,10 @@ final case class TensorIndexedSlices[T](
       Tensor.logger.warn(
         "Converting large (> 100000000 elements) tensor indexed slices object to a tensor " +
             "(may consume too much memory).")
+
+    // TODO: [TYPES] !!! Super hacky. Remove in the future.
+    implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+
     Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape(0).toInt32)
   }
 
@@ -668,7 +759,9 @@ final case class TensorIndexedSlices[T](
     *
     * @return [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
     */
-  override def toTensorIndexedSlices: TensorIndexedSlices[T] = this
+  override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
+    this
+  }
 
   override def toString: String = {
     s"TensorIndexedSlices(values = $values, indices = $indices, denseShape = $denseShape, device = $device)}"
@@ -712,13 +805,13 @@ final case class TensorIndexedSlices[T](
   * For example, the sparse tensor `SparseTensor(indices = [[0, 0], [1, 2]], values = [1, 2], denseShape = [3, 4])`,
   * represents the dense tensor `[[1, 0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0]]`.
   *
-  * @param  indices    Two-dimensional [[INT32]] tensor with shape `[N, rank]`.
+  * @param  indices    Two-dimensional tensor with shape `[N, rank]`.
   * @param  values     One-dimensional tensor with shape `[N]`.
-  * @param  denseShape One-dimensional [[INT32]] tensor with shape `[rank]`.
+  * @param  denseShape One-dimensional tensor with shape `[rank]`.
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseTensor[T](
+final case class SparseTensor[+T](
     indices: Tensor[Long],
     values: Tensor[T],
     denseShape: Tensor[Long]
@@ -727,16 +820,24 @@ final case class SparseTensor[T](
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 
   /** Data type of this sparse op output. */
-  override val dataType: DataType[T] = values.dataType
+  override val dataType: DataType[T] = {
+    values.dataType
+  }
 
   /** Shape of this sparse tensor. */
-  override val shape: Shape = Shape(denseShape.cast(INT32).entriesIterator.toSeq: _*)
+  override val shape: Shape = {
+    Shape(denseShape.cast(INT32).entriesIterator.toSeq: _*)
+  }
 
   /** Device on which this sparse op output will be placed. */
-  override val device: String = values.device
+  override val device: String = {
+    values.device
+  }
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
-  override def toTensor: Tensor[T] = toTensor()
+  override def toTensor: Tensor[T] = {
+    toTensor()
+  }
 
   /** Converts this sparse tensor to a dense tensor.
     *
@@ -764,8 +865,8 @@ final case class SparseTensor[T](
     *                         lexicographic order and that there are no repeats.
     * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toTensor(
-      defaultValue: Tensor[T] = Tensor.zeros(dataType, Shape()),
+  def toTensor[V >: T](
+      defaultValue: Tensor[V] = Tensor.zeros(dataType, Shape()),
       validateIndices: Boolean = true
   ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsSparse.sparseToDense(
@@ -779,10 +880,15 @@ final case class SparseTensor[T](
     */
   @throws[UnsupportedOperationException]
   override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
-    throw new UnsupportedOperationException(s"Cannot convert sparse tensor '$this' to tensor indexed slices.")
+    throw new UnsupportedOperationException(
+      s"Cannot convert sparse tensor '$this' to tensor indexed slices.")
   }
 
   override def toString: String = {
-    s"SparseTensor(values = $values, indices = $indices, denseShape = $denseShape, device = $device)}"
+    "SparseTensor(" +
+        s"indices = $indices, " +
+        s"values = $values, " +
+        s"denseShape = $denseShape, " +
+        s"device = $device)"
   }
 }

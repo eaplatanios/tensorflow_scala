@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait NN {
+trait NN {
   //region Core Ops
 
   /** $OpDocNNAddBias
@@ -215,7 +215,7 @@ private[api] trait NN {
       Tensor.fromNativeHandle[T](opFunction(logits.nativeHandle))
     } else if (isLastAxis) {
       // If axis is the last axis, we simply reshape the logits to a matrix and apply the internal softmax.
-      val inputShape = Basic.shape(logits)
+      val inputShape = Basic.shape(logits, INT64)
       val flattenedLogits = NN.flattenOuterAxes(logits)
       val output = Tensor.fromNativeHandle[T](opFunction(flattenedLogits.nativeHandle))
       Basic.reshape(output, inputShape)
@@ -225,7 +225,7 @@ private[api] trait NN {
       // We swap the logits' axis of axis and its last axis.
       val inputRank = Basic.rank(logits)
       val swappedLogits = NN.swapAxes(logits, axis, Math.subtract(inputRank, 1))
-      val shapeAfterSwap = Basic.shape(swappedLogits)
+      val shapeAfterSwap = Basic.shape(swappedLogits, INT64)
       // We reshape the logits into a matrix.
       val flattenedLogits = NN.flattenOuterAxes(swappedLogits)
       // We perform the actual softmax on the last axis.
@@ -298,7 +298,7 @@ private[api] trait NN {
     // We move axis to the end, if it's not already the last axis.
     val transposedLogits = NN.moveAxisToEnd(logits, axis, inputRank)
     val transposedLabels = NN.moveAxisToEnd(labels, axis, inputRank)
-    val inputShape = Basic.shape(logits)
+    val inputShape = Basic.shape(logits, INT64)
     // Flatten transposedLogits and transposedLabels into matrices.
     val flattenedLogits = NN.flattenOuterAxes(transposedLogits)
     val flattenedLabels = NN.flattenOuterAxes(transposedLabels)
@@ -349,7 +349,7 @@ private[api] trait NN {
       val output = Tensor.fromNativeHandle[T](nativeCrossEntropyProxy(
         flattenedLogits.nativeHandle, flattenedLabels.nativeHandle,
         NativeTensorOpsNN.sparseSoftmaxCrossEntropyWithLogits).apply(0))
-      Basic.reshape(output, Basic.shape(labels))
+      Basic.reshape(output, Basic.shape(labels, INT64))
     }
   }
 
@@ -461,7 +461,7 @@ private[api] trait NN {
       throw InvalidShapeException(s"'labels' must have shape [batchSize, sequenceLength], but had: ${labels.shape}.")
     if (weights != null && weights.rank != 2)
       throw InvalidShapeException(s"'weights' must have shape [batchSize, sequenceLength], but had: ${weights.shape}.")
-    val numClasses = Basic.shape(logits)(2)
+    val numClasses = Basic.shape(logits, INT64).slice(2)
     val flattenedLogits = Basic.reshape(logits, Basic.stack(Seq[Tensor[Long]](-1L, numClasses)))
     val flattenedLabels = Basic.reshape(labels, Shape(-1))
     val epsilon = 1e-12.toTensor.cast(logits.dataType)
@@ -479,11 +479,11 @@ private[api] trait NN {
         if (weights != null)
           Math.sum(weights) + epsilon
         else
-          Basic.size(flattenedLabels).cast(logits.dataType)
+          Basic.size(flattenedLabels, INT32).cast(logits.dataType)
       }
       loss = Math.divide(loss, totalSize)
     } else {
-      loss = Basic.reshape(loss, Basic.shape(logits)(0 :: 2))
+      loss = Basic.reshape(loss, Basic.shape(logits, INT64).slice(0 :: 2))
     }
     if (averageAcrossTimeSteps && !averageAcrossBatch) {
       loss = Math.sum(loss, axes = 1)
@@ -491,7 +491,7 @@ private[api] trait NN {
         if (weights != null)
           Math.sum(weights, axes = 1) + epsilon
         else
-          Basic.shape(labels)(1).cast(logits.dataType)
+          Basic.shape(labels, INT64).slice(1).cast(logits.dataType)
       }
       loss = Math.divide(loss, totalSize)
     }
@@ -501,7 +501,7 @@ private[api] trait NN {
         if (weights != null)
           Math.sum(weights, axes = 0) + epsilon
         else
-          Basic.shape(labels)(0).cast(logits.dataType)
+          Basic.shape(labels, INT64).slice(0).cast(logits.dataType)
       }
       loss = Math.divide(loss, totalSize)
     }

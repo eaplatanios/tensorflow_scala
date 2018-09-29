@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.tensors.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops2.Op
 import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOpsRandom}
@@ -25,7 +25,7 @@ import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOps
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Random {
+trait Random {
   /** $OpDocRandomRandomShuffle
     *
     * @group RandomOps
@@ -34,7 +34,10 @@ private[api] trait Random {
     *               combined with the graph-level seed.
     * @return Result as a new tensor.
     */
-  def randomShuffle[T](value: Tensor[T], seed: Option[Int] = None): Tensor[T] = {
+  def randomShuffle[T](
+      value: Tensor[T],
+      seed: Option[Int] = None
+  ): Tensor[T] = {
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
     Tensor.fromNativeHandle[T](NativeTensorOpsRandom.randomShuffle(
       executionContext.value.nativeHandle, value.nativeHandle,
@@ -130,4 +133,4 @@ private[api] trait Random {
   }
 }
 
-private[api] object Random extends Random
+object Random extends Random

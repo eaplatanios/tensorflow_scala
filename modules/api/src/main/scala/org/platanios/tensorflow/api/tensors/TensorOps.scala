@@ -19,21 +19,21 @@ package org.platanios.tensorflow.api.tensors
   *
   * @author Emmanouil Antonios Platanios
   */
-trait TensorOps[TL[TT] <: TensorLike[TT]] {
+trait TensorOps[TL[A] <: TensorLike[A]] {
   type T
 
   /** Applies a unary function to the provided tensor and returns the result.
     *
-    * @param  tensorLike Tensor-like object to apply the unary op function on.
-    * @param  fn         Unary function to apply.
-    * @return Resulting tensor-like object that matches the type of `tensorLike`.
+    * @param  value Tensor-like object to apply the unary op function on.
+    * @param  fn    Unary function to apply.
+    * @return Resulting tensor-like object that matches the type of `value`.
     */
-  @inline def applyUnary[R](tensorLike: TL[T], fn: Tensor[T] => Tensor[R]): TL[R]
+  @inline def applyUnary[R](value: TL[T], fn: Tensor[T] => Tensor[R]): TL[R]
 }
 
 /** Companion object that defines supported tensor ops implicit values. */
 object TensorOps {
-  type Aux[TL[TTT] <: TensorLike[TTT], TT] = TensorOps[TL] {
+  type Aux[TL[A] <: TensorLike[A], TT] = TensorOps[TL] {
     type T = TT
   }
 
@@ -42,10 +42,10 @@ object TensorOps {
       override type T = TT
 
       @inline override def applyUnary[R](
-          tensorLike: Tensor[T],
+          value: Tensor[T],
           fn: Tensor[T] => Tensor[R]
       ): Tensor[R] = {
-        fn(tensorLike)
+        fn(value)
       }
     }
   }
@@ -55,10 +55,10 @@ object TensorOps {
       override type T = TT
 
       @inline override def applyUnary[R](
-          tensorLike: TensorIndexedSlices[T],
+          value: TensorIndexedSlices[T],
           fn: Tensor[T] => Tensor[R]
       ): TensorIndexedSlices[R] = {
-        tensorLike.copy(values = fn(tensorLike.values))
+        value.copy(values = fn(value.values))
       }
     }
   }
@@ -68,23 +68,23 @@ object TensorOps {
       override type T = TT
 
       @inline override def applyUnary[R](
-          tensorLike: SparseTensor[T],
+          value: SparseTensor[T],
           fn: Tensor[T] => Tensor[R]
       ): SparseTensor[R] = {
-        tensorLike.copy(values = fn(tensorLike.values))
+        value.copy(values = fn(value.values))
       }
     }
   }
 
-  implicit def tensorLikeOps[TT]: TensorOps.Aux[TensorLike, TT] = {
+  implicit def valueOps[TT]: TensorOps.Aux[TensorLike, TT] = {
     new TensorOps[TensorLike] {
       override type T = TT
 
       @inline override def applyUnary[R](
-          tensorLike: TensorLike[T],
+          value: TensorLike[T],
           fn: Tensor[T] => Tensor[R]
       ): TensorLike[R] = {
-        tensorLike match {
+        value match {
           case t: Tensor[T] => fn(t)
           case t: TensorIndexedSlices[T] => t.copy(values = fn(t.values))
           case t: SparseTensor[T] => t.copy(values = fn(t.values))

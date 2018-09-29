@@ -26,17 +26,21 @@ import org.platanios.tensorflow.jni.generated.tensors.{Math => NativeTensorOpsMa
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Math {
+trait Math {
   /** $OpDocMathSelect
     *
     * @group MathOps
-    * @param  condition Boolean condition tensor.
+    * @param  condition Condition tensor.
     * @param  x         Tensor which may have the same shape as `condition`. If `condition` has rank `1`, then `t` may
     *                   have a higher rank, but its first dimension must match the size of `condition`.
     * @param  y         Tensor with the same data type and shape as `t`.
     * @return Result as a new tensor.
     */
-  def select[T](condition: Tensor[Boolean], x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def select[T](
+      condition: Tensor[Boolean],
+      x: Tensor[T],
+      y: Tensor[T]
+  ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.select(
       executionContext.value.nativeHandle, condition.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -756,7 +760,7 @@ private[api] trait Math {
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
 
-  // TODO: !!! [TYPES] Fix this.
+  // TODO: !!! [TENSORS] Fix this.
   
   /** $OpDocMathIgammac
     *
@@ -818,18 +822,6 @@ private[api] trait Math {
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
 
-  /** $OpDocMathMaximum
-    *
-    * @group MathOps
-    * @param  x First input tensor.
-    * @param  y Second input tensor.
-    * @return Result as a new tensor.
-    */
-  def maximum[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
-    Tensor.fromNativeHandle[T](NativeTensorOpsMath.maximum(
-      executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
-  }
-
   /** $OpDocMathMinimum
     *
     * @group MathOps
@@ -839,6 +831,18 @@ private[api] trait Math {
     */
   def minimum[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.minimum(
+      executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
+  }
+
+  /** $OpDocMathMaximum
+    *
+    * @group MathOps
+    * @param  x First input tensor.
+    * @param  y Second input tensor.
+    * @return Result as a new tensor.
+    */
+  def maximum[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+    Tensor.fromNativeHandle[T](NativeTensorOpsMath.maximum(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
 
@@ -1002,19 +1006,24 @@ private[api] trait Math {
 
   //region Reduction Ops
 
-  private[this] def reductionAxes[T <: TensorLike[_]](tensorLike: T, axes: Tensor[Int]): Tensor[Long] = {
+  private[this] def reductionAxes[T, I: IsInt32OrInt64, TL[A] <: TensorLike[A]](
+      tensorLike: TL[T],
+      axes: Tensor[I]
+  ): Tensor[I] = {
     if (axes != null) {
-      axes.toInt64
+      axes
     } else {
-      tensorLike match { // Fast path: Avoid creating range and rank ops if the rank is known statically.
-        case t: Tensor[_] if t.rank > -1 => (0L until t.rank.toLong).toArray[Long]
-        // case t: TensorIndexedSlices[_] if t.denseShape.shape.isFullyDefined =>
-        //   Basic.constant(0 until t.denseShape.shape(0))
-        // case t: SparseTensor if t.denseShape.shape.isFullyDefined =>
-        //   Basic.constant(0 until t.denseShape.shape(0))
+      // Fast path: Avoid creating range and rank ops if the rank is known statically.
+      val reductionAxes = tensorLike match {
+        case t: Tensor[T] if t.rank > -1 => (0 until t.rank).toTensor
+        case t: TensorIndexedSlices[T] if t.denseShape.shape.isFullyDefined =>
+          (0 until t.denseShape.shape(0)).toTensor
+        case t: SparseTensor[T] if t.denseShape.shape.isFullyDefined =>
+          (0 until t.denseShape.shape(0)).toTensor
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
-          range(0L, Basic.rank(tensorLike).toInt64)
+          range(0, Basic.rank(tensorLike))
       }
+      reductionAxes.cast(axes.dataType)
     }
   }
 
@@ -1022,132 +1031,147 @@ private[api] trait Math {
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def sum[T: IsNumeric](
+  def sum[T: IsNumeric, I: IsInt32OrInt64](
       input: Tensor[T],
-      axes: Tensor[Int] = null,
+      axes: Tensor[I] = null,
       keepDims: Boolean = false
   ): Tensor[T] = {
-    if (input.rank == 0)
+    if (input.rank == 0) {
       input
-    else
+    } else {
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.sum(
         executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    }
   }
 
   /** $OpDocMathMean
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def mean[T: IsNumeric](
+  def mean[T: IsNumeric, I: IsInt32OrInt64](
       input: Tensor[T],
-      axes: Tensor[Int] = null,
+      axes: Tensor[I] = null,
       keepDims: Boolean = false
   ): Tensor[T] = {
-    if (input.rank == 0)
+    if (input.rank == 0) {
       input
-    else
+    } else {
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.mean(
         executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    }
   }
 
   /** $OpDocMathProd
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def prod[T: IsNumeric](
+  def prod[T: IsNotQuantized, I: IsInt32OrInt64](
       input: Tensor[T],
-      axes: Tensor[Int] = null,
+      axes: Tensor[I] = null,
       keepDims: Boolean = false
   ): Tensor[T] = {
-    if (input.rank == 0)
+    if (input.rank == 0) {
       input
-    else
+    } else {
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.prod(
         executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    }
   }
 
   /** $OpDocMathMin
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def min[T: IsNumeric](
+  def min[T: IsNotQuantized, I: IsInt32OrInt64](
       input: Tensor[T],
-      axes: Tensor[Int] = null,
+      axes: Tensor[I] = null,
       keepDims: Boolean = false
   ): Tensor[T] = {
-    if (input.rank == 0)
+    if (input.rank == 0) {
       input
-    else
+    } else {
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.min(
         executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    }
   }
 
   /** $OpDocMathMax
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def max[T: IsNumeric](
+  def max[T: IsNotQuantized, I: IsInt32OrInt64](
       input: Tensor[T],
-      axes: Tensor[Int] = null,
+      axes: Tensor[I] = null,
       keepDims: Boolean = false
   ): Tensor[T] = {
-    if (input.rank == 0)
+    if (input.rank == 0) {
       input
-    else
+    } else {
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.max(
         executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    }
   }
 
   /** $OpDocMathAll
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def all(input: Tensor[Boolean], axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[Boolean] = {
-    if (input.rank == 0)
+  def all[I: IsInt32OrInt64](
+      input: Tensor[Boolean],
+      axes: Tensor[I] = null,
+      keepDims: Boolean = false
+  ): Tensor[Boolean] = {
+    if (input.rank == 0) {
       input
-    else
+    } else {
       Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.all(
         executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    }
   }
 
   /** $OpDocMathAny
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def any(input: Tensor[Boolean], axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[Boolean] = {
-    if (input.rank == 0)
+  def any[I: IsInt32OrInt64](
+      input: Tensor[Boolean],
+      axes: Tensor[I] = null,
+      keepDims: Boolean = false
+  ): Tensor[Boolean] = {
+    if (input.rank == 0) {
       input
-    else
+    } else {
       Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.any(
         executionContext.value.nativeHandle, input.nativeHandle, reductionAxes(input, axes).nativeHandle, keepDims))
+    }
   }
 
   /** $OpDocMathLogSumExp
@@ -1158,7 +1182,11 @@ private[api] trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def logSumExp[T: IsNotQuantized](input: Tensor[T], axes: Seq[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+  def logSumExp[T: IsNotQuantized](
+      input: Tensor[T],
+      axes: Seq[Int] = null,
+      keepDims: Boolean = false
+  ): Tensor[T] = {
     if (input.rank == 0) {
       input
     } else {
@@ -1176,13 +1204,13 @@ private[api] trait Math {
     *
     * @group MathOps
     * @param  input    Input tensor to reduce.
-    * @param  axes     Integer array containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes     Tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def countNonZero[T: IsNumeric](
+  def countNonZero[T: IsNumeric, I: IsInt32OrInt64](
       input: Tensor[T],
-      axes: Tensor[Int] = null,
+      axes: Tensor[I] = null,
       keepDims: Boolean = false
   ): Tensor[Long] = {
     sum(Cast.cast(notEqual(input, Tensor.zeros(input.dataType, Shape())), INT64), axes, keepDims)
@@ -1250,22 +1278,22 @@ private[api] trait Math {
     *
     * @group MathOps
     * @param  input     Tensor containing non-negative values.
+    * @param  dataType  If `weights` is `null`, this determines the data type used for the output tensor (i.e., the
+    *                   tensor containing the bin counts).
     * @param  weights   If not `null`, this tensor must have the same shape as `input`. For each value in `input`, the
     *                   corresponding bin count will be incremented by the corresponding weight instead of `1`.
     * @param  minLength If not `null`, this ensures the output has length at least `minLength`, padding with zeros at
     *                   the end, if necessary.
     * @param  maxLength If not `null`, this skips values in `input` that are equal or greater than `maxLength`,
     *                   ensuring that the output has length at most `maxLength`.
-    * @param  dataType  If `weights` is `null`, this determines the data type used for the output tensor (i.e., the
-    *                   tensor containing the bin counts).
     * @return Result as a new tensor.
     */
   def binCount[T: IsInt32OrInt64OrFloat32OrFloat64](
       input: Tensor[Int],
+      dataType: DataType[T],
       weights: Tensor[T] = null,
       minLength: Tensor[Int] = null,
-      maxLength: Tensor[Int] = null,
-      dataType: DataType[T] = null
+      maxLength: Tensor[Int] = null
   ): Tensor[T] = {
     val inputNonEmpty = greater(prod(Basic.shape(input, INT32)), 0)
     var outputSize = Cast.cast(inputNonEmpty, INT32) * add(max(input), Tensor.ones(INT32, Shape()))
@@ -1295,9 +1323,9 @@ private[api] trait Math {
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
     * @return Result as a new tensor.
     */
-  def cumsum[T: IsNotQuantized](
+  def cumsum[T: IsNotQuantized, I: IsInt32OrInt64](
       input: Tensor[T],
-      axis: Tensor[Int] = 0,
+      axis: Tensor[I],
       exclusive: Boolean = false,
       reverse: Boolean = false
   ): Tensor[T] = {
@@ -1309,14 +1337,14 @@ private[api] trait Math {
     *
     * @group MathOps
     * @param  input     Input tensor.
-    * @param  axis      `INT32` tensor containing the axis along which to perform the cumulative product.
+    * @param  axis      Tensor containing the axis along which to perform the cumulative product.
     * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative product.
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
     * @return Result as a new tensor.
     */
-  def cumprod[T: IsNotQuantized](
+  def cumprod[T: IsNotQuantized, I: IsInt32OrInt64](
       input: Tensor[T],
-      axis: Tensor[Int] = 0,
+      axis: Tensor[I],
       exclusive: Boolean = false,
       reverse: Boolean = false
   ): Tensor[T] = {
@@ -1345,7 +1373,7 @@ private[api] trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMean[T: IsNumeric, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentMean[T: IsNotQuantized, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentMean(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1369,7 +1397,7 @@ private[api] trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMin[T: IsNumeric, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentMin[T: IsReal, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentMin(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1381,7 +1409,7 @@ private[api] trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMax[T: IsNumeric, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentMax[T: IsReal, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentMax(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1389,51 +1417,56 @@ private[api] trait Math {
   /** $OpDocMathUnsortedSegmentSum
     *
     * @group MathOps
-    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  data           Data tensor.
     * @param  segmentIndices Segment indices.
     * @param  segmentsNumber Number of segments.
     * @return Result as a new tensor.
     */
-  def unsortedSegmentSum[T, I: IsInt32OrInt64](
+  def unsortedSegmentSum[T: IsNumeric, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
       data: Tensor[T],
-      segmentIndices: Tensor[I],
-      segmentsNumber: Tensor[Int]
+      segmentIndices: Tensor[I1],
+      segmentsNumber: Tensor[I2]
   ): Tensor[T] = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.unsortedSegmentSum(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
   }
 
+  // TODO: [TENSORS] Missing 'unsortedSegmentProd'.
+  // TODO: [TENSORS] Missing 'unsortedSegmentMin'.
+
   /** $OpDocMathUnsortedSegmentMax
     *
     * @group MathOps
-    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  data           Data tensor.
     * @param  segmentIndices Segment indices.
     * @param  segmentsNumber Number of segments.
     * @return Result as a new tensor.
     */
-  def unsortedSegmentMax[T, I: IsInt32OrInt64](
+  def unsortedSegmentMax[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
       data: Tensor[T],
-      segmentIndices: Tensor[I],
-      segmentsNumber: Tensor[Int]
+      segmentIndices: Tensor[I1],
+      segmentsNumber: Tensor[I2]
   ): Tensor[T] = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.unsortedSegmentMax(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
   }
 
+  // TODO: [TENSORS] Missing 'unsortedSegmentSqrtN'.
+
   /** $OpDocMathSparseSegmentSum
     *
     * @group MathOps
-    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  data           Data tensor.
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSum[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentSum[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
       data: Tensor[T],
       indices: Tensor[I1],
-      segmentIndices: Tensor[I2],
-      numSegments: Tensor[Int] = null
+      segmentIndices: Tensor[Int],
+      numSegments: Tensor[I2] = null
   ): Tensor[T] = {
     if (numSegments == null)
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.sparseSegmentSum(
@@ -1447,17 +1480,17 @@ private[api] trait Math {
   /** $OpDocMathSparseSegmentMean
     *
     * @group MathOps
-    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  data           Data tensor.
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentMean[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentMean[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
       data: Tensor[T],
       indices: Tensor[I1],
-      segmentIndices: Tensor[I2],
-      numSegments: Tensor[Int] = null
+      segmentIndices: Tensor[Int],
+      numSegments: Tensor[I2] = null
   ): Tensor[T] = {
     if (numSegments == null)
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.sparseSegmentMean(
@@ -1471,17 +1504,17 @@ private[api] trait Math {
   /** $OpDocMathSparseSegmentSumSqrtN
     *
     * @group MathOps
-    * @param  data           Data (must have a numeric data type -- i.e., representing a number).
+    * @param  data           Data tensor.
     * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSumSqrtN[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentSumSqrtN[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
       data: Tensor[T],
       indices: Tensor[I1],
-      segmentIndices: Tensor[I2],
-      numSegments: Tensor[Int] = null
+      segmentIndices: Tensor[Int],
+      numSegments: Tensor[I2] = null
   ): Tensor[T] = {
     if (numSegments == null)
       Tensor.fromNativeHandle[T](NativeTensorOpsMath.sparseSegmentSqrtN(
@@ -1525,7 +1558,7 @@ private[api] trait Math {
     * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its 
     *         last dimension duplicated.
     */
-  def matrixDiag[T: IsNotQuantized](diagonal: Tensor[T]): Tensor[T] = {
+  def matrixDiag[T](diagonal: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.matrixDiag(
       executionContext.value.nativeHandle, diagonal.nativeHandle))
   }
@@ -1537,7 +1570,7 @@ private[api] trait Math {
     * @param  diagonal Rank-`K` tensor, where `K >= 1`.
     * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `input`.
     */
-  def matrixSetDiag[T: IsNotQuantized](input: Tensor[T], diagonal: Tensor[T]): Tensor[T] = {
+  def matrixSetDiag[T](input: Tensor[T], diagonal: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.matrixSetDiag(
       executionContext.value.nativeHandle, input.nativeHandle, diagonal.nativeHandle))
   }
@@ -1549,7 +1582,7 @@ private[api] trait Math {
     * @return Result as a new tensor containing the diagonal(s) and having shape equal to
     *         `input.shape[:-2] + [min(input.shape[-2:])]`.
     */
-  def matrixDiagPart[T: IsNotQuantized](input: Tensor[T]): Tensor[T] = {
+  def matrixDiagPart[T](input: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.matrixDiagPart(
       executionContext.value.nativeHandle, input.nativeHandle))
   }
@@ -1564,7 +1597,7 @@ private[api] trait Math {
     *                           the entire upper triangle is kept.
     * @return Result as a new tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
     */
-  def matrixBandPart[T: IsNotQuantized, I: IsInt32OrInt64](
+  def matrixBandPart[T, I: IsInt32OrInt64](
       input: Tensor[T],
       numSubDiagonals: Tensor[I],
       numSuperDiagonals: Tensor[I]
@@ -1580,7 +1613,7 @@ private[api] trait Math {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def trace[T: IsNotQuantized](input: Tensor[T]): Tensor[T] = {
+  def trace[T: IsNumeric](input: Tensor[T]): Tensor[T] = {
     sum(matrixDiagPart(input), axes = -1)
   }
 
@@ -1597,6 +1630,8 @@ private[api] trait Math {
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(tensor, t => multiply(scalar, t))
   }
+
+  // TODO: [TENSORS] The following type constraints are wrong.
 
   /** $OpDocMathMatmul
     *
@@ -1629,10 +1664,9 @@ private[api] trait Math {
       val (y, adjointY) = transposeConjugateToAdjoint(b, transposeB, conjugateB)
       Tensor.fromNativeHandle(NativeTensorOpsMath.batchMatMul(
         executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle, adjointX, adjointY))
-    } else if (a.dataType == BFLOAT16 || b.dataType == BFLOAT16 || // "MatMul" does not currently support this type.
-        ((aIsSparse || bIsSparse) &&
-            sparseMatMulDataTypes.contains(a.dataType) &&
-            sparseMatMulDataTypes.contains(b.dataType))) {
+    } else if ((aIsSparse || bIsSparse) &&
+        sparseMatMulDataTypes.contains(a.dataType) &&
+        sparseMatMulDataTypes.contains(b.dataType)) {
       val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
       val (y, transposeY) = transposeConjugateToTranspose(b, transposeB, conjugateB)
       Tensor.fromNativeHandle(NativeTensorOpsMath.sparseMatMul(
@@ -1697,7 +1731,7 @@ private[api] trait Math {
     * @param  b Second input tensor.
     * @return Result as a new tensor.
     */
-  def cross[T: IsNotQuantized](a: Tensor[T], b: Tensor[T]): Tensor[T] = {
+  def cross[T: IsReal](a: Tensor[T], b: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.cross(
       executionContext.value.nativeHandle, a.nativeHandle, b.nativeHandle))
   }
@@ -1755,10 +1789,10 @@ private[api] trait Math {
       *         that contains the shape of the free axes.
       */
     def tensorDotReshape(a: Tensor[T], axes: Tensor[Int], flipped: Boolean = false): (Tensor[T], Tensor[Int]) = {
-      val shapeA = Basic.shape(a)
+      val shapeA = Basic.shape(a, INT64)
       val rankA = Basic.rank(a)
       val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA.cast(INT32)))
-      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes)
+      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
       val freeAxes = Basic.gather(shapeA, free)
       val axesAxes = Basic.gather(shapeA, mappedAxes)
       val prodFree = freeAxes.prod()
@@ -1818,11 +1852,16 @@ private[api] trait Math {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def conjugate[T: IsComplex, TL[A] <: TensorLike[A]](
+  def conjugate[T, TL[A] <: TensorLike[A]](
       input: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(input, t => {
-      Tensor.fromNativeHandle[T](NativeTensorOpsMath.conj(executionContext.value.nativeHandle, t.nativeHandle))
+      if (t.dataType.isComplex) {
+        Tensor.fromNativeHandle[T](NativeTensorOpsMath.conj(
+          executionContext.value.nativeHandle, t.nativeHandle))
+      } else {
+        t
+      }
     })
   }
 
@@ -1843,7 +1882,10 @@ private[api] trait Math {
     * @param  boundaries Sorted sequence of numbers specifying the boundaries of the buckets.
     * @return Result as a new tensor.
     */
-  def bucketize[T: IsInt32OrInt64OrFloat32OrFloat64](input: Tensor[T], boundaries: Seq[Float]): Tensor[T] = {
+  def bucketize[T: IsInt32OrInt64OrFloat32OrFloat64](
+      input: Tensor[T],
+      boundaries: Seq[Float]
+  ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.bucketize(
       executionContext.value.nativeHandle, input.nativeHandle, boundaries.toArray))
   }
@@ -1858,7 +1900,9 @@ private[api] trait Math {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def zerosFraction[T: IsNumeric](input: Tensor[T]): Tensor[Float] = {
+  def zerosFraction[T: IsNumeric](
+      input: Tensor[T]
+  ): Tensor[Float] = {
     mean(Cast.cast(equal(input, Tensor.fill(input.dataType, Shape())(0)), FLOAT32))
   }
 
@@ -1867,88 +1911,6 @@ private[api] trait Math {
 
 object Math extends Math {
   private[tensors] trait Implicits {
-    implicit class MathOps[T](val tensor: Tensor[T]) {
-      //region Segment Ops
-
-      /** $OpDocMathUnsortedSegmentSum
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices.
-        * @param  segmentsNumber Number of segments.
-        * @return Result as a new tensor.
-        */
-      def unsortedSegmentSum[I: IsInt32OrInt64](segmentIndices: Tensor[I], segmentsNumber: Tensor[Int]): Tensor[T] = {
-        Math.unsortedSegmentSum(tensor, segmentIndices, segmentsNumber)
-      }
-
-      /** $OpDocMathUnsortedSegmentMax
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices.
-        * @param  segmentsNumber Number of segments.
-        * @return Result as a new tensor.
-        */
-      def unsortedSegmentMax[I: IsInt32OrInt64](segmentIndices: Tensor[I], segmentsNumber: Tensor[Int]): Tensor[T] = {
-        Math.unsortedSegmentMax(tensor, segmentIndices, segmentsNumber)
-      }
-
-      /** $OpDocMathSparseSegmentSum
-        *
-        * @group MathOps
-        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @param  numSegments    Optional scalar indicating the size of the output tensor.
-        * @return Result as a new tensor.
-        */
-      def sparseSegmentSum[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
-          indices: Tensor[I1],
-          segmentIndices: Tensor[I2],
-          numSegments: Tensor[Int] = null
-      ): Tensor[T] = {
-        Math.sparseSegmentSum(tensor, indices, segmentIndices, numSegments)
-      }
-
-      /** $OpDocMathSparseSegmentMean
-        *
-        * @group MathOps
-        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @param  numSegments    Optional scalar indicating the size of the output tensor.
-        * @return Result as a new tensor.
-        */
-      def sparseSegmentMean[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
-          indices: Tensor[I1],
-          segmentIndices: Tensor[I2],
-          numSegments: Tensor[Int] = null
-      ): Tensor[T] = {
-        Math.sparseSegmentMean(tensor, indices, segmentIndices, numSegments)
-      }
-
-      /** $OpDocMathSparseSegmentSumSqrtN
-        *
-        * @group MathOps
-        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @param  numSegments    Optional scalar indicating the size of the output tensor.
-        * @return Result as a new tensor.
-        */
-      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
-          indices: Tensor[I1],
-          segmentIndices: Tensor[I2],
-          numSegments: Tensor[Int] = null
-      ): Tensor[T] = {
-        Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices, numSegments)
-      }
-
-      //endregion Segment Ops
-
-      //region Quantization Ops
-
-      // TODO: [OPS] quantization
-
-      //endregion Quantization Ops
-    }
-
     implicit class NumericMathOps[T: IsNumeric](val tensor: Tensor[T]) {
       //region Operators
 
@@ -2069,33 +2031,6 @@ object Math extends Math {
         */
       def mean(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = Math.mean(tensor, axes, keepDims)
 
-      /** $OpDocMathProd
-        *
-        * @group MathOps
-        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @param  keepDims If `true`, retain the reduced axes.
-        * @return Result as a new tensor.
-        */
-      def prod(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = Math.prod(tensor, axes, keepDims)
-
-      /** $OpDocMathMin
-        *
-        * @group MathOps
-        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @param  keepDims If `true`, retain the reduced axes.
-        * @return Result as a new tensor.
-        */
-      def min(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = Math.min(tensor, axes, keepDims)
-
-      /** $OpDocMathMax
-        *
-        * @group MathOps
-        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @param  keepDims If `true`, retain the reduced axes.
-        * @return Result as a new tensor.
-        */
-      def max(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = Math.max(tensor, axes, keepDims)
-
       /** $OpDocMathCountNonZero
         *
         * @group MathOps
@@ -2117,15 +2052,9 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentSum[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = Math.segmentSum(tensor, segmentIndices)
-
-      /** $OpDocMathSegmentMean
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @return Result as a new tensor.
-        */
-      def segmentMean[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = Math.segmentMean(tensor, segmentIndices)
+      def segmentSum[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+        Math.segmentSum(tensor, segmentIndices)
+      }
 
       /** $OpDocMathSegmentProd
         *
@@ -2133,23 +2062,23 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentProd[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = Math.segmentProd(tensor, segmentIndices)
+      def segmentProd[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+        Math.segmentProd(tensor, segmentIndices)
+      }
 
-      /** $OpDocMathSegmentMin
+      /** $OpDocMathUnsortedSegmentSum
         *
         * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  segmentIndices Segment indices.
+        * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def segmentMin[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = Math.segmentMin(tensor, segmentIndices)
-
-      /** $OpDocMathSegmentMax
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @return Result as a new tensor.
-        */
-      def segmentMax[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = Math.segmentMax(tensor, segmentIndices)
+      def unsortedSegmentSum[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+          segmentIndices: Tensor[I1],
+          segmentsNumber: Tensor[I2]
+      ): Tensor[T] = {
+        Math.unsortedSegmentSum(tensor, segmentIndices, segmentsNumber)
+      }
 
       //endregion Segment Ops
 
@@ -2545,6 +2474,39 @@ object Math extends Math {
 
       //region Reduction Ops
 
+      /** $OpDocMathProd
+        *
+        * @group MathOps
+        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  keepDims If `true`, retain the reduced axes.
+        * @return Result as a new tensor.
+        */
+      def prod(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+        Math.prod(tensor, axes, keepDims)
+      }
+
+      /** $OpDocMathMin
+        *
+        * @group MathOps
+        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  keepDims If `true`, retain the reduced axes.
+        * @return Result as a new tensor.
+        */
+      def min(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+        Math.min(tensor, axes, keepDims)
+      }
+
+      /** $OpDocMathMax
+        *
+        * @group MathOps
+        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  keepDims If `true`, retain the reduced axes.
+        * @return Result as a new tensor.
+        */
+      def max(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+        Math.max(tensor, axes, keepDims)
+      }
+
       /** $OpDocMathLogSumExp
         *
         * @group MathOps
@@ -2552,9 +2514,25 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def logSumExp(axes: Seq[Int] = null, keepDims: Boolean = false): Tensor[T] = Math.logSumExp(tensor, axes, keepDims)
+      def logSumExp(axes: Seq[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+        Math.logSumExp(tensor, axes, keepDims)
+      }
 
       //endregion Reduction Ops
+
+      //region Segment Ops
+
+      /** $OpDocMathSegmentMean
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentMean[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+        Math.segmentMean(tensor, segmentIndices)
+      }
+
+      //endregion Segment Ops
 
       /** $OpDocMathArgmax
         *
@@ -2562,7 +2540,9 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmax[I: IsInt32OrInt64](axes: Tensor[I]): Tensor[Long] = Math.argmax(tensor, axes)
+      def argmax[I: IsInt32OrInt64](axes: Tensor[I]): Tensor[Long] = {
+        Math.argmax(tensor, axes)
+      }
 
       /** $OpDocMathArgmax
         *
@@ -2608,7 +2588,11 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
         * @return Result as a new tensor.
         */
-      def cumsum(axis: Tensor[Int] = 0, exclusive: Boolean = false, reverse: Boolean = false): Tensor[T] = {
+      def cumsum[I: IsInt32OrInt64](
+          axis: Tensor[I],
+          exclusive: Boolean = false,
+          reverse: Boolean = false
+      ): Tensor[T] = {
         Math.cumsum(tensor, axis, exclusive, reverse)
       }
 
@@ -2620,7 +2604,11 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
         * @return Result as a new tensor.
         */
-      def cumprod(axis: Tensor[Int] = 0, exclusive: Boolean = false, reverse: Boolean = false): Tensor[T] = {
+      def cumprod[I: IsInt32OrInt64](
+          axis: Tensor[I],
+          exclusive: Boolean = false,
+          reverse: Boolean = false
+      ): Tensor[T] = {
         Math.cumprod(tensor, axis, exclusive, reverse)
       }
 
@@ -2710,14 +2698,6 @@ object Math extends Math {
         Math.matmul(tensor, other, transposeA, transposeB, conjugateA, conjugateB, aIsSparse, bIsSparse)
       }
 
-      /** $OpDocMathCross
-        *
-        * @group MathOps
-        * @param  other Tensor to multiply with.
-        * @return Result as a new tensor.
-        */
-      def cross(other: Tensor[T]): Tensor[T] = Math.cross(tensor, other)
-
       /** Dynamic version (i.e., where `numAxes` may be a tensor) of the `tensorDot` op.
         *
         * $OpDocMathTensorDot
@@ -2755,6 +2735,106 @@ object Math extends Math {
         * @return Result as a new tensor.
         */
       def logSigmoid: Tensor[T] = Math.logSigmoid(tensor)
+
+      //region Segment Ops
+
+      /** $OpDocMathSegmentMin
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentMin[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+        Math.segmentMin(tensor, segmentIndices)
+      }
+
+      /** $OpDocMathSegmentMax
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentMax[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+        Math.segmentMax(tensor, segmentIndices)
+      }
+
+      /** $OpDocMathUnsortedSegmentMax
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices.
+        * @param  segmentsNumber Number of segments.
+        * @return Result as a new tensor.
+        */
+      def unsortedSegmentMax[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+          segmentIndices: Tensor[I1],
+          segmentsNumber: Tensor[I2]
+      ): Tensor[T] = {
+        Math.unsortedSegmentMax(tensor, segmentIndices, segmentsNumber)
+      }
+
+      /** $OpDocMathSparseSegmentSum
+        *
+        * @group MathOps
+        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  numSegments    Optional scalar indicating the size of the output tensor.
+        * @return Result as a new tensor.
+        */
+      def sparseSegmentSum[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+          indices: Tensor[I1],
+          segmentIndices: Tensor[Int],
+          numSegments: Tensor[I2] = null
+      ): Tensor[T] = {
+        Math.sparseSegmentSum(tensor, indices, segmentIndices, numSegments)
+      }
+
+      /** $OpDocMathSparseSegmentMean
+        *
+        * @group MathOps
+        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  numSegments    Optional scalar indicating the size of the output tensor.
+        * @return Result as a new tensor.
+        */
+      def sparseSegmentMean[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+          indices: Tensor[I1],
+          segmentIndices: Tensor[Int],
+          numSegments: Tensor[I2] = null
+      ): Tensor[T] = {
+        Math.sparseSegmentMean(tensor, indices, segmentIndices, numSegments)
+      }
+
+      /** $OpDocMathSparseSegmentSumSqrtN
+        *
+        * @group MathOps
+        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  numSegments    Optional scalar indicating the size of the output tensor.
+        * @return Result as a new tensor.
+        */
+      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+          indices: Tensor[I1],
+          segmentIndices: Tensor[Int],
+          numSegments: Tensor[I2] = null
+      ): Tensor[T] = {
+        Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices, numSegments)
+      }
+
+      //endregion Segment Ops
+
+      //region Matrix Ops
+
+      /** $OpDocMathCross
+        *
+        * @group MathOps
+        * @param  other Tensor to multiply with.
+        * @return Result as a new tensor.
+        */
+      def cross(other: Tensor[T]): Tensor[T] = {
+        Math.cross(tensor, other)
+      }
+
+      //endregion Matrix Ops
     }
 
     implicit class Int32OrInt64OrFloat32OrFloat64MathOps[T: IsInt32OrInt64OrFloat32OrFloat64](val tensor: Tensor[T]) {
@@ -3053,16 +3133,15 @@ object Math extends Math {
         * @return Result as a new tensor.
         */
       def binCount[T: IsInt32OrInt64OrFloat32OrFloat64](
+          dataType: DataType[T],
           weights: Tensor[T] = null,
           minLength: Tensor[Int] = null,
-          maxLength: Tensor[Int] = null,
-          dataType: DataType[T] = null
+          maxLength: Tensor[Int] = null
       ): Tensor[T] = {
-        Math.binCount(tensor, weights, minLength, maxLength, dataType)
+        Math.binCount(tensor, dataType, weights, minLength, maxLength)
       }
     }
 
-    implicit def tensorConvertibleToMathOps[TC, T](value: TC)(implicit f: TC => Tensor[T]): MathOps[T] = new MathOps(f(value))
     implicit def tensorConvertibleToNumericMathOps[TC, T: IsNumeric](value: TC)(implicit f: TC => Tensor[T]): NumericMathOps[T] = new NumericMathOps(f(value))
     implicit def tensorConvertibleToMathMathOps[TC, T: IsNotQuantized](value: TC)(implicit f: TC => Tensor[T]): MathMathOps[T] = new MathMathOps(f(value))
     implicit def tensorConvertibleToRealMathOps[TC, T: IsReal](value: TC)(implicit f: TC => Tensor[T]): RealMathOps[T] = new RealMathOps(f(value))
