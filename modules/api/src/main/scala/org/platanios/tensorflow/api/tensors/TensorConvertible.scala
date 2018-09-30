@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.tensors
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.tensors.ops.Basic.stack
+import org.platanios.tensorflow.api.tensors.ops.Basic
 import org.platanios.tensorflow.api.types.SupportedType
 
 import scala.collection.{TraversableLike, breakOut}
@@ -44,7 +44,9 @@ object TensorConvertible {
       override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: TL[TT]): Tensor[TT] = value.toTensor
+      @inline override def toTensor(value: TL[TT]): Tensor[TT] = {
+        value.toTensor
+      }
     }
   }
 
@@ -53,7 +55,9 @@ object TensorConvertible {
       override type T = Long
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Shape): Tensor[Long] = value.toTensor
+      @inline override def toTensor(value: Shape): Tensor[Long] = {
+        value.toTensor
+      }
     }
   }
 
@@ -62,7 +66,9 @@ object TensorConvertible {
       override type T = Int
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Range): Tensor[Int] = stack(value.map(_.toTensor))
+      @inline override def toTensor(value: Range): Tensor[Int] = {
+        Basic.stack(value.map(_.toTensor))
+      }
     }
   }
 
@@ -73,7 +79,9 @@ object TensorConvertible {
       override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: TT): Tensor[TT] = Tensor.fill(evSupported.dataType, Shape())(value)
+      @inline override def toTensor(value: TT): Tensor[TT] = {
+        Tensor.fill(evSupported.dataType, Shape())(value)
+      }
     }
   }
 
@@ -84,7 +92,9 @@ object TensorConvertible {
       override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: Array[TC]): Tensor[TT] = stack(value.map(ev.toTensor))
+      @inline override def toTensor(value: Array[TC]): Tensor[TT] = {
+        Basic.stack(value.map(ev.toTensor))
+      }
     }
   }
 
@@ -95,7 +105,9 @@ object TensorConvertible {
       override type T = TT
 
       /** Converts `value` to a dense tensor. */
-      @inline override def toTensor(value: CC[TC]): Tensor[TT] = stack(value.map(ev.toTensor)(breakOut))
+      @inline override def toTensor(value: CC[TC]): Tensor[TT] = {
+        Basic.stack(value.map(ev.toTensor)(breakOut))
+      }
     }
   }
 }

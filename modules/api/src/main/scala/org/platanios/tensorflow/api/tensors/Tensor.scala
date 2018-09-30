@@ -764,7 +764,11 @@ final case class TensorIndexedSlices[+T](
   }
 
   override def toString: String = {
-    s"TensorIndexedSlices(values = $values, indices = $indices, denseShape = $denseShape, device = $device)}"
+    "TensorIndexedSlices(" +
+        s"indices = $indices, " +
+        s"values = $values, " +
+        s"denseShape = $denseShape, " +
+        s"device = $device)"
   }
 }
 
