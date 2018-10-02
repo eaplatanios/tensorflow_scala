@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 
 /** Lookup table initializer that uses the provided tensors (containing keys and corresponding values) for initializing
   * a lookup table.
@@ -26,25 +26,36 @@ import org.platanios.tensorflow.api.ops.{Op, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTensorInitializer protected (val keys: Output, val values: Output)
-    extends LookupTableInitializer(keys.dataType, values.dataType) {
+class LookupTableTensorInitializer[K, +V] protected (
+    val keys: Output[K],
+    val values: Output[V]
+) extends LookupTableInitializer(keys.dataType, values.dataType) {
   /** Creates and returns an op that initializes the provided table.
     *
     * @param  table Table to initialize.
     * @return Created initialization op for `table`.
     */
-  override def initialize(table: InitializableLookupTable, name: String = "Initialize"): Op = {
-    table.checkDataTypes(keys.dataType, values.dataType)
-    Op.createWithNameScope(name, Set(table.handle.op, keys.op, values.op)) {
-      val initializationOp = Lookup.createLookupTableTensorInitializer(table.handle, keys, values, name)
+  override def initialize[VV >: V](
+      table: InitializableLookupTable[K, VV],
+      name: String = "Initialize"
+  ): UntypedOp = {
+    Op.nameScope(name) {
+      val initializationOp = Op.Builder[(Output[Long], Output[K], Output[V]), Unit](
+        opType = "InitializeTableV2",
+        name = name,
+        input = (table.handle, keys, values)
+      ).build()
       Op.currentGraph.addToCollection(initializationOp, Graph.Keys.TABLE_INITIALIZERS)
-      initializationOp
+      initializationOp.asUntyped
     }
   }
 }
 
 object LookupTableTensorInitializer {
-  def apply(keys: Output, values: Output): LookupTableTensorInitializer = {
+  def apply[K, V](
+      keys: Output[K],
+      values: Output[V]
+  ): LookupTableTensorInitializer[K, V] = {
     new LookupTableTensorInitializer(keys, values)
   }
 }

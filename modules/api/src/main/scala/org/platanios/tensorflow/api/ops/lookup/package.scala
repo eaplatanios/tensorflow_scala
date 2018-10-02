@@ -21,22 +21,26 @@ package org.platanios.tensorflow.api.ops
 package object lookup {
   private[ops] trait API
       extends Lookup {
-    type LookupTable = lookup.LookupTable
-    type HashTable = lookup.HashTable
-    type IDLookupTableWithHashBuckets = lookup.IDLookupTableWithHashBuckets
+    type LookupTable[K, +V] = lookup.LookupTable[K, V]
+    type HashTable[K, +V] = lookup.HashTable[K, V]
+    type IDLookupTableWithHashBuckets[K] = lookup.IDLookupTableWithHashBuckets[K]
 
     val HashTable                   : lookup.HashTable.type                    = lookup.HashTable
     val IDLookupTableWithHashBuckets: lookup.IDLookupTableWithHashBuckets.type = lookup.IDLookupTableWithHashBuckets
 
-    type LookupTableInitializer = lookup.LookupTableInitializer
-    type LookupTableTensorInitializer = lookup.LookupTableTensorInitializer
-    type LookupTableTextFileInitializer = lookup.LookupTableTextFileInitializer
+    type LookupTableInitializer[K, +V] = lookup.LookupTableInitializer[K, V]
+    type LookupTableTensorInitializer[K, +V] = lookup.LookupTableTensorInitializer[K, V]
+    type LookupTableTextFileInitializer[K, +V] = lookup.LookupTableTextFileInitializer[K, V]
 
-    val LookupTableTensorInitializer  : lookup.LookupTableTensorInitializer.type   = lookup.LookupTableTensorInitializer
-    val LookupTableTextFileInitializer: lookup.LookupTableTextFileInitializer.type =
+    val LookupTableTensorInitializer: lookup.LookupTableTensorInitializer.type = {
+      lookup.LookupTableTensorInitializer
+    }
+
+    val LookupTableTextFileInitializer: lookup.LookupTableTextFileInitializer.type = {
       lookup.LookupTableTextFileInitializer
+    }
 
-    type TextFileFieldExtractor = lookup.TextFileFieldExtractor
+    type TextFileFieldExtractor[K] = lookup.TextFileFieldExtractor[K]
 
     val TextFileLineNumber: lookup.TextFileLineNumber.type = lookup.TextFileLineNumber
     val TextFileWholeLine : lookup.TextFileWholeLine.type  = lookup.TextFileWholeLine
