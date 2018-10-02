@@ -16,9 +16,14 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Math, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
+import org.platanios.tensorflow.api.types.IsNotQuantized
 
-/** $OpDocRNNCellBasicRNNCell
+/** The most basic RNN cell.
+  *
+  * It is defined as: `output = newState = activation(W * input + U * state + b)`.
+  *
+  * Input tensors must be two-dimensional.
   *
   * @group RNNCellOps
   * @param  kernel     Kernel matrix to use.
@@ -28,24 +33,38 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicRNNCell protected (
-    val kernel: Output,
-    val bias: Output,
-    val activation: Output => Output = Math.tanh(_),
+class BasicRNNCell[T: IsNotQuantized] protected (
+    val kernel: Output[T],
+    val bias: Output[T],
+    val activation: Output[T] => Output[T],
     val name: String = "BasicRNNCell"
-) extends RNNCell[Output, Shape, Output, Shape] {
+) extends RNNCell[Output[T], Shape, Output[T], Shape] {
   override def outputShape: Shape = bias.shape
   override def stateShape: Shape = bias.shape
 
-  override def forward(input: BasicTuple): BasicTuple = {
-    RNNCell.basicRNNCell(input, kernel, bias, activation, name)
+  @throws[IllegalArgumentException]
+  override def forward(input: BasicTuple[T]): BasicTuple[T] = {
+    Op.nameScope(name) {
+      val output = input.output
+      val state = input.state
+      if (output.rank != 2)
+        throw new IllegalArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
+      if (output.shape(1) == -1)
+        throw new IllegalArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
+      val linear = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, state), axis = 1), kernel), bias)
+      val newOutput = activation(linear)
+      Tuple(newOutput, newOutput)
+    }
   }
 }
 
 object BasicRNNCell {
-  def apply(
-      kernel: Output, bias: Output, activation: Output => Output = Math.tanh(_),
-      name: String = "BasicRNNCell"): BasicRNNCell = {
+  def apply[T: IsNotQuantized](
+      kernel: Output[T],
+      bias: Output[T],
+      activation: Output[T] => Output[T],
+      name: String = "BasicRNNCell"
+  ): BasicRNNCell[T] = {
     new BasicRNNCell(kernel, bias, activation, name)
   }
 }

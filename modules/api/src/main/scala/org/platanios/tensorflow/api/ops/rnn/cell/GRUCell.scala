@@ -16,9 +16,15 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Math, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
+import org.platanios.tensorflow.api.types.IsNotQuantized
 
-/** $OpDocRNNCellGRUCell
+/** The Gated Recurrent Unit (GRU) cell.
+  *
+  * For details refer to
+  * [Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation](http://arxiv.org/abs/1406.1078).
+  *
+  * Input tensors must be two-dimensional.
   *
   * @group RNNCellOps
   * @param  gateKernel      Gate kernel matrix to use.
@@ -30,25 +36,49 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class GRUCell protected (
-    val gateKernel: Output,
-    val gateBias: Output,
-    val candidateKernel: Output,
-    val candidateBias: Output,
-    val activation: Output => Output = Math.tanh(_),
+class GRUCell[T: IsNotQuantized] protected (
+    val gateKernel: Output[T],
+    val gateBias: Output[T],
+    val candidateKernel: Output[T],
+    val candidateBias: Output[T],
+    val activation: Output[T] => Output[T],
     val name: String = "GRUCell"
-) extends RNNCell[Output, Shape, Output, Shape] {
+) extends RNNCell[Output[T], Shape, Output[T], Shape] {
   override def outputShape: Shape = candidateBias.shape
   override def stateShape: Shape = candidateBias.shape
-  override def forward(input: BasicTuple): BasicTuple = {
-    RNNCell.gruCell(input, gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
+
+  @throws[IllegalArgumentException]
+  override def forward(input: BasicTuple[T]): BasicTuple[T] = {
+    Op.nameScope(name) {
+      val output = input.output
+      val state = input.state
+      if (output.rank != 2)
+        throw new IllegalArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
+      if (output.shape(1) == -1)
+        throw new IllegalArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
+      val gateIn = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, state), axis = 1), gateKernel), gateBias)
+      val value = Basic.splitEvenly(Math.sigmoid(gateIn), 2, axis = 1)
+      val (r, u) = (value(0), value(1))
+      val rState = Math.multiply(r, state)
+      val c = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, rState), axis = 1), candidateKernel), candidateBias)
+      val newH = Math.add(Math.multiply(u, state), Math.multiply(Basic.ones(u.dataType, Shape()) - u, c))
+      Tuple(newH, newH)
+    }
   }
 }
 
 object GRUCell {
-  def apply(
-      gateKernel: Output, gateBias: Output, candidateKernel: Output, candidateBias: Output,
-      activation: Output => Output = Math.tanh(_), name: String = "GRUCell"): GRUCell = {
-    new GRUCell(gateKernel, gateBias, candidateKernel, candidateBias, activation, name)
+  def apply[T: IsNotQuantized](
+      gateKernel: Output[T],
+      gateBias: Output[T],
+      candidateKernel: Output[T],
+      candidateBias: Output[T],
+      activation: Output[T] => Output[T],
+      name: String = "GRUCell"
+  ): GRUCell[T] = {
+    new GRUCell(
+      gateKernel, gateBias,
+      candidateKernel, candidateBias,
+      activation, name)
   }
 }

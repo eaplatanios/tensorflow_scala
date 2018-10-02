@@ -18,12 +18,12 @@ package org.platanios.tensorflow.api.ops.rnn
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
 
@@ -31,8 +31,10 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-private[rnn] trait RNN {
-  /** $OpDocRNNDynamicRNN
+trait RNN {
+  /** A recurrent neural network (RNN) specified by the provided RNN cell.
+    *
+    * The op performs fully dynamic unrolling of the RNN.
     *
     * @group RNNOps
     * @param  cell               RNN cell to use.
@@ -45,7 +47,7 @@ private[rnn] trait RNN {
     *                            `[batch, time, depth]`).
     * @param  parallelIterations Number of RNN loop iterations allowed to run in parallel.
     * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
-    * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
+    * @param  sequenceLengths    Optional tensor with shape `[batchSize]` containing the sequence lengths for
     *                            each row in the batch.
     * @param  name               Name prefix to use for the created ops.
     * @return RNN cell tuple after the dynamic RNN loop is completed. The `output` of that tuple has a time axis
@@ -63,13 +65,13 @@ private[rnn] trait RNN {
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Output = null,
+      sequenceLengths: Output[Int] = null,
       name: String = "RNN"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): Tuple[O, S] = {
-    Op.createWithNameScope(name) {
+    Op.nameScope(name) {
       // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
       // place the cached variables using the same device placement as for the rest of the RNN.
       val currentVariableScope = VariableScope.scope(name)(VariableScope.current)
@@ -107,7 +109,7 @@ private[rnn] trait RNN {
           if (initialState != null)
             initialState
           else
-            cell.zeroState(batchSize, processedInput.head.dataType, cell.stateShape)
+            cell.zeroState(batchSize, cell.stateShape)
         }
         var finalTuple = RNN.dynamicRNNLoop(
           cell, evO.fromOutputs(input, processedInput), state, parallelIterations, swapMemory,
@@ -125,7 +127,13 @@ private[rnn] trait RNN {
     }
   }
 
-  /** $OpDocRNNBidirectionalDynamicRNN
+  /** A bidirectional recurrent neural network (RNN) specified by the provided RNN cell. The op performs fully dynamic
+    * unrolling of the forward and backward RNNs.
+    *
+    * The op takes the inputs and builds independent forward and backward RNNs. The output sizes of the forward and
+    * the backward RNN cells must match. The initial state for both directions can be provided and no intermediate
+    * states are ever returned -- the network is fully unrolled for the provided sequence length(s) of the sequence(s)
+    * or completely unrolled if sequence length(s) are not provided.
     *
     * @group RNNOps
     * @param  cellFw             RNN cell to use for the forward direction.
@@ -142,7 +150,7 @@ private[rnn] trait RNN {
     *                            `[batch, time, depth]`).
     * @param  parallelIterations Number of RNN loop iterations allowed to run in parallel.
     * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
-    * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
+    * @param  sequenceLengths    Optional tensor with shape `[batchSize]` containing the sequence lengths for
     *                            each row in the batch.
     * @param  name               Name prefix to use for the created ops.
     * @return Tuple containing: (i) the forward RNN cell tuple after the forward dynamic RNN loop is completed, and (ii)
@@ -161,13 +169,13 @@ private[rnn] trait RNN {
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Output = null,
+      sequenceLengths: Output[Int] = null,
       name: String = "RNN"
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): (Tuple[O, S], Tuple[O, S]) = {
-    Op.createWithNameScope(name) {
+    Op.nameScope(name) {
       VariableScope.scope(name) {
         // Forward direction
         val forwardTuple = VariableScope.scope("Forward") {
@@ -209,7 +217,7 @@ object RNN extends RNN {
     *                            `[batchSize, stateSize(i)]`, where `i` corresponds to the index in that sequence.
     * @param  parallelIterations Number of loop iterations allowed to run in parallel.
     * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the loop.
-    * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
+    * @param  sequenceLengths    Optional tensor with shape `[batchSize]` containing the sequence lengths for
     *                            each row in the batch.
     * @return RNN cell tuple after the dynamic RNN loop is completed. The `output` of that tuple had a time axis
     *         prepended to the shape of each tensor and corresponds to the RNN outputs at each iteration in the loop.
@@ -223,14 +231,14 @@ object RNN extends RNN {
       initialState: S,
       parallelIterations: Int,
       swapMemory: Boolean,
-      sequenceLengths: Output = null
+      sequenceLengths: Output[Int] = null
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): Tuple[O, S] = {
     // Construct an initial output.
     val inputs = evO.outputs(input)
-    val inputShape = Basic.shape(inputs.head)
+    val inputShape = Basic.shape(inputs.head, INT32)
     val timeSteps = inputShape(0)
     val batchSize = bestEffortInputBatchSize(inputs)
     val inputsGotShape = inputs.map(_.shape.withRankAtLeast(3))
@@ -245,8 +253,8 @@ object RNN extends RNN {
         throw InvalidShapeException("The batch size is not the same for all inputs.")
     })
     val initialStates = evS.outputs(initialState)
-    val inferredDataType = inferStateDataType(null, initialStates)
-    val zeroOutput = evO.zero(batchSize, inferredDataType, cell.outputShape, "ZeroOutput")
+    val inferredDataType = initialStates.head.dataType
+    val zeroOutput = evO.zero(batchSize, cell.outputShape, "ZeroOutput")
     val zeroOutputs = evO.outputs(zeroOutput)
     val (minSequenceLength, maxSequenceLength) = {
       if (sequenceLengths != null)
@@ -254,10 +262,11 @@ object RNN extends RNN {
       else
         (null, timeSteps)
     }
-    val time = Basic.constant(0, INT32, name = "Time")
+    val time = Basic.zeros(INT32, Shape(), name = "Time")
     val outputTensorArrays = evO.shapes(cell.outputShape).zipWithIndex.map({
       case (shape, index) => TensorArray.create(
-        timeSteps, inferredDataType, elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
+        timeSteps, inferredDataType,
+        elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
         name = s"Output_$index")
     })
     val inputTensorArrays = inputs.zipWithIndex.map({
@@ -265,7 +274,7 @@ object RNN extends RNN {
         timeSteps, in.dataType, elementShape = in.shape(1 ::), name = s"Input_$index").unstack(in)
     })
 
-    type LoopVariables = (Output, Seq[TensorArray], Seq[Output])
+    type LoopVariables = (Output[Int], Seq[TensorArray[Any]], Seq[Output[Any]])
 
     /** Takes a time step for the dynamic RNN. */
     def timeStep(loopVariables: LoopVariables): LoopVariables = {
@@ -274,8 +283,10 @@ object RNN extends RNN {
       val inputs = inputTensorArrays.map(_.read(time))
       // Restore some shape information.
       inputs.zip(inputsGotShape).foreach(i => i._1.setShape(i._2(1 ::)))
-      val callCell: () => (Seq[Output], Seq[Output]) = () => {
-        val newTuple = cell(Tuple(evO.fromOutputs(input, inputs), evS.fromOutputs(initialState, states)))
+      val callCell: () => (Seq[Output[Any]], Seq[Output[Any]]) = () => {
+        val newTuple = cell(Tuple(
+          output = evO.fromOutputs(input, inputs),
+          state = evS.fromOutputs(initialState, states)))
         (evO.outputs(newTuple.output), evS.outputs(newTuple.state))
       }
       val (nextOutputs, nextStates) = {
@@ -329,9 +340,9 @@ object RNN extends RNN {
     * }}}
     *
     * @param  step              Scalar tensor containing the current step in the RNN loop.
-    * @param  sequenceLengths   `INT32` tensor with shape `[batchSize]` containing the sequence lengths.
-    * @param  minSequenceLength `INT32` scalar containing the minimum value of `sequenceLengths`.
-    * @param  maxSequenceLength `INT32` scalar containing the maximum value of `sequenceLengths`.
+    * @param  sequenceLengths   Tensor with shape `[batchSize]` containing the sequence lengths.
+    * @param  minSequenceLength Scalar containing the minimum value of `sequenceLengths`.
+    * @param  maxSequenceLength Scalar containing the maximum value of `sequenceLengths`.
     * @param  zeroOutput        Tensor with shape `[outputSize]` containing the "zero output" value.
     * @param  state             Sequence of state tensors with shapes `[batchSize, stateSize(i)]`, where `i` is an index
     *                           over that sequence.
@@ -343,29 +354,36 @@ object RNN extends RNN {
     *         state tensors with shapes `[batchSize, stateSize(i)]`, where `i` is an index over that sequence.
     */
   private[RNN] def rnnStep(
-      step: Output,
-      sequenceLengths: Output,
-      minSequenceLength: Output,
-      maxSequenceLength: Output,
-      zeroOutput: Seq[Output],
-      state: Seq[Output],
-      callCell: () => (Seq[Output], Seq[Output]),
+      step: Output[Int],
+      sequenceLengths: Output[Int],
+      minSequenceLength: Output[Int],
+      maxSequenceLength: Output[Int],
+      zeroOutput: Seq[Output[Any]],
+      state: Seq[Output[Any]],
+      callCell: () => (Seq[Output[Any]], Seq[Output[Any]]),
       skipConditionals: Boolean = false
-  ): (Seq[Output], Seq[Output]) = {
+  ): (Seq[Output[Any]], Seq[Output[Any]]) = {
     // Describes which batch entries have finished.
     val copyCond = Math.greaterEqual(step, sequenceLengths)
 
-    def copyOneThrough(output: Output, newOutput: Output): Output = {
+    def copyOneThrough(
+        output: Output[Any],
+        newOutput: Output[Any]
+    ): Output[Any] = {
       // If the state contains a scalar value we simply pass it through.
-      if (output.rank == 0)
+      if (output.rank == 0) {
         newOutput
-      else
+      } else {
         Op.colocateWith(Set(newOutput.op), ignoreExisting = true) {
           Math.select(copyCond, output, newOutput)
         }
+      }
     }
 
-    def copySomeThrough(newOutput: Seq[Output], newState: Seq[Output]): Seq[Output] = {
+    def copySomeThrough(
+        newOutput: Seq[Output[Any]],
+        newState: Seq[Output[Any]]
+    ): Seq[Output[Any]] = {
       // Use broadcasting select to determine which values should get the previous state and zero output, and which
       // values should get a computed state and output.
       val copiedNewOutput = zeroOutput.zip(newOutput).map(o => copyOneThrough(o._1, o._2))
@@ -374,7 +392,7 @@ object RNN extends RNN {
     }
 
     /** Runs the RNN step and passes through either no or some past state. */
-    def maybeCopySomeThrough(): Seq[Output] = {
+    def maybeCopySomeThrough(): Seq[Output[Any]] = {
       val newTuple = callCell()
       ControlFlow.cond(
         Math.less(step, minSequenceLength),
@@ -411,13 +429,18 @@ object RNN extends RNN {
   /** Transposes the batch and time dimensions of the input tensor, while retaining as much of the static shape
     * information as possible. If the input tensor has rank less than `2` it returns the original tensor. */
   @throws[InvalidShapeException]
-  private[api] def transposeBatchTime(input: Output): Output = {
+  private[api] def transposeBatchTime[T](input: Output[T]): Output[T] = {
     val staticShape = input.shape
     if (staticShape.rank != -1 && staticShape.rank < 2) {
       input
     } else {
       val rank = Basic.rank(input)
-      val transposed = Basic.transpose(input, Basic.concatenate(Seq(Seq(1, 0), Math.range(2, rank)), axis = 0))
+      val transposed = Basic.transpose(
+        input,
+        Basic.concatenate(Seq(
+          Seq(1, 0),
+          Math.range(2, rank)
+        ), axis = 0))
       val staticTransposedShape = {
         if (staticShape.rank > 2)
           Shape(staticShape(1), staticShape(0)) ++ staticShape(2 ::)
@@ -438,7 +461,9 @@ object RNN extends RNN {
     *                                  than 2.
     */
   @throws[InvalidArgumentException]
-  private[rnn] def bestEffortInputBatchSize(inputs: Seq[Output]): Output = {
+  private[rnn] def bestEffortInputBatchSize(
+      inputs: Seq[Output[Any]]
+  ): Output[Int] = {
     var batchSize = -1
     inputs.filter(_.rank != -1).foreach(input => {
       if (input.rank < 2)
@@ -452,45 +477,7 @@ object RNN extends RNN {
       Basic.constant(batchSize)
     } else {
       // Fallback to the dynamic batch size of the first input.
-      Basic.shape(inputs.head)(1)
+      Basic.shape(inputs.head, INT32).slice(1)
     }
   }
-
-  /** Infers the data type of an RNN's state.
-    *
-    * @param  dataType If not `null`, then this data type is returned.
-    * @param  state    RNN state for which the data type will be inferred.
-    * @return
-    * @throws InvalidArgumentException If `dataType` is `null` and `state` is empty.
-    * @throws InvalidDataTypeException If the tensors in `state` do not all have the same data type.
-    */
-  @throws[InvalidArgumentException]
-  @throws[InvalidDataTypeException]
-  private[rnn] def inferStateDataType(dataType: DataType[_], state: Seq[Output]): DataType[_] = {
-    if (dataType != null) {
-      dataType
-    } else {
-      if (state.isEmpty)
-        throw InvalidArgumentException("Unable to infer data type from empty state.")
-      val inferredDataTypes = state.map(_.dataType)
-      if (inferredDataTypes.exists(_ != inferredDataTypes.head))
-        throw InvalidDataTypeException("All state tensors must have the same data type.")
-      inferredDataTypes.head
-    }
-  }
-
-  /** @define OpDocRNNDynamicRNN
-    *   The `dynamicRNN` op creates a recurrent neural network (RNN) specified by the provided RNN cell. The op performs
-    *   fully dynamic unrolling of the RNN.
-    *
-    * @define OpDocRNNBidirectionalDynamicRNN
-    *   The `bidirectionalDynamicRNN` op creates a bidirectional recurrent neural network (RNN) specified by the
-    *   provided RNN cell. The op performs fully dynamic unrolling of the forward and backward RNNs.
-    *
-    *   The op takes the inputs and builds independent forward and backward RNNs. The output sizes of the forward and
-    *   the backward RNN cells must match. The initial state for both directions can be provided and no intermediate
-    *   states are ever returned -- the network is fully unrolled for the provided sequence length(s) of the sequence(s)
-    *   or completely unrolled if sequence length(s) are not provided.
-    */
-  private[ops] trait Documentation
 }

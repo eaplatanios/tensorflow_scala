@@ -40,15 +40,18 @@ class MultiCell[O, OS, S, SS] protected (
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]] {
   override def outputShape: OS = cells.last.outputShape
   override def stateShape: Seq[SS] = cells.map(_.stateShape)
-  override def forward(input: Tuple[O, Seq[S]]): Tuple[O, Seq[S]] = Op.createWithNameScope(name) {
-    var currentInput = input.output
-    val state = cells.zip(input.state).map {
-      case (cell, s) =>
-        val nextTuple = cell(Tuple(currentInput, s))
-        currentInput = nextTuple.output
-        nextTuple.state
+
+  override def forward(input: Tuple[O, Seq[S]]): Tuple[O, Seq[S]] = {
+    Op.nameScope(name) {
+      var currentInput = input.output
+      val state = cells.zip(input.state).map {
+        case (cell, s) =>
+          val nextTuple = cell(Tuple(currentInput, s))
+          currentInput = nextTuple.output
+          nextTuple.state
+      }
+      Tuple(currentInput, state)
     }
-    Tuple(currentInput, state)
   }
 }
 
@@ -60,6 +63,6 @@ object MultiCell {
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): MultiCell[O, OS, S, SS] = {
-    new MultiCell(cells, name)(evO, evS)
+    new MultiCell(cells, name)
   }
 }

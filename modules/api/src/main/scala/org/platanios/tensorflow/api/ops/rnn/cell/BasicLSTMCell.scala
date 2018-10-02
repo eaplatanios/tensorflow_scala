@@ -16,9 +16,20 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Math, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
+import org.platanios.tensorflow.api.types.IsNotQuantized
 
-/** $OpDocRNNCellBasicLSTMCell
+/** A basic Long-Short Term Memory (LSTM) cell.
+  *
+  * The implementation is based on: ["Recurrent Neural Network Regularization", Zaremba et al](http://arxiv.org/abs/1409.2329).
+  *
+  * We add `forgetBias` (which defaults to 1) to the biases of the forget gate in order to reduce the scale of
+  * forgetting in the beginning of training.
+  *
+  * This cell does not allow for cell clipping, a projection layer, or for peep-hole connections. For advanced
+  * models, please use the full `lstmCell` op.
+  *
+  * Input tensors must be two-dimensional.
   *
   * @group RNNCellOps
   * @param  kernel     Kernel matrix to use.
@@ -29,31 +40,50 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicLSTMCell protected (
-    val kernel: Output,
-    val bias: Output,
-    val activation: Output => Output = Math.tanh(_),
+class BasicLSTMCell[T: IsNotQuantized] protected (
+    val kernel: Output[T],
+    val bias: Output[T],
+    val activation: Output[T] => Output[T],
     val forgetBias: Float = 1.0f,
     val name: String = "BasicLSTMCell"
-) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)] {
+) extends RNNCell[Output[T], Shape, LSTMState[T], (Shape, Shape)] {
   private[this] val numUnits = bias.shape(0) / 4
 
   override def outputShape: Shape = Shape(numUnits)
   override def stateShape: (Shape, Shape) = (Shape(numUnits), Shape(numUnits))
 
-  override def forward(input: LSTMTuple): LSTMTuple = {
-    RNNCell.basicLSTMCell(input, kernel, bias, activation, forgetBias, name)
+  @throws[IllegalArgumentException]
+  override def forward(input: LSTMTuple[T]): LSTMTuple[T] = {
+    Op.nameScope(name) {
+      val output = input.output
+      if (output.rank != 2)
+        throw new IllegalArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
+      if (output.shape(1) == -1)
+        throw new IllegalArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
+      val one = Basic.constant(1)
+      // Parameters of gates are concatenated into one multiply for efficiency.
+      val lstmMatrix = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, input.state.m), axis = 1), kernel), bias)
+      // i = input gate, j = new input, f = forget gate, o = output gate
+      val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
+      val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
+      val forgetBiasTensor = Basic.constant(forgetBias).cast(f.dataType)
+      val c = Math.add(
+        Math.multiply(input.state.c, Math.sigmoid(f + forgetBiasTensor)),
+        Math.multiply(Math.sigmoid(i), activation(j)))
+      val m = Math.multiply(activation(c), Math.sigmoid(o))
+      LSTMTuple(m, LSTMState(c, m))
+    }
   }
 }
 
 object BasicLSTMCell {
-  def apply(
-      kernel: Output,
-      bias: Output,
-      activation: Output => Output = Math.tanh(_),
+  def apply[T: IsNotQuantized](
+      kernel: Output[T],
+      bias: Output[T],
+      activation: Output[T] => Output[T],
       forgetBias: Float = 1.0f,
       name: String = "BasicLSTMCell"
-  ): BasicLSTMCell = {
+  ): BasicLSTMCell[T] = {
     new BasicLSTMCell(kernel, bias, activation, forgetBias, name)
   }
 }

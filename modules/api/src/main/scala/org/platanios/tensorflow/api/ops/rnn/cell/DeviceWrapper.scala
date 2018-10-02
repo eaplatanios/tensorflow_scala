@@ -15,9 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that ensures another RNN cell runs on a specific device.
   *
@@ -38,14 +37,18 @@ class DeviceWrapper[O, OS, S, SS] protected (
   override def outputShape: OS = cell.outputShape
   override def stateShape: SS = cell.stateShape
 
-  override def zeroState(batchSize: Output, dataType: DataType[_], shape: SS, name: String = "ZeroState"): S = {
-    Op.createWith(device = device, deviceFunction = deviceFunction) {
-      super.zeroState(batchSize, dataType, shape, name)
+  override def zeroState(
+      batchSize: Output[Int],
+      shape: SS,
+      name: String = "ZeroState"
+  ): S = {
+    Op.device(device, deviceFunction) {
+      super.zeroState(batchSize, shape, name)
     }
   }
 
   override def forward(input: Tuple[O, S]): Tuple[O, S] = {
-    Op.createWith(device = device, deviceFunction = deviceFunction) {
+    Op.device(device, deviceFunction) {
       cell.forward(input)
     }
   }
@@ -53,7 +56,9 @@ class DeviceWrapper[O, OS, S, SS] protected (
 
 object DeviceWrapper {
   def apply[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS], device: String = "", deviceFunction: OpSpecification => String = _.device
+      cell: RNNCell[O, OS, S, SS],
+      device: String = "",
+      deviceFunction: OpSpecification => String = _.device
   )(implicit
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]

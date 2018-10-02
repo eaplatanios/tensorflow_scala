@@ -50,6 +50,6 @@ object ResidualWrapper {
       evO: WhileLoopVariable.Aux[O, OS],
       evS: WhileLoopVariable.Aux[S, SS]
   ): ResidualWrapper[O, OS, S, SS] = {
-    new ResidualWrapper(cell, residualFn)(evO, evS)
+    new ResidualWrapper(cell, residualFn)
   }
 }
