@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{NN, Op, Output}
+import org.platanios.tensorflow.api.ops.{NN, Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -54,12 +54,12 @@ class PrecisionAtK(
     val nameScope: String,
     val k: Int,
     protected val defaultWeights: Option[Tensor[Float]] = None,
-    val labelID: Option[Int] = None,
-    val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
-) extends Metric[(Output, Output), Output] {
+    val labelID: Option[Long] = None,
+    val variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+    val valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+    val updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+    val resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
+) extends Metric[(Output[Float], Output[Long]), Output[Float]] {
   private[this] val groupedPrecisionMetric = {
     GroupedPrecision(
       s"$name/GroupedPrecisionAt$k", defaultWeights, labelID, variablesCollections, valuesCollections,
@@ -80,17 +80,15 @@ class PrecisionAtK(
     * @return Created output containing the metric value.
     */
   override def compute(
-      values: (Output, Output),
-      weights: Option[Output] = None,
+      values: (Output[Float], Output[Long]),
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Compute"
-  ): Output = {
+  ): Output[Float] = {
     val (predictions, targets) = values
-    var ops = Set(predictions.op, targets.op)
     val computedWeights = getWeights(weights)
-    computedWeights.foreach(ops += _.op)
-    Op.createWithNameScope(name, ops) {
+    Op.nameScope(name) {
       val (_, topKIndices) = NN.topK(predictions, k)
-      groupedPrecisionMetric.compute((topKIndices, targets), computedWeights, name)
+      groupedPrecisionMetric.compute((topKIndices.toInt64, targets), computedWeights, name)
     }
   }
 
@@ -104,17 +102,15 @@ class PrecisionAtK(
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: (Output, Output),
-      weights: Option[Output] = None,
+      values: (Output[Float], Output[Long]),
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Streaming"
-  ): Metric.StreamingInstance[Output] = {
+  ): Metric.StreamingInstance[Output[Float]] = {
     val (predictions, targets) = values
-    var ops = Set(predictions.op, targets.op)
     val computedWeights = getWeights(weights)
-    computedWeights.foreach(ops += _.op)
-    Op.createWithNameScope(name, ops) {
+    Op.nameScope(name) {
       val (_, topKIndices) = NN.topK(predictions, k)
-      groupedPrecisionMetric.streaming((topKIndices, targets), computedWeights, name)
+      groupedPrecisionMetric.streaming((topKIndices.toInt64, targets), computedWeights, name)
     }
   }
 }
@@ -136,14 +132,14 @@ object PrecisionAtK {
       nameScope: String,
       k: Int,
       defaultWeights: Option[Tensor[Float]] = None,
-      labelID: Option[Int] = None,
-      variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-      valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-      updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
+      labelID: Option[Long] = None,
+      variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+      valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+      updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+      resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
   ): PrecisionAtK = {
     new PrecisionAtK(
-      nameScope, k, defaultWeights, labelID, variablesCollections, valuesCollections, updatesCollections,
-      resetsCollections)
+      nameScope, k, defaultWeights, labelID, variablesCollections,
+      valuesCollections, updatesCollections, resetsCollections)
   }
 }

@@ -19,9 +19,9 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric._
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope, ZerosInitializer}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
+import org.platanios.tensorflow.api.types.{FLOAT32, INT64}
 
 /** Mean metric.
   *
@@ -46,11 +46,11 @@ import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64}
 class Mean(
     val nameScope: String,
     protected val defaultWeights: Option[Tensor[Float]] = None,
-    val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
-) extends Metric[Output, Output] {
+    val variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+    val valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+    val updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+    val resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
+) extends Metric[Output[Float], Output[Float]] {
   /** Name of this metric. */
   override def name: String = nameScope
 
@@ -65,21 +65,20 @@ class Mean(
     * @return Created output containing the metric value.
     */
   override def compute(
-      values: Output,
-      weights: Option[Output] = None,
+      values: Output[Float],
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Compute"
-  ): Output = {
+  ): Output[Float] = {
     var ops = Set(values.op)
     val computedWeights = getWeights(weights)
     computedWeights.foreach(ops += _.op)
-    Op.createWithNameScope(name, ops) {
-      val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
+    Op.nameScope(name) {
       val (processedValues, numValues) = computedWeights match {
         case None =>
-          (castedValues, Basic.size(castedValues).cast(castedValues.dataType))
+          (values, Basic.size(values, INT64).toFloat32)
         case Some(_) =>
-          var (matchedValues, _, Some(matchedWeights)) = matchAxes(castedValues, None, computedWeights)
-          matchedWeights = weightsBroadcast(matchedValues, matchedWeights.cast(castedValues.dataType))
+          var (matchedValues, _, Some(matchedWeights)) = matchAxes(values, None, computedWeights)
+          matchedWeights = weightsBroadcast(matchedValues, matchedWeights.toFloat32)
           matchedValues = Math.multiply(matchedValues, matchedWeights)
           val numValues = Math.sum(matchedWeights)
           (matchedValues, numValues)
@@ -100,25 +99,21 @@ class Mean(
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: Output,
-      weights: Option[Output] = None,
+      values: Output[Float],
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Streaming"
-  ): Metric.StreamingInstance[Output] = {
-    var ops = Set(values.op)
+  ): Metric.StreamingInstance[Output[Float]] = {
     val computedWeights = getWeights(weights)
-    computedWeights.foreach(ops += _.op)
     VariableScope.scope(name) {
-      Op.createWithNameScope(name, ops) {
-        val castedValues = if (values.dataType != FLOAT64) values.cast(FLOAT32) else values
-        val dataType = castedValues.dataType
-        val total = Metric.variable("Total", dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
-        val count = Metric.variable("Count", dataType, Shape.scalar(), ZerosInitializer, variablesCollections)
+      Op.nameScope(name) {
+        val total = Metric.variable("Total", FLOAT32, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val count = Metric.variable("Count", FLOAT32, Shape.scalar(), ZerosInitializer, variablesCollections)
         val (processedValues, numValues) = computedWeights match {
           case None =>
-            (castedValues, Basic.size(castedValues).cast(dataType))
+            (values, Basic.size(values, INT64).toFloat32)
           case Some(_) =>
-            var (matchedValues, _, Some(matchedWeights)) = matchAxes(castedValues, None, computedWeights)
-            matchedWeights = weightsBroadcast(matchedValues, matchedWeights.cast(dataType))
+            var (matchedValues, _, Some(matchedWeights)) = matchAxes(values, None, computedWeights)
+            matchedWeights = weightsBroadcast(matchedValues, matchedWeights.toFloat32)
             matchedValues = Math.multiply(matchedValues, matchedWeights)
             val numValues = Math.sum(matchedWeights)
             (matchedValues, numValues)
@@ -131,7 +126,7 @@ class Mean(
         valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
         updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
         resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-        Metric.StreamingInstance(value, update, reset, Set(total, count))
+        Metric.StreamingInstance(value, update, reset.asUntyped, Set(total, count))
       }
     }
   }
@@ -151,11 +146,13 @@ object Mean {
   def apply(
       nameScope: String,
       defaultWeights: Option[Tensor[Float]] = None,
-      variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-      valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-      updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
+      variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+      valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+      updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+      resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
   ): Mean = {
-    new Mean(nameScope, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
+    new Mean(
+      nameScope, defaultWeights, variablesCollections,
+      valuesCollections, updatesCollections, resetsCollections)
   }
 }

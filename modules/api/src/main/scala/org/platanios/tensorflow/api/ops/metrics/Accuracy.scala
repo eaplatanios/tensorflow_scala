@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Math, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -48,11 +48,11 @@ import org.platanios.tensorflow.api.tensors.Tensor
 class Accuracy(
     val nameScope: String,
     protected val defaultWeights: Option[Tensor[Float]] = None,
-    val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
-) extends Metric[(Output, Output), Output] {
+    val variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+    val valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+    val updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+    val resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
+) extends Metric[(Output[Float], Output[Float]), Output[Float]] {
   private[this] val meanMetric = {
     Mean(name, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
   }
@@ -71,15 +71,15 @@ class Accuracy(
     * @return Created output containing the metric value.
     */
   override def compute(
-      values: (Output, Output),
-      weights: Option[Output] = None,
+      values: (Output[Float], Output[Float]),
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Compute"
-  ): Output = {
+  ): Output[Float] = {
     var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, Some(values._2), weights)
     matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.get.shape)
     matchedPredictions = matchedPredictions.cast(matchedTargets.get.dataType)
     val isCorrect = Math.equal(matchedPredictions, matchedTargets.get)
-    meanMetric.compute(isCorrect, matchedWeights, name)
+    meanMetric.compute(isCorrect.toFloat32, matchedWeights, name)
   }
 
   /** Creates ops for computing the value of this metric in a streaming fashion. This function returns an op for
@@ -92,15 +92,15 @@ class Accuracy(
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: (Output, Output),
-      weights: Option[Output] = None,
+      values: (Output[Float], Output[Float]),
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Streaming"
-  ): Metric.StreamingInstance[Output] = {
+  ): Metric.StreamingInstance[Output[Float]] = {
     var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, Some(values._2), weights)
     matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.get.shape)
     matchedPredictions = matchedPredictions.cast(matchedTargets.get.dataType)
     val isCorrect = Math.equal(matchedPredictions, matchedTargets.get)
-    meanMetric.streaming(isCorrect, matchedWeights, name)
+    meanMetric.streaming(isCorrect.toFloat32, matchedWeights, name)
   }
 }
 
@@ -118,12 +118,13 @@ object Accuracy {
   def apply(
       nameScope: String,
       defaultWeights: Option[Tensor[Float]] = None,
-      variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-      valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-      updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
+      variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+      valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+      updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+      resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
   ): Accuracy = {
     new Accuracy(
-      nameScope, defaultWeights, variablesCollections, valuesCollections, updatesCollections, resetsCollections)
+      nameScope, defaultWeights, variablesCollections,
+      valuesCollections, updatesCollections, resetsCollections)
   }
 }

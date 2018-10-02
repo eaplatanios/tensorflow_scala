@@ -47,7 +47,7 @@ class MapMetric[S, T, R](
     */
   override def compute(
       values: S,
-      weights: Option[Output] = None,
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Compute"
   ): R = {
     metric.compute(mapFn(values), weights, name)
@@ -64,7 +64,7 @@ class MapMetric[S, T, R](
     */
   override def streaming(
       values: S,
-      weights: Option[Output] = None,
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Streaming"
   ): Metric.StreamingInstance[R] = {
     metric.streaming(mapFn(values), weights, name)
