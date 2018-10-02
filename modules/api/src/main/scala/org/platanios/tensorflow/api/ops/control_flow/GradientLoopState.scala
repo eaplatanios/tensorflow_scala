@@ -16,8 +16,7 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Basic, DataFlow, Op, Output, OutputLike}
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.ops._
 
 import scala.collection.mutable
 
@@ -38,27 +37,42 @@ import scala.collection.mutable
 private[control_flow] case class GradientLoopState private[control_flow] (
     forwardContext: WhileLoopContext, outerGradientLoopState: Option[GradientLoopState]) {
   /** Map that records all tensors needed for back-propagation. */
-  private[control_flow] val historyMap: mutable.Map[String, Output] = mutable.Map.empty[String, Output]
+  private[control_flow] val historyMap: mutable.Map[String, Output[Any]] = {
+    mutable.Map.empty
+  }
 
   /** Map that records all the switch ops needed for back-propagation. */
-  private[control_flow] val switchMap: mutable.Map[Op, OutputLike] = mutable.Map.empty[Op, OutputLike]
+  private[control_flow] val switchMap: mutable.Map[UntypedOp, OutputLike[Any]] = {
+    mutable.Map.empty
+  }
 
   /** List containing all "unused" exits. */
-  private[ops] val unusedExits: mutable.Set[Output] = mutable.Set.empty[Output]
+  private[ops] val unusedExits: mutable.Set[Output[Any]] = {
+    mutable.Set.empty
+  }
 
   /** List containing all "deferred" exits. */
-  private[ops] val deferredExits: mutable.Set[Output] = mutable.Set.empty[Output]
+  private[ops] val deferredExits: mutable.Set[Output[Any]] = {
+    mutable.Set.empty
+  }
 
   /** List containing all forward loop exits. */
-  private[control_flow] val forwardLoopExits: mutable.Set[Output] = mutable.Set(forwardContext.loopExits.toSeq: _*)
+  private[control_flow] val forwardLoopExits: mutable.Set[Output[Any]] = {
+    mutable.Set(forwardContext.loopExits.toSeq: _*)
+  }
 
   /** Number of exits we expect to see during the backward pass, but have not seen yet. */
-  private[ops] var pendingExitsCount: Int = forwardContext.loopExits.size
+  private[ops] var pendingExitsCount: Int = {
+    forwardContext.loopExits.size
+  }
 
   /** `forwardIndex`:    Value of the loop counter for the next iteration added by `addForwardLoopCounter()`.
     * `backwardIndex`:   Value of the loop counter for the current iteration added by `addBackwardLoopCounter()`.
     * `backwardContext`: While loop context used for backpropagation. */
-  private[control_flow] val (forwardIndex: Output, backwardIndex: Output, backwardContext: WhileLoopContext) = {
+  private[control_flow] val (
+      forwardIndex: Output[Int],
+      backwardIndex: Output[Int],
+      backwardContext: WhileLoopContext) = {
     val outerForwardContext = outerGradientLoopState.map(_.forwardContext).orElse(forwardContext.outerContext)
     // Add the forward loop counter.
     outerForwardContext.foreach(_.enter())
@@ -66,7 +80,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     outerForwardContext.foreach(_.exit())
 
     // Add the backward while-loop context, and the backward loop counter.
-    val (backwardIndex, backwardContext): (Output, WhileLoopContext) = outerGradientLoopState match {
+    val (backwardIndex, backwardContext): (Output[Int], WhileLoopContext) = outerGradientLoopState match {
       case Some(state) =>
         // This is a nested loop. Remember the iteration counts for each execution of this inner loop.
         outerForwardContext.foreach(_.values += count.name)
@@ -102,20 +116,24 @@ private[control_flow] case class GradientLoopState private[control_flow] (
 
   /** Control trigger node for synchronization in the forward loop. One main use is to keep the push ops of a stack
     * executed in the iteration order. */
-  private[control_flow] lazy val forwardSync: Op = {
-    val syncOp = Op.createWith(controlDependencies = Set.empty[Op])(ControlFlow.controlTrigger("ForwardSync"))
+  private[control_flow] lazy val forwardSync: UntypedOp = {
+    val syncOp = Op.createWith(controlDependencies = Set.empty) {
+      ControlFlow.controlTrigger("ForwardSync")
+    }
     syncOp.controlFlowContext = Some(forwardContext)
     ControlFlow.addControlInput(forwardIndex.op, syncOp)
-    syncOp
+    syncOp.asUntyped
   }
 
   /** Control trigger node for synchronization in the backward loop. One main use is to keep the pop ops of a stack
     * executed in the iteration order. */
-  private[control_flow] lazy val backwardSync: Op = {
-    val syncOp = Op.createWith(controlDependencies = Set.empty[Op])(ControlFlow.controlTrigger("BackwardSync"))
+  private[control_flow] lazy val backwardSync: UntypedOp = {
+    val syncOp = Op.createWith(controlDependencies = Set.empty) {
+      ControlFlow.controlTrigger("BackwardSync")
+    }
     syncOp.controlFlowContext = Some(backwardContext)
     ControlFlow.addControlInput(backwardIndex.op, syncOp)
-    syncOp
+    syncOp.asUntyped
   }
 
   /** Gets the real value of `value`.
@@ -123,10 +141,12 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * If back-propagation "uses" a value produced by the forward loop, an accumulator is added in the forward loop to
     * collect its values. We use the accumulated value. This method must be called for the backward loop context.
     * `value` must be in the forward loop and is needed for back-propagation. */
-  private[control_flow] def getRealValue(value: Output): Output = {
+  private[control_flow] def getRealValue[T](
+      value: Output[T]
+  ): Output[T] = {
     historyMap.getOrElseUpdate(value.name, {
-      var realValue: Option[Output] = None
-      var historyValue: Output = null
+      var realValue: Option[Output[T]] = None
+      var historyValue: Output[Long] = null
       var currentValue = value
       var currentGradientLoopState = this
       var loopCondition = true
@@ -134,7 +154,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
         ControlFlow.getLoopConstantEnter(currentValue) match {
           case Some(enterOp) =>
             // Special case: `currentValue` comes from a constant enter node.
-            currentValue = enterOp.inputs(0)
+            currentValue = enterOp.inputsSeq(0).asInstanceOf[Output[T]]
             currentGradientLoopState.outerGradientLoopState match {
               case Some(outerState) => currentGradientLoopState = outerState
               case None =>
@@ -162,7 +182,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
           realValue = backwardContext.add(realValue)
         realValue
       })
-    })
+    }).asInstanceOf[Output[T]]
   }
 
   /** Adds an accumulator for each forward tensor that is needed in the backward loop.
@@ -180,10 +200,13 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * @param  deadBranch Set to `true`, if and only if `value` is on a dead branch of a conditional.
     * @return Resource handle to a stack that contains the accumulated history of the tensor.
     */
-  private[control_flow] def addForwardAccumulator(value: Output, deadBranch: Boolean = false): Output = {
+  private[control_flow] def addForwardAccumulator[T](
+      value: Output[T],
+      deadBranch: Boolean = false
+  ): Output[Long] = {
     // `currentContext` is the context that `tf.gradients()` was called in.
     val currentContext = Op.currentControlFlowContext
-    Op.createWith(controlDependencies = Set.empty[Op]) {
+    Op.createWith(controlDependencies = Set.empty) {
       currentContext.foreach(_.enter())
       val accumulator = Op.colocateWith(Set(value.op), ignoreExisting = true) {
         // We only need to pass `maximumIterations` to the stack if we are inside an XLA context.
@@ -191,13 +214,13 @@ private[control_flow] case class GradientLoopState private[control_flow] (
           if (value.op.isInXLAContext)
             ControlFlow.getMaxSizeFromNestedMaximumIterations(value, forwardContext)
           else
-            Basic.constant(-1, INT32)
+            Basic.constant(-1)
         }
         DataFlow.newStack(maxSize, value.dataType, name = "ForwardAccumulator")
       }
       currentContext.foreach(_.exit())
       // Make the `accumulator` available in the forward context.
-      val enterAccumulator = forwardContext.add(accumulator)
+      val enterAccumulator = forwardContext.add(accumulator).asInstanceOf[Output[Long]]
       // Add the stack push op in the context of `value.op`.
       val stackPushOp = ControlFlow.getOutputContext(value.op) match {
         case Some(valueContext) if valueContext == forwardContext =>
@@ -231,7 +254,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
         case valueContext => throw InvalidArgumentException(s"'valueContext' is not a CondContext: $valueContext.")
       }
       // Order the stack push after the successor of `forwardIndex`.
-      ControlFlow.addControlInput(stackPushOp, forwardIndex.op.inputs(0).op)
+      ControlFlow.addControlInput(stackPushOp, forwardIndex.op.inputsSeq(0).op)
       accumulator
     }
   }
@@ -246,8 +269,11 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * @param  deadBranch   Set to `true`, if and only if `value` is on a dead branch of a conditional.
     * @return Current value (popped from the top of the stack).
     */
-  private[control_flow] def addBackwardAccumulatedValue(
-      historyValue: Output, value: Output, deadBranch: Boolean = false): Output = {
+  private[control_flow] def addBackwardAccumulatedValue[T](
+      historyValue: Output[Long],
+      value: Output[T],
+      deadBranch: Boolean = false
+  ): Output[T] = {
     val historyContext = historyValue.op.controlFlowContext
     // Find the cond context that controls `historyValue`, if any.
     var condContext: Option[CondContext] = None
@@ -259,14 +285,14 @@ private[control_flow] case class GradientLoopState private[control_flow] (
       }
       valueContext = valueContext.get.outerContext
     }
-    val stackPopOp = Op.createWith(controlDependencies = Set.empty[Op]) {
+    val stackPopOp = Op.createWith(controlDependencies = Set.empty) {
       backwardContext.enter()
       val stackHandle = condContext.map(c => {
         // Guard the stack pop op with a switch, if it is controlled by a conditional.
-        var predicate: Option[Output] = None
+        var predicate: Option[Output[Boolean]] = None
         var gradientLoopState: Option[GradientLoopState] = Some(this)
         while (predicate.isEmpty && gradientLoopState.isDefined) {
-          predicate = gradientLoopState.get.historyMap.get(c.predicate.name)
+          predicate = gradientLoopState.get.historyMap.get(c.predicate.name).asInstanceOf[Option[Output[Boolean]]]
           gradientLoopState = gradientLoopState.flatMap(_.outerGradientLoopState)
         }
         if (predicate.isEmpty)

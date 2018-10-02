@@ -15,7 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.control_flow
 
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output, OutputIndexedSlices, SparseOutput}
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.types.INT64
 
 import scala.collection.mutable
 
@@ -24,10 +25,15 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 private[ops] class GradientState private[control_flow] () {
-  private[this] val map: mutable.Map[Context, GradientLoopState] = mutable.Map.empty[Context, GradientLoopState]
+  private[this] val map: mutable.Map[Context, GradientLoopState] = {
+    mutable.Map.empty[Context, GradientLoopState]
+  }
 
   /** Returns the gradient loop state for `op`, if it is in a forward loop context. */
-  private[ops] def getGradientLoopState(op: Op, before: Boolean): Option[GradientLoopState] = {
+  private[ops] def getGradientLoopState(
+      op: UntypedOp,
+      before: Boolean
+  ): Option[GradientLoopState] = {
     val forwardContext = {
       if (before && ControlFlow.isLoopExit(op))
         op.controlFlowContext.flatMap(_.outerContext).flatMap(_.whileLoopContext())
@@ -38,12 +44,18 @@ private[ops] class GradientState private[control_flow] () {
   }
 
   /** Enters the appropriate while-loop context used for gradient computation. */
-  private[ops] def enterGradientWhileLoopContext(op: Op, before: Boolean): Unit = {
+  private[ops] def enterGradientWhileLoopContext(
+      op: UntypedOp,
+      before: Boolean
+  ): Unit = {
     getGradientLoopState(op, before).foreach(_.backwardContext.enter())
   }
 
   /** Exits the appropriate while-loop context used for gradient computation. */
-  private[ops] def exitGradientWhileLoopContext(op: Op, before: Boolean): Unit = {
+  private[ops] def exitGradientWhileLoopContext(
+      op: UntypedOp,
+      before: Boolean
+  ): Unit = {
     getGradientLoopState(op, before).foreach(_.backwardContext.exit())
   }
 
@@ -54,7 +66,10 @@ private[ops] class GradientState private[control_flow] () {
     *
     * Note that this method modifies `between` and `betweenList`. */
   private[control_flow] def addWhileLoopContext(
-      op: Op, between: mutable.Set[Op], betweenList: mutable.ListBuffer[Op]): Unit = {
+      op: UntypedOp,
+      between: mutable.Set[UntypedOp],
+      betweenList: mutable.ListBuffer[UntypedOp]
+  ): Unit = {
     WhileLoopContext.getWhileLoopContext(op).foreach(forwardContext => {
       if (!map.contains(forwardContext)) {
         // This is a new while loop and so we create a new gradient loop state for it.
@@ -81,7 +96,7 @@ private[ops] class GradientState private[control_flow] () {
     * @param  value Output of an exit op.
     * @return Zeros tensor with the same data type and shape as `value`.
     */
-  private[ops] def zerosLikeForExit(value: Output): Output = {
+  private[ops] def zerosLikeForExit[T](value: Output[T]): Output[T] = {
     val forwardContext = value.op.controlFlowContext
     val outerForwardContext = forwardContext.flatMap(_.outerContext).flatMap(_.whileLoopContext())
     val outerGradientLoopState = outerForwardContext.flatMap(map.get)
@@ -97,7 +112,7 @@ private[ops] class GradientState private[control_flow] () {
         } else {
           // Only the shape of `value` is needed for back-propagation.
           forwardContext.flatMap(_.outerContext).foreach(_.enter())
-          val shape = Basic.shape(value, optimize = false)
+          val shape = Basic.shape(value, INT64, optimize = false)
           forwardContext.flatMap(_.outerContext).foreach(_.exit())
           // Save the shape to a stack.
           val historyShape = gradientLoopState.addForwardAccumulator(shape)
@@ -127,7 +142,10 @@ private[ops] class GradientState private[control_flow] () {
     * @param  index Op output index.
     * @return Zeros tensor with the same data type and shape as `op.outputs(index)`.
     */
-  private[ops] def zerosLike(op: Op, index: Int): Option[Output] = {
+  private[ops] def zerosLike(
+      op: UntypedOp,
+      index: Int
+  ): Option[Output[Any]] = {
     if (ControlFlow.isLoopSwitch(op)) {
       None
     } else {
@@ -136,7 +154,7 @@ private[ops] class GradientState private[control_flow] () {
       forwardContext.flatMap(map.get) match {
         case Some(gradientLoopState) =>
           // `op` is in a while loop that is part of `gradients()`.
-          val value = op.outputs(index)
+          val value = op.outputsSeq(index)
           if (value.shape.isFullyDefined) {
             // If the shape is known statically, we just create a zeros tensor with the right shape in the right context.
             val result = Basic.zeros(value.dataType, value.shape)
@@ -144,7 +162,9 @@ private[ops] class GradientState private[control_flow] () {
               // `op` is a conditional switch and so we guard the zero tensor with a switch.
               op.controlFlowContext.flatMap(c => {
                 val condContext = c.asInstanceOf[CondContext]
-                gradientLoopState.historyMap.get(condContext.predicate.name).map((_, condContext.branch))
+                gradientLoopState.historyMap.get(condContext.predicate.name).map(p => {
+                  (p.asInstanceOf[Output[Boolean]], condContext.branch)
+                })
               }) match {
                 case Some((predicate, branch)) => Some(
                   branch.other.selectSwitchResult(ControlFlow.colocatedSwitch(result, predicate)))
@@ -162,8 +182,8 @@ private[ops] class GradientState private[control_flow] () {
                   val condContext = c.asInstanceOf[CondContext]
                   condContext.outerContext.foreach(_.enter())
                   val value = condContext.branch.other.selectSwitchResult(
-                    ControlFlow.colocatedSwitch(op.inputs(0), condContext.predicate))
-                  val shape = Basic.shape(value, optimize = false)
+                    ControlFlow.colocatedSwitch(op.inputsSeq(0), condContext.predicate))
+                  val shape = Basic.shape(value, INT64, optimize = false)
                   condContext.outerContext.foreach(_.exit())
                   value.op.controlFlowContext = Some(condContext)
                   shape.op.controlFlowContext = Some(condContext)
@@ -171,7 +191,7 @@ private[ops] class GradientState private[control_flow] () {
                 })
               } else {
                 op.controlFlowContext.foreach(_.enter())
-                val shape = Basic.shape(value, optimize = false)
+                val shape = Basic.shape(value, INT64, optimize = false)
                 op.controlFlowContext.foreach(_.exit())
                 Some(shape)
               }
@@ -208,8 +228,10 @@ private[ops] class GradientState private[control_flow] () {
     * @return Set of unused loop exits that we know at this point that we need to back-propagate.
     */
   private[ops] def processUnusedLoopExits(
-      pendingCounts: mutable.Map[Op, Int], destinationOps: Set[Op]): Set[Output] = {
-    val loopExits = mutable.Set.empty[Output]
+      pendingCounts: mutable.Map[UntypedOp, Int],
+      destinationOps: Set[UntypedOp]
+  ): Set[Output[Any]] = {
+    val loopExits = mutable.Set.empty[Output[Any]]
     map.values.foreach(gradientLoopState => {
       gradientLoopState.forwardLoopExits.filter(e => pendingCounts.getOrElse(e.op, 0) == 0).foreach(exit => {
         gradientLoopState.pendingExitsCount -= 1
@@ -237,22 +259,22 @@ private[ops] class GradientState private[control_flow] () {
   private[ops] def postProcess(): Unit = {
     map.values.foreach(gradientLoopState => {
       gradientLoopState.switchMap.values.flatMap({
-        case o: Output => Seq(o)
-        case o: OutputIndexedSlices =>
+        case o: Output[_] => Seq(o)
+        case o: OutputIndexedSlices[_] =>
           if (o.denseShape == null)
             Seq(o.indices, o.values)
           else
             Seq(o.indices, o.values, o.denseShape)
-        case o: SparseOutput =>
+        case o: SparseOutput[_] =>
           if (o.denseShape == null)
             Seq(o.indices, o.values)
           else
             Seq(o.indices, o.values, o.denseShape)
-      }).filter(m => m.op.inputs(0) == m.op.inputs(1)).foreach(merge => {
+      }).filter(m => m.op.inputsSeq(0) == m.op.inputsSeq(1)).foreach(merge => {
         // The value of this loop variable at iteration i+1 does not depend on its value at iteration i and so we use
         // zeros as the gradients for all iterations > 0.
-        val dataType = merge.op.inputs(0).dataType
-        val shape = merge.op.inputs(0).shape
+        val dataType = merge.op.inputsSeq(0).dataType
+        val shape = merge.op.inputsSeq(0).shape
         val nextGradientValue = {
           if (shape.isFullyDefined) {
             gradientLoopState.backwardContext.enter()
@@ -265,8 +287,8 @@ private[ops] class GradientState private[control_flow] () {
             // Create a zeros tensor in the outer gradient context.
             val outerGradientContext = gradientLoopState.backwardContext.outerContext
             outerGradientContext.foreach(_.enter())
-            val enterGradient = merge.op.inputs(0).op.inputs(0)
-            val gradientShape = Basic.shape(enterGradient, optimize = false)
+            val enterGradient = merge.op.inputsSeq(0).op.inputsSeq(0)
+            val gradientShape = Basic.shape(enterGradient, INT64, optimize = false)
             val gradientValue = Basic.zeros(dataType, gradientShape)
             outerGradientContext.foreach(_.exit())
             // Use the zeros for iterations > 0.
@@ -290,16 +312,21 @@ object GradientState {
     *
     * Note that this method modifies `between` and `betweenList`. */
   private[ops] def maybeCreate(
-      between: mutable.Set[Op], betweenList: mutable.ListBuffer[Op],
-      colocateGradientsWithOps: Boolean): Option[GradientState] = {
+      between: mutable.Set[UntypedOp],
+      betweenList: mutable.ListBuffer[UntypedOp],
+      colocateGradientsWithOps: Boolean
+  ): Option[GradientState] = {
     var state: Option[GradientState] = None
     betweenList.filter(ControlFlow.isLoopExit).foreach(op => {
       if (state.isEmpty)
         state = Some(new GradientState())
-      if (colocateGradientsWithOps)
-        Op.colocateWith(Set(op), ignoreExisting = true)(state.foreach(_.addWhileLoopContext(op, between, betweenList)))
-      else
+      if (colocateGradientsWithOps) {
+        Op.colocateWith(Set(op), ignoreExisting = true) {
+          state.foreach(_.addWhileLoopContext(op, between, betweenList))
+        }
+      } else {
         state.foreach(_.addWhileLoopContext(op, between, betweenList))
+      }
     })
     state
   }

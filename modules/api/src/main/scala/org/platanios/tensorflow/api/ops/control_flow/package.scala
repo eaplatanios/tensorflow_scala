@@ -19,5 +19,7 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 package object control_flow {
-  private[api] trait API extends ControlFlow
+  private[ops] trait API extends ControlFlow
+
+  private[ops] trait Implicits extends ControlFlow.Implicits
 }

@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.ProtoSerializable
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.types.INT64
 
 import com.google.protobuf.GeneratedMessageV3
 import org.tensorflow.framework.ValuesDef
@@ -45,7 +46,7 @@ import scala.collection.JavaConverters._
   */
 abstract class Context protected (
     private[control_flow] val values: mutable.Set[String] = mutable.Set.empty,
-    private[control_flow] val externalValues: mutable.Map[String, Output] = mutable.Map.empty
+    private[control_flow] val externalValues: mutable.Map[String, Output[Any]] = mutable.Map.empty
 ) extends ProtoSerializable {
   (values -- externalValues.keySet)
       .map(_.split(":")(0))
@@ -56,19 +57,29 @@ abstract class Context protected (
   val name: String
 
   /** Contains the stack of control flow contexts that have been entered so far. */
-  private[this] val contextStack: mutable.ListBuffer[Option[Context]] = mutable.ListBuffer.empty[Option[Context]]
+  private[this] val contextStack: mutable.ListBuffer[Option[Context]] = {
+    mutable.ListBuffer.empty
+  }
 
   /** Control flow context containing this context. */
-  val outerContext: Option[Context] = Op.currentControlFlowContext
+  val outerContext: Option[Context] = {
+    Op.currentControlFlowContext
+  }
 
   /** Returns the control pivot op output for this context. */
-  def controlPivot: Option[Op] = None
+  def controlPivot: Option[UntypedOp] = {
+    None
+  }
 
   /** Returns the cond context containing this context. */
-  def condContext: Option[CondContext] = outerContext.flatMap(_.condContext)
+  def condContext: Option[CondContext] = {
+    outerContext.flatMap(_.condContext)
+  }
 
   /** Returns the while context containing this context. */
-  def whileLoopContext(stopContext: Option[Context] = None): Option[WhileLoopContext] = {
+  def whileLoopContext(
+      stopContext: Option[Context] = None
+  ): Option[WhileLoopContext] = {
     stopContext match {
       case Some(context) if context == this => Some(context.asInstanceOf[WhileLoopContext])
       case None => outerContext.flatMap(_.whileLoopContext(stopContext))
@@ -76,14 +87,18 @@ abstract class Context protected (
   }
 
   /** Returns the XLA context containing this context. */
-  def xlaContext: Option[XLAControlFlowContext] = outerContext.flatMap(_.xlaContext)
+  def xlaContext: Option[XLAControlFlowContext] = {
+    outerContext.flatMap(_.xlaContext)
+  }
 
   /** Adds `op` to the current context. */
-  def add(op: Op): Unit = addInternal(op)
+  def add(op: UntypedOp): Unit = {
+    addInternal(op)
+  }
 
   /** Adds `op` to the current context. We move any external control dependencies of the op to the control flow pivot,
     * to ensure they get executed. */
-  private[control_flow] def addInternal(op: Op): Unit = {
+  private[control_flow] def addInternal(op: UntypedOp): Unit = {
     val externalInputs = {
       if (op.numInputs == 0) {
         // Remove any external control dependencies on this op.
@@ -91,10 +106,10 @@ abstract class Context protected (
         // Add a control edge from the control pivot to this op.
         if (controlInputs.isEmpty)
           controlPivot.foreach(ControlFlow.addControlInput(op, _))
-        op.outputs.foreach(values += _.name)
+        op.outputsSeq.foreach(values += _.name)
         externalInputs
       } else {
-        op.inputs.zipWithIndex.foreach({
+        op.inputsSeq.zipWithIndex.foreach({
           case (input, index) =>
             val realInput = add(input)
             if (realInput != input)
@@ -106,30 +121,30 @@ abstract class Context protected (
         // from enabling ops that should not be executed.
         if (op.controlInputs.isEmpty &&
             ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
-                op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
+                op.inputsSeq.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
           controlPivot.foreach(ControlFlow.addControlInput(op, _))
-        op.outputs.foreach(values += _.name)
+        op.outputsSeq.foreach(values += _.name)
         externalInputs
       }
     }
     // TODO: [CONTROL_FLOW] Stop ignoring ops with no outputs.
     // Use an identity to pull control inputs as data inputs. Note that we ignore ops which do not have any outputs.
-    Op.createWith(controlDependencies = Set.empty[Op]) {
+    Op.createWith(controlDependencies = Set.empty) {
       enter()
       externalInputs
-          .filter(_.outputs.nonEmpty)
-          .map(op => Basic.identity(op.outputs(0)).op)
+          .filter(_.outputsSeq.nonEmpty)
+          .map(op => Basic.identity(op.outputsSeq(0)).op)
           .foreach(ControlFlow.addControlInput(op, _))
       exit()
     }
     if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {
       op.graph.preventFetching(op)
-      op.outputs.foreach(op.graph.preventFeeding)
+      op.outputsSeq.foreach(op.graph.preventFeeding)
     }
   }
 
   /** Adds `output` to the current context and its outer context recursively. */
-  def add(output: Output): Output
+  def add[T](output: Output[T]): Output[T]
 
   /** Returns `true` if back-propagation is supported for this control flow context. */
   def backPropagate: Boolean
@@ -153,21 +168,31 @@ abstract class Context protected (
   }
 
   /** Makes a sequence of tensors available in the outer context. */
-  def exitResult(result: Seq[OutputLike]): Unit = outerContext.foreach(c => result.foreach(r => c.values += r.name))
+  def exitResult(result: Seq[OutputLike[Any]]): Unit = {
+    outerContext.foreach(c => result.foreach(r => c.values += r.name))
+  }
 
   /** Enters a control flow context for building a gradient colocated with `colocationOps`. */
-  def enterGradientColocation(colocationOps: Set[Op], gradientUID: String): Unit = {
+  def enterGradientColocation(
+      colocationOps: Set[UntypedOp],
+      gradientUID: String
+  ): Unit = {
     outerContext.foreach(_.enterGradientColocation(colocationOps, gradientUID))
   }
 
   /** Exits a control flow context for building a gradient colocated with `colocationOps`. */
-  def exitGradientColocation(colocationOps: Set[Op], gradientUID: String): Unit = {
+  def exitGradientColocation(
+      colocationOps: Set[UntypedOp],
+      gradientUID: String
+  ): Unit = {
     outerContext.foreach(_.exitGradientColocation(colocationOps, gradientUID))
   }
 
   /** Removes any external control dependency on this op and returns the remaining internal control inputs and any
     * external control inputs that were removed. */
-  private[control_flow] def removeExternalControlEdges(op: Op): (Set[Op], Set[Op]) = {
+  private[control_flow] def removeExternalControlEdges(
+      op: UntypedOp
+  ): (Set[UntypedOp], Set[UntypedOp]) = {
     // A control input of 'op' is internal if it is in the same while loop context as the enclosing while loop context
     // of this context.
     val internalControlInputs = this.whileLoopContext() match {
@@ -182,16 +207,20 @@ abstract class Context protected (
         internalControlInputs.foreach(ControlFlow.addControlInput(op, _))
         externalControlInputs
       } else {
-        Set.empty[Op]
+        Set.empty[UntypedOp]
       }
     }
     (internalControlInputs, externalControlInputs)
   }
 
-  override def toProto: GeneratedMessageV3 = toProto(null)
+  override def toProto: GeneratedMessageV3 = {
+    toProto(null)
+  }
 
   /** Alias for `toValuesDef`. */
-  def toProto(exportScope: String): GeneratedMessageV3 = toValuesDef(exportScope)
+  def toProto(exportScope: String): GeneratedMessageV3 = {
+    toValuesDef(exportScope)
+  }
 
   /** Constructs and returns a [[ValuesDef]] object that represents this control flow context.
     *
@@ -200,7 +229,9 @@ abstract class Context protected (
     *                     names to allow for easy import into new name scopes.
     * @return Constructed [[ValuesDef]].
     */
-  def toValuesDef(exportScope: String = null): ValuesDef = Context.toValuesDef(values, externalValues, exportScope)
+  def toValuesDef(exportScope: String = null): ValuesDef = {
+    Context.toValuesDef(values, externalValues, exportScope)
+  }
 }
 
 object Context {
@@ -212,8 +243,10 @@ object Context {
     * @return Constructed [[ValuesDef]].
     */
   def toValuesDef(
-      values: mutable.Set[String], externalValues: mutable.Map[String, Output],
-      exportScope: String = null): ValuesDef = {
+      values: mutable.Set[String],
+      externalValues: mutable.Map[String, Output[Any]],
+      exportScope: String = null
+  ): ValuesDef = {
     val valuesDefBuilder = ValuesDef.newBuilder()
     values.foreach(v => valuesDefBuilder.addValues(Op.stripNameScope(exportScope, v)))
     externalValues.foreach(p => valuesDefBuilder.putExternalValues(
@@ -229,7 +262,9 @@ object Context {
     * @return Tuple containing the loaded values and external values that can be used to create control flow contexts.
     */
   def fromValuesDef(
-      valuesDef: ValuesDef, importScope: String = null): (mutable.Set[String], mutable.Map[String, Output]) = {
+      valuesDef: ValuesDef,
+      importScope: String = null
+  ): (mutable.Set[String], mutable.Map[String, Output[Any]]) = {
     val values = valuesDef.getValuesList.asScala.toSet[String].map(v => Op.prependNameScope(importScope, v))
     val externalValues = valuesDef.getExternalValuesMap.asScala.map {
       case (k, v) =>
@@ -237,21 +272,24 @@ object Context {
         val value = Op.currentGraph.getOutputByName(Op.prependNameScope(importScope, v))
         (key, value)
     }
-    (mutable.Set[String](values.toSeq: _*), externalValues)
+    (mutable.Set(values.toSeq: _*), externalValues)
   }
 
   /** Create a `zerosLike` op for the specified op output, while taking into account control flow contexts. */
-  private[ops] def zerosLikeOutsideLoop(op: Op, index: Int): Output = {
+  private[ops] def zerosLikeOutsideLoop(
+      op: UntypedOp,
+      index: Int
+  ): Output[Any] = {
     if (ControlFlow.isSwitch(op)) {
       op.controlFlowContext.filter(_.isInstanceOf[CondContext]).map(c => {
         val condContext = c.asInstanceOf[CondContext]
         // We are in a conditional context and so we use a switch to create zeros only when needed.
         val switch = condContext.branch.other.selectSwitchResult(
-          ControlFlow.switch(op.inputs(0), condContext.predicate))
-        Basic.zeros(op.outputs(index).dataType, Basic.shape(switch, optimize = false))
-      }).getOrElse(Basic.zerosLike(op.outputs(index), optimize = false))
+          ControlFlow.switch(op.inputsSeq(0), condContext.predicate))
+        Basic.zeros(op.outputsSeq(index).dataType, Basic.shape(switch, INT64, optimize = false))
+      }).getOrElse(Basic.zerosLike(op.outputsSeq(index), optimize = false))
     } else {
-      Basic.zerosLike(op.outputs(index), optimize = false)
+      Basic.zerosLike(op.outputsSeq(index), optimize = false)
     }
   }
 }
@@ -265,7 +303,9 @@ object Context {
   */
 abstract class XLAControlFlowContext protected (
     override private[control_flow] val values: mutable.Set[String] = mutable.Set.empty,
-    override private[control_flow] val externalValues: mutable.Map[String, Output] = mutable.Map.empty
+    override private[control_flow] val externalValues: mutable.Map[String, Output[Any]] = mutable.Map.empty
 ) extends Context(values, externalValues) {
-  override def xlaContext: Option[XLAControlFlowContext] = Some(this)
+  override def xlaContext: Option[XLAControlFlowContext] = {
+    Some(this)
+  }
 }

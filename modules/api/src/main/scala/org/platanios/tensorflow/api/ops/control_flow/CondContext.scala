@@ -34,7 +34,7 @@ import scala.reflect.ClassTag
 
 /** Control flow context for the conditional construct.
   *
-  * @param  predicate `BOOLEAN` scalar tensor for the conditional predicate.
+  * @param  predicate Scalar tensor for the conditional predicate.
   * @param  pivot     Predicate tensor for the current branch.
   * @param  branch    Current branch (i.e., `TrueBranch` or `FalseBranch`).
   * @param  _name     Name prefix for this conditional context.
@@ -42,8 +42,8 @@ import scala.reflect.ClassTag
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class CondContext private[control_flow] (
-    predicate: Output,
-    pivot: Output,
+    predicate: Output[Boolean],
+    pivot: Output[Boolean],
     branch: CondBranch,
     private val _name: String = "CondContext"
 ) extends Context() with ProtoSerializable {
@@ -52,21 +52,29 @@ private[api] case class CondContext private[control_flow] (
 
   pivot.op.controlFlowContext = Some(this)
 
-  override val name: String = Op.currentGraph.uniqueName(_name)
+  override val name: String = {
+    Op.currentGraph.uniqueName(_name)
+  }
 
-  override def controlPivot: Option[Op] = Some(pivot.op)
+  override def controlPivot: Option[UntypedOp] = {
+    Some(pivot.op)
+  }
 
-  override def condContext: Option[CondContext] = Some(this)
+  override def condContext: Option[CondContext] = {
+    Some(this)
+  }
 
-  override def add(op: Op): Unit = addInternal(op)
+  override def add(op: UntypedOp): Unit = {
+    addInternal(op)
+  }
 
-  override private[control_flow] def addInternal(op: Op): Unit = {
+  override private[control_flow] def addInternal(op: UntypedOp): Unit = {
     if (op.numInputs == 0) {
       // Remove any external control dependencies on this op.
       removeExternalControlEdges(op)
       controlPivot.foreach(ControlFlow.addControlInput(op, _))
     } else {
-      op.inputs.zipWithIndex.foreach({
+      op.inputsSeq.zipWithIndex.foreach({
         case (input, index) =>
           val realInput = add(input)
           if (realInput != input)
@@ -77,7 +85,7 @@ private[api] case class CondContext private[control_flow] (
       if (op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient")
         controlPivot.foreach(ControlFlow.addControlInput(op, _))
     }
-    val outputNames = op.outputs.map(_.name)
+    val outputNames = op.outputsSeq.map(_.name)
     var context: Option[Context] = Some(this)
     while (context.isDefined) {
       context.foreach(_.values ++= outputNames)
@@ -87,10 +95,10 @@ private[api] case class CondContext private[control_flow] (
       op.graph.preventFetching(op)
   }
 
-  override def add(output: Output): Output = {
+  override def add[T](output: Output[T]): Output[T] = {
     if (values.contains(output.name)) {
       // Use the real value if it comes from an outer context. This is needed in particular for nested conditionals.
-      externalValues.getOrElse(output.name, output)
+      externalValues.getOrElse(output.name, output).asInstanceOf[Output[T]]
     } else {
       values += output.name
       val switchInput = outerContext.map(c => {
@@ -98,7 +106,7 @@ private[api] case class CondContext private[control_flow] (
         values += i.name
         i
       }).getOrElse(output)
-      val result = Op.createWith(controlDependencies = Set.empty[Op]) {
+      val result = Op.createWith(controlDependencies = Set.empty) {
         branch.selectSwitchResult(ControlFlow.colocatedSwitch(switchInput, predicate))
       }
       result.graph.preventFetching(result.op)
@@ -109,18 +117,24 @@ private[api] case class CondContext private[control_flow] (
     }
   }
 
-  override def backPropagate: Boolean = whileLoopContext().exists(_.backPropagate)
+  override def backPropagate: Boolean = {
+    whileLoopContext().exists(_.backPropagate)
+  }
 
-  override def gradientLoopState: Option[GradientLoopState] = whileLoopContext().flatMap(_.gradientLoopState)
+  override def gradientLoopState: Option[GradientLoopState] = {
+    whileLoopContext().flatMap(_.gradientLoopState)
+  }
 
   /** Processes an op used in a conditional branch. */
-  private[control_flow] def processOp(op: Op): Output = {
+  private[control_flow] def processOp(op: UntypedOp): Output[Boolean] = {
     // Use pivot as the proxy for this op.
     ControlFlow.withControlDependencies(Set(op), pivot)
   }
 
   /** Processes an op output used in a conditional branch. */
-  private[control_flow] def processOutput(output: Output): Output = {
+  private[control_flow] def processOutput[T](
+      output: Output[T]
+  ): Output[T] = {
     if (!values.contains(output.name)) {
       // Handle the special case of () => x.
       values += output.name
@@ -131,9 +145,9 @@ private[api] case class CondContext private[control_flow] (
       }).getOrElse(output)
       val realValue = branch.selectSwitchResult(ControlFlow.colocatedSwitch(switchInput, predicate))
       externalValues += output.name -> realValue
-      realValue
+      realValue.asInstanceOf[Output[T]]
     } else {
-      externalValues.getOrElse(output.name, output)
+      externalValues.getOrElse(output.name, output).asInstanceOf[Output[T]]
     }
   }
 
@@ -141,17 +155,21 @@ private[api] case class CondContext private[control_flow] (
   @throws[IllegalArgumentException]
   private[control_flow] def buildCondBranch[T, R](function: () => T)(implicit
       ev: CondOutput.Aux[T, R]
-  ): (T, Seq[OutputLike]) = {
+  ): (T, Seq[OutputLike[Any]]) = {
     val originalResult = function()
     if (originalResult == null)
       throw new IllegalArgumentException("The provide cond branch functions must have return values other than 'null'.")
     (originalResult, ev.flatten(ev.processOutput(originalResult, this)))
   }
 
-  override def toProto: GeneratedMessageV3 = toProto(null)
+  override def toProto: GeneratedMessageV3 = {
+    toProto(null)
+  }
 
   /** Alias for `toCondContextDef`. */
-  override def toProto(exportScope: String = null): GeneratedMessageV3 = toCondContextDef(exportScope)
+  override def toProto(exportScope: String = null): GeneratedMessageV3 = {
+    toCondContextDef(exportScope)
+  }
 
   /** Constructs and returns a [[CondContextDef]] object that represents this cond context.
     *
@@ -187,7 +205,9 @@ object CondContext {
     val graph = Op.currentGraph
     val name = Op.prependNameScope(importScope, condContextDef.getContextName)
     val predicate = graph.getOutputByName(Op.prependNameScope(importScope, condContextDef.getPredName))
+        .asInstanceOf[Output[Boolean]]
     val pivot = graph.getOutputByName(Op.prependNameScope(importScope, condContextDef.getPivotName))
+        .asInstanceOf[Output[Boolean]]
     val branch = CondBranch.fromValue(condContextDef.getBranch)
     val (values, externalValues) = Context.fromValuesDef(condContextDef.getValuesDef, importScope)
     val condContext = CondContext(predicate, pivot, branch, name)
@@ -227,19 +247,27 @@ object CondContext {
 sealed trait CondBranch {
   private[control_flow] val value: Int
   private[control_flow] val other: CondBranch
-  private[control_flow] def selectSwitchResult[T <: OutputLike](switchResult: (T, T)): T
+  private[control_flow] def selectSwitchResult[T, OL[A] <: OutputLike[A]](switchResult: (OL[T], OL[T])): OL[T]
 }
 
 case object TrueBranch extends CondBranch {
   override private[control_flow] val value: Int = 1
   override private[control_flow] val other: CondBranch = FalseBranch
-  override private[control_flow] def selectSwitchResult[T <: OutputLike](switchResult: (T, T)): T = switchResult._2
+  override private[control_flow] def selectSwitchResult[T, OL[A] <: OutputLike[A]](
+      switchResult: (OL[T], OL[T])
+  ): OL[T] = {
+    switchResult._2
+  }
 }
 
 case object FalseBranch extends CondBranch {
-  override private[control_flow] val value: Int = 0
+  override private[control_flow] val value: Int        = 0
   override private[control_flow] val other: CondBranch = TrueBranch
-  override private[control_flow] def selectSwitchResult[T <: OutputLike](switchResult: (T, T)): T = switchResult._1
+  override private[control_flow] def selectSwitchResult[T, OL[A] <: OutputLike[A]](
+      switchResult: (OL[T], OL[T])
+  ): OL[T] = {
+    switchResult._1
+  }
 }
 
 object CondBranch {
@@ -255,39 +283,85 @@ trait CondOutput[T] {
   type ResultType
   def size(output: T): Int
   def processOutput(output: T, context: CondContext): ResultType
-  def flatten(processedOutput: ResultType): Seq[OutputLike]
-  def unflatten(output: T, values: Seq[OutputLike]): T = segment(output, values)._1
-  def segment(output: T, values: Seq[OutputLike]): (T, Seq[OutputLike])
+  def flatten(processedOutput: ResultType): Seq[OutputLike[Any]]
+  def unflatten(output: T, values: Seq[OutputLike[Any]]): T = segment(output, values)._1
+  def segment(output: T, values: Seq[OutputLike[Any]]): (T, Seq[OutputLike[Any]])
 }
 
 object CondOutput {
   type Aux[T, R] = CondOutput[T] {type ResultType = R}
 
-  implicit val opCondOutput: Aux[Op, Output] = new CondOutput[Op] {
-    override type ResultType = Output
-    override def size(output: Op): Int = 1
-    override def processOutput(output: Op, context: CondContext): Output = context.processOp(output)
-    override def flatten(processedOutput: Output): Seq[OutputLike] = Seq(processedOutput)
-    override def segment(output: Op, values: Seq[OutputLike]): (Op, Seq[OutputLike]) = (values.head.op, values.tail)
-  }
+  implicit def opCondOutput[I, O]: Aux[Op[I, O], Output[Any]] = {
+    new CondOutput[Op[I, O]] {
+      override type ResultType = Output[Any]
 
-  implicit val outputCondOutput: Aux[Output, Output] = new CondOutput[Output] {
-    override type ResultType = Output
-    override def size(output: Output): Int = 1
-    override def processOutput(output: Output, context: CondContext): Output = context.processOutput(output)
-    override def flatten(processedOutput: Output): Seq[OutputLike] = Seq(processedOutput)
-    override def segment(output: Output, values: Seq[OutputLike]): (Output, Seq[OutputLike]) = {
-      (values.head.asInstanceOf[Output], values.tail)
+      override def size(output: Op[I, O]): Int = {
+        1
+      }
+
+      override def processOutput(
+          output: Op[I, O],
+          context: CondContext
+      ): Output[Any] = {
+        context.processOp(output.asUntyped)
+      }
+
+      override def flatten(
+          processedOutput: Output[Any]
+      ): Seq[OutputLike[Any]] = {
+        Seq(processedOutput)
+      }
+
+      override def segment(
+          output: Op[I, O],
+          values: Seq[OutputLike[Any]]
+      ): (Op[I, O], Seq[OutputLike[Any]]) = {
+        (values.head.op.asInstanceOf[Op[I, O]], values.tail)
+      }
     }
   }
 
-  implicit val outputIndexedSlicesCondOutput: Aux[OutputIndexedSlices, OutputIndexedSlices] = {
-    new CondOutput[OutputIndexedSlices] {
-      override type ResultType = OutputIndexedSlices
+  implicit def outputCondOutput[T]: Aux[Output[T], Output[T]] = {
+    new CondOutput[Output[T]] {
+      override type ResultType = Output[T]
 
-      override def size(output: OutputIndexedSlices): Int = 1
+      override def size(output: Output[T]): Int = {
+        1
+      }
 
-      override def processOutput(output: OutputIndexedSlices, context: CondContext): OutputIndexedSlices = {
+      override def processOutput(
+          output: Output[T],
+          context: CondContext
+      ): Output[T] = {
+        context.processOutput(output)
+      }
+      override def flatten(
+          processedOutput: Output[T]
+      ): Seq[OutputLike[Any]] = {
+        Seq(processedOutput)
+      }
+
+      override def segment(
+          output: Output[T],
+          values: Seq[OutputLike[Any]]
+      ): (Output[T], Seq[OutputLike[Any]]) = {
+        (values.head.asInstanceOf[Output[T]], values.tail)
+      }
+    }
+  }
+
+  implicit def outputIndexedSlicesCondOutput[T]: Aux[OutputIndexedSlices[T], OutputIndexedSlices[T]] = {
+    new CondOutput[OutputIndexedSlices[T]] {
+      override type ResultType = OutputIndexedSlices[T]
+
+      override def size(output: OutputIndexedSlices[T]): Int = {
+        1
+      }
+
+      override def processOutput(
+          output: OutputIndexedSlices[T],
+          context: CondContext
+      ): OutputIndexedSlices[T] = {
         val indices = context.processOutput(output.indices)
         val values = context.processOutput(output.values)
         val denseShape = {
@@ -299,48 +373,88 @@ object CondOutput {
         OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
       }
 
-      override def flatten(processedOutput: OutputIndexedSlices): Seq[OutputLike] = Seq(processedOutput)
+      override def flatten(
+          processedOutput: OutputIndexedSlices[T]
+      ): Seq[OutputLike[Any]] = {
+        Seq(processedOutput)
+      }
 
       override def segment(
-          output: OutputIndexedSlices, values: Seq[OutputLike]): (OutputIndexedSlices, Seq[OutputLike]) = {
-        (values.head.asInstanceOf[OutputIndexedSlices], values.tail)
+          output: OutputIndexedSlices[T],
+          values: Seq[OutputLike[Any]]
+      ): (OutputIndexedSlices[T], Seq[OutputLike[Any]]) = {
+        (values.head.asInstanceOf[OutputIndexedSlices[T]], values.tail)
       }
     }
   }
 
-  implicit val sparseOutputCondOutput: Aux[SparseOutput, SparseOutput] = new CondOutput[SparseOutput] {
-    override type ResultType = SparseOutput
+  implicit def sparseOutputCondOutput[T]: Aux[SparseOutput[T], SparseOutput[T]] = {
+    new CondOutput[SparseOutput[T]] {
+      override type ResultType = SparseOutput[T]
 
-    override def size(output: SparseOutput): Int = 1
-
-    override def processOutput(output: SparseOutput, context: CondContext): SparseOutput = {
-      val indices = context.processOutput(output.indices)
-      val values = context.processOutput(output.values)
-      val denseShape = {
-        if (output.denseShape != null)
-          context.processOutput(output.denseShape)
-        else
-          null
+      override def size(output: SparseOutput[T]): Int = {
+        1
       }
-      SparseOutput(indices = indices, values = values, denseShape = denseShape)
-    }
 
-    override def flatten(processedOutput: SparseOutput): Seq[OutputLike] = Seq(processedOutput)
+      override def processOutput(
+          output: SparseOutput[T],
+          context: CondContext
+      ): SparseOutput[T] = {
+        val indices = context.processOutput(output.indices)
+        val values = context.processOutput(output.values)
+        val denseShape = {
+          if (output.denseShape != null)
+            context.processOutput(output.denseShape)
+          else
+            null
+        }
+        SparseOutput(indices = indices, values = values, denseShape = denseShape)
+      }
 
-    override def segment(output: SparseOutput, values: Seq[OutputLike]): (SparseOutput, Seq[OutputLike]) = {
-      (values.head.asInstanceOf[SparseOutput], values.tail)
+      override def flatten(
+          processedOutput: SparseOutput[T]
+      ): Seq[OutputLike[Any]] = {
+        Seq(processedOutput)
+      }
+
+      override def segment(
+          output: SparseOutput[T],
+          values: Seq[OutputLike[Any]]
+      ): (SparseOutput[T], Seq[OutputLike[Any]]) = {
+        (values.head.asInstanceOf[SparseOutput[T]], values.tail)
+      }
     }
   }
 
-  implicit val tensorArrayCondOutput: Aux[TensorArray, Output] = new CondOutput[TensorArray] {
-    override type ResultType = Output
-    override def size(output: TensorArray): Int = 1
-    override def processOutput(output: TensorArray, context: CondContext): Output = context.processOutput(output.flow)
-    override def flatten(processedOutput: Output): Seq[OutputLike] = Seq(processedOutput)
-    override def segment(output: TensorArray, values: Seq[OutputLike]): (TensorArray, Seq[OutputLike]) = {
-      val newTensorArray = output.copy(flow = values.head.asInstanceOf[Output])
-      // TODO: !!! [TENSOR_ARRAY] What about colocate with?
-      (newTensorArray, values.tail)
+  implicit def tensorArrayCondOutput[T]: Aux[TensorArray[T], Output[Float]] = {
+    new CondOutput[TensorArray[T]] {
+      override type ResultType = Output[Float]
+
+      override def size(output: TensorArray[T]): Int = {
+        1
+      }
+
+      override def processOutput(
+          output: TensorArray[T],
+          context: CondContext
+      ): Output[Float] = {
+        context.processOutput(output.flow)
+      }
+
+      override def flatten(
+          processedOutput: Output[Float]
+      ): Seq[OutputLike[Any]] = {
+        Seq(processedOutput)
+      }
+
+      override def segment(
+          output: TensorArray[T],
+          values: Seq[OutputLike[Any]]
+      ): (TensorArray[T], Seq[OutputLike[Any]]) = {
+        val newTensorArray = output.copy(flow = values.head.asInstanceOf[Output[Float]])
+        // TODO: !!! [TENSOR_ARRAY] What about colocate with?
+        (newTensorArray, values.tail)
+      }
     }
   }
 
@@ -348,15 +462,27 @@ object CondOutput {
     new CondOutput[Array[T]] {
       override type ResultType = Array[R]
 
-      override def size(output: Array[T]): Int = output.map(ev.size).sum
+      override def size(output: Array[T]): Int = {
+        output.map(ev.size).sum
+      }
 
-      override def processOutput(output: Array[T], context: CondContext): Array[R] = {
+      override def processOutput(
+          output: Array[T],
+          context: CondContext
+      ): Array[R] = {
         output.map(ev.processOutput(_, context))
       }
 
-      override def flatten(processedOutput: Array[R]): Seq[OutputLike] = processedOutput.toSeq.flatMap(ev.flatten)
+      override def flatten(
+          processedOutput: Array[R]
+      ): Seq[OutputLike[Any]] = {
+        processedOutput.toSeq.flatMap(ev.flatten)
+      }
 
-      override def segment(output: Array[T], values: Seq[OutputLike]): (Array[T], Seq[OutputLike]) = {
+      override def segment(
+          output: Array[T],
+          values: Seq[OutputLike[Any]]
+      ): (Array[T], Seq[OutputLike[Any]]) = {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.unflatten(f._1, f._2)), values.drop(n))
@@ -372,15 +498,27 @@ object CondOutput {
     new CondOutput[CC[T]] {
       override type ResultType = CC[R]
 
-      override def size(output: CC[T]): Int = output.map(ev.size).sum
+      override def size(output: CC[T]): Int = {
+        output.map(ev.size).sum
+      }
 
-      override def processOutput(output: CC[T], context: CondContext): CC[R] = {
+      override def processOutput(
+          output: CC[T],
+          context: CondContext
+      ): CC[R] = {
         output.map(ev.processOutput(_, context))(cbfTR)
       }
 
-      override def flatten(processedOutput: CC[R]): Seq[OutputLike] = processedOutput.flatMap(ev.flatten).toSeq
+      override def flatten(
+          processedOutput: CC[R]
+      ): Seq[OutputLike[Any]] = {
+        processedOutput.flatMap(ev.flatten).toSeq
+      }
 
-      override def segment(output: CC[T], values: Seq[OutputLike]): (CC[T], Seq[OutputLike]) = {
+      override def segment(
+          output: CC[T],
+          values: Seq[OutputLike[Any]]
+      ): (CC[T], Seq[OutputLike[Any]]) = {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.unflatten(f._1, f._2)).to[CC](cbfTT), values.drop(n))
@@ -394,17 +532,27 @@ object CondOutput {
     new CondOutput[Map[MK, T]] {
       override type ResultType = Map[MK, R]
 
-      override def size(output: Map[MK, T]): Int = output.values.map(ev.size).sum
+      override def size(output: Map[MK, T]): Int = {
+        output.values.map(ev.size).sum
+      }
 
-      override def processOutput(output: Map[MK, T], context: CondContext): Map[MK, R] = {
+      override def processOutput(
+          output: Map[MK, T],
+          context: CondContext
+      ): Map[MK, R] = {
         output.map({ case (k, v) => k -> ev.processOutput(v, context) })
       }
 
-      override def flatten(processedOutput: Map[MK, R]): Seq[OutputLike] = {
+      override def flatten(
+          processedOutput: Map[MK, R]
+      ): Seq[OutputLike[Any]] = {
         processedOutput.values.flatMap(ev.flatten).toSeq
       }
 
-      override def segment(output: Map[MK, T], values: Seq[OutputLike]): (Map[MK, T], Seq[OutputLike]) = {
+      override def segment(
+          output: Map[MK, T],
+          values: Seq[OutputLike[Any]]
+      ): (Map[MK, T], Seq[OutputLike[Any]]) = {
         val n = size(output)
         (output.keys.zip(
           output.values
@@ -416,10 +564,30 @@ object CondOutput {
 
   implicit val hnil: Aux[HNil, HNil] = new CondOutput[HNil] {
     override type ResultType = HNil
-    override def size(output: HNil): Int = 0
-    override def processOutput(output: HNil, context: CondContext): HNil = HNil
-    override def flatten(processedOutput: HNil): Seq[OutputLike] = Seq.empty[OutputLike]
-    override def segment(output: HNil, values: Seq[OutputLike]): (HNil, Seq[OutputLike]) = (HNil, values)
+
+    override def size(output: HNil): Int = {
+      0
+    }
+
+    override def processOutput(
+        output: HNil,
+        context: CondContext
+    ): HNil = {
+      HNil
+    }
+
+    override def flatten(
+        processedOutput: HNil
+    ): Seq[OutputLike[Any]] = {
+      Seq.empty[OutputLike[Any]]
+    }
+
+    override def segment(
+        output: HNil,
+        values: Seq[OutputLike[Any]]
+    ): (HNil, Seq[OutputLike[Any]]) = {
+      (HNil, values)
+    }
   }
 
   implicit def recursiveConstructor[H, HR, T <: HList, TR <: HList](implicit
@@ -432,15 +600,25 @@ object CondOutput {
       evHead.value.size(output.head) + evTail.size(output.tail)
     }
 
-    override def processOutput(output: H :: T, context: CondContext): HR :: TR = {
-      evHead.value.processOutput(output.head, context) :: evTail.processOutput(output.tail, context)
+    override def processOutput(
+        output: H :: T,
+        context: CondContext
+    ): HR :: TR = {
+      evHead.value.processOutput(output.head, context) ::
+          evTail.processOutput(output.tail, context)
     }
 
-    override def flatten(processedOutput: HR :: TR): Seq[OutputLike] = {
-      evHead.value.flatten(processedOutput.head) ++ evTail.flatten(processedOutput.tail)
+    override def flatten(
+        processedOutput: HR :: TR
+    ): Seq[OutputLike[Any]] = {
+      evHead.value.flatten(processedOutput.head) ++
+          evTail.flatten(processedOutput.tail)
     }
 
-    override def segment(output: H :: T, values: Seq[OutputLike]): (H :: T, Seq[OutputLike]) = {
+    override def segment(
+        output: H :: T,
+        values: Seq[OutputLike[Any]]
+    ): (H :: T, Seq[OutputLike[Any]]) = {
       val (headOut, headRemaining) = evHead.value.segment(output.head, values)
       val (tailOut, tailRemaining) = evTail.segment(output.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
@@ -456,15 +634,27 @@ object CondOutput {
   ): Aux[P, R] = new CondOutput[P] {
     override type ResultType = R
 
-    override def size(output: P): Int = evL.size(genP.to(output))
+    override def size(output: P): Int = {
+      evL.size(genP.to(output))
+    }
 
-    override def processOutput(output: P, context: CondContext): R = {
+    override def processOutput(
+        output: P,
+        context: CondContext
+    ): R = {
       tuplerR(evL.processOutput(genP.to(output), context))
     }
 
-    override def flatten(processedOutput: R): Seq[OutputLike] = evL.flatten(genR.to(processedOutput))
+    override def flatten(
+        processedOutput: R
+    ): Seq[OutputLike[Any]] = {
+      evL.flatten(genR.to(processedOutput))
+    }
 
-    override def segment(output: P, values: Seq[OutputLike]): (P, Seq[OutputLike]) = {
+    override def segment(
+        output: P,
+        values: Seq[OutputLike[Any]]
+    ): (P, Seq[OutputLike[Any]]) = {
       val (out, remaining) = evL.segment(genP.to(output), values)
       (tuplerP(out), remaining)
     }

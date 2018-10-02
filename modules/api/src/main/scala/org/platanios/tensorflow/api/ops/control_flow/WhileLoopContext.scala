@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32, RESOURCE}
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.Collections
 
@@ -44,8 +44,8 @@ import scala.reflect.ClassTag
   * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
   * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
   * @param  _gradientLoopState    Gradient loop state.
-  * @param  pivot                 `BOOLEAN` tensor used for the loop termination condition. Used in code generation for
-  *                               the gradient computation.
+  * @param  pivot                 Tensor used for the loop termination condition. Used in code generation for the
+  *                               gradient computation.
   * @param  pivotForPredicate     We use this node to control constants created by the predicate function.
   * @param  pivotForBody          We use this node to control constants created by the body function.
   * @param  loopEnters            Enter tensors for loop variables.
@@ -55,27 +55,33 @@ import scala.reflect.ClassTag
   * @author Emmanouil Antonios Platanios
   */
 private[api] case class WhileLoopContext private[control_flow] (
-    maximumIterations: Option[Output] = None,
+    maximumIterations: Option[Output[Int]] = None,
     parallelIterations: Int = 10,
     enableBackPropagation: Boolean = true,
     swapMemory: Boolean = false,
     private[control_flow] val _gradientLoopState: Option[GradientLoopState] = None,
-    private[ops] var pivot: Output = null,
-    private var pivotForPredicate: Op = null,
-    private var pivotForBody: Op = null,
-    private[control_flow] val loopEnters: mutable.Set[Output] = mutable.Set.empty[Output],
-    private[control_flow] val loopExits: mutable.Set[Output] = mutable.Set.empty[Output],
+    private[ops] var pivot: Output[Boolean] = null,
+    private var pivotForPredicate: UntypedOp = null,
+    private var pivotForBody: UntypedOp = null,
+    private[control_flow] val loopEnters: mutable.Set[Output[_]] = mutable.Set.empty[Output[_]],
+    private[control_flow] val loopExits: mutable.Set[Output[_]] = mutable.Set.empty[Output[_]],
     private val _name: String = "WhileLoopContext"
 ) extends Context() with ProtoSerializable {
   require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
 
-  override val name: String = Op.currentGraph.uniqueName(_name)
+  override val name: String = {
+    Op.currentGraph.uniqueName(_name)
+  }
 
-  override def controlPivot: Option[Op] = Option(pivotForBody).orElse(Option(pivotForPredicate))
+  override def controlPivot: Option[UntypedOp] = {
+    Option(pivotForBody).orElse(Option(pivotForPredicate))
+  }
 
-  override def whileLoopContext(stopContext: Option[Context] = None): Option[WhileLoopContext] = Some(this)
+  override def whileLoopContext(stopContext: Option[Context] = None): Option[WhileLoopContext] = {
+    Some(this)
+  }
 
-  override def add(op: Op): Unit = {
+  override def add(op: UntypedOp): Unit = {
     // For a reduction op, if the op is in a gradient context and its input is from its forward context, moving the op
     // to the forward context means we would store the tensor after the reduction as opposed to the tensor before the
     // reduction, and therefore we could significantly reduce memory consumption. For now, we do this only for a few
@@ -85,9 +91,9 @@ private[api] case class WhileLoopContext private[control_flow] (
       val gradientContext = Op.currentControlFlowContext
       if (gradientContext.isDefined) {
         gradientContext.flatMap(_.whileLoopContext().flatMap(_.gradientLoopState)).foreach(gradientLoopState => {
-          WhileLoopContext.getWhileLoopContext(op.inputs(0).op).foreach(opInputForwardContext => {
+          WhileLoopContext.getWhileLoopContext(op.inputsSeq(0).op).foreach(opInputForwardContext => {
             if (opInputForwardContext == gradientLoopState.forwardContext) {
-              val opInputContext = op.inputs(0).op.controlFlowContext
+              val opInputContext = op.inputsSeq(0).op.controlFlowContext
               op.controlFlowContext = opInputContext
               opInputContext.foreach(_.addInternal(op))
               added = true
@@ -100,43 +106,43 @@ private[api] case class WhileLoopContext private[control_flow] (
       addInternal(op)
   }
 
-//  override private[control_flow] def addInternal(op: Op): Unit = {
-//    if (op.numInputs == 0) {
-//      // Remove any external control dependencies on this op.
-//      val controlInputs = removeExternalControlEdges(op)
-//      // Add a control edge from the control pivot to this op.
-//      if (controlInputs.isEmpty)
-//        controlPivot.foreach(ControlFlow.addControlInput(op, _))
-//      op.outputs.foreach(values += _.name)
-//    } else {
-//      op.inputs.zipWithIndex.foreach({
-//        case (input, index) =>
-//          val realInput = add(input)
-//          if (realInput != input)
-//            ControlFlow.updateInput(op, index, realInput)
-//      })
-//      // Remove any external control dependencies on this op.
-//      removeExternalControlEdges(op)
-//      // Add a control dependency to prevent loop invariants from enabling ops that should not be executed.
-//      if (op.controlInputs.isEmpty &&
-//          ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
-//              op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
-//        controlPivot.foreach(ControlFlow.addControlInput(op, _))
-//      op.outputs.foreach(values += _.name)
-//    }
-//    if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {
-//      op.graph.preventFetching(op)
-//      op.outputs.foreach(op.graph.preventFeeding)
-//    }
-//    outerContext.foreach(_.addInnerOp(op))
-//  }
+  //  override private[control_flow] def addInternal(op: Op): Unit = {
+  //    if (op.numInputs == 0) {
+  //      // Remove any external control dependencies on this op.
+  //      val controlInputs = removeExternalControlEdges(op)
+  //      // Add a control edge from the control pivot to this op.
+  //      if (controlInputs.isEmpty)
+  //        controlPivot.foreach(ControlFlow.addControlInput(op, _))
+  //      op.outputs.foreach(values += _.name)
+  //    } else {
+  //      op.inputs.zipWithIndex.foreach({
+  //        case (input, index) =>
+  //          val realInput = add(input)
+  //          if (realInput != input)
+  //            ControlFlow.updateInput(op, index, realInput)
+  //      })
+  //      // Remove any external control dependencies on this op.
+  //      removeExternalControlEdges(op)
+  //      // Add a control dependency to prevent loop invariants from enabling ops that should not be executed.
+  //      if (op.controlInputs.isEmpty &&
+  //          ((op.graph.isFunction(op.opType) || op.opType == "SymbolicGradient") ||
+  //              op.inputs.forall(o => ControlFlow.isLoopConstantEnter(o.op))))
+  //        controlPivot.foreach(ControlFlow.addControlInput(op, _))
+  //      op.outputs.foreach(values += _.name)
+  //    }
+  //    if (outerContext.isDefined || !ControlFlow.isLoopExit(op)) {
+  //      op.graph.preventFetching(op)
+  //      op.outputs.foreach(op.graph.preventFeeding)
+  //    }
+  //    outerContext.foreach(_.addInnerOp(op))
+  //  }
 
-  override def add(output: Output): Output = {
+  override def add[T](output: Output[T]): Output[T] = {
     if (values.contains(output.name)) {
       // Use the real value if it comes from an outer context. This is needed in particular for nested conditionals.
-      externalValues.getOrElse(output.name, output)
+      externalValues.getOrElse(output.name, output).asInstanceOf[Output[T]]
     } else {
-      var value: Output = null
+      var value: Output[T] = null
       values += output.name
       // If we are in a gradient context and `output` is from its forward context, we use `getRealValue()`, which adds
       // the logic to save the history of `output` in the forward pass.
@@ -151,7 +157,7 @@ private[api] case class WhileLoopContext private[control_flow] (
             if (forwardContext == gradientLoopState.forwardContext) {
               val realValue = gradientLoopState.getRealValue(output)
               externalValues += output.name -> realValue
-              value = realValue
+              value = realValue.asInstanceOf[Output[T]]
             }
           })
         })
@@ -161,7 +167,7 @@ private[api] case class WhileLoopContext private[control_flow] (
       } else {
         val result = outerContext.map(_.add(output)).getOrElse(output)
         // Create an enter op to make `result` known to this loop context.
-        val enter = Op.createWith(controlDependencies = Set.empty[Op]) {
+        val enter = Op.createWith(controlDependencies = Set.empty) {
           val enter = ControlFlow.enter(result, name, isConstant = true, parallelIterations)
           enter.graph.preventFeeding(enter)
           enter
@@ -176,11 +182,15 @@ private[api] case class WhileLoopContext private[control_flow] (
     }
   }
 
-  def backPropagate: Boolean = enableBackPropagation
+  def backPropagate: Boolean = {
+    enableBackPropagation
+  }
 
-  def gradientLoopState: Option[GradientLoopState] = _gradientLoopState
+  def gradientLoopState: Option[GradientLoopState] = {
+    _gradientLoopState
+  }
 
-  private[this] def isInOuterContext(op: Op): Boolean = {
+  private[this] def isInOuterContext(op: Op[_, _]): Boolean = {
     val opContext = ControlFlow.getOutputContext(op)
     var outerContext = this.outerContext
     while (outerContext != opContext && outerContext.isDefined)
@@ -190,7 +200,10 @@ private[api] case class WhileLoopContext private[control_flow] (
 
   /** Adds the loop termination condition and the loop body to the graph. */
   private[control_flow] def buildLoop[T, TS](
-      predicateFn: T => Output, bodyFn: T => T, loopVariables: T, shapeInvariants: Option[TS]
+      predicateFn: T => Output[Boolean],
+      bodyFn: T => T,
+      loopVariables: T,
+      shapeInvariants: Option[TS]
   )(implicit ev: WhileLoopVariable.Aux[T, TS]): T = {
     try {
       // Enter the frame for this loop.
@@ -202,7 +215,7 @@ private[api] case class WhileLoopContext private[control_flow] (
       // Let the context know the loop variables so the loop variables would be added to the outer contexts properly.
       initializeValues(flattenedLoopVariables)
       val realVariables = outerContext.map(c => flattenedLoopVariables.map(c.add)).getOrElse(flattenedLoopVariables)
-      val enterVariables = Op.createWith(controlDependencies = Set.empty[Op]) {
+      val enterVariables = Op.createWith(controlDependencies = Set.empty) {
         val enterVariables = realVariables.map(v => ControlFlow.enter(
           v, name, isConstant = false, parallelIterations, useInputShape = flattenedShapeInvariants.isEmpty))
         enterVariables.foreach(v => v.graph.preventFeeding(v))
@@ -211,14 +224,14 @@ private[api] case class WhileLoopContext private[control_flow] (
 
       // Find the closest enclosing non-None control pivot.
       var outerCtx: Option[Context] = outerContext
-      var controlPivot: Option[Op] = None
+      var controlPivot: Option[UntypedOp] = None
       while (outerCtx.isDefined && controlPivot.isEmpty) {
         controlPivot = outerContext.get.controlPivot
         outerCtx = outerCtx.get.outerContext
       }
 
       controlPivot.foreach(p => {
-        enterVariables.filter(v => ControlFlow.isLoopConstantEnter(v.op.inputs(0).op)).foreach(v => {
+        enterVariables.filter(v => ControlFlow.isLoopConstantEnter(v.op.inputsSeq(0).op)).foreach(v => {
           ControlFlow.addControlInput(v.op, p)
         })
       })
@@ -271,23 +284,23 @@ private[api] case class WhileLoopContext private[control_flow] (
     }
   }
 
-  private[this] def fixControlInputsAndContext(values: Seq[OutputLike]): Unit = {
+  private[this] def fixControlInputsAndContext(values: Seq[OutputLike[_]]): Unit = {
     values.foreach(value => {
       val outputs = value match {
-        case o: Output => Set(o)
-        case o: OutputIndexedSlices =>
+        case o: Output[_] => Set(o)
+        case o: OutputIndexedSlices[_] =>
           if (o.denseShape != null)
             Set(o.indices, o.values, o.denseShape)
           else
             Set(o.indices, o.values)
-        case o: SparseOutput =>
+        case o: SparseOutput[_] =>
           if (o.denseShape != null)
             Set(o.indices, o.values, o.denseShape)
           else
             Set(o.indices, o.values)
       }
       outputs.foreach(output => {
-        val input = output.op.inputs(0)
+        val input = output.op.inputsSeq(0)
         val outerControlInputs = Op.controlDependencies(Set(input)).filter(isInOuterContext)
         output.op.controlFlowContext = Some(this)
         outerControlInputs.foreach(i => ControlFlow.addControlInput(output.op, i))
@@ -296,16 +309,16 @@ private[api] case class WhileLoopContext private[control_flow] (
   }
 
   /** Makes the provided values known to this context. */
-  private[this] def initializeValues(providedValues: Seq[OutputLike]): Unit = {
+  private[this] def initializeValues(providedValues: Seq[OutputLike[_]]): Unit = {
     values.clear()
     providedValues.foreach {
-      case v: Output => values += v.name
-      case v: OutputIndexedSlices =>
+      case v: Output[_] => values += v.name
+      case v: OutputIndexedSlices[_] =>
         values += v.indices.name
         values += v.values.name
         if (v.denseShape != null)
           values += v.denseShape.name
-      case v: SparseOutput =>
+      case v: SparseOutput[_] =>
         values += v.indices.name
         values += v.values.name
         if (v.denseShape != null)
@@ -326,12 +339,13 @@ private[api] case class WhileLoopContext private[control_flow] (
     * @return Tuple containing the number of iterations taken by the forward loop and the loop index.
     */
   private[control_flow] def addForwardLoopCounter(
-      outerGradientLoopState: Option[GradientLoopState]): (Output, Output) = {
-    val n = Basic.constant(0, name = "ForwardLoopCounter")
+      outerGradientLoopState: Option[GradientLoopState]
+  ): (Output[Int], Output[Int]) = {
+    val n = Basic.zeros(INT32, Shape(), name = "ForwardLoopCounter")
     outerGradientLoopState.foreach(state => {
       // Force the stack pushes of the i-th execution of an inner loop to be ordered before the pushes of the (i+1)-th
       // execution of the same inner loop.
-      ControlFlow.addControlInput(n.op, state.forwardIndex.op.inputs(0).op)
+      ControlFlow.addControlInput(n.op, state.forwardIndex.op.inputsSeq(0).op)
     })
     enter()
     values += n.name
@@ -339,7 +353,7 @@ private[api] case class WhileLoopContext private[control_flow] (
     loopEnters += enterN
     val mergeN = ControlFlow.merge(Seq(enterN, enterN))._1
     val switchN = ControlFlow.switch(mergeN, pivot)
-    val index = Math.add(switchN._2, 1)
+    val index = Math.add(switchN._2, Basic.ones(INT32, Shape()))
     val nextN = ControlFlow.nextIteration(index)
     ControlFlow.updateInput(mergeN.op, 1, nextN)
     val exitN = ControlFlow.exit(switchN._1, name = "ForwardLoopCounter").toOutput
@@ -364,18 +378,20 @@ private[api] case class WhileLoopContext private[control_flow] (
     * @return Loop index.
     */
   private[control_flow] def addBackwardLoopCounter(
-      count: Output, outerGradientLoopState: Option[GradientLoopState]): Output = {
-    val one = Basic.constant(1, name = "BackwardLoopCounter")
+      count: Output[Int],
+      outerGradientLoopState: Option[GradientLoopState]
+  ): Output[Int] = {
+    val one = Basic.ones(INT32, Shape(), name = "BackwardLoopCounter")
     enter()
     values += count.name
     val enterC = ControlFlow.enter(count, name, isConstant = false, parallelIterations, name = "BackwardLoopCounter")
     loopEnters += enterC
     val mergeC = ControlFlow.merge(Seq(enterC, enterC))._1
-    pivotForPredicate = mergeC
+    pivotForPredicate = mergeC.op
     pivot = ControlFlow.loopCond(Math.greaterEqual(mergeC, one), name = "BackwardLoopCounter")
     val switchC = ControlFlow.switch(mergeC, pivot)
     val indexC = Math.subtract(switchC._2, one)
-    pivotForBody = indexC
+    pivotForBody = indexC.op
     val nextC = ControlFlow.nextIteration(indexC)
     ControlFlow.updateInput(mergeC.op, 1, nextC)
     val exitC = ControlFlow.exit(switchC._1, name = "BackwardLoopCounter")
@@ -401,22 +417,25 @@ private[api] case class WhileLoopContext private[control_flow] (
     * @param  gradient Partial gradient of an iteration for a loop invariant.
     * @return Gradient for a loop invariant.
     */
-  private[control_flow] def addBackwardAccumulator[T <: OutputLike](op: Op, gradient: T): T = {
+  private[control_flow] def addBackwardAccumulator[T, OL[A] <: OutputLike[A]](
+      op: Op[_, _],
+      gradient: OL[T]
+  ): OL[T] = {
     val result = gradient match {
-      case g: Output =>
+      case g: Output[T] =>
         exit()
         // We create a zeros tensor with the right shape for the accumulator. If we don't know the full shape
         // statically, we will have to get the shape dynamically from the forward inference. Getting the shape right for
         // the zeros is only needed for the base case when the loop exits without running any iterations.
         val shape = g.shape
-        val acc: Output = {
+        val acc: Output[T] = {
           if (shape.isFullyDefined) {
             outerContext.foreach(_.enter())
             val acc = Basic.zerosLike(g, name = "BackwardAccumulator")
             outerContext.foreach(_.exit())
             acc
           } else {
-            val value = op.inputs(0)
+            val value = op.inputsSeq(0)
             // TODO: !!! [CONTROL_FLOW] Is this even necessary for obtaining the shape?
             outerContext match {
               case Some(context: WhileLoopContext) if context.gradientLoopState.isDefined =>
@@ -444,13 +463,17 @@ private[api] case class WhileLoopContext private[control_flow] (
             }
           }
         }
-        Op.createWithNameScope("BackwardAccumulator") {
+        Op.nameScope("BackwardAccumulator") {
           enter()
           values += acc.name
           val enterAcc = ControlFlow.enter(acc, name, isConstant = false, parallelIterations)
           loopEnters += enterAcc
           val mergeAcc = ControlFlow.merge(Seq(enterAcc, enterAcc))._1.toOutput
           val switchAcc = ControlFlow.switch(mergeAcc, pivot)
+
+          // TODO: [TYPES] !!! Super hacky. Remove in the future.
+          implicit val ev: IsNotQuantized[T] = new IsNotQuantized[T] {}
+
           val addAcc = Math.add(switchAcc._2, g)
           val nextAcc = ControlFlow.nextIteration(addAcc)
           ControlFlow.updateInput(mergeAcc.op, 1, nextAcc)
@@ -459,19 +482,19 @@ private[api] case class WhileLoopContext private[control_flow] (
           exitResult(Seq(exitAcc))
           exitAcc
         }
-      case g: OutputIndexedSlices => Op.createWithNameScope("BackwardAccumulator") {
+      case g: OutputIndexedSlices[T] => Op.nameScope("BackwardAccumulator") {
         exit()
         // We create a zeros tensor with the right shape for the accumulator. If we don't know the full shape
         // statically, we will have to get the shape dynamically from the forward inference. Getting the shape right for
         // the zeros is only needed for the base case when the loop exits without running any iterations.
         outerContext.foreach(_.enter())
-        val indicesAcc: Output = Basic.zeros(g.indices.dataType, Shape(1))
-        val valuesAcc: Output = {
+        val indicesAcc = Basic.zeros(g.indices.dataType, Shape(1))
+        val valuesAcc = {
           if (g.values.shape.isFullyDefined) {
             val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*)
             Basic.zeros(g.values.dataType, zerosShape)
           } else {
-            val value = op.inputs(0)
+            val value = op.inputsSeq(0)
             // TODO: !!! [CONTROL_FLOW] Is this even necessary for obtaining the shape?
             outerContext match {
               case Some(context: WhileLoopContext) if context.gradientLoopState.isDefined =>
@@ -492,16 +515,16 @@ private[api] case class WhileLoopContext private[control_flow] (
                 acc
               case _ =>
                 val zerosShape = Basic.concatenate(
-                  Seq(Tensor(1L), resourceSafeShape(op.inputs(0)).slice(1 ::)), axis = 0)
+                  Seq(Tensor(1L), resourceSafeShape(op.inputsSeq(0)).slice(1 ::)), axis = 0)
                 Basic.zeros(g.values.dataType, zerosShape)
             }
           }
         }
-        val denseShapeAcc: Option[Output] = Option(g.denseShape).map(shape => {
+        val denseShapeAcc = Option(g.denseShape).map(shape => {
           if (shape.shape.isFullyDefined) {
             Basic.zeros(shape.dataType, shape.shape)
           } else {
-            Basic.zerosLike(Basic.shape(op.inputs(0), optimize = false), optimize = false)
+            Basic.zerosLike(Basic.shape(op.inputsSeq(0), INT64, optimize = false), optimize = false)
           }
         })
         outerContext.foreach(_.exit())
@@ -530,37 +553,48 @@ private[api] case class WhileLoopContext private[control_flow] (
           Basic.concatenate(Seq(switchAcc(0)._2, g.indices), 0),
           Basic.concatenate(Seq(switchAcc(1)._2, g.values), 0))
         denseShapeAcc.foreach(_ => {
+          // TODO: [TYPES] Can handle types better here by not using sequences of tensors.
           // For the shape we just keep the maximum.
-          addAcc += Math.maximum(g.denseShape, switchAcc(2)._2)
+          addAcc += Math.maximum(
+            g.denseShape,
+            switchAcc(2)._2.asInstanceOf[Output[Long]]
+          ).asInstanceOf[OutputLike[Any]]
         })
         val nextAcc = addAcc.map(ControlFlow.nextIteration(_))
         mergeAcc.zip(nextAcc).foreach(a => ControlFlow.updateInput(a._1.op, 1, a._2))
         val exitAcc = switchAcc.map(a => ControlFlow.exit(a._1))
         loopExits ++= exitAcc
         exitResult(exitAcc)
-        OutputIndexedSlices(exitAcc(0), exitAcc(1), denseShapeAcc.map(_ => exitAcc(2)).orNull)
+        OutputIndexedSlices(
+          indices = exitAcc(0).asInstanceOf[Output[Long]],
+          values = exitAcc(1).asInstanceOf[Output[T]],
+          denseShape = denseShapeAcc.map(_ => exitAcc(2).asInstanceOf[Output[Long]]).orNull)
       }
-      case g: SparseOutput => ???
+      case g: SparseOutput[T] => ???
     }
-    result.asInstanceOf[T]
+    result.asInstanceOf[OL[T]]
   }
 
   /** Returns the shape of `value` of the shape of the variable it points to. */
-  private[this] def resourceSafeShape(value: Output): Output = {
+  private def resourceSafeShape(value: Output[_]): Output[Long] = {
     if (value.dataType == RESOURCE) {
       var v = value
-      while (v.op.inputs.nonEmpty)
-        v = v.op.inputs(0)
+      while (v.op.inputsSeq.nonEmpty)
+        v = v.op.inputsSeq(0)
       v.op.shapeAttribute("shape")
     } else {
-      Basic.shape(value, optimize = false)
+      Basic.shape(value, INT64, optimize = false)
     }
   }
 
-  override def toProto: GeneratedMessageV3 = toProto(null)
+  override def toProto: GeneratedMessageV3 = {
+    toProto(null)
+  }
 
   /** Alias for `toWhileContextDef`. */
-  override def toProto(exportScope: String = null): GeneratedMessageV3 = toWhileContextDef(exportScope)
+  override def toProto(exportScope: String = null): GeneratedMessageV3 = {
+    toWhileContextDef(exportScope)
+  }
 
   /** Constructs and returns a [[WhileContextDef]] object that represents this while-loop context.
     *
@@ -592,17 +626,20 @@ private[api] case class WhileLoopContext private[control_flow] (
 
 object WhileLoopContext {
   /** Returns the while-loop context to which `op` belongs. */
-  private[control_flow] def getWhileLoopContext(op: Op): Option[WhileLoopContext] = {
+  private[control_flow] def getWhileLoopContext(op: Op[_, _]): Option[WhileLoopContext] = {
     op.controlFlowContext.flatMap(_.whileLoopContext())
   }
 
   /** Creates a next iteration op for `v` and adds a back edge from `v` to `m`. */
   @throws[IllegalArgumentException]
-  private[ops] def addNextIterationAndBackEdge[T <: OutputLike](
-      m: T, v: T, enforceShapeInvariant: Boolean = true): T = {
+  private[ops] def addNextIterationAndBackEdge[T, OL[A] <: OutputLike[A]](
+      m: OL[T],
+      v: OL[T],
+      enforceShapeInvariant: Boolean = true
+  ): OL[T] = {
     val result = (m, v) match {
-      case (mm: Output, vv: Output) =>
-        val nextVV = ControlFlow.nextIteration(vv)
+      case (mm: Output[T], vv: Output[T]) =>
+        val nextVV = ControlFlow.nextIteration(vv: Output[T])
         if (enforceShapeInvariant) {
           // Make sure the shapes of the loop outputs are correct. We do this before calling `updateInput`, which will
           // raise a less helpful error message if the types do not match.
@@ -611,8 +648,8 @@ object WhileLoopContext {
         }
         ControlFlow.updateInput(mm.op, 1, nextVV)
         nextVV
-      case (mm: OutputIndexedSlices, vv: OutputIndexedSlices) =>
-        val nextVV = ControlFlow.nextIteration(vv)
+      case (mm: OutputIndexedSlices[T], vv: OutputIndexedSlices[T]) =>
+        val nextVV = ControlFlow.nextIteration(vv: OutputIndexedSlices[T])
         ControlFlow.updateInput(mm.values.op, 1, nextVV.values)
         ControlFlow.updateInput(mm.indices.op, 1, nextVV.indices)
         if (mm.denseShape != null) {
@@ -622,8 +659,8 @@ object WhileLoopContext {
             ControlFlow.updateInput(mm.denseShape.op, 1, nextVV.denseShape)
         }
         nextVV
-      case (mm: SparseOutput, vv: SparseOutput) =>
-        val nextVV = ControlFlow.nextIteration(vv)
+      case (mm: SparseOutput[T], vv: SparseOutput[T]) =>
+        val nextVV = ControlFlow.nextIteration(vv: SparseOutput[T])
         ControlFlow.updateInput(mm.values.op, 1, nextVV.values)
         ControlFlow.updateInput(mm.indices.op, 1, nextVV.indices)
         if (mm.denseShape != null) {
@@ -637,7 +674,7 @@ object WhileLoopContext {
         throw new IllegalArgumentException(
           "Only 'Output', 'OutputIndexedSlices', and 'SparseOutput' are supported. Also, the tensor types must match.")
     }
-    result.asInstanceOf[T]
+    result.asInstanceOf[OL[T]]
   }
 
   //region Shape Invariants
@@ -662,19 +699,22 @@ object WhileLoopContext {
   @throws[ShapeMismatchException]
   @throws[IllegalArgumentException]
   private[WhileLoopContext] def setShapeInvariants(
-      inputTensors: Seq[OutputLike], enterTensors: Seq[OutputLike], shapes: Seq[Shape]): Unit = {
+      inputTensors: Seq[OutputLike[_]],
+      enterTensors: Seq[OutputLike[_]],
+      shapes: Seq[Shape]
+  ): Unit = {
     // Check that the shapes of the inputs are less than the shape invariants, and set the shapes of the enter tensors
     // to the shape invariants.
     for ((input, enter, shape) <- (inputTensors, enterTensors, shapes).zipped) {
       (input, enter) match {
-        case (i: Output, e: Output) =>
+        case (i: Output[_], e: Output[_]) =>
           if (!shapeLessThenOrEqual(i.shape, shape))
             throw ShapeMismatchException(
               s"The shape invariant specified for '${i.name}' is not compatible with the initial shape of the " +
                   s"loop variable. It enters the loop with shape '${i.shape}', but the specified shape invariant " +
                   s"is '$shape'.")
           e.setShape(shape)
-        case (i: OutputIndexedSlices, e: OutputIndexedSlices) =>
+        case (i: OutputIndexedSlices[_], e: OutputIndexedSlices[_]) =>
           if (!shapeLessThenOrEqual(i.values.shape, shape))
             throw ShapeMismatchException(
               s"The shape invariant specified for '${i.values.name}' is not compatible the initial shape of the " +
@@ -684,7 +724,7 @@ object WhileLoopContext {
           e.indices.setShape(Shape(shape(0)))
           if (e.denseShape != null)
             e.denseShape.setShape(Shape(shape.rank))
-        case (i: SparseOutput, e: SparseOutput) =>
+        case (i: SparseOutput[_], e: SparseOutput[_]) =>
           if (!shapeLessThenOrEqual(i.denseShape.shape, shape))
             throw ShapeMismatchException(
               s"The shape invariant specified for '${i.denseShape.name}' is not compatible the initial shape of the " +
@@ -712,16 +752,19 @@ object WhileLoopContext {
     */
   @throws[ShapeMismatchException]
   @throws[IllegalArgumentException]
-  private[WhileLoopContext] def enforceShapeInvariant(mergeTensor: OutputLike, nextTensor: OutputLike): Unit = {
+  private[WhileLoopContext] def enforceShapeInvariant(
+      mergeTensor: OutputLike[_],
+      nextTensor: OutputLike[_]
+  ): Unit = {
     (mergeTensor, nextTensor) match {
-      case (merge: Output, next: Output) =>
+      case (merge: Output[_], next: Output[_]) =>
         if (!shapeLessThenOrEqual(next.shape, merge.shape))
           throw ShapeMismatchException(
             s"The shape for '${merge.name}' is not an invariant for the loop. The tensor enters the loop with shape " +
                 s"'${merge.shape}', but has shape '${next.shape}' after one iteration. Please provide shape " +
                 s"invariants using either the 'shapeInvariants' argument of 'whileLoop' or the 'setShape' method of " +
                 s"the loop variables.")
-      case (merge: OutputIndexedSlices, next: OutputIndexedSlices) =>
+      case (merge: OutputIndexedSlices[_], next: OutputIndexedSlices[_]) =>
         val mergeValuesShape = merge.values.shape
         val mergeIndicesShape = merge.indices.shape
         val mergeDenseShapeShape = if (merge.denseShape != null) merge.denseShape.shape else Shape.unknown()
@@ -737,7 +780,7 @@ object WhileLoopContext {
                 s"'($nextValuesShape, $nextIndicesShape, $nextDenseShapeShape)' after one iteration. Please provide " +
                 s"shape invariants using either the 'shapeInvariants' argument of 'whileLoop' or the 'setShape' " +
                 s"method of the loop variables.")
-      case (merge: SparseOutput, next: SparseOutput) =>
+      case (merge: SparseOutput[_], next: SparseOutput[_]) =>
         val mergeValuesShape = merge.values.shape
         val mergeIndicesShape = merge.indices.shape
         val mergeDenseShapeShape = merge.denseShape.shape
@@ -756,7 +799,7 @@ object WhileLoopContext {
       case (_, _) =>
         throw new IllegalArgumentException(
           "Only 'Output', 'OutputIndexedSlices', and 'SparseOutput' are supported. Also, the merge tensor " +
-              "and the next tensor types must match>")
+              "and the next tensor types must match.")
     }
   }
 
@@ -769,7 +812,10 @@ object WhileLoopContext {
     *                         loaded from the provided [[WhileContextDef]].
     * @return Constructed [[WhileLoopContext]].
     */
-  def fromWhileContextDef(whileContextDef: WhileContextDef, importScope: String = null): WhileLoopContext = {
+  def fromWhileContextDef(
+      whileContextDef: WhileContextDef,
+      importScope: String = null
+  ): WhileLoopContext = {
     // TODO: !!! Add `maximumIterations` when possible.
     val graph = Op.currentGraph
     val name = Op.prependNameScope(importScope, whileContextDef.getContextName)
@@ -777,6 +823,7 @@ object WhileLoopContext {
     val enableBackPropagation = whileContextDef.getBackProp
     val swapMemory = whileContextDef.getSwapMemory
     val pivot = graph.getOutputByName(Op.prependNameScope(importScope, whileContextDef.getPivotName))
+        .asInstanceOf[Output[Boolean]]
     val pivotForPredicate = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForPredName))
     val pivotForBody = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForBodyName))
     val loopEnters = mutable.Set(whileContextDef.getLoopEnterNamesList.asScala.map(name => {
@@ -831,20 +878,34 @@ object WhileLoopContext {
 trait WhileLoopVariable[T] {
   type ShapeType
 
+  // TODO: [TYPES] !!! The `dataType` argument here is not type safe.
+
   /** Helper used by the RNN construction code to create default states. */
-  def zero(batchSize: Output, dataType: DataType[_], shape: ShapeType, name: String = "Zero"): T
+  def zero(
+      batchSize: Output[Int],
+      shape: ShapeType,
+      name: String = "Zero"
+  ): T
 
   def size(output: T): Int
-  def outputs(output: T): Seq[Output]
+  def outputs(output: T): Seq[Output[Any]]
   def shapes(shape: ShapeType): Seq[Shape]
-  def fromOutputs(output: T, values: Seq[Output]): T = segmentOutputs(output, values)._1
-  def segmentOutputs(output: T, values: Seq[Output]): (T, Seq[Output])
+  def fromOutputs(output: T, values: Seq[Output[Any]]): T = segmentOutputs(output, values)._1
+  def segmentOutputs(output: T, values: Seq[Output[Any]]): (T, Seq[Output[Any]])
   def fromShapes(output: T, values: Seq[Shape]): ShapeType = segmentShapes(output, values)._1
   def segmentShapes(output: T, values: Seq[Shape]): (ShapeType, Seq[Shape])
 
-  // TODO: These "map" function involve some runtime checking for the "Symbol" type that would be good to work around.
-  def map(value: T, mapFn: OutputConvertible => OutputConvertible): T
-  def mapWithShape(value: T, shape: ShapeType, mapFn: (OutputConvertible, Shape) => OutputConvertible): T
+  // TODO: These "map" functions involve some runtime checking for the "Symbol" type that would be good to work around.
+  def map[O <: OutputLikeOrTensorArray[_]](
+      value: T,
+      mapFn: O => O
+  ): T
+
+  def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+      value: T,
+      shape: ShapeType,
+      mapFn: (O, Shape) => O
+  ): T
 }
 
 object WhileLoopVariable {
@@ -852,176 +913,260 @@ object WhileLoopVariable {
     type ShapeType = TS
   }
 
-  implicit val outputWhileLoopVariable: Aux[Output, Shape] = new WhileLoopVariable[Output] {
-    override type ShapeType = Shape
-
-    override def zero(batchSize: Output, dataType: DataType[_], shape: Shape, name: String = "Zero"): Output = {
-      val staticBatchSize = Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1)
-      Op.createWithNameScope(name, Set(batchSize.op)) {
-        val fullShape = Basic.concatenate(
-          Seq(batchSize.expandDims(0), shape.toOutput(batchSize.dataType)), axis = 0)
-        val zero = Basic.zeros(dataType, fullShape)
-        zero.setShape(Shape(staticBatchSize) ++ shape)
-        zero
-      }
-    }
-
-    override def size(output: Output): Int = 1
-    override def outputs(output: Output): Seq[Output] = Seq(output)
-    override def shapes(shape: Shape): Seq[Shape] = Seq(shape)
-
-    override def segmentOutputs(output: Output, values: Seq[Output]): (Output, Seq[Output]) = {
-      (values.head, values.tail)
-    }
-
-    override def segmentShapes(output: Output, values: Seq[Shape]): (Shape, Seq[Shape]) = {
-      (values.head, values.tail)
-    }
-
-    override def map(value: Output, mapFn: OutputConvertible => OutputConvertible): Output = {
-      mapFn(value).asInstanceOf[Output]
-    }
-
-    override def mapWithShape(
-        value: Output,
-        shape: Shape,
-        mapFn: (OutputConvertible, Shape) => OutputConvertible
-    ): Output = {
-      mapFn(value, shape).asInstanceOf[Output]
-    }
-  }
-
-  implicit val outputIndexedSlicesWhileLoopVariable: Aux[OutputIndexedSlices, Shape] = {
-    new WhileLoopVariable[OutputIndexedSlices] {
+  implicit def outputWhileLoopVariable[T: DataType]: Aux[Output[T], Shape] = {
+    new WhileLoopVariable[Output[T]] {
       override type ShapeType = Shape
 
       override def zero(
-          batchSize: Output,
-          dataType: DataType[_],
+          batchSize: Output[Int],
           shape: Shape,
           name: String = "Zero"
-      ): OutputIndexedSlices = {
-        Op.createWithNameScope(name, Set(batchSize.op)) {
-          val fullShape = Basic.concatenate(
-            Seq(batchSize.expandDims(0), shape.toOutput(batchSize.dataType)), axis = 0)
-          OutputIndexedSlices(
-            Basic.zeros(INT32, Shape(0)),
-            Basic.zeros(dataType, Shape.fromSeq(0 +: shape.asArray)),
-            fullShape)
+      ): Output[T] = {
+        val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
+        Op.nameScope(name) {
+          val fullShape = Basic.concatenate(Seq(
+            batchSize.expandDims(0),
+            shape.toOutput(batchSize.dataType)
+          ), axis = 0)
+          val zero = Basic.zeros(implicitly[DataType[T]], fullShape)
+          zero.setShape(Shape(staticBatchSize) ++ shape)
+          zero.asInstanceOf[Output[T]]
         }
       }
 
-      override def size(output: OutputIndexedSlices): Int = 3
+      override def size(output: Output[T]): Int = {
+        1
+      }
 
-      override def outputs(output: OutputIndexedSlices): Seq[Output] = {
+      override def outputs(output: Output[T]): Seq[Output[Any]] = {
+        Seq(output)
+      }
+
+      override def shapes(shape: Shape): Seq[Shape] = {
+        Seq(shape)
+      }
+
+      override def segmentOutputs(
+          output: Output[T],
+          values: Seq[Output[Any]]
+      ): (Output[T], Seq[Output[Any]]) = {
+        (values.head.asInstanceOf[Output[T]], values.tail)
+      }
+
+      override def segmentShapes(
+          output: Output[T],
+          values: Seq[Shape]
+      ): (Shape, Seq[Shape]) = {
+        (values.head, values.tail)
+      }
+
+      override def map[O <: OutputLikeOrTensorArray[_]](
+          value: Output[T],
+          mapFn: O => O
+      ): Output[T] = {
+        mapFn(value).asInstanceOf[Output[T]]
+      }
+
+      override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+          value: Output[T],
+          shape: ShapeType,
+          mapFn: (O, Shape) => O
+      ): Output[T] = {
+        mapFn(value, shape).asInstanceOf[Output[T]]
+      }
+    }
+  }
+
+  implicit def outputIndexedSlicesWhileLoopVariable[T: DataType]: Aux[OutputIndexedSlices[T], Shape] = {
+    new WhileLoopVariable[OutputIndexedSlices[T]] {
+      override type ShapeType = Shape
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: Shape,
+          name: String = "Zero"
+      ): OutputIndexedSlices[T] = {
+        Op.nameScope(name) {
+          val fullShape = Basic.concatenate(Seq(
+            batchSize.expandDims(0),
+            shape.toOutput(batchSize.dataType)
+          ), axis = 0)
+          OutputIndexedSlices(
+            indices = Basic.zeros(INT64, Shape(0)),
+            values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
+            denseShape = fullShape.toInt64).asInstanceOf[OutputIndexedSlices[T]]
+        }
+      }
+
+      override def size(output: OutputIndexedSlices[T]): Int = {
+        3
+      }
+
+      override def outputs(output: OutputIndexedSlices[T]): Seq[Output[Any]] = {
         Seq(output.indices, output.values, output.denseShape)
       }
 
-      override def shapes(shape: Shape): Seq[Shape] = Seq(shape)
-
-      override def segmentOutputs(
-          output: OutputIndexedSlices,
-          values: Seq[Output]
-      ): (OutputIndexedSlices, Seq[Output]) = {
-        (OutputIndexedSlices(values(0), values(1), values(2)), values.drop(3))
+      override def shapes(shape: Shape): Seq[Shape] = {
+        Seq(shape)
       }
 
-      override def segmentShapes(output: OutputIndexedSlices, values: Seq[Shape]): (Shape, Seq[Shape]) = {
+      override def segmentOutputs(
+          output: OutputIndexedSlices[T],
+          values: Seq[Output[Any]]
+      ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+        (OutputIndexedSlices(
+          indices = values(0).asInstanceOf[Output[Long]],
+          values = values(1).asInstanceOf[Output[T]],
+          denseShape = values(2).asInstanceOf[Output[Long]]
+        ), values.drop(3))
+      }
+
+      override def segmentShapes(
+          output: OutputIndexedSlices[T],
+          values: Seq[Shape]
+      ): (Shape, Seq[Shape]) = {
         (values.head, values.tail)
       }
 
-      override def map(
-          value: OutputIndexedSlices,
-          mapFn: OutputConvertible => OutputConvertible
-      ): OutputIndexedSlices = {
-        mapFn(value).asInstanceOf[OutputIndexedSlices]
+      override def map[O <: OutputLikeOrTensorArray[_]](
+          value: OutputIndexedSlices[T],
+          mapFn: O => O
+      ): OutputIndexedSlices[T] = {
+        mapFn(value).asInstanceOf[OutputIndexedSlices[T]]
       }
 
-      override def mapWithShape(
-          value: OutputIndexedSlices,
-          shape: Shape,
-          mapFn: (OutputConvertible, Shape) => OutputConvertible
-      ): OutputIndexedSlices = {
-        mapFn(value, shape).asInstanceOf[OutputIndexedSlices]
+      override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+          value: OutputIndexedSlices[T],
+          shape: ShapeType,
+          mapFn: (O, Shape) => O
+      ): OutputIndexedSlices[T] = {
+        mapFn(value, shape).asInstanceOf[OutputIndexedSlices[T]]
       }
     }
   }
 
-  implicit val sparseOutputWhileLoopVariable: Aux[SparseOutput, Shape] = {
-    new WhileLoopVariable[SparseOutput] {
+  implicit def sparseOutputWhileLoopVariable[T: DataType]: Aux[SparseOutput[T], Shape] = {
+    new WhileLoopVariable[SparseOutput[T]] {
       override type ShapeType = Shape
 
       override def zero(
-          batchSize: Output,
-          dataType: DataType[_],
+          batchSize: Output[Int],
           shape: Shape,
           name: String = "Zero"
-      ): SparseOutput = {
-        Op.createWithNameScope(name, Set(batchSize.op)) {
-          val fullShape = Basic.concatenate(
-            Seq(batchSize.expandDims(0), shape.toOutput(batchSize.dataType)), axis = 0)
+      ): SparseOutput[T] = {
+        Op.nameScope(name) {
+          val fullShape = Basic.concatenate(Seq(
+            batchSize.expandDims(0),
+            shape.toOutput(batchSize.dataType)
+          ), axis = 0)
           SparseOutput(
-            Basic.zeros(INT32, Shape(0, fullShape.rank)),
-            Basic.zeros(dataType, Shape(0)),
-            fullShape)
+            indices = Basic.zeros(INT64, Shape(0)),
+            values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
+            denseShape = fullShape.toInt64).asInstanceOf[SparseOutput[T]]
         }
       }
 
-      override def size(output: SparseOutput): Int = 3
-      override def outputs(output: SparseOutput): Seq[Output] = Seq(output.indices, output.values, output.denseShape)
-      override def shapes(shape: Shape): Seq[Shape] = Seq(shape)
-
-      override def segmentOutputs(output: SparseOutput, values: Seq[Output]): (SparseOutput, Seq[Output]) = {
-        (SparseOutput(values(0), values(1), values(2)), values.drop(3))
+      override def size(output: SparseOutput[T]): Int = {
+        3
       }
 
-      override def segmentShapes(output: SparseOutput, values: Seq[Shape]): (Shape, Seq[Shape]) = {
+      override def outputs(output: SparseOutput[T]): Seq[Output[Any]] = {
+        Seq(output.indices, output.values, output.denseShape)
+      }
+
+      override def shapes(shape: Shape): Seq[Shape] = {
+        Seq(shape)
+      }
+
+      override def segmentOutputs(
+          output: SparseOutput[T],
+          values: Seq[Output[Any]]
+      ): (SparseOutput[T], Seq[Output[Any]]) = {
+        (SparseOutput(
+          indices = values(0).asInstanceOf[Output[Long]],
+          values = values(1).asInstanceOf[Output[T]],
+          denseShape = values(2).asInstanceOf[Output[Long]]
+        ), values.drop(3))
+      }
+
+      override def segmentShapes(
+          output: SparseOutput[T],
+          values: Seq[Shape]
+      ): (Shape, Seq[Shape]) = {
         (values.head, values.tail)
       }
 
-      override def map(value: SparseOutput, mapFn: OutputConvertible => OutputConvertible): SparseOutput = {
-        mapFn(value).asInstanceOf[SparseOutput]
+      override def map[O <: OutputLikeOrTensorArray[_]](
+          value: SparseOutput[T],
+          mapFn: O => O
+      ): SparseOutput[T] = {
+        mapFn(value).asInstanceOf[SparseOutput[T]]
       }
 
-      override def mapWithShape(
-          value: SparseOutput,
-          shape: Shape,
-          mapFn: (OutputConvertible, Shape) => OutputConvertible
-      ): SparseOutput = {
-        mapFn(value, shape).asInstanceOf[SparseOutput]
+      override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+          value: SparseOutput[T],
+          shape: ShapeType,
+          mapFn: (O, Shape) => O
+      ): SparseOutput[T] = {
+        mapFn(value, shape).asInstanceOf[SparseOutput[T]]
       }
     }
   }
 
-  implicit val tensorArrayWhileLoopVariable: Aux[TensorArray, Shape] = new WhileLoopVariable[TensorArray] {
-    override type ShapeType = Shape
+  implicit def tensorArrayWhileLoopVariable[T]: Aux[TensorArray[T], Shape] = {
+    new WhileLoopVariable[TensorArray[T]] {
+      override type ShapeType = Shape
 
-    override def zero(batchSize: Output, dataType: DataType[_], shape: Shape, name: String = "Zero"): TensorArray = ???
+      override def zero(
+          batchSize: Output[Int],
+          shape: Shape,
+          name: String = "Zero"
+      ): TensorArray[T] = {
+        ???
+      }
 
-    override def size(output: TensorArray): Int = 1
-    override def outputs(output: TensorArray): Seq[Output] = Seq(output.flow)
-    override def shapes(shape: Shape): Seq[Shape] = Seq(shape)
+      override def size(output: TensorArray[T]): Int = {
+        1
+      }
 
-    override def segmentOutputs(output: TensorArray, values: Seq[Output]): (TensorArray, Seq[Output]) = {
-      val newTensorArray = output.copy(flow = values.head)
-      // TODO: !!! [TENSOR_ARRAY] What about colocate with?
-      (newTensorArray, values.tail)
-    }
+      override def outputs(output: TensorArray[T]): Seq[Output[Any]] = {
+        Seq(output.flow)
+      }
 
-    override def segmentShapes(output: TensorArray, values: Seq[Shape]): (Shape, Seq[Shape]) = {
-      (values.head, values.tail)
-    }
+      override def shapes(shape: Shape): Seq[Shape] = {
+        Seq(shape)
+      }
 
-    override def map(value: TensorArray, mapFn: OutputConvertible => OutputConvertible): TensorArray = {
-      mapFn(value).asInstanceOf[TensorArray]
-    }
+      override def segmentOutputs(
+          output: TensorArray[T],
+          values: Seq[Output[Any]]
+      ): (TensorArray[T], Seq[Output[Any]]) = {
+        val newTensorArray = output.copy(flow = values.head.asInstanceOf[Output[Float]])
+        // TODO: !!! [TENSOR_ARRAY] What about colocate with?
+        (newTensorArray, values.tail)
+      }
 
-    override def mapWithShape(
-        value: TensorArray,
-        shape: Shape,
-        mapFn: (OutputConvertible, Shape) => OutputConvertible
-    ): TensorArray = {
-      mapFn(value, shape).asInstanceOf[TensorArray]
+      override def segmentShapes(
+          output: TensorArray[T],
+          values: Seq[Shape]
+      ): (Shape, Seq[Shape]) = {
+        (values.head, values.tail)
+      }
+
+      override def map[O <: OutputLikeOrTensorArray[_]](
+          value: TensorArray[T],
+          mapFn: O => O
+      ): TensorArray[T] = {
+        mapFn(value).asInstanceOf[TensorArray[T]]
+      }
+
+      override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+          value: TensorArray[T],
+          shape: ShapeType,
+          mapFn: (O, Shape) => O
+      ): TensorArray[T] = {
+        mapFn(value, shape).asInstanceOf[TensorArray[T]]
+      }
     }
   }
 
@@ -1029,36 +1174,57 @@ object WhileLoopVariable {
     new WhileLoopVariable[Array[T]] {
       override type ShapeType = Array[TS]
 
-      override def zero(batchSize: Output, dataType: DataType[_], shape: Array[TS], name: String): Array[T] = {
-        Op.createWithNameScope(name) {
-          shape.map(ev.zero(batchSize, dataType, _))
+      override def zero(
+          batchSize: Output[Int],
+          shape: Array[TS],
+          name: String
+      ): Array[T] = {
+        Op.nameScope(name) {
+          shape.map(ev.zero(batchSize, _))
         }
       }
 
-      override def size(output: Array[T]): Int = output.map(ev.size).sum
-      override def outputs(output: Array[T]): Seq[Output] = output.toSeq.flatMap(ev.outputs)
-      override def shapes(shape: Array[TS]): Seq[Shape] = shape.toSeq.flatMap(ev.shapes)
+      override def size(output: Array[T]): Int = {
+        output.map(ev.size).sum
+      }
 
-      override def segmentOutputs(output: Array[T], values: Seq[Output]): (Array[T], Seq[Output]) = {
+      override def outputs(output: Array[T]): Seq[Output[Any]] = {
+        output.toSeq.flatMap(ev.outputs)
+      }
+
+      override def shapes(shape: Array[TS]): Seq[Shape] = {
+        shape.toSeq.flatMap(ev.shapes)
+      }
+
+      override def segmentOutputs(
+          output: Array[T],
+          values: Seq[Output[Any]]
+      ): (Array[T], Seq[Output[Any]]) = {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromOutputs(f._1, f._2)), values.drop(n))
       }
 
-      override def segmentShapes(output: Array[T], values: Seq[Shape]): (Array[TS], Seq[Shape]) = {
+      override def segmentShapes(
+          output: Array[T],
+          values: Seq[Shape]
+      ): (Array[TS], Seq[Shape]) = {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromShapes(f._1, f._2)), values.drop(n))
       }
 
-      override def map(value: Array[T], mapFn: OutputConvertible => OutputConvertible): Array[T] = {
+      override def map[O <: OutputLikeOrTensorArray[_]](
+          value: Array[T],
+          mapFn: O => O
+      ): Array[T] = {
         value.map(ev.map(_, mapFn))
       }
 
-      override def mapWithShape(
+      override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
           value: Array[T],
           shape: Array[TS],
-          mapFn: (OutputConvertible, Shape) => OutputConvertible
+          mapFn: (O, Shape) => O
       ): Array[T] = {
         value.zip(shape).map(p => ev.mapWithShape(p._1, p._2, mapFn))
       }
@@ -1074,36 +1240,57 @@ object WhileLoopVariable {
     new WhileLoopVariable[CC[T]] {
       override type ShapeType = CC[TS]
 
-      override def zero(batchSize: Output, dataType: DataType[_], shape: CC[TS], name: String): CC[T] = {
-        Op.createWithNameScope(name) {
-          shape.map(ev.zero(batchSize, dataType, _))(cbfTST)
+      override def zero(
+          batchSize: Output[Int],
+          shape: CC[TS],
+          name: String
+      ): CC[T] = {
+        Op.nameScope(name) {
+          shape.map(ev.zero(batchSize, _))(cbfTST)
         }
       }
 
-      override def size(output: CC[T]): Int = output.map(ev.size).sum
-      override def outputs(output: CC[T]): Seq[Output] = output.flatMap(ev.outputs).toSeq
-      override def shapes(shape: CC[TS]): Seq[Shape] = shape.flatMap(ev.shapes).toSeq
+      override def size(output: CC[T]): Int = {
+        output.map(ev.size).sum
+      }
 
-      override def segmentOutputs(output: CC[T], values: Seq[Output]): (CC[T], Seq[Output]) = {
+      override def outputs(output: CC[T]): Seq[Output[Any]] = {
+        output.flatMap(ev.outputs).toSeq
+      }
+
+      override def shapes(shape: CC[TS]): Seq[Shape] = {
+        shape.flatMap(ev.shapes).toSeq
+      }
+
+      override def segmentOutputs(
+          output: CC[T],
+          values: Seq[Output[Any]]
+      ): (CC[T], Seq[Output[Any]]) = {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromOutputs(f._1, f._2)).to[CC](cbfTT), values.drop(n))
       }
 
-      override def segmentShapes(output: CC[T], values: Seq[Shape]): (CC[TS], Seq[Shape]) = {
+      override def segmentShapes(
+          output: CC[T],
+          values: Seq[Shape]
+      ): (CC[TS], Seq[Shape]) = {
         val n = size(output)
         (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
             .map(f => ev.fromShapes(f._1, f._2)).to[CC](cbfTTS), values.drop(n))
       }
 
-      override def map(value: CC[T], mapFn: OutputConvertible => OutputConvertible): CC[T] = {
+      override def map[O <: OutputLikeOrTensorArray[_]](
+          value: CC[T],
+          mapFn: O => O
+      ): CC[T] = {
         value.map(ev.map(_, mapFn))
       }
 
-      override def mapWithShape(
+      override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
           value: CC[T],
           shape: CC[TS],
-          mapFn: (OutputConvertible, Shape) => OutputConvertible
+          mapFn: (O, Shape) => O
       ): CC[T] = {
         value.zip(shape.toSeq).map(p => ev.mapWithShape(p._1, p._2, mapFn)).to[CC](cbfTT)
       }
@@ -1116,17 +1303,32 @@ object WhileLoopVariable {
     new WhileLoopVariable[Map[MK, T]] {
       override type ShapeType = Map[MK, TS]
 
-      override def zero(batchSize: Output, dataType: DataType[_], shape: Map[MK, TS], name: String): Map[MK, T] = {
-        Op.createWithNameScope(name) {
-          shape.mapValues(ev.zero(batchSize, dataType, _))
+      override def zero(
+          batchSize: Output[Int],
+          shape: Map[MK, TS],
+          name: String
+      ): Map[MK, T] = {
+        Op.nameScope(name) {
+          shape.mapValues(ev.zero(batchSize, _))
         }
       }
 
-      override def size(output: Map[MK, T]): Int = output.values.map(ev.size).sum
-      override def outputs(output: Map[MK, T]): Seq[Output] = output.values.flatMap(ev.outputs).toSeq
-      override def shapes(shape: Map[MK, TS]): Seq[Shape] = shape.values.flatMap(ev.shapes).toSeq
+      override def size(output: Map[MK, T]): Int = {
+        output.values.map(ev.size).sum
+      }
 
-      override def segmentOutputs(output: Map[MK, T], values: Seq[Output]): (Map[MK, T], Seq[Output]) = {
+      override def outputs(output: Map[MK, T]): Seq[Output[Any]] = {
+        output.values.flatMap(ev.outputs).toSeq
+      }
+
+      override def shapes(shape: Map[MK, TS]): Seq[Shape] = {
+        shape.values.flatMap(ev.shapes).toSeq
+      }
+
+      override def segmentOutputs(
+          output: Map[MK, T],
+          values: Seq[Output[Any]]
+      ): (Map[MK, T], Seq[Output[Any]]) = {
         val n = size(output)
         (output.keys.zip(
           output.values
@@ -1134,7 +1336,10 @@ object WhileLoopVariable {
               .map(f => ev.fromOutputs(f._1, f._2))).toMap, values.drop(n))
       }
 
-      override def segmentShapes(output: Map[MK, T], values: Seq[Shape]): (Map[MK, TS], Seq[Shape]) = {
+      override def segmentShapes(
+          output: Map[MK, T],
+          values: Seq[Shape]
+      ): (Map[MK, TS], Seq[Shape]) = {
         val n = size(output)
         (output.keys.zip(
           output.values
@@ -1142,14 +1347,17 @@ object WhileLoopVariable {
               .map(f => ev.fromShapes(f._1, f._2))).toMap, values.drop(n))
       }
 
-      override def map(value: Map[MK, T], mapFn: OutputConvertible => OutputConvertible): Map[MK, T] = {
+      override def map[O <: OutputLikeOrTensorArray[_]](
+          value: Map[MK, T],
+          mapFn: O => O
+      ): Map[MK, T] = {
         value.mapValues(ev.map(_, mapFn))
       }
 
-      override def mapWithShape(
+      override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
           value: Map[MK, T],
           shape: Map[MK, TS],
-          mapFn: (OutputConvertible, Shape) => OutputConvertible
+          mapFn: (O, Shape) => O
       ): Map[MK, T] = {
         value.map(p => p._1 -> ev.mapWithShape(p._2, shape(p._1), mapFn))
       }
@@ -1159,20 +1367,54 @@ object WhileLoopVariable {
   implicit val hnil: Aux[HNil, HNil] = new WhileLoopVariable[HNil] {
     override type ShapeType = HNil
 
-    override def zero(batchSize: Output, dataType: DataType[_], shape: HNil, name: String = "Zero"): HNil = HNil
-    override def size(output: HNil): Int = 0
-    override def outputs(output: HNil): Seq[Output] = Seq.empty[Output]
-    override def shapes(shape: HNil): Seq[Shape] = Seq.empty[Shape]
-    override def segmentOutputs(output: HNil, values: Seq[Output]): (HNil, Seq[Output]) = (HNil, values)
-    override def segmentShapes(output: HNil, values: Seq[Shape]): (HNil, Seq[Shape]) = (HNil, values)
+    override def zero(
+        batchSize: Output[Int],
+        shape: HNil,
+        name: String = "Zero"
+    ): HNil = {
+      HNil
+    }
 
-    override def map(value: HNil, mapFn: OutputConvertible => OutputConvertible): HNil = HNil
+    override def size(output: HNil): Int = {
+      0
+    }
 
-    override def mapWithShape(
+    override def outputs(output: HNil): Seq[Output[Any]] = {
+      Seq.empty
+    }
+
+    override def shapes(shape: HNil): Seq[Shape] = {
+      Seq.empty
+    }
+
+    override def segmentOutputs(
+        output: HNil,
+        values: Seq[Output[Any]]
+    ): (HNil, Seq[Output[Any]]) = {
+      (HNil, values)
+    }
+
+    override def segmentShapes(
+        output: HNil,
+        values: Seq[Shape]
+    ): (HNil, Seq[Shape]) = {
+      (HNil, values)
+    }
+
+    override def map[O <: OutputLikeOrTensorArray[_]](
+        value: HNil,
+        mapFn: O => O
+    ): HNil = {
+      HNil
+    }
+
+    override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
         value: HNil,
         shape: HNil,
-        mapFn: (OutputConvertible, Shape) => OutputConvertible
-    ): HNil = HNil
+        mapFn: (O, Shape) => O
+    ): HNil = {
+      HNil
+    }
   }
 
   implicit def recursiveConstructor[H, HS, T <: HList, TS <: HList](implicit
@@ -1181,44 +1423,65 @@ object WhileLoopVariable {
   ): Aux[H :: T, HS :: TS] = new WhileLoopVariable[H :: T] {
     override type ShapeType = HS :: TS
 
-    override def zero(batchSize: Output, dataType: DataType[_], shape: HS :: TS, name: String = "Zero"): H :: T = {
-      Op.createWithNameScope(name) {
-        evHead.value.zero(batchSize, dataType, shape.head) :: evTail.zero(batchSize, dataType, shape.tail)
+    override def zero(
+        batchSize: Output[Int],
+        shape: HS :: TS,
+        name: String = "Zero"
+    ): H :: T = {
+      Op.nameScope(name) {
+        evHead.value.zero(batchSize, shape.head) ::
+            evTail.zero(batchSize, shape.tail)
       }
     }
 
-    override def size(output: H :: T): Int = evHead.value.size(output.head) + evTail.size(output.tail)
+    override def size(output: H :: T): Int = {
+      evHead.value.size(output.head) +
+          evTail.size(output.tail)
+    }
 
-    override def outputs(output: H :: T): Seq[Output] = {
-      evHead.value.outputs(output.head) ++ evTail.outputs(output.tail)
+    override def outputs(output: H :: T): Seq[Output[Any]] = {
+      evHead.value.outputs(output.head) ++
+          evTail.outputs(output.tail)
     }
 
     override def shapes(shape: HS :: TS): Seq[Shape] = {
-      evHead.value.shapes(shape.head) ++ evTail.shapes(shape.tail)
+      evHead.value.shapes(shape.head) ++
+          evTail.shapes(shape.tail)
     }
 
-    override def segmentOutputs(output: H :: T, values: Seq[Output]): (H :: T, Seq[Output]) = {
+    override def segmentOutputs(
+        output: H :: T,
+        values: Seq[Output[Any]]
+    ): (H :: T, Seq[Output[Any]]) = {
       val (headOut, headRemaining) = evHead.value.segmentOutputs(output.head, values)
       val (tailOut, tailRemaining) = evTail.segmentOutputs(output.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
     }
 
-    override def segmentShapes(output: H :: T, values: Seq[Shape]): (HS :: TS, Seq[Shape]) = {
+    override def segmentShapes(
+        output: H :: T,
+        values: Seq[Shape]
+    ): (HS :: TS, Seq[Shape]) = {
       val (headOut, headRemaining) = evHead.value.segmentShapes(output.head, values)
       val (tailOut, tailRemaining) = evTail.segmentShapes(output.tail, headRemaining)
       (headOut :: tailOut, tailRemaining)
     }
 
-    override def map(value: H :: T, mapFn: OutputConvertible => OutputConvertible): H :: T = {
-      evHead.value.map(value.head, mapFn) :: evTail.map(value.tail, mapFn)
+    override def map[O <: OutputLikeOrTensorArray[_]](
+        value: H :: T,
+        mapFn: O => O
+    ): H :: T = {
+      evHead.value.map(value.head, mapFn) ::
+          evTail.map(value.tail, mapFn)
     }
 
-    override def mapWithShape(
+    override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
         value: H :: T,
         shape: HS :: TS,
-        mapFn: (OutputConvertible, Shape) => OutputConvertible
+        mapFn: (O, Shape) => O
     ): H :: T = {
-      evHead.value.mapWithShape(value.head, shape.head, mapFn) :: evTail.mapWithShape(value.tail, shape.tail, mapFn)
+      evHead.value.mapWithShape(value.head, shape.head, mapFn) ::
+          evTail.mapWithShape(value.tail, shape.tail, mapFn)
     }
   }
 
@@ -1231,29 +1494,54 @@ object WhileLoopVariable {
   ): Aux[P, PS] = new WhileLoopVariable[P] {
     override type ShapeType = PS
 
-    override def zero(batchSize: Output, dataType: DataType[_], shape: PS, name: String = "Zero"): P = {
-      tuplerP(evL.zero(batchSize, dataType, genS.to(shape), name))
+    override def zero(
+        batchSize: Output[Int],
+        shape: PS,
+        name: String = "Zero"
+    ): P = {
+      tuplerP(evL.zero(batchSize, genS.to(shape), name))
     }
 
-    override def size(output: P): Int = evL.size(genP.to(output))
-    override def outputs(output: P): Seq[Output] = evL.outputs(genP.to(output))
-    override def shapes(shape: PS): Seq[Shape] = evL.shapes(genS.to(shape))
+    override def size(output: P): Int = {
+      evL.size(genP.to(output))
+    }
 
-    override def segmentOutputs(output: P, values: Seq[Output]): (P, Seq[Output]) = {
+    override def outputs(output: P): Seq[Output[Any]] = {
+      evL.outputs(genP.to(output))
+    }
+
+    override def shapes(shape: PS): Seq[Shape] = {
+      evL.shapes(genS.to(shape))
+    }
+
+    override def segmentOutputs(
+        output: P,
+        values: Seq[Output[Any]]
+    ): (P, Seq[Output[Any]]) = {
       val (out, remaining) = evL.segmentOutputs(genP.to(output), values)
       (tuplerP(out), remaining)
     }
 
-    override def segmentShapes(output: P, values: Seq[Shape]): (PS, Seq[Shape]) = {
+    override def segmentShapes(
+        output: P,
+        values: Seq[Shape]
+    ): (PS, Seq[Shape]) = {
       val (out, remaining) = evL.segmentShapes(genP.to(output), values)
       (tuplerS(out), remaining)
     }
 
-    override def map(value: P, mapFn: OutputConvertible => OutputConvertible): P = {
+    override def map[O <: OutputLikeOrTensorArray[_]](
+        value: P,
+        mapFn: O => O
+    ): P = {
       tuplerP(evL.map(genP.to(value), mapFn))
     }
 
-    override def mapWithShape(value: P, shape: PS, mapFn: (OutputConvertible, Shape) => OutputConvertible): P = {
+    override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+        value: P,
+        shape: PS,
+        mapFn: (O, Shape) => O
+    ): P = {
       tuplerP(evL.mapWithShape(genP.to(value), genS.to(shape), mapFn))
     }
   }
