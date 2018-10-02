@@ -18,37 +18,51 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{BOOLEAN, STRING}
+import org.platanios.tensorflow.api.types.STRING
 
 /** Represents a TensorFlow resource.
   *
   * @param  handle        Handle to the resource.
   * @param  initializeOp  Op that initializes the resource.
-  * @param  isInitialized [[BOOLEAN]] scalar tensor denoting whether this resource has been initialized.
+  * @param  isInitialized Scalar tensor denoting whether this resource has been initialized.
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Resource(handle: Output, initializeOp: Op, isInitialized: Output)
+case class Resource(
+    handle: Output[Long],
+    initializeOp: UntypedOp,
+    isInitialized: Output[Boolean])
 
 trait Resources {
   /** Returns the set of all shared resources used by the current graph which need to be initialized once per cluster. */
-  def sharedResources: Set[Resource] = Op.currentGraph.sharedResources
+  def sharedResources: Set[Resource] = {
+    Op.currentGraph.sharedResources
+  }
 
   /** Returns the set of all local resources used by the current graph which need to be initialized once per cluster. */
-  def localResources: Set[Resource] = Op.currentGraph.localResources
+  def localResources: Set[Resource] = {
+    Op.currentGraph.localResources
+  }
 
   /** Returns an initializer op for all provided resources. */
-  def resourcesInitializer(resources: Set[Resource], name: String = "ResourcesInitializer"): Op = {
+  def resourcesInitializer(
+      resources: Set[Resource],
+      name: String = "ResourcesInitializer"
+  ): Op[Unit, Unit] = {
     Resources.initializer(resources, name)
   }
 
   /** Returns an initializer op for all shared resources that have been created in the current graph. */
-  def sharedResourcesInitializer(name: String = "SharedResourcesInitializer"): Op = {
+  def sharedResourcesInitializer(
+      name: String = "SharedResourcesInitializer"
+  ): Op[Unit, Unit] = {
     Resources.initializer(sharedResources, name)
   }
 
   /** Returns an initializer op for all local resources that have been created in the current graph. */
-  def localResourcesInitializer(name: String = "LocalResourcesInitializer"): Op = {
+  def localResourcesInitializer(
+      name: String = "LocalResourcesInitializer"
+  ): Op[Unit, Unit] = {
     Resources.initializer(localResources, name)
   }
 }
@@ -63,7 +77,11 @@ object Resources extends Resources {
     *                  the local resource collection.
     * @param  graph    Graph to register the resource in.
     */
-  def register(resource: Resource, isShared: Boolean = true, graph: Graph = Op.currentGraph): Unit = {
+  def register(
+      resource: Resource,
+      isShared: Boolean = true,
+      graph: Graph = Op.currentGraph
+  ): Unit = {
     if (isShared)
       graph.addToCollection(resource, Graph.Keys.SHARED_RESOURCES)
     else
@@ -76,7 +94,10 @@ object Resources extends Resources {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def initializer(resources: Set[Resource], name: String = "ResourcesInitializer"): Op = {
+  def initializer(
+      resources: Set[Resource],
+      name: String = "ResourcesInitializer"
+  ): Op[Unit, Unit] = {
     if (resources.isEmpty)
       ControlFlow.noOp(name)
     else
@@ -96,7 +117,7 @@ object Resources extends Resources {
   def uninitializedResources(
       resources: Set[Resource] = sharedResources ++ localResources,
       name: String = "UninitializedResources"
-  ): Output = {
+  ): Output[String] = {
     // Run all operations on the CPU.
     Op.createWith(nameScope = name, device = "/CPU:0") {
       if (resources.isEmpty) {
