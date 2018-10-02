@@ -21,39 +21,49 @@ import org.platanios.tensorflow.api.types._
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Cast {
+trait Cast {
   /** $OpDocCastCast
     *
     * @group CastOps
+    *
     * @param  x        Tensor to cast.
     * @param  dataType Target data type.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def cast[T <: OutputLike : OutputOps](x: T, dataType: DataType[_], truncate: Boolean = false, name: String = "Cast"): T = {
+  def cast[T, R, OL[TT] <: OutputLike[TT]](
+      x: OL[T],
+      dataType: DataType[R],
+      truncate: Boolean = false,
+      name: String = "Cast"
+  )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
     if (x.dataType == dataType) {
-      x
+      x.asInstanceOf[OL[R]]
     } else {
-      if (x.dataType.isComplex && !dataType.isComplex)
-        logger.warn("Casting complex tensors to real tensors discards the imaginary part.")
-      implicitly[OutputOps[T]]
-          .applyUnary(x, o => Op.Builder(opType = "Cast", name = name)
-              .addInput(o)
-              .setAttribute("DstT", dataType)
-              .setAttribute("Truncate", truncate)
-              .setGradientFn(castGradient)
-              .build().outputs(0))
+      ev.applyUnary(x, o => {
+        Op.Builder[Output[T], Output[R]](
+          opType = "Cast",
+          name = name,
+          input = o
+        ).setAttribute("DstT", dataType)
+            .setAttribute("Truncate", truncate)
+            .setGradientFn(castGradient)
+            .build().output
+      })
     }
   }
 
-  protected def castGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
+  protected def castGradient[T, R](
+      op: Op[Output[T], Output[R]],
+      outputGradient: Output[R]
+  ): Output[T] = {
     val supportedDataTypes = Seq(FLOAT16, FLOAT32, FLOAT64, BFLOAT16, COMPLEX64, COMPLEX128)
-    val sourceDataType = op.inputs(0).dataType
-    val destinationDataType = outputGradients.head.dataType
+    val sourceDataType = op.input.dataType
+    val destinationDataType = outputGradient.dataType
     if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType))
-      Seq(cast(outputGradients.head, sourceDataType))
+      cast(outputGradient, sourceDataType)
     else
-      Seq(null)
+      null
   }
 
   // TODO: [OPS] saturateCast
@@ -61,58 +71,80 @@ private[api] trait Cast {
   /** $OpDocCastBitcast
     *
     * @group CastOps
+    *
     * @param  input    Input tensor.
     * @param  dataType Target data type.
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def bitcast(input: Output, dataType: DataType[_], name: String = "Bitcast"): Output = {
-    Op.Builder(opType = "Bitcast", name = name)
-        .addInput(input)
-        .setAttribute("type", dataType)
-        .build().outputs(0)
+  def bitcast[T: IsNumeric, R](
+      input: Output[T],
+      dataType: DataType[R],
+      name: String = "Bitcast"
+  ): Output[R] = {
+    Op.Builder[Output[T], Output[R]](
+      opType = "Bitcast",
+      name = name,
+      input = input
+    ).setAttribute("type", dataType)
+        .build().output
   }
 }
 
 object Cast extends Cast {
-  case class CastOps(output: Output) {
-    /** $OpDocMathCast
-      *
-      * @group MathOps
-      * @param  dataType Target data type.
-      * @return Result as a new tensor.
-      */
-    def cast(dataType: DataType[_]): Output = Cast.cast(output, dataType)
+  private[ops] trait Implicits {
+    implicit def outputConvertibleToCastOps[T, OC](
+        value: OC
+    )(implicit f: OC => Output[T]): CastOps[T] = {
+      new CastOps(f(value))
+    }
 
-    /** $OpDocMathBitcast
-      *
-      * @group MathOps
-      * @param  dataType Target data type.
-      * @return Result as a new tensor.
-      */
-    def bitcast(dataType: DataType[_]): Output = Cast.bitcast(output, dataType)
+    implicit class CastOps[T](val output: Output[T]) {
+      /** $OpDocCastCast
+        *
+        * @group CastOps
+        * @param  dataType Target data type.
+        * @return Result as a new tensor.
+        */
+      def cast[R](dataType: DataType[R]): Output[R] = {
+        Cast.cast(output, dataType)
+      }
 
-    def toStringTensor: Output = cast(STRING)
-    def toBoolean: Output = cast(BOOLEAN)
-    def toFloat16: Output = cast(FLOAT16)
-    def toFloat32: Output = cast(FLOAT32)
-    def toFloat64: Output = cast(FLOAT64)
-    def toBFloat16: Output = cast(BFLOAT16)
-    def toComplex64: Output = cast(COMPLEX64)
-    def toComplex128: Output = cast(COMPLEX128)
-    def toInt8: Output = cast(INT8)
-    def toInt16: Output = cast(INT16)
-    def toInt32: Output = cast(INT32)
-    def toInt64: Output = cast(INT64)
-    def toUInt8: Output = cast(UINT8)
-    def toUInt16: Output = cast(UINT16)
-    def toUInt32: Output = cast(UINT32)
-    def toUInt64: Output = cast(UINT64)
-    def toQInt8: Output = cast(QINT8)
-    def toQInt16: Output = cast(QINT16)
-    def toQInt32: Output = cast(QINT32)
-    def toQUInt8: Output = cast(QUINT8)
-    def toQUInt16: Output = cast(QUINT16)
+      /** $OpDocCastBitcast
+        *
+        * @group CastOps
+        *
+        * @param  dataType Target data type.
+        * @return Result as a new tensor.
+        */
+      def bitcast[R](
+          dataType: DataType[R]
+      )(implicit ev: IsNumeric[T]): Output[R] = {
+        Cast.bitcast(output, dataType)
+      }
+
+      def toStringTensor: Output[String] = cast(STRING)
+      def toBoolean: Output[Boolean] = cast(BOOLEAN)
+      def toFloat16: Output[Half] = cast(FLOAT16)
+      def toFloat32: Output[Float] = cast(FLOAT32)
+      def toFloat64: Output[Double] = cast(FLOAT64)
+      def toBFloat16: Output[TruncatedHalf] = cast(BFLOAT16)
+      def toComplex64: Output[ComplexFloat] = cast(COMPLEX64)
+      def toComplex128: Output[ComplexDouble] = cast(COMPLEX128)
+      def toInt8: Output[Byte] = cast(INT8)
+      def toInt16: Output[Short] = cast(INT16)
+      def toInt32: Output[Int] = cast(INT32)
+      def toInt64: Output[Long] = cast(INT64)
+      def toUInt8: Output[UByte] = cast(UINT8)
+      def toUInt16: Output[UShort] = cast(UINT16)
+      def toUInt32: Output[UInt] = cast(UINT32)
+      def toUInt64: Output[ULong] = cast(UINT64)
+      def toQInt8: Output[QByte] = cast(QINT8)
+      def toQInt16: Output[QShort] = cast(QINT16)
+      def toQInt32: Output[QInt] = cast(QINT32)
+      def toQUInt8: Output[QUByte] = cast(QUINT8)
+      def toQUInt16: Output[QUShort] = cast(QUINT16)
+    }
   }
 
   /** @define OpDocCastCast
