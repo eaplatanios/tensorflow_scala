@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
 
@@ -31,7 +30,9 @@ import scala.util.matching.Regex
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Summary {
+trait Summary {
+  // TODO: [TYPES] !!! Make op and output collection keys typed.
+
   /** $OpDocSummaryTensor
     *
     * @group SummaryOps
@@ -42,12 +43,12 @@ private[api] trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def tensor(
+  def tensor[T](
       name: String,
-      tensor: Output,
-      collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+      tensor: Output[T],
+      collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
       family: String = null
-  ): Output = {
+  ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.tensorSummary(tensor, tag, Tensor(STRING), scope)
       collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
@@ -65,12 +66,12 @@ private[api] trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def scalar(
+  def scalar[T: IsReal](
       name: String,
-      value: Output,
-      collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+      value: Output[T],
+      collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
       family: String = null
-  ): Output = {
+  ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.scalarSummary(value, tag, scope)
       collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
@@ -88,12 +89,12 @@ private[api] trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def histogram(
+  def histogram[T: IsReal](
       name: String,
-      values: Output,
-      collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+      values: Output[T],
+      collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
       family: String = null
-  ): Output = {
+  ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.histogramSummary(values, tag, scope)
       collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
@@ -114,14 +115,14 @@ private[api] trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def image(
+  def image[T: IsReal](
       name: String,
-      tensor: Output,
-      badColor: Tensor[_] = Tensor(UINT8, UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
+      tensor: Output[T],
+      badColor: Tensor[UByte] = Tensor(UINT8, UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
       maxOutputs: Int = 3,
-      collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+      collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
       family: String = null
-  ): Output = {
+  ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.imageSummary(tensor, badColor, tag, maxOutputs, scope)
       collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
@@ -144,12 +145,12 @@ private[api] trait Summary {
     */
   def audio(
       name: String,
-      tensor: Output,
-      samplingRate: Output,
+      tensor: Output[Float],
+      samplingRate: Output[Float],
       maxOutputs: Int = 3,
-      collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES),
+      collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
       family: String = null
-  ): Output = {
+  ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.audioSummary(tensor, samplingRate, tag, maxOutputs, scope)
       collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
@@ -165,16 +166,16 @@ private[api] trait Summary {
     * @param  collections Set of graph collection keys. The created merged summary op will be added to the corresponding
     *                     collections.
     * @param  name        Name for the created op.
-    * @return Created op output, which is a [[STRING]] scalar tensor containing the serialized `Summary` protocol buffer
+    * @return Created op output, which is a scalar tensor containing the serialized `Summary` protocol buffer
     *         resulting from the merge.
     */
   def merge(
-      summaries: Set[Output],
-      collections: Set[Graph.Key[Output]] = Set.empty,
+      summaries: Set[Output[String]],
+      collections: Set[Graph.Key[Output[Any]]] = Set.empty,
       name: String = "MergeSummaries"
-  ): Output = {
+  ): Output[String] = {
     val cleanedName = Summary.sanitizeName(name)
-    Op.createWithNameScope(cleanedName, summaries.map(_.op)) {
+    Op.nameScope(cleanedName) {
       val merged = Summary.mergeSummaries(summaries.toSeq, cleanedName)
       collections.foreach(k => Op.currentGraph.addToCollection(merged, k))
       merged
@@ -188,8 +189,11 @@ private[api] trait Summary {
     * @return Created op output, or `None`, if no summaries could be found in the current graph. The op output is a
     *         [[STRING]] scalar tensor containing the serialized `Summary` protocol buffer resulting from the merge.
     */
-  def mergeAll(key: Graph.Key[Output] = Graph.Keys.SUMMARIES, name: String = "MergeAllSummaries"): Option[Output] = {
-    val summaries = Op.currentGraph.getCollection(key)
+  def mergeAll(
+      key: Graph.Key[Output[Any]] = Graph.Keys.SUMMARIES,
+      name: String = "MergeAllSummaries"
+  ): Option[Output[String]] = {
+    val summaries = Op.currentGraph.getCollection(key).asInstanceOf[Set[Output[String]]]
     if (summaries.isEmpty)
       None
     else
@@ -197,30 +201,11 @@ private[api] trait Summary {
   }
 }
 
-/** Contains helper methods for creating summary ops.
-  *
-  * @author Emmanouil Antonios Platanios
-  */
-private[api] object Summary extends Summary {
+/** Contains helper methods for creating summary ops. */
+object Summary extends Summary {
   private[Summary] val logger = Logger(LoggerFactory.getLogger("Ops / Summary"))
 
   private[this] val INVALID_TAG_CHARACTERS: Regex = "[^-/a-zA-Z0-9_.]".r
-
-  /** Returns the set of all table initializers that have been created in the current graph. */
-  def initializers: Set[Op] = Op.currentGraph.tableInitializers
-
-  /** Creates an op that groups the provided table initializers.
-    *
-    * @param  initializers Table initializers to group.
-    * @param  name         Name for the created op.
-    * @return Created op.
-    */
-  def initializer(initializers: Set[Op], name: String = "TablesInitializer"): Op = {
-    if (initializers.isEmpty)
-      ControlFlow.noOp(name)
-    else
-      ControlFlow.group(initializers, name)
-  }
 
   /** Clean a tag name by replacing all illegal characters with underscores and stripping any leading slashes. */
   private[Summary] def sanitizeName(name: String): String = {
@@ -239,29 +224,6 @@ private[api] object Summary extends Summary {
     }
   }
 
-  // TODO: !!! [SUMMARIES] Add support for plugin assets.
-//  /** This trait allows TensorBoard to serialize assets to disk.
-//    *
-//    * LifeCycle of a [[PluginAsset]] instance:
-//    *
-//    *   - Constructed when `getPluginAsset` is called on the class for the first time.
-//    *   - Configured by code that follows the calls to `getPluginAsset`.
-//    *   - When the containing graph is serialized by the [[SummaryFileWriter]], the writer requests `PluginAsset.assets`
-//    *     and the [[PluginAsset]] instance provides its contents to be written to disk.
-//    */
-//  trait PluginAsset {
-//    /** Name of the plugin associated with this asset. */
-//    val pluginName: String
-//
-//    /** Assets contained in this [[PluginAsset]] instance.
-//      *
-//      * This method will be called by the [[SummaryFileWriter]] when it is time to write the assets to disk.
-//      *
-//      * @return Map from asset names to asset contents.
-//      */
-//    val assets: Map[String, String]
-//  }
-
   /** Executes `function` and returns its result from within a custom name scope.
     *
     * To ensure that the summary tag name is always unique, we create a name scope based on `name` and use the full
@@ -279,12 +241,16 @@ private[api] object Summary extends Summary {
     * @param  family      If provided, used as prefix for the summary tag name.
     * @return Created summary op output.
     */
-  private[Summary] def scoped(function: (String, String) => Output, name: String, family: String = null): Output = {
+  private[Summary] def scoped[T](
+      function: (String, String) => Output[T],
+      name: String,
+      family: String = null
+  ): Output[T] = {
     val sanitizedName = sanitizeName(name)
     val sanitizedFamily = sanitizeName(family)
     // Use the family name in the scope to ensure uniqueness of scope/tag.
     val nameScope = if (sanitizedFamily == null) sanitizedName else s"$sanitizedFamily/$sanitizedName"
-    Op.createWithNameScope(nameScope) {
+    Op.nameScope(nameScope) {
       val scope = Op.currentNameScope
       // If a family is provided, we prefix our scope with the family again so it displays in the right tab.
       val tag = if (sanitizedFamily == null) scope.stripSuffix("/") else s"$sanitizedFamily/${scope.stripSuffix("/")}"
@@ -305,17 +271,17 @@ private[api] object Summary extends Summary {
     * @param  name            Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def tensorSummary(
-      tensor: Output,
-      tag: Output,
-      summaryMetadata: Output,
+  private[Summary] def tensorSummary[T](
+      tensor: Output[T],
+      tag: Output[String],
+      summaryMetadata: Output[String],
       name: String = "TensorSummary"
-  ): Output = {
-    Op.Builder("TensorSummaryV2", name)
-        .addInput(tensor)
-        .addInput(tag)
-        .addInput(summaryMetadata)
-        .build().outputs(0)
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[T], Output[String]), Output[String]](
+      opType = "TensorSummaryV2",
+      name = name,
+      input = (tag, tensor, summaryMetadata)
+    ).build().output
   }
 
   /** $OpDocSummaryScalar
@@ -326,11 +292,16 @@ private[api] object Summary extends Summary {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def scalarSummary(value: Output, tags: Output, name: String = "ScalarSummary"): Output = {
-    Op.Builder("ScalarSummary", name)
-        .addInput(tags)
-        .addInput(value)
-        .build().outputs(0)
+  private[Summary] def scalarSummary[T: IsReal](
+      value: Output[T],
+      tags: Output[String],
+      name: String = "ScalarSummary"
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[T]), Output[String]](
+      opType = "ScalarSummary",
+      name = name,
+      input = (tags, value)
+    ).build().output
   }
 
   /** $OpDocSummaryHistogram
@@ -341,11 +312,16 @@ private[api] object Summary extends Summary {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def histogramSummary(values: Output, tag: Output, name: String = "HistogramSummary"): Output = {
-    Op.Builder("HistogramSummary", name)
-        .addInput(tag)
-        .addInput(values)
-        .build().outputs(0)
+  private[Summary] def histogramSummary[T: IsReal](
+      values: Output[T],
+      tag: Output[String],
+      name: String = "HistogramSummary"
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[T]), Output[String]](
+      opType = "HistogramSummary",
+      name = name,
+      input = (tag, values)
+    ).build().output
   }
 
   /** $OpDocSummaryImage
@@ -359,19 +335,20 @@ private[api] object Summary extends Summary {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def imageSummary(
-      tensor: Output,
-      badColor: Tensor[_],
-      tag: Output,
+  private[Summary] def imageSummary[T: IsReal](
+      tensor: Output[T],
+      badColor: Tensor[UByte],
+      tag: Output[String],
       maxOutputs: Int = 3,
       name: String = "ImageSummary"
-  ): Output = {
-    Op.Builder("ImageSummary", name)
-        .addInput(tag)
-        .addInput(tensor)
-        .setAttribute("bad_color", badColor)
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[T]), Output[String]](
+      opType = "ImageSummary",
+      name = name,
+      input = (tag, tensor)
+    ).setAttribute("bad_color", badColor)
         .setAttribute("max_images", maxOutputs)
-        .build().outputs(0)
+        .build().output
   }
 
   /** $OpDocSummaryAudio
@@ -386,18 +363,18 @@ private[api] object Summary extends Summary {
     * @return Created op output.
     */
   private[Summary] def audioSummary(
-      tensor: Output,
-      samplingRate: Output,
-      tag: Output,
+      tensor: Output[Float],
+      samplingRate: Output[Float],
+      tag: Output[String],
       maxOutputs: Int = 3,
       name: String = "AudioSummary"
-  ): Output = {
-    Op.Builder("AudioSummaryV2", name)
-        .addInput(tag)
-        .addInput(tensor)
-        .addInput(samplingRate)
-        .setAttribute("max_outputs", maxOutputs)
-        .build().outputs(0)
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[Float], Output[Float]), Output[String]](
+      opType = "AudioSummaryV2",
+      name = name,
+      input = (tag, tensor, samplingRate)
+    ).setAttribute("max_outputs", maxOutputs)
+        .build().output
   }
 
   /** $OpDocSummaryMergeSummaries
@@ -406,13 +383,18 @@ private[api] object Summary extends Summary {
     * @param  inputs Input summary tensors that can be of any shape, but each must contain serialized `Summary` protocol
     *                buffers.
     * @param  name   Name for the created op.
-    * @return Created op output, which is a [[STRING]] scalar tensor containing the serialized `Summary` protocol buffer
+    * @return Created op output, which is a scalar tensor containing the serialized `Summary` protocol buffer
     *         resulting from the merge.
     */
-  private[Summary] def mergeSummaries(inputs: Seq[Output], name: String = "MergeSummaries"): Output = {
-    Op.Builder("MergeSummary", name)
-        .addInputList(inputs)
-        .build().outputs(0)
+  private[Summary] def mergeSummaries(
+      inputs: Seq[Output[String]],
+      name: String = "MergeSummaries"
+  ): Output[String] = {
+    Op.Builder[Seq[Output[String]], Output[String]](
+      opType = "MergeSummary",
+      name = name,
+      input = inputs
+    ).build().output
   }
 
   /** $OpDocSummaryWriter
@@ -427,11 +409,14 @@ private[api] object Summary extends Summary {
       sharedName: String = "",
       container: String = "",
       name: String = "SummaryWriter"
-  ): Output = {
-    Op.Builder("SummaryWriter", name)
-        .setAttribute("shared_name", sharedName)
+  ): Output[Long] = {
+    Op.Builder[Unit, Output[Long]](
+      opType = "SummaryWriter",
+      name = name,
+      input = ()
+    ).setAttribute("shared_name", sharedName)
         .setAttribute("container", container)
-        .build().outputs(0)
+        .build().output
   }
 
   /** $OpDocSummaryCreateSummaryFileWriter
@@ -446,20 +431,18 @@ private[api] object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def createSummaryFileWriter(
-      writerHandle: Output,
+      writerHandle: Output[Long],
       workingDir: Path,
       queueCapacity: Int = 10,
       flushFrequency: Int = 10,
       filenameSuffix: String = "",
       name: String = "CreateSummaryFileWriter"
-  ): Op = {
-    Op.Builder("CreateSummaryFileWriter", name)
-        .addInput(writerHandle)
-        .addInput(workingDir.toString)
-        .addInput(queueCapacity)
-        .addInput(flushFrequency)
-        .addInput(filenameSuffix)
-        .build()
+  ): Op[(Output[Long], Output[String], Output[Int], Output[Int], Output[String]), Unit] = {
+    Op.Builder[(Output[Long], Output[String], Output[Int], Output[Int], Output[String]), Unit](
+      opType = "CreateSummaryFileWriter",
+      name = name,
+      input = (writerHandle, workingDir.toString, queueCapacity, flushFrequency, filenameSuffix)
+    ).build()
   }
 
   /** $OpDocSummaryFlushSummaryWriter
@@ -469,10 +452,15 @@ private[api] object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def flushSummaryWriter(writerHandle: Output, name: String = "FlushSummaryWriter"): Op = {
-    Op.Builder("FlushSummaryWriter", name)
-        .addInput(writerHandle)
-        .build()
+  private[Summary] def flushSummaryWriter(
+      writerHandle: Output[Long],
+      name: String = "FlushSummaryWriter"
+  ): Op[Output[Long], Unit] = {
+    Op.Builder[Output[Long], Unit](
+      opType = "FlushSummaryWriter",
+      name = name,
+      input = writerHandle
+    ).build()
   }
 
   /** $OpDocSummaryCloseSummaryWriter
@@ -482,17 +470,22 @@ private[api] object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def closeSummaryWriter(writerHandle: Output, name: String = "CloseSummaryWriter"): Op = {
-    Op.Builder("CloseSummaryWriter", name)
-        .addInput(writerHandle)
-        .build()
+  private[Summary] def closeSummaryWriter(
+      writerHandle: Output[Long],
+      name: String = "CloseSummaryWriter"
+  ): Op[Output[Long], Unit] = {
+    Op.Builder[Output[Long], Unit](
+      opType = "CloseSummaryWriter",
+      name = name,
+      input = writerHandle
+    ).build()
   }
 
   /** $OpDocSummaryWriteTensorSummary
     *
     * @group SummaryOps
     * @param  writerHandle    Handle to a summary writer resource.
-    * @param  globalStep      [[INT64]] tensor containing the global step to write the summary for.
+    * @param  globalStep      Tensor containing the global step to write the summary for.
     * @param  tag             Tag to use for the created summary. Used for organizing summaries in TensorBoard.
     * @param  tensor          Tensor to serialize.
     * @param  summaryMetadata Serialized `SummaryMetadata` protocol buffer containing plugin-related metadata for this
@@ -500,78 +493,74 @@ private[api] object Summary extends Summary {
     * @param  name            Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeTensorSummary(
-      writerHandle: Output,
-      globalStep: Output,
-      tag: Output,
-      tensor: Output,
-      summaryMetadata: Output,
+  private[Summary] def writeTensorSummary[T](
+      writerHandle: Output[Long],
+      globalStep: Output[Long],
+      tag: Output[String],
+      tensor: Output[T],
+      summaryMetadata: Output[String],
       name: String = "WriteTensorSummary"
-  ): Op = {
-    Op.Builder("WriteSummary", name)
-        .addInput(writerHandle)
-        .addInput(globalStep)
-        .addInput(tensor)
-        .addInput(tag)
-        .addInput(summaryMetadata)
-        .build()
+  ): Op[(Output[Long], Output[Long], Output[T], Output[String], Output[String]), Unit] = {
+    Op.Builder[(Output[Long], Output[Long], Output[T], Output[String], Output[String]), Unit](
+      opType = "WriteSummary",
+      name = name,
+      input = (writerHandle, globalStep, tensor, tag, summaryMetadata)
+    ).build()
   }
 
   /** $OpDocSummaryWriteScalarSummary
     *
     * @group SummaryOps
     * @param  writerHandle Handle to a summary writer resource.
-    * @param  globalStep   [[INT64]] tensor containing the global step to write the summary for.
+    * @param  globalStep   Tensor containing the global step to write the summary for.
     * @param  value        Value to serialize.
-    * @param  tags         Tags to use for the created summary. Used for organizing summaries in TensorBoard.
+    * @param  tag          Tags to use for the created summary. Used for organizing summaries in TensorBoard.
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeScalarSummary(
-      writerHandle: Output,
-      globalStep: Output,
-      value: Output,
-      tags: Output,
+  private[Summary] def writeScalarSummary[T: IsReal](
+      writerHandle: Output[Long],
+      globalStep: Output[Long],
+      value: Output[T],
+      tag: Output[String],
       name: String = "WriteScalarSummary"
-  ): Op = {
-    Op.Builder("WriteScalarSummary", name)
-        .addInput(writerHandle)
-        .addInput(globalStep)
-        .addInput(tags)
-        .addInput(value)
-        .build()
+  ): Op[(Output[Long], Output[Long], Output[String], Output[T]), Unit] = {
+    Op.Builder[(Output[Long], Output[Long], Output[String], Output[T]), Unit](
+      opType = "WriteScalarSummary",
+      name = name,
+      input = (writerHandle, globalStep, tag, value)
+    ).build()
   }
 
   /** $OpDocSummaryWriteHistogramSummary
     *
     * @group SummaryOps
     * @param  writerHandle Handle to a summary writer resource.
-    * @param  globalStep   [[INT64]] tensor containing the global step to write the summary for.
+    * @param  globalStep   Tensor containing the global step to write the summary for.
     * @param  values       Values to use to build the histogram.
     * @param  tag          Tag to use for the created summary. Used for organizing summaries in TensorBoard.
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeHistogramSummary(
-      writerHandle: Output,
-      globalStep: Output,
-      values: Output,
-      tag: Output,
+  private[Summary] def writeHistogramSummary[T: IsReal](
+      writerHandle: Output[Long],
+      globalStep: Output[Long],
+      values: Output[T],
+      tag: Output[String],
       name: String = "WriteHistogramSummary"
-  ): Op = {
-    Op.Builder("WriteScalarSummary", name)
-        .addInput(writerHandle)
-        .addInput(globalStep)
-        .addInput(tag)
-        .addInput(values)
-        .build()
+  ): Op[(Output[Long], Output[Long], Output[String], Output[T]), Unit] = {
+    Op.Builder[(Output[Long], Output[Long], Output[String], Output[T]), Unit](
+      opType = "WriteHistogramSummary",
+      name = name,
+      input = (writerHandle, globalStep, tag, values)
+    ).build()
   }
 
   /** $OpDocSummaryWriteImageSummary
     *
     * @group SummaryOps
     * @param  writerHandle Handle to a summary writer resource.
-    * @param  globalStep   [[INT64]] tensor containing the global step to write the summary for.
+    * @param  globalStep   Tensor containing the global step to write the summary for.
     * @param  tensor       Four-dimensional tensor with shape `[batchSize, height, width, channels]` where `channels` is
     *                      1, 3, or 4.
     * @param  badColor     Color to use for pixels with non-finite values.
@@ -580,22 +569,20 @@ private[api] object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeImageSummary(
-      writerHandle: Output,
-      globalStep: Output,
-      tensor: Output,
-      badColor: Output,
-      tag: Output,
+  private[Summary] def writeImageSummary[T: IsReal](
+      writerHandle: Output[Long],
+      globalStep: Output[Long],
+      tensor: Output[T],
+      badColor: Output[UByte],
+      tag: Output[String],
       maxOutputs: Int = 3,
       name: String = "WriteImageSummary"
-  ): Op = {
-    Op.Builder("WriteImageSummary", name)
-        .addInput(writerHandle)
-        .addInput(globalStep)
-        .addInput(tag)
-        .addInput(tensor)
-        .addInput(badColor)
-        .setAttribute("max_images", maxOutputs)
+  ): Op[(Output[Long], Output[Long], Output[String], Output[T], Output[UByte]), Output[String]] = {
+    Op.Builder[(Output[Long], Output[Long], Output[String], Output[T], Output[UByte]), Output[String]](
+      opType = "WriteImageSummary",
+      name = name,
+      input = (writerHandle, globalStep, tag, tensor, badColor)
+    ).setAttribute("max_images", maxOutputs)
         .build()
   }
 
@@ -603,7 +590,7 @@ private[api] object Summary extends Summary {
     *
     * @group SummaryOps
     * @param  writerHandle Handle to a summary writer resource.
-    * @param  globalStep   [[INT64]] tensor containing the global step to write the summary for.
+    * @param  globalStep   Tensor containing the global step to write the summary for.
     * @param  tensor       Three-dimensional tensor with shape `[batchSize, frames, channels]` or two-dimensional tensor
     *                      with shape `[batchSize, frames]`.
     * @param  samplingRate Scalar tensor containing the sampling rate of the audio signal, in Hertz.
@@ -613,21 +600,19 @@ private[api] object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def writeAudioSummary(
-      writerHandle: Output,
-      globalStep: Output,
-      tensor: Output,
-      samplingRate: Output,
-      tag: Output,
+      writerHandle: Output[Long],
+      globalStep: Output[Long],
+      tensor: Output[Float],
+      samplingRate: Output[Float],
+      tag: Output[String],
       maxOutputs: Int = 3,
       name: String = "WriteAudioSummary"
-  ): Op = {
-    Op.Builder("WriteAudioSummary", name)
-        .addInput(writerHandle)
-        .addInput(globalStep)
-        .addInput(tag)
-        .addInput(tensor)
-        .addInput(samplingRate)
-        .setAttribute("max_outputs", maxOutputs)
+  ): Op[(Output[Long], Output[Long], Output[String], Output[Float], Output[Float]), Output[String]] = {
+    Op.Builder[(Output[Long], Output[Long], Output[String], Output[Float], Output[Float]), Output[String]](
+      opType = "WriteAudioSummary",
+      name = name,
+      input = (writerHandle, globalStep, tag, tensor, samplingRate)
+    ).setAttribute("max_outputs", maxOutputs)
         .build()
   }
 
