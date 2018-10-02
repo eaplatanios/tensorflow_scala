@@ -37,17 +37,17 @@ object StructureFromDataType {
 
   type Aux[T, O, D, S] = StructureFromDataType[D]
 
-  implicit def fromOutput[T]: Aux[Tensor[T], Output, DataType[T], Shape] = {
+  implicit def fromOutput[T]: Aux[Tensor[T], Output[T], DataType[T], Shape] = {
     new StructureFromDataType[DataType[T]] {}
   }
 
-  //  implicit def fromOutputIndexedSlices[T]: Aux[TensorIndexedSlices[D], OutputIndexedSlices, DataTypes3[DataType[T]], Shapes3] = {
-  //    new StructureFromDataType[DataTypes3[DataType[T]]] {}
-  //  }
-  //
-  //  implicit def fromSparseOutput[T]: Aux[SparseTensor[D], SparseOutput, DataTypes3[DataType[T]], Shapes3] = {
-  //    new StructureFromDataType[DataTypes3[DataType[T]]] {}
-  //  }
+  implicit def fromOutputIndexedSlices[T]: Aux[TensorIndexedSlices[T], OutputIndexedSlices[T], DataTypes3[DataType[T]], Shapes3] = {
+    new StructureFromDataType[DataTypes3[DataType[T]]] {}
+  }
+
+  implicit def fromSparseOutput[T]: Aux[SparseTensor[T], SparseOutput[T], DataTypes3[DataType[T]], Shapes3] = {
+    new StructureFromDataType[DataTypes3[DataType[T]]] {}
+  }
 
   implicit def fromArray[T, O, D, S](implicit
       ev: Aux[T, O, D, S]

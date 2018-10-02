@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.implicits
 
+import org.platanios.tensorflow.api.core
+import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors
 
@@ -24,7 +26,8 @@ import org.platanios.tensorflow.api.tensors
   */
 private[api] trait Implicits
     extends LowPriorityImplicits
-        with IndexerImplicits {
+        with IndexerImplicits
+        with ops.Implicits {
   /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
     * [[Op.createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
     * return a device specification string.
@@ -36,9 +39,8 @@ private[api] trait Implicits
 }
 
 private[api] trait LowPriorityImplicits
-    extends tensors.Implicits
-        with OpsImplicits
-        with DataImplicits
+    extends core.Implicits
+        with tensors.Implicits
         with LearnImplicits
 
 private[api] object Implicits extends Implicits
