@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
-import org.platanios.tensorflow.api.ops.{InstantiatedFunction, Op, Output, Resource, Resources}
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableScopeStore, VariableStore}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
@@ -87,7 +88,9 @@ class Graph private[api](
 
   /** Map from native op handle to op object in the Scala side. Used for caching ops that have already been obtained
     * from the native library. */
-  private[api] val opsCache: mutable.Map[Long, Op] = mutable.LongMap.empty[Op]
+  private[api] val opsCache: mutable.Map[Long, Op[Seq[Output[Any]], Seq[Output[Any]]]] = {
+    mutable.LongMap.empty[Op[Seq[Output[Any]], Seq[Output[Any]]]]
+  }
 
   /** Variable store object of this graph, used to store created variables and keep track of variable scope usages. */
   private[api] val variableStore: VariableStore = {
@@ -154,7 +157,7 @@ class Graph private[api](
 
   /** Helper function for processing tensors before using them as inputs for ops placed in this graph. Useful for
     * creating function graphs. */
-  private[api] def processOpInput(output: Output): Output = output
+  private[api] def processOpInput[T](output: Output[T]): Output[T] = output
 
   /** Map from function name to function instance, for functions added to this graph. */
   private[this] val functionsMap: mutable.Map[String, InstantiatedFunction[_, _]] = mutable.Map.empty
@@ -184,10 +187,10 @@ class Graph private[api](
 
   // TODO: [GRAPH] Should we keep track of this and the field that follows in a collection? MetaGraphDef.
   /** Set of all unfeedable ops in this graph. */
-  private[this] val unfeedableOutputs: mutable.Set[Output] = mutable.Set.empty
+  private[this] val unfeedableOutputs: mutable.Set[Output[_]] = mutable.Set.empty
 
   /** Set of all unfetchable ops in this graph. */
-  private[this] val unfetchableOps: mutable.Set[Op] = mutable.Set.empty
+  private[this] val unfetchableOps: mutable.Set[Op[_, _]] = mutable.Set.empty
 
   /** Removes the specified collection from this graph.
     *
@@ -231,6 +234,8 @@ class Graph private[api](
     collections.update(Graph.Keys.RANDOM_SEEDS, mutable.Set[Int](value))
   }
 
+  // TODO: [VARIABLES] Move to the variables package.
+
   /** Returns the set of global variables in this graph.
     *
     * Global variables are variables that are shared across machines in a distributed environment. The `Variable()`
@@ -239,7 +244,9 @@ class Graph private[api](
     *
     * An alternative to global variables are local variables.
     */
-  def globalVariables: Set[Variable] = getCollection(Graph.Keys.GLOBAL_VARIABLES)
+  def globalVariables: Set[Variable[Any]] = {
+    getCollection(Graph.Keys.GLOBAL_VARIABLES)
+  }
 
   /** Returns the set of local variables in this graph.
     *
@@ -249,10 +256,14 @@ class Graph private[api](
     *
     * An alternative to local variables are global variables.
     */
-  def localVariables: Set[Variable] = getCollection(Graph.Keys.LOCAL_VARIABLES)
+  def localVariables: Set[Variable[Any]] = {
+    getCollection(Graph.Keys.LOCAL_VARIABLES)
+  }
 
   /** Returns the subset of `Variable` objects that are used in models for inference (feed forward), in this graph. */
-  def modelVariables: Set[Variable] = getCollection(Graph.Keys.MODEL_VARIABLES)
+  def modelVariables: Set[Variable[Any]] = {
+    getCollection(Graph.Keys.MODEL_VARIABLES)
+  }
 
   /** Returns the set of metric variables in the current graph.
     *
@@ -260,7 +271,9 @@ class Graph private[api](
     * values used for computing metrics (e.g., streaming metrics). This convenience function returns the contents of
     * that collection.
     */
-  def metricVariables: Set[Variable] = getCollection(Metric.METRIC_VARIABLES)
+  def metricVariables: Set[Variable[Any]] = {
+    getCollection(Metric.METRIC_VARIABLES)
+  }
 
   /** Returns the set of all variables created with `trainable = true`.
     *
@@ -268,7 +281,9 @@ class Graph private[api](
     * collection with key `Graph.Keys.TRAINABLE_VARIABLES`. This convenience function returns the contents of that
     * collection.
     */
-  def trainableVariables: Set[Variable] = getCollection(Graph.Keys.TRAINABLE_VARIABLES)
+  def trainableVariables: Set[Variable[Any]] = {
+    getCollection(Graph.Keys.TRAINABLE_VARIABLES)
+  }
 
   /** Creates an op that returns a tensor containing the names of all uninitialized variables among all global and local
     * variables of this graph. If all variables have been initialized, then an empty tensor is returned.
@@ -277,24 +292,34 @@ class Graph private[api](
     * @return Created op output, which contains the names of the handles of all variables which have not yet been
     *         initialized.
     */
-  def uninitializedVariables(name: String = "UninitializedVariables"): Output = {
+  def uninitializedVariables(name: String = "UninitializedVariables"): Output[String] = {
     Variable.uninitializedVariables(name = name)
   }
 
   /** Returns the set of all the summary `Output`s that have been created in the graph. */
-  def summaries: Set[Output] = getCollection(Graph.Keys.SUMMARIES)
+  def summaries: Set[Output[String]] = {
+    getCollection(Graph.Keys.SUMMARIES).asInstanceOf[Set[Output[String]]]
+  }
 
   /** Returns the set of all the table initializers that have been created in the graph. */
-  def tableInitializers: Set[Op] = getCollection(Graph.Keys.TABLE_INITIALIZERS)
+  def tableInitializers: Set[UntypedOp] = {
+    getCollection(Graph.Keys.TABLE_INITIALIZERS)
+  }
 
   /** Returns the set of all savers that have been created in the graph. */
-  def savers: Set[Saver] = getCollection(Graph.Keys.SAVERS)
+  def savers: Set[Saver] = {
+    getCollection(Graph.Keys.SAVERS)
+  }
 
   /** Returns the set of all shared resources used by the graph which need to be initialized once per cluster. */
-  def sharedResources: Set[Resource] = getCollection(Graph.Keys.SHARED_RESOURCES)
+  def sharedResources: Set[Resource] = {
+    getCollection(Graph.Keys.SHARED_RESOURCES)
+  }
 
   /** Returns the set of all local resources used by the graph which need to be initialized once per cluster. */
-  def localResources: Set[Resource] = getCollection(Graph.Keys.LOCAL_RESOURCES)
+  def localResources: Set[Resource] = {
+    getCollection(Graph.Keys.LOCAL_RESOURCES)
+  }
 
   /** Creates an op that returns a tensor containing the names of all uninitialized resources among all shared and local
     * resources of this graph. If all resources have been initialized, then an empty tensor is returned.
@@ -303,66 +328,83 @@ class Graph private[api](
     * @return Created op output, which contains the names of the handles of all resources which have not yet been
     *         initialized.
     */
-  def uninitializedResources(name: String = "UninitializedResources"): Output = {
+  def uninitializedResources(name: String = "UninitializedResources"): Output[String] = {
     Resources.uninitializedResources(name = name)
   }
 
   /** Returns the set of all the train `Op`s (i.e., optimizer update ops) that have been created in the graph. */
-  def trainOps: Set[Op] = getCollection(Graph.Keys.TRAIN_OP)
+  def trainOps: Set[UntypedOp] = {
+    getCollection(Graph.Keys.TRAIN_OP)
+  }
 
   /** Returns an op that initializes all global variables of this graph.
+    *
+    * After you launch the graph in a session, you can run the returned op to initialize all the variables in
+    * `variables`. This op runs all the initializers of the variables in `variables`, in parallel.
     *
     * For more information, refer to [[globalVariables]] and [[Variable.initializer]].
     *
     * @param  name Name for the created op.
     * @return Created op.
     */
-  def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): Op = {
-    Variable.initializer(globalVariables, name)
+  def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): UntypedOp = {
+    ControlFlow.group(globalVariables.map(_.initializer)).asUntyped
   }
 
   /** Returns an op that initializes all local variables of this graph.
+    *
+    * After you launch the graph in a session, you can run the returned op to initialize all the variables in
+    * `variables`. This op runs all the initializers of the variables in `variables`, in parallel.
     *
     * For more information, refer to [[localVariables]] and [[Variable.initializer]].
     *
     * @param  name Name for the created op.
     * @return Created op.
     */
-  def localVariablesInitializer(name: String = "LocalVariablesInitializer"): Op = {
-    Variable.initializer(localVariables, name)
+  def localVariablesInitializer(name: String = "LocalVariablesInitializer"): UntypedOp = {
+    ControlFlow.group(localVariables.map(_.initializer)).asUntyped
   }
 
   /** Returns an op that initializes all model variables of this graph.
+    *
+    * After you launch the graph in a session, you can run the returned op to initialize all the variables in
+    * `variables`. This op runs all the initializers of the variables in `variables`, in parallel.
     *
     * For more information, refer to [[modelVariables]] and [[Variable.initializer]].
     *
     * @param  name Name for the created op.
     * @return Created op.
     */
-  def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
-    Variable.initializer(modelVariables, name)
+  def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): UntypedOp = {
+    ControlFlow.group(modelVariables.map(_.initializer)).asUntyped
   }
 
   /** Returns an op that initializes all metric variables of this graph.
+    *
+    * After you launch the graph in a session, you can run the returned op to initialize all the variables in
+    * `variables`. This op runs all the initializers of the variables in `variables`, in parallel.
     *
     * For more information, refer to [[metricVariables]] and [[Variable.initializer]].
     *
     * @param  name Name for the created op.
     * @return Created op.
     */
-  def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): Op = {
-    Variable.initializer(metricVariables, name)
+  def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): UntypedOp = {
+    ControlFlow.group(metricVariables.map(_.initializer)).asUntyped
   }
 
   /** Returns an op that initializes all trainable variables of this graph.
     *
-    * For more information, refer to [[trainableVariables]] and [[Variable.initializer]].
+    * After you launch the graph in a session, you can run the returned op to initialize all the variables in
+    * `variables`. This op runs all the initializers of the variables in `variables`, in parallel.
+    *
+    * For more information, refer to [[trainableVariables]].
     *
     * @param  name Name for the created op.
     * @return Created op.
     */
-  def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
-    Variable.initializer(trainableVariables, name)
+  def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): UntypedOp = {
+    ControlFlow.group(trainableVariables.map(_.initializer)).asUntyped
   }
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
@@ -371,7 +413,7 @@ class Graph private[api](
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def preventFeeding(output: Output): Unit = {
+  private[api] def preventFeeding(output: Output[_]): Unit = {
     assertNotFrozen()
     if (output.graph != this)
       throw GraphMismatchException("The provided op output does not belong to this graph.")
@@ -384,7 +426,7 @@ class Graph private[api](
     * @throws GraphMismatchException If the provided op does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def preventFetching(op: Op): Unit = {
+  private[api] def preventFetching(op: Op[_, _]): Unit = {
     assertNotFrozen()
     if (op.graph != this)
       throw GraphMismatchException("The provided op does not belong to this graph.")
@@ -398,7 +440,7 @@ class Graph private[api](
     * @throws GraphMismatchException If the provided op output does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def isFeedable(output: Output): Boolean = {
+  private[api] def isFeedable(output: Output[_]): Boolean = {
     if (output.graph != this)
       throw GraphMismatchException("The provided op output does not belong to this graph.")
     !unfeedableOutputs.contains(output)
@@ -411,7 +453,7 @@ class Graph private[api](
     * @throws GraphMismatchException If the provided op does not belong to this graph.
     */
   @throws[GraphMismatchException]
-  private[api] def isFetchable(op: Op): Boolean = {
+  private[api] def isFetchable(op: Op[_, _]): Boolean = {
     if (op.graph != this)
       throw GraphMismatchException("The provided op does not belong to this graph.")
     !unfetchableOps.contains(op)
@@ -422,12 +464,16 @@ class Graph private[api](
     * @param  name Op name.
     * @return Option containing the op corresponding to that name (`None` if such an op does not exist in this graph).
     */
-  private[api] def findOp(name: String): Option[Op] = NativeHandleLock.synchronized {
-    val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
-    if (opHandle == 0)
-      None
-    else
-      Some(opsCache.getOrElseUpdate(opHandle, Op(this, None, opHandle)))
+  private[api] def findOp(name: String): Option[Op[Seq[Output[Any]], Seq[Output[Any]]]] = {
+    NativeHandleLock.synchronized {
+      val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
+      if (opHandle == 0)
+        None
+      else
+        Some(opsCache.getOrElseUpdate(opHandle, {
+          Op[Seq[Output[Any]], Seq[Output[Any]]](this, None, opHandle)
+        }))
+    }
   }
 
   /** Returns all ops of this graph.
@@ -435,8 +481,14 @@ class Graph private[api](
     * @note This function may be called concurrently from multiple threads (i.e., it is thread-safe).
     * @return Array containing all ops of this graph.
     */
-  def ops: Array[Op] = NativeHandleLock.synchronized {
-    NativeGraph.ops(nativeHandle).map(handle => opsCache.getOrElseUpdate(handle, Op(this, None, handle)))
+  def ops: Array[Op[Seq[Output[Any]], Seq[Output[Any]]]] = {
+    NativeHandleLock.synchronized {
+      NativeGraph.ops(nativeHandle).map(handle => {
+        opsCache.getOrElseUpdate(handle, {
+          Op[Seq[Output[Any]], Seq[Output[Any]]](this, None, handle)
+        })
+      })
+    }
   }
 
   /** Returns the op referred to by the provided name, in this graph.
@@ -449,7 +501,7 @@ class Graph private[api](
     * @throws InvalidArgumentException If the provided name cannot be associated with an element of this graph.
     */
   @throws[InvalidArgumentException]
-  def getOpByName(name: String): Op = {
+  def getOpByName(name: String): Op[Seq[Output[Any]], Seq[Output[Any]]] = {
     getByName(name = name, allowOp = true, allowOutput = false).left.get
   }
 
@@ -463,7 +515,7 @@ class Graph private[api](
     * @throws InvalidArgumentException If the provided name cannot be associated with an element of this graph.
     */
   @throws[InvalidArgumentException]
-  def getOutputByName(name: String): Output = {
+  def getOutputByName(name: String): Output[Any] = {
     getByName(name = name, allowOp = false, allowOutput = true).right.get
   }
 
@@ -486,7 +538,7 @@ class Graph private[api](
       name: String,
       allowOp: Boolean = true,
       allowOutput: Boolean = true
-  ): Either[Op, Output] = {
+  ): Either[Op[Seq[Output[Any]], Seq[Output[Any]]], Output[Any]] = {
     NativeHandleLock.synchronized {
       if (!allowOutput && !allowOp)
         throw new IllegalArgumentException("'allowOutput' and 'allowOp' cannot both be set to 'false'.")
@@ -509,7 +561,7 @@ class Graph private[api](
             throw InvalidArgumentException(
               s"Name '$name' refers to an op output which does not exist in the graph. More specifically, op, " +
                   s"'$opName', does exist in the graph, but it only has ${graphOp.numOutputs} output(s).")
-          Right(graphOp.outputs(outputIndex))
+          Right(graphOp.outputsSeq(outputIndex))
         } else {
           throw InvalidArgumentException(
             s"Name '$name' appears to refer to an op output, but 'allowOutput' was set to 'false'.")
@@ -557,9 +609,9 @@ class Graph private[api](
   def importGraphDef(
       graphDef: GraphDef,
       importScope: String = null,
-      inputsMap: Map[(String, Int), Output] = Map.empty,
-      controlDependenciesMap: Map[String, Op] = Map.empty,
-      controlDependencies: Set[Op] = Set.empty
+      inputsMap: Map[(String, Int), Output[Any]] = Map.empty,
+      controlDependenciesMap: Map[String, UntypedOp] = Map.empty,
+      controlDependencies: Set[UntypedOp] = Set.empty
   ): Unit = {
     this synchronized {
       assertNotFrozen()
@@ -630,9 +682,9 @@ class Graph private[api](
   def importMetaGraphDef(
       metaGraphDef: MetaGraphDef,
       importScope: String = null,
-      inputsMap: Map[(String, Int), Output] = Map.empty,
-      controlDependenciesMap: Map[String, Op] = Map.empty,
-      controlDependencies: Set[Op] = Set.empty,
+      inputsMap: Map[(String, Int), Output[Any]] = Map.empty,
+      controlDependenciesMap: Map[String, UntypedOp] = Map.empty,
+      controlDependencies: Set[UntypedOp] = Set.empty,
       clearDevices: Boolean = false,
       unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
       restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true
@@ -661,7 +713,9 @@ class Graph private[api](
         nodeIndex += 1
       }
     }
-    importGraphDef(inputGraphDefBuilder.build(), importScope, inputsMap, controlDependenciesMap, controlDependencies)
+    importGraphDef(
+      inputGraphDefBuilder.build(), importScope, inputsMap,
+      controlDependenciesMap, controlDependencies)
 
     // Restore the collections.
     metaGraphDef.getCollectionDefMap.asScala.foreach {
@@ -679,7 +733,9 @@ class Graph private[api](
     * for example). For a serialized representation of the graph that contains such information, please refer to
     * [[Graph.toMetaGraphDef]].
     */
-  def toGraphDef: GraphDef = GraphDef.parseFrom(NativeHandleLock.synchronized(NativeGraph.toGraphDef(nativeHandle)))
+  def toGraphDef: GraphDef = {
+    GraphDef.parseFrom(NativeHandleLock.synchronized(NativeGraph.toGraphDef(nativeHandle)))
+  }
 
   /** Constructs and returns a [[MetaGraphDef]] object using the provided arguments.
     *
@@ -1197,10 +1253,10 @@ object Graph {
     }
 
     /** Key for collections of ops. */
-    trait OpCollectionKey extends Key[Op] {
-      override def createCollectionDef(values: Set[Op], exportScope: String = null): CollectionDef = {
+    trait OpCollectionKey extends Key[UntypedOp] {
+      override def createCollectionDef(values: Set[UntypedOp], exportScope: String = null): CollectionDef = {
         val nodeListBuilder = NodeList.newBuilder()
-        values.asInstanceOf[Set[Op]]
+        values.asInstanceOf[Set[UntypedOp]]
             .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
             .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
           nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
@@ -1218,10 +1274,10 @@ object Graph {
     }
 
     /** Key for collections of op outputs. */
-    trait OutputCollectionKey extends Key[Output] {
-      override def createCollectionDef(values: Set[Output], exportScope: String): CollectionDef = {
+    trait OutputCollectionKey extends Key[Output[Any]] {
+      override def createCollectionDef(values: Set[Output[Any]], exportScope: String): CollectionDef = {
         val nodeListBuilder = NodeList.newBuilder()
-        values.asInstanceOf[Set[Output]]
+        values.asInstanceOf[Set[Output[Any]]]
             .filter(o => Graph.shouldIncludeNode(o.name, exportScope))
             .filter(o => exportScope == null || o.name.startsWith(exportScope)).foreach(o => {
           nodeListBuilder.addValue(Op.stripNameScope(exportScope, o.name))
@@ -1239,8 +1295,8 @@ object Graph {
     }
 
     /** Key for collections of variables. */
-    trait VariableCollectionKey extends Key[Variable] {
-      override def createCollectionDef(values: Set[Variable], exportScope: String = null): CollectionDef = {
+    trait VariableCollectionKey extends Key[Variable[Any]] {
+      override def createCollectionDef(values: Set[Variable[Any]], exportScope: String = null): CollectionDef = {
         val bytesListBuilder = BytesList.newBuilder()
         values
             .map(_.toProto(exportScope))
@@ -1294,7 +1350,11 @@ object Graph {
         CollectionDef.newBuilder().setNodeList(nodeListBuilder.build()).build()
       }
 
-      override def parseCollectionDef(collectionDef: CollectionDef, graph: Graph, importScope: String): Unit = {
+      override def parseCollectionDef(
+          collectionDef: CollectionDef,
+          graph: Graph,
+          importScope: String
+      ): Unit = {
         val kind = collectionDef.getKindCase
         if (kind != CollectionDef.KindCase.NODE_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
@@ -1302,9 +1362,10 @@ object Graph {
             .foreach(r => {
               graph.addToCollection(
                 Resource(
-                  graph.getOutputByName(Op.prependNameScope(importScope, r(0))),
+                  graph.getOutputByName(Op.prependNameScope(importScope, r(0))).asInstanceOf[Output[Long]],
                   graph.getOpByName(Op.prependNameScope(importScope, r(1))),
-                  graph.getOutputByName(Op.prependNameScope(importScope, r(2)))), this)
+                  graph.getOutputByName(Op.prependNameScope(importScope, r(2))).asInstanceOf[Output[Boolean]]),
+                key = this)
             })
       }
     }

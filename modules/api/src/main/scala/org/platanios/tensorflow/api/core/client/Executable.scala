@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike}
+import org.platanios.tensorflow.api.ops.{Op, OutputLike, UntypedOp}
 
 import shapeless._
 
@@ -43,52 +43,72 @@ import scala.language.higherKinds
   */
 sealed trait Executable[T] {
   /** Target ops to execute. */
-  def ops(executable: T): Set[Op]
+  def ops(executable: T): Set[UntypedOp]
 }
 
 object Executable {
   def apply[T: Executable]: Executable[T] = implicitly[Executable[T]]
 
-  implicit val opExecutable: Executable[Op] = new Executable[Op] {
-    override def ops(executable: Op): Set[Op] = Set(executable)
+  implicit val opExecutable: Executable[Op[_, _]] = {
+    new Executable[Op[_, _]] {
+      override def ops(executable: Op[_, _]): Set[UntypedOp] = {
+        Set(executable.asUntyped)
+      }
+    }
   }
 
-  implicit def outputLikeExecutable: Executable[OutputLike] = new Executable[OutputLike] {
-    override def ops(executable: OutputLike): Set[Op] = Set(executable.op)
+  implicit def outputLikeExecutable[OL[A] <: OutputLike[A]]: Executable[OL[_]] = {
+    new Executable[OL[_]] {
+      override def ops(executable: OL[_]): Set[UntypedOp] = {
+        Set(executable.op)
+      }
+    }
   }
 
-  implicit def outputExecutable: Executable[Output] = new Executable[Output] {
-    override def ops(executable: Output): Set[Op] = Set(executable.op)
-  }
-
-  implicit def arrayExecutable[T: Executable]: Executable[Array[T]] = new Executable[Array[T]] {
-    override def ops(executable: Array[T]): Set[Op] = executable.flatMap(e => Executable[T].ops(e)).toSet
+  implicit def arrayExecutable[T: Executable]: Executable[Array[T]] = {
+    new Executable[Array[T]] {
+      override def ops(executable: Array[T]): Set[UntypedOp] = {
+        executable.flatMap(e => Executable[T].ops(e)).toSet
+      }
+    }
   }
 
   implicit def traversableExecutable[T: Executable, CC[A] <: TraversableLike[A, CC[A]]]: Executable[CC[T]] = {
     new Executable[CC[T]] {
-      override def ops(executable: CC[T]): Set[Op] = executable.flatMap(e => Executable[T].ops(e)).toSet
+      override def ops(executable: CC[T]): Set[UntypedOp] = {
+        executable.flatMap(e => Executable[T].ops(e)).toSet
+      }
     }
   }
 
-  implicit val hnil: Executable[HNil] = new Executable[HNil] {
-    override def ops(executable: HNil): Set[Op] = Set.empty[Op]
+  implicit val hnil: Executable[HNil] = {
+    new Executable[HNil] {
+      override def ops(executable: HNil): Set[UntypedOp] = {
+        Set.empty
+      }
+    }
   }
 
   implicit def recursiveConstructor[H, T <: HList](implicit
       executableHead: Lazy[Executable[H]],
       executableTail: Executable[T]
-  ): Executable[H :: T] = new Executable[H :: T] {
-    override def ops(executable: H :: T): Set[Op] = {
-      executableHead.value.ops(executable.head) ++ executableTail.ops(executable.tail)
+  ): Executable[H :: T] = {
+    new Executable[H :: T] {
+      override def ops(executable: H :: T): Set[UntypedOp] = {
+        executableHead.value.ops(executable.head) ++
+            executableTail.ops(executable.tail)
+      }
     }
   }
 
-  // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
   implicit def productConstructor[P <: Product, L <: HList](implicit
       gen: Generic.Aux[P, L],
       executableL: Executable[L]
-  ): Executable[P] = new Executable[P] {
-    override def ops(executable: P): Set[Op] = executableL.ops(gen.to(executable))
+  ): Executable[P] = {
+    new Executable[P] {
+      override def ops(executable: P): Set[UntypedOp] = {
+        executableL.ops(gen.to(executable))
+      }
+    }
   }
 }

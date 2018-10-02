@@ -346,7 +346,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput[T](dataType: DataType[T], name: String = "Shape"): Output = {
+  def toOutput[T](dataType: DataType[T], name: String = "Shape"): Output[T] = {
     Basic.constant(toTensor(dataType), name = name)
   }
 

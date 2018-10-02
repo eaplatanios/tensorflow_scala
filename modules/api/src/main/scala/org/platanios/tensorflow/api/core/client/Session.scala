@@ -72,10 +72,13 @@ class Session private[api](
   @throws[IllegalStateException]
   def run[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output],
-      targets: E = Traversable.empty[Op],
+      fetches: F = Seq.empty[Output[_]],
+      targets: E = Traversable.empty[Op[_, _]],
       options: Option[RunOptions] = None
-  )(implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): R = {
+  )(implicit
+      executable: Executable[E],
+      fetchable: Fetchable.Aux[F, R]
+  ): R = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
 
@@ -100,19 +103,22 @@ class Session private[api](
     *                 allowed types of `targets`.
     * @param  options Optional [[RunOptions]] protocol buffer that allows controlling the behavior of this particular
     *                 run (e.g., turning tracing on).
-    * @return A tuple containing two elements:
+    * @return   A tuple containing two elements:
     *           - The evaluated tensors using the structure of `fetches`. For more details on the return type, please
-    *             refer to the documentation of the [[Fetchable]] type class.
+    *           refer to the documentation of the [[Fetchable]] type class.
     *           - A [[RunMetadata]] protocol buffer option containing the collected run metadata, if any.
     * @throws IllegalStateException If the session has already been closed.
     */
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output],
-      targets: E = Traversable.empty[Op],
+      fetches: F = Seq.empty[Output[_]],
+      targets: E = Traversable.empty[Op[_, _]],
       options: Option[RunOptions] = None
-  )(implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
+  )(implicit
+      executable: Executable[E],
+      fetchable: Fetchable.Aux[F, R]
+  ): (R, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
 
@@ -120,11 +126,14 @@ class Session private[api](
   @throws[IllegalStateException]
   private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output],
-      targets: E = Traversable.empty[Op],
+      fetches: F = Seq.empty[Output[_]],
+      targets: E = Traversable.empty[Op[_, _]],
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
-  )(implicit executable: Executable[E], fetchable: Fetchable.Aux[F, R]): (R, Option[RunMetadata]) = {
+  )(implicit
+      executable: Executable[E],
+      fetchable: Fetchable.Aux[F, R]
+  ): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
     // TODO: !!! [JNI] Add a call to 'extend' once some JNI issues are resolved.
@@ -183,7 +192,9 @@ class Session private[api](
   }
 
   /** Returns a boolean flag indicating whether this session has been closed. */
-  def closed: Boolean = nativeHandle == 0
+  def closed: Boolean = {
+    nativeHandle == 0
+  }
 }
 
 /** Contains helper functions for managing [[Session]] instances. */
