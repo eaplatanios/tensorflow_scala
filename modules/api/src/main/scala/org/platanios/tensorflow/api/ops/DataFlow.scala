@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait DataFlow {
+trait DataFlow {
   /** Creates an op that partitions `data` into `numberOfPartitions` tensors using indices from `partitions`.
     *
     * For each index tuple `js` of size `partitions.rank`, the slice `data[js, ...]` becomes part of
@@ -61,29 +61,33 @@ private[api] trait DataFlow {
     * @param  name               Name for the created op.
     * @return Created op outputs (i.e., partitions).
     */
-  def dynamicPartition(
-      data: Output,
-      partitions: Output,
+  def dynamicPartition[T](
+      data: Output[T],
+      partitions: Output[Int],
       numberOfPartitions: Int,
       name: String = "DynamicPartition"
-  ): Seq[Output] = {
-    Op.Builder("DynamicPartition", name)
-        .addInput(data)
-        .addInput(partitions)
-        .setAttribute("num_partitions", numberOfPartitions)
+  ): Seq[Output[T]] = {
+    Op.Builder[(Output[T], Output[Int]), Seq[Output[T]]](
+      opType = "DynamicPartition",
+      name = name,
+      input = (data, partitions)
+    ).setAttribute("num_partitions", numberOfPartitions)
         .setGradientFn(dynamicPartitionGradient)
-        .build().outputs.toSeq
+        .build().output
   }
 
-  protected def dynamicPartitionGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val data = op.inputs(0)
-    val indices = op.inputs(1)
+  protected def dynamicPartitionGradient[T](
+      op: Op[(Output[T], Output[Int]), Seq[Output[T]]],
+      outputGradient: Seq[Output[T]]
+  ): (Output[T], Output[Int]) = {
+    val data = op.input._1
+    val indices = op.input._2
     val numberOfPartitions = op.longAttribute("num_partitions").asInstanceOf[Int]
-    val prefixShape = Basic.shape(indices)
+    val prefixShape = Basic.shape(indices, INT32)
     val originalIndices = Basic.reshape(Math.range(Basic.constant(0), Math.prod(prefixShape)), prefixShape)
     val partitionedIndices = dynamicPartition(originalIndices, indices, numberOfPartitions)
-    val reconstructed = dynamicStitch(partitionedIndices, outputGradients.map(_.toOutput))
-    Seq(Basic.reshape(reconstructed, Basic.shape(data)), null)
+    val reconstructed = dynamicStitch(partitionedIndices, outputGradient)
+    (Basic.reshape(reconstructed, Basic.shape(data, INT32)), null)
   }
 
   /** Creates an op that interleaves the values from the `data` tensors into a single tensor.
@@ -136,20 +140,27 @@ private[api] trait DataFlow {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def dynamicStitch(indices: Seq[Output], data: Seq[Output], name: String = "DynamicStitch"): Output = {
-    Op.Builder("DynamicStitch", name)
-        .addInputList(indices)
-        .addInputList(data)
-        .setGradientFn(dynamicStitchGradient)
-        .build().outputs(0)
+  def dynamicStitch[T](
+      indices: Seq[Output[Int]],
+      data: Seq[Output[T]],
+      name: String = "DynamicStitch"
+  ): Output[T] = {
+    Op.Builder[(Seq[Output[Int]], Seq[Output[T]]), Output[T]](
+      opType = "DynamicStitch",
+      name = name,
+      input = (indices, data)
+    ).setGradientFn(dynamicStitchGradient)
+        .build().output
   }
 
-  protected def dynamicStitchGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-    val outputGradient = outputGradients.head.toOutput
-    val numberOfValues = op.inputs.length / 2
+  protected def dynamicStitchGradient[T](
+      op: Op[(Seq[Output[Int]], Seq[Output[T]]), Output[T]],
+      outputGradient:  Output[T]
+  ): (Seq[Output[Int]], Seq[Output[T]]) = {
+    val numberOfValues = op.input._2.size
     val indicesGradient = Seq.fill(numberOfValues)(null)
-    val valuesGradient = op.inputs.take(numberOfValues).map(Cast.cast(_, INT32)).map(Basic.gather(outputGradient, _))
-    indicesGradient ++ valuesGradient
+    val valuesGradient = op.input._1.map(Basic.gather(outputGradient, _, axis = 0))
+    (indicesGradient, valuesGradient)
   }
 
   /** Creates an op that creates a new stack and returns a resource handle to it.
@@ -164,16 +175,18 @@ private[api] trait DataFlow {
     * @return Created op output, which is a handle to the new stack resource.
     */
   def newStack(
-      maxSize: Output,
-      elementType: DataType[_],
+      maxSize: Output[Int],
+      elementType: DataType[Any],
       stackName: String = "",
       name: String = "NewStack"
-  ): Output = {
-    Op.Builder("StackV2", name)
-        .addInput(maxSize)
-        .setAttribute("elem_type", elementType)
+  ): Output[Long] = {
+    Op.Builder[Output[Int], Output[Long]](
+      opType = "StackV2",
+      name = name,
+      input = maxSize
+    ).setAttribute("elem_type", elementType)
         .setAttribute("stack_name", stackName)
-        .build().outputs(0)
+        .build().output
   }
 
   /** Creates an op that pushes an element into a stack and then returns that same element.
@@ -184,17 +197,18 @@ private[api] trait DataFlow {
     * @param  name        Name for the created op.
     * @return Created op output, which has the same value as `element`.
     */
-  def stackPush(
-      stackHandle: Output,
-      element: Output,
+  def stackPush[T](
+      stackHandle: Output[Long],
+      element: Output[T],
       swapMemory: Boolean = false,
       name: String = "StackPush"
-  ): Output = {
-    Op.Builder("StackPushV2", name)
-        .addInput(stackHandle)
-        .addInput(element)
-        .setAttribute("swap_memory", swapMemory)
-        .build().outputs(0)
+  ): Output[T] = {
+    Op.Builder[(Output[Long], Output[T]), Output[T]](
+      opType = "StackPushV2",
+      name = name,
+      input = (stackHandle, element)
+    ).setAttribute("swap_memory", swapMemory)
+        .build().output
   }
 
   /** Creates an op that pops an element from a stack and then returns it.
@@ -204,15 +218,17 @@ private[api] trait DataFlow {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def stackPop(
-      stackHandle: Output,
-      elementType: DataType[_],
+  def stackPop[T](
+      stackHandle: Output[Long],
+      elementType: DataType[T],
       name: String = "StackPop"
-  ): Output = {
-    Op.Builder("StackPopV2", name)
-        .addInput(stackHandle)
-        .setAttribute("elem_type", elementType)
-        .build().outputs(0)
+  ): Output[T] = {
+    Op.Builder[Output[Long], Output[T]](
+      opType = "StackPopV2",
+      name = name,
+      input = stackHandle
+    ).setAttribute("elem_type", elementType)
+        .build().output
   }
 
   /** Creates an op that deletes a stack from its resource container.
@@ -221,10 +237,15 @@ private[api] trait DataFlow {
     * @param  name        Name for the created op.
     * @return Created op.
     */
-  def stackClose(stackHandle: Output, name: String = "StackClose"): Op = {
-    Op.Builder("StackCloseV2", name)
-        .addInput(stackHandle)
-        .build()
+  def stackClose(
+      stackHandle: Output[Long],
+      name: String = "StackClose"
+  ): Op[Output[Long], Unit] = {
+    Op.Builder[Output[Long], Unit](
+      opType = "StackCloseV2",
+      name = name,
+      input = stackHandle
+    ).build()
   }
 }
 
