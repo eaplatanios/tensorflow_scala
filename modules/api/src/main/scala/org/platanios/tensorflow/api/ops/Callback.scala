@@ -26,35 +26,35 @@ import scala.collection.generic.CanBuildFrom
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Callback {
+trait Callback {
   /** $OpDocCallbackCallback
     *
     * @group CallbackOps
-    * @param  function        Scala function to use for the callback op.
-    * @param  input           Input for the created op.
-    * @param  outputDataType  Data types of the Scala function outputs.
-    * @param  stateful        If `true`, the function should be considered stateful. If a function is stateless, when
-    *                         given the same input it will return the same output and have no observable side effects.
-    *                         Optimizations such as common subexpression elimination are only performed on stateless
-    *                         operations.
-    * @param  name            Name for the created op.
-    * @tparam T               Scala function input type (e.g., `Tensor`).
-    * @tparam TS              Op input type, which is the symbolic type corresponding to `T` (e.g., `Output`).
-    * @tparam R               Scala function output type (e.g., `Tensor`).
-    * @tparam RS              Op output type, which is the symbolic type corresponding to `R` (e.g., `Output`).
-    * @tparam RD              Structure of data types corresponding to `R` (e.g., `DataType`).
+    * @param  function       Scala function to use for the callback op.
+    * @param  input          Input for the created op.
+    * @param  outputDataType Data types of the Scala function outputs.
+    * @param  stateful       If `true`, the function should be considered stateful. If a function is stateless, when
+    *                        given the same input it will return the same output and have no observable side effects.
+    *                        Optimizations such as common subexpression elimination are only performed on stateless
+    *                        operations.
+    * @param  name           Name for the created op.
+    * @tparam IT             Scala function input type (e.g., `Tensor`).
+    * @tparam IO             Op input type, which is the symbolic type corresponding to `T` (e.g., `Output`).
+    * @tparam OT             Scala function output type (e.g., `Tensor`).
+    * @tparam OO             Op output type, which is the symbolic type corresponding to `R` (e.g., `Output`).
+    * @tparam OD             Structure of data types corresponding to `R` (e.g., `DataType`).
     * @return Created op output.
     */
-  def callback[T, TS, TD, R, RS, RD](
-      function: T => R,
-      input: TS,
-      outputDataType: RD,
+  def callback[IT, IO, ID, OT, OO, OD](
+      function: IT => OT,
+      input: IO,
+      outputDataType: OD,
       stateful: Boolean = true,
       name: String = "Callback"
   )(implicit
-      evInput: Callback.ArgType.Aux[T, TS, TD],
-      evOutput: Callback.ArgType.Aux[R, RS, RD]
-  ): RS = {
+      evInput: Callback.ArgType.Aux[IT, IO, ID],
+      evOutput: Callback.ArgType.Aux[OT, OO, OD]
+  ): OO = {
     val id = NativeCallbacksRegistry.register(inputs => {
       val inputTensors = inputs.map(Tensor.fromNativeHandle).toSeq
       val outputs = function(evInput.decode(inputTensors))
@@ -72,35 +72,41 @@ private[api] trait Callback {
     // registry.
     graph.addCleanupFunction(() => NativeCallbacksRegistry.deregister(id))
     val builder = {
-      if (stateful)
-        Op.Builder(opType = "JVMCallback", name = name)
-      else
-        Op.Builder(opType = "JVMCallbackStateless", name = name)
+      if (stateful) {
+        Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
+          opType = "JVMCallback",
+          name = name,
+          input = evInput.outputs(input))
+      } else {
+        Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
+          opType = "JVMCallbackStateless",
+          name = name,
+          input = evInput.outputs(input))
+      }
     }
     builder.setAttribute("id", id)
     builder.setAttribute("jvm_pointer", NativeLibrary.currentJvmPointer)
     builder.setAttribute("registry_pointer", NativeLibrary.currentCallbackRegistryPointer)
     builder.setAttribute("Tout", evOutput.dataTypes(outputDataType).toArray)
-    builder.addInputList(evInput.outputs(input))
-    evOutput.decodeSymbolic(builder.build().outputs.toSeq)
+    evOutput.decodeSymbolic(builder.build().output)
   }
 }
 
 /** Contains helpers for dealing with callbacks. */
-private[ops] object Callback extends Callback {
+object Callback extends Callback {
   /** Type trait representing valid callback function argument/output types. */
   trait ArgType[T] {
     /** Represents the corresponding symbolic type of `T` where tensors are replaced with their symbolic equivalent. */
-    type TS
+    type TO
 
     /** Represents the corresponding data type structure type of `T` where tensors are replaced with their data types. */
     type TD
 
-    def tensors(arg: T): Seq[Tensor[_]]
-    def outputs(arg: TS): Seq[Output]
-    def dataTypes(types: TD): Seq[DataType[_]]
-    def decode(tensors: Seq[Tensor[_]]): T
-    def decodeSymbolic(outputs: Seq[Output]): TS
+    def tensors(arg: T): Seq[Tensor[Any]]
+    def outputs(arg: TO): Seq[Output[Any]]
+    def dataTypes(types: TD): Seq[DataType[Any]]
+    def decode(tensors: Seq[Tensor[Any]]): T
+    def decodeSymbolic(outputs: Seq[Output[Any]]): TO
   }
 
   /** Contains implicits for the [[ArgType]] type trait. */
@@ -108,225 +114,322 @@ private[ops] object Callback extends Callback {
     // TODO: [CALLBACKS] Find a way to make the implicits here more elegant and maybe generalizable.
     // TODO: [CALLBACKS] Add support for tuples of outputs, etc., as arg types.
 
-    type Aux[T, S, D] = ArgType[T] {
-      type TS = S
+    type Aux[T, O, D] = ArgType[T] {
+      type TO = O
       type TD = D
     }
 
-    def apply[T, S, D](implicit ev: Aux[T, S, D]): Aux[T, S, D] = ev
+    def apply[T, O, D](implicit ev: Aux[T, O, D]): Aux[T, O, D] = ev
 
     implicit val unitArgType: ArgType.Aux[Unit, Unit, Unit] = new ArgType[Unit] {
-      override type TS = Unit
+      override type TO = Unit
       override type TD = Unit
 
-      override def tensors(arg: Unit): Seq[Tensor[_]] = Seq.empty
-      override def outputs(arg: Unit): Seq[Output] = Seq.empty
-      override def dataTypes(types: Unit): Seq[DataType[_]] = Seq.empty
-      override def decode(tensors: Seq[Tensor[_]]): Unit = ()
-      override def decodeSymbolic(outputs: Seq[Output]): Unit = ()
+      override def tensors(arg: Unit): Seq[Tensor[Any]] = {
+        Seq.empty
+      }
+
+      override def outputs(arg: Unit): Seq[Output[Any]] = {
+        Seq.empty
+      }
+
+      override def dataTypes(types: Unit): Seq[DataType[Any]] = {
+        Seq.empty
+      }
+
+      override def decode(tensors: Seq[Tensor[Any]]): Unit = {
+        ()
+      }
+
+      override def decodeSymbolic(outputs: Seq[Output[Any]]): Unit = {
+        ()
+      }
     }
 
-    implicit def tensorArgType[T]: ArgType.Aux[Tensor[T], Output, DataType[T]] = new ArgType[Tensor[T]] {
-      override type TS = Output
-      override type TD = DataType[T]
-
-      override def tensors(arg: Tensor[T]): Seq[Tensor[_]] = Seq(arg)
-      override def outputs(arg: Output): Seq[Output] = Seq(arg)
-      override def dataTypes(types: DataType[T]): Seq[DataType[_]] = Seq(types)
-      override def decode(tensors: Seq[Tensor[_]]): Tensor[T] = tensors.head.asInstanceOf[Tensor[T]]
-      override def decodeSymbolic(outputs: Seq[Output]): Output = outputs.head
-    }
-
-    implicit def tensorIndexedSlicesArgType[T]: ArgType.Aux[TensorIndexedSlices[T], OutputIndexedSlices, DataType[T]] = {
-      new ArgType[TensorIndexedSlices[T]] {
-        override type TS = OutputIndexedSlices
+    implicit def tensorArgType[T]: ArgType.Aux[Tensor[T], Output[T], DataType[T]] = {
+      new ArgType[Tensor[T]] {
+        override type TO = Output[T]
         override type TD = DataType[T]
 
-        override def tensors(arg: TensorIndexedSlices[T]): Seq[Tensor[_]
-            ] = Seq(arg.indices, arg.values, arg.denseShape)
-        override def outputs(arg: OutputIndexedSlices): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
-        override def dataTypes(types: DataType[T]): Seq[DataType[_]] = Seq(INT64, types, INT64)
+        override def tensors(arg: Tensor[T]): Seq[Tensor[Any]] = {
+          Seq(arg)
+        }
 
-        override def decode(tensors: Seq[Tensor[_]]): TensorIndexedSlices[T] = {
+        override def outputs(arg: Output[T]): Seq[Output[Any]] = {
+          Seq(arg)
+        }
+
+        override def dataTypes(types: DataType[T]): Seq[DataType[Any]] = {
+          Seq(types)
+        }
+
+        override def decode(tensors: Seq[Tensor[Any]]): Tensor[T] = {
+          tensors.head.asInstanceOf[Tensor[T]]
+        }
+
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): Output[T] = {
+          outputs.head.asInstanceOf[Output[T]]
+        }
+      }
+    }
+
+    implicit def tensorIndexedSlicesArgType[T]: ArgType.Aux[TensorIndexedSlices[T], OutputIndexedSlices[T], DataType[T]] = {
+      new ArgType[TensorIndexedSlices[T]] {
+        override type TO = OutputIndexedSlices[T]
+        override type TD = DataType[T]
+
+        override def tensors(arg: TensorIndexedSlices[T]): Seq[Tensor[Any]] = {
+          Seq(arg.indices, arg.values, arg.denseShape)
+        }
+
+        override def outputs(arg: OutputIndexedSlices[T]): Seq[Output[Any]] = {
+          Seq(arg.indices, arg.values, arg.denseShape)
+        }
+
+        override def dataTypes(types: DataType[T]): Seq[DataType[Any]] = {
+          Seq(INT64, types, INT64)
+        }
+
+        override def decode(tensors: Seq[Tensor[Any]]): TensorIndexedSlices[T] = {
           TensorIndexedSlices(
             tensors(0).asInstanceOf[Tensor[Long]],
             tensors(1).asInstanceOf[Tensor[T]],
             tensors(2).asInstanceOf[Tensor[Long]])
         }
 
-        override def decodeSymbolic(outputs: Seq[Output]): OutputIndexedSlices = {
-          OutputIndexedSlices(outputs(0), outputs(1), outputs(2))
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): OutputIndexedSlices[T] = {
+          OutputIndexedSlices(
+            outputs(0).asInstanceOf[Tensor[Long]],
+            outputs(1).asInstanceOf[Tensor[T]],
+            outputs(2).asInstanceOf[Tensor[Long]])
         }
       }
     }
 
-    implicit def sparseTensorArgType[T]: ArgType.Aux[SparseTensor[T], SparseOutput, DataType[T]] = {
+    implicit def sparseTensorArgType[T]: ArgType.Aux[SparseTensor[T], SparseOutput[T], DataType[T]] = {
       new ArgType[SparseTensor[T]] {
-        override type TS = SparseOutput
+        override type TO = SparseOutput[T]
         override type TD = DataType[T]
 
-        override def tensors(arg: SparseTensor[T]): Seq[Tensor[_]] = Seq(arg.indices, arg.values, arg.denseShape)
-        override def outputs(arg: SparseOutput): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
-        override def dataTypes(types: DataType[T]): Seq[DataType[_]] = Seq(INT64, types, INT64)
+        override def tensors(arg: SparseTensor[T]): Seq[Tensor[Any]] = {
+          Seq(arg.indices, arg.values, arg.denseShape)
+        }
 
-        override def decode(tensors: Seq[Tensor[_]]): SparseTensor[T] = {
+        override def outputs(arg: SparseOutput[T]): Seq[Output[Any]] = {
+          Seq(arg.indices, arg.values, arg.denseShape)
+        }
+
+        override def dataTypes(types: DataType[T]): Seq[DataType[Any]] = {
+          Seq(INT64, types, INT64)
+        }
+
+        override def decode(tensors: Seq[Tensor[Any]]): SparseTensor[T] = {
           SparseTensor(
             tensors(0).asInstanceOf[Tensor[Long]],
             tensors(1).asInstanceOf[Tensor[T]],
             tensors(2).asInstanceOf[Tensor[Long]])
         }
 
-        override def decodeSymbolic(outputs: Seq[Output]): SparseOutput = {
-          SparseOutput(outputs(0), outputs(1), outputs(2))
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): SparseOutput[T] = {
+          SparseOutput(
+            outputs(0).asInstanceOf[Tensor[Long]],
+            outputs(1).asInstanceOf[Tensor[T]],
+            outputs(2).asInstanceOf[Tensor[Long]])
         }
       }
     }
 
-    implicit def tensorArrayArgType[T]: Aux[Array[Tensor[T]], Array[Output], Array[DataType[T]]] = {
+    implicit def tensorArrayArgType[T]: Aux[Array[Tensor[T]], Array[Output[T]], Array[DataType[T]]] = {
       new ArgType[Array[Tensor[T]]] {
-        override type TS = Array[Output]
+        override type TO = Array[Output[T]]
         override type TD = Array[DataType[T]]
 
-        override def tensors(arg: Array[Tensor[T]]): Seq[Tensor[_]] = arg.toSeq
-        override def outputs(arg: Array[Output]): Seq[Output] = arg.toSeq
-        override def dataTypes(types: Array[DataType[T]]): Seq[DataType[_]] = types.toSeq
-        override def decode(tensors: Seq[Tensor[_]]): Array[Tensor[T]] = tensors.map(_.asInstanceOf[Tensor[T]]).toArray
-        override def decodeSymbolic(outputs: Seq[Output]): Array[Output] = outputs.toArray
+        override def tensors(arg: Array[Tensor[T]]): Seq[Tensor[Any]] = {
+          arg.toSeq
+        }
+
+        override def outputs(arg: Array[Output[T]]): Seq[Output[Any]] = {
+          arg.toSeq
+        }
+
+        override def dataTypes(types: Array[DataType[T]]): Seq[DataType[Any]] = {
+          types.toSeq
+        }
+
+        override def decode(tensors: Seq[Tensor[Any]]): Array[Tensor[T]] = {
+          tensors.map(_.asInstanceOf[Tensor[T]]).toArray
+        }
+
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): Array[Output[T]] = {
+          outputs.map(_.asInstanceOf[Output[T]]).toArray
+        }
       }
     }
 
-    implicit def tensorIndexedSlicesArrayArgType[T]: Aux[Array[TensorIndexedSlices[T]], Array[OutputIndexedSlices], Array[DataType[T]]] = {
+    implicit def tensorIndexedSlicesArrayArgType[T]: Aux[Array[TensorIndexedSlices[T]], Array[OutputIndexedSlices[T]], Array[DataType[T]]] = {
       new ArgType[Array[TensorIndexedSlices[T]]] {
-        override type TS = Array[OutputIndexedSlices]
+        override type TO = Array[OutputIndexedSlices[T]]
         override type TD = Array[DataType[T]]
 
-        override def tensors(arg: Array[TensorIndexedSlices[T]]): Seq[Tensor[_]] = {
+        override def tensors(arg: Array[TensorIndexedSlices[T]]): Seq[Tensor[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        override def outputs(arg: Array[OutputIndexedSlices]): Seq[Output] = {
+        override def outputs(arg: Array[OutputIndexedSlices[T]]): Seq[Output[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        // TODO: Is INT64 safe here?
-        override def dataTypes(types: Array[DataType[T]]): Seq[DataType[_]] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: Array[DataType[T]]): Seq[DataType[Any]] = {
+          types.flatMap(Seq(INT64, _, INT64)).toSeq
+        }
 
-        override def decode(tensors: Seq[Tensor[_]]): Array[TensorIndexedSlices[T]] = {
+        override def decode(tensors: Seq[Tensor[Any]]): Array[TensorIndexedSlices[T]] = {
           tensors.grouped(3).map(t => TensorIndexedSlices(
             t(0).asInstanceOf[Tensor[Long]],
             t(1).asInstanceOf[Tensor[T]],
             t(2).asInstanceOf[Tensor[Long]])).toArray
         }
 
-        override def decodeSymbolic(outputs: Seq[Output]): Array[OutputIndexedSlices] = {
-          outputs.grouped(3).map(o => OutputIndexedSlices(o(0), o(1), o(2))).toArray
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): Array[OutputIndexedSlices[T]] = {
+          outputs.grouped(3).map(o => OutputIndexedSlices(
+            o(0).asInstanceOf[Tensor[Long]],
+            o(1).asInstanceOf[Tensor[T]],
+            o(2).asInstanceOf[Tensor[Long]])).toArray
         }
       }
     }
 
-    implicit def sparseTensorArrayArgType[T]: Aux[Array[SparseTensor[T]], Array[SparseOutput], Array[DataType[T]]] = {
+    implicit def sparseTensorArrayArgType[T]: Aux[Array[SparseTensor[T]], Array[SparseOutput[T]], Array[DataType[T]]] = {
       new ArgType[Array[SparseTensor[T]]] {
-        override type TS = Array[SparseOutput]
+        override type TO = Array[SparseOutput[T]]
         override type TD = Array[DataType[T]]
 
-        override def tensors(arg: Array[SparseTensor[T]]): Seq[Tensor[_]] = {
+        override def tensors(arg: Array[SparseTensor[T]]): Seq[Tensor[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        override def outputs(arg: Array[SparseOutput]): Seq[Output] = {
+        override def outputs(arg: Array[SparseOutput[T]]): Seq[Output[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        // TODO: Is INT64 safe here?
-        override def dataTypes(types: Array[DataType[T]]): Seq[DataType[_]] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: Array[DataType[T]]): Seq[DataType[Any]] = {
+          types.flatMap(Seq(INT64, _, INT64)).toSeq
+        }
 
-        override def decode(tensors: Seq[Tensor[_]]): Array[SparseTensor[T]] = {
+        override def decode(tensors: Seq[Tensor[Any]]): Array[SparseTensor[T]] = {
           tensors.grouped(3).map(t => SparseTensor(
             t(0).asInstanceOf[Tensor[Long]],
             t(1).asInstanceOf[Tensor[T]],
             t(2).asInstanceOf[Tensor[Long]])).toArray
         }
 
-        override def decodeSymbolic(outputs: Seq[Output]): Array[SparseOutput] = {
-          outputs.grouped(3).map(o => SparseOutput(o(0), o(1), o(2))).toArray
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): Array[SparseOutput[T]] = {
+          outputs.grouped(3).map(o => SparseOutput(
+            o(0).asInstanceOf[Tensor[Long]],
+            o(1).asInstanceOf[Tensor[T]],
+            o(2).asInstanceOf[Tensor[Long]])).toArray
         }
       }
     }
 
     implicit def tensorSeqArgType[T, CC[A] <: SeqLike[A, CC[A]]](implicit
         cbfTensor: CanBuildFrom[Seq[Tensor[T]], Tensor[T], CC[Tensor[T]]],
-        cbfOutput: CanBuildFrom[Seq[Output], Output, CC[Output]]
-    ): Aux[CC[Tensor[T]], CC[Output], CC[DataType[T]]] = {
+        cbfOutput: CanBuildFrom[Seq[Output[T]], Output[T], CC[Output[T]]]
+    ): Aux[CC[Tensor[T]], CC[Output[T]], CC[DataType[T]]] = {
       new ArgType[CC[Tensor[T]]] {
-        override type TS = CC[Output]
+        override type TO = CC[Output[T]]
         override type TD = CC[DataType[T]]
 
-        override def tensors(arg: CC[Tensor[T]]): Seq[Tensor[_]] = arg.toSeq
-        override def outputs(arg: CC[Output]): Seq[Output] = arg.toSeq
-        override def dataTypes(types: CC[DataType[T]]): Seq[DataType[_]] = types.toSeq
-        override def decode(tensors: Seq[Tensor[_]]): CC[Tensor[T]] = tensors.map(_.asInstanceOf[Tensor[T]]).to[CC](cbfTensor)
-        override def decodeSymbolic(outputs: Seq[Output]): CC[Output] = outputs.to[CC](cbfOutput)
+        override def tensors(arg: CC[Tensor[T]]): Seq[Tensor[Any]] = {
+          arg.toSeq
+        }
+
+        override def outputs(arg: CC[Output[T]]): Seq[Output[Any]] = {
+          arg.toSeq
+        }
+
+        override def dataTypes(types: CC[DataType[T]]): Seq[DataType[Any]] = {
+          types.toSeq
+        }
+
+        override def decode(tensors: Seq[Tensor[Any]]): CC[Tensor[T]] = {
+          tensors.map(_.asInstanceOf[Tensor[T]]).to[CC](cbfTensor)
+        }
+
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): CC[Output[T]] = {
+          outputs.map(_.asInstanceOf[Output[T]]).to[CC](cbfOutput)
+        }
       }
     }
 
     implicit def tensorIndexedSlicesSeqArgType[T, CC[A] <: SeqLike[A, CC[A]]](implicit
         cbfTensor: CanBuildFrom[Seq[TensorIndexedSlices[T]], TensorIndexedSlices[T], CC[TensorIndexedSlices[T]]],
-        cbfOutput: CanBuildFrom[Seq[OutputIndexedSlices], OutputIndexedSlices, CC[OutputIndexedSlices]]
-    ): Aux[CC[TensorIndexedSlices[T]], CC[OutputIndexedSlices], CC[DataType[T]]] = {
+        cbfOutput: CanBuildFrom[Seq[OutputIndexedSlices[T]], OutputIndexedSlices[T], CC[OutputIndexedSlices[T]]]
+    ): Aux[CC[TensorIndexedSlices[T]], CC[OutputIndexedSlices[T]], CC[DataType[T]]] = {
       new ArgType[CC[TensorIndexedSlices[T]]] {
-        override type TS = CC[OutputIndexedSlices]
+        override type TO = CC[OutputIndexedSlices[T]]
         override type TD = CC[DataType[T]]
 
-        override def tensors(arg: CC[TensorIndexedSlices[T]]): Seq[Tensor[_]] = {
+        override def tensors(arg: CC[TensorIndexedSlices[T]]): Seq[Tensor[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        override def outputs(arg: CC[OutputIndexedSlices]): Seq[Output] = {
+        override def outputs(arg: CC[OutputIndexedSlices[T]]): Seq[Output[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        override def dataTypes(types: CC[DataType[T]]): Seq[DataType[_]] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: CC[DataType[T]]): Seq[DataType[Any]] = {
+          types.flatMap(Seq(INT64, _, INT64)).toSeq
+        }
 
-        override def decode(tensors: Seq[Tensor[_]]): CC[TensorIndexedSlices[T]] = {
+        override def decode(tensors: Seq[Tensor[Any]]): CC[TensorIndexedSlices[T]] = {
           tensors.grouped(3).map(t => TensorIndexedSlices(
             t(0).asInstanceOf[Tensor[Long]],
             t(1).asInstanceOf[Tensor[T]],
             t(2).asInstanceOf[Tensor[Long]])).to[CC](cbfTensor)
         }
 
-        override def decodeSymbolic(outputs: Seq[Output]): CC[OutputIndexedSlices] = {
-          outputs.grouped(3).map(o => OutputIndexedSlices(o(0), o(1), o(2))).to[CC](cbfOutput)
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): CC[OutputIndexedSlices[T]] = {
+          outputs.grouped(3).map(o => OutputIndexedSlices(
+            o(0).asInstanceOf[Tensor[Long]],
+            o(1).asInstanceOf[Tensor[T]],
+            o(2).asInstanceOf[Tensor[Long]])).to[CC](cbfOutput)
         }
       }
     }
 
     implicit def sparseTensorSeqArgType[T, CC[A] <: SeqLike[A, CC[A]]](implicit
         cbfTensor: CanBuildFrom[Seq[SparseTensor[T]], SparseTensor[T], CC[SparseTensor[T]]],
-        cbfOutput: CanBuildFrom[Seq[SparseOutput], SparseOutput, CC[SparseOutput]]
-    ): Aux[CC[SparseTensor[T]], CC[SparseOutput], CC[DataType[T]]] = {
+        cbfOutput: CanBuildFrom[Seq[SparseOutput[T]], SparseOutput[T], CC[SparseOutput[T]]]
+    ): Aux[CC[SparseTensor[T]], CC[SparseOutput[T]], CC[DataType[T]]] = {
       new ArgType[CC[SparseTensor[T]]] {
-        override type TS = CC[SparseOutput]
+        override type TO = CC[SparseOutput[T]]
         override type TD = CC[DataType[T]]
 
-        override def tensors(arg: CC[SparseTensor[T]]): Seq[Tensor[_]] = {
+        override def tensors(arg: CC[SparseTensor[T]]): Seq[Tensor[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        override def outputs(arg: CC[SparseOutput]): Seq[Output] = {
+        override def outputs(arg: CC[SparseOutput[T]]): Seq[Output[Any]] = {
           arg.flatMap(a => Seq(a.indices, a.values, a.denseShape)).toSeq
         }
 
-        override def dataTypes(types: CC[DataType[T]]): Seq[DataType[_]] = types.flatMap(Seq(INT64, _, INT64)).toSeq
+        override def dataTypes(types: CC[DataType[T]]): Seq[DataType[Any]] = {
+          types.flatMap(Seq(INT64, _, INT64)).toSeq
+        }
 
-        override def decode(tensors: Seq[Tensor[_]]): CC[SparseTensor[T]] = {
+        override def decode(tensors: Seq[Tensor[Any]]): CC[SparseTensor[T]] = {
           tensors.grouped(3).map(t => SparseTensor(
             t(0).asInstanceOf[Tensor[Long]],
             t(1).asInstanceOf[Tensor[T]],
             t(2).asInstanceOf[Tensor[Long]])).to[CC](cbfTensor)
         }
 
-        override def decodeSymbolic(outputs: Seq[Output]): CC[SparseOutput] = {
-          outputs.grouped(3).map(o => SparseOutput(o(0), o(1), o(2))).to[CC](cbfOutput)
+        override def decodeSymbolic(outputs: Seq[Output[Any]]): CC[SparseOutput[T]] = {
+          outputs.grouped(3).map(o => SparseOutput(
+            o(0).asInstanceOf[Tensor[Long]],
+            o(1).asInstanceOf[Tensor[T]],
+            o(2).asInstanceOf[Tensor[Long]])).to[CC](cbfOutput)
         }
       }
     }
