@@ -16,13 +16,13 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.types.{FLOAT16, FLOAT32}
+import org.platanios.tensorflow.api.types.{INT64, IsNotQuantized, IsInt32OrInt64}
 
 /** Contains functions for constructing ops related to statistics.
   *
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
-private[api] trait Statistics {
+trait Statistics {
   /** $OpDocStatisticsSufficientStatistics
     *
     * @group StatisticsOps
@@ -39,12 +39,17 @@ private[api] trait Statistics {
     *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
     *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
     */
-  def sufficientStatistics(
-      input: Output, axes: Output, shift: Output = null, keepDims: Boolean = false,
-      name: String = "SufficientStatistics"): (Output, Output, Output, Output) = {
-    Op.createWithNameScope(name, Set(input.op)) {
-      val dynamicAxes: Output = axes
-      val counts = Math.prod(Basic.gather(Cast.cast(Basic.shape(input), input.dataType), dynamicAxes))
+  def sufficientStatistics[T: IsNotQuantized, I: IsInt32OrInt64](
+      input: Output[T],
+      axes: Output[I],
+      shift: Output[T] = null,
+      keepDims: Boolean = false,
+      name: String = "SufficientStatistics"
+  ): (Output[T], Output[T], Output[T], Output[T]) = {
+    Op.nameScope(name) {
+      val dynamicAxes = axes
+      val inputShape = Basic.shape(input, INT64).cast(input.dataType)
+      val counts = Math.prod(Basic.gather(inputShape, dynamicAxes, axis = 0))
       val mSS = if (shift == null) input else input - shift
       val vSS = if (shift == null) Math.square(input) else Math.squaredDifference(input, shift)
       val meanSS = Math.sum(mSS, axes = dynamicAxes, keepDims = keepDims, name = "MeanSS")
@@ -63,10 +68,14 @@ private[api] trait Statistics {
     * @param  name   Name for the created op.
     * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
     */
-  def momentsFromSufficientStatistics(
-      counts: Output, meanSS: Output, varSS: Output, shift: Output = null,
-      name: String = "MomentsFromSufficientStatistics"): (Output, Output) = {
-    Op.createWithNameScope(name, Set(counts.op, meanSS.op, varSS.op)) {
+  def momentsFromSufficientStatistics[T: IsNotQuantized](
+      counts: Output[T],
+      meanSS: Output[T],
+      varSS: Output[T],
+      shift: Output[T] = null,
+      name: String = "MomentsFromSufficientStatistics"
+  ): (Output[T], Output[T]) = {
+    Op.nameScope(name) {
       val divisor = Math.reciprocal(counts, name = "Divisor")
       val (mean, shiftedMean) = {
         if (shift == null) {
@@ -78,7 +87,10 @@ private[api] trait Statistics {
           (mean, shiftedMean)
         }
       }
-      val variance = Math.subtract(Math.multiply(varSS, divisor), Math.square(shiftedMean), name = "Variance")
+      val variance = Math.subtract(
+        Math.multiply(varSS, divisor),
+        Math.square(shiftedMean),
+        name = "Variance")
       (mean, variance)
     }
   }
@@ -95,103 +107,108 @@ private[api] trait Statistics {
     * @param  name     Name for the created op.
     * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
     */
-  def moments(
-      input: Output, axes: Seq[Int], weights: Output = null, keepDims: Boolean = false,
-      name: String = "Moments"): (Output, Output) = {
+  def moments[T: IsNotQuantized](
+      input: Output[T],
+      axes: Seq[Int],
+      weights: Output[T] = null,
+      keepDims: Boolean = false,
+      name: String = "Moments"
+  ): (Output[T], Output[T]) = {
     if (weights == null) {
-      Op.createWithNameScope(name, Set(input.op)) {
-        val dynamicAxes: Output = axes
-        // The dynamic range of FLOAT16 is too limited to support the collection of sufficient statistics. As a
-        // workaround we simply perform the operations on 32-bit floats before converting the mean and variance back to
-        // FLOAT16.
-        val preciseInput = if (input.dataType == FLOAT16) Cast.cast(input, FLOAT32) else input
+      Op.nameScope(name) {
+        val dynamicAxes = axes
         // Compute true mean while keeping the dimensions for proper broadcasting.
-        var mean = Math.mean(preciseInput, axes = dynamicAxes, keepDims = true, name = "Mean")
+        var mean = Math.mean(input, axes = dynamicAxes, keepDims = true, name = "Mean")
         // Compute the sample variance (i.e., not an unbiased variance estimate).
         var variance = Math.mean(
-          Math.squaredDifference(preciseInput, Basic.stopGradient(input)),
+          Math.squaredDifference(input, Basic.stopGradient(input)),
           axes = dynamicAxes, keepDims = true, name = "Variance")
         if (!keepDims) {
           mean = Basic.squeeze(mean, axes)
           variance = Basic.squeeze(variance, axes)
         }
-        // Cast back to FLOAT16 if necessary.
-        if (input.dataType == FLOAT16)
-          (Cast.cast(mean, FLOAT16), Cast.cast(variance, FLOAT16))
-        else
-          (mean, variance)
+        (mean, variance)
       }
     } else {
       // Unlike the case with no weights, this just uses a simple two-pass method.
-      Op.createWithNameScope(name, Set(input.op, weights.op)) {
-        val dynamicAxes: Output = axes
-        // The dynamic range of FLOAT16 is too limited to support the collection of sufficient statistics. As a
-        // workaround we simply perform the operations on 32-bit floats before converting the mean and variance back to
-        // FLOAT16.
-        val preciseInput = if (input.dataType == FLOAT16) Cast.cast(input, FLOAT32) else input
-        val preciseWeights = Cast.cast(weights, preciseInput.dataType)
+      Op.nameScope(name) {
+        val dynamicAxes = axes
         // Note that we use keepDims = true for our reductions regardless of the provided function argument. This is so
         // that the results remain broadcast-compatible with the inputs.
         val weightedInputSum = Math.sum(
-          preciseWeights * preciseInput, axes = dynamicAxes, keepDims = true, name = "WeightedInputsSum")
+          weights * input,
+          axes = dynamicAxes,
+          keepDims = true,
+          name = "WeightedInputsSum")
         // The shape of the weights isn't necessarily the same as the input shape; it is just broadcast-compatible with
         // it. So, this expression performs broadcasting to give a per-item weight, with the same shape as
         // (weights * input). This avoids having to reason through all the broadcast logic to compute a correct sum of
         // weights.
-        val broadcastedWeights = preciseWeights + Basic.zerosLike(preciseInput)
+        val broadcastedWeights = weights + Basic.zerosLike(input)
         val weightsSum = Math.sum(broadcastedWeights, axes = dynamicAxes, keepDims = true, name = "WeightsSum")
         val divisor = Math.reciprocal(weightsSum, name = "Divisor")
         var mean = Math.multiply(weightedInputSum, divisor, name = "Mean")
         var variance = Math.multiply(Math.mean(
-          preciseWeights * Math.squaredDifference(mean, Basic.stopGradient(preciseInput)),
+          weights * Math.squaredDifference(mean, Basic.stopGradient(input)),
           axes = dynamicAxes, keepDims = true), divisor, name = "Variance")
         if (!keepDims) {
           mean = Basic.squeeze(mean, axes)
           variance = Basic.squeeze(variance, axes)
         }
-        // Cast back to FLOAT16 if necessary.
-        if (input.dataType == FLOAT16)
-          (Cast.cast(mean, FLOAT16), Cast.cast(variance, FLOAT16))
-        else
-          (mean, variance)
+        (mean, variance)
       }
     }
   }
 }
 
 object Statistics extends Statistics {
-  case class StatisticsOps(output: Output) {
-    /** $OpDocStatisticsSufficientStatistics
-      *
-      * @group StatisticsOps
-      * @param  axes     Tensor containing the axes along which to compute the mean and variance.
-      * @param  shift    Optional tensor containing the value by which to shift the data for numerical stability.
-      *                  Defaults to `null`, meaning that no shift needs to be performed. A shift close to the true mean
-      *                  provides the most numerically stable results.
-      * @param  keepDims If `true`, retain the reduced axes.
-      * @return Tuple containing the following created op outputs:
-      *         - Count: The number of elements to average over.
-      *         - Mean Sufficient Statistic: The (possibly shifted) sum of the elements in the tensor.
-      *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
-      *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
-      */
-    def sufficientStatistics(
-        axes: Output, shift: Output = null, keepDims: Boolean = false): (Output, Output, Output, Output) = {
-      Statistics.sufficientStatistics(output, axes, shift, keepDims)
+  private[ops] trait Implicits {
+    implicit def outputConvertibleToStatisticsOps[OC, T](
+        value: OC
+    )(implicit f: OC => Output[T]): StatisticsOps[T] = {
+      new StatisticsOps(f(value))
     }
 
-    /** $OpDocStatisticsMoments
-      *
-      * @group StatisticsOps
-      * @param  axes     Axes along which to compute the mean and variance.
-      * @param  weights  Optional tensor of positive weights that can be broadcast with `input`, to weigh the samples.
-      *                  Defaults to `null`, meaning that equal weighting is used (i.e., all samples have weight equal to
-      *                  `1`).
-      * @param  keepDims If `true`, retain the reduced axes.
-      * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
-      */
-    def moments(axes: Seq[Int], weights: Output = null, keepDims: Boolean = false): (Output, Output) = {
-      Statistics.moments(output, axes, weights, keepDims)
+    implicit class StatisticsOps[T](val output: Output[T]) {
+      /** $OpDocStatisticsSufficientStatistics
+        *
+        * @group StatisticsOps
+        * @param  axes     Tensor containing the axes along which to compute the mean and variance.
+        * @param  shift    Optional tensor containing the value by which to shift the data for numerical stability.
+        *                  Defaults to `null`, meaning that no shift needs to be performed. A shift close to the true
+        *                  mean provides the most numerically stable results.
+        * @param  keepDims If `true`, retain the reduced axes.
+        * @return Tuple containing the following created op outputs:
+        *         - Count: The number of elements to average over.
+        *         - Mean Sufficient Statistic: The (possibly shifted) sum of the elements in the tensor.
+        *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
+        *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
+        */
+      def sufficientStatistics[I: IsInt32OrInt64](
+          axes: Output[I],
+          shift: Output[T] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): (Output[T], Output[T], Output[T], Output[T]) = {
+        Statistics.sufficientStatistics(output, axes, shift, keepDims)
+      }
+
+      /** $OpDocStatisticsMoments
+        *
+        * @group StatisticsOps
+        * @param  axes     Axes along which to compute the mean and variance.
+        * @param  weights  Optional tensor of positive weights that can be broadcast with `input`, to weigh the samples.
+        *                  Defaults to `null`, meaning that equal weighting is used (i.e., all samples have weight equal
+        *                  to `1`).
+        * @param  keepDims If `true`, retain the reduced axes.
+        * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
+        */
+      def moments(
+          axes: Seq[Int],
+          weights: Output[T] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): (Output[T], Output[T]) = {
+        Statistics.moments(output, axes, weights, keepDims)
+      }
     }
   }
 
