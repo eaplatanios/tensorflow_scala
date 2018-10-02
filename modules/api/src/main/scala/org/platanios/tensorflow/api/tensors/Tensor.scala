@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
-import org.platanios.tensorflow.api.ops2.{Basic, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.ops.Basic.stack
 import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
 import org.platanios.tensorflow.api.types._

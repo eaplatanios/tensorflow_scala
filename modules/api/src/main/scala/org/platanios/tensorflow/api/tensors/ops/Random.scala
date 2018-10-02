@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.tensors.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops2.Op
+import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOpsRandom}
