@@ -35,15 +35,13 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
   */
 package object variables {
   private[ops] trait API {
-    type VariableLike = variables.VariableLike
-    type Variable = variables.Variable
-    type PartitionedVariable = variables.PartitionedVariable
+    type VariableLike[T] = variables.VariableLike[T]
+    type Variable[T] = variables.Variable[T]
     type VariableReuse = variables.Reuse
     type VariableReuseAllowed = variables.ReuseAllowed
     type VariableGetter = variables.Variable.VariableGetter
     type VariableInitializer = variables.Initializer
     type VariableRegularizer = variables.Regularizer
-    type VariablePartitioner = variables.Partitioner
     type VariableStore = variables.VariableStore
     type VariableScope = variables.VariableScope
 
@@ -56,7 +54,7 @@ package object variables {
     val ZerosInitializer: variables.ZerosInitializer.type = variables.ZerosInitializer
     val OnesInitializer : variables.OnesInitializer.type  = variables.OnesInitializer
     def ConstantInitializer(value: Tensor[_]): variables.Initializer = variables.ConstantInitializer(value)
-    def ConstantInitializer(value: Output): variables.Initializer = variables.DynamicConstantInitializer(value)
+    def ConstantInitializer(value: Output[_]): variables.Initializer = variables.DynamicConstantInitializer(value)
     val RandomUniformInitializer        : variables.RandomUniformInitializer.type         = variables.RandomUniformInitializer
     val RandomNormalInitializer         : variables.RandomNormalInitializer.type          = variables.RandomNormalInitializer
     val RandomTruncatedNormalInitializer: variables.RandomTruncatedNormalInitializer.type = variables.RandomTruncatedNormalInitializer
@@ -79,75 +77,51 @@ package object variables {
         allowEmpty, writerVersion, saveRelativePaths, padGlobalStep, name)
     }
 
-    def variable(
-        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
+    def variable[T](
+        name: String, dataType: DataType[T] = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
-        collections: Set[Graph.Key[Variable]] = Set.empty,
+        collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
         cachingDevice: OpSpecification => String = null
-    ): Variable = {
+    ): Variable[T] = {
       Variable.getVariable(
         name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
 
-    def partitionedVariable(
-        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
-        regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, trainable: Boolean = true,
-        reuse: Reuse = ReuseOrCreateNew, collections: Set[Graph.Key[Variable]] = Set.empty,
-        cachingDevice: OpSpecification => String = null
-    ): PartitionedVariable = {
-      Variable.getPartitionedVariable(
-        name, dataType, shape, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
-    }
-
-    def localVariable(
-        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
+    def localVariable[T](
+        name: String, dataType: DataType[T] = null, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
-        collections: Set[Graph.Key[Variable]] = Set.empty,
+        collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
         cachingDevice: OpSpecification => String = null
-    ): Variable = {
+    ): Variable[T] = {
       Variable.getLocalVariable(name, dataType, shape, initializer, regularizer, reuse, collections, cachingDevice)
-    }
-
-    def localPartitionedVariable(
-        name: String, dataType: DataType[_] = null, shape: Shape = null, initializer: VariableInitializer = null,
-        regularizer: VariableRegularizer = null, partitioner: VariablePartitioner, reuse: Reuse = ReuseOrCreateNew,
-        collections: Set[Graph.Key[Variable]] = Set.empty,
-        cachingDevice: OpSpecification => String = null
-    ): PartitionedVariable = {
-      Variable.getLocalPartitionedVariable(
-        name, dataType, shape, initializer, regularizer, partitioner, reuse, collections, cachingDevice)
     }
 
     def variableScope[R](
         name: String,
         reuse: VariableReuse = ReuseOrCreateNewVariable,
-        dataType: DataType[_] = null,
         initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null,
-        partitioner: VariablePartitioner = null,
         cachingDevice: OpSpecification => String = null,
         underlyingGetter: VariableGetter = null,
         isDefaultName: Boolean = false,
         isPure: Boolean = false
     )(block: => R): R = {
       variables.VariableScope.scope(
-        name, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, underlyingGetter, isDefaultName,
+        name, reuse, initializer, regularizer, cachingDevice, underlyingGetter, isDefaultName,
         isPure)(block)
     }
 
     def updatedVariableScope[R](
         variableScope: VariableScope = VariableScope.current,
         reuse: VariableReuse = ReuseOrCreateNewVariable,
-        dataType: DataType[_] = null,
         initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null,
-        partitioner: VariablePartitioner = null,
         cachingDevice: OpSpecification => String = null,
         underlyingGetter: VariableGetter = null,
         isPure: Boolean = false
     )(block: => R): R = {
       variables.VariableScope.updatedScope(
-        variableScope, reuse, dataType, initializer, regularizer, partitioner, cachingDevice, underlyingGetter,
+        variableScope, reuse, initializer, regularizer, cachingDevice, underlyingGetter,
         isPure)(block)
     }
 
@@ -172,7 +146,10 @@ package object variables {
     * @throws IllegalArgumentException If no default initializer is defined for the specified data type.
     */
   @throws[IllegalArgumentException]
-  def defaultInitializer(name: String, dataType: DataType[_] = FLOAT32): Initializer = {
+  def defaultInitializer(
+      name: String,
+      dataType: DataType[Any]
+  ): Initializer = {
     if (dataType.isFloatingPoint)
       GlorotUniformInitializer()
     else if (dataType.isInteger || dataType.isUnsigned || dataType.isBoolean)
@@ -184,19 +161,19 @@ package object variables {
   /** This function defines the main logic of 'getVariable'. However, 'underlyingGetter' may override this logic.
     * That is why we pass it as an argument to the 'underlyingGetter'. */
   val defaultGetter: VariableGetter = new VariableGetter {
-    override def apply(
+    override def apply[T](
         name: String,
-        dataType: DataType[_],
+        dataType: DataType[T],
         shape: Shape,
         initializer: Initializer,
         regularizer: Regularizer,
         trainable: Boolean,
         reuse: Reuse,
-        collections: Set[Graph.Key[Variable]],
+        collections: Set[Graph.Key[Variable[Any]]],
         cachingDevice: OpSpecification => String,
         underlyingGetter: VariableGetter
-    ): Variable = {
-      val actualInitializer = Op.initialization {
+    ): Variable[T] = {
+      val actualInitializer = Op.initializationScope {
         if (initializer == null)
           defaultInitializer(name, dataType)
         else
@@ -210,18 +187,18 @@ package object variables {
     var currentGetter = defaultGetter
     Op.currentGraph.variableGetters.value.foreach(g => {
       currentGetter = new VariableGetter {
-        override def apply(
+        override def apply[T](
             name: String,
-            dataType: DataType[_],
+            dataType: DataType[T],
             shape: Shape,
             initializer: Initializer,
             regularizer: Regularizer,
             trainable: Boolean,
             reuse: Reuse,
-            collections: Set[Graph.Key[Variable]],
+            collections: Set[Graph.Key[Variable[Any]]],
             cachingDevice: OpSpecification => String,
             underlyingGetter: VariableGetter
-        ): Variable = {
+        ): Variable[T] = {
           g(
             name, dataType, shape, initializer, regularizer, trainable, reuse, collections,
             cachingDevice, currentGetter)

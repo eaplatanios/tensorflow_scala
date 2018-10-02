@@ -34,10 +34,8 @@ import org.platanios.tensorflow.api.types.DataType
   * @param  name             Name of the variable scope, used as a prefix in `getVariable`.
   * @param  initializer      Default initializer passed to `getVariable`.
   * @param  regularizer      Default regularizer passed to `getVariable`.
-  * @param  partitioner      Default partitioner passed to `getVariable`.
   * @param  cachingDevice    Default caching device passed to `getVariable`.
   * @param  nameScope        Default name scope passed to `getVariable`.
-  * @param  dataType         Default data type passed to `getVariable`.
   * @param  underlyingGetter Default underlying variable getter passed to `getVariable`.
   *
   * @author Emmanouil Antonios Platanios
@@ -45,10 +43,8 @@ import org.platanios.tensorflow.api.types.DataType
 case class VariableScope private[variables](
     reuse: Reuse,
     name: String = "",
-    dataType: DataType[_] = null,
     initializer: Initializer = null,
     regularizer: Regularizer = null,
-    partitioner: Partitioner = null,
     cachingDevice: OpSpecification => String = null,
     nameScope: String = "",
     underlyingGetter: VariableGetter = null
@@ -86,94 +82,39 @@ case class VariableScope private[variables](
   @throws[IllegalArgumentException]
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
-  def getVariable(
+  def getVariable[T](
       store: VariableStore,
       name: String,
-      dataType: DataType[_] = this.dataType,
+      dataType: DataType[T],
       shape: Shape = null,
       initializer: Initializer = this.initializer,
       regularizer: Regularizer = this.regularizer,
       trainable: Boolean = true,
       reuse: Reuse = this.reuse,
-      collections: Set[Graph.Key[Variable]] = Set.empty,
+      collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
       cachingDevice: OpSpecification => String = this.cachingDevice
-  ): Variable = {
-    val fullName = if (this.name != null && this.name != "") s"${this.name}/$name" else name
-    // Variable names only depend on the variable scope and not the name scope, so we reset it below for the time of
-    // variable creation.
-    Op.createWith(nameScope = "") {
-      store.getVariable(
-        fullName, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
+  ): Variable[T] = {
+    val fullName = {
+      if (this.name != null && this.name != "")
+        s"${this.name}/$name"
+      else
+        name
     }
-  }
-
-  /** Gets an existing partitioned variable with the specified name or creates a new one.
-    *
-    * @param  store         Variable store currently being used to store variables.
-    * @param  name          Variable name.
-    * @param  dataType      Variable data type.
-    * @param  shape         Variable shape.
-    * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
-    *                       passed in the constructor is used. If that one is `null` too, then we use a new
-    *                       `glorotUniformInitializer`. The initializer will be called for each part of the partitioned
-    *                       variable separately.
-    * @param  regularizer   Variable regularizer.
-    * @param  partitioner   Function that accepts a fully defined `Shape` and returns a sequence of integers (i.e., the
-    *                       `partitions`). These integers describe how to partition the given variable, along the each
-    *                       dimension. That is, `partitions(1) = 3` means that we split the variable into `3` parts
-    *                       along dimension `1`. Currently, partitioning along only a single axis is supported.
-    * @param  trainable     If `true`, the default, the variable is added to the graph collection
-    *                       `Graph.Keys.TRAINABLE_VARIABLES`. This collection is used as the default set of variables
-    *                       to use by the optimizers.
-    * @param  reuse         [[Reuse]] value indicating whether to re-use an existing variable with the same name, create
-    *                       a new variable, or do either.
-    * @param  collections   Set of graph collections keys. The variable is added to these collections. Defaults to
-    *                       `Set(Graph.Keys.GLOBAL_VARIABLES)`.
-    * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
-    *                       to the variable's device. Typical use is to cache on the device where the ops using the
-    *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
-    * @return Requested variable.
-    * @throws IllegalArgumentException If any of the provided arguments are not compatible with each other, or with the
-    *                                  variables stored in this variable store.
-    * @throws ShapeMismatchException   If the provided shape does not match the shape of the corresponding variable
-    *                                  stored in this variable store (if there exists one).
-    * @throws InvalidDataTypeException If the provided data type does not match the data type of the corresponding
-    *                                  variable stored in this variable store (if there exists one).
-    */
-  @throws[IllegalArgumentException]
-  @throws[ShapeMismatchException]
-  @throws[InvalidDataTypeException]
-  def getPartitionedVariable(
-      store: VariableStore,
-      name: String,
-      dataType: DataType[_] = this.dataType,
-      shape: Shape = null,
-      initializer: Initializer = this.initializer,
-      regularizer: Regularizer = this.regularizer,
-      partitioner: Partitioner = this.partitioner,
-      trainable: Boolean = true,
-      reuse: Reuse = this.reuse,
-      collections: Set[Graph.Key[Variable]] = Set.empty,
-      cachingDevice: OpSpecification => String = this.cachingDevice
-  ): PartitionedVariable = {
-    if (underlyingGetter != null)
-      throw new IllegalArgumentException(
-        "Private access to 'getPartitionedVariable' is not allowed when a custom getter is set.")
-    if (partitioner == null)
-      throw new IllegalArgumentException("No partitioner was specified.")
-    val fullName = if (this.name != null && this.name != "") s"${this.name}/$name" else name
     // Variable names only depend on the variable scope and not the name scope, so we reset it below for the time of
     // variable creation.
-    Op.createWith(nameScope = "") {
-      store.getPartitionedVariable(
-        fullName, dataType, shape, initializer, regularizer, partitioner, trainable, reuse, collections, cachingDevice)
+    Op.nameScope("") {
+      store.getVariable(
+        fullName, dataType, shape, initializer, regularizer,
+        trainable, reuse, collections, cachingDevice)
     }
   }
 }
 
 private[api] object VariableScope {
   /** Returns the current variable scope. */
-  def current: VariableScope = VariableScopeStore.current.scope
+  def current: VariableScope = {
+    VariableScopeStore.current.scope
+  }
 
   /** Sets the variable scope to use for op creation context, for all code in `block`.
     *
@@ -183,10 +124,8 @@ private[api] object VariableScope {
     *                          do either. Note that this argument cannot be set to [[CreateNewOnly]] in this function.
     *                          If set to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used
     *                          (i.e., propagated).
-    * @param  dataType         Default data type for variables within the scope.
     * @param  initializer      Default initializer for variables within the scope.
     * @param  regularizer      Default regularizer for variables within the scope.
-    * @param  partitioner      Default partitioner for variables within the scope.
     * @param  cachingDevice    Default caching device for variables within the scope.
     * @param  underlyingGetter Default variable getter for variables within the scope.
     * @param  isDefaultName    Boolean value indicating whether `name` is a default name or not. If `true`, then `name`
@@ -201,10 +140,8 @@ private[api] object VariableScope {
   private[api] def scope[R](
       name: String,
       reuse: Reuse = ReuseOrCreateNew,
-      dataType: DataType[_] = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
-      partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null,
       underlyingGetter: VariableGetter = null,
       isDefaultName: Boolean = false,
@@ -226,10 +163,8 @@ private[api] object VariableScope {
     val newVariableScope = VariableScope(
       reuse = if (reuse == ReuseOrCreateNew) oldVariableScope.reuse else reuse,
       name = newName,
-      dataType = if (dataType == null) oldVariableScope.dataType else dataType,
       initializer = if (initializer == null) oldVariableScope.initializer else initializer,
       regularizer = if (regularizer == null) oldVariableScope.regularizer else regularizer,
-      partitioner = if (partitioner == null) oldVariableScope.partitioner else partitioner,
       cachingDevice = if (cachingDevice == null) oldVariableScope.cachingDevice else cachingDevice,
       nameScope = name,
       underlyingGetter = {
@@ -239,7 +174,7 @@ private[api] object VariableScope {
           maybeWrapCustomVariableGetter(underlyingGetter, oldVariableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
-    val result = if (isPure) block else Op.createWithNameScope(name)(block)
+    val result = if (isPure) block else Op.nameScope(name)(block)
     variableScopeStore.closeVariableSubScopes(newName)
     variableScopeStore.scope = oldVariableScope
     result
@@ -253,10 +188,8 @@ private[api] object VariableScope {
     *                          do either. Note that this argument cannot be set to [[CreateNewOnly]] in this function.
     *                          If set to [[ReuseOrCreateNew]], then the parent variable scope `reuse` value is used
     *                          (i.e., propagated).
-    * @param  dataType         Default data type for variables within the scope.
     * @param  initializer      Default initializer for variables within the scope.
     * @param  regularizer      Default regularizer for variables within the scope.
-    * @param  partitioner      Default partitioner for variables within the scope.
     * @param  cachingDevice    Default caching device for variables within the scope.
     * @param  underlyingGetter Default variable getter for variables within the scope.
     * @param  isPure           Boolean value indicating whether to use a "pure" variable scope. That is, a variable
@@ -268,10 +201,8 @@ private[api] object VariableScope {
   private[api] def updatedScope[R](
       variableScope: VariableScope = VariableScope.current,
       reuse: Reuse = ReuseOrCreateNew,
-      dataType: DataType[_] = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
-      partitioner: Partitioner = null,
       cachingDevice: OpSpecification => String = null,
       underlyingGetter: VariableGetter = null,
       isPure: Boolean = false
@@ -283,10 +214,8 @@ private[api] object VariableScope {
     val newVariableScope = VariableScope(
       reuse = if (reuse == ReuseOrCreateNew) variableScope.reuse else reuse,
       name = variableScope.name,
-      dataType = if (dataType == null) variableScope.dataType else dataType,
       initializer = if (initializer == null) variableScope.initializer else initializer,
       regularizer = if (regularizer == null) variableScope.regularizer else regularizer,
-      partitioner = if (partitioner == null) variableScope.partitioner else partitioner,
       cachingDevice = if (cachingDevice == null) variableScope.cachingDevice else cachingDevice,
       nameScope = variableScope.nameScope,
       underlyingGetter = {
@@ -296,7 +225,7 @@ private[api] object VariableScope {
           maybeWrapCustomVariableGetter(underlyingGetter, variableScope.underlyingGetter)
       })
     variableScopeStore.scope = newVariableScope
-    val result = if (isPure) block else Op.createWithNameScope(variableScope.name.split("/").last)(block)
+    val result = if (isPure) block else Op.nameScope(variableScope.name.split("/").last)(block)
     variableScopeStore.closeVariableSubScopes(variableScope.name)
     variableScopeStore.variableScopeCounts = oldVariableScopeCounts
     variableScopeStore.scope = oldVariableScope
@@ -318,38 +247,39 @@ private[api] object VariableScope {
       oldGetter
     } else {
       new VariableGetter {
-        override def apply(
+        override def apply[T](
             name: String,
-            dataType: DataType[_],
+            dataType: DataType[T],
             shape: Shape,
             initializer: Initializer,
             regularizer: Regularizer,
             trainable: Boolean,
             reuse: Reuse,
-            collections: Set[Graph.Key[Variable]],
+            collections: Set[Graph.Key[Variable[Any]]],
             cachingDevice: OpSpecification => String,
             underlyingGetter: VariableGetter
-        ): Variable = {
+        ): Variable[T] = {
           val baseGetter: VariableGetter = new VariableGetter {
-            override def apply(
+            override def apply[T](
                 name: String,
-                dataType: DataType[_],
+                dataType: DataType[T],
                 shape: Shape,
                 initializer: Initializer,
                 regularizer: Regularizer,
                 trainable: Boolean,
                 reuse: Reuse,
-                collections: Set[Graph.Key[Variable]],
+                collections: Set[Graph.Key[Variable[Any]]],
                 cachingDevice: OpSpecification => String,
                 underlyingGetter: VariableGetter
-            ): Variable = {
+            ): Variable[T] = {
               oldGetter(
-                name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice,
-                underlyingGetter)
+                name, dataType, shape, initializer, regularizer, trainable,
+                reuse, collections, cachingDevice, underlyingGetter)
             }
           }
           getter(
-            name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice, baseGetter)
+            name, dataType, shape, initializer, regularizer, trainable,
+            reuse, collections, cachingDevice, baseGetter)
         }
       }
     }
