@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
+import org.platanios.tensorflow.api.types.DataType
 
 /** Contains helper functions for creating slots.
   *
@@ -29,147 +29,133 @@ import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] object Slot {
+object Slot {
   /** Creates a slot initialized with zeros with the same shape as the primary variable.
     *
     * @param  primary             Primary variable.
     * @param  dataType            Data type of the slot variable.
+    * @param  name                Slot variable name.
     * @param  colocateWithPrimary Boolean value indicating whether to colocate the slot variable with the primary
     *                             variable.
     * @return Created slot variable.
     */
-  private[api] def zeros(
-      primary: Variable,
+  def zeros[T, R](
+      primary: Variable[T],
+      dataType: DataType[R],
       name: String,
-      dataType: DataType[_] = null,
       colocateWithPrimary: Boolean = true
-  ): Variable = {
-    val inferredDataType = if (dataType == null) primary.dataType else dataType
-    // TODO: [VARIABLES] What if the shape is not fully defined?
-    if (primary.shape.isFullyDefined) {
-      create(primary, ZerosInitializer, name, inferredDataType, primary.shape, colocateWithPrimary)
-    } else {
-      val initialValue = Basic.zerosLike(primary.initializedValue, dataType)
-      create(primary, DynamicConstantInitializer(initialValue), name, inferredDataType, null, colocateWithPrimary)
-    }
+  ): Variable[R] = {
+    create(primary, dataType, ZerosInitializer, name, primary.shape, colocateWithPrimary)
   }
 
   /** Creates a slot initialized with zeros with the same shape as the primary value.
     *
     * @param  primary             Primary value.
     * @param  dataType            Data type of the slot variable.
+    * @param  name                Slot variable name.
     * @param  colocateWithPrimary Boolean value indicating whether to colocate the slot variable with the primary
     *                             variable.
     * @return Created slot variable.
     */
-  private[api] def zerosForOutput(
-      primary: Output,
+  def zerosForOutput[T, R](
+      primary: Output[T],
+      dataType: DataType[R],
       name: String,
-      dataType: DataType[_] = null,
       colocateWithPrimary: Boolean = true
-  ): Variable = {
-    val inferredDataType = if (dataType == null) primary.dataType else dataType
+  ): Variable[R] = {
+    // TODO: [SLOTS]: What if `primary`'s shape is not fully defined?
     if (primary.shape.isFullyDefined) {
-      createForOutput(primary, ZerosInitializer, name, inferredDataType, primary.shape, colocateWithPrimary)
+      createForOutput(primary, dataType, ZerosInitializer, name, primary.shape, colocateWithPrimary)
     } else {
-      val initialValue = Basic.zerosLike(primary, dataType)
-      createForOutput(
-        primary, DynamicConstantInitializer(initialValue), name, inferredDataType, null, colocateWithPrimary)
+      createForOutput(primary, dataType, ZerosInitializer, name, null, colocateWithPrimary)
     }
   }
 
   /** Creates a new slow variable.
     *
     * @param  primary             Primary variable.
-    * @param  initializer         Initializer for the slot variable.
-    * @param  name                Name of the slot variable.
     * @param  dataType            Data type of the slot variable.
+    * @param  initializer         Initializer for the slot variable.
+    * @param  name                Slot variable name.
     * @param  shape               Shape of the slot variable. If `null`, then an attempt will be made to infer its value
     *                             from the provided initializer.
     * @param  colocateWithPrimary Boolean value indicating whether to colocate the slot variable with the primary
     *                             variable.
     * @return Created slot variable.
     */
-  private[ops] def create(
-      primary: Variable,
+  def create[T, R](
+      primary: Variable[T],
+      dataType: DataType[R],
       initializer: Initializer,
       name: String,
-      dataType: DataType[_] = null,
       shape: Shape = null,
       colocateWithPrimary: Boolean = true
-  ): Variable = {
+  ): Variable[R] = {
     // Scope the slot name in the namespace of the primary variable. Set "primary.op.name + '/' + name" as the default
     // name, so that the scope name of the slot variable user can be shared when reuse is 'true'. Meanwhile, when reuse
     // is 'false' and the same name has been previously used, the scope name will be made unique by appending an integer
     // to it.
-    val inferredDataType = if (dataType == null) Option(initializer.dataType).getOrElse(FLOAT32) else dataType
-    val inferredShape = {
-      if (shape != null)
-        shape
-      else if (primary.shape.isFullyDefined)
-        primary.shape
-      else
-        initializer.shape
-    }
+    val inferredShape = if (shape != null) shape else primary.shape
     VariableScope.scope(s"${primary.op.name}/$name", isDefaultName = true) {
-      if (colocateWithPrimary)
-        Op.colocateWith(Set(primary.op), ignoreExisting = true)(createSlotVariable(primary, initializer, "", inferredDataType, inferredShape))
-      else
-        createSlotVariable(primary, initializer, "", inferredDataType, inferredShape)
+      if (colocateWithPrimary) {
+        Op.colocateWith(Set(primary.op), ignoreExisting = true) {
+          createSlotVariable(primary, dataType, inferredShape, initializer, "")
+        }
+      } else {
+        createSlotVariable(primary, dataType, inferredShape, initializer, "")
+      }
     }
   }
 
   /** Creates a new slow variable.
     *
     * @param  primary             Primary value.
+    * @param  dataType            Data type of the slot variable.
     * @param  initializer         Initializer for the slot variable.
     * @param  name                Name of the slot variable.
-    * @param  dataType            Data type of the slot variable.
     * @param  shape               Shape of the slot variable. If `null`, then an attempt will be made to infer its value
     *                             from the provided initializer.
     * @param  colocateWithPrimary Boolean value indicating whether to colocate the slot variable with the primary
     *                             variable.
     * @return Created slot variable.
     */
-  private[ops] def createForOutput(
-      primary: Output,
+  def createForOutput[T, R](
+      primary: Output[T],
+      dataType: DataType[R],
       initializer: Initializer,
       name: String,
-      dataType: DataType[_] = null,
       shape: Shape = null,
       colocateWithPrimary: Boolean = true
-  ): Variable = {
+  ): Variable[R] = {
     // Scope the slot name in the namespace of the primary value. Set "primary.op.name + '/' + name" as the default
     // name, so that the scope name of the slot variable user can be shared when reuse is 'true'. Meanwhile, when reuse
     // is 'false' and the same name has been previously used, the scope name will be made unique by appending an integer
     // to it.
-    val inferredDataType = if (dataType == null) Option(initializer.dataType).getOrElse(FLOAT32) else dataType
     val inferredShape = {
       if (shape != null)
         shape
-      else if (primary.shape.isFullyDefined)
-        primary.shape
       else
-        initializer.shape
+        primary.shape
     }
     VariableScope.scope(s"${primary.op.name}/$name", isDefaultName = true) {
-      if (colocateWithPrimary)
-        Op.colocateWith(Set(primary.op), ignoreExisting = true)(createSlotVariable(primary, initializer, "", inferredDataType, inferredShape))
-      else
-        createSlotVariable(primary, initializer, "", inferredDataType, inferredShape)
+      if (colocateWithPrimary) {
+        Op.colocateWith(Set(primary.op), ignoreExisting = true) {
+          createSlotVariable(primary, dataType, inferredShape, initializer, "")
+        }
+      } else {
+        createSlotVariable(primary, dataType, inferredShape, initializer, "")
+      }
     }
   }
 
   /** Helper function for creating slot variables. */
-  private[this] def createSlotVariable(
-      primary: Variable,
+  private def createSlotVariable[T, R](
+      primary: Variable[T],
+      dataType: DataType[R],
+      shape: Shape,
       initializer: Initializer,
-      scope: String,
-      dataType: DataType[_],
-      shape: Shape
-  ): Variable = {
-    // TODO: [VARIABLES] When variables and partitioned variables are merged, makes sure this returns a normal variable.
-    // TODO: [VARIABLES] When we support more variable types, match the returned variable type to the primary one.
+      scope: String
+  ): Variable[R] = {
     val slot = Variable.getVariable(scope, dataType, shape, initializer, trainable = false)
     if (primary.partitionInformation != null) {
       // Primary is a partitioned variable, and so we need to also indicate that the slot is also a partitioned
@@ -187,13 +173,13 @@ private[api] object Slot {
   }
 
   /** Helper function for creating slot variables. */
-  private[this] def createSlotVariable(
-      primary: Output,
+  private def createSlotVariable[T, R](
+      primary: Output[T],
+      dataType: DataType[R],
+      shape: Shape,
       initializer: Initializer,
-      scope: String,
-      dataType: DataType[_],
-      shape: Shape
-  ): Variable = {
+      scope: String
+  ): Variable[R] = {
     Variable.getVariable(scope, dataType, shape, initializer, trainable = false)
   }
 }
