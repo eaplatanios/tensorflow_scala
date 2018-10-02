@@ -16,10 +16,10 @@
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.FLOAT32
+import org.platanios.tensorflow.api.types.IsInt32OrInt64
 
 /** Learning rate schedule that implements a warm-up scheme, similar to the one proposed in
   * [Attention is All You Need (Section 5.3)](https://arxiv.org/pdf/1706.03762.pdf).
@@ -36,7 +36,7 @@ class WarmUpLinearSchedule protected (
     val warmUpSteps: Int,
     val warmUpOffset: Float = 0.35f,
     val name: String = "WarmUpLinearSchedule"
-) extends Schedule {
+) extends Schedule[Float] {
   /** Applies the scheduling method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -47,21 +47,29 @@ class WarmUpLinearSchedule protected (
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  override def apply(value: Output, step: Option[Variable]): Output = {
+  override def apply[V <: Float, I: IsInt32OrInt64](
+      value: Output[V],
+      step: Option[Variable[I]]
+  ): Output[V] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for warm-up schedule.")
-    Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Cast.cast(step.get.value, value.dataType)
-      val warmUpStepsValue = Basic.constant(warmUpSteps, value.dataType)
-      val warmUpOffsetValue = Basic.constant(warmUpOffset, FLOAT32)
+    Op.nameScope(name) {
+      val stepValue = step.get.value.toFloat32
+      val warmUpStepsValue = Basic.constant(warmUpSteps).toFloat32
+      val warmUpOffsetValue = Basic.constant(warmUpOffset).toFloat32
       ControlFlow.cond(
         stepValue < warmUpStepsValue,
-        () => value * schedule(stepValue, warmUpStepsValue, warmUpOffsetValue),
-        () => value)
+        () => value.toFloat32 * schedule(stepValue, warmUpStepsValue, warmUpOffsetValue),
+        () => value
+      ).cast(value.dataType)
     }
   }
 
-  def schedule(step: Output, warmUpSteps: Output, offset: Output): Output = {
+  private def schedule(
+      step: Output[Float],
+      warmUpSteps: Output[Float],
+      offset: Output[Float]
+  ): Output[Float] = {
     offset + ((1.0f - offset) / warmUpSteps) * step
   }
 }

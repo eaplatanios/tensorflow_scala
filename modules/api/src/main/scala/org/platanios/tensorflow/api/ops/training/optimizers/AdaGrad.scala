@@ -16,9 +16,10 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output, OutputIndexedSlices, Summary}
-import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
   *
@@ -49,127 +50,87 @@ import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable
   */
 class AdaGrad protected (
     val learningRate: Float = 0.01f,
-    val decay: Schedule = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule,
     val epsilon: Float = 1e-8f,
     override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
     val learningRateSummaryTag: String = null,
     val name: String = "AdaGrad"
 ) extends Optimizer {
-  protected var learningRateTensor: Output = _
+  protected var learningRateTensor: Output[Float] = _
 
-  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate[V, I: IsInt32OrInt64](
+      variable: Variable[V],
+      iteration: Option[Variable[I]]
+  ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     learningRateTensor.cast(variable.dataType).toOutput
   }
 
-  override def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     variables.foreach(v => {
       val initializer = ConstantInitializer(epsilon)
-      getSlot("Accumulator", v, initializer, v.shape, v.dataType, name)
+      getSlot("Accumulator", v, v.dataType, initializer, v.shape, name)
     })
   }
 
-  override def prepare(iteration: Option[Variable]): Unit = {
+  override def prepare[I: IsInt32OrInt64](
+      iteration: Option[Variable[I]]
+  ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }
 
-  override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
+  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+      gradient: Output[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
-    AdaGrad.resourceApplyDense(variable, accumulator, getLearningRate(variable, iteration), gradient, useLocking)
+    Op.Builder[(Output[Long], Output[Long], Output[T], Output[T]), Unit](
+      opType = "ResourceApplyAdagrad",
+      name = s"$name/ApplyDense",
+      input = (variable.handle,
+          accumulator.handle,
+          getLearningRate(variable, iteration),
+          gradient)
+    ).setAttribute("use_locking", useLocking)
+        .build().asUntyped
   }
 
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
+  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
-    AdaGrad.resourceApplySparse(
-      variable, accumulator, getLearningRate(variable, iteration), gradient.values, gradient.indices, useLocking)
+    Op.Builder[(Output[Long], Output[Long], Output[T], Output[T], Output[Long]), Unit](
+      opType = "ResourceSparseApplyAdagrad",
+      name = s"$name/ApplySparse",
+      input = (variable.handle,
+          accumulator.handle,
+          getLearningRate(variable, iteration),
+          gradient.values,
+          gradient.indices)
+    ).setAttribute("use_locking", useLocking)
+        .build().asUntyped
   }
 }
 
 object AdaGrad {
   def apply(
       learningRate: Float = 0.01f,
-      decay: Schedule = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule,
       epsilon: Float = 1e-8f,
       ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
       name: String = "AdaGrad"
   ): AdaGrad = {
-    new AdaGrad(learningRate, decay, epsilon, ignoreDuplicateSparseIndices, useLocking, learningRateSummaryTag, name)
-  }
-
-  /** Creates an op that updates `variable` by applying the AdaGrad algorithm update to it.
-    *
-    * The AdaGrad update is as follows:
-    * {{{
-    *   accumulator += gradient * gradient
-    *   variable -= stepSize * gradient * (1 / sqrt(accumulator))
-    * }}}
-    *
-    * @param  variable    Variable whose value to update.
-    * @param  accumulator AdaGrad accumulator variable.
-    * @param  stepSize    Step size to use for the AdaGrad update.
-    * @param  gradient    Gradient to apply.
-    * @param  useLocking  If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is undefined,
-    *                     but may exhibit less contention.
-    * @param  name        Name for the created op.
-    * @return Created op.
-    */
-  private[optimizers] def resourceApplyDense(
-      variable: Variable,
-      accumulator: Variable,
-      stepSize: Output,
-      gradient: Output,
-      useLocking: Boolean = false,
-      name: String = "ResourceApplyAdaGrad"
-  ): Op = {
-    Op.Builder(opType = "ResourceApplyAdagrad", name = name)
-        .addInput(variable.handle)
-        .addInput(accumulator.handle)
-        .addInput(stepSize)
-        .addInput(gradient)
-        .setAttribute("use_locking", useLocking)
-        .build()
-  }
-
-  /** Creates an op that applies sparse updates to `variable` by applying the AdaGrad algorithm update to it.
-    *
-    * That is for rows that we have a gradient for, the AdaGrad update is as follows:
-    * {{{
-    *   accumulator += gradient * gradient
-    *   variable -= stepSize * gradient * (1 / sqrt(accumulator))
-    * }}}
-    *
-    * @param  variable    Variable whose value to update.
-    * @param  accumulator AdaGrad accumulator variable.
-    * @param  stepSize    Step size to use for the AdaGrad update.
-    * @param  gradient    Gradient to apply.
-    * @param  indices     Vector of indices into the first dimension of `variable` and `accumulator`.
-    * @param  useLocking  If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is undefined,
-    *                     but may exhibit less contention.
-    * @param  name        Name for the created op.
-    * @return Created op.
-    */
-  private[optimizers] def resourceApplySparse(
-      variable: Variable,
-      accumulator: Variable,
-      stepSize: Output,
-      gradient: Output,
-      indices: Output,
-      useLocking: Boolean = false,
-      name: String = "ResourceSparseApplyAdaGrad"
-  ): Op = {
-    Op.Builder(opType = "ResourceSparseApplyAdagrad", name = name)
-        .addInput(variable.handle)
-        .addInput(accumulator.handle)
-        .addInput(stepSize)
-        .addInput(gradient)
-        .addInput(indices)
-        .setAttribute("use_locking", useLocking)
-        .build()
+    new AdaGrad(
+      learningRate, decay, epsilon, ignoreDuplicateSparseIndices,
+      useLocking, learningRateSummaryTag, name)
   }
 }

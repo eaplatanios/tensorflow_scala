@@ -15,9 +15,10 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.types.IsInt32OrInt64
 
 /** Square root decay method.
   *
@@ -41,7 +42,7 @@ class SqrtDecay protected (
     val decayThreshold: Float = 1.0f,
     val startStep: Long = 0L,
     val name: String = "SqrtDecay"
-) extends Schedule {
+) extends Schedule[Float] {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -51,26 +52,37 @@ class SqrtDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply(value: Output, step: Option[Variable]): Output = {
+  override def apply[V <: Float, I: IsInt32OrInt64](
+      value: Output[V],
+      step: Option[Variable[I]]
+  ): Output[V] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for square-root decay.")
-    Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Cast.cast(step.get.value, value.dataType)
-      val decayFactorValue = Basic.constant(decayFactor, value.dataType)
-      val decayThresholdValue = Basic.constant(decayThreshold, value.dataType)
-      if (startStep == 0L) {
-        decay(value, stepValue, decayFactorValue, decayThresholdValue)
-      } else {
-        val startStepValue = Basic.constant(startStep, value.dataType)
-        ControlFlow.cond(
-          stepValue < startStepValue,
-          () => value,
-          () => decay(value, stepValue - startStepValue, decayFactorValue, decayThresholdValue))
+    Op.nameScope(name) {
+      val stepValue = step.get.value.toFloat32
+      val decayFactorValue = Basic.constant(decayFactor).toFloat32
+      val decayThresholdValue = Basic.constant(decayThreshold).toFloat32
+      val result = {
+        if (startStep == 0L) {
+          decay(value, stepValue, decayFactorValue, decayThresholdValue)
+        } else {
+          val startStepValue = Basic.constant(startStep).toFloat32
+          ControlFlow.cond(
+            stepValue < startStepValue,
+            () => value,
+            () => decay(value, stepValue - startStepValue, decayFactorValue, decayThresholdValue))
+        }
       }
+      result.cast(value.dataType)
     }
   }
 
-  private[this] def decay(initialValue: Output, step: Output, decayFactor: Output, decayThreshold: Output): Output = {
+  private def decay(
+      initialValue: Output[Float],
+      step: Output[Float],
+      decayFactor: Output[Float],
+      decayThreshold: Output[Float]
+  ): Output[Float] = {
     decayFactor / Math.sqrt(Math.maximum(step, decayThreshold))
   }
 }

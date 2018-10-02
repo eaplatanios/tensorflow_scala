@@ -16,9 +16,10 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output, OutputIndexedSlices, Summary}
-import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
 
 /** Optimizer that implements the AdaDelta optimization algorithm.
   *
@@ -51,7 +52,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   */
 class AdaDelta protected (
     val learningRate: Float = 0.01f,
-    val decay: Schedule = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule,
     val rho: Float = 0.95f,
     val epsilon: Float = 1e-8f,
     override val ignoreDuplicateSparseIndices: Boolean = false,
@@ -59,36 +60,45 @@ class AdaDelta protected (
     val learningRateSummaryTag: String = null,
     val name: String = "AdaDelta"
 ) extends Optimizer {
-  protected var learningRateTensor: Output = _
-  protected var rhoTensor         : Output = _
-  protected var epsilonTensor     : Output = _
+  protected var learningRateTensor: Output[Float] = _
+  protected var rhoTensor         : Output[Float] = _
+  protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate[V, I: IsInt32OrInt64](
+      variable: Variable[V],
+      iteration: Option[Variable[I]]
+  ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     learningRateTensor.cast(variable.dataType).toOutput
   }
 
-  protected def getRho(variable: Variable): Output = {
+  protected def getRho[V](
+      variable: Variable[V]
+  ): Output[V] = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     rhoTensor.cast(variable.dataType).toOutput
   }
 
-  protected def getEpsilon(variable: Variable): Output = {
+  protected def getEpsilon[V](
+      variable: Variable[V]
+  ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     epsilonTensor.cast(variable.dataType).toOutput
   }
 
-  override def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     variables.foreach(v => {
       zerosSlot("Accumulator", v, name)
       zerosSlot("AccumulatorUpdate", v, name)
     })
   }
 
-  override def prepare(iteration: Option[Variable]): Unit = {
+  override def prepare[I: IsInt32OrInt64](
+      iteration: Option[Variable[I]]
+  ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
@@ -96,40 +106,54 @@ class AdaDelta protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
+  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+      gradient: Output[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
     val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
-    AdaDelta.resourceApplyDense(
-      variable = variable,
-      accumulator = accumulator,
-      accumulatorUpdate = accumulatorUpdate,
-      stepSize = getLearningRate(variable, iteration),
-      rho = getRho(variable),
-      epsilon = getEpsilon(variable),
-      gradient = gradient,
-      useLocking = useLocking)
+    Op.Builder[(Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T]), Unit](
+      opType = "ResourceApplyAdadelta",
+      name = s"$name/ApplyDense",
+      input = (variable.handle,
+          accumulator.handle,
+          accumulatorUpdate.handle,
+          getLearningRate(variable, iteration),
+          getRho(variable),
+          getEpsilon(variable),
+          gradient)
+    ).setAttribute("use_locking", useLocking)
+        .build().asUntyped
   }
 
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
+  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
     val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
-    AdaDelta.resourceApplySparse(
-      variable = variable,
-      accumulator = accumulator,
-      accumulatorUpdate = accumulatorUpdate,
-      stepSize = getLearningRate(variable, iteration),
-      rho = getRho(variable),
-      epsilon = getEpsilon(variable),
-      gradient = gradient.values,
-      indices = gradient.indices,
-      useLocking = useLocking)
+    Op.Builder[(Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
+      opType = "ResourceSparseApplyAdadelta",
+      name = s"$name/ApplyDense",
+      input = (variable.handle,
+          accumulator.handle,
+          accumulatorUpdate.handle,
+          getLearningRate(variable, iteration),
+          getRho(variable),
+          getEpsilon(variable),
+          gradient.values,
+          gradient.indices)
+    ).setAttribute("use_locking", useLocking)
+        .build().asUntyped
   }
 }
 
 object AdaDelta {
   def apply(
       learningRate: Float = 0.01f,
-      decay: Schedule = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule,
       rho: Float = 0.95f,
       epsilon: Float = 1e-8f,
       ignoreDuplicateSparseIndices: Boolean = false,
@@ -138,99 +162,8 @@ object AdaDelta {
       name: String = "AdaDelta"
   ): AdaDelta = {
     new AdaDelta(
-      learningRate, decay, rho, epsilon, ignoreDuplicateSparseIndices, useLocking, learningRateSummaryTag, name)
-  }
-
-  /** Creates an op that updates `variable` by applying the AdaDelta algorithm update to it.
-    *
-    * The AdaDelta update is as follows:
-    * {{{
-    *   accumulator = rho * accumulator + (1 - rho) * gradient
-    *   update = sqrt(accumulatorUpdate + epsilon) * rsqrt(accumulator + epsilon) * gradient
-    *   accumulatorUpdate = rho * accumulatorUpdate + (1 - rho) * square(update)
-    *   variable -= update
-    * }}}
-    *
-    * @param  variable          Variable whose value to update.
-    * @param  accumulator       AdaDelta accumulator variable.
-    * @param  accumulatorUpdate AdaDelta accumulator update variable.
-    * @param  stepSize          Step size to use for the AdaDelta update.
-    * @param  rho               AdaDelta decay factor.
-    * @param  epsilon           AdaDelta constant factor.
-    * @param  gradient          Gradient to apply.
-    * @param  useLocking        If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is
-    *                           undefined, but may exhibit less contention.
-    * @param  name              Name for the created op.
-    * @return Created op.
-    */
-  private[optimizers] def resourceApplyDense(
-      variable: Variable,
-      accumulator: Variable,
-      accumulatorUpdate: Variable,
-      stepSize: Output,
-      rho: Output,
-      epsilon: Output,
-      gradient: Output,
-      useLocking: Boolean = false,
-      name: String = "ResourceApplyAdaDelta"
-  ): Op = {
-    Op.Builder(opType = "ResourceApplyAdadelta", name = name)
-        .addInput(variable.handle)
-        .addInput(accumulator.handle)
-        .addInput(accumulatorUpdate.handle)
-        .addInput(stepSize)
-        .addInput(rho)
-        .addInput(epsilon)
-        .addInput(gradient)
-        .setAttribute("use_locking", useLocking)
-        .build()
-  }
-
-  /** Creates an op that applies sparse updates to `variable` by applying the AdaDelta algorithm update to it.
-    *
-    * That is for rows that we have a gradient for, the AdaDelta update is as follows:
-    * {{{
-    *   accumulator = rho * accumulator + (1 - rho) * gradient
-    *   update = sqrt(accumulatorUpdate + epsilon) * rsqrt(accumulator + epsilon) * gradient
-    *   accumulatorUpdate = rho * accumulatorUpdate + (1 - rho) * square(update)
-    *   variable -= update
-    * }}}
-    *
-    * @param  variable          Variable whose value to update.
-    * @param  accumulator       AdaDelta accumulator variable.
-    * @param  accumulatorUpdate AdaDelta accumulator update variable.
-    * @param  stepSize          Step size to use for the AdaDelta update.
-    * @param  rho               AdaDelta decay factor.
-    * @param  epsilon           AdaDelta constant factor.
-    * @param  gradient          Gradient to apply.
-    * @param  indices           Vector of indices into the first dimension of `variable` and `accumulator`.
-    * @param  useLocking        If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is
-    *                           undefined, but may exhibit less contention.
-    * @param  name              Name for the created op.
-    * @return Created op.
-    */
-  private[optimizers] def resourceApplySparse(
-      variable: Variable,
-      accumulator: Variable,
-      accumulatorUpdate: Variable,
-      stepSize: Output,
-      rho: Output,
-      epsilon: Output,
-      gradient: Output,
-      indices: Output,
-      useLocking: Boolean = false,
-      name: String = "ResourceSparseApplyAdaDelta"
-  ): Op = {
-    Op.Builder(opType = "ResourceSparseApplyAdadelta", name = name)
-        .addInput(variable.handle)
-        .addInput(accumulator.handle)
-        .addInput(accumulatorUpdate.handle)
-        .addInput(stepSize)
-        .addInput(rho)
-        .addInput(epsilon)
-        .addInput(gradient)
-        .addInput(indices)
-        .setAttribute("use_locking", useLocking)
-        .build()
+      learningRate, decay, rho, epsilon,
+      ignoreDuplicateSparseIndices, useLocking,
+      learningRateSummaryTag, name)
   }
 }

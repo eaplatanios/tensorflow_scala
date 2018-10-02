@@ -15,19 +15,16 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.types.IsInt32OrInt64
 
-/** Trait for implementing optimization learning rate scheduling methods.
-  *
-  * When training a model, it is often recommended to lower the learning rate as the training progresses. Scheduling
-  * methods can be used for that purpose. They define ways in which to schedule the learning rate as training
-  * progresses.
+/** Dummy scheduling method representing no schedule being used. Useful as a default value for `Schedule`-valued
+  * function arguments.
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Schedule[-T] {
+case object FixedSchedule extends Schedule[Any] {
   /** Applies the scheduling method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -38,18 +35,10 @@ trait Schedule[-T] {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  def apply[V <: T, I: IsInt32OrInt64](
+  override def apply[V <: Any, I: IsInt32OrInt64](
       value: Output[V],
       step: Option[Variable[I]]
-  ): Output[V]
-
-  /** Composes the provided `other` schedule with this schedule and returns the resulting schedule. */
-  def >>[V <: T](other: Schedule[V]): ComposedSchedule[V] = {
-    ComposedSchedule(other, this)
-  }
-
-  /** Composes this schedule with the provided, `other` schedule and returns the resulting schedule. */
-  def compose[V <: T](other: Schedule[V]): ComposedSchedule[V] = {
-    ComposedSchedule(this, other)
+  ): Output[V] = {
+    value
   }
 }

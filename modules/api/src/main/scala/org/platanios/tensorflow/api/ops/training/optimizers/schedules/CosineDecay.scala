@@ -16,9 +16,10 @@
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.types.IsInt32OrInt64
 
 /** Cosine decay method.
   *
@@ -43,7 +44,7 @@ class CosineDecay protected (
     val alpha: Float = 0.0f,
     val startStep: Long = 0L,
     val name: String = "CosineDecay"
-) extends Schedule {
+) extends Schedule[Float] {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -53,26 +54,37 @@ class CosineDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply(value: Output, step: Option[Variable]): Output = {
+  override def apply[V <: Float, I: IsInt32OrInt64](
+      value: Output[V],
+      step: Option[Variable[I]]
+  ): Output[V] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for cosine decay.")
-    Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Cast.cast(step.get.value, value.dataType)
-      val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
-      val alphaValue = Basic.constant(alpha, value.dataType)
-      if (startStep == 0L) {
-        decay(value, stepValue, cycleStepsValue, alphaValue)
-      } else {
-        val startStepValue = Basic.constant(startStep, value.dataType)
-        ControlFlow.cond(
-          stepValue < startStepValue,
-          () => value,
-          () => decay(value, stepValue - startStepValue, cycleStepsValue, alphaValue))
+    Op.nameScope(name) {
+      val stepValue = step.get.value.toFloat32
+      val cycleStepsValue = Basic.constant(cycleSteps).toFloat32
+      val alphaValue = Basic.constant(alpha).toFloat32
+      val result = {
+        if (startStep == 0L) {
+          decay(value, stepValue, cycleStepsValue, alphaValue)
+        } else {
+          val startStepValue = Basic.constant(startStep).toFloat32
+          ControlFlow.cond(
+            stepValue < startStepValue,
+            () => value,
+            () => decay(value, stepValue - startStepValue, cycleStepsValue, alphaValue))
+        }
       }
+      result.cast(value.dataType)
     }
   }
 
-  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output, alpha: Output): Output = {
+  private def decay(
+      initialValue: Output[Float],
+      step: Output[Float],
+      cycleSteps: Output[Float],
+      alpha: Output[Float]
+  ): Output[Float] = {
     val cosineDecay = 0.5f * (1.0f + Math.cos(math.Pi.toFloat * Math.minimum(step, cycleSteps) / cycleSteps))
     (1.0f - alpha) * cosineDecay + alpha
   }
