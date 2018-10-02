@@ -37,5 +37,3 @@ private[api] trait Documentation
         with Summary.Documentation
         with Text.Documentation
         with control_flow.ControlFlow.Documentation
-        with rnn.RNN.Documentation
-        with rnn.cell.RNNCell.Documentation

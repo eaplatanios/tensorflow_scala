@@ -30,6 +30,8 @@ import scala.util.matching.Regex
 package object ops {
   private[ops] val logger = Logger(LoggerFactory.getLogger("Graph Construction"))
 
+  type UntypedOp = ops.Op[Seq[ops.Output[Any]], Seq[ops.Output[Any]]]
+
   private[ops] val LARGE_SPARSE_TENSOR_SIZE  = 100000000
   private[ops] val DEFAULT_GRAPH_RANDOM_SEED = 87654321
 
@@ -38,8 +40,8 @@ package object ops {
   private[ops] val VALID_OP_NAME_REGEX            : Regex  = "^[A-Za-z0-9.][A-Za-z0-9_.\\-/]*$".r
   private[ops] val VALID_NAME_SCOPE_REGEX         : Regex  = "^[A-Za-z0-9_.\\-/]*$".r
 
-  private[ops] val graphConstructionScope: DynamicVariable[api.ops.GraphConstructionScope] = {
-    new DynamicVariable[api.ops.GraphConstructionScope](api.ops.GraphConstructionScope(graph = api.core.defaultGraph))
+  private[ops] val graphConstructionScope: DynamicVariable[GraphConstructionScope] = {
+    new DynamicVariable[GraphConstructionScope](GraphConstructionScope(graph = api.core.defaultGraph))
   }
 
   final case class GraphConstructionScope(
@@ -47,27 +49,12 @@ package object ops {
       nameScope: String = "",
       device: String = "",
       deviceFunction: OpSpecification => String = _.device,
-      colocationOps: Set[Op] = Set.empty,
-      controlDependencies: Set[Op] = Set.empty,
+      colocationOps: Set[UntypedOp] = Set.empty,
+      controlDependencies: Set[UntypedOp] = Set.empty,
       attributes: Map[String, Any] = Map.empty,
       container: String = "", // TODO: !!! Use containers.
       controlFlowContext: Option[Context] = None,
       outerContext: Option[GraphConstructionScope] = None)
-
-  @inline private[ops] def castArgs(output1: Output, output2: Output): (Output, Output) = {
-    val dataType = types.DataType.mostPrecise(output1.dataType, output2.dataType)
-    (output1.cast(dataType), output2.cast(dataType))
-  }
-
-  @inline private[ops] def castArgs(output1: Output, output2: Output, output3: Output): (Output, Output, Output) = {
-    val dataType = types.DataType.mostPrecise(output1.dataType, output2.dataType, output3.dataType)
-    (output1.cast(dataType), output2.cast(dataType), output3.cast(dataType))
-  }
-
-  @inline private[ops] def castArgs(outputs: Seq[Output]): Seq[Output] = {
-    val dataType = types.DataType.mostPrecise(outputs.map(_.dataType): _*)
-    outputs.map(_.cast(dataType))
-  }
 
   private[api] trait API
       extends Basic
@@ -87,9 +74,7 @@ package object ops {
           with Statistics
           with Text
           with Gradients.API
-          with ops.Op.API
-          with ops.Output.API
-          with ops.Queue.API
+          // with ops.Queue.API
           with ops.control_flow.API
           with ops.lookup.API
           with ops.rnn.API
@@ -103,7 +88,87 @@ package object ops {
       val FileWriter: api.io.events.SummaryFileWriter.type = api.io.events.SummaryFileWriter
     }
 
-    type TensorArray = ops.TensorArray
+    type OpCreationContext = ops.GraphConstructionScope
+    type OpSpecification = ops.OpSpecification
+
+    type Op[+I, +O] = ops.Op[I, O]
+
+    type OutputLike[+T] = ops.OutputLike[T]
+    type Output[+T] = ops.Output[T]
+    type OutputIndexedSlices[+T] = ops.OutputIndexedSlices[T]
+    type SparseOutput[+T] = ops.SparseOutput[T]
+
+    type TensorArray[+T] = ops.TensorArray[T]
+
+    val Op         : ops.Op.type          = ops.Op
     val TensorArray: ops.TensorArray.type = ops.TensorArray
+
+    def currentGraph: Graph = Op.currentGraph
+    def currentNameScope: String = Op.currentNameScope
+    def currentDevice: String = Op.currentDevice
+    def currentDeviceFunction: OpSpecification => String = Op.currentDeviceFunction
+    def currentColocationOps: Set[UntypedOp] = Op.currentColocationOps
+    def currentControlDependencies: Set[UntypedOp] = Op.currentControlDependencies
+    def currentAttributes: Map[String, Any] = Op.currentAttributes
+    def currentContainer: String = Op.currentContainer
+
+    def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
+      Op.currentGraphRandomSeed(opSeed)
+    }
+
+    def setCurrentGraphRandomSeed(value: Int): Unit = {
+      Op.setCurrentGraphRandomSeed(value)
+    }
+
+    def createWith[R](
+        graph: Graph = null, nameScope: String = null, device: String = "",
+        deviceFunction: OpSpecification => String = _.device, colocationOps: Set[UntypedOp] = null,
+        controlDependencies: Set[UntypedOp] = null, attributes: Map[String, Any] = null, container: String = null
+    )(block: => R): R = {
+      Op.createWith(
+        graph, nameScope, device, deviceFunction, colocationOps, controlDependencies, attributes, container)(block)
+    }
+
+    def nameScope[R](nameScope: String)(block: => R): R = {
+      Op.nameScope(nameScope)(block)
+    }
+
+    def device[R](
+        device: String = "",
+        deviceFunction: OpSpecification => String = _.device
+    )(block: => R): R = {
+      Op.device(device, deviceFunction)(block)
+    }
+
+    def colocateWith[R](
+        colocationOps: Set[UntypedOp],
+        ignoreExisting: Boolean = false
+    )(block: => R): R = {
+      Op.colocateWith(colocationOps, ignoreExisting)(block)
+    }
+
+    def initializationScope[R](block: => R): R = {
+      Op.initializationScope(block)
+    }
+
+    def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): UntypedOp = {
+      Op.currentGraph.globalVariablesInitializer(name)
+    }
+
+    def localVariablesInitializer(name: String = "LocalVariablesInitializer"): UntypedOp = {
+      Op.currentGraph.localVariablesInitializer(name)
+    }
+
+    def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): UntypedOp = {
+      Op.currentGraph.modelVariablesInitializer(name)
+    }
+
+    def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): UntypedOp = {
+      Op.currentGraph.metricVariablesInitializer(name)
+    }
+
+    def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): UntypedOp = {
+      Op.currentGraph.trainableVariablesInitializer(name)
+    }
   }
 }

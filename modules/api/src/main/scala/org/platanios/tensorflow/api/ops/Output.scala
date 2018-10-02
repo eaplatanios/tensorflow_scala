@@ -242,13 +242,6 @@ final case class Output[+T] private(
 }
 
 object Output {
-  private[ops] trait API {
-    type OutputLike[+T] = ops.OutputLike[T]
-    type Output[+T] = ops.Output[T]
-    type OutputIndexedSlices[+T] = ops.OutputIndexedSlices[T]
-    type SparseOutput[+T] = ops.SparseOutput[T]
-  }
-
   /** Returns the constant value of the given tensor, if efficiently calculable. */
   private[api] def constantValue[T](output: Output[T]): Option[Tensor[T]] = {
     val value = using(output.graph.reference)(r => {
