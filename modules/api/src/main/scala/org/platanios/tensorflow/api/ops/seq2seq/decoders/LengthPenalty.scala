@@ -17,16 +17,24 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
-import org.platanios.tensorflow.api.types.FLOAT32
+import org.platanios.tensorflow.api.types.IsNotQuantized
 
 /** Length penalty function to be used while decoding. */
 trait LengthPenalty {
-  def apply(scores: Output, sequenceLengths: Output): Output
+  def apply[T: IsNotQuantized](
+      scores: Output[T],
+      sequenceLengths: Output[Int]
+  ): Output[T]
 }
 
 /** No length penalty. */
 case object NoPenalty extends LengthPenalty {
-  override def apply(scores: Output, sequenceLengths: Output): Output = scores
+  override def apply[T: IsNotQuantized](
+      scores: Output[T],
+      sequenceLengths: Output[Int]
+  ): Output[T] = {
+    scores
+  }
 }
 
 /** Exponential length penalty function. The penalty is equal to `sequenceLengths ^ alpha`, where all operations a re
@@ -35,13 +43,16 @@ case object NoPenalty extends LengthPenalty {
   * @param  alpha Length penalty weight (disabled if set to `0.0f`).
   */
 case class ExponentialPenalty(alpha: Float) extends LengthPenalty {
-  override def apply(scores: Output, sequenceLengths: Output): Output = {
+  override def apply[T: IsNotQuantized](
+      scores: Output[T],
+      sequenceLengths: Output[Int]
+  ): Output[T] = {
     if (alpha == 0.0f) {
       scores
     } else {
-      Op.createWithNameScope("LengthPenalty") {
-        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor")
-        scores / (sequenceLengths.cast(FLOAT32) ^ penaltyFactor)
+      Op.nameScope("LengthPenalty") {
+        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor").cast(scores.dataType)
+        scores / (sequenceLengths.cast(scores.dataType) ^ penaltyFactor)
       }
     }
   }
@@ -54,13 +65,19 @@ case class ExponentialPenalty(alpha: Float) extends LengthPenalty {
   * @param  alpha Length penalty weight (disabled if set to `0.0f`).
   */
 case class GooglePenalty(alpha: Float) extends LengthPenalty {
-  override def apply(scores: Output, sequenceLengths: Output): Output = {
+  override def apply[T: IsNotQuantized](
+      scores: Output[T],
+      sequenceLengths: Output[Int]
+  ): Output[T] = {
     if (alpha == 0.0f) {
       scores
     } else {
-      Op.createWithNameScope("LengthPenalty") {
-        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor")
-        scores / Math.divide((5.0f + sequenceLengths.cast(FLOAT32)) ^ penaltyFactor, 6.0f ^ penaltyFactor)
+      Op.nameScope("LengthPenalty") {
+        val five = Basic.constant(5.0f, name = "Five").cast(scores.dataType)
+        val six = Basic.constant(6.0f, name = "Six").cast(scores.dataType)
+        val lengths = sequenceLengths.cast(scores.dataType)
+        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor").cast(scores.dataType)
+        scores / Math.divide((five + lengths) ^ penaltyFactor, six ^ penaltyFactor)
       }
     }
   }

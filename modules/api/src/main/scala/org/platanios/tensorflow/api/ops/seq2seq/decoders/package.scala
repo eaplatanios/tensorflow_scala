@@ -20,11 +20,11 @@ package org.platanios.tensorflow.api.ops.seq2seq
   */
 package object decoders {
   private[seq2seq] trait API {
-    type Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS] = org.platanios.tensorflow.api.ops.seq2seq.decoders.Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS]
-    type BasicDecoder[O, OS, S, SS] = org.platanios.tensorflow.api.ops.seq2seq.decoders.BasicDecoder[O, OS, S, SS]
-    type BeamSearchDecoder[S, SS] = org.platanios.tensorflow.api.ops.seq2seq.decoders.BeamSearchDecoder[S, SS]
+    type Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, DecState, DecStateShape, DecFinalOut, DecFinalState] = decoders.Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, DecState, DecStateShape, DecFinalOut, DecFinalState]
+    type BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape] = decoders.BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape]
+    type BeamSearchDecoder[T, State, StateShape] = decoders.BeamSearchDecoder[T, State, StateShape]
 
-    val BasicDecoder     : org.platanios.tensorflow.api.ops.seq2seq.decoders.BasicDecoder.type      = decoders.BasicDecoder
-    val BeamSearchDecoder: org.platanios.tensorflow.api.ops.seq2seq.decoders.BeamSearchDecoder.type = decoders.BeamSearchDecoder
+    val BasicDecoder     : decoders.BasicDecoder.type      = decoders.BasicDecoder
+    val BeamSearchDecoder: decoders.BeamSearchDecoder.type = decoders.BeamSearchDecoder
   }
 }

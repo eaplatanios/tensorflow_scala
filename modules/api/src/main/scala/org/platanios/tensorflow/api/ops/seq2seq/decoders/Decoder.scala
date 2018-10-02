@@ -18,11 +18,11 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
@@ -41,17 +41,17 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
-    val cell: RNNCell[O, OS, S, SS],
+abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, DecState, DecStateShape, DecFinalOut, DecFinalState](
+    val cell: RNNCell[Out, OutShape, State, StateShape],
     val name: String = "RNNDecoder"
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evDO: WhileLoopVariable.Aux[DO, DOS],
-    evDS: WhileLoopVariable.Aux[DS, DSS],
-    evDFO: WhileLoopVariable[DFO]
+    evO: WhileLoopVariable.Aux[Out, OutShape],
+    evDO: WhileLoopVariable.Aux[DecOut, DecOutShape],
+    evDS: WhileLoopVariable.Aux[DecState, DecStateShape],
+    evDFO: WhileLoopVariable[DecFinalOut]
 ) {
-  /** Scalar `INT32` tensor representing the batch size of the input values. */
-  val batchSize: Output
+  /** Scalar tensor representing the batch size of the input values. */
+  val batchSize: Output[Int]
 
   /** Describes whether the decoder keeps track of finished states.
     *
@@ -65,21 +65,25 @@ abstract class Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
     */
   val tracksOwnFinished: Boolean = false
 
-  def zeroOutput(): DO
+  def zeroOutput(): DecOut
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
     *
-    * @return Tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished,
+    * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  def initialize(): (Output, O, DS)
+  def initialize(): (Output[Boolean], Out, DecState)
 
   /** This method is called once per step of decoding (but only once for dynamic decoding).
     *
     * @return Tuple containing: (i) the decoder output for this step, (ii) the next decoder state, (iii) the next input,
-    *         and (iv) a scalar `BOOLEAN` tensor specifying whether decoding has finished.
+    *         and (iv) a scalar tensor specifying whether decoding has finished.
     */
-  def next(time: Output, input: O, state: DS): (DO, DS, O, Output)
+  def next(
+      time: Output[Int],
+      input: Out,
+      state: DecState
+  ): (DecOut, DecState, Out, Output[Boolean])
 
   /** Finalizes the output of the decoding process.
     *
@@ -88,19 +92,28 @@ abstract class Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
     * @param  sequenceLengths Tensor containing the sequence lengths that the decoder cell outputs.
     * @return Finalized output and state to return from the decoding process.
     */
-  def finalize(output: DO, state: DS, sequenceLengths: Output): (DFO, DFS, Output)
+  def finalize(
+      output: DecOut,
+      state: DecState,
+      sequenceLengths: Output[Int]
+  ): (DecFinalOut, DecFinalState, Output[Int])
 
   /** Performs dynamic decoding using this decoder.
     *
     * This method calls `initialize()` once and `next()` repeatedly.
     */
   def decode(
-      outputTimeMajor: Boolean = false, imputeFinished: Boolean = false,
-      maximumIterations: Output = null, parallelIterations: Int = 32, swapMemory: Boolean = false,
+      outputTimeMajor: Boolean = false,
+      imputeFinished: Boolean = false,
+      maximumIterations: Output[Int] = null,
+      parallelIterations: Int = 32,
+      swapMemory: Boolean = false,
       name: String = s"$name/DynamicRNNDecode"
-  ): (DFO, DFS, Output) = {
-    if (maximumIterations != null && maximumIterations.rank != 0)
-      throw InvalidShapeException(s"'maximumIterations' (shape = ${maximumIterations.shape}) must be a scalar.")
+  ): (DecFinalOut, DecFinalState, Output[Int]) = {
+    if (maximumIterations != null && maximumIterations.rank != 0) {
+      throw InvalidShapeException(
+        s"'maximumIterations' (shape = ${maximumIterations.shape}) must be a scalar.")
+    }
     // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
     // place the cached variables using the same device placement as for the rest of the RNN.
     val currentVariableScope = VariableScope.scope(name)(VariableScope.current)
@@ -121,12 +134,18 @@ abstract class Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
       })
       if (maximumIterations != null)
         initialFinished = Math.logicalOr(initialFinished, Math.greaterEqual(0, maximumIterations))
-      val initialSequenceLengths = Basic.zerosLike(initialFinished, INT32)
+      val initialSequenceLengths = Basic.zerosLike(initialFinished).toInt32
       val initialTime = Basic.zeros(INT32, Shape.scalar())
 
-      type LoopVariables = (Output, Seq[TensorArray], Seq[Output], Seq[Output], Output, Output)
+      type LoopVariables = (
+          Output[Int],
+              Seq[TensorArray[Any]],
+              Seq[Output[Any]],
+              Seq[Output[Any]],
+              Output[Boolean],
+              Output[Int])
 
-      def condition(loopVariables: LoopVariables): Output = {
+      def condition(loopVariables: LoopVariables): Output[Boolean] = {
         Math.logicalNot(Math.all(loopVariables._5))
       }
 
@@ -148,7 +167,7 @@ abstract class Decoder[O, OS, S, SS, DO, DOS, DS, DSS, DFO, DFS](
           nextFinished = Math.logicalOr(nextFinished, Math.greaterEqual(time + 1, maximumIterations))
         val nextSequenceLengths = Math.select(
           Math.logicalAnd(Math.logicalNot(finished), nextFinished),
-          Basic.fill(sequenceLengths.dataType, Basic.shape(sequenceLengths))(time + 1),
+          Basic.fill(sequenceLengths.dataType, Basic.shape(sequenceLengths, INT32))(time + 1),
           sequenceLengths)
 
         // Zero out output values past finish and pass through state when appropriate
