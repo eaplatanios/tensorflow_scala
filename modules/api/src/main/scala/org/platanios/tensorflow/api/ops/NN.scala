@@ -195,7 +195,7 @@ trait NN {
             opType = "Relu",
             name = n,
             input = o.toFloat32
-          ).setGradientFn(reluGradient(_, _)(implicitly[IsReal[T]]))
+          ).setGradientFn(reluGradient(_, _)(implicitly[IsReal[Float]]))
               .build().output.cast(o.dataType)
         } else {
           Op.Builder[Output[T], Output[T]](

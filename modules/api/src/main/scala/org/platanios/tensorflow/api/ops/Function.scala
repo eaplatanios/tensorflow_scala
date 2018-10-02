@@ -160,7 +160,7 @@ object Function {
       }
     }
 
-    implicit def sparseOutputArgType: ArgType[SparseOutput[T]] = {
+    implicit def sparseOutputArgType[T]: ArgType[SparseOutput[T]] = {
       new ArgType[SparseOutput[T]] {
         override def numOutputs: Int = {
           3
@@ -235,13 +235,17 @@ object Function {
           Seq(VARIANT)
         }
 
-        override def outputsDecoder(outputs: Seq[Output[Any]]): (Dataset[T], Seq[Output[Any]]) = {
+        override def outputsDecoder(
+            outputs: Seq[Output[Any]]
+        ): (Dataset[T], Seq[Output[Any]]) = {
           (VariantDataset[T](outputs.head.asInstanceOf[Output[Long]], evData)(),
               outputs.drop(1))
         }
 
         override def outputsDecoderWithKnownArg(
-            arg: Dataset[T], outputs: Seq[Output[Any]]): (Dataset[T], Seq[Output[Any]]) = {
+            arg: Dataset[T],
+            outputs: Seq[Output[Any]]
+        ): (Dataset[T], Seq[Output[Any]]) = {
           (VariantDataset[T](outputs.head.asInstanceOf[Output[Long]], evData)(
             dataType = arg.outputDataTypes,
             shape = arg.outputShapes

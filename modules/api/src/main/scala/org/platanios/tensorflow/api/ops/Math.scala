@@ -271,12 +271,19 @@ trait Math {
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
+    def gradient(
+        op: Op[(Output[T], OutputLike[T]), Output[T]],
+        outputGradient: Output[T]
+    ): (Output[T], OutputLike[T]) = {
+      reciprocalHessian(op, outputGradient)
+    }
+
     Gradients.unaryHelper(
       op.output,
       outputGradient,
       opType = "ReciprocalGrad",
       name = "ReciprocalGradient",
-      gradientFn = Some(reciprocalHessian[T]))
+      gradientFn = Some(gradient))
   }
 
   protected def reciprocalHessian[T: IsNotQuantized](
@@ -286,14 +293,22 @@ trait Math {
     val a = op.input._1
     val b = op.input._2
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val ca: Output[T] = conjugate(a)
+      val ca = conjugate(a)
       val cg = conjugate(outputGradient)
+
+      def gradient(
+          op: Op[(Output[T], OutputLike[T]), Output[T]],
+          outputGradient: Output[T]
+      ): (Output[T], OutputLike[T]) = {
+        reciprocalHessian(op, outputGradient)
+      }
+
       val rg = Gradients.unaryHelper(
         ca,
         outputGradient,
         opType = "ReciprocalGrad",
         name = "ReciprocalGradient",
-        gradientFn = Some(reciprocalHessian[T]))
+        gradientFn = Some(gradient))
       (Basic.constant(-2).cast(cg.dataType) * cg * b * ca, rg)
     }
   }
@@ -357,12 +372,19 @@ trait Math {
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
+    def gradient(
+        op: Op[(Output[T], OutputLike[T]), Output[T]],
+        outputGradient: Output[T]
+    ): (Output[T], OutputLike[T]) = {
+      sqrtHessian(op, outputGradient)
+    }
+
     Gradients.unaryHelper(
       op.output,
       outputGradient,
       opType = "SqrtGrad",
       name = "SqrtGradient",
-      gradientFn = Some(sqrtHessian[T]))
+      gradientFn = Some(gradient))
   }
 
   protected def sqrtHessian[T: IsNotQuantized](
@@ -403,12 +425,19 @@ trait Math {
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
+    def gradient(
+        op: Op[(Output[T], OutputLike[T]), Output[T]],
+        outputGradient: Output[T]
+    ): (Output[T], OutputLike[T]) = {
+      rsqrtHessian(op, outputGradient)
+    }
+
     Gradients.unaryHelper(
       op.output,
       outputGradient,
       opType = "RsqrtGrad",
       name = "RSqrtGradient",
-      gradientFn = Some(rsqrtHessian[T]))
+      gradientFn = Some(gradient))
   }
 
   protected def rsqrtHessian[T: IsNotQuantized](
@@ -420,12 +449,20 @@ trait Math {
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val ca = conjugate(a)
       val cg = conjugate(outputGradient)
+
+      def gradient(
+          op: Op[(Output[T], OutputLike[T]), Output[T]],
+          outputGradient: Output[T]
+      ): (Output[T], OutputLike[T]) = {
+        rsqrtHessian(op, outputGradient)
+      }
+
       val rg = Gradients.unaryHelper(
         ca,
         outputGradient,
         opType = "RsqrtGrad",
         name = "RSqrtGradient",
-        gradientFn = Some(rsqrtHessian[T]))
+        gradientFn = Some(gradient))
       (Basic.constant(-1.5).cast(cg.dataType) * cg * b * square(ca), rg)
     }
   }
@@ -841,12 +878,20 @@ trait Math {
     var y = op.output
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       y = conjugate(y)
+
+      def gradient(
+          op: Op[(Output[T], OutputLike[T]), Output[T]],
+          outputGradient: Output[T]
+      ): (Output[T], OutputLike[T]) = {
+        tanhHessian(op, outputGradient)
+      }
+
       Gradients.unaryHelper(
         y,
         outputGradient,
         opType = "TanhGrad",
         name = "TanhGradient",
-        gradientFn = Some(tanhHessian[T]))
+        gradientFn = Some(gradient))
     }
   }
 
@@ -859,12 +904,20 @@ trait Math {
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val ca = conjugate(a)
       val cb = conjugate(b)
+
+      def gradient(
+          op: Op[(Output[T], OutputLike[T]), Output[T]],
+          outputGradient: Output[T]
+      ): (Output[T], OutputLike[T]) = {
+        tanhHessian(op, outputGradient)
+      }
+
       val rg = Gradients.unaryHelper(
         ca,
         outputGradient,
         opType = "TanhGrad",
         name = "TanhGradient",
-        gradientFn = Some(tanhHessian[T]))
+        gradientFn = Some(gradient))
       (Basic.constant(-2.0).cast(outputGradient.dataType) * outputGradient * cb * ca, rg)
     }
   }
@@ -1126,12 +1179,20 @@ trait Math {
     var y = op.output
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       y = conjugate(y)
+
+      def gradient(
+          op: Op[(Output[T], OutputLike[T]), Output[T]],
+          outputGradient: Output[T]
+      ): (Output[T], OutputLike[T]) = {
+        sigmoidHessian(op, outputGradient)
+      }
+
       Gradients.unaryHelper(
         y,
         outputGradient,
         opType = "SigmoidGrad",
         name = "SigmoidGradient",
-        gradientFn = Some(sigmoidHessian[T]))
+        gradientFn = Some(gradient))
     }
   }
 
@@ -1145,12 +1206,20 @@ trait Math {
       val ca = conjugate(a)
       val cb = conjugate(b)
       val gb = outputGradient * cb
+
+      def gradient(
+          op: Op[(Output[T], OutputLike[T]), Output[T]],
+          outputGradient: Output[T]
+      ): (Output[T], OutputLike[T]) = {
+        sigmoidHessian(op, outputGradient)
+      }
+
       val rg = Gradients.unaryHelper(
         ca,
         outputGradient,
         opType = "SigmoidGrad",
         name = "SigmoidGradient",
-        gradientFn = Some(sigmoidHessian[T]))
+        gradientFn = Some(gradient))
       (subtract(gb, Basic.constant(-2.0).cast(outputGradient.dataType) * gb * ca), rg)
     }
   }

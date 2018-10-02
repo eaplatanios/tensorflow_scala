@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.types.{INT32, INT64, IsNotQuantized, IsInt32OrInt64}
+import org.platanios.tensorflow.api.types.{INT32, INT64, IsDecimal, IsInt32OrInt64, IsNotQuantized}
 
 /** Contains functions for constructing ops related to clipping tensor values.
   *
@@ -129,7 +129,7 @@ trait Clip {
     * @param  name   Name prefix for created ops.
     * @return Created op output.
     */
-  def globalNorm[T: IsNotQuantized](
+  def globalNorm[T: IsDecimal](
       inputs: Seq[OutputLike[T]],
       name: String = "GlobalNorm"
   ): Output[T] = {
@@ -143,7 +143,8 @@ trait Clip {
         NN.l2Loss(v)
       })
       val halfSquaredNorm = Math.sum(Basic.stack(halfSquaredNorms))
-      Math.sqrt(halfSquaredNorm * 2)
+      val two = Basic.constant(2).cast(halfSquaredNorm.dataType)
+      Math.sqrt(halfSquaredNorm * two)
     }
   }
 
@@ -157,7 +158,7 @@ trait Clip {
     * @param  name       Name prefix for created ops.
     * @return Tuple containing the clipped tensors as well as the global norm that was used for the clipping.
     */
-  def clipByGlobalNorm[T: IsNotQuantized](
+  def clipByGlobalNorm[T: IsDecimal](
       inputs: Seq[OutputLike[T]],
       clipNorm: Output[T],
       globalNorm: Output[T] = null,

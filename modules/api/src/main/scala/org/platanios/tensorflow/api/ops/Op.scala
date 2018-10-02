@@ -791,7 +791,7 @@ object Op {
       }
     }
 
-    implicit def outputLikeEvidence[T, O <: OutputLike[T] : TypeTag]: OpInputPrimitive[O] = {
+    implicit def outputLikeEvidence[T, OL[A] <: OutputLike[A], O <: OL[T] : TypeTag]: OpInputPrimitive[O] = {
       new OpInputPrimitive[O] {
         @inline override def fromOutputs(
             outputs: Seq[Output[Any]],
@@ -1013,7 +1013,7 @@ object Op {
     }
 
     implicit def seqOutputEvidence[T]: OpOutput[Seq[Output[T]]] = {
-      new OpOutput[Seq[Output[Any]]] {
+      new OpOutput[Seq[Output[T]]] {
         @inline override def fromOutputs(outputs: Seq[Output[Any]]): Seq[Output[T]] = {
           outputs.map(_.asInstanceOf[Output[T]])
         }
