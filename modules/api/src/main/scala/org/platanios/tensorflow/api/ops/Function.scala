@@ -17,11 +17,10 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.implicits.helpers.StructureFromOutput
-import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset}
+import org.platanios.tensorflow.api.ops.data.{SupportedData, Dataset}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, VARIANT}
+import org.platanios.tensorflow.api.types.{DataType, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 
@@ -37,7 +36,10 @@ import scala.collection.JavaConverters._
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Function[I, O](name: String, function: I => O)(implicit
+case class Function[I, O](
+    name: String,
+    function: I => O
+)(implicit
     evInput: Function.ArgType[I],
     evOutput: Function.ArgType[O]
 ) {
@@ -49,130 +51,230 @@ case class Function[I, O](name: String, function: I => O)(implicit
     val dataTypes = evInput.dataTypes(arg)
     val key = dataTypes.map(_.toString).mkString(":")
     InstantiatedFunction(
-      s"${name}_$key", function, dataTypes, input = Some(arg),
+      name = s"${name}_$key",
+      function = function,
+      inputDataTypes = dataTypes,
+      input = Some(arg),
       captureByValue = captureByValue, appendHashToName = appendHashToName
     )(evInput, evOutput)(arg)
   }
 
   def instantiate(
-      inputDataTypes: Seq[DataType[_]],
+      inputDataTypes: Seq[DataType[Any]],
       inputShapes: Seq[Shape] = null,
       input: Option[I] = None,
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   ): InstantiatedFunction[I, O] = {
-    val key = (inputDataTypes.map(_.toString) ++ Option(inputShapes).getOrElse(Seq.empty).map(_.toString)).mkString(":")
+    val key = (inputDataTypes.map(_.toString) ++
+        Option(inputShapes).getOrElse(Seq.empty).map(_.toString)).mkString(":")
     InstantiatedFunction(
-      s"${name}_$key", function, inputDataTypes, Option(inputShapes), input, captureByValue = captureByValue,
-      appendHashToName = appendHashToName)(evInput, evOutput)
+      name = s"${name}_$key",
+      function = function,
+      inputDataTypes = inputDataTypes,
+      inputShapes = Option(inputShapes),
+      input = input,
+      captureByValue = captureByValue,
+      appendHashToName = appendHashToName
+    )(evInput, evOutput)
   }
 }
 
 object Function {
   trait ArgType[O] {
     def numOutputs: Int
-    def outputs(arg: O): Seq[Output]
-    def dataTypes(arg: O): Seq[DataType[_]]
-    def outputsDecoder(outputs: Seq[Output]): (O, Seq[Output])
-    def outputsDecoderWithKnownArg(arg: O, outputs: Seq[Output]): (O, Seq[Output])
+    def outputs(arg: O): Seq[Output[Any]]
+    def dataTypes(arg: O): Seq[DataType[Any]]
+    def outputsDecoder(outputs: Seq[Output[Any]]): (O, Seq[Output[Any]])
+    def outputsDecoderWithKnownArg(arg: O, outputs: Seq[Output[Any]]): (O, Seq[Output[Any]])
   }
 
   object ArgType {
-    def apply[O](implicit ev: ArgType[O]): ArgType[O] = ev
+    implicit def outputArgType[T]: ArgType[Output[T]] = {
+      new ArgType[Output[T]] {
+        override def numOutputs: Int = {
+          1
+        }
 
-    implicit val outputArgType: ArgType[Output] = new ArgType[Output] {
-      override def numOutputs: Int = 1
-      override def outputs(arg: Output): Seq[Output] = Seq(arg)
-      override def dataTypes(arg: Output): Seq[DataType[_]] = Seq(arg.dataType)
-      override def outputsDecoder(outputs: Seq[Output]): (Output, Seq[Output]) = (outputs.head, outputs.tail)
-      override def outputsDecoderWithKnownArg(arg: Output, outputs: Seq[Output]): (Output, Seq[Output]) = {
-        (outputs.head, outputs.tail)
+        override def outputs(arg: Output[T]): Seq[Output[Any]] = {
+          Seq(arg)
+        }
+
+        override def dataTypes(arg: Output[T]): Seq[DataType[Any]] = {
+          Seq(arg.dataType)
+        }
+
+        override def outputsDecoder(
+            outputs: Seq[Output[Any]]
+        ): (Output[T], Seq[Output[Any]]) = {
+          (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+        }
+
+        override def outputsDecoderWithKnownArg(
+            arg: Output[T],
+            outputs: Seq[Output[Any]]
+        ): (Output[T], Seq[Output[Any]]) = {
+          (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+        }
       }
     }
 
-    implicit val outputIndexedSlicesArgType: ArgType[OutputIndexedSlices] = new ArgType[OutputIndexedSlices] {
-      override def numOutputs: Int = 3
-      override def outputs(arg: OutputIndexedSlices): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
+    implicit def outputIndexedSlicesArgType[T]: ArgType[OutputIndexedSlices[T]] = {
+      new ArgType[OutputIndexedSlices[T]] {
+        override def numOutputs: Int = {
+          3
+        }
 
-      override def dataTypes(arg: OutputIndexedSlices): Seq[DataType[_]] = {
-        Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
-      }
+        override def outputs(
+            arg: OutputIndexedSlices[T]
+        ): Seq[Output[Any]] = {
+          Seq(arg.indices, arg.values, arg.denseShape)
+        }
 
-      override def outputsDecoder(outputs: Seq[Output]): (OutputIndexedSlices, Seq[Output]) = {
-        (OutputIndexedSlices(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
-      }
+        override def dataTypes(
+            arg: OutputIndexedSlices[T]
+        ): Seq[DataType[Any]] = {
+          Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
+        }
 
-      override def outputsDecoderWithKnownArg(
-          arg: OutputIndexedSlices,
-          outputs: Seq[Output]
-      ): (OutputIndexedSlices, Seq[Output]) = {
-        (OutputIndexedSlices(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
+        override def outputsDecoder(
+            outputs: Seq[Output[Any]]
+        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+          (OutputIndexedSlices(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        override def outputsDecoderWithKnownArg(
+            arg: OutputIndexedSlices[T],
+            outputs: Seq[Output[Any]]
+        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+          (OutputIndexedSlices(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
       }
     }
 
-    implicit val sparseOutputArgType: ArgType[SparseOutput] = new ArgType[SparseOutput] {
-      override def numOutputs: Int = 3
-      override def outputs(arg: SparseOutput): Seq[Output] = Seq(arg.indices, arg.values, arg.denseShape)
+    implicit def sparseOutputArgType: ArgType[SparseOutput[T]] = {
+      new ArgType[SparseOutput[T]] {
+        override def numOutputs: Int = {
+          3
+        }
 
-      override def dataTypes(arg: SparseOutput): Seq[DataType[_]] = {
-        Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
-      }
+        override def outputs(
+            arg: SparseOutput[T]
+        ): Seq[Output[Any]] = {
+          Seq(arg.indices, arg.values, arg.denseShape)
+        }
 
-      override def outputsDecoder(outputs: Seq[Output]): (SparseOutput, Seq[Output]) = {
-        (SparseOutput(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
-      }
+        override def dataTypes(
+            arg: SparseOutput[T]
+        ): Seq[DataType[Any]] = {
+          Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
+        }
 
-      override def outputsDecoderWithKnownArg(arg: SparseOutput, outputs: Seq[Output]): (SparseOutput, Seq[Output]) = {
-        (SparseOutput(outputs(0), outputs(1), outputs(2)), outputs.drop(3))
+        override def outputsDecoder(
+            outputs: Seq[Output[Any]]
+        ): (SparseOutput[T], Seq[Output[Any]]) = {
+          (SparseOutput(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        override def outputsDecoderWithKnownArg(
+            arg: SparseOutput[T],
+            outputs: Seq[Output[Any]]
+        ): (SparseOutput[T], Seq[Output[Any]]) = {
+          (SparseOutput(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
       }
     }
 
     // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".
-    case class VariantDataset[T, O, D, S] private(
-        handle: Output,
-        dataType: D = null.asInstanceOf[D],
-        shape: S = null.asInstanceOf[S]
+
+    case class VariantDataset[T] private(
+        handle: Output[Long],
+        override val evData: SupportedData[T]
+    )(
+        dataType: evData.D = null.asInstanceOf[evData.D],
+        shape: evData.S = null.asInstanceOf[evData.S]
     )(implicit
-        evStructure: StructureFromOutput.Aux[T, O, D, S],
-        evData: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ) extends Dataset[T, O, D, S]("VariantDataset") {
-      /** Creates a `VARIANT` scalar tensor representing this dataset. This function adds ops to the current graph, that
-        * create the dataset resource. */
-      override def createHandle(): Output = handle
-
-      /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
-      override def outputDataTypes: D = dataType
-
-      /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
-      override def outputShapes: S = shape
+        evFunctionInput: Function.ArgType[T]
+    ) extends Dataset[T] {
+      override val name: String = "VariantDataset"
+      override def createHandle(): Output[Long] = handle
+      override def outputDataTypes: evData.D = dataType
+      override def outputShapes: evData.S = shape
     }
 
-    implicit def datasetArgType[T, O, D, S](implicit
-        evStructure: StructureFromOutput.Aux[T, O, D, S],
-        evData: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): ArgType[Dataset[T, O, D, S]] = new ArgType[Dataset[T, O, D, S]] {
-      override def numOutputs: Int = 1
-      override def outputs(arg: Dataset[T, O, D, S]): Seq[Output] = Seq(arg.createHandle())
-      override def dataTypes(arg: Dataset[T, O, D, S]): Seq[DataType[_]] = Seq(VARIANT)
+    implicit def datasetArgType[T](implicit
+        evData: SupportedData[T],
+        evFunctionInput: Function.ArgType[T]
+    ): ArgType[Dataset[T]] = {
+      new ArgType[Dataset[T]] {
+        override def numOutputs: Int = {
+          1
+        }
 
-      override def outputsDecoder(outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = {
-        (VariantDataset(outputs.head), outputs.drop(1))
-      }
+        override def outputs(arg: Dataset[T]): Seq[Output[Any]] = {
+          Seq(arg.createHandle())
+        }
 
-      override def outputsDecoderWithKnownArg(
-          arg: Dataset[T, O, D, S], outputs: Seq[Output]): (Dataset[T, O, D, S], Seq[Output]) = {
-        (VariantDataset(outputs.head, arg.outputDataTypes, arg.outputShapes), outputs.drop(1))
+        override def dataTypes(arg: Dataset[T]): Seq[DataType[Any]] = {
+          Seq(VARIANT)
+        }
+
+        override def outputsDecoder(outputs: Seq[Output[Any]]): (Dataset[T], Seq[Output[Any]]) = {
+          (VariantDataset[T](outputs.head.asInstanceOf[Output[Long]], evData)(),
+              outputs.drop(1))
+        }
+
+        override def outputsDecoderWithKnownArg(
+            arg: Dataset[T], outputs: Seq[Output[Any]]): (Dataset[T], Seq[Output[Any]]) = {
+          (VariantDataset[T](outputs.head.asInstanceOf[Output[Long]], evData)(
+            dataType = arg.outputDataTypes,
+            shape = arg.outputShapes
+          ), outputs.drop(1))
+        }
       }
     }
 
     implicit val hnil: ArgType[HNil] = new ArgType[HNil] {
-      override def numOutputs: Int = 0
-      override def outputs(arg: HNil): Seq[Output] = Seq.empty[Output]
-      override def dataTypes(arg: HNil): Seq[DataType[_]] = Seq.empty[DataType[_]]
-      override def outputsDecoder(outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
-      override def outputsDecoderWithKnownArg(arg: HNil, outputs: Seq[Output]): (HNil, Seq[Output]) = (HNil, outputs)
+      override def numOutputs: Int = {
+        0
+      }
+
+      override def outputs(arg: HNil): Seq[Output[Any]] = {
+        Seq.empty
+      }
+
+      override def dataTypes(arg: HNil): Seq[DataType[Any]] = {
+        Seq.empty
+      }
+
+      override def outputsDecoder(
+          outputs: Seq[Output[Any]]
+      ): (HNil, Seq[Output[Any]]) = {
+        (HNil, outputs)
+      }
+
+      override def outputsDecoderWithKnownArg(
+          arg: HNil,
+          outputs: Seq[Output[Any]]
+      ): (HNil, Seq[Output[Any]]) = {
+        (HNil, outputs)
+      }
     }
 
     implicit def recursiveConstructor[H, T <: HList](implicit
@@ -181,21 +283,28 @@ object Function {
     ): ArgType[H :: T] = new ArgType[H :: T] {
       override def numOutputs: Int = argTypeHead.value.numOutputs + argTypeTail.numOutputs
 
-      override def outputs(arg: H :: T): Seq[Output] = {
-        argTypeHead.value.outputs(arg.head) ++ argTypeTail.outputs(arg.tail)
+      override def outputs(arg: H :: T): Seq[Output[Any]] = {
+        argTypeHead.value.outputs(arg.head) ++
+            argTypeTail.outputs(arg.tail)
       }
 
-      override def dataTypes(arg: H :: T): Seq[DataType[_]] = {
-        argTypeHead.value.dataTypes(arg.head) ++ argTypeTail.dataTypes(arg.tail)
+      override def dataTypes(arg: H :: T): Seq[DataType[Any]] = {
+        argTypeHead.value.dataTypes(arg.head) ++
+            argTypeTail.dataTypes(arg.tail)
       }
 
-      override def outputsDecoder(outputs: Seq[Output]): (H :: T, Seq[Output]) = {
+      override def outputsDecoder(
+          outputs: Seq[Output[Any]]
+      ): (H :: T, Seq[Output[Any]]) = {
         val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoder(outputs)
         val (decodedTail, tail) = argTypeTail.outputsDecoder(outputsTail)
         (decodedHead :: decodedTail, tail)
       }
 
-      override def outputsDecoderWithKnownArg(arg: H :: T, outputs: Seq[Output]): (H :: T, Seq[Output]) = {
+      override def outputsDecoderWithKnownArg(
+          arg: H :: T,
+          outputs: Seq[Output[Any]]
+      ): (H :: T, Seq[Output[Any]]) = {
         val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoderWithKnownArg(arg.head, outputs)
         val (decodedTail, tail) = argTypeTail.outputsDecoderWithKnownArg(arg.tail, outputsTail)
         (decodedHead :: decodedTail, tail)
@@ -208,16 +317,29 @@ object Function {
         argTypeL: ArgType[L],
         tupler: Tupler.Aux[L, P]
     ): ArgType[P] = new ArgType[P] {
-      override def numOutputs: Int = argTypeL.numOutputs
-      override def outputs(arg: P): Seq[Output] = argTypeL.outputs(gen.to(arg))
-      override def dataTypes(arg: P): Seq[DataType[_]] = argTypeL.dataTypes(gen.to(arg))
+      override def numOutputs: Int = {
+        argTypeL.numOutputs
+      }
 
-      override def outputsDecoder(outputs: Seq[Output]): (P, Seq[Output]) = {
+      override def outputs(arg: P): Seq[Output[Any]] = {
+        argTypeL.outputs(gen.to(arg))
+      }
+
+      override def dataTypes(arg: P): Seq[DataType[Any]] = {
+        argTypeL.dataTypes(gen.to(arg))
+      }
+
+      override def outputsDecoder(
+          outputs: Seq[Output[Any]]
+      ): (P, Seq[Output[Any]]) = {
         val (decoded, tail) = argTypeL.outputsDecoder(outputs)
         (tupler(decoded), tail)
       }
 
-      override def outputsDecoderWithKnownArg(arg: P, outputs: Seq[Output]): (P, Seq[Output]) = {
+      override def outputsDecoderWithKnownArg(
+          arg: P,
+          outputs: Seq[Output[Any]]
+      ): (P, Seq[Output[Any]]) = {
         val (decoded, tail) = argTypeL.outputsDecoderWithKnownArg(gen.to(arg), outputs)
         (tupler(decoded), tail)
       }
@@ -225,15 +347,17 @@ object Function {
   }
 }
 
+// TODO: [TYPES] !!! What about type variance here?
+
 private[api] class InstantiatedFunction[I, O] protected (
     val hashedName: String,
     val inputNames: Seq[String],
     val outputNames: Seq[String],
     private[ops] val dummyOutputs: O,
-    val outputDataTypes: Seq[DataType[_]],
+    val outputDataTypes: Seq[DataType[Any]],
     val outputShapes: Seq[Shape],
     val subFunctions: Set[InstantiatedFunction[_, _]],
-    val extraInputs: Seq[Output],
+    val extraInputs: Seq[Output[Any]],
     val functionDef: FunctionDef,
     val name: String,
     private[this] val nativeHandleWrapper: NativeHandleWrapper,
@@ -243,20 +367,26 @@ private[api] class InstantiatedFunction[I, O] protected (
     evOutput: Function.ArgType[O]
 ) extends Closeable {
   /** Lock for the native handle. */
-  private[InstantiatedFunction] def NativeHandleLock = nativeHandleWrapper.Lock
+  private[InstantiatedFunction] def NativeHandleLock = {
+    nativeHandleWrapper.Lock
+  }
 
   /** Native handle of this tensor. */
-  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
+  private[api] def nativeHandle: Long = {
+    nativeHandleWrapper.handle
+  }
 
   /** Adds this function to the provided graph. */
-  def addToGraph(graph: Graph): Unit = graph.getFunction(hashedName) match {
-    case Some(_) => ()
-    case None =>
-      // Add this function into the graph
-      graph.addFunction(this)
-      // Ensure that all sub-functions are also added to the graph
-      subFunctions.foreach(graph.addFunction)
-    // TODO: [FUNCTIONS] Add the gradient function too.
+  def addToGraph(graph: Graph): Unit = {
+    graph.getFunction(hashedName) match {
+      case Some(_) => ()
+      case None =>
+        // Add this function into the graph
+        graph.addFunction(this)
+        // Ensure that all sub-functions are also added to the graph
+        subFunctions.foreach(graph.addFunction)
+      // TODO: [FUNCTIONS] Add the gradient function too.
+    }
   }
 
   /** Creates an op in the current graph that calls this function.
@@ -285,33 +415,38 @@ private[api] class InstantiatedFunction[I, O] protected (
       separateCompiledGradients: Boolean = false,
       name: String = name
   ): O = {
-    val outputs = Op.createWithNameScope(name) {
+    val outputs = Op.nameScope(name) {
       val outputs = evInput.outputs(input)
       addToGraph(outputs.head.graph)
-      val builder = Op.Builder(opType = hashedName, name = "Call")
-      (outputs ++ extraInputs).foreach(builder.addInput)
+      val builder = Op.Builder[Seq[Output[_]], Seq[Output[_]]](
+        opType = hashedName,
+        name = "Call",
+        input = outputs ++ extraInputs)
       builder.setAttribute("_noinline", inline)
       if (compiled) {
-        val xlaScope = graphConstructionScope.value.attributes.getOrElse("_XlaScope", s"function_$name").toString
+        val xlaScope = graphConstructionScope.value.attributes
+            .getOrElse("_XlaScope", s"function_$name").toString
         builder
             .setAttribute("_XlaCompile", compiled)
             .setAttribute("_XlaSeparateCompiledGradients", separateCompiledGradients)
             .setAttribute("_XlaScope", xlaScope)
       }
-      builder.build().outputs
+      builder.build().output
     }
     evOutput.outputsDecoderWithKnownArg(dummyOutputs, outputs)._1
   }
 
   /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
-  def toFunctionDef: FunctionDef = functionDef
+  def toFunctionDef: FunctionDef = {
+    functionDef
+  }
 }
 
 object InstantiatedFunction {
   private[api] def apply[I, O](
       name: String,
       function: I => O,
-      inputDataTypes: Seq[DataType[_]],
+      inputDataTypes: Seq[DataType[Any]],
       inputShapes: Option[Seq[Shape]] = None,
       input: Option[I] = None,
       captureByValue: Boolean = false,
@@ -327,7 +462,7 @@ object InstantiatedFunction {
           s"does not match the number of inputs (${evInput.numOutputs}).")
 
     // List of placeholders for the function definition
-    val inputs = mutable.ListBuffer.empty[Output]
+    val inputs = mutable.ListBuffer.empty[Output[Any]]
     val functionGraph = FunctionGraph(captureByValue)
     val (inputNames, outputNames, outputs, flattenedOutputs) = Op.createWith(functionGraph) {
       // Determine names for the function inputs
@@ -344,23 +479,29 @@ object InstantiatedFunction {
 
       inputShapes match {
         case None =>
-          inputs.appendAll((inputNames, inputDataTypes).zipped.map((name, dataType) => {
-            Basic.placeholder(dataType = dataType, name = name)
-          }))
+          inputs.appendAll((inputNames, inputDataTypes).zipped
+              .map((name, dataType) => {
+                Basic.placeholder(dataType = dataType, name = name)
+              }))
         case Some(shapes) =>
-          inputs.appendAll((inputNames, inputDataTypes, shapes).zipped.map((name, dataType, shape) => {
-            Basic.placeholder(dataType = dataType, shape = shape, name = name)
-          }))
+          inputs.appendAll((inputNames, inputDataTypes, shapes).zipped
+              .map((name, dataType, shape) => {
+                Basic.placeholder(dataType = dataType, shape = shape, name = name)
+              }))
       }
 
       // Call the Scala function and gather the output tensors
       val (outputs, flattenedOutputs) = {
-        VariableScope.scope("", underlyingGetter = functionGraph.customVariableGetter) {
+        VariableScope.scope(
+          name = "",
+          underlyingGetter = functionGraph.customVariableGetter
+        ) {
           // Unflatten the inputs, pass them to the function, and then flatten the returned outputs
           val outputs = function(
             input.map(evInput.outputsDecoderWithKnownArg(_, inputs)._1)
                 .getOrElse(evInput.outputsDecoder(inputs)._1))
-          val flattenedOutputs = evOutput.outputs(outputs).map(functionGraph.capture)
+          val flattenedOutputs = evOutput.outputs(outputs)
+              .map(functionGraph.capture)
           (evOutput.outputsDecoderWithKnownArg(outputs, flattenedOutputs)._1, flattenedOutputs)
         }
       }
@@ -431,31 +572,43 @@ class FunctionGraph(
     override protected val closeFn: () => Unit
 ) extends Graph(nativeHandleWrapper, closeFn) {
   /** Graph used during construction of this graph. */
-  val outerGraph: Graph = Op.currentGraph
+  val outerGraph: Graph = {
+    Op.currentGraph
+  }
 
   /** Variable scope used during construction of this graph. */
-  private[ops] val outerVariableScope = VariableScope.current
+  private[ops] val outerVariableScope: VariableScope = {
+    VariableScope.current
+  }
 
   /** Captured op outputs that belong to other graphs and are used within this graph. */
-  private[ops] val capturedOutputs = mutable.HashMap.empty[Output, Output]
+  private[ops] val capturedOutputs: mutable.HashMap[Output[Any], Output[Any]] = {
+    mutable.HashMap.empty[Output[Any], Output[Any]]
+  }
 
   /** Extra placeholder arguments to feed to the function being created, that represent captured op output values. */
-  private[ops] val extraArgs = mutable.ListBuffer.empty[Output]
+  private[ops] val extraArgs: mutable.ListBuffer[Output[Any]] = {
+    mutable.ListBuffer.empty[Output[Any]]
+  }
 
   /** Extra inputs to use when calling the function being created, that correspond to the extra arguments. */
-  private[ops] val extraInputs = mutable.ListBuffer.empty[Output]
+  private[ops] val extraInputs: mutable.ListBuffer[Output[Any]] = {
+    mutable.ListBuffer.empty[Output[Any]]
+  }
 
   /** Extra variables that have been created on the outer graph and correspond to those created within this graph. */
-  private[ops] val extraVars = mutable.ListBuffer.empty[Output]
+  private[ops] val extraVars: mutable.ListBuffer[Output[Any]] = {
+    mutable.ListBuffer.empty[Output[Any]]
+  }
 
   /** Helper function for processing tensors before using them as inputs for ops placed in this graph. Useful for
     * creating function graphs. */
-  override private[api] def processOpInput(value: Output): Output = {
+  override private[api] def processOpInput[T](value: Output[T]): Output[T] = {
     capture(value)
   }
 
   /** Adds the provided tensor to this graph and returns the captured tensor. */
-  private[ops] def capture(output: Output): Output = {
+  private[ops] def capture[T](output: Output[T]): Output[T] = {
     if (output.graph == this) {
       output
     } else if (captureByValue) {
@@ -477,46 +630,55 @@ class FunctionGraph(
           case _ => output
         })
         placeholder
-      })
+      }).asInstanceOf[Output[T]]
     }
   }
 
-  protected def addOutputAndParents(output: Output): Output = {
-    addOpAndParents(output.op).outputs(output.index)
+  protected def addOutputAndParents[T](output: Output[T]): Output[T] = {
+    addOpAndParents(output.op)
+        .outputsSeq(output.index)
+        .asInstanceOf[Output[T]]
   }
 
-  protected def addOpAndParents(op: Op): Op = {
-    op.graph.functions.filter(_.hashedName == op.opType).foreach(_.addToGraph(Op.currentGraph))
+  protected def addOpAndParents[I, O](op: Op[I, O]): Op[I, O] = {
+    op.graph.functions
+        .filter(_.hashedName == op.opType)
+        .foreach(_.addToGraph(Op.currentGraph))
+
     if (op.toOpDef.getIsStateful)
       throw InvalidArgumentException(s"Cannot capture a stateful op (name: ${op.name}, type: ${op.opType}) by value.")
     if (op.opType == "Placeholder" || op.opType == "PlaceholderV2")
       throw InvalidArgumentException(s"Cannot capture a placeholder (name: ${op.name}, type: ${op.opType}) by value.")
+
     val capturedOp = Op.createWith(controlDependencies = op.controlInputs.map(addOpAndParents)) {
-      val opBuilder = Op.Builder(op.opType, op.name)
-      op.inputs.foreach(i => opBuilder.addInput(addOutputAndParents(i)))
+      val opBuilder = Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
+        opType = op.opType,
+        name = op.name,
+        input = op.inputsSeq.map(addOutputAndParents))
       op.toNodeDef.getAttrMap.asScala.foreach(attribute => {
         opBuilder.setAttribute(attribute._1, attribute._2)
       })
       opBuilder.build()
     }
-    op.outputs.zip(capturedOp.outputs).foreach(o => capturedOutputs.update(o._1, o._2))
-    capturedOp
+    op.outputsSeq.zip(capturedOp.outputsSeq)
+        .foreach(o => capturedOutputs.update(o._1, o._2))
+    capturedOp.asInstanceOf[Op[I, O]]
   }
 
   /** Custom variable getter for variables created within this function graph. */
   private[ops] val customVariableGetter: VariableGetter = new VariableGetter {
-    override def apply(
+    override def apply[T](
         name: String,
-        dataType: DataType[_] = FLOAT32,
+        dataType: DataType[T],
         shape: Shape = null,
         initializer: Initializer = null,
         regularizer: Regularizer = null,
         trainable: Boolean = true,
         reuse: Reuse = ReuseOrCreateNew,
-        collections: Set[Graph.Key[Variable]] = Set.empty,
+        collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
         cachingDevice: OpSpecification => String = null,
         customGetter: VariableGetter = null
-    ): Variable = {
+    ): Variable[T] = {
       // TODO: [FUNCTIONS] !!! Deal with nested function graphs.
       // TODO: [FUNCTIONS] !!! Not sure if this works as it should. Especially the '.value' method of resource variables.
       // Here, we switch the default graph to the outer graph and ask the variable scope in which the function is defined
