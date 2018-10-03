@@ -477,7 +477,7 @@ trait Basic {
       val extraPadEnd = (blockShape - (fullInputShape % blockShape)) % blockShape
       val padEnd = originalPadEnd + extraPadEnd
       val resultPaddings = stack((0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i)))))
-      val zero = Tensor(padStart.dataType, 0)
+      val zero = Tensor.ofType(padStart.dataType, 0)
       val resultCrops = stack((0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i)))))
       (resultPaddings, resultCrops)
     }

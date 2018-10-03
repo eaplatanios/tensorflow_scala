@@ -423,22 +423,22 @@ object Tensor {
   }
 
   def apply[TC, T](
-      head: TC,
+      head: Tensor[T],
       tail: TC*
-  )(implicit ev: TensorConvertible.Aux[TC, T]): Tensor[T] = {
-    stack((head +: tail).map(ev.toTensor), axis = 0)
+  )(implicit f: TC => Tensor[T]): Tensor[T] = {
+    stack(head +: tail.map(f), axis = 0)
   }
 
-  def apply[T](dataType: DataType[T]): Tensor[T] = {
+  def ofType[T](dataType: DataType[T]): Tensor[T] = {
     Tensor.allocate(dataType, Shape(0))
   }
 
-  def apply[TC, T, R](
+  def ofType[TC, T, R](
       dataType: DataType[R],
-      head: TC,
+      head: Tensor[T],
       tail: TC*
-  )(implicit ev: TensorConvertible.Aux[TC, T]): Tensor[R] = {
-    stack((head +: tail).map(ev.toTensor), axis = 0).cast(dataType)
+  )(implicit f: TC => Tensor[T]): Tensor[R] = {
+    stack(head +: tail.map(f), axis = 0).cast(dataType)
   }
 
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to zero.

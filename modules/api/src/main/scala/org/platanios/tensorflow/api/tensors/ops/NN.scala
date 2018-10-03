@@ -1140,7 +1140,7 @@ object NN extends NN {
     if (axis == -1) {
       input
     } else {
-      val axisOutput = Tensor(rank.dataType, axis)
+      val axisOutput = Tensor.ofType(rank.dataType, axis)
       Basic.transpose(
         input,
         Basic.concatenate(Seq(
