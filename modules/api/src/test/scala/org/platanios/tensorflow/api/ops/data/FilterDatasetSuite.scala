@@ -13,13 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.io.data
+package org.platanios.tensorflow.api.ops.data
 
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.{Math, Op}
-import org.platanios.tensorflow.api.utilities.using
-import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.utilities.using
 
 import org.junit.Test
 import org.scalatest.junit.JUnitSuite
@@ -30,7 +30,9 @@ import org.scalatest.junit.JUnitSuite
 class FilterDatasetSuite extends JUnitSuite {
   @Test def testFilterRange(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = RangeDataset(0, 100).filter(x => Math.notEqual(Math.mod(x, 3), 2))
+      val dataset = Data.datasetFromRange(0, 100).filter(x => {
+        Math.notEqual(Math.mod(x, 3L), 2L)
+      })
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()

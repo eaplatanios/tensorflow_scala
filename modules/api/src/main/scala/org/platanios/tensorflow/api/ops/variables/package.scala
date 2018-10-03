@@ -78,7 +78,7 @@ package object variables {
     }
 
     def variable[T](
-        name: String, dataType: DataType[T] = null, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType[T], shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
         cachingDevice: OpSpecification => String = null
@@ -88,7 +88,7 @@ package object variables {
     }
 
     def localVariable[T](
-        name: String, dataType: DataType[T] = null, shape: Shape = null, initializer: VariableInitializer = null,
+        name: String, dataType: DataType[T], shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
         cachingDevice: OpSpecification => String = null

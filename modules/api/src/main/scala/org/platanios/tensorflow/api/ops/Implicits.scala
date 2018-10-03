@@ -39,6 +39,10 @@ private[api] trait Implicits
         with Sparse.Implicits
         with Statistics.Implicits
         with Text.Implicits {
+  implicit def opFromOutputLike[T](value: OutputLike[T]): UntypedOp = {
+    value.op
+  }
+
   implicit def outputFromSupportedType[T](value: T)(implicit
       evSupported: SupportedType[T]
   ): Output[T] = {

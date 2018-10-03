@@ -13,15 +13,15 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.io.data
+package org.platanios.tensorflow.api.ops.data
 
-import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Op}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT32, INT64}
+import org.platanios.tensorflow.api.types.INT32
 import org.platanios.tensorflow.api.utilities.using
 
 import org.junit.Test
@@ -34,7 +34,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testTensorDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph, device = "/cpu:0") {
       val components = Tensor(1, 2, 3)
-      val iterator = TensorDataset(components).createInitializableIterator()
+      val iterator = Data.datasetFromTensors(components).createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
       assert(nextOutput.shape === components.shape)
@@ -48,7 +48,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testTensorTupleDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val components = (Tensor(1), Tensor(1, 2, 3), Tensor(37.0))
-      val dataset = TensorDataset(components)
+      val dataset = Data.datasetFromTensors(components)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOp = iterator.next()
@@ -67,7 +67,7 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testRangeDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = RangeDataset(0, 4, 1)
+      val dataset = Data.datasetFromRange(0, 4, 1)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
@@ -84,7 +84,7 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testMapDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = RangeDataset(0, 4, 1).map(v => 2 * v)
+      val dataset = Data.datasetFromRange(0, 4, 1).map(v => 2 * v)
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
@@ -101,7 +101,9 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testFlatMapDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = RangeDataset(0, 4, 1).flatMap(v => OutputSlicesDataset(Basic.stack(Seq(v, 1L))))
+      val dataset = Data.datasetFromRange(0, 4, 1).flatMap(v => {
+        Data.datasetFromOutputSlices(Basic.stack[Long](Seq(v, 1L)))
+      })
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
@@ -122,17 +124,19 @@ class DatasetSuite extends JUnitSuite {
 
   @Test def testDatasetFromGenerator(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val dataset = Dataset.fromGenerator(() => Stream(0, 1, 2, 3).map(Tensor(_)), INT32, Shape(1))
+      val dataset = Data.datasetFromGenerator(() => {
+        Stream(0, 1, 2, 3).map(Tensor(_))
+      }, INT32, Shape(1))
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
       assert(nextOutput.shape === Shape(1))
       val session = Session()
       session.run(targets = initOp)
-      assert(session.run(fetches = nextOutput) == Tensor(INT32, 0))
-      assert(session.run(fetches = nextOutput) == Tensor(INT32, 1))
-      assert(session.run(fetches = nextOutput) == Tensor(INT32, 2))
-      assert(session.run(fetches = nextOutput) == Tensor(INT32, 3))
+      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 0))
+      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 1))
+      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 2))
+      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 3))
       assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }

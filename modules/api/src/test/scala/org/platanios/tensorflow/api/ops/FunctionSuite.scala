@@ -31,7 +31,7 @@ import org.junit.Test
 class FunctionSuite extends JUnitSuite {
   @Test def testIdentitySingleInputSingleOutputFunction(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val function = Function("identity", identity[Output])
+      val function = Function("identity", identity[Output[Double]])
       val input = Basic.constant(Tensor(2.4, -5.6))
       val output = function(input)
       val session = Session()
@@ -44,7 +44,7 @@ class FunctionSuite extends JUnitSuite {
 
   @Test def testGeneralSingleInputSingleOutputFunction(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val flatten = Function("flatten", (o: Output) => o.reshape(Shape(-1)))
+      val flatten = Function("flatten", (o: Output[Double]) => o.reshape(Shape(-1)))
       val input = Basic.constant(Tensor(Tensor(2.4, -5.6), Tensor(-0.3, 1.9)))
       val flattenOutput = flatten(input)
       val session = Session()
@@ -53,7 +53,7 @@ class FunctionSuite extends JUnitSuite {
       assert(flattenOutputValue.shape == Shape(4))
       assert(flattenOutputValue.entriesIterator.toSeq == Seq(2.4, -5.6, -0.3, 1.9))
 
-      val toInt32 = Function("cast", (o: Output) => o.cast(INT32))
+      val toInt32 = Function("cast", (o: Output[Double]) => o.cast(INT32))
       val toInt32Output = toInt32(input)
       val toInt32OutputValue = session.run(fetches = toInt32Output)
       assert(toInt32OutputValue.dataType == INT32)
@@ -65,7 +65,7 @@ class FunctionSuite extends JUnitSuite {
   @Test def testGeneralDependentInputsSingleOutputFunction(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val one = Basic.constant(1.0)
-      val addOne = Function("addOne", (o: Output) => o + one)
+      val addOne = Function("addOne", (o: Output[Double]) => o + one)
       val input = Basic.constant(Tensor(Tensor(2.4, -5.6), Tensor(-0.3, 1.9)))
       val addOneOutput = addOne(input)
       val session = Session()

@@ -241,20 +241,20 @@ class OpSpec extends FlatSpec with Matchers {
     createWith(graph = Graph()) {
       val a = createWith(device = "/CPU:0")(constant(1.0))
       val b = createWith(device = "/GPU:0")(constant(1.0))
-      assert(a.colocationOps === Set.empty[Op])
-      assert(b.colocationOps === Set.empty[Op])
+      assert(a.colocationOps === Set.empty[UntypedOp])
+      assert(b.colocationOps === Set.empty[UntypedOp])
       val c = createWith(colocationOps = Set(a))(constant(1.0))
-      assert(c.colocationOps === Set[Op](a))
-      createWith(colocationOps = Set[Op](b)) {
+      assert(c.colocationOps === Set[UntypedOp](a))
+      createWith(colocationOps = Set[UntypedOp](b)) {
         val d = constant(1.0)
-        assert(d.colocationOps === Set[Op](b))
-        createWith(colocationOps = Set[Op](a, d)) {
+        assert(d.colocationOps === Set[UntypedOp](b))
+        createWith(colocationOps = Set[UntypedOp](a, d)) {
           val e = constant(1.0)
           // `a` is ignored in what follows due to it being impossible to satisfy this colocation constraint
-          assert(e.colocationOps === Set[Op](b, d))
-          createWith(colocationOps = Set.empty[Op]) {
+          assert(e.colocationOps === Set[UntypedOp](b, d))
+          createWith(colocationOps = Set.empty[UntypedOp]) {
             val f = constant(1.0)
-            assert(f.colocationOps === Set.empty[Op])
+            assert(f.colocationOps === Set.empty[UntypedOp])
           }
         }
       }
@@ -269,24 +269,24 @@ class OpSpec extends FlatSpec with Matchers {
     createWith(graph = Graph()) {
       val a = constant(1.0)
       val b = constant(1.0)
-      assert(a.controlInputs === Set.empty[Op])
-      assert(a.controlOutputs === Set.empty[Op])
-      assert(b.controlInputs === Set.empty[Op])
-      assert(b.controlOutputs === Set.empty[Op])
-      val c = createWith(controlDependencies = Set[Op](a)) {
+      assert(a.controlInputs === Set.empty[UntypedOp])
+      assert(a.controlOutputs === Set.empty[UntypedOp])
+      assert(b.controlInputs === Set.empty[UntypedOp])
+      assert(b.controlOutputs === Set.empty[UntypedOp])
+      val c = createWith(controlDependencies = Set[UntypedOp](a)) {
         val c = constant(1.0)
-        assert(c.controlInputs === Set[Op](a))
-        assert(c.controlOutputs === Set.empty[Op])
-        assert(a.controlOutputs === Set[Op](c))
-        assert(b.controlOutputs === Set.empty[Op])
+        assert(c.controlInputs === Set[UntypedOp](a))
+        assert(c.controlOutputs === Set.empty[UntypedOp])
+        assert(a.controlOutputs === Set[UntypedOp](c))
+        assert(b.controlOutputs === Set.empty[UntypedOp])
         c
       }
-      createWith(controlDependencies = Set[Op](a, b)) {
+      createWith(controlDependencies = Set[UntypedOp](a, b)) {
         val d = constant(1.0)
-        assert(d.controlInputs === Set[Op](a, b))
-        assert(d.controlOutputs === Set.empty[Op])
-        assert(a.controlOutputs === Set[Op](c, d))
-        assert(b.controlOutputs === Set[Op](d))
+        assert(d.controlInputs === Set[UntypedOp](a, b))
+        assert(d.controlOutputs === Set.empty[UntypedOp])
+        assert(a.controlOutputs === Set[UntypedOp](c, d))
+        assert(b.controlOutputs === Set[UntypedOp](d))
       }
     }
   }
@@ -295,22 +295,22 @@ class OpSpec extends FlatSpec with Matchers {
     createWith(graph = Graph()) {
       val a = constant(1.0)
       val b = constant(1.0)
-      assert(a.controlInputs === Set.empty[Op])
-      assert(a.controlOutputs === Set.empty[Op])
-      assert(b.controlInputs === Set.empty[Op])
-      assert(b.controlOutputs === Set.empty[Op])
-      createWith(controlDependencies = Set[Op](a)) {
+      assert(a.controlInputs === Set.empty[UntypedOp])
+      assert(a.controlOutputs === Set.empty[UntypedOp])
+      assert(b.controlInputs === Set.empty[UntypedOp])
+      assert(b.controlOutputs === Set.empty[UntypedOp])
+      createWith(controlDependencies = Set[UntypedOp](a)) {
         val c = constant(1.0)
-        assert(c.controlInputs === Set[Op](a))
-        assert(c.controlOutputs === Set.empty[Op])
-        assert(a.controlOutputs === Set[Op](c))
-        assert(b.controlOutputs === Set.empty[Op])
-        createWith(controlDependencies = Set[Op](b)) {
+        assert(c.controlInputs === Set[UntypedOp](a))
+        assert(c.controlOutputs === Set.empty[UntypedOp])
+        assert(a.controlOutputs === Set[UntypedOp](c))
+        assert(b.controlOutputs === Set.empty[UntypedOp])
+        createWith(controlDependencies = Set[UntypedOp](b)) {
           val d = constant(1.0)
-          assert(d.controlInputs === Set[Op](a, b))
-          assert(d.controlOutputs === Set.empty[Op])
-          assert(a.controlOutputs === Set[Op](c, d))
-          assert(b.controlOutputs === Set[Op](d))
+          assert(d.controlInputs === Set[UntypedOp](a, b))
+          assert(d.controlOutputs === Set.empty[UntypedOp])
+          assert(a.controlOutputs === Set[UntypedOp](c, d))
+          assert(b.controlOutputs === Set[UntypedOp](d))
         }
       }
     }
@@ -320,28 +320,28 @@ class OpSpec extends FlatSpec with Matchers {
     createWith(graph = Graph()) {
       val a = constant(1.0)
       val b = constant(1.0)
-      assert(a.controlInputs === Set.empty[Op])
-      assert(a.controlOutputs === Set.empty[Op])
-      assert(b.controlInputs === Set.empty[Op])
-      assert(b.controlOutputs === Set.empty[Op])
-      createWith(controlDependencies = Set[Op](a)) {
+      assert(a.controlInputs === Set.empty[UntypedOp])
+      assert(a.controlOutputs === Set.empty[UntypedOp])
+      assert(b.controlInputs === Set.empty[UntypedOp])
+      assert(b.controlOutputs === Set.empty[UntypedOp])
+      createWith(controlDependencies = Set[UntypedOp](a)) {
         val c = constant(1.0)
-        assert(c.controlInputs === Set[Op](a))
-        assert(c.controlOutputs === Set.empty[Op])
-        assert(a.controlOutputs === Set[Op](c))
-        assert(b.controlOutputs === Set.empty[Op])
-        createWith(controlDependencies = Set.empty[Op]) {
+        assert(c.controlInputs === Set[UntypedOp](a))
+        assert(c.controlOutputs === Set.empty[UntypedOp])
+        assert(a.controlOutputs === Set[UntypedOp](c))
+        assert(b.controlOutputs === Set.empty[UntypedOp])
+        createWith(controlDependencies = Set.empty[UntypedOp]) {
           val d = constant(1.0)
-          assert(d.controlInputs === Set.empty[Op])
-          assert(d.controlOutputs === Set.empty[Op])
-          assert(a.controlOutputs === Set[Op](c))
-          assert(b.controlOutputs === Set.empty[Op])
-          createWith(controlDependencies = Set[Op](b)) {
+          assert(d.controlInputs === Set.empty[UntypedOp])
+          assert(d.controlOutputs === Set.empty[UntypedOp])
+          assert(a.controlOutputs === Set[UntypedOp](c))
+          assert(b.controlOutputs === Set.empty[UntypedOp])
+          createWith(controlDependencies = Set[UntypedOp](b)) {
             val e = constant(1.0)
-            assert(e.controlInputs === Set[Op](b))
-            assert(e.controlOutputs === Set.empty[Op])
-            assert(a.controlOutputs === Set[Op](c))
-            assert(b.controlOutputs === Set[Op](e))
+            assert(e.controlInputs === Set[UntypedOp](b))
+            assert(e.controlOutputs === Set.empty[UntypedOp])
+            assert(a.controlOutputs === Set[UntypedOp](c))
+            assert(b.controlOutputs === Set[UntypedOp](e))
           }
         }
       }

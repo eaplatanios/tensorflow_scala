@@ -422,6 +422,10 @@ object Tensor {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
   }
 
+  def apply[T](head: Tensor[T]): Tensor[T] = {
+    head.expandDims(0)
+  }
+
   def apply[TC, T](
       head: Tensor[T],
       tail: TC*
@@ -431,6 +435,13 @@ object Tensor {
 
   def ofType[T](dataType: DataType[T]): Tensor[T] = {
     Tensor.allocate(dataType, Shape(0))
+  }
+
+  def ofType[T, R](
+      dataType: DataType[R],
+      head: Tensor[T]
+  ): Tensor[R] = {
+    head.expandDims(0).cast(dataType)
   }
 
   def ofType[TC, T, R](

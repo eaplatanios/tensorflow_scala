@@ -51,14 +51,14 @@ class TensorSuite extends JUnitSuite {
   }
 
   @Test def testCreateNumericTensorWithDataType(): Unit = {
-    val tensor1 = Tensor(INT32,
+    val tensor1 = Tensor.ofType(INT32,
                          Tensor(Tensor(2, 3), Tensor(0, 0), Tensor(5, 7)),
                          Tensor(Tensor(1, 23), Tensor(4, -5), Tensor(7, 9)),
                          Tensor(Tensor(56, 1), Tensor(-2, -4), Tensor(-7, -9)))
     assert(tensor1.dataType === INT32)
     assert(tensor1.shape === Shape(3, 3, 2))
     assert(tensor1(1, 1, 1).scalar === -5)
-    val tensor2 = Tensor(FLOAT64,
+    val tensor2 = Tensor.ofType(FLOAT64,
                          Tensor(Tensor(2, 3), Tensor(0, 0), Tensor(5, 7)),
                          Tensor(Tensor(1, 23), Tensor(4, -5), Tensor(7, 9)),
                          Tensor(Tensor(56, 1), Tensor(-2, -4), Tensor(-7, -9)))

@@ -499,7 +499,7 @@ private[api] object Variable {
     */
   private[api] def getVariable[T](
       name: String,
-      dataType: DataType[T] = null,
+      dataType: DataType[T],
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -542,7 +542,7 @@ private[api] object Variable {
     */
   private[api] def getLocalVariable[T](
       name: String,
-      dataType: DataType[T] = null,
+      dataType: DataType[T],
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,

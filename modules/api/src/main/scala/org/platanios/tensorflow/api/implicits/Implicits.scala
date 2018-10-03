@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.tensors
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits
-    extends Priority3Implicits
+    extends LowPriorityImplicits
         with IndexerImplicits {
   /** Convenient implicit conversion function used to convert devices specified as strings for use with the
     * [[Op.createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
@@ -39,7 +39,7 @@ private[api] trait Implicits
   }
 }
 
-private[api] trait Priority3Implicits
+private[api] trait LowPriorityImplicits
     extends core.Implicits
         with ops.Implicits
         with tensors.Implicits
