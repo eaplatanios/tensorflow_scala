@@ -623,7 +623,7 @@ object SupportedData {
           shapes: Seq[Shape]
       ): (HS :: TS, Seq[Shape]) = {
         val (headOut, headRemaining) = dataHead.value.decodeShape(dataType.head, shapes)
-        val (tailOut, tailRemaining) = dataTail.decodeShape(dataType.tail, shapes)
+        val (tailOut, tailRemaining) = dataTail.decodeShape(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 

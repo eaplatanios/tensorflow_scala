@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 /**
   * @author Emmanouil Antonios Platanios
   */
-sealed trait SupportedType[T] {
+sealed trait SupportedType[+T] {
   @inline def dataType: DataType[T]
 
   @throws[InvalidDataTypeException]

@@ -207,11 +207,11 @@ object Attention {
           if (sequenceLengths.shape(0) != -1)
             Basic.constant(sequenceLengths.shape(0))
           else
-            Basic.shape(sequenceLengths, INT64).slice(0)
+            Basic.shape(sequenceLengths, INT32).slice(0)
         }
         Basic.sequenceMask(
           sequenceLengths,
-          Basic.shape(values, INT64).slice(1)
+          Basic.shape(values, INT32).slice(1)
         ).cast(values.dataType)
       }
     }
@@ -221,7 +221,10 @@ object Attention {
       val rank = if (values.rank != -1) Basic.constant(values.rank) else Basic.rank(values)
       val extraOnes = Basic.ones(INT32, Basic.expandDims(rank - 2, 0))
       val mask = sequenceMask.reshape(
-        Basic.concatenate(Seq(Basic.shape(sequenceMask, INT64), extraOnes), axis = 0))
+        Basic.concatenate(Seq(
+          Basic.shape(sequenceMask, INT32),
+          extraOnes
+        ), axis = 0))
       values * mask
     }
   }
@@ -237,7 +240,7 @@ object Attention {
     } else {
       val scoreMask = Basic.sequenceMask(
         sequenceLengths,
-        Basic.shape(score, INT64).slice(1))
+        Basic.shape(score, INT32).slice(1))
       Math.select(scoreMask, score, scoreMaskValue * Basic.onesLike(score))
     }
   }

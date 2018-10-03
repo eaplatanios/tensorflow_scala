@@ -47,7 +47,10 @@ class AttentionWrapperCell[T: IsNotQuantized, S, SS, AS, ASS] private[attention]
     val cell: RNNCell[Output[T], Shape, S, SS],
     val attentions: Seq[Attention[T, AS, ASS]], // TODO: Allow for varying supported types in the sequence.
     val attentionLayerWeights: Seq[Output[T]] = null,
-    val cellInputFn: (Output[T], Output[T]) => Output[T] = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
+    val cellInputFn: (Output[T], Output[T]) => Output[T] = {
+      (input: Output[T], attention: Output[T]) =>
+        Basic.concatenate(Seq(input, attention), -1)
+    },
     val outputAttention: Boolean = true,
     val storeAlignmentsHistory: Boolean = false,
     val name: String = "AttentionWrapperCell"
@@ -92,7 +95,7 @@ class AttentionWrapperCell[T: IsNotQuantized, S, SS, AS, ASS] private[attention]
           cellState = initialCellState,
           time = Basic.zeros(INT32, Shape.scalar()),
           attention = Basic.fill(
-            state.dataType, Basic.stack(Seq(batchSize, attentionLayersSize)))(0),
+            state.dataType, Basic.stack[Int](Seq(batchSize, attentionLayersSize)))(0),
           alignments = initialAlignments,
           alignmentsHistory = {
             if (storeAlignmentsHistory)
@@ -193,7 +196,10 @@ object AttentionWrapperCell {
       cell: RNNCell[Output[T], Shape, S, SS],
       attentions: Seq[Attention[T, AS, ASS]],
       attentionLayerWeights: Seq[Output[T]] = null,
-      cellInputFn: (Output[T], Output[T]) => Output[T] = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
+      cellInputFn: (Output[T], Output[T]) => Output[T] = {
+        (input: Output[T], attention: Output[T]) =>
+          Basic.concatenate(Seq(input, attention), -1)
+      },
       outputAttention: Boolean = true,
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"

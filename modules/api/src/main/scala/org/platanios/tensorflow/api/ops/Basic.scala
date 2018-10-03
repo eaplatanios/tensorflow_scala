@@ -53,6 +53,9 @@ trait Basic {
       shape: Shape = null,
       name: String = "Constant"
   ): Output[T] = {
+
+    val temp: Tensor[Long] = 1
+
     val inferredDataType = tensor.dataType
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = AttrValue.newBuilder()
@@ -722,7 +725,7 @@ trait Basic {
             // Extract the size of each input along the concatenation axis.
             val sizes = squeeze(slice(
               stack(shapes, 1),
-              stack(Seq(nonNegativeConcatenationAxis, 0)),
+              stack[Int](Seq(nonNegativeConcatenationAxis, 0)),
               Tensor(1, -1)))
             split(g, sizes, nonNegativeConcatenationAxis)
           } else {
@@ -763,15 +766,16 @@ trait Basic {
             // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
             val shapeOfShape = shape(shapes(0), INT64)
             // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
-            val zero = constant(Tensor(INT32, 0))
+            val zero = constant(Tensor.ofType(INT32, 0))
             val mask = concatenate(Seq(
               fill(INT64, expandDims(nonNegativeConcatenationAxis, 0))(zero),
-              constant(Tensor(INT64, 1)),
+              constant(Tensor.ofType(INT64, 1)),
               fill(INT64, shapeOfShape - nonNegativeConcatenationAxis.toInt64 - ones(INT64, Shape()))(zero)
             ), zero)
             var begin = fill(INT64, shapeOfShape)(zero)
             shapes.map(shape => {
-              val newValues = slice(g.values, begin, concatenate(Seq(Tensor(-1L), slice(shape, 1, -1)), 0))
+              val newValues = slice(g.values, begin, concatenate[Long](
+                Seq(Tensor(-1L), slice(shape, 1, -1)), 0))
               begin = Math.add(begin, shape * mask)
               OutputIndexedSlices(g.indices, newValues, shape)
             })
@@ -1165,7 +1169,7 @@ trait Basic {
     val x = op.input._1
     val a = op.input._2 // == [rank(x), 2]
     // Take a slice of 'a' (the 1st column: [rank(x), 1]).
-    val padBefore = slice(a, Tensor(0, 0), stack(Seq(rank(x), 1)))
+    val padBefore = slice(a, Tensor(0, 0), stack[Int](Seq(rank(x), 1)))
     // Make it a one-dimensional tensor and return it.
     val xGradient = slice(outputGradient, reshape(padBefore, Shape(-1)), shape(x, a.dataType))
     (xGradient, null, null)
@@ -1245,7 +1249,7 @@ trait Basic {
           opType = opType,
           name = name,
           input = (input, reversePermutation)
-        ).setGradientFn({
+        ).setGradientFn[(Output[T], Output[Int]), Output[T]]({
           if (opType == "Transpose")
             transposeGradient(_, _)(implicitly[IsInt32OrInt64[Int]])
           else
@@ -1262,7 +1266,7 @@ trait Basic {
         opType = opType,
         name = name,
         input = (input, permutation)
-      ).setGradientFn({
+      ).setGradientFn[(Output[T], Output[I]), Output[T]]({
         if (opType == "Transpose")
           transposeGradient(_, _)(implicitly[IsInt32OrInt64[I]])
         else
@@ -1564,9 +1568,13 @@ trait Basic {
           val fullInputShape = ccInputShape + padStart + originalPadEnd
           val extraPadEnd = (ccBlockShape - (fullInputShape % ccBlockShape)) % ccBlockShape
           val padEnd = originalPadEnd + extraPadEnd
-          val resultPaddings = stack((0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i))).toOutput))
+          val resultPaddings = stack((0 until numBlockDims).map(i => {
+            concatenate[Int](Seq(padStart(i), padEnd(i))).toOutput
+          }))
           val zero = Tensor.zeros(padStart.dataType, Shape())
-          val resultCrops = stack((0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i))).toOutput))
+          val resultCrops = stack((0 until numBlockDims).map(i => {
+            concatenate[Int](Seq(zero, extraPadEnd(i))).toOutput
+          }))
           (resultPaddings, resultCrops)
         } else {
           val padStart = actualBasePaddings(::, 0)
@@ -1757,7 +1765,7 @@ trait Basic {
     */
   def indexedSlicesMask[T](
       input: OutputIndexedSlices[T],
-      maskIndices: Output[Int],
+      maskIndices: Output[Long],
       name: String = "IndexedSlicesMask"
   ): OutputIndexedSlices[T] = {
     Op.nameScope(name) {
@@ -1863,8 +1871,9 @@ trait Basic {
       opType = "GatherV2",
       name = name,
       input = (input, indices, axis)
-    ).setGradientFn(gatherGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
-        .build().output
+    ).setGradientFn[(OutputLike[T], Output[I1], Output[I2]), Output[T]]({
+      gatherGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]])
+    }).build().output
   }
 
   protected def gatherGradient[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
@@ -1943,8 +1952,9 @@ trait Basic {
       opType = "GatherNd",
       name = name,
       input = (input, indices)
-    ).setGradientFn(gatherNDGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
-        .build().output
+    ).setGradientFn[(OutputLike[T], Output[I]), Output[T]]({
+      gatherNDGradient(_, _)(implicitly[IsInt32OrInt64[I]])
+    }).build().output
   }
 
   protected def gatherNDGradient[T, I: IsInt32OrInt64](
@@ -2031,7 +2041,7 @@ trait Basic {
     val beginVector = op.input._2
     val dataType = beginVector.dataType
     val inputRank = rank(inputVector)
-    val padShape = stack(Seq(inputRank, 1))
+    val padShape = stack[Int](Seq(inputRank, 1))
     val beforePad = reshape(beginVector, padShape)
     val afterPad = reshape(shape(inputVector, dataType) - shape(op.output, dataType) - beginVector, padShape)
     val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
@@ -2265,14 +2275,14 @@ trait Basic {
     * @group BasicOps
     * @param  indices  Tensor containing the indices for the "on" values.
     * @param  depth    Scalar tensor defining the depth of the one-hot dimension.
+    * @param  dataType Data type of the output tensor. If not provided, the function will attempt to assume the data
+    *                  type of `onValue` or `offValue`, if one or both are passed in. If none of `onValue`, `offValue`,
+    *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
     * @param  onValue  Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] = i`.
     *                  Defaults to the value `1` with type `dataType`.
     * @param  offValue Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] != i`.
     *                  Defaults to the value `0` with type `dataType`.
     * @param  axis     Axis to fill. Defaults to `-1`, representing the last axis.
-    * @param  dataType Data type of the output tensor. If not provided, the function will attempt to assume the data
-    *                  type of `onValue` or `offValue`, if one or both are passed in. If none of `onValue`, `offValue`,
-    *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
     * @param  name     Name for the created op.
     * @return Created op output.
     */

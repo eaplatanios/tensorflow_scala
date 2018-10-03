@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.DataType
@@ -114,8 +113,11 @@ final case class Op[+I: Op.OpInput, +O: Op.OpOutput] private (
 
   def setGradient[GI >: I : Op.OpInput, GO >: O : Op.OpOutput](
       gradientFn: Gradients.GradientFn[I, O, GI, GO]
+  )(implicit
+      evGI: Op.OpInput[GI],
+      evGO: Op.OpOutput[GO]
   ): Unit = {
-    this.gradientFn = Some(Gradients.convertGradientFn(gradientFn))
+    this.gradientFn = Some(Gradients.convertGradientFn[I, O, GI, GO](gradientFn)(evGI, evGO))
   }
 
   def hasGradient: Boolean = {
@@ -528,20 +530,6 @@ object Op {
   }
 
   object OpInput {
-    implicit val unitEvidence: OpInput[Unit] = new OpInput[Unit] {
-      @inline override def fromOutputs(outputs: Seq[Output[Any]], reference: Option[Unit]): Unit = {
-        ()
-      }
-
-      @inline override def toBuilderInputs(value: Unit): Seq[Builder.Input] = {
-        Seq.empty
-      }
-
-      @inline override def toOutputLikes(value: Unit): Seq[OutputLike[Any]] = {
-        Seq.empty
-      }
-    }
-
     implicit def opInputPrimitiveEvidence[T: OpInputPrimitive]: OpInput[T] = {
       new OpInput[T] {
         @inline override def fromOutputs(outputs: Seq[Output[Any]], reference: Option[T]): T = {
@@ -549,7 +537,7 @@ object Op {
         }
 
         @inline override def toBuilderInputs(value: T): Seq[Builder.Input] = {
-          implicitly[OpInputPrimitive[T]].toBuilderInput(value)
+          implicitly[OpInputPrimitive[T]].toBuilderInputs(value)
         }
 
         @inline override def toOutputLikes(value: T): Seq[OutputLike[Any]] = {
@@ -573,11 +561,13 @@ object Op {
         }
 
         @inline override def toBuilderInputs(value: (T1, T2)): Seq[Builder.Input] = {
-          evT1.toBuilderInput(value._1) ++ evT2.toBuilderInput(value._2)
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2)
         }
 
         @inline override def toOutputLikes(value: (T1, T2)): Seq[OutputLike[Any]] = {
-          evT1.toOutputLikes(value._1) ++ evT2.toOutputLikes(value._2)
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2)
         }
       }
     }
@@ -599,9 +589,9 @@ object Op {
         }
 
         @inline override def toBuilderInputs(value: (T1, T2, T3)): Seq[Builder.Input] = {
-          evT1.toBuilderInput(value._1) ++
-              evT2.toBuilderInput(value._2) ++
-              evT3.toBuilderInput(value._3)
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3)): Seq[OutputLike[Any]] = {
@@ -631,10 +621,10 @@ object Op {
         }
 
         @inline override def toBuilderInputs(value: (T1, T2, T3, T4)): Seq[Builder.Input] = {
-          evT1.toBuilderInput(value._1) ++
-              evT2.toBuilderInput(value._2) ++
-              evT3.toBuilderInput(value._3) ++
-              evT4.toBuilderInput(value._4)
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4)): Seq[OutputLike[Any]] = {
@@ -667,11 +657,11 @@ object Op {
         }
 
         @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5)): Seq[Builder.Input] = {
-          evT1.toBuilderInput(value._1) ++
-              evT2.toBuilderInput(value._2) ++
-              evT3.toBuilderInput(value._3) ++
-              evT4.toBuilderInput(value._4) ++
-              evT5.toBuilderInput(value._5)
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5)): Seq[OutputLike[Any]] = {
@@ -683,17 +673,281 @@ object Op {
         }
       }
     }
+
+    implicit def opInputPrimitiveTuple6Evidence[T1, T2, T3, T4, T5, T6](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6]
+    ): OpInput[(T1, T2, T3, T4, T5, T6)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6)]
+        ): (T1, T2, T3, T4, T5, T6) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, _) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          (value1, value2, value3, value4, value5, value6)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6)
+        }
+      }
+    }
+
+    implicit def opInputPrimitiveTuple7Evidence[T1, T2, T3, T4, T5, T6, T7](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7)]
+        ): (T1, T2, T3, T4, T5, T6, T7) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, _) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          (value1, value2, value3, value4, value5, value6, value7)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7)
+        }
+      }
+    }
+
+    implicit def opInputPrimitiveTuple8Evidence[T1, T2, T3, T4, T5, T6, T7, T8](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7],
+        evT8: OpInputPrimitive[T8]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7, T8)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7, T8)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7, T8)]
+        ): (T1, T2, T3, T4, T5, T6, T7, T8) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, remaining7) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          val (value8, _) = evT8.fromOutputs(remaining7, reference.map(_._8))
+          (value1, value2, value3, value4, value5, value6, value7, value8)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7, T8)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7) ++
+              evT8.toBuilderInputs(value._8)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7) ++
+              evT8.toOutputLikes(value._8)
+        }
+      }
+    }
+
+    implicit def opInputPrimitiveTuple9Evidence[T1, T2, T3, T4, T5, T6, T7, T8, T9](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7],
+        evT8: OpInputPrimitive[T8],
+        evT9: OpInputPrimitive[T9]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9)]
+        ): (T1, T2, T3, T4, T5, T6, T7, T8, T9) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, remaining7) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          val (value8, remaining8) = evT8.fromOutputs(remaining7, reference.map(_._8))
+          val (value9, _) = evT9.fromOutputs(remaining8, reference.map(_._9))
+          (value1, value2, value3, value4, value5, value6, value7, value8, value9)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7) ++
+              evT8.toBuilderInputs(value._8) ++
+              evT9.toBuilderInputs(value._9)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7) ++
+              evT8.toOutputLikes(value._8) ++
+              evT9.toOutputLikes(value._9)
+        }
+      }
+    }
+
+    implicit def opInputPrimitiveTuple10Evidence[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7],
+        evT8: OpInputPrimitive[T8],
+        evT9: OpInputPrimitive[T9],
+        evT10: OpInputPrimitive[T10]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)]
+        ): (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, remaining7) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          val (value8, remaining8) = evT8.fromOutputs(remaining7, reference.map(_._8))
+          val (value9, remaining9) = evT9.fromOutputs(remaining8, reference.map(_._9))
+          val (value10, _) = evT10.fromOutputs(remaining9, reference.map(_._10))
+          (value1, value2, value3, value4, value5, value6, value7, value8, value9, value10)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7) ++
+              evT8.toBuilderInputs(value._8) ++
+              evT9.toBuilderInputs(value._9) ++
+              evT10.toBuilderInputs(value._10)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7) ++
+              evT8.toOutputLikes(value._8) ++
+              evT9.toOutputLikes(value._9) ++
+              evT10.toOutputLikes(value._10)
+        }
+      }
+    }
   }
 
   sealed trait OpInputPrimitive[T] {
     @inline def fromOutputs(outputs: Seq[Output[Any]], reference: Option[T]): (T, Seq[Output[Any]])
-    @inline def toBuilderInput(value: T): Seq[Builder.Input]
+    @inline def toBuilderInputs(value: T): Seq[Builder.Input]
     @inline def toOutputLikes(value: T): Seq[OutputLike[Any]]
   }
 
   object OpInputPrimitive {
+    implicit val unitEvidence: OpInputPrimitive[Unit] = new OpInputPrimitive[Unit] {
+      @inline override def fromOutputs(
+          outputs: Seq[Output[Any]],
+          reference: Option[Unit]
+      ): (Unit, Seq[Output[Any]]) = {
+        ((), outputs)
+      }
 
-    // TODO: [OPS] Make this a bit prettier.
+      @inline override def toBuilderInputs(value: Unit): Seq[Builder.Input] = {
+        Seq.empty
+      }
+
+      @inline override def toOutputLikes(value: Unit): Seq[OutputLike[Any]] = {
+        Seq.empty
+      }
+    }
 
     implicit def outputEvidence[T]: OpInputPrimitive[Output[T]] = {
       new OpInputPrimitive[Output[T]] {
@@ -704,7 +958,7 @@ object Op {
           (outputs.head.asInstanceOf[Output[T]], outputs.tail)
         }
 
-        @inline override def toBuilderInput(value: Output[T]): Seq[Builder.Input] = {
+        @inline override def toBuilderInputs(value: Output[T]): Seq[Builder.Input] = {
           Seq(Builder.InputTensor(value))
         }
 
@@ -714,50 +968,100 @@ object Op {
       }
     }
 
-    implicit def outputLikeEvidence[T, OL[A] <: OutputLike[A], O <: OL[T] : TypeTag]: OpInputPrimitive[O] = {
-      new OpInputPrimitive[O] {
+    implicit def outputIndexedSlicesEvidence[T]: OpInputPrimitive[OutputIndexedSlices[T]] = {
+      new OpInputPrimitive[OutputIndexedSlices[T]] {
         @inline override def fromOutputs(
             outputs: Seq[Output[Any]],
-            reference: Option[O]
-        ): (O, Seq[Output[Any]]) = {
+            reference: Option[OutputIndexedSlices[T]]
+        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+          (OutputIndexedSlices(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def toBuilderInputs(value: OutputIndexedSlices[T]): Seq[Builder.Input] = {
+          Seq(
+            Builder.InputTensor(value.indices),
+            Builder.InputTensor(value.values),
+            Builder.InputTensor(value.denseShape))
+        }
+
+        @inline override def toOutputLikes(value: OutputIndexedSlices[T]): Seq[OutputLike[Any]] = {
+          Seq(value)
+        }
+      }
+    }
+
+    implicit def sparseOutputEvidence[T]: OpInputPrimitive[SparseOutput[T]] = {
+      new OpInputPrimitive[SparseOutput[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[SparseOutput[T]]
+        ): (SparseOutput[T], Seq[Output[Any]]) = {
+          (SparseOutput(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def toBuilderInputs(value: SparseOutput[T]): Seq[Builder.Input] = {
+          Seq(
+            Builder.InputTensor(value.indices),
+            Builder.InputTensor(value.values),
+            Builder.InputTensor(value.denseShape))
+        }
+
+        @inline override def toOutputLikes(value: SparseOutput[T]): Seq[OutputLike[Any]] = {
+          Seq(value)
+        }
+      }
+    }
+
+    implicit def outputLikeEvidence[T]: OpInputPrimitive[OutputLike[T]] = {
+      new OpInputPrimitive[OutputLike[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[OutputLike[T]]
+        ): (OutputLike[T], Seq[Output[Any]]) = {
           val (value, remaining) = reference match {
-            case Some(_: Output[Any]) =>
+            case Some(_: Output[T]) =>
               (outputs.head, outputs.tail)
-            case Some(_: OutputIndexedSlices[Any]) =>
+            case Some(_: OutputIndexedSlices[T]) =>
               (OutputIndexedSlices(
                 indices = outputs(0).asInstanceOf[Output[Long]],
                 values = outputs(1),
                 denseShape = outputs(2).asInstanceOf[Output[Long]]),
                   outputs.drop(3))
-            case Some(_: SparseOutput[Any]) =>
+            case Some(_: SparseOutput[T]) =>
               (SparseOutput(
                 indices = outputs(0).asInstanceOf[Output[Long]],
                 values = outputs(1),
                 denseShape = outputs(2).asInstanceOf[Output[Long]]),
                   outputs.drop(3))
-            case None => typeOf[O] match {
-              case o if o <:< typeOf[Output[Any]] =>
-                (outputs.head, outputs.tail)
-              case o if o <:< typeOf[OutputIndexedSlices[Any]] =>
+            case None =>
+              if (outputs.size == 1) {
+                (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+              } else if (outputs.head.rank == 1) {
                 (OutputIndexedSlices(
                   indices = outputs(0).asInstanceOf[Output[Long]],
-                  values = outputs(1),
+                  values = outputs(1).asInstanceOf[Output[T]],
                   denseShape = outputs(2).asInstanceOf[Output[Long]]),
                     outputs.drop(3))
-              case o if o <:< typeOf[SparseOutput[Any]] =>
+              } else {
                 (SparseOutput(
                   indices = outputs(0).asInstanceOf[Output[Long]],
-                  values = outputs(1),
+                  values = outputs(1).asInstanceOf[Output[T]],
                   denseShape = outputs(2).asInstanceOf[Output[Long]]),
                     outputs.drop(3))
-              case _ =>
-                (outputs.head, outputs.tail)
-            }
+              }
           }
-          (value.asInstanceOf[O], remaining)
+          (value.asInstanceOf[OutputLike[T]], remaining)
         }
 
-        @inline override def toBuilderInput(value: O): Seq[Builder.Input] = {
+        @inline override def toBuilderInputs(value: OutputLike[T]): Seq[Builder.Input] = {
           value match {
             case o: Output[Any] =>
               Seq(Builder.InputTensor(o))
@@ -771,76 +1075,14 @@ object Op {
                 Builder.InputTensor(o.indices),
                 Builder.InputTensor(o.values),
                 Builder.InputTensor(o.denseShape))
-            case _ =>
-              val v = value.asInstanceOf[Output[Any]]
-              Seq(Builder.InputTensor(v))
           }
         }
 
-        @inline override def toOutputLikes(value: O): Seq[OutputLike[Any]] = {
+        @inline override def toOutputLikes(value: OutputLike[T]): Seq[OutputLike[Any]] = {
           Seq(value)
         }
       }
     }
-
-    // implicit def outputEvidence[T]: OpInputPrimitive[Output[T]] = {
-    //   new OpInputPrimitive[Output[T]] {
-    //     @inline override def fromOutputs(
-    //         outputs: Seq[Output[_]],
-    //         reference: Option[Output[T]]
-    //     ): (Output[T], Seq[Output[_]]) = {
-    //       (outputs.head.asInstanceOf[Output[T]], outputs.tail)
-    //     }
-    //
-    //     @inline override def toBuilderInput(value: Output[T]): Seq[Builder.Input] = {
-    //       Seq(Builder.InputTensor(value))
-    //     }
-    //   }
-    // }
-    //
-    // implicit def outputIndexedSlicesEvidence[T]: OpInputPrimitive[OutputIndexedSlices[T]] = {
-    //   new OpInputPrimitive[OutputIndexedSlices[T]] {
-    //     @inline override def fromOutputs(
-    //         outputs: Seq[Output[_]],
-    //         reference: Option[OutputIndexedSlices[T]]
-    //     ): (OutputIndexedSlices[T], Seq[Output[_]]) = {
-    //       (OutputIndexedSlices(
-    //         indices = outputs(0).asInstanceOf[Output[Long]],
-    //         values = outputs(1).asInstanceOf[Output[T]],
-    //         denseShape = outputs(2).asInstanceOf[Output[Long]]),
-    //           outputs.tail)
-    //     }
-    //
-    //     @inline override def toBuilderInput(value: OutputIndexedSlices[T]): Seq[Builder.Input] = {
-    //       Seq(
-    //         Builder.InputTensor(value.indices),
-    //         Builder.InputTensor(value.values),
-    //         Builder.InputTensor(value.denseShape))
-    //     }
-    //   }
-    // }
-    //
-    // implicit def sparseOutputEvidence[T]: OpInputPrimitive[SparseOutput[T]] = {
-    //   new OpInputPrimitive[SparseOutput[T]] {
-    //     @inline override def fromOutputs(
-    //         outputs: Seq[Output[_]],
-    //         reference: Option[SparseOutput[T]]
-    //     ): (SparseOutput[T], Seq[Output[_]]) = {
-    //       (SparseOutput(
-    //         indices = outputs(0).asInstanceOf[Output[Long]],
-    //         values = outputs(1).asInstanceOf[Output[T]],
-    //         denseShape = outputs(2).asInstanceOf[Output[Long]]),
-    //           outputs.tail)
-    //     }
-    //
-    //     @inline override def toBuilderInput(value: SparseOutput[T]): Seq[Builder.Input] = {
-    //       Seq(
-    //         Builder.InputTensor(value.indices),
-    //         Builder.InputTensor(value.values),
-    //         Builder.InputTensor(value.denseShape))
-    //     }
-    //   }
-    // }
 
     implicit def seqOutputEvidence[T]: OpInputPrimitive[Seq[Output[T]]] = {
       new OpInputPrimitive[Seq[Output[T]]] {
@@ -852,17 +1094,109 @@ object Op {
             case Some(r) =>
               val parts = outputs.splitAt(r.size)
               (parts._1.map(_.asInstanceOf[Output[T]]), parts._2)
-            case None =>
-              (outputs.map(_.asInstanceOf[Output[T]]), Seq.empty[Output[Any]])
+            case None => ???
           }
         }
 
-        @inline override def toBuilderInput(value: Seq[Output[T]]): Seq[Builder.Input] = {
+        @inline override def toBuilderInputs(value: Seq[Output[T]]): Seq[Builder.Input] = {
           Seq(Builder.InputTensorList(value))
         }
 
         @inline override def toOutputLikes(value: Seq[Output[T]]): Seq[OutputLike[Any]] = {
           value
+        }
+      }
+    }
+
+    implicit def seqOutputIndexedSlicesEvidence[T]: OpInputPrimitive[Seq[OutputIndexedSlices[T]]] = {
+      new OpInputPrimitive[Seq[OutputIndexedSlices[T]]] {
+        private val evOutputIndexedSlices: OpInputPrimitive[OutputIndexedSlices[T]] = {
+          outputIndexedSlicesEvidence[T]
+        }
+
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Seq[OutputIndexedSlices[T]]]
+        ): (Seq[OutputIndexedSlices[T]], Seq[Output[Any]]) = {
+          reference match {
+            case Some(r) =>
+              r.foldLeft((Seq.empty[OutputIndexedSlices[T]], Seq.empty[Output[Any]])) {
+                case ((accResult, remaining), ref) =>
+                  val (result, newRemaining) = evOutputIndexedSlices.fromOutputs(remaining, Some(ref))
+                  (accResult :+ result, newRemaining)
+              }
+            case None => ???
+          }
+        }
+
+        @inline override def toBuilderInputs(value: Seq[OutputIndexedSlices[T]]): Seq[Builder.Input] = {
+          value.flatMap(evOutputIndexedSlices.toBuilderInputs)
+        }
+
+        @inline override def toOutputLikes(value: Seq[OutputIndexedSlices[T]]): Seq[OutputLike[Any]] = {
+          value.flatMap(evOutputIndexedSlices.toOutputLikes)
+        }
+      }
+    }
+
+    implicit def seqSparseOutputEvidence[T]: OpInputPrimitive[Seq[SparseOutput[T]]] = {
+      new OpInputPrimitive[Seq[SparseOutput[T]]] {
+        private val evSparseOutput: OpInputPrimitive[SparseOutput[T]] = {
+          sparseOutputEvidence[T]
+        }
+
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Seq[SparseOutput[T]]]
+        ): (Seq[SparseOutput[T]], Seq[Output[Any]]) = {
+          reference match {
+            case Some(r) =>
+              r.foldLeft((Seq.empty[SparseOutput[T]], Seq.empty[Output[Any]])) {
+                case ((accResult, remaining), ref) =>
+                  val (result, newRemaining) = evSparseOutput.fromOutputs(remaining, Some(ref))
+                  (accResult :+ result, newRemaining)
+              }
+            case None => ???
+          }
+        }
+
+        @inline override def toBuilderInputs(value: Seq[SparseOutput[T]]): Seq[Builder.Input] = {
+          value.flatMap(evSparseOutput.toBuilderInputs)
+        }
+
+        @inline override def toOutputLikes(value: Seq[SparseOutput[T]]): Seq[OutputLike[Any]] = {
+          value.flatMap(evSparseOutput.toOutputLikes)
+        }
+      }
+    }
+
+    implicit def seqOutputLikeEvidence[T]: OpInputPrimitive[Seq[OutputLike[T]]] = {
+      new OpInputPrimitive[Seq[OutputLike[T]]] {
+        private val evOutputLike: OpInputPrimitive[OutputLike[T]] = {
+          outputLikeEvidence[T]
+        }
+
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Seq[OutputLike[T]]]
+        ): (Seq[OutputLike[T]], Seq[Output[Any]]) = {
+          reference match {
+            case Some(r) =>
+              r.foldLeft((Seq.empty[OutputLike[T]], Seq.empty[Output[Any]])) {
+                case ((accResult, remaining), ref) =>
+                  val (result, newRemaining) = evOutputLike.fromOutputs(remaining, Some(ref))
+                  (accResult :+ result, newRemaining)
+              }
+            case None => ???
+          }
+        }
+
+        @inline override def toBuilderInputs(value: Seq[OutputLike[T]]): Seq[Builder.Input] = {
+          value.flatMap(evOutputLike.toBuilderInputs)
+        }
+
+        @inline override def toOutputLikes(value: Seq[OutputLike[T]]): Seq[OutputLike[Any]] = {
+          value.flatMap(evOutputLike.toOutputLikes)
         }
       }
     }
@@ -874,63 +1208,159 @@ object Op {
   }
 
   object OpOutput {
-    implicit val unitEvidence: OpOutput[Unit] = {
-      new OpOutput[Unit] {
-        @inline override def fromOutputs(outputs: Seq[Output[Any]]): Unit = {
-          ()
+    implicit def opOutputPrimitiveEvidence[T: OpOutputPrimitive]: OpOutput[T] = {
+      new OpOutput[T] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]]): T = {
+          implicitly[OpOutputPrimitive[T]].fromOutputs(outputs)._1
         }
 
-        @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): Unit = {
-          Seq.empty
-        }
-      }
-    }
-
-    implicit def outputEvidence[T]: OpOutput[Output[T]] = {
-      new OpOutput[Output[T]] {
-        @inline override def fromOutputs(outputs: Seq[Output[Any]]): Output[T] = {
-          outputs.head.asInstanceOf[Output[T]]
-        }
-
-        @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): Output[T] = {
-          outputs.head.toOutput.asInstanceOf[Output[T]]
+        @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): T = {
+          implicitly[OpOutputPrimitive[T]].fromOutputLikes(outputs)._1
         }
       }
     }
 
-    implicit def outputLikeEvidence[T, O <: OutputLike[T] : TypeTag]: OpOutput[O] = {
-      new OpOutput[O] {
-        @inline override def fromOutputs(outputs: Seq[Output[Any]]): O = {
-          val value = typeOf[O] match {
-            case o if o <:< typeOf[Output[Any]] =>
-              outputs.head
-            case o if o <:< typeOf[OutputIndexedSlices[Any]] =>
-              OutputIndexedSlices(
-                indices = outputs(0).asInstanceOf[Output[Long]],
-                values = outputs(1),
-                denseShape = outputs(2).asInstanceOf[Output[Long]])
-            case o if o <:< typeOf[SparseOutput[Any]] =>
-              SparseOutput(
-                indices = outputs(0).asInstanceOf[Output[Long]],
-                values = outputs(1),
-                denseShape = outputs(2).asInstanceOf[Output[Long]])
-            case _ => ???
-            // TODO: [OPS] Is this correct?
-            // outputs.head
-          }
-          value.asInstanceOf[O]
+    implicit def opOutputPrimitiveTuple2Evidence[T1, T2](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2]
+    ): OpOutput[(T1, T2)] = {
+      new OpOutput[(T1, T2)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, _) = evT2.fromOutputs(remaining1)
+          (value1, value2)
         }
 
-        @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): O = {
-          val value = typeOf[O] match {
-            case o if o <:< typeOf[Output[Any]] =>
-              outputs.head.toOutput
-            case o if o <:< typeOf[OutputIndexedSlices[Any]] =>
-              outputs.head.toOutputIndexedSlices()
-            case o if o <:< typeOf[SparseOutput[Any]] => ???
-            case _ => ???
-          }
-          value.asInstanceOf[O]
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, _) = evT2.fromOutputLikes(remaining1)
+          (value1, value2)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple3Evidence[T1, T2, T3](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3]
+    ): OpOutput[(T1, T2, T3)] = {
+      new OpOutput[(T1, T2, T3)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, _) = evT3.fromOutputs(remaining2)
+          (value1, value2, value3)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, _) = evT3.fromOutputLikes(remaining2)
+          (value1, value2, value3)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple4Evidence[T1, T2, T3, T4](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3],
+        evT4: OpOutputPrimitive[T4]
+    ): OpOutput[(T1, T2, T3, T4)] = {
+      new OpOutput[(T1, T2, T3, T4)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3, T4) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, remaining3) = evT3.fromOutputs(remaining2)
+          val (value4, _) = evT4.fromOutputs(remaining3)
+          (value1, value2, value3, value4)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3, T4) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, remaining3) = evT3.fromOutputLikes(remaining2)
+          val (value4, _) = evT4.fromOutputLikes(remaining3)
+          (value1, value2, value3, value4)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple5Evidence[T1, T2, T3, T4, T5](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3],
+        evT4: OpOutputPrimitive[T4],
+        evT5: OpOutputPrimitive[T5]
+    ): OpOutput[(T1, T2, T3, T4, T5)] = {
+      new OpOutput[(T1, T2, T3, T4, T5)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3, T4, T5) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, remaining3) = evT3.fromOutputs(remaining2)
+          val (value4, remaining4) = evT4.fromOutputs(remaining3)
+          val (value5, _) = evT5.fromOutputs(remaining4)
+          (value1, value2, value3, value4, value5)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3, T4, T5) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, remaining3) = evT3.fromOutputLikes(remaining2)
+          val (value4, remaining4) = evT4.fromOutputLikes(remaining3)
+          val (value5, _) = evT5.fromOutputLikes(remaining4)
+          (value1, value2, value3, value4, value5)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple6Evidence[T1, T2, T3, T4, T5, T6](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3],
+        evT4: OpOutputPrimitive[T4],
+        evT5: OpOutputPrimitive[T5],
+        evT6: OpOutputPrimitive[T6]
+    ): OpOutput[(T1, T2, T3, T4, T5, T6)] = {
+      new OpOutput[(T1, T2, T3, T4, T5, T6)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3, T4, T5, T6) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, remaining3) = evT3.fromOutputs(remaining2)
+          val (value4, remaining4) = evT4.fromOutputs(remaining3)
+          val (value5, remaining5) = evT5.fromOutputs(remaining4)
+          val (value6, _) = evT6.fromOutputs(remaining5)
+          (value1, value2, value3, value4, value5, value6)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3, T4, T5, T6) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, remaining3) = evT3.fromOutputLikes(remaining2)
+          val (value4, remaining4) = evT4.fromOutputLikes(remaining3)
+          val (value5, remaining5) = evT5.fromOutputLikes(remaining4)
+          val (value6, _) = evT6.fromOutputLikes(remaining5)
+          (value1, value2, value3, value4, value5, value6)
         }
       }
     }
@@ -943,6 +1373,113 @@ object Op {
 
         @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): Seq[Output[T]] = {
           outputs.map(_.toOutput.asInstanceOf[Output[T]])
+        }
+      }
+    }
+  }
+
+  sealed trait OpOutputPrimitive[T] {
+    @inline def fromOutputs(outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
+    @inline def fromOutputLikes(outputs: Seq[OutputLike[Any]]): (T, Seq[OutputLike[Any]])
+  }
+
+  object OpOutputPrimitive {
+    implicit val unitEvidence: OpOutputPrimitive[Unit] = {
+      new OpOutputPrimitive[Unit] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]]): (Unit, Seq[Output[Any]]) = {
+          ((), outputs)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (Unit, Seq[OutputLike[Any]]) = {
+          (Seq.empty, outputs)
+        }
+      }
+    }
+
+    implicit def outputEvidence[T]: OpOutputPrimitive[Output[T]] = {
+      new OpOutputPrimitive[Output[T]] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]]): (Output[T], Seq[Output[Any]]) = {
+          (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (Output[T], Seq[OutputLike[Any]]) = {
+          (outputs.head.toOutput.asInstanceOf[Output[T]], outputs.tail)
+        }
+      }
+    }
+
+    implicit def outputIndexedSlicesEvidence[T]: OpOutputPrimitive[OutputIndexedSlices[T]] = {
+      new OpOutputPrimitive[OutputIndexedSlices[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+          (OutputIndexedSlices(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (OutputIndexedSlices[T], Seq[OutputLike[Any]]) = {
+          (outputs.head.asInstanceOf[OutputIndexedSlices[T]],
+              outputs.tail)
+        }
+      }
+    }
+
+    implicit def sparseOutputEvidence[T]: OpOutputPrimitive[SparseOutput[T]] = {
+      new OpOutputPrimitive[SparseOutput[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (SparseOutput[T], Seq[Output[Any]]) = {
+          (SparseOutput(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (SparseOutput[T], Seq[OutputLike[Any]]) = {
+          (outputs.head.asInstanceOf[SparseOutput[T]],
+              outputs.tail)
+        }
+      }
+    }
+
+    implicit def outputLikeEvidence[T]: OpOutputPrimitive[OutputLike[T]] = {
+      new OpOutputPrimitive[OutputLike[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (OutputLike[T], Seq[Output[Any]]) = {
+          if (outputs.size == 1) {
+            (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+          } else if (outputs.head.rank == 1) {
+            (OutputIndexedSlices(
+              indices = outputs(0).asInstanceOf[Output[Long]],
+              values = outputs(1).asInstanceOf[Output[T]],
+              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                outputs.drop(3))
+          } else {
+            (SparseOutput(
+              indices = outputs(0).asInstanceOf[Output[Long]],
+              values = outputs(1).asInstanceOf[Output[T]],
+              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                outputs.drop(3))
+          }
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (OutputLike[T], Seq[OutputLike[Any]]) = {
+          (outputs.head.asInstanceOf[OutputLike[T]], outputs.tail)
         }
       }
     }
@@ -2107,17 +2644,23 @@ object Op {
       this
     }
 
-    def setGradientFn[GI >: I : Op.OpInput, GO >: O : Op.OpOutput](
+    def setGradientFn[GI >: I, GO >: O](
         gradientFn: Gradients.GradientFn[I, O, GI, GO]
+    )(implicit
+        evGI: OpInput[GI],
+        evGO: OpOutput[GO]
     ): Builder[I, O] = {
-      this.gradientFn = Some(Gradients.convertGradientFn(gradientFn))
+      this.gradientFn = Some(Gradients.convertGradientFn[I, O, GI, GO](gradientFn)(evGI, evGO))
       this
     }
 
-    def setGradientFnHelper[GI >: I : Op.OpInput, GO >: O : Op.OpOutput](
+    def setGradientFnHelper[GI >: I, GO >: O](
         gradientFn: Option[Gradients.GradientFn[I, O, GI, GO]]
+    )(implicit
+        evGI: OpInput[GI],
+        evGO: OpOutput[GO]
     ): Builder[I, O] = {
-      this.gradientFn = gradientFn.map(Gradients.convertGradientFn)
+      this.gradientFn = gradientFn.map(Gradients.convertGradientFn[I, O, GI, GO](_)(evGI, evGO))
       this
     }
   }

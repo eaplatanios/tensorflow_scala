@@ -121,11 +121,11 @@ class GroupedPrecision(
         // TODO: [DISTRIBUTE] Add support for aggregation across towers.
         val value = safeDiv(tp, tp + fp, name = "Value")
         val update = safeDiv(tpUpdate, tpUpdate + fpUpdate, name = "Update")
-        val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset")
+        val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset").asUntyped
         valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
         updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
         resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-        Metric.StreamingInstance(value, update, reset.asUntyped, tpVariables ++ fpVariables)
+        Metric.StreamingInstance(value, update, reset, tpVariables ++ fpVariables)
       }
     }
   }

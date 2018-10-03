@@ -322,8 +322,6 @@ object Text extends Text {
         Text.stringToHashBucketStrong(output, numBuckets, key1, key2, name)
       }
     }
-
-    implicit def outputConvertibleToTextOps[OC](value: OC)(implicit f: OC => Output[String]): TextOps = new TextOps(f(value))
   }
 
   /** @define OpDocTextRegexReplace

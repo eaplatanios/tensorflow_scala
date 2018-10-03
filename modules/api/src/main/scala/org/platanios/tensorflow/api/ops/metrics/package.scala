@@ -27,7 +27,7 @@ package object metrics {
     type MapMetric[S, T, R] = metrics.MapMetric[S, T, R]
     type Mean = metrics.Mean
     type Accuracy = metrics.Accuracy
-    type ConfusionMatrix = metrics.ConfusionMatrix
+    type ConfusionMatrix[T] = metrics.ConfusionMatrix[T]
     type GroupedPrecision = metrics.GroupedPrecision
     type PrecisionAtK = metrics.PrecisionAtK
 

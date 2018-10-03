@@ -88,7 +88,7 @@ class LookupTableTextFileInitializer[K, +V] protected (
           .setAttribute("vocab_size", vocabularySize)
           .setAttribute("delimiter", delimiter)
           .build()
-      Op.currentGraph.addToCollection(initializationOp, Graph.Keys.TABLE_INITIALIZERS)
+      Op.currentGraph.addToCollection(initializationOp.asUntyped, Graph.Keys.TABLE_INITIALIZERS)
       // If the filename asset tensor is anything other than a string constant
       // (e.g., if it is a placeholder), then it does not make sense to track
       // it as an asset.
@@ -117,7 +117,7 @@ object LookupTableTextFileInitializer {
 }
 
 /** Represents a field extractor from a text file. */
-sealed trait TextFileFieldExtractor[K] {
+sealed trait TextFileFieldExtractor[+K] {
   val name : String
   val value: Int
 
@@ -131,7 +131,7 @@ case object TextFileLineNumber extends TextFileFieldExtractor[Long] {
 }
 
 /** Text file field extractor that extracts the whole line as a field. */
-case class TextFileWholeLine[K](implicit
+case class TextFileWholeLine[+K]()(implicit
     ev: IsStringOrIntOrUInt[K]
 ) extends TextFileFieldExtractor[K] {
   override val name : String = "WHOLE_LINE"
@@ -142,7 +142,7 @@ case class TextFileWholeLine[K](implicit
   *
   * @param  index Column index.
   */
-case class TextFileColumn[K](index: Int) extends TextFileFieldExtractor[K] {
+case class TextFileColumn[+K](index: Int) extends TextFileFieldExtractor[K] {
   override val name : String = s"COLUMN[$index]"
   override val value: Int    = index
 }

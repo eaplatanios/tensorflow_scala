@@ -49,17 +49,17 @@ sealed trait Executable[T] {
 object Executable {
   def apply[T: Executable]: Executable[T] = implicitly[Executable[T]]
 
-  implicit val opExecutable: Executable[Op[_, _]] = {
-    new Executable[Op[_, _]] {
-      override def ops(executable: Op[_, _]): Set[UntypedOp] = {
+  implicit def opExecutable[I, O]: Executable[Op[I, O]] = {
+    new Executable[Op[I, O]] {
+      override def ops(executable: Op[I, O]): Set[UntypedOp] = {
         Set(executable.asUntyped)
       }
     }
   }
 
-  implicit def outputLikeExecutable[OL[A] <: OutputLike[A]]: Executable[OL[_]] = {
-    new Executable[OL[_]] {
-      override def ops(executable: OL[_]): Set[UntypedOp] = {
+  implicit def outputLikeExecutable[T, OL <: OutputLike[T]]: Executable[OL] = {
+    new Executable[OL] {
+      override def ops(executable: OL): Set[UntypedOp] = {
         Set(executable.op)
       }
     }

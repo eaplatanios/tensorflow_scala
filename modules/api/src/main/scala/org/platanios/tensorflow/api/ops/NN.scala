@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.NN._
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
@@ -95,14 +96,14 @@ trait NN {
       case "NHWC" =>
         val valuesLeft = valueShape(0 :: -1)
         val expandedShape = Basic.concatenate(Seq(Basic.onesLike(valuesLeft), biasShape), axis = 0)
-        val tileMultiples = Basic.concatenate(Seq(valuesLeft, 1), 0)
+        val tileMultiples = Basic.concatenate[Long](Seq(valuesLeft, 1), 0)
         (expandedShape, tileMultiples)
       case "NCHW" =>
         val valuesLeft = valueShape(0 :: -3)
         val valuesRight = valueShape(-2 ::)
         val expandedShape = Basic.concatenate(
           Seq(Basic.onesLike(valuesLeft), biasShape, Basic.onesLike(valuesRight)), axis = 0)
-        val tileMultiples = Basic.concatenate(Seq(valuesLeft, 1, valuesRight), 0)
+        val tileMultiples = Basic.concatenate[Long](Seq(valuesLeft, 1, valuesRight), 0)
         (expandedShape, tileMultiples)
     }
     Basic.tile(Basic.reshape(outputGradient, expandedShape), tileMultiples)
@@ -537,13 +538,12 @@ trait NN {
         opType = opType,
         name = name,
         input = logits
-      ).setGradientFn({
+      ).setGradientFn[Output[T], Output[T]]({
         if (opType == "Softmax")
           softmaxGradient(_, _)(implicitly[IsDecimal[T]])
         else
           logSoftmaxGradient(_, _)(implicitly[IsDecimal[T]])
-      })
-          .build().output
+      }).build().output
     } else if (isLastAxis) {
       Op.nameScope(name) {
         // If axis is the last axis, we simply reshape the logits to a matrix and apply the internal softmax.
@@ -553,13 +553,12 @@ trait NN {
           opType = opType,
           name = name,
           input = flatLogits
-        ).setGradientFn({
+        ).setGradientFn[Output[T], Output[T]]({
           if (opType == "Softmax")
             softmaxGradient(_, _)(implicitly[IsDecimal[T]])
           else
             logSoftmaxGradient(_, _)(implicitly[IsDecimal[T]])
-        })
-            .build().output
+        }).build().output
         Basic.reshape(output, inputShape)
       }
     } else {
@@ -578,13 +577,12 @@ trait NN {
           opType = opType,
           name = name,
           input = flatLogits
-        ).setGradientFn({
+        ).setGradientFn[Output[T], Output[T]]({
           if (opType == "Softmax")
             softmaxGradient(_, _)(implicitly[IsDecimal[T]])
           else
             logSoftmaxGradient(_, _)(implicitly[IsDecimal[T]])
-        })
-            .build().output
+        }).build().output
         // We transform back the output tensor.
         output = Basic.reshape(output, shapeAfterSwap)
         output = swapAxes(output, modAxis, Math.subtract(inputRank, 1))
@@ -716,7 +714,7 @@ trait NN {
         ).setGradientFn(softmaxCrossEntropyGradient(_, _)(implicitly[IsDecimal[T]]))
             .build().output._1
         // The output shape should be the input shape without the axis over which the cross entropy was computed.
-        val outputShape = Basic.slice(
+        val outputShape = Basic.slice[Long, Long](
           inputShape,
           Basic.zeros(inputShape.dataType, Shape(1)),
           Basic.expandDims(Math.subtract(inputRank, 1), -1))
@@ -973,7 +971,7 @@ trait NN {
 
     Op.nameScope(name) {
       val numClasses = Basic.shape(logits, INT64).slice(2)
-      val flatLogits = Basic.reshape(logits, Basic.stack(Seq(-1, numClasses)))
+      val flatLogits = Basic.reshape(logits, Basic.stack[Long](Seq(-1, numClasses)))
       val flatLabels = Basic.reshape(labels, Shape(-1))
       var loss = lossFn(flatLogits, flatLabels)
 
@@ -1152,7 +1150,7 @@ trait NN {
     // Flatten indices to 2-D.
     val indicesShape = Basic.shape(op.output._2, INT64)
     val indicesLastAxis = Basic.gather(indicesShape, Basic.size(indicesShape, INT64) - 1L, axis = 0)
-    val indices2D = Basic.reshape(op.output._2.toInt64, Basic.stack(Seq(-1L, indicesLastAxis)))
+    val indices2D = Basic.reshape(op.output._2.toInt64, Basic.stack[Long](Seq(-1L, indicesLastAxis)))
 
     val inputShape = Basic.shape(op.input._1, INT64)
     val inputLastAxis = Basic.gather(inputShape, Basic.size(inputShape, INT64) - 1L, axis = 0)
@@ -2051,9 +2049,9 @@ object NN extends NN {
       input: Output[T]
   ): Output[T] = {
     val rank = Basic.rank(input)
-    val lastAxisSize = Basic.slice(
+    val lastAxisSize = Basic.slice[Long, Int](
       Basic.shape(input, INT64),
-      Basic.expandDims(Math.subtract(rank, 1L), -1),
+      Basic.expandDims(Math.subtract[Int](rank, 1), -1),
       Basic.ones(rank.dataType, Shape(1)))
     val output = Basic.reshape(input, Basic.concatenate(
       Seq(Basic.constant(-1, Shape(1)).cast(lastAxisSize.dataType), lastAxisSize),

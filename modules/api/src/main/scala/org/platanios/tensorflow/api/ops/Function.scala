@@ -203,24 +203,21 @@ object Function {
 
     // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".
 
-    case class VariantDataset[T] private(
+    case class VariantDataset[T] protected(
         handle: Output[Long],
-        override val evData: SupportedData[T]
-    )(
-        dataType: evData.D = null.asInstanceOf[evData.D],
-        shape: evData.S = null.asInstanceOf[evData.S]
-    )(implicit
-        evFunctionInput: Function.ArgType[T]
+        override val evData: SupportedData[T],
+        private val dataType: Any = null,
+        private val shape: Any = null
     ) extends Dataset[T] {
       override val name: String = "VariantDataset"
+
       override def createHandle(): Output[Long] = handle
-      override def outputDataTypes: evData.D = dataType
-      override def outputShapes: evData.S = shape
+      override def outputDataTypes: evData.D = dataType.asInstanceOf[evData.D]
+      override def outputShapes: evData.S = shape.asInstanceOf[evData.S]
     }
 
     implicit def datasetArgType[T](implicit
-        evData: SupportedData[T],
-        evFunctionInput: Function.ArgType[T]
+        evData: SupportedData[T]
     ): ArgType[Dataset[T]] = {
       new ArgType[Dataset[T]] {
         override def numOutputs: Int = {
@@ -238,7 +235,9 @@ object Function {
         override def outputsDecoder(
             outputs: Seq[Output[Any]]
         ): (Dataset[T], Seq[Output[Any]]) = {
-          (VariantDataset[T](outputs.head.asInstanceOf[Output[Long]], evData)(),
+          (VariantDataset[T](
+            handle = outputs.head.asInstanceOf[Output[Long]],
+            evData = evData),
               outputs.drop(1))
         }
 
@@ -246,106 +245,116 @@ object Function {
             arg: Dataset[T],
             outputs: Seq[Output[Any]]
         ): (Dataset[T], Seq[Output[Any]]) = {
-          (VariantDataset[T](outputs.head.asInstanceOf[Output[Long]], evData)(
-            dataType = arg.outputDataTypes,
-            shape = arg.outputShapes
+          (VariantDataset[T](
+            handle = outputs.head.asInstanceOf[Output[Long]],
+            evData = evData,
+            dataType = arg.outputDataTypes.asInstanceOf[evData.D],
+            shape = arg.outputShapes.asInstanceOf[evData.S]
           ), outputs.drop(1))
         }
       }
     }
 
-    implicit val hnil: ArgType[HNil] = new ArgType[HNil] {
-      override def numOutputs: Int = {
-        0
-      }
+    implicit val hnil: ArgType[HNil] = {
+      new ArgType[HNil] {
+        override def numOutputs: Int = {
+          0
+        }
 
-      override def outputs(arg: HNil): Seq[Output[Any]] = {
-        Seq.empty
-      }
+        override def outputs(arg: HNil): Seq[Output[Any]] = {
+          Seq.empty
+        }
 
-      override def dataTypes(arg: HNil): Seq[DataType[Any]] = {
-        Seq.empty
-      }
+        override def dataTypes(arg: HNil): Seq[DataType[Any]] = {
+          Seq.empty
+        }
 
-      override def outputsDecoder(
-          outputs: Seq[Output[Any]]
-      ): (HNil, Seq[Output[Any]]) = {
-        (HNil, outputs)
-      }
+        override def outputsDecoder(
+            outputs: Seq[Output[Any]]
+        ): (HNil, Seq[Output[Any]]) = {
+          (HNil, outputs)
+        }
 
-      override def outputsDecoderWithKnownArg(
-          arg: HNil,
-          outputs: Seq[Output[Any]]
-      ): (HNil, Seq[Output[Any]]) = {
-        (HNil, outputs)
+        override def outputsDecoderWithKnownArg(
+            arg: HNil,
+            outputs: Seq[Output[Any]]
+        ): (HNil, Seq[Output[Any]]) = {
+          (HNil, outputs)
+        }
       }
     }
 
     implicit def recursiveConstructor[H, T <: HList](implicit
         argTypeHead: Lazy[ArgType[H]],
         argTypeTail: ArgType[T]
-    ): ArgType[H :: T] = new ArgType[H :: T] {
-      override def numOutputs: Int = argTypeHead.value.numOutputs + argTypeTail.numOutputs
+    ): ArgType[H :: T] = {
+      new ArgType[H :: T] {
+        override def numOutputs: Int = {
+          argTypeHead.value.numOutputs + argTypeTail.numOutputs
+        }
 
-      override def outputs(arg: H :: T): Seq[Output[Any]] = {
-        argTypeHead.value.outputs(arg.head) ++
-            argTypeTail.outputs(arg.tail)
-      }
+        override def outputs(arg: H :: T): Seq[Output[Any]] = {
+          argTypeHead.value.outputs(arg.head) ++
+              argTypeTail.outputs(arg.tail)
+        }
 
-      override def dataTypes(arg: H :: T): Seq[DataType[Any]] = {
-        argTypeHead.value.dataTypes(arg.head) ++
-            argTypeTail.dataTypes(arg.tail)
-      }
+        override def dataTypes(arg: H :: T): Seq[DataType[Any]] = {
+          argTypeHead.value.dataTypes(arg.head) ++
+              argTypeTail.dataTypes(arg.tail)
+        }
 
-      override def outputsDecoder(
-          outputs: Seq[Output[Any]]
-      ): (H :: T, Seq[Output[Any]]) = {
-        val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoder(outputs)
-        val (decodedTail, tail) = argTypeTail.outputsDecoder(outputsTail)
-        (decodedHead :: decodedTail, tail)
-      }
+        override def outputsDecoder(
+            outputs: Seq[Output[Any]]
+        ): (H :: T, Seq[Output[Any]]) = {
+          val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoder(outputs)
+          val (decodedTail, tail) = argTypeTail.outputsDecoder(outputsTail)
+          (decodedHead :: decodedTail, tail)
+        }
 
-      override def outputsDecoderWithKnownArg(
-          arg: H :: T,
-          outputs: Seq[Output[Any]]
-      ): (H :: T, Seq[Output[Any]]) = {
-        val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoderWithKnownArg(arg.head, outputs)
-        val (decodedTail, tail) = argTypeTail.outputsDecoderWithKnownArg(arg.tail, outputsTail)
-        (decodedHead :: decodedTail, tail)
+        override def outputsDecoderWithKnownArg(
+            arg: H :: T,
+            outputs: Seq[Output[Any]]
+        ): (H :: T, Seq[Output[Any]]) = {
+          val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoderWithKnownArg(arg.head, outputs)
+          val (decodedTail, tail) = argTypeTail.outputsDecoderWithKnownArg(arg.tail, outputsTail)
+          (decodedHead :: decodedTail, tail)
+        }
       }
     }
 
     // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-    implicit def productConstructor[P <: Product, L <: HList](implicit
+    implicit def productConstructor[P, L <: HList](implicit
         gen: Generic.Aux[P, L],
         argTypeL: ArgType[L],
         tupler: Tupler.Aux[L, P]
-    ): ArgType[P] = new ArgType[P] {
-      override def numOutputs: Int = {
-        argTypeL.numOutputs
-      }
+    ): ArgType[P] = {
+      new ArgType[P] {
+        override def numOutputs: Int = {
+          argTypeL.numOutputs
+        }
 
-      override def outputs(arg: P): Seq[Output[Any]] = {
-        argTypeL.outputs(gen.to(arg))
-      }
+        override def outputs(arg: P): Seq[Output[Any]] = {
+          argTypeL.outputs(gen.to(arg))
+        }
 
-      override def dataTypes(arg: P): Seq[DataType[Any]] = {
-        argTypeL.dataTypes(gen.to(arg))
-      }
+        override def dataTypes(arg: P): Seq[DataType[Any]] = {
+          argTypeL.dataTypes(gen.to(arg))
+        }
 
-      override def outputsDecoder(
-          outputs: Seq[Output[Any]]
-      ): (P, Seq[Output[Any]]) = {
-        val (decoded, tail) = argTypeL.outputsDecoder(outputs)
-        (tupler(decoded), tail)
-      }
+        override def outputsDecoder(
+            outputs: Seq[Output[Any]]
+        ): (P, Seq[Output[Any]]) = {
+          val (decoded, tail) = argTypeL.outputsDecoder(outputs)
+          (tupler(decoded), tail)
+        }
 
-      override def outputsDecoderWithKnownArg(
-          arg: P,
-          outputs: Seq[Output[Any]]
-      ): (P, Seq[Output[Any]]) = {
-        val (decoded, tail) = argTypeL.outputsDecoderWithKnownArg(gen.to(arg), outputs)
-        (tupler(decoded), tail)
+        override def outputsDecoderWithKnownArg(
+            arg: P,
+            outputs: Seq[Output[Any]]
+        ): (P, Seq[Output[Any]]) = {
+          val (decoded, tail) = argTypeL.outputsDecoderWithKnownArg(gen.to(arg), outputs)
+          (tupler(decoded), tail)
+        }
       }
     }
   }
@@ -422,7 +431,7 @@ private[api] class InstantiatedFunction[I, O] protected (
     val outputs = Op.nameScope(name) {
       val outputs = evInput.outputs(input)
       addToGraph(outputs.head.graph)
-      val builder = Op.Builder[Seq[Output[_]], Seq[Output[_]]](
+      val builder = Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
         opType = hashedName,
         name = "Call",
         input = outputs ++ extraInputs)

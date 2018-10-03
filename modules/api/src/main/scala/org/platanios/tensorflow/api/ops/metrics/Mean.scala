@@ -122,11 +122,11 @@ class Mean(
         val updateCount = count.assignAdd(numValues)
         val value = safeDiv(total.value, count.value, name = "Value")
         val update = safeDiv(updateTotal, updateCount, name = "Update")
-        val reset = ControlFlow.group(Set(total.initializer, count.initializer), name = "Reset")
+        val reset = ControlFlow.group(Set(total.initializer, count.initializer), name = "Reset").asUntyped
         valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
         updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
         resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
-        Metric.StreamingInstance(value, update, reset.asUntyped, Set(total, count))
+        Metric.StreamingInstance(value, update, reset, Set(total, count))
       }
     }
   }

@@ -27,22 +27,26 @@ import org.slf4j.LoggerFactory
   *
   * An iterator represents the state of iterating through a dataset.
   *
-  * @param  handle          Handle of the iterator.
-  * @param  evData          Data type class instance for the type of the elements that this iterator outputs.
-  * @param  outputDataTypes Data types corresponding to each element of the iterator.
-  * @param  outputShapes    Shapes corresponding to each element of the iterator.
-  * @param  name            Name for this iterator.
+  * @param  handle           Handle of the iterator.
+  * @param  evData           Data type class instance for the type of the elements that this iterator outputs.
+  * @param  _outputDataTypes Data types corresponding to each element of the iterator.
+  * @param  _outputShapes    Shapes corresponding to each element of the iterator.
+  * @param  name             Name for this iterator.
   *
   * @author Emmanouil Antonios Platanios
   */
-class DatasetIterator[T] private[data](
+class DatasetIterator[T] protected[data](
     protected val handle: Output[Long],
     protected val evData: SupportedData[T]
 )(
-    val outputDataTypes: evData.D,
-    val outputShapes: evData.S,
+    protected val _outputDataTypes: Any,
+    protected val _outputShapes: Any,
     val name: String = "DatasetIterator"
 ) {
+  // TODO: [TYPES] !!! This is very hacky.
+  val outputDataTypes: evData.D = _outputDataTypes.asInstanceOf[evData.D]
+  val outputShapes   : evData.S = _outputShapes.asInstanceOf[evData.S]
+
   private var nextCallCount: Int = 0
 
   /** Returns a sequence of data types that correspond to the flattened data types of the nested outputs structure
@@ -154,22 +158,22 @@ class DatasetIterator[T] private[data](
   *
   * An iterator represents the state of iterating through a dataset.
   *
-  * @param  handle          Handle of the iterator.
-  * @param  evData          Data type class instance for the type of the elements that this iterator outputs.
-  * @param  initializer     Iterator initializer op.
-  * @param  outputDataTypes Data types corresponding to each element of the iterator.
-  * @param  outputShapes    Shapes corresponding to each element of the iterator.
-  * @param  name            Name for this iterator.
+  * @param  handle           Handle of the iterator.
+  * @param  evData           Data type class instance for the type of the elements that this iterator outputs.
+  * @param  initializer      Iterator initializer op.
+  * @param  _outputDataTypes Data types corresponding to each element of the iterator.
+  * @param  _outputShapes    Shapes corresponding to each element of the iterator.
+  * @param  name             Name for this iterator.
   */
 class InitializableDatasetIterator[T] private[data](
     override protected val handle: Output[Long],
     override protected val evData: SupportedData[T]
 )(
     val initializer: UntypedOp,
-    override val outputDataTypes: evData.D,
-    override val outputShapes: evData.S,
+    override protected val _outputDataTypes: Any,
+    override protected val _outputShapes: Any,
     override val name: String = "InitializableDatasetIterator"
-) extends DatasetIterator[T](handle, evData)(outputDataTypes, outputShapes, name)
+) extends DatasetIterator[T](handle, evData)(_outputDataTypes, _outputShapes, name)
 
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object DatasetIterator {
@@ -248,9 +252,9 @@ object DatasetIterator {
       (handle, initializer)
     }
     new InitializableDatasetIterator[T](handle, dataset.evData)(
-      initializer = initializer,
-      outputDataTypes = dataset.outputDataTypes,
-      outputShapes = dataset.outputShapes,
+      initializer = initializer.asUntyped,
+      _outputDataTypes = dataset.outputDataTypes,
+      _outputShapes = dataset.outputShapes,
       name = name)
   }
 

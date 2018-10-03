@@ -36,7 +36,7 @@ import scala.language.postfixOps
 trait Dataset[T] { outer =>
   val name: String
 
-  val evData: SupportedData[T]
+  implicit val evData: SupportedData[T]
 
   /** Creates a `VARIANT` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
@@ -94,8 +94,9 @@ trait Dataset[T] { outer =>
       count: Long = -1L
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Repeat"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Repeat"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         val c = Op.nameScope(name)(Basic.constant(count))
@@ -124,8 +125,9 @@ trait Dataset[T] { outer =>
       seed: Option[Int] = None
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Shuffle"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Shuffle"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         val (bs, s1, s2) = Op.nameScope(name) {
@@ -159,8 +161,9 @@ trait Dataset[T] { outer =>
       count: Long
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Take"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Take"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         val c = Basic.constant(count, name = s"$name/Count")
@@ -190,8 +193,9 @@ trait Dataset[T] { outer =>
       count: Output[Long]
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Take"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Take"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         Op.Builder[(Output[Long], Output[Long]), Output[Long]](
@@ -220,8 +224,9 @@ trait Dataset[T] { outer =>
       count: Long
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Drop"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Drop"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         val c = Basic.constant(count, name = s"$name/Count")
@@ -251,8 +256,9 @@ trait Dataset[T] { outer =>
       count: Output[Long]
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Drop"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Drop"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         Op.Builder[(Output[Long], Output[Long]), Output[Long]](
@@ -283,8 +289,9 @@ trait Dataset[T] { outer =>
   )(implicit evFunctionArg: Function.ArgType[T]): Dataset[T] = {
     val providedName = name
     new Dataset[T] {
-      override val name  : String           = providedName
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       private lazy val instantiatedPredicateFunction = {
         Function(s"$name/Predicate", predicate).instantiate(
@@ -330,8 +337,9 @@ trait Dataset[T] { outer =>
     val providedName = name
     val providedEvData = evData
     new Dataset[R] {
-      override val name  : String           = providedName
-      override val evData: SupportedData[R] = providedEvData
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[R] = providedEvData
 
       private lazy val instantiatedFunction = {
         Function(s"$name/Function", function).instantiate(
@@ -366,8 +374,8 @@ trait Dataset[T] { outer =>
 
       private lazy val (_outputDataTypes, _outputShapes): (evData.D, evData.S) = {
         val dataType = evData.dataType(instantiatedFunction.dummyOutputs)
-        (evData.decodeDataType(dataType, instantiatedFunction.outputDataTypes),
-            evData.decodeShape(dataType, instantiatedFunction.outputShapes))
+        (evData.decodeDataType(dataType, instantiatedFunction.outputDataTypes)._1,
+            evData.decodeShape(dataType, instantiatedFunction.outputShapes)._1)
       }
 
       override def outputDataTypes: evData.D = _outputDataTypes
@@ -394,8 +402,9 @@ trait Dataset[T] { outer =>
     val providedName = name
     val providedEvData = evData
     new Dataset[R] {
-      override val name  : String           = providedName
-      override val evData: SupportedData[R] = providedEvData
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[R] = providedEvData
 
       private lazy val instantiatedFunction = {
         Function(s"$name/Function", function).instantiate(
@@ -415,11 +424,11 @@ trait Dataset[T] { outer =>
       }
 
       override def outputDataTypes: evData.D = {
-        instantiatedFunction.dummyOutputs.outputDataTypes
+        instantiatedFunction.dummyOutputs.outputDataTypes.asInstanceOf[evData.D]
       }
 
       override def outputShapes: evData.S = {
-        instantiatedFunction.dummyOutputs.outputShapes
+        instantiatedFunction.dummyOutputs.outputShapes.asInstanceOf[evData.S]
       }
     }
   }
@@ -491,8 +500,9 @@ trait Dataset[T] { outer =>
     val providedName = name
     val providedEvData = evData
     new Dataset[R] {
-      override val name  : String           = s"${outer.name}/$providedName"
-      override val evData: SupportedData[R] = providedEvData
+      override val name: String = s"${outer.name}/$providedName"
+
+      override implicit val evData: SupportedData[R] = providedEvData
 
       private lazy val instantiatedFunction = {
         Function(s"$name/Function", function).instantiate(
@@ -532,11 +542,11 @@ trait Dataset[T] { outer =>
       }
 
       override def outputDataTypes: evData.D = {
-        instantiatedFunction.dummyOutputs.outputDataTypes
+        instantiatedFunction.dummyOutputs.outputDataTypes.asInstanceOf[evData.D]
       }
 
       override def outputShapes: evData.S = {
-        instantiatedFunction.dummyOutputs.outputShapes
+        instantiatedFunction.dummyOutputs.outputShapes.asInstanceOf[evData.S]
       }
     }
   }
@@ -558,13 +568,14 @@ trait Dataset[T] { outer =>
       windowSizeFn: Output[Long] => Output[Long],
       name: String = s"${this.name}/GroupByWindow"
   )(implicit
-      evFunctionArg: Function.ArgType[T],
+      evFunctionArgOutputLong: Function.ArgType[Output[Long]],
+      evFunctionArgT: Function.ArgType[T]
   ): Dataset[T] = {
-    implicit val providedEvidence: SupportedData[T] = this.evData
     val providedName = name
     new Dataset[T] {
-      override val name  : String           = providedName
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       private lazy val instantiatedKeyFunction = {
         Function(s"$name/KeyFunction", keyFn).instantiate(
@@ -601,11 +612,11 @@ trait Dataset[T] { outer =>
       }
 
       override def outputDataTypes: evData.D = {
-        instantiatedReduceFunction.dummyOutputs.outputDataTypes
+        instantiatedReduceFunction.dummyOutputs.outputDataTypes.asInstanceOf[evData.D]
       }
 
       override def outputShapes: evData.S = {
-        instantiatedReduceFunction.dummyOutputs.outputShapes
+        instantiatedReduceFunction.dummyOutputs.outputShapes.asInstanceOf[evData.S]
       }
     }
   }
@@ -619,8 +630,9 @@ trait Dataset[T] { outer =>
       batchSize: Long
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Batch"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Batch"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         val bs = Op.nameScope(name)(Basic.constant(batchSize))
@@ -633,7 +645,9 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes: evData.D = outer.outputDataTypes.asInstanceOf[evData.D]
+      override def outputDataTypes: evData.D = {
+        outer.outputDataTypes.asInstanceOf[evData.D]
+      }
 
       override def outputShapes: evData.S = {
         evData.decodeShape(
@@ -652,8 +666,9 @@ trait Dataset[T] { outer =>
       batchSize: Output[Long]
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Batch"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Batch"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         Op.Builder[(Output[Long], Output[Long]), Output[Long]](
@@ -720,8 +735,9 @@ trait Dataset[T] { outer =>
   ): Dataset[T] = {
     val providedEvData = evData
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/PaddedBatch"
-      override val evData: SupportedData[T] = providedEvData
+      override val name: String = s"${outer.name}/PaddedBatch"
+
+      override implicit val evData: SupportedData[T] = providedEvData
 
       private def flatPaddedShapes: Seq[Output[Long]] = {
         providedEvData.shapes(paddedShapes).map(_.toOutput(INT64))
@@ -768,8 +784,9 @@ trait Dataset[T] { outer =>
       bufferSize: Long
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Prefetch"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Prefetch"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         val bs = Op.nameScope(name)(Basic.constant(bufferSize))
@@ -797,8 +814,9 @@ trait Dataset[T] { outer =>
       directory: String
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Cache"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Cache"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         val d = Op.nameScope(name)(Basic.constant(directory))
@@ -826,8 +844,9 @@ trait Dataset[T] { outer =>
       directory: Output[String]
   ): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/Cache"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/Cache"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         Op.Builder[(Output[Long], Output[String]), Output[Long]](
@@ -868,8 +887,9 @@ trait Dataset[T] { outer =>
   ): Dataset[T] = {
     val providedName = name
     new Dataset[T] {
-      override val name  : String           = providedName
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       private lazy val mostSpecificFlattenedShapes: Seq[Shape] = {
         outer.flatOutputShapes.zip(other.flatOutputShapes).map(p => {
@@ -934,8 +954,9 @@ trait Dataset[T] { outer =>
     implicit val evDataT: SupportedData[T] = this.evData
     val providedName = name
     new Dataset[(T, R)] {
-      override val name  : String                = providedName
-      override val evData: SupportedData[(T, R)] = implicitly[SupportedData[(T, R)]]
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[(T, R)] = implicitly[SupportedData[(T, R)]]
 
       override def createHandle(): Output[Long] = {
         Op.Builder[Seq[Output[Long]], Output[Long]](
@@ -989,8 +1010,9 @@ trait Dataset[T] { outer =>
     implicit val evDataT: SupportedData[T] = this.evData
     val providedName = name
     new Dataset[(T, R1, R2)] {
-      override val name  : String                     = providedName
-      override val evData: SupportedData[(T, R1, R2)] = implicitly[SupportedData[(T, R1, R2)]]
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[(T, R1, R2)] = implicitly[SupportedData[(T, R1, R2)]]
 
       override def createHandle(): Output[Long] = {
         Op.Builder[Seq[Output[Long]], Output[Long]](
@@ -1012,24 +1034,11 @@ trait Dataset[T] { outer =>
     }
   }
 
-  /** Creates a new dataset that zips this data set with two other datasets.
+  /** Creates a new dataset that zips this data set with multiple other datasets.
     *
     * The op has similar semantics to the built-in Scala collections `zip` function.
     *
-    * For example:
-    * {{{
-    *   // NOTE: The following examples use `{ ... }` to represent the contents of a dataset.
-    *   a = { 1, 2, 3 }
-    *   b = { 4, 5, 6 }
-    *   c = { (7, 8), (9, 10), (11, 12) }
-    *   d = { 13, 14 }
-    *
-    *   // The `datasets` argument may contain an arbitrary number of datasets.
-    *     a.zip3(b, c) ==> { (1, 4, (7, 8)), (2, 5, (9, 10)), (3, 6, (11, 12)) }
-    * }}}
-    *
-    * @param  other1 First dataset to zip with this dataset.
-    * @param  other2 Second dataset to zip with this dataset.
+    * @param  others Datasets to zip with this dataset.
     * @param  name   Name to use for the new dataset.
     * @return Created dataset.
     */
@@ -1040,8 +1049,9 @@ trait Dataset[T] { outer =>
     implicit val evDataT: SupportedData[T] = this.evData
     val providedName = name
     new Dataset[Seq[T]] {
-      override val name  : String                = providedName
-      override val evData: SupportedData[Seq[T]] = implicitly[SupportedData[Seq[T]]]
+      override val name: String = providedName
+
+      override implicit val evData: SupportedData[Seq[T]] = implicitly[SupportedData[Seq[T]]]
 
       override def createHandle(): Output[Long] = {
         Op.Builder[Seq[Output[Long]], Output[Long]](
@@ -1081,8 +1091,9 @@ trait Dataset[T] { outer =>
     */
   def ignoreErrors(): Dataset[T] = {
     new Dataset[T] {
-      override val name  : String           = s"${outer.name}/IgnoreErrors"
-      override val evData: SupportedData[T] = outer.evData
+      override val name: String = s"${outer.name}/IgnoreErrors"
+
+      override implicit val evData: SupportedData[T] = outer.evData
 
       override def createHandle(): Output[Long] = {
         Op.Builder[Output[Long], Output[Long]](
@@ -1147,7 +1158,6 @@ trait Dataset[T] { outer =>
     if (numShards == 1) {
       this
     } else {
-      implicit val providedEvidence: SupportedData[T] = this.evData
       this.zip(Data.datasetFromRange(0L, Long.MaxValue))
           .filter(t => Math.equal(Math.mod(t._2, numShards), shardIndex))
           .map(o => o._1)

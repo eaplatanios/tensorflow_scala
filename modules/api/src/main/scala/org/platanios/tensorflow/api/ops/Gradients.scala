@@ -38,11 +38,14 @@ object Gradients {
 
   // TODO: [GRADIENTS] !!! Figure out what the right signature for the gradient functions should be.
 
-  type GradientFn[I, O, GI >: I, GO >: O] = (/* Op */ Op[I, O], /* Output Gradients */ GO) => GI
+  type GradientFn[-I, -O, GI >: I, GO >: O] = ( /* Op */ Op[I, O], /* Output Gradients */ GO) => GI
   type UntypedGradientFn = GradientFn[Seq[OutputLike[Any]], Seq[OutputLike[Any]], Seq[OutputLike[Any]], Seq[OutputLike[Any]]]
 
-  private[ops] def convertGradientFn[I, O, GI >: I : Op.OpInput, GO >: O : Op.OpOutput](
+  private[ops] def convertGradientFn[I, O, GI >: I, GO >: O](
       gradientFn: Gradients.GradientFn[I, O, GI, GO]
+  )(implicit
+      evGI: Op.OpInput[GI],
+      evGO: Op.OpOutput[GO]
   ): Gradients.UntypedGradientFn = {
     def gradient(
         op: Op[Seq[OutputLike[Any]], Seq[OutputLike[Any]]],
@@ -52,6 +55,7 @@ object Gradients {
       val iGradient = gradientFn(op.asInstanceOf[Op[I, O]], oGradients)
       implicitly[Op.OpInput[GI]].toOutputLikes(iGradient)
     }
+
     gradient
   }
 
@@ -729,7 +733,9 @@ object Gradients {
     // Add the gradients to the graph and collect them to the array that is returned
     val jniGradients = NativeGraph.addGradients(graph.nativeHandle, yJNI, xJNI, dxJNI)
     jniGradients.map(o => {
-      val op = graph.opsCache.getOrElseUpdate(o.opHandle, Op(graph, None, o.opHandle))
+      val op = graph.opsCache.getOrElseUpdate(o.opHandle, {
+        Op[Seq[Output[Any]], Seq[Output[Any]]](graph, None, o.opHandle)
+      })
       Output(op, o.outputIndex)
     })
   }

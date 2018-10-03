@@ -106,7 +106,7 @@ class BeamSearchDecoder[T, State, StateShape](
 
   private val processedBeginTokens: Output[Int] = {
     Op.nameScope(name) {
-      Basic.tile(Basic.expandDims(beginTokens, 1), Basic.stack(Seq(1, beamWidth)))
+      Basic.tile(Basic.expandDims(beginTokens, 1), Basic.stack[Int](Seq(1, beamWidth)))
     }
   }
 
@@ -164,7 +164,7 @@ class BeamSearchDecoder[T, State, StateShape](
           onValue = Basic.zeros(FLOAT32, Shape()),
           offValue = Basic.constant(Float.MinValue)),
         finished = finished,
-        sequenceLengths = Basic.zeros(INT32, Basic.stack(Seq(batchSize, beamWidth))))
+        sequenceLengths = Basic.zeros(INT32, Basic.stack[Int](Seq(batchSize, beamWidth))))
       (finished, beginInput, initialState)
     }
   }
@@ -215,16 +215,21 @@ class BeamSearchDecoder[T, State, StateShape](
       }
 
       var lengthsToAdd = Basic.oneHot(
-        indices = Basic.fill(endToken.dataType, Basic.stack(Seq(batchSize, beamWidth)))(endToken),
-        depth = vocabSize, onValue = 0L, offValue = 1L, dataType = INT64)
-      val addMask = Math.logicalNot(previouslyFinished).cast(INT64)
-      val newPredictionLengths = Math.add(lengthsToAdd * addMask.expandDims(2), predictionLengths.expandDims(2))
+        indices = Basic.fill(endToken.dataType, Basic.stack[Int](Seq(batchSize, beamWidth)))(endToken),
+        depth = vocabSize,
+        dataType = INT32,
+        onValue = 0,
+        offValue = 1)
+      val addMask = Math.logicalNot(previouslyFinished).toInt32
+      val newPredictionLengths = Math.add(
+        lengthsToAdd * addMask.expandDims(2),
+        predictionLengths.expandDims(2))
 
       // Calculate the scores for each search state.
       val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths).toFloat32
 
       // During the first time step we only consider the initial search state.
-      val scoresFlat = Basic.reshape(scores, Basic.stack(Seq(batchSize, -1)))
+      val scoresFlat = Basic.reshape(scores, Basic.stack[Int](Seq(batchSize, -1)))
 
       // Pick the next search states according to the specified successors function.
       val nextBeamSize = Basic.constant(beamWidth, name = "BeamWidth")
@@ -386,9 +391,9 @@ object BeamSearchDecoder {
           ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
         }
 
-        override def map[O <: OutputLikeOrTensorArray[_]](
+        override def map(
             value: DecoderOutput,
-            mapFn: O => O
+            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
         ): DecoderOutput = {
           DecoderOutput(
             scores = evFloatOutput.map(value.scores, mapFn),
@@ -396,10 +401,10 @@ object BeamSearchDecoder {
             parentIDs = evIntOutput.map(value.parentIDs, mapFn))
         }
 
-        override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+        override def mapWithShape(
             value: DecoderOutput,
             shape: (Shape, Shape, Shape),
-            mapFn: (O, Shape) => O
+            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
         ): DecoderOutput = {
           DecoderOutput(
             scores = evFloatOutput.mapWithShape(value.scores, shape._1, mapFn),
@@ -483,9 +488,9 @@ object BeamSearchDecoder {
           ((modelStateShape, shapesTail(0), shapesTail(1), shapesTail(2)), shapesTail.drop(3))
         }
 
-        override def map[O <: OutputLikeOrTensorArray[_]](
+        override def map(
             value: DecoderState[S, SS],
-            mapFn: O => O
+            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
         ): DecoderState[S, SS] = {
           DecoderState(
             modelState = evState.map(value.modelState, mapFn),
@@ -494,10 +499,10 @@ object BeamSearchDecoder {
             finished = evBooleanOutput.map(value.finished, mapFn))
         }
 
-        override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+        override def mapWithShape(
             value: DecoderState[S, SS],
             shape: (SS, Shape, Shape, Shape),
-            mapFn: (O, Shape) => O
+            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
         ): DecoderState[S, SS] = {
           DecoderState(
             modelState = evState.mapWithShape(value.modelState, shape._1, mapFn),
@@ -571,19 +576,19 @@ object BeamSearchDecoder {
           ((shapes(0), outputShape), shapesTail)
         }
 
-        override def map[O <: OutputLikeOrTensorArray[_]](
+        override def map(
             value: FinalOutput,
-            mapFn: O => O
+            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
         ): FinalOutput = {
           FinalOutput(
             evIntOutput.map(value.predictedIDs, mapFn),
             evDecoderOutput.map(value.output, mapFn))
         }
 
-        override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+        override def mapWithShape(
             value: FinalOutput,
             shape: (Shape, (Shape, Shape, Shape)),
-            mapFn: (O, Shape) => O
+            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
         ): FinalOutput = {
           FinalOutput(
             evIntOutput.mapWithShape(value.predictedIDs, shape._1, mapFn),
@@ -619,10 +624,10 @@ object BeamSearchDecoder {
       offValue = Basic.constant(Float.MinValue))
     val finishedLogProbabilities = Basic.tile(
       input = finishedRow.reshape(Shape(1, 1, -1)),
-      multiples = Basic.concatenate(Seq(Basic.shape(finished, INT32), Tensor(1)), 0))
+      multiples = Basic.concatenate[Int](Seq(Basic.shape(finished, INT32), Tensor(1)), 0))
     val finishedMask = Basic.tile(
       input = finished.expandDims(2),
-      multiples = Basic.stack(Seq(1, 1, vocabSize)))
+      multiples = Basic.stack[Int](Seq(1, 1, vocabSize)))
     Math.select(finishedMask, finishedLogProbabilities, logProbabilities)
   }
 
@@ -758,7 +763,7 @@ object BeamSearchDecoder {
       case (output: Output[_], s: Shape) =>
         val valueShape = Basic.shape(output, INT32)
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
-          batchSize(NewAxis), Tensor(batchSize.dataType, beamWidth).toOutput,
+          batchSize(NewAxis), Tensor.ofType(batchSize.dataType, beamWidth).toOutput,
           valueShape(1 ::).cast(batchSize.dataType)), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val expectedReshapedShape = Shape(staticBatchSize, beamWidth) ++ s
@@ -840,7 +845,7 @@ object BeamSearchDecoder {
       case (output: Output[_], s: Shape) =>
         val valueShape = Basic.shape(output, INT32)
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
-          batchSize(NewAxis) * Tensor(batchSize.dataType, beamWidth).toOutput,
+          batchSize(NewAxis) * Tensor.ofType(batchSize.dataType, beamWidth).toOutput,
           valueShape(2 ::).cast(batchSize.dataType)), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val batchSizeBeamWidth = if (staticBatchSize != -1) staticBatchSize * beamWidth else -1
@@ -1041,7 +1046,7 @@ object BeamSearchDecoder {
           // Generate search state indices that will be reordered by the `gatherTree` op.
           val searchStateIndices = Basic.tile(
             Math.range(0, beamWidth).slice(NewAxis, NewAxis),
-            Basic.stack(Seq(maxTime, batchSize, 1)))
+            Basic.stack[Int](Seq(maxTime, batchSize, 1)))
           val mask = Basic.sequenceMask(sequenceLengths, maxTime).cast(INT32).transpose(Seq(2, 0, 1))
 
           // Use `beamWidth + 1` to mark the end of the beam.
@@ -1056,15 +1061,15 @@ object BeamSearchDecoder {
           // Generate indices for `gatherND`.
           val timeIndices = Basic.tile(
             Math.range(0, maxTime).slice(NewAxis, NewAxis),
-            Basic.stack(Seq(1, batchSize, beamWidth)))
+            Basic.stack[Int](Seq(1, batchSize, beamWidth)))
           val batchIndices = Basic.tile(
             Math.range(0, batchSize).slice(NewAxis, NewAxis),
-            Basic.stack(Seq(1, maxTime, beamWidth))).transpose(Seq(1, 0, 2))
+            Basic.stack[Int](Seq(1, maxTime, beamWidth))).transpose(Seq(1, 0, 2))
           val indices = Basic.stack(Seq(timeIndices, batchIndices, sortedSearchStateIndices), -1)
 
           // Gather from a tensor with collapsed additional dimensions.
           val finalShape = Basic.shape(stackedTensorArray, INT32)
-          val gatherFrom = stackedTensorArray.reshape(Basic.stack(Seq(maxTime, batchSize, beamWidth, -1)))
+          val gatherFrom = stackedTensorArray.reshape(Basic.stack[Int](Seq(maxTime, batchSize, beamWidth, -1)))
           Basic.gatherND(gatherFrom, indices).reshape(finalShape).asInstanceOf[O]
         }
       case _ =>

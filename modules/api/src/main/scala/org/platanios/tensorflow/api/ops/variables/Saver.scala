@@ -1001,7 +1001,7 @@ trait SaverDefBuilder {
       name: String = "Save"
   ): Output[String] = {
     val saveOp = save(prefix, saveables, name)
-    ControlFlow.withControlDependencies(Set(saveOp), prefix)
+    ControlFlow.withControlDependencies(Set(saveOp.asUntyped), prefix)
   }
 
   /** Adds ops to save sharded (per device) objects.
@@ -1023,7 +1023,7 @@ trait SaverDefBuilder {
   ): Output[String] = {
     checkpointFormatVersion match {
       case SaverDef.CheckpointFormatVersion.V1 =>
-        val numberOfShards = Tensor(INT32, saveablesByDevice.length).toOutput
+        val numberOfShards = Tensor.ofType(INT32, saveablesByDevice.length).toOutput
         val shardedSaves = saveablesByDevice.zipWithIndex.map {
           case ((device, saveables), shard) =>
             Op.createWith(device = Saver.setCPU0(device)) {
@@ -1078,7 +1078,7 @@ trait SaverDefBuilder {
           val mergeOp = SaverDefBuilder.mergeV2Checkpoints(
             concatenatedPrefixes, prefix, deleteOldDirectories = true)
           // Returns the prefix "<user-fed prefix>" only, without the sharded specification suffix.
-          ControlFlow.withControlDependencies(Set(mergeOp), prefix)
+          ControlFlow.withControlDependencies(Set(mergeOp.asUntyped), prefix)
         }
       case _ => throw new IllegalArgumentException(
         s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
@@ -1163,7 +1163,7 @@ trait SaverDefBuilder {
         }
     }
     // Create a no-op that has control dependencies for all the updates.
-    ControlFlow.group(restoreOps.toSet).asInstanceOf[Op[Seq[Output[Any]], Unit]]
+    ControlFlow.group(restoreOps.map(_.asUntyped).toSet).asInstanceOf[Op[Seq[Output[Any]], Unit]]
   }
 
   /** Adds save/restore nodes to the graph and creates and returns a [[SaverDef]] proto.

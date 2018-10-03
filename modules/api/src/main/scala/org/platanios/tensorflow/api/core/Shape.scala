@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types.{DataType, INT64}
@@ -336,9 +337,9 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     */
   def toTensor[T](dataType: DataType[T]): Tensor[T] = {
     if (rank == 0)
-      Tensor(dataType)
+      Tensor.ofType(dataType)
     else
-      Tensor(asArray.head, asArray.tail: _*).cast(dataType)
+      Tensor.ofType(dataType, asArray.head, asArray.tail: _*)
   }
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).

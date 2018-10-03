@@ -217,10 +217,10 @@ class YellowFin protected (
         // with x = y + 1. It gives y^3 + py = q, where p = (D^2 h_min^2)/(2*C) and q = -p. We use the Vieta's
         // substitution (http://mathworld.wolfram.com/VietasSubstitution.html) to compute the root. There is only one real
         // solution y (which is in [0, 1]).
-        val p = Math.square(distAvg) * Math.square(hMin) / (2.0f * gradVar)
-        val w3 = (-Math.sqrt(Math.square(p) + 4.0f * Math.pow(p, 3) / 27.0f) - p) / 2.0f
+        val p = Math.square(distAvg) * Math.square(hMin) / (gradVar * 2.0f)
+        val w3 = (-Math.sqrt(Math.square(p) + Math.pow(p, 3.0f) * 4.0f / 27.0f) - p) / 2.0f
         val w = Math.sign(w3) * Math.pow(Math.abs(w3), 1.0f / 3.0f)
-        val y = w - p / (3.0f * w)
+        val y = w - p / (w * 3.0f)
         val cubicRoot = y + 1.0f
         val dr = hMax / hMin
         Math.maximum(Math.square(cubicRoot), Math.square((Math.sqrt(dr) - 1.0f) / (Math.sqrt(dr) + 1.0f)))
@@ -229,7 +229,7 @@ class YellowFin protected (
       name = "MomentumTuneCond")).toFloat32
 
     def getLearningRate = {
-      (Math.square(1.0f - Math.sqrt(momentum)) / hMin).toFloat32
+      (Math.square(Math.subtract(1.0f, Math.sqrt(momentum))) / hMin).toFloat32
     }
 
     val learningRate = Op.createWith(controlDependencies = Set(momentum.op)) {
@@ -242,8 +242,8 @@ class YellowFin protected (
 
     // Tune the learning rate and the momentum.
     val updateOps = Op.createWith(controlDependencies = Set(momentum.op, learningRate.op)) {
-      val updatedMu = Math.add(betaTensor * momentumVariable.value, (1.0f - betaTensor) * momentum)
-      val updatedLR = Math.add(betaTensor * learningRateVariable.value, (1.0f - betaTensor) * learningRate)
+      val updatedMu = Math.add(betaTensor * momentumVariable.value, Math.subtract(1.0f, betaTensor) * momentum)
+      val updatedLR = Math.add(betaTensor * learningRateVariable.value, Math.subtract(1.0f, betaTensor) * learningRate)
       val momentumUpdate = momentumVariable.assign(updatedMu, name = "MomentumUpdate")
       val learningRateUpdate = learningRateVariable.assign(updatedLR, name = "LearningRateUpdate")
       Set(momentumUpdate.op, learningRateUpdate.op)

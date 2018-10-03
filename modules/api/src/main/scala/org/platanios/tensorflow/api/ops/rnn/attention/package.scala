@@ -132,9 +132,9 @@ package object attention {
           ((shape1, shape2, shape3, shape4, shape5, shape6), tail6)
         }
 
-        override def map[O <: OutputLikeOrTensorArray[_]](
+        override def map(
             value: AttentionWrapperState[T, S, SS, AS, ASS],
-            mapFn: O => O
+            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
         ): AttentionWrapperState[T, S, SS, AS, ASS] = {
           val cellState = evS.map(value.cellState, mapFn)
           val time = evInt.map(value.time, mapFn)
@@ -146,10 +146,10 @@ package object attention {
             cellState, time, attention, alignments, alignmentsHistory, attentionState)
         }
 
-        override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+        override def mapWithShape(
             value: AttentionWrapperState[T, S, SS, AS, ASS],
             shape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], ASS),
-            mapFn: (O, Shape) => O
+            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
         ): AttentionWrapperState[T, S, SS, AS, ASS] = {
           val cellState = evS.mapWithShape(value.cellState, shape._1, mapFn)
           val time = evInt.mapWithShape(value.time, shape._2, mapFn)

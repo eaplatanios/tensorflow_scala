@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
 import org.platanios.tensorflow.api.types.{DataType, INT32, INT64, IsNumeric}
@@ -261,12 +260,12 @@ object Output {
       case "Size" =>
         val inputShape = output.op.inputsSeq(0).shape
         if (inputShape.isFullyDefined)
-          Some(Tensor(INT32, inputShape.asArray.product))
+          Some(Tensor.ofType(INT32, inputShape.asArray.product))
         None
       case "Rank" =>
         val inputShape = output.op.inputsSeq(0).shape
         if (inputShape.numElements != -1)
-          Some(Tensor(INT32, inputShape.numElements.toInt))
+          Some(Tensor.ofType(INT32, inputShape.numElements.toInt))
         None
       case "Range" =>
         constantValue(output.op.inputsSeq(0))
@@ -559,7 +558,7 @@ final case class OutputIndexedSlices[+T](
   * Concretely, the sparse tensor `SparseOutput(indices, values, denseShape)` comprises the following components,
   * where `N` and `rank` are the number of values and number of dimensions in the [[SparseOutput]], respectively:
   *
-  *   - `indices`: Two-dimensional [[INT64]] tensor with shape `[N, rank]`, which specifies the indices of the elements
+  *   - `indices`: Two-dimensional tensor with shape `[N, rank]`, which specifies the indices of the elements
   *     in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
   *     `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
   *     values.

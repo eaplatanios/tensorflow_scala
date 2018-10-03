@@ -346,7 +346,7 @@ object Metric {
           // If weights are scalar, do nothing. Otherwise, try to add or remove an axis to match predictions.
           matchedWeights = matchedWeights.map(mw => {
             ControlFlow.cond(
-              Math.equal(mw, 0),
+              Math.equal(mw, 0.0f),
               () => mw,
               () => ControlFlow.cond(
                 Math.equal(rankDiff, -1),

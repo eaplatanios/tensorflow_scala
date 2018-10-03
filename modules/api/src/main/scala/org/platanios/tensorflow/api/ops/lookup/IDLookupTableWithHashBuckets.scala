@@ -126,7 +126,7 @@ object IDLookupTableWithHashBuckets {
   }
 
   @throws[IllegalArgumentException]
-  def apply[K: IsStringOrIntOrUInt](
+  def empty[K: IsStringOrIntOrUInt](
       keysDataType: DataType[K],
       numOOVBuckets: Int,
       hashSpecification: HashSpecification = FAST_HASH,

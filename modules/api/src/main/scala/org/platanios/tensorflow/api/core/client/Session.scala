@@ -16,11 +16,10 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
-
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 /** Sessions provide the client interface for interacting with TensorFlow computations.
@@ -72,8 +71,8 @@ class Session private[api](
   @throws[IllegalStateException]
   def run[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output[_]],
-      targets: E = Traversable.empty[Op[_, _]],
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Traversable.empty[UntypedOp],
       options: Option[RunOptions] = None
   )(implicit
       executable: Executable[E],
@@ -112,8 +111,8 @@ class Session private[api](
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output[_]],
-      targets: E = Traversable.empty[Op[_, _]],
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Traversable.empty[Any],
       options: Option[RunOptions] = None
   )(implicit
       executable: Executable[E],
@@ -126,8 +125,8 @@ class Session private[api](
   @throws[IllegalStateException]
   private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output[_]],
-      targets: E = Traversable.empty[Op[_, _]],
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Traversable.empty[Any],
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
   )(implicit
@@ -197,7 +196,7 @@ class Session private[api](
   }
 }
 
-/** Contains helper functions for managing [[Session]] instances. */
+/** Contains helper functions for managing sessions. */
 object Session {
   def apply(
       graph: Graph = Op.currentGraph,

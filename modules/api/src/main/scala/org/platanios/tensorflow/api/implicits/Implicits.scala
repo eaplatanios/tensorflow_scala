@@ -25,25 +25,24 @@ import org.platanios.tensorflow.api.tensors
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits
-    extends LowPriorityImplicits
+    extends Priority3Implicits
         with IndexerImplicits {
-  /** Convenient implicit conversion function used to convert devices specified as [[String]]s for use with the
+  /** Convenient implicit conversion function used to convert devices specified as strings for use with the
     * [[Op.createWith]] function, to the expected device function format taking an [[OpSpecification]] as input and
     * return a device specification string.
     *
     * @param  device Device specification string.
     * @return Function that returns `device` for any [[OpSpecification]] used as input.
     */
-  implicit def deviceImplicitConversion(device: String): OpSpecification => String = _ => device
+  implicit def deviceImplicitConversion(device: String): OpSpecification => String = {
+    _ => device
+  }
 }
 
-private[api] trait LowPriorityImplicits
-    extends LowestPriorityImplicits
-        with core.Implicits
+private[api] trait Priority3Implicits
+    extends core.Implicits
+        with ops.Implicits
         with tensors.Implicits
         with LearnImplicits
-
-private[api] trait LowestPriorityImplicits
-  extends ops.Implicits
 
 private[api] object Implicits extends Implicits

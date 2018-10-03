@@ -327,7 +327,7 @@ private[api] trait ControlFlow {
 }
 
 private[api] object ControlFlow extends ControlFlow {
-  private[control_flow] trait Implicits {
+  private[ops] trait Implicits {
     implicit class ControlFlowOps(val op: UntypedOp) {
       /** Returns `true` if the provided op is within a cond statement. */
       def isInCond: Boolean = {
@@ -1089,9 +1089,9 @@ private[api] object ControlFlow extends ControlFlow {
             input = o.map(_.asInstanceOf[Output[T]])
           ).setGradientFn(mergeGradient)
               .build().output
-        case o if o.forall(_.isInstanceOf[SparseOutput]) =>
+        case o if o.forall(_.isInstanceOf[SparseOutput[T]]) =>
           Op.nameScope(name) {
-            val oo = o.map(_.asInstanceOf[SparseOutput])
+            val oo = o.map(_.asInstanceOf[SparseOutput[T]])
             val (indices, chosenIndex) = merge(oo.map(_.indices), "Indices")
             val (values, _) = merge(oo.map(_.values), "Values")
             val (denseShape, _) = if (oo.map(_.denseShape).exists(_ != null)) {

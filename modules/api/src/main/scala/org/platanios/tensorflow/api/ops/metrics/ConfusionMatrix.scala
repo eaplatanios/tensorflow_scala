@@ -112,10 +112,11 @@ class ConfusionMatrix[T: IsNumeric](
       matchedTargets = ControlFlow.withControlDependencies(
         Set(Checks.assertNonNegative(
           matchedTargets,
-          message = "'targets' contains negative values").asUntyped), matchedTargets)
+          message = "'targets' contains negative values").asUntyped),
+        matchedTargets)
       val inferredNumClasses = {
         if (numClassesOutput == null) {
-          Math.add(Math.maximum(matchedPredictions.max(), matchedTargets.max()), 1)
+          Math.add(Math.maximum(matchedPredictions.max(), matchedTargets.max()), 1L)
         } else {
           val castedNumClasses = numClassesOutput.cast(INT64)
           matchedTargets = ControlFlow.withControlDependencies(

@@ -85,19 +85,19 @@ package object cell {
           ((shapes(0), shapes(1)), shapes.drop(2))
         }
 
-        override def map[O <: OutputLikeOrTensorArray[_]](
+        override def map(
             value: LSTMState[T],
-            mapFn: O => O
+            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
         ): LSTMState[T] = {
           LSTMState(
             c = evT.map(value.c, mapFn),
             m = evT.map(value.m, mapFn))
         }
 
-        override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+        override def mapWithShape(
             value: LSTMState[T],
             shape: (Shape, Shape),
-            mapFn: (O, Shape) => O
+            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
         ): LSTMState[T] = {
           LSTMState(
             evT.mapWithShape(value.c, shape._1, mapFn),

@@ -181,19 +181,19 @@ object BasicDecoder {
           ((modelOutput, sample), tail)
         }
 
-        override def map[O <: OutputLikeOrTensorArray[_]](
+        override def map(
             value: DecoderOutput[Out, OutShape, Sample, SampleShape],
-            mapFn: O => O
+            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
         ): DecoderOutput[Out, OutShape, Sample, SampleShape] = {
           DecoderOutput(
             modelOutput = whileLoopEvO.map(value.modelOutput, mapFn),
             sample = whileLoopEvS.map(value.sample, mapFn))
         }
 
-        override def mapWithShape[O <: OutputLikeOrTensorArray[_]](
+        override def mapWithShape(
             value: DecoderOutput[Out, OutShape, Sample, SampleShape],
             shape: (OutShape, SampleShape),
-            mapFn: (O, Shape) => O
+            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
         ): DecoderOutput[Out, OutShape, Sample, SampleShape] = {
           DecoderOutput(
             modelOutput = whileLoopEvO.mapWithShape(value.modelOutput, shape._1, mapFn),

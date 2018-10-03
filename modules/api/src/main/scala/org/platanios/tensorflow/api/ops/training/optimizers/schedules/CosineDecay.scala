@@ -85,7 +85,7 @@ class CosineDecay protected (
       cycleSteps: Output[Float],
       alpha: Output[Float]
   ): Output[Float] = {
-    val cosineDecay = 0.5f * (1.0f + Math.cos(math.Pi.toFloat * Math.minimum(step, cycleSteps) / cycleSteps))
+    val cosineDecay = 0.5f * (1.0f + Math.cos(Math.minimum(step, cycleSteps) * math.Pi.toFloat / cycleSteps))
     (1.0f - alpha) * cosineDecay + alpha
   }
 }

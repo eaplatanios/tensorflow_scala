@@ -79,28 +79,29 @@ package object api extends implicits.Implicits with Documentation {
   val NewAxis: Indexer = core.NewAxis
   val ::     : Slice   = core.Slice.::
 
-  type TensorLike[T] = tensors.TensorLike[T]
-  type Tensor[T] = tensors.Tensor[T]
-  type TensorIndexedSlices[T] = tensors.TensorIndexedSlices[T]
-  type SparseTensor[T] = tensors.SparseTensor[T]
+  type TensorLike[+T] = tensors.TensorLike[T]
+  type Tensor[+T] = tensors.Tensor[T]
+  type TensorIndexedSlices[+T] = tensors.TensorIndexedSlices[T]
+  type SparseTensor[+T] = tensors.SparseTensor[T]
 
   val Tensor             : tensors.Tensor.type              = tensors.Tensor
   val TensorIndexedSlices: tensors.TensorIndexedSlices.type = tensors.TensorIndexedSlices
   val SparseTensor       : tensors.SparseTensor.type        = tensors.SparseTensor
 
-  type Op = ops.Op
-  val Op: ops.Op.type = ops.Op
+  type Op[+I, +O] = ops.Op[I, O]
 
-  type OutputLike = ops.OutputLike
-  type Output = ops.Output
-  type OutputIndexedSlices = ops.OutputIndexedSlices
-  type SparseOutput = ops.SparseOutput
-  type Variable = ops.variables.Variable
-  type PartitionedVariable = ops.variables.PartitionedVariable
+  type OutputLike[+T] = ops.OutputLike[T]
+  type Output[+T] = ops.Output[T]
+  type OutputIndexedSlices[+T] = ops.OutputIndexedSlices[T]
+  type SparseOutput[+T] = ops.SparseOutput[T]
 
+  type TensorArray[+T] = ops.TensorArray[T]
+
+  val Op         : ops.Op.type          = ops.Op
   val Output             : ops.Output.type              = ops.Output
   val OutputIndexedSlices: ops.OutputIndexedSlices.type = ops.OutputIndexedSlices
   val SparseOutput       : ops.SparseOutput.type        = ops.SparseOutput
+  val TensorArray: ops.TensorArray.type = ops.TensorArray
 
   //region Data Types API
 
@@ -208,10 +209,7 @@ package object api extends implicits.Implicits with Documentation {
   object tf
       extends core.API
           with ops.API {
-    object data extends api.ops.io.API
-    object distribute extends api.ops.training.distribute.API
     object learn extends api.learn.API
-    object metrics extends api.ops.metrics.API
   }
 
   /** @groupname BasicOps       Ops / Basic

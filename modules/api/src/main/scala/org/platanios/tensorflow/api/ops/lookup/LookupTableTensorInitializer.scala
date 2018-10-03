@@ -45,7 +45,7 @@ class LookupTableTensorInitializer[K, +V] protected (
         name = name,
         input = (table.handle, keys, values)
       ).build()
-      Op.currentGraph.addToCollection(initializationOp, Graph.Keys.TABLE_INITIALIZERS)
+      Op.currentGraph.addToCollection(initializationOp.asUntyped, Graph.Keys.TABLE_INITIALIZERS)
       initializationOp.asUntyped
     }
   }

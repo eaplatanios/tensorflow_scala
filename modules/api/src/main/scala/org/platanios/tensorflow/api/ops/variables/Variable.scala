@@ -912,7 +912,7 @@ private[api] object Variable {
       if (variables.isEmpty) {
         // Return an empty tensor so we only need to check for the returned tensor size being 0 as an indication of
         // model readiness.
-        Basic.constant(Tensor(STRING))
+        Basic.constant(Tensor.ofType(STRING))
       } else {
         // Get a 1-D boolean tensor listing whether each variable is initialized.
         val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toSeq))
@@ -953,7 +953,7 @@ private[api] object Variable {
         path.add(op.name)
         op.inputsSeq.exists(i => hasCycle(i.op, path))
       } || {
-        val exists = op.controlInputs.exists(i => hasCycle(i.op, path))
+        val exists = op.controlInputs.exists(i => hasCycle(i, path))
         if (!exists)
           path.remove(op.name)
         exists

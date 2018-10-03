@@ -189,7 +189,7 @@ trait RNN {
         def reverse(input: O): O = {
           var sequence = evO.outputs(input)
           if (sequenceLengths == null)
-            sequence = sequence.map(input => Basic.reverse(input, Tensor(timeAxis)))
+            sequence = sequence.map(input => Basic.reverse(input, timeAxis))
           else
             sequence = sequence.map(input => Basic.reverseSequence(input, sequenceLengths, timeAxis, batchAxis))
           evO.fromOutputs(input, sequence)
@@ -437,7 +437,7 @@ object RNN extends RNN {
       val rank = Basic.rank(input)
       val transposed = Basic.transpose(
         input,
-        Basic.concatenate(Seq(
+        Basic.concatenate[Int](Seq(
           Seq(1, 0),
           Math.range(2, rank)
         ), axis = 0))

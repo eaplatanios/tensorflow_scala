@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 import org.platanios.tensorflow.api.types.IsNotQuantized
 

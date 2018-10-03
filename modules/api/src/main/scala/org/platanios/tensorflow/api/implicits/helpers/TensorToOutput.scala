@@ -22,7 +22,7 @@ import shapeless._
 import shapeless.ops.hlist.Tupler
 
 import scala.collection.generic.CanBuildFrom
-import scala.collection.{MapLike, mutable}
+import scala.collection.{MapLike, SeqLike}
 import scala.reflect.ClassTag
 
 /** Type trait used to map structures of tensors to structures of symbolic tensors.
@@ -105,7 +105,7 @@ object TensorToOutput {
     }
   }
 
-  implicit def fromSeq[T, OO, CC[A] <: mutable.SeqLike[A, CC[A]]](implicit
+  implicit def fromSeq[T, OO, CC[A] <: SeqLike[A, CC[A]]](implicit
       ev: Aux[T, OO],
       cbfTO: CanBuildFrom[CC[T], OO, CC[OO]]
   ): Aux[CC[T], CC[OO]] = {

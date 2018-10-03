@@ -136,6 +136,38 @@ object DataType {
   val RESOURCE  : DataType[Long]          = DataType[Long]("RESOURCE", cValue = 20, byteSize = Some(1), DT_RESOURCE)
   val VARIANT   : DataType[Long]          = DataType[Long]("VARIANT", cValue = 21, byteSize = Some(1), DT_VARIANT)
 
+  private def erasedValue[T]: T = {
+    null.asInstanceOf[T]
+  }
+
+  implicit def dataType[T]: DataType[T] = {
+    val dataType = erasedValue[T] match {
+      case _: String => STRING
+      case _: Boolean => BOOLEAN
+      case _: Half => FLOAT16
+      case _: Float => FLOAT32
+      case _: Double => FLOAT64
+      case _: TruncatedHalf => BFLOAT16
+      case _: ComplexFloat => COMPLEX64
+      case _: ComplexDouble => COMPLEX128
+      case _: Byte => INT8
+      case _: Short => INT16
+      case _: Int => INT32
+      case _: Long => INT64
+      case _: UByte => UINT8
+      case _: UShort => UINT16
+      case _: UInt => UINT32
+      case _: ULong => UINT64
+      case _: QByte => QINT8
+      case _: QShort => QINT16
+      case _: QInt => QINT32
+      case _: QUByte => QUINT8
+      case _: QUShort => QUINT16
+      case _ => ???
+    }
+    dataType.asInstanceOf[DataType[T]]
+  }
+
   //endregion Data Type Instances
 
   //region Helper Methods

@@ -80,7 +80,9 @@ package object ops {
           with ops.rnn.API
           with ops.seq2seq.API
           with ops.variables.API {
+    object data extends ops.data.API
     object image extends Image
+    object metrics extends ops.metrics.API
     object train extends training.API
 
     object summary extends Summary {
@@ -91,33 +93,21 @@ package object ops {
     type OpCreationContext = ops.GraphConstructionScope
     type OpSpecification = ops.OpSpecification
 
-    type Op[+I, +O] = ops.Op[I, O]
-
-    type OutputLike[+T] = ops.OutputLike[T]
-    type Output[+T] = ops.Output[T]
-    type OutputIndexedSlices[+T] = ops.OutputIndexedSlices[T]
-    type SparseOutput[+T] = ops.SparseOutput[T]
-
-    type TensorArray[+T] = ops.TensorArray[T]
-
-    val Op         : ops.Op.type          = ops.Op
-    val TensorArray: ops.TensorArray.type = ops.TensorArray
-
-    def currentGraph: Graph = Op.currentGraph
-    def currentNameScope: String = Op.currentNameScope
-    def currentDevice: String = Op.currentDevice
-    def currentDeviceFunction: OpSpecification => String = Op.currentDeviceFunction
-    def currentColocationOps: Set[UntypedOp] = Op.currentColocationOps
-    def currentControlDependencies: Set[UntypedOp] = Op.currentControlDependencies
-    def currentAttributes: Map[String, Any] = Op.currentAttributes
-    def currentContainer: String = Op.currentContainer
+    def currentGraph: Graph = ops.Op.currentGraph
+    def currentNameScope: String = ops.Op.currentNameScope
+    def currentDevice: String = ops.Op.currentDevice
+    def currentDeviceFunction: OpSpecification => String = ops.Op.currentDeviceFunction
+    def currentColocationOps: Set[UntypedOp] = ops.Op.currentColocationOps
+    def currentControlDependencies: Set[UntypedOp] = ops.Op.currentControlDependencies
+    def currentAttributes: Map[String, Any] = ops.Op.currentAttributes
+    def currentContainer: String = ops.Op.currentContainer
 
     def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
-      Op.currentGraphRandomSeed(opSeed)
+      ops.Op.currentGraphRandomSeed(opSeed)
     }
 
     def setCurrentGraphRandomSeed(value: Int): Unit = {
-      Op.setCurrentGraphRandomSeed(value)
+      ops.Op.setCurrentGraphRandomSeed(value)
     }
 
     def createWith[R](
@@ -125,50 +115,50 @@ package object ops {
         deviceFunction: OpSpecification => String = _.device, colocationOps: Set[UntypedOp] = null,
         controlDependencies: Set[UntypedOp] = null, attributes: Map[String, Any] = null, container: String = null
     )(block: => R): R = {
-      Op.createWith(
+      ops.Op.createWith(
         graph, nameScope, device, deviceFunction, colocationOps, controlDependencies, attributes, container)(block)
     }
 
     def nameScope[R](nameScope: String)(block: => R): R = {
-      Op.nameScope(nameScope)(block)
+      ops.Op.nameScope(nameScope)(block)
     }
 
     def device[R](
         device: String = "",
         deviceFunction: OpSpecification => String = _.device
     )(block: => R): R = {
-      Op.device(device, deviceFunction)(block)
+      ops.Op.device(device, deviceFunction)(block)
     }
 
     def colocateWith[R](
         colocationOps: Set[UntypedOp],
         ignoreExisting: Boolean = false
     )(block: => R): R = {
-      Op.colocateWith(colocationOps, ignoreExisting)(block)
+      ops.Op.colocateWith(colocationOps, ignoreExisting)(block)
     }
 
     def initializationScope[R](block: => R): R = {
-      Op.initializationScope(block)
+      ops.Op.initializationScope(block)
     }
 
     def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): UntypedOp = {
-      Op.currentGraph.globalVariablesInitializer(name)
+      ops.Op.currentGraph.globalVariablesInitializer(name)
     }
 
     def localVariablesInitializer(name: String = "LocalVariablesInitializer"): UntypedOp = {
-      Op.currentGraph.localVariablesInitializer(name)
+      ops.Op.currentGraph.localVariablesInitializer(name)
     }
 
     def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): UntypedOp = {
-      Op.currentGraph.modelVariablesInitializer(name)
+      ops.Op.currentGraph.modelVariablesInitializer(name)
     }
 
     def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): UntypedOp = {
-      Op.currentGraph.metricVariablesInitializer(name)
+      ops.Op.currentGraph.metricVariablesInitializer(name)
     }
 
     def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): UntypedOp = {
-      Op.currentGraph.trainableVariablesInitializer(name)
+      ops.Op.currentGraph.trainableVariablesInitializer(name)
     }
   }
 }

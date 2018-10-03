@@ -124,7 +124,11 @@ trait Optimizer {
     }.toSeq
     if (collectedVariables.isEmpty)
       throw new IllegalArgumentException("There are no variables to optimize.")
-    val variableProcessors = collectedVariables.map(getVariableProcessor)
+
+    // TODO: [TYPES] !!! Super hacky. Remove in the future.
+    implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
+
+    val variableProcessors = collectedVariables.map(getVariableProcessor(_)(ev))
     val variableTargets = variableProcessors.map(_.target)
     val gradients = {
       val gradients = Gradients.gradients(
@@ -135,7 +139,7 @@ trait Optimizer {
         aggregationMethod = gradientsAggregationMethod,
         colocateGradientsWithOps = colocateGradientsWithOps)
       if (gradientsGatingMethod == Gradients.GraphGating) {
-        ControlFlow.tuple(gradients.toArray)
+        ControlFlow.tuple(gradients)
       } else {
         gradients
       }
@@ -497,7 +501,7 @@ private[optimizers] object Optimizer {
     val summedValues = Math.unsortedSegmentSum(
       data = input.values,
       segmentIndices = newIndexPositions,
-      segmentsNumber = Basic.shape(uniqueIndices, INT64).slice(0))
+      segmentsNumber = Basic.shape(uniqueIndices, INT32).slice(0))
     OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
   }
 }

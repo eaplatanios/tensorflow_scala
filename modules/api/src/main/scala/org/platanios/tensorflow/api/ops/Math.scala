@@ -271,19 +271,12 @@ trait Math {
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
-    def gradient(
-        op: Op[(Output[T], OutputLike[T]), Output[T]],
-        outputGradient: Output[T]
-    ): (Output[T], OutputLike[T]) = {
-      reciprocalHessian(op, outputGradient)
-    }
-
-    Gradients.unaryHelper(
+    Gradients.unaryHelper[T, OutputLike, OutputLike](
       op.output,
       outputGradient,
       opType = "ReciprocalGrad",
       name = "ReciprocalGradient",
-      gradientFn = Some(gradient))
+      gradientFn = Some(reciprocalHessian(_, _)(implicitly[IsNotQuantized[T]])))
   }
 
   protected def reciprocalHessian[T: IsNotQuantized](
@@ -295,20 +288,12 @@ trait Math {
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val ca = conjugate(a)
       val cg = conjugate(outputGradient)
-
-      def gradient(
-          op: Op[(Output[T], OutputLike[T]), Output[T]],
-          outputGradient: Output[T]
-      ): (Output[T], OutputLike[T]) = {
-        reciprocalHessian(op, outputGradient)
-      }
-
-      val rg = Gradients.unaryHelper(
+      val rg = Gradients.unaryHelper[T, OutputLike, OutputLike](
         ca,
         outputGradient,
         opType = "ReciprocalGrad",
         name = "ReciprocalGradient",
-        gradientFn = Some(gradient))
+        gradientFn = Some(reciprocalHessian(_, _)(implicitly[IsNotQuantized[T]])))
       (Basic.constant(-2).cast(cg.dataType) * cg * b * ca, rg)
     }
   }
@@ -372,19 +357,12 @@ trait Math {
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
-    def gradient(
-        op: Op[(Output[T], OutputLike[T]), Output[T]],
-        outputGradient: Output[T]
-    ): (Output[T], OutputLike[T]) = {
-      sqrtHessian(op, outputGradient)
-    }
-
-    Gradients.unaryHelper(
+    Gradients.unaryHelper[T, OutputLike, OutputLike](
       op.output,
       outputGradient,
       opType = "SqrtGrad",
       name = "SqrtGradient",
-      gradientFn = Some(gradient))
+      gradientFn = Some(sqrtHessian(_, _)(implicitly[IsNotQuantized[T]])))
   }
 
   protected def sqrtHessian[T: IsNotQuantized](
@@ -425,19 +403,12 @@ trait Math {
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
-    def gradient(
-        op: Op[(Output[T], OutputLike[T]), Output[T]],
-        outputGradient: Output[T]
-    ): (Output[T], OutputLike[T]) = {
-      rsqrtHessian(op, outputGradient)
-    }
-
-    Gradients.unaryHelper(
+    Gradients.unaryHelper[T, OutputLike, OutputLike](
       op.output,
       outputGradient,
       opType = "RsqrtGrad",
       name = "RSqrtGradient",
-      gradientFn = Some(gradient))
+      gradientFn = Some(rsqrtHessian(_, _)(implicitly[IsNotQuantized[T]])))
   }
 
   protected def rsqrtHessian[T: IsNotQuantized](
@@ -450,19 +421,12 @@ trait Math {
       val ca = conjugate(a)
       val cg = conjugate(outputGradient)
 
-      def gradient(
-          op: Op[(Output[T], OutputLike[T]), Output[T]],
-          outputGradient: Output[T]
-      ): (Output[T], OutputLike[T]) = {
-        rsqrtHessian(op, outputGradient)
-      }
-
-      val rg = Gradients.unaryHelper(
+      val rg = Gradients.unaryHelper[T, OutputLike, OutputLike](
         ca,
         outputGradient,
         opType = "RsqrtGrad",
         name = "RSqrtGradient",
-        gradientFn = Some(gradient))
+        gradientFn = Some(rsqrtHessian(_, _)(implicitly[IsNotQuantized[T]])))
       (Basic.constant(-1.5).cast(cg.dataType) * cg * b * square(ca), rg)
     }
   }
@@ -878,20 +842,12 @@ trait Math {
     var y = op.output
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       y = conjugate(y)
-
-      def gradient(
-          op: Op[(Output[T], OutputLike[T]), Output[T]],
-          outputGradient: Output[T]
-      ): (Output[T], OutputLike[T]) = {
-        tanhHessian(op, outputGradient)
-      }
-
-      Gradients.unaryHelper(
+      Gradients.unaryHelper[T, OutputLike, OutputLike](
         y,
         outputGradient,
         opType = "TanhGrad",
         name = "TanhGradient",
-        gradientFn = Some(gradient))
+        gradientFn = Some(tanhHessian(_, _)(implicitly[IsNotQuantized[T]])))
     }
   }
 
@@ -904,20 +860,12 @@ trait Math {
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val ca = conjugate(a)
       val cb = conjugate(b)
-
-      def gradient(
-          op: Op[(Output[T], OutputLike[T]), Output[T]],
-          outputGradient: Output[T]
-      ): (Output[T], OutputLike[T]) = {
-        tanhHessian(op, outputGradient)
-      }
-
-      val rg = Gradients.unaryHelper(
+      val rg = Gradients.unaryHelper[T, OutputLike, OutputLike](
         ca,
         outputGradient,
         opType = "TanhGrad",
         name = "TanhGradient",
-        gradientFn = Some(gradient))
+        gradientFn = Some(tanhHessian(_, _)(implicitly[IsNotQuantized[T]])))
       (Basic.constant(-2.0).cast(outputGradient.dataType) * outputGradient * cb * ca, rg)
     }
   }
@@ -1179,20 +1127,12 @@ trait Math {
     var y = op.output
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       y = conjugate(y)
-
-      def gradient(
-          op: Op[(Output[T], OutputLike[T]), Output[T]],
-          outputGradient: Output[T]
-      ): (Output[T], OutputLike[T]) = {
-        sigmoidHessian(op, outputGradient)
-      }
-
-      Gradients.unaryHelper(
+      Gradients.unaryHelper[T, OutputLike, OutputLike](
         y,
         outputGradient,
         opType = "SigmoidGrad",
         name = "SigmoidGradient",
-        gradientFn = Some(gradient))
+        gradientFn = Some(sigmoidHessian(_, _)(implicitly[IsNotQuantized[T]])))
     }
   }
 
@@ -1206,20 +1146,12 @@ trait Math {
       val ca = conjugate(a)
       val cb = conjugate(b)
       val gb = outputGradient * cb
-
-      def gradient(
-          op: Op[(Output[T], OutputLike[T]), Output[T]],
-          outputGradient: Output[T]
-      ): (Output[T], OutputLike[T]) = {
-        sigmoidHessian(op, outputGradient)
-      }
-
-      val rg = Gradients.unaryHelper(
+      val rg = Gradients.unaryHelper[T, OutputLike, OutputLike](
         ca,
         outputGradient,
         opType = "SigmoidGrad",
         name = "SigmoidGradient",
-        gradientFn = Some(gradient))
+        gradientFn = Some(sigmoidHessian(_, _)(implicitly[IsNotQuantized[T]])))
       (subtract(gb, Basic.constant(-2.0).cast(outputGradient.dataType) * gb * ca), rg)
     }
   }
@@ -2505,7 +2437,7 @@ trait Math {
     // The gradient can be expressed by dividing the product by each entry of the input tensor, but this approach
     // can't deal with zeros in the input. Here, we avoid this problem by composing the output as a product of two
     // cumulative product operations.
-    val inputShape = Basic.shape(op.input._1, INT64)
+    val inputShape = Basic.shape(op.input._1, INT32)
     // Expand the gradient to the full input shape
     val outputShapeKeptDims = Math.reducedShape(inputShape.toInt32, op.input._2)
     val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDims)
@@ -2892,7 +2824,7 @@ trait Math {
       maxLength: Output[Int] = null,
       name: String = "BinCount"
   ): Output[T] = {
-    val inputNonEmpty = greater(prod(Basic.shape(input, INT64)), 0)
+    val inputNonEmpty = greater(prod(Basic.shape(input, INT32)), 0)
     var outputSize = Cast.cast(inputNonEmpty, INT32) * (max(input) + 1)
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
@@ -4061,7 +3993,7 @@ trait Math {
         val permutation = if (flipped) mappedAxes ++ free else free ++ mappedAxes
         val newShape = if (flipped) Shape(prodAxes, prodFree) else Shape(prodFree, prodAxes)
         val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
-        val freeAxesOutput = if (freeAxes.isEmpty) Basic.constant(Tensor(INT32)) else Basic.constant(freeAxes)
+        val freeAxesOutput = if (freeAxes.isEmpty) Basic.constant(Tensor.ofType(INT32)) else Basic.constant(freeAxes)
         (reshapedA, freeAxesOutput, freeAxes)
       } else {
         val (mappedAxes, freeAxesStatic) = {
@@ -4663,6 +4595,30 @@ object Math extends Math {
         value: OC
     )(implicit f: OC => Output[T]): MathOps[T] = {
       new MathOps(f(value))
+    }
+
+    implicit def outputConvertibleToFloatOps[OC](
+        value: OC
+    )(implicit f: OC => Output[Float]): FloatOps = {
+      new FloatOps(f(value))
+    }
+
+    implicit def outputConvertibleToDoubleOps[OC](
+        value: OC
+    )(implicit f: OC => Output[Double]): DoubleOps = {
+      new DoubleOps(f(value))
+    }
+
+    implicit def outputConvertibleToComplexFloatOps[OC](
+        value: OC
+    )(implicit f: OC => Output[ComplexFloat]): ComplexFloatOps = {
+      new ComplexFloatOps(f(value))
+    }
+
+    implicit def outputConvertibleToComplexDoubleOps[OC](
+        value: OC
+    )(implicit f: OC => Output[ComplexDouble]): ComplexDoubleOps = {
+      new ComplexDoubleOps(f(value))
     }
 
     implicit class MathOps[T](val output: Output[T]) {
@@ -6057,100 +6013,6 @@ object Math extends Math {
 
       //region Complex Ops
 
-      /** Creates a new complex number with the provided imaginary part.
-        *
-        * @param  imag Imaginary part.
-        * @return Resulting complex number.
-        */
-      def toComplex(
-          imag: Output[Float] = 0.0f
-      )(implicit ev: T =:= Float): Output[ComplexFloat] = {
-        Math.complexFloat(output.asInstanceOf[Output[Float]], imag)
-      }
-
-      /** Creates a new complex number with the provided imaginary part.
-        *
-        * @param  imag Imaginary part.
-        * @return Resulting complex number.
-        */
-      def toComplex(
-          imag: Output[Double] = 0.0
-      )(implicit ev: T =:= Double): Output[ComplexDouble] = {
-        Math.complexDouble(output.asInstanceOf[Output[Double]], imag)
-      }
-
-      /** $OpDocMathReal
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def real(implicit ev: T =:= ComplexFloat): Output[Float] = {
-        Math.realFloat(output.asInstanceOf[Output[ComplexFloat]])
-      }
-
-      /** $OpDocMathReal
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def real(implicit ev: T =:= ComplexDouble): Output[Double] = {
-        Math.realDouble(output.asInstanceOf[Output[ComplexDouble]])
-      }
-
-      /** $OpDocMathImag
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def imag(implicit ev: T =:= ComplexFloat): Output[Float] = {
-        Math.imagFloat(output.asInstanceOf[Output[ComplexFloat]])
-      }
-
-      /** $OpDocMathImag
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def imag(implicit ev: T =:= ComplexDouble): Output[Double] = {
-        Math.imagDouble(output.asInstanceOf[Output[ComplexDouble]])
-      }
-
-      /** $OpDocMathAbs
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def magnitude(implicit ev: T =:= ComplexFloat): Output[Float] = {
-        Math.magnitudeFloat(output.asInstanceOf[Output[ComplexFloat]])
-      }
-
-      /** $OpDocMathAbs
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def magnitude(implicit ev: T =:= ComplexDouble): Output[Double] = {
-        Math.magnitudeDouble(output.asInstanceOf[Output[ComplexDouble]])
-      }
-
-      /** $OpDocMathAngle
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def angle(implicit ev: T =:= ComplexFloat): Output[Float] = {
-        Math.angleFloat(output.asInstanceOf[Output[ComplexFloat]])
-      }
-
-      /** $OpDocMathAngle
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def angle(implicit ev: T =:= ComplexDouble): Output[Double] = {
-        Math.angleDouble(output.asInstanceOf[Output[ComplexDouble]])
-      }
-
       /** $OpDocMathConjugate
         *
         * @group MathOps
@@ -6191,6 +6053,105 @@ object Math extends Math {
 
       //endregion Other Ops
     }
+
+    implicit class FloatOps(val output: Output[Float]) {
+      /** Creates a new complex number with the provided imaginary part.
+        *
+        * @param  imag Imaginary part.
+        * @return Resulting complex number.
+        */
+      def toComplex(imag: Output[Float] = 0.0f): Output[ComplexFloat] = {
+        Math.complexFloat(output.asInstanceOf[Output[Float]], imag)
+      }
+    }
+
+    implicit class DoubleOps(val output: Output[Double]) {
+      /** Creates a new complex number with the provided imaginary part.
+        *
+        * @param  imag Imaginary part.
+        * @return Resulting complex number.
+        */
+      def toComplex(imag: Output[Double] = 0.0): Output[ComplexDouble] = {
+        Math.complexDouble(output.asInstanceOf[Output[Double]], imag)
+      }
+    }
+
+    implicit class ComplexFloatOps(val output: Output[ComplexFloat]) {
+      /** $OpDocMathReal
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def real: Output[Float] = {
+        Math.realFloat(output.asInstanceOf[Output[ComplexFloat]])
+      }
+
+      /** $OpDocMathImag
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def imag: Output[Float] = {
+        Math.imagFloat(output.asInstanceOf[Output[ComplexFloat]])
+      }
+
+      /** $OpDocMathAbs
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def magnitude: Output[Float] = {
+        Math.magnitudeFloat(output.asInstanceOf[Output[ComplexFloat]])
+      }
+
+      /** $OpDocMathAngle
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def angle: Output[Float] = {
+        Math.angleFloat(output.asInstanceOf[Output[ComplexFloat]])
+      }
+    }
+
+    implicit class ComplexDoubleOps(val output: Output[ComplexDouble]) {
+      /** $OpDocMathReal
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def real: Output[Double] = {
+        Math.realDouble(output.asInstanceOf[Output[ComplexDouble]])
+      }
+
+
+      /** $OpDocMathImag
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def imag: Output[Double] = {
+        Math.imagDouble(output.asInstanceOf[Output[ComplexDouble]])
+      }
+
+      /** $OpDocMathAbs
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def magnitude: Output[Double] = {
+        Math.magnitudeDouble(output.asInstanceOf[Output[ComplexDouble]])
+      }
+
+      /** $OpDocMathAngle
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def angle: Output[Double] = {
+        Math.angleDouble(output.asInstanceOf[Output[ComplexDouble]])
+      }
+    }
   }
 
   /** Helper function for reduction ops that computes the reduction output shape, assuming `keepDims` is `true`.
@@ -6214,7 +6175,7 @@ object Math extends Math {
     val inputRank = Basic.size(inputShape, INT32)
     val reshapedAxes = {
       if (axes.rank == 0)
-        Basic.reshape(axes, Tensor(1))
+        Basic.reshape(axes, Seq(1))
       else
         axes
     }
