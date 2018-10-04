@@ -59,7 +59,8 @@ trait Math {
       limit: Tensor[T],
       delta: Tensor[T] = null
   ): Tensor[T] = {
-    val deltaWithDefault = if (delta == null) Tensor.ones(start.dataType, Shape()) else delta
+    implicit val evSupportedType: SupportedType[T] = start.dataType.evSupportedType
+    val deltaWithDefault = if (delta == null) Tensor.ones[T](Shape()) else delta
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.range(
       executionContext.value.nativeHandle, start.nativeHandle, limit.nativeHandle,
       deltaWithDefault.nativeHandle))
@@ -1023,7 +1024,8 @@ trait Math {
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
           range(0, Basic.rank(tensorLike))
       }
-      reductionAxes.cast(axes.dataType)
+      // TODO: [TYPES] !!! This is wrong...
+      reductionAxes.asInstanceOf[Tensor[I]]
     }
   }
 
@@ -1296,7 +1298,7 @@ trait Math {
       maxLength: Tensor[Int] = null
   ): Tensor[T] = {
     val inputNonEmpty = greater(prod(Basic.shape(input, INT32)), 0)
-    var outputSize = Cast.cast(inputNonEmpty, INT32) * add(max(input), Tensor.ones(INT32, Shape()))
+    var outputSize = inputNonEmpty.castTo[Int] * add(max(input), Tensor.ones[Int](Shape()))
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
     if (maxLength != null)
@@ -1305,9 +1307,9 @@ trait Math {
       if (weights != null) {
         weights
       } else if (dataType == null) {
-        Tensor.zeros(INT32, Shape.scalar())
+        Tensor.zeros[Int](Shape.scalar())
       } else {
-        Tensor.zeros(dataType, Shape.scalar())
+        Tensor.zeros[T](dataType, Shape.scalar)
       }
     }
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.bincount(
@@ -1791,7 +1793,7 @@ trait Math {
     def tensorDotReshape(a: Tensor[T], axes: Tensor[Int], flipped: Boolean = false): (Tensor[T], Tensor[Int]) = {
       val shapeA = Basic.shape(a, INT64)
       val rankA = Basic.rank(a)
-      val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA.cast(INT32)))
+      val mappedAxes = ((axes >= 0).castTo[Int] * axes) + ((axes < 0).castTo[Int] * (axes + rankA.castTo[Int]))
       val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
       val freeAxes = Basic.gather(shapeA, free)
       val axesAxes = Basic.gather(shapeA, mappedAxes)
@@ -1809,7 +1811,7 @@ trait Math {
         }
       }
       val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
-      (reshapedA, freeAxes.cast(INT32))
+      (reshapedA, freeAxes.castTo[Int])
     }
 
     val (reshapedA, freeA) = tensorDotReshape(a, axesA)
@@ -1903,7 +1905,7 @@ trait Math {
   def zerosFraction[T: IsNumeric](
       input: Tensor[T]
   ): Tensor[Float] = {
-    mean(Cast.cast(equal(input, Tensor.fill(input.dataType, Shape())(0)), FLOAT32))
+    mean(Cast.cast(equal(input, Tensor.fill(Shape())(0).castTo(input.dataType)), FLOAT32))
   }
 
   //endregion Other Ops
@@ -3031,13 +3033,13 @@ object Math extends Math {
     }
 
     implicit class Float32MathOps(val tensor: Tensor[Float]) {
-      def toComplex(imag: Tensor[Float] = Tensor.zeros(FLOAT32, tensor.shape)): Tensor[ComplexFloat] = {
+      def toComplex(imag: Tensor[Float] = Tensor.zeros[Float](tensor.shape)): Tensor[ComplexFloat] = {
         Math.complex64(tensor, imag)
       }
     }
 
     implicit class Float64MathOps(val tensor: Tensor[Double]) {
-      def toComplex(imag: Tensor[Double] = Tensor.zeros(FLOAT64, tensor.shape)): Tensor[ComplexDouble] = {
+      def toComplex(imag: Tensor[Double] = Tensor.zeros[Double](tensor.shape)): Tensor[ComplexDouble] = {
         Math.complex128(tensor, imag)
       }
     }

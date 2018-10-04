@@ -379,7 +379,7 @@ trait Optimizer {
     * @param  colocationOps Set of colocation ops for the non-slot variable.
     * @return Created non-slot variable.
     */
-  protected final def getOrCreateNonSlotVariable[T](
+  protected final def getOrCreateNonSlotVariable[T: SupportedType](
       name: String,
       initialValue: Tensor[T],
       colocationOps: Set[UntypedOp] = Set.empty,

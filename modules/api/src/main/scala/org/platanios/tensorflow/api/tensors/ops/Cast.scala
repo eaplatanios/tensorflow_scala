@@ -57,7 +57,10 @@ trait Cast {
     * @param  dataType Target data type.
     * @return Result as a new tensor.
     */
-  def bitcast[T: IsNumeric, R](input: Tensor[T], dataType: DataType[R]): Tensor[R] = {
+  def bitcast[T: IsNumeric, R](
+      input: Tensor[T],
+      dataType: DataType[R]
+  ): Tensor[R] = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.bitcast(
       executionContext.value.nativeHandle, input.nativeHandle, dataType.cValue))
   }
@@ -69,44 +72,44 @@ object Cast extends Cast {
       /** $OpDocCastCast
         *
         * @group CastOps
-        *
-        * @param  dataType Target data type.
+        * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def cast[R](dataType: DataType[R]): Tensor[R] = Cast.cast(tensor, dataType)
+      def castTo[R: SupportedType]: Tensor[R] = {
+        Cast.cast(tensor, implicitly[SupportedType[R]].dataType)
+      }
 
-      def toStringTensor: Tensor[String] = cast(STRING)
-      def toBoolean: Tensor[Boolean] = cast(BOOLEAN)
-      def toFloat16: Tensor[Half] = cast(FLOAT16)
-      def toFloat32: Tensor[Float] = cast(FLOAT32)
-      def toFloat64: Tensor[Double] = cast(FLOAT64)
-      def toBFloat16: Tensor[TruncatedHalf] = cast(BFLOAT16)
-      def toComplex64: Tensor[ComplexFloat] = cast(COMPLEX64)
-      def toComplex128: Tensor[ComplexDouble] = cast(COMPLEX128)
-      def toInt8: Tensor[Byte] = cast(INT8)
-      def toInt16: Tensor[Short] = cast(INT16)
-      def toInt32: Tensor[Int] = cast(INT32)
-      def toInt64: Tensor[Long] = cast(INT64)
-      def toUInt8: Tensor[UByte] = cast(UINT8)
-      def toUInt16: Tensor[UShort] = cast(UINT16)
-      def toUInt32: Tensor[UInt] = cast(UINT32)
-      def toUInt64: Tensor[ULong] = cast(UINT64)
-      def toQInt8: Tensor[QByte] = cast(QINT8)
-      def toQInt16: Tensor[QShort] = cast(QINT16)
-      def toQInt32: Tensor[QInt] = cast(QINT32)
-      def toQUInt8: Tensor[QUByte] = cast(QUINT8)
-      def toQUInt16: Tensor[QUShort] = cast(QUINT16)
+      /** $OpDocCastCast
+        *
+        * @group CastOps
+        * @tparam R Target data type.
+        * @return Result as a new tensor.
+        */
+      def castTo[R](dataType: DataType[R]): Tensor[R] = {
+        Cast.cast(tensor, dataType)
+      }
     }
 
     implicit class NumericCastOps[T: IsNumeric](val tensor: Tensor[T]) {
       /** $OpDocCastBitcast
         *
         * @group CastOps
-        *
-        * @param  dataType Target data type.
+        * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def bitcast[R](dataType: DataType[R]): Tensor[R] = Cast.bitcast(tensor, dataType)
+      def bitcastTo[R: SupportedType]: Tensor[R] = {
+        Cast.bitcast(tensor, implicitly[SupportedType[R]].dataType)
+      }
+
+      /** $OpDocCastBitcast
+        *
+        * @group CastOps
+        * @tparam R Target data type.
+        * @return Result as a new tensor.
+        */
+      def bitcastTo[R](dataType: DataType[R]): Tensor[R] = {
+        Cast.bitcast(tensor, dataType)
+      }
     }
 
     implicit def tensorConvertibleToCastOps[T, TC](

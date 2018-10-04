@@ -44,7 +44,7 @@ trait Basic {
     */
   def rank[T <: TensorLike[_]](input: T): Tensor[Int] = {
     input match {
-      case t: Tensor[_] => Tensor.fill(INT32, Shape())(t.rank)
+      case t: Tensor[_] => Tensor.fill[Int](Shape())(t.rank)
       case t: TensorIndexedSlices[_] => size(t.denseShape, INT32)
       case t: SparseTensor[_] => size(t.denseShape, INT32)
     }
@@ -57,11 +57,14 @@ trait Basic {
     * @param  dataType Optional data type to use for the output of this op.
     * @return Result as a new tensor.
     */
-  def size[T <: TensorLike[_], R: IsInt32OrInt64](input: T, dataType: DataType[R]): Tensor[R] = {
+  def size[T <: TensorLike[_], R: IsInt32OrInt64](
+      input: T,
+      dataType: DataType[R]
+  ): Tensor[R] = {
     input match {
-      case t: Tensor[_] => Tensor.fill(dataType, Shape())(t.size)
-      case t: TensorIndexedSlices[_] => Math.prod(Cast.cast(t.denseShape, dataType), Array(0))
-      case t: SparseTensor[_] => Math.prod(Cast.cast(t.denseShape, dataType), Array(0))
+      case t: Tensor[_] => Tensor.fill[Long](Shape())(t.size).castTo(dataType)
+      case t: TensorIndexedSlices[_] => Math.prod(t.denseShape.castTo(dataType), Array(0))
+      case t: SparseTensor[_] => Math.prod(t.denseShape.castTo(dataType), Array(0))
     }
   }
 
@@ -72,22 +75,28 @@ trait Basic {
     * @param  dataType Data type for the resulting tensor.
     * @return Result as a new tensor.
     */
-  def shape[T <: TensorLike[_], I: IsInt32OrInt64](input: T, dataType: DataType[I]): Tensor[I] = {
+  def shape[T <: TensorLike[_], I: IsInt32OrInt64](
+      input: T,
+      dataType: DataType[I]
+  ): Tensor[I] = {
     input match {
       case t: Tensor[_] => t.shape.toTensor(dataType)
-      case t: TensorIndexedSlices[_] => Cast.cast(t.denseShape, dataType)
-      case t: SparseTensor[_] => Cast.cast(t.denseShape, dataType)
+      case t: TensorIndexedSlices[_] => t.denseShape.castTo(dataType)
+      case t: SparseTensor[_] => t.denseShape.castTo(dataType)
     }
   }
 
   /** $OpDocBasicShapeN
     *
     * @group BasicOps
-    * @param  inputs   Tensors whose shapes to return.
-    * @param  dataType Data type for the resulting tensors.
+    * @param  inputs Tensors whose shapes to return.
+    * @tparam I      Data type for the resulting tensors.
     * @return Result as a sequence of new tensors.
     */
-  def shapeN[I: IsInt32OrInt64](inputs: Seq[Tensor[_]], dataType: DataType[I]): Seq[Tensor[I]] = {
+  def shapeN[I: IsInt32OrInt64](
+      inputs: Seq[Tensor[_]],
+      dataType: DataType[I],
+  ): Seq[Tensor[I]] = {
     inputs.map(_.shape.toTensor(dataType))
   }
 
@@ -460,7 +469,7 @@ trait Basic {
     blockShape.shape.assertHasRank(1)
     val numBlockDims = blockShape.shape(0)
     if (numBlockDims == 0) {
-      (Tensor.zeros(INT32, Shape(0, 2)), Tensor.zeros(INT32, Shape(0, 2)))
+      (Tensor.zeros[Int](Shape(0, 2)), Tensor.zeros[Int](Shape(0, 2)))
     } else {
       inputShape.shape.assertIsCompatibleWith(Shape(numBlockDims))
       val actualBasePaddings = {
@@ -468,7 +477,7 @@ trait Basic {
           basePaddings.shape.assertIsCompatibleWith(Shape(numBlockDims, 2))
           basePaddings
         } else {
-          Tensor.zeros(INT32, Shape(numBlockDims, 2))
+          Tensor.zeros[Int](Shape(numBlockDims, 2))
         }
       }
       val padStart = actualBasePaddings(::, 0)
@@ -477,7 +486,7 @@ trait Basic {
       val extraPadEnd = (blockShape - (fullInputShape % blockShape)) % blockShape
       val padEnd = originalPadEnd + extraPadEnd
       val resultPaddings = stack((0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i)))))
-      val zero = Tensor.ofType(padStart.dataType, 0)
+      val zero = Tensor[Int](0)
       val resultCrops = stack((0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i)))))
       (resultPaddings, resultCrops)
     }
@@ -548,7 +557,7 @@ trait Basic {
     val reshapedInput = reshape(
       input,
       concatenate(
-        Seq(leadingSize, input.shape(maskRank ::).toTensor(INT64)),
+        Seq(leadingSize, input.shape(maskRank ::).toTensor[Long]),
         axis = 0))
     gather(reshapedInput, squeeze(where(reshape(mask, Seq(-1))), axes = Seq(1)))
   }
@@ -573,10 +582,10 @@ trait Basic {
     // The basic idea is to compare a range row vector of size 'maxLen', [0, 1, 2, 3, 4], to 'lengths' as a matrix
     // with one column, [[1], [3], [2]]. Because of broadcasting on both arguments, this comparison results in a
     // matrix of size [lengths.shape(0), maxLen].
-    val rowVector = Math.range(Tensor.zeros(maxLen.dataType, Shape()), maxLen, Tensor.ones(maxLen.dataType, Shape()))
+    val rowVector = Math.range(Tensor.zeros(lengths.dataType, Shape()), maxLen, Tensor.ones(lengths.dataType, Shape()))
     // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
     // into INT32, then so do the elements of 'lengths'.
-    val matrix = Cast.cast(expandDims(lengths, axis = 1), maxLen.dataType)
+    val matrix = expandDims(lengths, axis = 1).castTo(lengths.dataType)
     Math.less(rowVector, matrix)
   }
 
@@ -592,9 +601,12 @@ trait Basic {
       input: TensorIndexedSlices[T],
       maskIndices: Tensor[Int]
   ): TensorIndexedSlices[T] = {
-    val (outputIndices, toGather) = listDiff(input.indices, maskIndices.toInt64, INT32)
+    val (outputIndices, toGather) = listDiff(input.indices, maskIndices.castTo[Long], INT32)
     val outputValues = gather(input.values, toGather)
-    TensorIndexedSlices(indices = outputIndices.toInt64, values = outputValues, denseShape = input.denseShape)
+    TensorIndexedSlices(
+      indices = outputIndices.castTo[Long],
+      values = outputValues,
+      denseShape = input.denseShape)
   }
 
   //endregion Tensor Masking Ops
@@ -672,7 +684,7 @@ trait Basic {
       indices: Tensor[I1],
       axis: Tensor[I2] = null
   ): Tensor[T] = {
-    val axisWithDefault = if (axis == null) Tensor.zeros(INT32, Shape()) else axis
+    val axisWithDefault = if (axis == null) Tensor.zeros[Int](Shape()) else axis
     Tensor.fromNativeHandle[T](NativeTensorOpsBasic.gatherV2(
       executionContext.value.nativeHandle, input.nativeHandle, indices.nativeHandle, axisWithDefault.nativeHandle))
   }
@@ -818,36 +830,6 @@ trait Basic {
       truth.values.nativeHandle,
       truth.denseShape.nativeHandle,
       normalize))
-  }
-
-  /** $OpDocBasicOneHot
-    *
-    * @group BasicOps
-    * @param  indices  Tensor containing the indices for the "on" values.
-    * @param  depth    Scalar tensor defining the depth of the one-hot dimension.
-    * @param  onValue  Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] = i`.
-    *                  Defaults to the value `1` with type `dataType`.
-    * @param  offValue Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] != i`.
-    *                  Defaults to the value `0` with type `dataType`.
-    * @param  axis     Axis to fill. Defaults to `-1`, representing the last axis.
-    * @param  dataType Data type of the output tensor. If not provided, the function will attempt to assume the data
-    *                  type of `onValue` or `offValue`, if one or both are passed in. If none of `onValue`, `offValue`,
-    *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
-    * @return Result as a new tensor.
-    */
-  def oneHot[T, I: IsInt32OrInt64OrUInt8](
-      indices: Tensor[I],
-      depth: Tensor[Int],
-      dataType: DataType[T],
-      onValue: Tensor[T] = null,
-      offValue: Tensor[T] = null,
-      axis: Int = -1
-  ): Tensor[T] = {
-    val actualOnValue = if (onValue != null) onValue else Tensor(1).cast(dataType)
-    val actualOffValue = if (offValue != null) offValue else Tensor(0).cast(dataType)
-    Tensor.fromNativeHandle[T](NativeTensorOpsBasic.oneHot(
-      executionContext.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
-      actualOffValue.nativeHandle, axis))
   }
 
   //endregion Tensor Ungrouped Ops

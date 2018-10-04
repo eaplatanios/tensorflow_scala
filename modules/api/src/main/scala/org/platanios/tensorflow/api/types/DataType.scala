@@ -136,11 +136,13 @@ object DataType {
   val RESOURCE  : DataType[Long]          = DataType[Long]("RESOURCE", cValue = 20, byteSize = Some(1), DT_RESOURCE)
   val VARIANT   : DataType[Long]          = DataType[Long]("VARIANT", cValue = 21, byteSize = Some(1), DT_VARIANT)
 
-  private def erasedValue[T]: T = {
+  // TODO: [TYPES] !!! Remove the following.
+
+  @inline private def erasedValue[T]: T = {
     null.asInstanceOf[T]
   }
 
-  implicit def dataType[T]: DataType[T] = {
+  @inline implicit def apply[T]: DataType[T] = {
     val dataType = erasedValue[T] match {
       case _: String => STRING
       case _: Boolean => BOOLEAN
@@ -171,15 +173,6 @@ object DataType {
   //endregion Data Type Instances
 
   //region Helper Methods
-
-  /** Returns the data type of the provided value.
-    *
-    * @param  value Value whose data type to return.
-    * @return Data type of the provided value.
-    */
-  @inline def dataTypeOf[T](value: T)(implicit ev: SupportedType[T]): DataType[T] = {
-    ev.dataType
-  }
 
   /** Returns the data type that corresponds to the provided C value.
     *
@@ -266,12 +259,13 @@ object DataType {
 
   /** "Zero" value for the provided data type.
     *
-    * @param  dataType Data type.
+    * @tparam T Data type.
     * @return "Zero" value for the provided data type.
     * @throws IllegalArgumentException If the provided data type is not supported (which should never happen).
     */
   @throws[IllegalArgumentException]
-  def zero[T](dataType: DataType[T]): T = {
+  @inline def zero[T: SupportedType]: T = {
+    val dataType = implicitly[SupportedType[T]].dataType
     val value = dataType match {
       case STRING => ""
       case BOOLEAN => false
@@ -304,12 +298,13 @@ object DataType {
 
   /** "One" value for the provided data type.
     *
-    * @param  dataType Data type.
+    * @tparam T Data type.
     * @return "One" value for the provided data type.
     * @throws IllegalArgumentException If the provided data type is not supported (which should never happen).
     */
   @throws[IllegalArgumentException]
-  def one[T](dataType: DataType[T]): T = {
+  @inline def one[T: SupportedType]: T = {
+    val dataType = implicitly[SupportedType[T]].dataType
     val value = dataType match {
       case STRING => ???
       case BOOLEAN => true
@@ -342,68 +337,101 @@ object DataType {
 
   /** Puts an element of the specified data type into the provided byte buffer.
     *
-    * @param  buffer   Byte buffer in which to put the element.
-    * @param  index    Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
-    * @param  dataType Data type of the elements stored in the buffer.
-    * @param  value    Element to put into the provided byte buffer.
+    * @param  buffer Byte buffer in which to put the element.
+    * @param  index  Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
+    * @param  value  Element to put into the provided byte buffer.
+    * @tparam T      Data type of the elements stored in the buffer.
     * @return Number of bytes written. For all data types with a known byte size (i.e., not equal to `-1`), the return
     *         value is equal to the byte size.
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def putElementInBuffer[T](
+  private[api] def putElementInBuffer[T: SupportedType](
       buffer: ByteBuffer,
       index: Int,
-      dataType: DataType[T],
       value: T
   ): Int = {
+    val dataType = implicitly[SupportedType[T]].dataType
     (value, dataType) match {
       case (v: String, STRING) =>
         val stringBytes = v.getBytes(StandardCharsets.ISO_8859_1)
         NativeTensor.setStringBytes(
           stringBytes,
           buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
-      case (v: Boolean, BOOLEAN) => buffer.put(index, if (v) 1 else 0)
+      case (v: Boolean, BOOLEAN) =>
+        buffer.put(index, if (v) 1 else 0)
+        dataType.byteSize.get
       case (v: Half, FLOAT16) => ???
-      case (v: Float, FLOAT32) => buffer.putFloat(index, v)
-      case (v: Double, FLOAT64) => buffer.putDouble(index, v)
+      case (v: Float, FLOAT32) =>
+        buffer.putFloat(index, v)
+        dataType.byteSize.get
+      case (v: Double, FLOAT64) =>
+        buffer.putDouble(index, v)
+        dataType.byteSize.get
       case (v: TruncatedHalf, BFLOAT16) => ???
       case (v: ComplexFloat, COMPLEX64) => ???
       case (v: ComplexDouble, COMPLEX128) => ???
-      case (v: Byte, INT8) => buffer.put(index, v)
-      case (v: Short, INT16) => buffer.putShort(index, v)
-      case (v: Int, INT32) => buffer.putInt(index, v)
-      case (v: Long, INT64) => buffer.putLong(index, v)
-      case (v: UByte, UINT8) => buffer.put(index, v.data)
-      case (v: UShort, UINT16) => buffer.putChar(index, v.data.toChar)
-      case (v: UInt, UINT32) => buffer.putInt(index, v.data.toInt)
+      case (v: Byte, INT8) =>
+        buffer.put(index, v)
+        dataType.byteSize.get
+      case (v: Short, INT16) =>
+        buffer.putShort(index, v)
+        dataType.byteSize.get
+      case (v: Int, INT32) =>
+        buffer.putInt(index, v)
+        dataType.byteSize.get
+      case (v: Long, INT64) =>
+        buffer.putLong(index, v)
+        dataType.byteSize.get
+      case (v: UByte, UINT8) =>
+        buffer.put(index, v.data)
+        dataType.byteSize.get
+      case (v: UShort, UINT16) =>
+        buffer.putChar(index, v.data.toChar)
+        dataType.byteSize.get
+      case (v: UInt, UINT32) =>
+        buffer.putInt(index, v.data.toInt)
+        dataType.byteSize.get
       case (v: ULong, UINT64) => ???
-      case (v: QByte, QINT8) => buffer.put(index, v.data)
-      case (v: QShort, QINT16) => buffer.putChar(index, v.data.toChar)
-      case (v: QInt, QINT32) => buffer.putInt(index, v.data.toInt)
-      case (v: QUByte, QUINT8) => buffer.put(index, v.data)
-      case (v: QUShort, QUINT16) => buffer.putChar(index, v.data.toChar)
-      case (v: Long, RESOURCE) => buffer.putLong(index, v)
-      case (v: Long, VARIANT) => buffer.putLong(index, v)
+      case (v: QByte, QINT8) =>
+        buffer.put(index, v.data)
+        dataType.byteSize.get
+      case (v: QShort, QINT16) =>
+        buffer.putChar(index, v.data.toChar)
+        dataType.byteSize.get
+      case (v: QInt, QINT32) =>
+        buffer.putInt(index, v.data.toInt)
+        dataType.byteSize.get
+      case (v: QUByte, QUINT8) =>
+        buffer.put(index, v.data)
+        dataType.byteSize.get
+      case (v: QUShort, QUINT16) =>
+        buffer.putChar(index, v.data.toChar)
+        dataType.byteSize.get
+      case (v: Long, RESOURCE) =>
+        buffer.putLong(index, v)
+        dataType.byteSize.get
+      case (v: Long, VARIANT) =>
+        buffer.putLong(index, v)
+        dataType.byteSize.get
       case _ => ???
     }
-    dataType.byteSize.get
   }
 
   /** Gets an element of the specified data type, from the provided byte buffer.
     *
-    * @param  buffer   Byte buffer from which to get an element.
-    * @param  index    Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
-    * @param  dataType Data type of the elements stored in the buffer.
+    * @param  buffer Byte buffer from which to get an element.
+    * @param  index  Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
+    * @tparam T      Data type of the elements stored in the buffer.
     * @return Obtained element.
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def getElementFromBuffer[T](
+  private[api] def getElementFromBuffer[T: SupportedType](
       buffer: ByteBuffer,
-      index: Int,
-      dataType: DataType[T]
+      index: Int
   ): T = {
+    val dataType = implicitly[SupportedType[T]].dataType
     val value = dataType match {
       case STRING =>
         val bufferWithOffset = buffer.duplicate().position(index).asInstanceOf[ByteBuffer]
@@ -436,11 +464,11 @@ object DataType {
     value.asInstanceOf[T]
   }
 
-  private[api] def addToTensorProtoBuilder[T](
+  private[api] def addToTensorProtoBuilder[T: SupportedType](
       builder: TensorProto.Builder,
-      dataType: DataType[T],
       value: T
   ): Unit = {
+    val dataType = implicitly[SupportedType[T]].dataType
     (value, dataType) match {
       case (v: String, STRING) => builder.addStringVal(ByteString.copyFrom(v.getBytes))
       case (v: Boolean, BOOLEAN) => builder.addBoolVal(v)

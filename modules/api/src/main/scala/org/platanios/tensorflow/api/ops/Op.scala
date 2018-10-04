@@ -526,6 +526,7 @@ object Op {
   sealed trait OpInput[T] {
     @inline def fromOutputs(outputs: Seq[Output[Any]], reference: Option[T]): T
     @inline def toBuilderInputs(value: T): Seq[Builder.Input]
+    @inline def toOutputs(value: T): Seq[Output[Any]]
     @inline def toOutputLikes(value: T): Seq[OutputLike[Any]]
   }
 
@@ -538,6 +539,10 @@ object Op {
 
         @inline override def toBuilderInputs(value: T): Seq[Builder.Input] = {
           implicitly[OpInputPrimitive[T]].toBuilderInputs(value)
+        }
+
+        @inline override def toOutputs(value: T): Seq[Output[Any]] = {
+          implicitly[OpInputPrimitive[T]].toOutputs(value)
         }
 
         @inline override def toOutputLikes(value: T): Seq[OutputLike[Any]] = {
@@ -563,6 +568,11 @@ object Op {
         @inline override def toBuilderInputs(value: (T1, T2)): Seq[Builder.Input] = {
           evT1.toBuilderInputs(value._1) ++
               evT2.toBuilderInputs(value._2)
+        }
+
+        @inline override def toOutputs(value: (T1, T2)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2)
         }
 
         @inline override def toOutputLikes(value: (T1, T2)): Seq[OutputLike[Any]] = {
@@ -592,6 +602,12 @@ object Op {
           evT1.toBuilderInputs(value._1) ++
               evT2.toBuilderInputs(value._2) ++
               evT3.toBuilderInputs(value._3)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3)): Seq[OutputLike[Any]] = {
@@ -625,6 +641,13 @@ object Op {
               evT2.toBuilderInputs(value._2) ++
               evT3.toBuilderInputs(value._3) ++
               evT4.toBuilderInputs(value._4)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4)): Seq[OutputLike[Any]] = {
@@ -662,6 +685,14 @@ object Op {
               evT3.toBuilderInputs(value._3) ++
               evT4.toBuilderInputs(value._4) ++
               evT5.toBuilderInputs(value._5)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5)): Seq[OutputLike[Any]] = {
@@ -703,6 +734,15 @@ object Op {
               evT4.toBuilderInputs(value._4) ++
               evT5.toBuilderInputs(value._5) ++
               evT6.toBuilderInputs(value._6)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6)): Seq[OutputLike[Any]] = {
@@ -748,6 +788,16 @@ object Op {
               evT5.toBuilderInputs(value._5) ++
               evT6.toBuilderInputs(value._6) ++
               evT7.toBuilderInputs(value._7)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7)): Seq[OutputLike[Any]] = {
@@ -797,6 +847,17 @@ object Op {
               evT6.toBuilderInputs(value._6) ++
               evT7.toBuilderInputs(value._7) ++
               evT8.toBuilderInputs(value._8)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7, T8)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7) ++
+              evT8.toOutputs(value._8)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8)): Seq[OutputLike[Any]] = {
@@ -850,6 +911,18 @@ object Op {
               evT7.toBuilderInputs(value._7) ++
               evT8.toBuilderInputs(value._8) ++
               evT9.toBuilderInputs(value._9)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7) ++
+              evT8.toOutputs(value._8) ++
+              evT9.toOutputs(value._9)
         }
 
         @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9)): Seq[OutputLike[Any]] = {
@@ -909,6 +982,19 @@ object Op {
               evT10.toBuilderInputs(value._10)
         }
 
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7) ++
+              evT8.toOutputs(value._8) ++
+              evT9.toOutputs(value._9) ++
+              evT10.toOutputs(value._10)
+        }
+
         @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)): Seq[OutputLike[Any]] = {
           evT1.toOutputLikes(value._1) ++
               evT2.toOutputLikes(value._2) ++
@@ -928,6 +1014,7 @@ object Op {
   sealed trait OpInputPrimitive[T] {
     @inline def fromOutputs(outputs: Seq[Output[Any]], reference: Option[T]): (T, Seq[Output[Any]])
     @inline def toBuilderInputs(value: T): Seq[Builder.Input]
+    @inline def toOutputs(value: T): Seq[Output[Any]]
     @inline def toOutputLikes(value: T): Seq[OutputLike[Any]]
   }
 
@@ -941,6 +1028,10 @@ object Op {
       }
 
       @inline override def toBuilderInputs(value: Unit): Seq[Builder.Input] = {
+        Seq.empty
+      }
+
+      @inline override def toOutputs(value: Unit): Seq[Output[Any]] = {
         Seq.empty
       }
 
@@ -960,6 +1051,10 @@ object Op {
 
         @inline override def toBuilderInputs(value: Output[T]): Seq[Builder.Input] = {
           Seq(Builder.InputTensor(value))
+        }
+
+        @inline override def toOutputs(value: Output[T]): Seq[Output[Any]] = {
+          Seq(value)
         }
 
         @inline override def toOutputLikes(value: Output[T]): Seq[OutputLike[Any]] = {
@@ -988,6 +1083,10 @@ object Op {
             Builder.InputTensor(value.denseShape))
         }
 
+        @inline override def toOutputs(value: OutputIndexedSlices[T]): Seq[Output[Any]] = {
+          Seq(value.indices, value.values, value.denseShape)
+        }
+
         @inline override def toOutputLikes(value: OutputIndexedSlices[T]): Seq[OutputLike[Any]] = {
           Seq(value)
         }
@@ -1012,6 +1111,10 @@ object Op {
             Builder.InputTensor(value.indices),
             Builder.InputTensor(value.values),
             Builder.InputTensor(value.denseShape))
+        }
+
+        @inline override def toOutputs(value: SparseOutput[T]): Seq[Output[Any]] = {
+          Seq(value.indices, value.values, value.denseShape)
         }
 
         @inline override def toOutputLikes(value: SparseOutput[T]): Seq[OutputLike[Any]] = {
@@ -1078,6 +1181,14 @@ object Op {
           }
         }
 
+        @inline override def toOutputs(value: OutputLike[T]): Seq[Output[Any]] = {
+          value match {
+            case o: Output[Any] => Seq(o)
+            case o: OutputIndexedSlices[Any] => Seq(o.indices, o.values, o.denseShape)
+            case o: SparseOutput[Any] => Seq(o.indices, o.values, o.denseShape)
+          }
+        }
+
         @inline override def toOutputLikes(value: OutputLike[T]): Seq[OutputLike[Any]] = {
           Seq(value)
         }
@@ -1100,6 +1211,10 @@ object Op {
 
         @inline override def toBuilderInputs(value: Seq[Output[T]]): Seq[Builder.Input] = {
           Seq(Builder.InputTensorList(value))
+        }
+
+        @inline override def toOutputs(value: Seq[Output[T]]): Seq[Output[Any]] = {
+          value
         }
 
         @inline override def toOutputLikes(value: Seq[Output[T]]): Seq[OutputLike[Any]] = {
@@ -1133,6 +1248,10 @@ object Op {
           value.flatMap(evOutputIndexedSlices.toBuilderInputs)
         }
 
+        @inline override def toOutputs(value: Seq[OutputIndexedSlices[T]]): Seq[Output[Any]] = {
+          value.flatMap(evOutputIndexedSlices.toOutputs)
+        }
+
         @inline override def toOutputLikes(value: Seq[OutputIndexedSlices[T]]): Seq[OutputLike[Any]] = {
           value.flatMap(evOutputIndexedSlices.toOutputLikes)
         }
@@ -1164,6 +1283,10 @@ object Op {
           value.flatMap(evSparseOutput.toBuilderInputs)
         }
 
+        @inline override def toOutputs(value: Seq[SparseOutput[T]]): Seq[Output[Any]] = {
+          value.flatMap(evSparseOutput.toOutputs)
+        }
+
         @inline override def toOutputLikes(value: Seq[SparseOutput[T]]): Seq[OutputLike[Any]] = {
           value.flatMap(evSparseOutput.toOutputLikes)
         }
@@ -1193,6 +1316,10 @@ object Op {
 
         @inline override def toBuilderInputs(value: Seq[OutputLike[T]]): Seq[Builder.Input] = {
           value.flatMap(evOutputLike.toBuilderInputs)
+        }
+
+        @inline override def toOutputs(value: Seq[OutputLike[T]]): Seq[Output[Any]] = {
+          value.flatMap(evOutputLike.toOutputs)
         }
 
         @inline override def toOutputLikes(value: Seq[OutputLike[T]]): Seq[OutputLike[Any]] = {
@@ -1407,7 +1534,11 @@ object Op {
         @inline override def fromOutputLikes(
             outputs: Seq[OutputLike[Any]]
         ): (Output[T], Seq[OutputLike[Any]]) = {
-          (outputs.head.toOutput.asInstanceOf[Output[T]], outputs.tail)
+          if (outputs.head != null) {
+            (outputs.head.toOutput.asInstanceOf[Output[T]], outputs.tail)
+          } else {
+            (null, outputs.tail)
+          }
         }
       }
     }
@@ -1427,8 +1558,12 @@ object Op {
         @inline override def fromOutputLikes(
             outputs: Seq[OutputLike[Any]]
         ): (OutputIndexedSlices[T], Seq[OutputLike[Any]]) = {
-          (outputs.head.asInstanceOf[OutputIndexedSlices[T]],
-              outputs.tail)
+          // TODO: [OPS] !!! Not sure if this is correct.
+          if (outputs.head != null) {
+            (outputs.head.asInstanceOf[OutputIndexedSlices[T]], outputs.tail)
+          } else {
+            (null, outputs.tail)
+          }
         }
       }
     }
@@ -1448,41 +1583,45 @@ object Op {
         @inline override def fromOutputLikes(
             outputs: Seq[OutputLike[Any]]
         ): (SparseOutput[T], Seq[OutputLike[Any]]) = {
-          (outputs.head.asInstanceOf[SparseOutput[T]],
-              outputs.tail)
-        }
-      }
-    }
-
-    implicit def outputLikeEvidence[T]: OpOutputPrimitive[OutputLike[T]] = {
-      new OpOutputPrimitive[OutputLike[T]] {
-        @inline override def fromOutputs(
-            outputs: Seq[Output[Any]]
-        ): (OutputLike[T], Seq[Output[Any]]) = {
-          if (outputs.size == 1) {
-            (outputs.head.asInstanceOf[Output[T]], outputs.tail)
-          } else if (outputs.head.rank == 1) {
-            (OutputIndexedSlices(
-              indices = outputs(0).asInstanceOf[Output[Long]],
-              values = outputs(1).asInstanceOf[Output[T]],
-              denseShape = outputs(2).asInstanceOf[Output[Long]]),
-                outputs.drop(3))
+          // TODO: [OPS] !!! Not sure if this is correct.
+          if (outputs.head != null) {
+            (outputs.head.asInstanceOf[SparseOutput[T]], outputs.tail)
           } else {
-            (SparseOutput(
-              indices = outputs(0).asInstanceOf[Output[Long]],
-              values = outputs(1).asInstanceOf[Output[T]],
-              denseShape = outputs(2).asInstanceOf[Output[Long]]),
-                outputs.drop(3))
+            (null, outputs.tail)
           }
         }
-
-        @inline override def fromOutputLikes(
-            outputs: Seq[OutputLike[Any]]
-        ): (OutputLike[T], Seq[OutputLike[Any]]) = {
-          (outputs.head.asInstanceOf[OutputLike[T]], outputs.tail)
-        }
       }
     }
+
+//    implicit def outputLikeEvidence[T]: OpOutputPrimitive[OutputLike[T]] = {
+//      new OpOutputPrimitive[OutputLike[T]] {
+//        @inline override def fromOutputs(
+//            outputs: Seq[Output[Any]]
+//        ): (OutputLike[T], Seq[Output[Any]]) = {
+//          if (outputs.size == 1) {
+//            (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+//          } else if (outputs.head.rank == 1) {
+//            (OutputIndexedSlices(
+//              indices = outputs(0).asInstanceOf[Output[Long]],
+//              values = outputs(1).asInstanceOf[Output[T]],
+//              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+//                outputs.drop(3))
+//          } else {
+//            (SparseOutput(
+//              indices = outputs(0).asInstanceOf[Output[Long]],
+//              values = outputs(1).asInstanceOf[Output[T]],
+//              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+//                outputs.drop(3))
+//          }
+//        }
+//
+//        @inline override def fromOutputLikes(
+//            outputs: Seq[OutputLike[Any]]
+//        ): (OutputLike[T], Seq[OutputLike[Any]]) = {
+//          (outputs.head.asInstanceOf[OutputLike[T]], outputs.tail)
+//        }
+//      }
+//    }
   }
 
   //endregion Type Traits
@@ -2411,9 +2550,16 @@ object Op {
   final case class Builder[I: OpInput, O: OpOutput](
       opType: String,
       name: String,
-      input: I
+      input: I,
+      addAsIndividualInputs: Boolean = false
   ) {
-    private[this] val inputs = implicitly[OpInput[I]].toBuilderInputs(input)
+    private[this] val inputs = {
+      if (addAsIndividualInputs) {
+        implicitly[OpInput[I]].toOutputs(input).map(Builder.InputTensor(_))
+      } else {
+        implicitly[OpInput[I]].toBuilderInputs(input)
+      }
+    }
 
     private[this] val scope = graphConstructionScope.value
 
@@ -2551,7 +2697,7 @@ object Op {
           case value: InstantiatedFunction[_, _] =>
             NativeOp.setAttrFuncName(nativeHandle, attribute._1, encodeString(value.hashedName))
           case _ =>
-            throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
+            throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}'.")
         }
       })
     }

@@ -89,7 +89,7 @@ trait NN {
       epsilon: Float = 1e-12f
   ): Tensor[T] = {
     val squareSum = Math.sum(Math.square(x), axes = axes, keepDims = true)
-    val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, epsilon.toTensor.cast(x.dataType)))
+    val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, epsilon.toTensor.castTo(x.dataType)))
     Math.multiply(x, xInverseNorm)
   }
 
@@ -117,7 +117,7 @@ trait NN {
     } else {
       val positive = reluOp(x)
       val negative = reluOp(-x)
-      positive - (alpha.toTensor.cast(negative.dataType) * negative)
+      positive - (alpha.toTensor.castTo(x.dataType) * negative)
     }
   }
 
@@ -310,8 +310,8 @@ trait NN {
     // The output shape should be the input shape without the axis over which the cross entropy was computed.
     val outputShape = Basic.slice(
       inputShape,
-      Tensor.fill(INT64, Shape(1))(0L),
-      Basic.expandDims(Math.subtract(inputRank.toInt64, 1L), -1))
+      Tensor.fill[Long](Shape(1))(0L),
+      Basic.expandDims(Math.subtract(inputRank.castTo[Long], 1L), -1))
     Basic.reshape(output, outputShape)
   }
 
@@ -388,7 +388,7 @@ trait NN {
       //   (1 - z) * x + (1 + (q - 1) * z) * log(1 + exp(x)) - l * x
       // To avoid branching, we use the following single expression:
       //   (1 - z) * x + l * (log(1 + exp(-abs(x))) + max(-x, 0))
-      val one = 1.toTensor.cast(weights.dataType)
+      val one = Tensor.ones[T](Shape())(labels.dataType.evSupportedType)
       val logWeights = ((weights - one) * labels) + one
       Math.addN(Seq[Tensor[T]](
         (one - labels) * logits,
@@ -414,8 +414,8 @@ trait NN {
     val output = Math.exp(logPredictions) - (logPredictions * targets)
     if (computeFullLoss) {
       // Need to create constant tensors here so that their data types can be matched to that of the targets.
-      val pointFive = 0.5.toTensor.cast(targets.dataType)
-      val twoPi = (2 * math.Pi).toTensor.cast(targets.dataType)
+      val pointFive = 0.5.toTensor.castTo(targets.dataType)
+      val twoPi = (2 * math.Pi).toTensor.castTo(targets.dataType)
       val stirlingApproximation = (targets * Math.log(targets)) - targets + (pointFive * Math.log(twoPi * targets))
       val zeros = Tensor.zerosLike(targets)
       val ones = Tensor.onesLike(targets)
@@ -462,9 +462,9 @@ trait NN {
     if (weights != null && weights.rank != 2)
       throw InvalidShapeException(s"'weights' must have shape [batchSize, sequenceLength], but had: ${weights.shape}.")
     val numClasses = Basic.shape(logits, INT64).slice(2)
-    val flattenedLogits = Basic.reshape(logits, Basic.stack(Seq[Tensor[Long]](-1L, numClasses)))
+    val flattenedLogits = Basic.reshape(logits, Basic.stack[Long](Seq(-1L, numClasses)))
     val flattenedLabels = Basic.reshape(labels, Shape(-1))
-    val epsilon = 1e-12.toTensor.cast(logits.dataType)
+    val epsilon = 1e-12.toTensor.castTo(logits.dataType)
     var loss = {
       if (lossFn != null)
         lossFn(flattenedLogits, flattenedLabels)
@@ -479,7 +479,7 @@ trait NN {
         if (weights != null)
           Math.sum(weights) + epsilon
         else
-          Basic.size(flattenedLabels, INT32).cast(logits.dataType)
+          Basic.size(flattenedLabels, INT32).castTo(logits.dataType)
       }
       loss = Math.divide(loss, totalSize)
     } else {
@@ -491,7 +491,7 @@ trait NN {
         if (weights != null)
           Math.sum(weights, axes = 1) + epsilon
         else
-          Basic.shape(labels, INT64).slice(1).cast(logits.dataType)
+          Basic.shape(labels, INT64).slice(1).castTo(logits.dataType)
       }
       loss = Math.divide(loss, totalSize)
     }
@@ -501,7 +501,7 @@ trait NN {
         if (weights != null)
           Math.sum(weights, axes = 0) + epsilon
         else
-          Basic.shape(labels, INT64).slice(0).cast(logits.dataType)
+          Basic.shape(labels, INT64).slice(0).castTo(logits.dataType)
       }
       loss = Math.divide(loss, totalSize)
     }
@@ -578,14 +578,15 @@ trait NN {
     if (keepProbability == 1.0) {
       input
     } else {
+      // TODO: [TYPES] !!! Remove this.
+      import input.dataType.evSupportedType
       val inferredNoiseShape = if (noiseShape == null) Basic.shape(input, INT32) else noiseShape
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
-      val probability = keepProbability.toTensor.cast(input.dataType)
-      val random = Random.randomUniform(
-        dataType = input.dataType,
-        shape = inferredNoiseShape)(
+      val probability = keepProbability.toTensor.castTo(input.dataType)
+      val random = Random.randomUniform[T, Int](
+        shape = inferredNoiseShape,
         minValue = probability,
-        maxValue = probability + Cast.cast(Tensor(1), probability.dataType),
+        maxValue = probability + Tensor(1).castTo(input.dataType),
         seed = seed)
       // 0.0 if in [keepProbability, 1.0) and 1.0 if [1.0, 1.0 + keepProbability).
       val binaryTensor = Math.floor(random)
@@ -1112,8 +1113,8 @@ object NN extends NN {
     val lastAxisSize = Basic.slice(
       Basic.shape(input, INT32),
       Basic.expandDims(Math.subtract(rank, 1), -1),
-      Tensor.fill(rank.dataType, Shape(1))(1))
-    Basic.reshape(input, Basic.concatenate(Seq(Tensor.fill(rank.dataType, Shape(1))(-1), lastAxisSize), 0))
+      Tensor.fill[Int](Shape(1))(1))
+    Basic.reshape(input, Basic.concatenate(Seq(Tensor.fill[Int](Shape(1))(-1), lastAxisSize), 0))
   }
 
   /** Creates an op that swaps the axes `axis1` and `axis2` in `input` and ignores all axes after `axis2`. */
@@ -1140,7 +1141,7 @@ object NN extends NN {
     if (axis == -1) {
       input
     } else {
-      val axisOutput = Tensor.ofType(rank.dataType, axis)
+      val axisOutput = Tensor(axis)
       Basic.transpose(
         input,
         Basic.concatenate(Seq(

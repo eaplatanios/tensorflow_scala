@@ -29,7 +29,7 @@ sealed trait SupportedType[+T] {
   }
 }
 
-object SupportedType {
+object SupportedType extends SupportedTypeLowPriority {
   implicit class SupportedTypeOps[T](val value: T)(implicit ev: SupportedType[T]) {
     @inline def dataType: DataType[T] = ev.dataType
     @inline def cast[R: SupportedType](dataType: DataType[R]): R = {
@@ -150,20 +150,6 @@ object SupportedType {
     }
   }
 
-  implicit val longIsSupported: SupportedType[Long] = new SupportedType[Long] {
-    @inline override def dataType: DataType[Long] = INT64
-    @inline override def cast[R: SupportedType](value: R): Long = value match {
-      case value: Boolean => if (value) 1L else 0L
-      case value: Float => value.toLong
-      case value: Double => value.toLong
-      case value: Byte => value.toLong
-      case value: Short => value.toLong
-      case value: Int => value.toLong
-      case value: Long => value.toLong
-      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a long.")
-    }
-  }
-
   implicit val uByteIsSupported: SupportedType[UByte] = new SupportedType[UByte] {
     @inline override def dataType: DataType[UByte] = UINT8
     @inline override def cast[R: SupportedType](value: R): UByte = value match {
@@ -224,6 +210,22 @@ object SupportedType {
     @inline override def dataType: DataType[QUShort] = QUINT16
     @inline override def cast[R: SupportedType](value: R): QUShort = value match {
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to an unsigned quantized short.")
+    }
+  }
+}
+
+trait SupportedTypeLowPriority {
+  implicit val longIsSupported: SupportedType[Long] = new SupportedType[Long] {
+    @inline override def dataType: DataType[Long] = INT64
+    @inline override def cast[R: SupportedType](value: R): Long = value match {
+      case value: Boolean => if (value) 1L else 0L
+      case value: Float => value.toLong
+      case value: Double => value.toLong
+      case value: Byte => value.toLong
+      case value: Short => value.toLong
+      case value: Int => value.toLong
+      case value: Long => value.toLong
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a long.")
     }
   }
 }

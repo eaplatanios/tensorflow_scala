@@ -35,6 +35,10 @@ package object types {
   case class QUByte(private[types] val data: Byte) extends AnyVal
   case class QUShort(private[types] val data: Short) extends AnyVal
 
+  // TODO: [TYPES] !!! Use the following two where appropriate.
+  case class Resource(private[types] val data: Long) extends AnyVal
+  case class Variant(private[types] val data: Long) extends AnyVal
+
   type STRING = types.DataType[String]
   type BOOLEAN = types.DataType[Boolean]
   type FLOAT16 = types.DataType[Half]
@@ -84,8 +88,6 @@ package object types {
   val VARIANT   : VARIANT    = types.DataType.VARIANT
 
   //region Type Traits
-
-  // TODO: Complete/generalize this (potentially using union types).
 
   trait IsFloat32OrFloat64[T]
 
@@ -192,6 +194,20 @@ package object types {
     implicit val uLongEvidence : IsIntOrUInt[ULong]  = new IsIntOrUInt[ULong] {}
   }
 
+  trait IsStringOrIntOrUInt[T]
+
+  object IsStringOrIntOrUInt {
+    implicit val stringEvidence: IsStringOrIntOrUInt[String] = new IsStringOrIntOrUInt[String] {}
+    implicit val byteEvidence  : IsStringOrIntOrUInt[Byte]   = new IsStringOrIntOrUInt[Byte] {}
+    implicit val shortEvidence : IsStringOrIntOrUInt[Short]  = new IsStringOrIntOrUInt[Short] {}
+    implicit val intEvidence   : IsStringOrIntOrUInt[Int]    = new IsStringOrIntOrUInt[Int] {}
+    implicit val longEvidence  : IsStringOrIntOrUInt[Long]   = new IsStringOrIntOrUInt[Long] {}
+    implicit val uByteEvidence : IsStringOrIntOrUInt[UByte]  = new IsStringOrIntOrUInt[UByte] {}
+    implicit val uShortEvidence: IsStringOrIntOrUInt[UShort] = new IsStringOrIntOrUInt[UShort] {}
+    implicit val uIntEvidence  : IsStringOrIntOrUInt[UInt]   = new IsStringOrIntOrUInt[UInt] {}
+    implicit val uLongEvidence : IsStringOrIntOrUInt[ULong]  = new IsStringOrIntOrUInt[ULong] {}
+  }
+
   trait IsReal[T]
 
   object IsReal {
@@ -212,7 +228,6 @@ package object types {
     implicit val halfEvidence         : IsNotQuantized[Half]          = new IsNotQuantized[Half] {}
     implicit val floatEvidence        : IsNotQuantized[Float]         = new IsNotQuantized[Float] {}
     implicit val doubleEvidence       : IsNotQuantized[Double]        = new IsNotQuantized[Double] {}
-    implicit val truncatedHalfEvidence: IsNotQuantized[TruncatedHalf] = new IsNotQuantized[TruncatedHalf] {}
     implicit val complexFloatEvidence : IsNotQuantized[ComplexFloat]  = new IsNotQuantized[ComplexFloat] {}
     implicit val complexDoubleEvidence: IsNotQuantized[ComplexDouble] = new IsNotQuantized[ComplexDouble] {}
     implicit val byteEvidence         : IsNotQuantized[Byte]          = new IsNotQuantized[Byte] {}
@@ -255,7 +270,7 @@ package object types {
 
   trait IsNumeric[T]
 
-  object IsNumeric {
+  object IsNumeric extends IsNumericPriority0 {
     implicit val halfEvidence         : IsNumeric[Half]          = new IsNumeric[Half] {}
     implicit val floatEvidence        : IsNumeric[Float]         = new IsNumeric[Float] {}
     implicit val doubleEvidence       : IsNumeric[Double]        = new IsNumeric[Double] {}
@@ -277,6 +292,9 @@ package object types {
     implicit val qUShortEvidence      : IsNumeric[QUShort]       = new IsNumeric[QUShort] {}
 
     implicit def int32OrInt64Evidence[T: IsInt32OrInt64]: IsNumeric[T] = new IsNumeric[T] {}
+  }
+
+  trait IsNumericPriority0 {
     implicit def notQuantizedEvidence[T: IsNotQuantized]: IsNumeric[T] = new IsNumeric[T] {}
     implicit def quantizedEvidence[T: IsQuantized]: IsNumeric[T] = new IsNumeric[T] {}
   }
