@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.STRING
+import org.platanios.tensorflow.api.types.Resource
 
 /** Represents a TensorFlow resource.
   *
@@ -28,25 +28,25 @@ import org.platanios.tensorflow.api.types.STRING
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Resource(
-    handle: Output[Long],
+case class ResourceWrapper(
+    handle: Output[Resource],
     initializeOp: UntypedOp,
     isInitialized: Output[Boolean])
 
 trait Resources {
   /** Returns the set of all shared resources used by the current graph which need to be initialized once per cluster. */
-  def sharedResources: Set[Resource] = {
+  def sharedResources: Set[ResourceWrapper] = {
     Op.currentGraph.sharedResources
   }
 
   /** Returns the set of all local resources used by the current graph which need to be initialized once per cluster. */
-  def localResources: Set[Resource] = {
+  def localResources: Set[ResourceWrapper] = {
     Op.currentGraph.localResources
   }
 
   /** Returns an initializer op for all provided resources. */
   def resourcesInitializer(
-      resources: Set[Resource],
+      resources: Set[ResourceWrapper],
       name: String = "ResourcesInitializer"
   ): Op[Unit, Unit] = {
     Resources.initializer(resources, name)
@@ -78,7 +78,7 @@ object Resources extends Resources {
     * @param  graph    Graph to register the resource in.
     */
   def register(
-      resource: Resource,
+      resource: ResourceWrapper,
       isShared: Boolean = true,
       graph: Graph = Op.currentGraph
   ): Unit = {
@@ -95,7 +95,7 @@ object Resources extends Resources {
     * @return Created op.
     */
   def initializer(
-      resources: Set[Resource],
+      resources: Set[ResourceWrapper],
       name: String = "ResourcesInitializer"
   ): Op[Unit, Unit] = {
     if (resources.isEmpty)
@@ -115,7 +115,7 @@ object Resources extends Resources {
     *         initialized.
     */
   def uninitializedResources(
-      resources: Set[Resource] = sharedResources ++ localResources,
+      resources: Set[ResourceWrapper] = sharedResources ++ localResources,
       name: String = "UninitializedResources"
   ): Output[String] = {
     // Run all operations on the CPU.

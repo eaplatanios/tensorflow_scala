@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.TensorToOutput
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.{DataType, INT64, VARIANT}
+import org.platanios.tensorflow.api.types.{DataType, Variant, INT64, VARIANT}
 
 import scala.language.postfixOps
 
@@ -40,7 +40,7 @@ trait Dataset[T] { outer =>
 
   /** Creates a `VARIANT` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
-  def createHandle(): Output[Long]
+  def createHandle(): Output[Variant]
 
   /** Creates a dataset iterator for this dataset.
     *
@@ -98,9 +98,9 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val c = Op.nameScope(name)(Basic.constant(count))
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "RepeatDataset",
           name = name,
           input = (outer.createHandle(), c)
@@ -129,13 +129,13 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val (bs, s1, s2) = Op.nameScope(name) {
           val bs = Basic.constant(bufferSize)
           val (s1, s2) = Dataset.randomSeeds(seed, s"$name/RandomSeeds")
           (bs, s1, s2)
         }
-        Op.Builder[(Output[Long], Output[Long], Output[Long], Output[Long]), Output[Long]](
+        Op.Builder[(Output[Variant], Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "ShuffleDataset",
           name = name,
           input = (outer.createHandle(), bs, s1, s2)
@@ -165,9 +165,9 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val c = Basic.constant(count, name = s"$name/Count")
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "TakeDataset",
           name = name,
           input = (outer.createHandle(), c)
@@ -197,8 +197,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "TakeDataset",
           name = name,
           input = (outer.createHandle(), count)
@@ -228,9 +228,9 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val c = Basic.constant(count, name = s"$name/Count")
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "SkipDataset",
           name = name,
           input = (outer.createHandle(), c)
@@ -260,8 +260,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "SkipDataset",
           name = name,
           input = (outer.createHandle(), count)
@@ -299,8 +299,8 @@ trait Dataset[T] { outer =>
           appendHashToName = true)
       }
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Seq[Output[Any]]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Seq[Output[Any]]), Output[Variant]](
           opType = "FilterDataset",
           name = name,
           input = (outer.createHandle(), instantiatedPredicateFunction.extraInputs)
@@ -347,9 +347,9 @@ trait Dataset[T] { outer =>
           appendHashToName = true)
       }
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         if (numParallelCalls > 1) {
-          Op.Builder[(Output[Long], Seq[Output[Any]], Output[Int]), Output[Long]](
+          Op.Builder[(Output[Variant], Seq[Output[Any]], Output[Int]), Output[Variant]](
             opType = "MapDataset",
             name = name,
             input = (
@@ -361,7 +361,7 @@ trait Dataset[T] { outer =>
               .setAttribute("output_shapes", flatOutputShapes.toArray)
               .build().output
         } else {
-          Op.Builder[(Output[Long], Seq[Output[Any]]), Output[Long]](
+          Op.Builder[(Output[Variant], Seq[Output[Any]]), Output[Variant]](
             opType = "MapDataset",
             name = name,
             input = (outer.createHandle(), instantiatedFunction.extraInputs)
@@ -412,8 +412,8 @@ trait Dataset[T] { outer =>
           appendHashToName = true)
       }
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Seq[Output[Any]]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Seq[Output[Any]]), Output[Variant]](
           opType = "FlatMapDataset",
           name = name,
           input = (outer.createHandle(), instantiatedFunction.extraInputs)
@@ -510,9 +510,9 @@ trait Dataset[T] { outer =>
           appendHashToName = true)
       }
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         if (numParallelCalls > 1) {
-          Op.Builder[(Output[Long], Seq[Output[Any]], Output[Long], Output[Long], Output[Long]), Output[Long]](
+          Op.Builder[(Output[Variant], Seq[Output[Any]], Output[Long], Output[Long], Output[Long]), Output[Variant]](
             opType = "ParallelInterleaveDatasetV2",
             name = name,
             input = (
@@ -526,7 +526,7 @@ trait Dataset[T] { outer =>
               .setAttribute("output_shapes", flatOutputShapes.toArray)
               .build().output
         } else {
-          Op.Builder[(Output[Long], Seq[Output[Any]], Output[Long], Output[Long]), Output[Long]](
+          Op.Builder[(Output[Variant], Seq[Output[Any]], Output[Long], Output[Long]), Output[Variant]](
             opType = "InterleaveDataset",
             name = name,
             input = (
@@ -594,8 +594,8 @@ trait Dataset[T] { outer =>
           Seq(INT64), Seq(Shape.scalar()), appendHashToName = true)
       }
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Seq[Output[Any]], Seq[Output[Any]], Seq[Output[Any]]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Seq[Output[Any]], Seq[Output[Any]], Seq[Output[Any]]), Output[Variant]](
           opType = "GroupByWindowDataset",
           name = name,
           input = (
@@ -634,9 +634,9 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val bs = Op.nameScope(name)(Basic.constant(batchSize))
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "BatchDataset",
           name = name,
           input = (outer.createHandle(), bs)
@@ -670,8 +670,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "BatchDataset",
           name = name,
           input = (outer.createHandle(), batchSize)
@@ -751,8 +751,8 @@ trait Dataset[T] { outer =>
         }
       }
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Output[Long], Seq[Output[Long]], Seq[Output[Any]]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Output[Long], Seq[Output[Long]], Seq[Output[Any]]), Output[Variant]](
           opType = "PaddedBatchDataset",
           name = name,
           input = (
@@ -788,9 +788,9 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val bs = Op.nameScope(name)(Basic.constant(bufferSize))
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "PrefetchDataset",
           name = name,
           input = (outer.createHandle(), bs)
@@ -818,9 +818,9 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val d = Op.nameScope(name)(Basic.constant(directory))
-        Op.Builder[(Output[Long], Output[String]), Output[Long]](
+        Op.Builder[(Output[Variant], Output[String]), Output[Variant]](
           opType = "CacheDataset",
           name = name,
           input = (outer.createHandle(), d)
@@ -848,8 +848,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Output[String]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Output[String]), Output[Variant]](
           opType = "CacheDataset",
           name = name,
           input = (outer.createHandle(), directory)
@@ -902,8 +902,8 @@ trait Dataset[T] { outer =>
         })
       }
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Variant], Output[Variant]), Output[Variant]](
           opType = "CacheDataset",
           name = name,
           input = (outer.createHandle(), other.createHandle())
@@ -958,8 +958,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[(T, R)] = implicitly[SupportedData[(T, R)]]
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[Seq[Output[Long]], Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[Seq[Output[Variant]], Output[Variant]](
           opType = "ZipDataset",
           name = name,
           input = Seq(outer.createHandle(), other.createHandle())
@@ -1014,8 +1014,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[(T, R1, R2)] = implicitly[SupportedData[(T, R1, R2)]]
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[Seq[Output[Long]], Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[Seq[Output[Variant]], Output[Variant]](
           opType = "ZipDataset",
           name = name,
           input = Seq(outer.createHandle(), other1.createHandle(), other2.createHandle())
@@ -1053,8 +1053,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[Seq[T]] = implicitly[SupportedData[Seq[T]]]
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[Seq[Output[Long]], Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[Seq[Output[Variant]], Output[Variant]](
           opType = "ZipDataset",
           name = name,
           input = outer.createHandle() +: others.map(_.createHandle())
@@ -1095,8 +1095,8 @@ trait Dataset[T] { outer =>
 
       override implicit val evData: SupportedData[T] = outer.evData
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[Output[Long], Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[Output[Variant], Output[Variant]](
           opType = "IgnoreErrorsDataset",
           name = name,
           input = outer.createHandle()

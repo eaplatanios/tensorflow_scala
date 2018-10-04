@@ -56,7 +56,7 @@ import scala.language.postfixOps
   */
 case class Variable[+T] private (
     override val dataType: DataType[T],
-    private val variableHandle: Output[Long],
+    private val variableHandle: Output[Resource],
     private val initializeOp: UntypedOp,
     private val cachedValue: Output[T],
     private[variables] val graphElement: Output[T]
@@ -93,7 +93,7 @@ case class Variable[+T] private (
     * NOTE: You usually do not need to use this field as all ops that need a reference to the variable call it
     * automatically.
     */
-  private[api] val handle: Output[Long] = {
+  private[api] val handle: Output[Resource] = {
     variableHandle
   }
 
@@ -654,7 +654,7 @@ private[api] object Variable {
     val scope = graphConstructionScope.value
     val handle = scope.graph.getOutputByName(
       prependNameScope(variableDef.getVariableName)
-    ).asInstanceOf[Output[Long]]
+    ).asInstanceOf[Output[Resource]]
     val dataType = handle.op.dataTypeAttribute("dtype").asInstanceOf[DataType[T]]
     val initializeOp = scope.graph.getOpByName(prependNameScope(variableDef.getInitializerName))
     val graphElement = try {
@@ -1057,8 +1057,8 @@ private[api] object Variable {
       container: String = "",
       sharedName: String = "",
       name: String = "Variable"
-  ): Output[Long] = {
-    Op.Builder[Unit, Output[Long]](
+  ): Output[Resource] = {
+    Op.Builder[Unit, Output[Resource]](
       opType = "VarHandleOp",
       name = name,
       input = ()
@@ -1078,10 +1078,10 @@ private[api] object Variable {
     * @return Created op.
     */
   def isVariableInitialized(
-      variable: Output[Long],
+      variable: Output[Resource],
       name: String = "IsVariableInitialized"
   ): Output[Boolean] = {
-    Op.Builder[Output[Long], Output[Boolean]](
+    Op.Builder[Output[Resource], Output[Boolean]](
       opType = "VarIsInitializedOp",
       name = name,
       input = variable
@@ -1102,7 +1102,7 @@ private[api] object Variable {
     * @return Created op.
     */
   private[variables] def readVariable[T](
-      variable: Output[Long],
+      variable: Output[Resource],
       dataType: DataType[T],
       name: String = "ReadVariable"
   ): Output[T] = {
@@ -1136,11 +1136,11 @@ private[api] object Variable {
     * @return Created op.
     */
   private[variables] def unsafeReadVariable[T](
-      variable: Output[Long],
+      variable: Output[Resource],
       dataType: DataType[T],
       name: String = "UnsafeReadVariable"
   ): Output[T] = {
-    Op.Builder[Output[Long], Output[T]](
+    Op.Builder[Output[Resource], Output[T]](
       opType = "_UnsafeReadVariable",
       name = name,
       input = variable
@@ -1159,11 +1159,11 @@ private[api] object Variable {
     * @return Created op.
     */
   private[variables] def destroyVariable(
-      variable: Output[Long],
+      variable: Output[Resource],
       ignoreLookupError: Boolean = true,
       name: String = "DestroyVariable"
-  ): Op[Output[Long], Unit] = {
-    Op.Builder[Output[Long], Unit](
+  ): Op[Output[Resource], Unit] = {
+    Op.Builder[Output[Resource], Unit](
       opType = "DestroyResourceOp",
       name = name,
       input = variable
@@ -1182,11 +1182,11 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def assign[T](
-      variable: Output[Long],
+      variable: Output[Resource],
       value: Output[T],
       name: String = "AssignVariable"
-  ): Op[(Output[Long], Output[T]), Output[T]] = {
-    Op.Builder[(Output[Long], Output[T]), Output[T]](
+  ): Op[(Output[Resource], Output[T]), Output[T]] = {
+    Op.Builder[(Output[Resource], Output[T]), Output[T]](
       opType = "AssignVariableOp",
       name = name,
       input = (variable, value)
@@ -1205,11 +1205,11 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def assignAdd[T](
-      variable: Output[Long],
+      variable: Output[Resource],
       value: Output[T],
       name: String = "AssignAddVariable"
-  ): Op[(Output[Long], Output[T]), Output[T]] = {
-    Op.Builder[(Output[Long], Output[T]), Output[T]](
+  ): Op[(Output[Resource], Output[T]), Output[T]] = {
+    Op.Builder[(Output[Resource], Output[T]), Output[T]](
       opType = "AssignAddVariableOp",
       name = name,
       input = (variable, value)
@@ -1227,11 +1227,11 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def assignSub[T](
-      variable: Output[Long],
+      variable: Output[Resource],
       value: Output[T],
       name: String = "AssignSubVariable"
-  ): Op[(Output[Long], Output[T]), Output[T]] = {
-    Op.Builder[(Output[Long], Output[T]), Output[T]](
+  ): Op[(Output[Resource], Output[T]), Output[T]] = {
+    Op.Builder[(Output[Resource], Output[T]), Output[T]](
       opType = "AssignSubVariableOp",
       name = name,
       input = (variable, value)
@@ -1261,7 +1261,7 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def gather[T, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       dataType: DataType[T] = null,
       validateIndices: Boolean = true,
@@ -1285,9 +1285,9 @@ private[api] object Variable {
     // Build appropriately shaped indexed slices.
     // Walk graph back until the original handle is found.
     // TODO: Find a more robust way to get the shape.
-    var handle = op.input._1.asInstanceOf[Output[Long]]
+    var handle = op.input._1.asInstanceOf[Output[Resource]]
     while (handle.op.opType != "VarHandleOp")
-      handle = handle.op.inputsSeq(0).asInstanceOf[Output[Long]]
+      handle = handle.op.inputsSeq(0).asInstanceOf[Output[Resource]]
     val parametersShape = handle.op.shapeAttribute("shape").toOutput[Long]
     val indices = op.input._2.castTo[Long]
     val size = Basic.expandDims(Basic.size(indices, INT64), 0)
@@ -1326,12 +1326,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def scatterUpdate[T, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
       name: String = "ScatterUpdate"
-  ): Op[(Output[Long], Output[I], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[I], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[I], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[I], Output[T]), Unit](
       opType = "ResourceScatterUpdate",
       name = name,
       input = (variable, indices, updates)
@@ -1364,12 +1364,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def scatterAdd[T: IsNumeric, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
       name: String = "ScatterAdd"
-  ): Op[(Output[Long], Output[I], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[I], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[I], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[I], Output[T]), Unit](
       opType = "ResourceScatterAdd",
       name = name,
       input = (variable, indices, updates)
@@ -1402,12 +1402,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def scatterSub[T: IsNumeric, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
       name: String = "ScatterSubtract"
-  ): Op[(Output[Long], Output[I], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[I], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[I], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[I], Output[T]), Unit](
       opType = "ResourceScatterSub",
       name = name,
       input = (variable, indices, updates)
@@ -1440,12 +1440,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def scatterMul[T: IsNumeric, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
       name: String = "ScatterMultiply"
-  ): Op[(Output[Long], Output[I], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[I], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[I], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[I], Output[T]), Unit](
       opType = "ResourceScatterMul",
       name = name,
       input = (variable, indices, updates)
@@ -1478,12 +1478,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def scatterDiv[T: IsNumeric, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
       name: String = "ScatterDivide"
-  ): Op[(Output[Long], Output[I], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[I], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[I], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[I], Output[T]), Unit](
       opType = "ResourceScatterDiv",
       name = name,
       input = (variable, indices, updates)
@@ -1516,12 +1516,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def scatterMin[T: IsNumeric, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
       name: String = "ScatterMinimum"
-  ): Op[(Output[Long], Output[I], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[I], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[I], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[I], Output[T]), Unit](
       opType = "ResourceScatterMin",
       name = name,
       input = (variable, indices, updates)
@@ -1554,12 +1554,12 @@ private[api] object Variable {
     * @return Created op.
     */
   private[ops] def scatterMax[T: IsNumeric, I: IsInt32OrInt64](
-      variable: Output[Long],
+      variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
       name: String = "ScatterMaximum"
-  ): Op[(Output[Long], Output[I], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[I], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[I], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[I], Output[T]), Unit](
       opType = "ResourceScatterMax",
       name = name,
       input = (variable, indices, updates)

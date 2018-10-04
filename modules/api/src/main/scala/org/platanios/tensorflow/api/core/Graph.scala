@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableScopeStore, VariableStore}
+import org.platanios.tensorflow.api.types.Resource
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
@@ -312,12 +313,12 @@ class Graph private[api](
   }
 
   /** Returns the set of all shared resources used by the graph which need to be initialized once per cluster. */
-  def sharedResources: Set[Resource] = {
+  def sharedResources: Set[ResourceWrapper] = {
     getCollection(Graph.Keys.SHARED_RESOURCES)
   }
 
   /** Returns the set of all local resources used by the graph which need to be initialized once per cluster. */
-  def localResources: Set[Resource] = {
+  def localResources: Set[ResourceWrapper] = {
     getCollection(Graph.Keys.LOCAL_RESOURCES)
   }
 
@@ -1335,8 +1336,8 @@ object Graph {
     }
 
     /** Key for collections of resources. */
-    trait ResourceCollectionKey extends Key[Resource] {
-      override def createCollectionDef(values: Set[Resource], exportScope: String): CollectionDef = {
+    trait ResourceCollectionKey extends Key[ResourceWrapper] {
+      override def createCollectionDef(values: Set[ResourceWrapper], exportScope: String): CollectionDef = {
         val nodeListBuilder = NodeList.newBuilder()
         values.foreach(r => {
           if (Graph.shouldIncludeNode(r.handle.name) &&
@@ -1361,8 +1362,8 @@ object Graph {
         collectionDef.getNodeList.getValueList.asScala.grouped(3)
             .foreach(r => {
               graph.addToCollection(
-                Resource(
-                  graph.getOutputByName(Op.prependNameScope(importScope, r(0))).asInstanceOf[Output[Long]],
+                ResourceWrapper(
+                  graph.getOutputByName(Op.prependNameScope(importScope, r(0))).asInstanceOf[Output[Resource]],
                   graph.getOpByName(Op.prependNameScope(importScope, r(1))),
                   graph.getOutputByName(Op.prependNameScope(importScope, r(2))).asInstanceOf[Output[Boolean]]),
                 key = this)

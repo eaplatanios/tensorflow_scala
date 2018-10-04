@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.training.ExponentialMovingAverage
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, INT32, INT64, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{Resource, FLOAT32, INT32, INT64, IsInt32OrInt64, IsNotQuantized}
 
 /** Optimizer that implements the YellowFin algorithm.
   *
@@ -153,7 +153,7 @@ class YellowFin protected (
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    Op.Builder[(Output[Long], Output[Long], Output[T], Output[T], Output[T]), Unit](
+    Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[T]), Unit](
       opType = "ResourceApplyMomentum",
       name = s"$name/ApplyDense",
       input = (variable.handle,
@@ -171,7 +171,7 @@ class YellowFin protected (
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    Op.Builder[(Output[Long], Output[Long], Output[T], Output[T], Output[Long], Output[T]), Unit](
+    Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[Long], Output[T]), Unit](
       opType = "ResourceSparseApplyMomentum",
       name = s"$name/ApplySparse",
       input = (variable.handle,

@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
   *
@@ -89,7 +89,7 @@ class AdaGrad protected (
       iteration: Option[Variable[I]]
   ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
-    Op.Builder[(Output[Long], Output[Long], Output[T], Output[T]), Unit](
+    Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T]), Unit](
       opType = "ResourceApplyAdagrad",
       name = s"$name/ApplyDense",
       input = (variable.handle,
@@ -106,7 +106,7 @@ class AdaGrad protected (
       iteration: Option[Variable[I]]
   ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
-    Op.Builder[(Output[Long], Output[Long], Output[T], Output[T], Output[Long]), Unit](
+    Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[Long]), Unit](
       opType = "ResourceSparseApplyAdagrad",
       name = s"$name/ApplySparse",
       input = (variable.handle,

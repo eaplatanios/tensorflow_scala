@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, Resource, Variant}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory
   * @author Emmanouil Antonios Platanios
   */
 class DatasetIterator[T] protected[data](
-    protected val handle: Output[Long],
+    protected val handle: Output[Resource],
     protected val evData: SupportedData[T]
 )(
     protected val _outputDataTypes: Any,
@@ -75,7 +75,7 @@ class DatasetIterator[T] protected[data](
   def createInitializer(
       dataset: Dataset[T],
       name: String = s"$name/Initializer"
-  ): Op[(Output[Long], Output[Long]), Unit] = {
+  ): Op[(Output[Variant], Output[Resource]), Unit] = {
     if (flatOutputDataTypes.zip(dataset.flatOutputDataTypes).exists(t => t._1 != t._2)) {
       throw new IllegalArgumentException(
         s"Expected output data types '$outputDataTypes', " +
@@ -101,9 +101,9 @@ class DatasetIterator[T] protected[data](
     * @return Created op.
     */
   def createInitializerFromHandle(
-      datasetHandle: Output[Long],
+      datasetHandle: Output[Variant],
       name: String = s"$name/Initializer"
-  ): Op[(Output[Long], Output[Long]), Unit] = {
+  ): Op[(Output[Variant], Output[Resource]), Unit] = {
     Op.nameScope(name) {
       Op.colocateWith(Set(handle.op), ignoreExisting = true) {
         DatasetIterator.makeIterator(
@@ -140,7 +140,7 @@ class DatasetIterator[T] protected[data](
     * @param  name Name for the created op.
     * @return Created op.
     */
-  def dispose(name: String = s"$name/Dispose"): Op[Output[Long], Unit] = {
+  def dispose(name: String = s"$name/Dispose"): Op[Output[Resource], Unit] = {
     DatasetIterator.iteratorDispose(handle, name)
   }
 
@@ -166,7 +166,7 @@ class DatasetIterator[T] protected[data](
   * @param  name             Name for this iterator.
   */
 class InitializableDatasetIterator[T] private[data](
-    override protected val handle: Output[Long],
+    override protected val handle: Output[Resource],
     override protected val evData: SupportedData[T]
 )(
     val initializer: UntypedOp,
@@ -397,8 +397,8 @@ object DatasetIterator {
       outputDataTypes: Seq[DataType[Any]],
       outputShapes: Seq[Shape],
       name: String = "Iterator"
-  ): Output[Long] = {
-    Op.Builder[Unit, Output[Long]](
+  ): Output[Resource] = {
+    Op.Builder[Unit, Output[Resource]](
       opType = "Iterator",
       name = name,
       input = ()
@@ -421,11 +421,11 @@ object DatasetIterator {
     * @return Created op.
     */
   private[data] def makeIterator(
-      datasetHandle: Output[Long],
-      iteratorHandle: Output[Long],
+      datasetHandle: Output[Variant],
+      iteratorHandle: Output[Resource],
       name: String = "MakeIterator"
-  ): Op[(Output[Long], Output[Long]), Unit] = {
-    Op.Builder[(Output[Long], Output[Long]), Unit](
+  ): Op[(Output[Variant], Output[Resource]), Unit] = {
+    Op.Builder[(Output[Variant], Output[Resource]), Unit](
       opType = "MakeIterator",
       name = name,
       input = (datasetHandle, iteratorHandle)
@@ -443,12 +443,12 @@ object DatasetIterator {
     * @return Created op outputs, which correspond to the iterator outputs.
     */
   private[data] def iteratorGetNext(
-      iteratorHandle: Output[Long],
+      iteratorHandle: Output[Resource],
       outputDataTypes: Seq[DataType[Any]],
       outputShapes: Seq[Shape],
       name: String = "IteratorGetNext"
   ): Seq[Output[Any]] = {
-    Op.Builder[Output[Long], Seq[Output[Any]]](
+    Op.Builder[Output[Resource], Seq[Output[Any]]](
       opType = "IteratorGetNext",
       name = name,
       input = iteratorHandle
@@ -464,10 +464,10 @@ object DatasetIterator {
     * @return Created op.
     */
   private[data] def iteratorDispose(
-      iteratorHandle: Output[Long],
+      iteratorHandle: Output[Resource],
       name: String = "IteratorDispose"
-  ): Op[Output[Long], Unit] = {
-    Op.Builder[Output[Long], Unit](
+  ): Op[Output[Resource], Unit] = {
+    Op.Builder[Output[Resource], Unit](
       opType = "IteratorDispose",
       name = name,
       input = iteratorHandle
@@ -481,10 +481,10 @@ object DatasetIterator {
     * @return Created op output, which is a scalar tensor containing the string handle.
     */
   private[data] def iteratorToStringHandle(
-      iteratorHandle: Output[Long],
+      iteratorHandle: Output[Resource],
       name: String = "IteratorToStringHandle"
   ): Output[String] = {
-    Op.Builder[Output[Long], Output[String]](
+    Op.Builder[Output[Resource], Output[String]](
       opType = "IteratorToStringHandle",
       name = name,
       input = iteratorHandle
@@ -503,9 +503,9 @@ object DatasetIterator {
       outputDataTypes: Seq[DataType[Any]],
       outputShapes: Seq[Shape],
       name: String = "IteratorFromStringHandle"
-  ): Output[Long] = {
-    Op.Builder[Output[String], Output[Long]](
-      opType = "IteratorFromStringHandle",
+  ): Output[Resource] = {
+    Op.Builder[Output[String], Output[Resource]](
+      opType = "IteratorFromStringHandleV2",
       name = name,
       input = stringHandle
     ).setAttribute("output_types", outputDataTypes.toArray)

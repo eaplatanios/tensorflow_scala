@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.lookup
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
-import org.platanios.tensorflow.api.types.{DataType, IsStringOrIntOrUInt}
+import org.platanios.tensorflow.api.types.{DataType, Resource, IsStringOrIntOrUInt}
 
 /** Lookup table initializer that uses a text file.
   *
@@ -79,7 +79,7 @@ class LookupTableTextFileInitializer[K, +V] protected (
       name: String = "LookupTableTextFileInitialize"
   ): UntypedOp = {
     Op.nameScope(name) {
-      val initializationOp = Op.Builder[(Output[Long], Output[String]), Unit](
+      val initializationOp = Op.Builder[(Output[Resource], Output[String]), Unit](
         opType = "InitializeTableFromTextFileV2",
         name = name,
         input = (table.handle, filename)

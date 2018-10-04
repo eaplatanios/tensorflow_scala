@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.implicits.helpers.TensorToOutput
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT64, STRING}
+import org.platanios.tensorflow.api.types.{Variant, INT64, STRING}
 
 import java.util.concurrent.atomic.AtomicLong
 
@@ -53,9 +53,9 @@ trait Data {
       override val name  : String           = datasetName
       override val evData: SupportedData[T] = ev
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val flatOutputs = evData.outputs(data)
-        Op.Builder[Seq[Output[Any]], Output[Long]](
+        Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorDataset",
           name = name,
           input = flatOutputs
@@ -109,9 +109,9 @@ trait Data {
       override val name  : String           = datasetName
       override val evData: SupportedData[T] = ev
 
-      override def createHandle(): Output[Long] = {
+      override def createHandle(): Output[Variant] = {
         val flatOutputs = evData.outputs(data)
-        Op.Builder[Seq[Output[Any]], Output[Long]](
+        Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorSliceDataset",
           name = name,
           input = flatOutputs
@@ -176,8 +176,8 @@ trait Data {
       override val name  : String                      = datasetName
       override val evData: SupportedData[Output[Long]] = implicitly[SupportedData[Output[Long]]]
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[Long], Output[Long], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "RangeDataset",
           name = name,
           input = (
@@ -217,8 +217,8 @@ trait Data {
       override val name  : String                        = datasetName
       override val evData: SupportedData[Output[String]] = implicitly[SupportedData[Output[String]]]
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[String], Output[Long], Output[Long], Output[Long], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[String], Output[Long], Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "FixedLengthRecordDataset",
           name = name,
           input = (
@@ -258,8 +258,8 @@ trait Data {
       override val name  : String                        = datasetName
       override val evData: SupportedData[Output[String]] = implicitly[SupportedData[Output[String]]]
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[String], Output[String], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TextLineDataset",
           name = name,
           input = (
@@ -295,8 +295,8 @@ trait Data {
       override val name  : String                        = datasetName
       override val evData: SupportedData[Output[String]] = implicitly[SupportedData[Output[String]]]
 
-      override def createHandle(): Output[Long] = {
-        Op.Builder[(Output[String], Output[String], Output[Long]), Output[Long]](
+      override def createHandle(): Output[Variant] = {
+        Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TFRecordDataset",
           name = name,
           input = (

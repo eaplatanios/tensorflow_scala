@@ -439,7 +439,7 @@ private[optimizers] object Optimizer {
   /** Trait for abstracting over variables in the optimizers. */
   private[Optimizer] sealed trait VariableProcessor[T] {
     /** Returns the optimization target for this variable. */
-    def target: Output[Long]
+    def target: Output[Resource]
 
     /** Returns the update ops for updating this variable using the gradient provided by `gradient`. */
     def updateOp[I: IsInt32OrInt64](
@@ -453,7 +453,7 @@ private[optimizers] object Optimizer {
   private[Optimizer] case class ResourceVariableProcessor[T: IsFloat32OrFloat64](
       variable: Variable[T]
   ) extends VariableProcessor[T] {
-    override def target: Output[Long] = {
+    override def target: Output[Resource] = {
       variable.handle
     }
 
@@ -476,7 +476,7 @@ private[optimizers] object Optimizer {
       variable: Variable[T]
   ) extends VariableProcessor[T] {
     // TODO: [VARIABLES] This is probably wrong.
-    override def target: Output[Long] = {
+    override def target: Output[Resource] = {
       variable.handle
     }
 

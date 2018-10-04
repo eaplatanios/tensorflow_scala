@@ -133,8 +133,8 @@ object DataType {
   val QINT32    : DataType[QInt]          = DataType[QInt]("QINT32", cValue = 13, byteSize = Some(4), DT_QINT32)
   val QUINT8    : DataType[QUByte]        = DataType[QUByte]("QUINT8", cValue = 12, byteSize = Some(1), DT_QUINT8)
   val QUINT16   : DataType[QUShort]       = DataType[QUShort]("QUINT16", cValue = 16, byteSize = Some(2), DT_QUINT16)
-  val RESOURCE  : DataType[Long]          = DataType[Long]("RESOURCE", cValue = 20, byteSize = Some(1), DT_RESOURCE)
-  val VARIANT   : DataType[Long]          = DataType[Long]("VARIANT", cValue = 21, byteSize = Some(1), DT_VARIANT)
+  val RESOURCE  : DataType[Resource]      = DataType[Resource]("RESOURCE", cValue = 20, byteSize = Some(1), DT_RESOURCE)
+  val VARIANT   : DataType[Variant]       = DataType[Variant]("VARIANT", cValue = 21, byteSize = Some(1), DT_VARIANT)
 
   // TODO: [TYPES] !!! Remove the following.
 
@@ -165,6 +165,8 @@ object DataType {
       case _: QInt => QINT32
       case _: QUByte => QUINT8
       case _: QUShort => QUINT16
+      case _: Resource => RESOURCE
+      case _: Variant => VARIANT
       case _ => ???
     }
     dataType.asInstanceOf[DataType[T]]

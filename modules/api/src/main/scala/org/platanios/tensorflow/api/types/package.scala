@@ -34,8 +34,6 @@ package object types {
   case class QInt(private[types] val data: Int) extends AnyVal
   case class QUByte(private[types] val data: Byte) extends AnyVal
   case class QUShort(private[types] val data: Short) extends AnyVal
-
-  // TODO: [TYPES] !!! Use the following two where appropriate.
   case class Resource(private[types] val data: Long) extends AnyVal
   case class Variant(private[types] val data: Long) extends AnyVal
 
@@ -60,8 +58,8 @@ package object types {
   type QINT32 = types.DataType[QInt]
   type QUINT8 = types.DataType[QUByte]
   type QUINT16 = types.DataType[QUShort]
-  type RESOURCE = types.DataType[Long]
-  type VARIANT = types.DataType[Long]
+  type RESOURCE = types.DataType[Resource]
+  type VARIANT = types.DataType[Variant]
 
   val STRING    : STRING     = types.DataType.STRING
   val BOOLEAN   : BOOLEAN    = types.DataType.BOOLEAN

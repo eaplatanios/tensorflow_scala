@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
 
 /** Optimizer that implements the AdaDelta optimization algorithm.
   *
@@ -113,7 +113,7 @@ class AdaDelta protected (
   ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
     val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
-    Op.Builder[(Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T]), Unit](
+    Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T]), Unit](
       opType = "ResourceApplyAdadelta",
       name = s"$name/ApplyDense",
       input = (variable.handle,
@@ -134,7 +134,7 @@ class AdaDelta protected (
   ): UntypedOp = {
     val accumulator = getSlot("Accumulator", variable)
     val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
-    Op.Builder[(Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
+    Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
       opType = "ResourceSparseApplyAdadelta",
       name = s"$name/ApplyDense",
       input = (variable.handle,

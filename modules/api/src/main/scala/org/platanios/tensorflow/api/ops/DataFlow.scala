@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.types.{DataType, Resource, INT32}
 
 /** Contains functions for constructing ops related to data flow.
   *
@@ -179,8 +179,8 @@ trait DataFlow {
       elementType: DataType[Any],
       stackName: String = "",
       name: String = "NewStack"
-  ): Output[Long] = {
-    Op.Builder[Output[Int], Output[Long]](
+  ): Output[Resource] = {
+    Op.Builder[Output[Int], Output[Resource]](
       opType = "StackV2",
       name = name,
       input = maxSize
@@ -198,12 +198,12 @@ trait DataFlow {
     * @return Created op output, which has the same value as `element`.
     */
   def stackPush[T](
-      stackHandle: Output[Long],
+      stackHandle: Output[Resource],
       element: Output[T],
       swapMemory: Boolean = false,
       name: String = "StackPush"
   ): Output[T] = {
-    Op.Builder[(Output[Long], Output[T]), Output[T]](
+    Op.Builder[(Output[Resource], Output[T]), Output[T]](
       opType = "StackPushV2",
       name = name,
       input = (stackHandle, element)
@@ -219,11 +219,11 @@ trait DataFlow {
     * @return Created op output.
     */
   def stackPop[T](
-      stackHandle: Output[Long],
+      stackHandle: Output[Resource],
       elementType: DataType[T],
       name: String = "StackPop"
   ): Output[T] = {
-    Op.Builder[Output[Long], Output[T]](
+    Op.Builder[Output[Resource], Output[T]](
       opType = "StackPopV2",
       name = name,
       input = stackHandle
@@ -238,10 +238,10 @@ trait DataFlow {
     * @return Created op.
     */
   def stackClose(
-      stackHandle: Output[Long],
+      stackHandle: Output[Resource],
       name: String = "StackClose"
-  ): Op[Output[Long], Unit] = {
-    Op.Builder[Output[Long], Unit](
+  ): Op[Output[Resource], Unit] = {
+    Op.Builder[Output[Resource], Unit](
       opType = "StackCloseV2",
       name = name,
       input = stackHandle

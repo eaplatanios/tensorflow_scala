@@ -228,4 +228,18 @@ trait SupportedTypeLowPriority {
       case _ => throw InvalidDataTypeException("Cannot convert the provided value to a long.")
     }
   }
+
+  implicit val resourceIsSupported: SupportedType[Resource] = new SupportedType[Resource] {
+    @inline override def dataType: DataType[Resource] = RESOURCE
+    @inline override def cast[R: SupportedType](value: R): Resource = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a resource.")
+    }
+  }
+
+  implicit val variantIsSupported: SupportedType[Variant] = new SupportedType[Variant] {
+    @inline override def dataType: DataType[Variant] = VARIANT
+    @inline override def cast[R: SupportedType](value: R): Variant = value match {
+      case _ => throw InvalidDataTypeException("Cannot convert the provided value to a variant.")
+    }
+  }
 }

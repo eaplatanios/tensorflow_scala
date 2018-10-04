@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
 
 /** Optimizer that implements the Adam optimization algorithm.
   *
@@ -160,7 +160,7 @@ class Adam protected (
     val m = getSlot("M", variable)
     val v = getSlot("V", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
-    Op.Builder[(Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
+    Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
       opType = "ResourceApplyAdam",
       name = s"$name/ApplyDense",
       input = (variable.handle,

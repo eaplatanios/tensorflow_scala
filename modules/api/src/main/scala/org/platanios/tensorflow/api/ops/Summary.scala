@@ -409,8 +409,8 @@ object Summary extends Summary {
       sharedName: String = "",
       container: String = "",
       name: String = "SummaryWriter"
-  ): Output[Long] = {
-    Op.Builder[Unit, Output[Long]](
+  ): Output[Resource] = {
+    Op.Builder[Unit, Output[Resource]](
       opType = "SummaryWriter",
       name = name,
       input = ()
@@ -431,14 +431,14 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def createSummaryFileWriter(
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       workingDir: Path,
       queueCapacity: Int = 10,
       flushFrequency: Int = 10,
       filenameSuffix: String = "",
       name: String = "CreateSummaryFileWriter"
-  ): Op[(Output[Long], Output[String], Output[Int], Output[Int], Output[String]), Unit] = {
-    Op.Builder[(Output[Long], Output[String], Output[Int], Output[Int], Output[String]), Unit](
+  ): Op[(Output[Resource], Output[String], Output[Int], Output[Int], Output[String]), Unit] = {
+    Op.Builder[(Output[Resource], Output[String], Output[Int], Output[Int], Output[String]), Unit](
       opType = "CreateSummaryFileWriter",
       name = name,
       input = (writerHandle, workingDir.toString, queueCapacity, flushFrequency, filenameSuffix)
@@ -453,10 +453,10 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def flushSummaryWriter(
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       name: String = "FlushSummaryWriter"
-  ): Op[Output[Long], Unit] = {
-    Op.Builder[Output[Long], Unit](
+  ): Op[Output[Resource], Unit] = {
+    Op.Builder[Output[Resource], Unit](
       opType = "FlushSummaryWriter",
       name = name,
       input = writerHandle
@@ -471,10 +471,10 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def closeSummaryWriter(
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       name: String = "CloseSummaryWriter"
-  ): Op[Output[Long], Unit] = {
-    Op.Builder[Output[Long], Unit](
+  ): Op[Output[Resource], Unit] = {
+    Op.Builder[Output[Resource], Unit](
       opType = "CloseSummaryWriter",
       name = name,
       input = writerHandle
@@ -494,14 +494,14 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def writeTensorSummary[T](
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       globalStep: Output[Long],
       tag: Output[String],
       tensor: Output[T],
       summaryMetadata: Output[String],
       name: String = "WriteTensorSummary"
-  ): Op[(Output[Long], Output[Long], Output[T], Output[String], Output[String]), Unit] = {
-    Op.Builder[(Output[Long], Output[Long], Output[T], Output[String], Output[String]), Unit](
+  ): Op[(Output[Resource], Output[Long], Output[T], Output[String], Output[String]), Unit] = {
+    Op.Builder[(Output[Resource], Output[Long], Output[T], Output[String], Output[String]), Unit](
       opType = "WriteSummary",
       name = name,
       input = (writerHandle, globalStep, tensor, tag, summaryMetadata)
@@ -519,13 +519,13 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def writeScalarSummary[T: IsReal](
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       globalStep: Output[Long],
       value: Output[T],
       tag: Output[String],
       name: String = "WriteScalarSummary"
-  ): Op[(Output[Long], Output[Long], Output[String], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[Long], Output[String], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[Long], Output[String], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[Long], Output[String], Output[T]), Unit](
       opType = "WriteScalarSummary",
       name = name,
       input = (writerHandle, globalStep, tag, value)
@@ -543,13 +543,13 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def writeHistogramSummary[T: IsReal](
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       globalStep: Output[Long],
       values: Output[T],
       tag: Output[String],
       name: String = "WriteHistogramSummary"
-  ): Op[(Output[Long], Output[Long], Output[String], Output[T]), Unit] = {
-    Op.Builder[(Output[Long], Output[Long], Output[String], Output[T]), Unit](
+  ): Op[(Output[Resource], Output[Long], Output[String], Output[T]), Unit] = {
+    Op.Builder[(Output[Resource], Output[Long], Output[String], Output[T]), Unit](
       opType = "WriteHistogramSummary",
       name = name,
       input = (writerHandle, globalStep, tag, values)
@@ -570,15 +570,15 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def writeImageSummary[T: IsReal](
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       globalStep: Output[Long],
       tensor: Output[T],
       badColor: Output[UByte],
       tag: Output[String],
       maxOutputs: Int = 3,
       name: String = "WriteImageSummary"
-  ): Op[(Output[Long], Output[Long], Output[String], Output[T], Output[UByte]), Output[String]] = {
-    Op.Builder[(Output[Long], Output[Long], Output[String], Output[T], Output[UByte]), Output[String]](
+  ): Op[(Output[Resource], Output[Long], Output[String], Output[T], Output[UByte]), Output[String]] = {
+    Op.Builder[(Output[Resource], Output[Long], Output[String], Output[T], Output[UByte]), Output[String]](
       opType = "WriteImageSummary",
       name = name,
       input = (writerHandle, globalStep, tag, tensor, badColor)
@@ -600,15 +600,15 @@ object Summary extends Summary {
     * @return Created op.
     */
   private[Summary] def writeAudioSummary(
-      writerHandle: Output[Long],
+      writerHandle: Output[Resource],
       globalStep: Output[Long],
       tensor: Output[Float],
       samplingRate: Output[Float],
       tag: Output[String],
       maxOutputs: Int = 3,
       name: String = "WriteAudioSummary"
-  ): Op[(Output[Long], Output[Long], Output[String], Output[Float], Output[Float]), Output[String]] = {
-    Op.Builder[(Output[Long], Output[Long], Output[String], Output[Float], Output[Float]), Output[String]](
+  ): Op[(Output[Resource], Output[Long], Output[String], Output[Float], Output[Float]), Output[String]] = {
+    Op.Builder[(Output[Resource], Output[Long], Output[String], Output[Float], Output[Float]), Output[String]](
       opType = "WriteAudioSummary",
       name = name,
       input = (writerHandle, globalStep, tag, tensor, samplingRate)

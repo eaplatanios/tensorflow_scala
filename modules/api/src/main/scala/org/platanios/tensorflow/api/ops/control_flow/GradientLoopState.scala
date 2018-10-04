@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.types.Resource
 
 import scala.collection.mutable
 
@@ -146,7 +147,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
   ): Output[T] = {
     historyMap.getOrElseUpdate(value.name, {
       var realValue: Option[Output[T]] = None
-      var historyValue: Output[Long] = null
+      var historyValue: Output[Resource] = null
       var currentValue = value
       var currentGradientLoopState = this
       var loopCondition = true
@@ -203,7 +204,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
   private[control_flow] def addForwardAccumulator[T](
       value: Output[T],
       deadBranch: Boolean = false
-  ): Output[Long] = {
+  ): Output[Resource] = {
     // `currentContext` is the context that `tf.gradients()` was called in.
     val currentContext = Op.currentControlFlowContext
     Op.createWith(controlDependencies = Set.empty) {
@@ -220,7 +221,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
       }
       currentContext.foreach(_.exit())
       // Make the `accumulator` available in the forward context.
-      val enterAccumulator = forwardContext.add(accumulator).asInstanceOf[Output[Long]]
+      val enterAccumulator = forwardContext.add(accumulator).asInstanceOf[Output[Resource]]
       // Add the stack push op in the context of `value.op`.
       val stackPushOp = ControlFlow.getOutputContext(value.op) match {
         case Some(valueContext) if valueContext == forwardContext =>
@@ -270,7 +271,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * @return Current value (popped from the top of the stack).
     */
   private[control_flow] def addBackwardAccumulatedValue[T](
-      historyValue: Output[Long],
+      historyValue: Output[Resource],
       value: Output[T],
       deadBranch: Boolean = false
   ): Output[T] = {

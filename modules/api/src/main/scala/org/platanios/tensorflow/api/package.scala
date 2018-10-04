@@ -130,8 +130,8 @@ package object api extends implicits.Implicits with Documentation {
   type QINT32 = types.DataType[types.QInt]
   type QUINT8 = types.DataType[types.QUByte]
   type QUINT16 = types.DataType[types.QUShort]
-  type RESOURCE = types.DataType[Long]
-  type VARIANT = types.DataType[Long]
+  type RESOURCE = types.DataType[types.Resource]
+  type VARIANT = types.DataType[types.Variant]
 
   val STRING    : STRING     = types.DataType.STRING
   val BOOLEAN   : BOOLEAN    = types.DataType.BOOLEAN

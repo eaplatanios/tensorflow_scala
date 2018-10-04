@@ -91,7 +91,7 @@ class GradientDescent protected (
       iteration: Option[Variable[I]]
   ): UntypedOp = {
     if (momentum > 0.0f) {
-      Op.Builder[(Output[Long], Output[Long], Output[T], Output[T], Output[T]), Unit](
+      Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[T]), Unit](
         opType = "ResourceApplyMomentum",
         name = s"$name/ApplyDense",
         input = (variable.handle,
@@ -103,7 +103,7 @@ class GradientDescent protected (
           .setAttribute("use_nesterov", useNesterov)
           .build().asUntyped
     } else {
-      Op.Builder[(Output[Long], Output[T], Output[T]), Unit](
+      Op.Builder[(Output[Resource], Output[T], Output[T]), Unit](
         opType = "ResourceApplyGradientDescent",
         name = s"$name/ApplyDense",
         input = (variable.handle,
@@ -120,7 +120,7 @@ class GradientDescent protected (
       iteration: Option[Variable[I]]
   ): UntypedOp = {
     if (momentum > 0.0f) {
-      Op.Builder[(Output[Long], Output[Long], Output[T], Output[T], Output[Long], Output[T]), Unit](
+      Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[Long], Output[T]), Unit](
         opType = "ResourceSparseApplyMomentum",
         name = s"$name/ApplySparse",
         input = (variable.handle,

@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.data.{Dataset, SupportedData}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, SupportedType, VARIANT}
+import org.platanios.tensorflow.api.types.{DataType, SupportedType, Variant, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 
@@ -204,14 +204,14 @@ object Function {
     // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".
 
     case class VariantDataset[T] protected(
-        handle: Output[Long],
+        handle: Output[Variant],
         override val evData: SupportedData[T],
         private val dataType: Any = null,
         private val shape: Any = null
     ) extends Dataset[T] {
       override val name: String = "VariantDataset"
 
-      override def createHandle(): Output[Long] = handle
+      override def createHandle(): Output[Variant] = handle
       override def outputDataTypes: evData.D = dataType.asInstanceOf[evData.D]
       override def outputShapes: evData.S = shape.asInstanceOf[evData.S]
     }
@@ -236,7 +236,7 @@ object Function {
             outputs: Seq[Output[Any]]
         ): (Dataset[T], Seq[Output[Any]]) = {
           (VariantDataset[T](
-            handle = outputs.head.asInstanceOf[Output[Long]],
+            handle = outputs.head.asInstanceOf[Output[Variant]],
             evData = evData),
               outputs.drop(1))
         }
@@ -246,7 +246,7 @@ object Function {
             outputs: Seq[Output[Any]]
         ): (Dataset[T], Seq[Output[Any]]) = {
           (VariantDataset[T](
-            handle = outputs.head.asInstanceOf[Output[Long]],
+            handle = outputs.head.asInstanceOf[Output[Variant]],
             evData = evData,
             dataType = arg.outputDataTypes.asInstanceOf[evData.D],
             shape = arg.outputShapes.asInstanceOf[evData.S]

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{DynamicConstantInitializer, OnesInitializer, Variable}
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
 
 /** Optimizer that implements the RMSProp optimization algorithm.
   *
@@ -138,7 +138,7 @@ class RMSProp protected (
     val accumulatorRMS = getSlot("AccumulatorRMS", variable)
     val accumulatorMomentum = getSlot("AccumulatorMomentum", variable)
     if (accumulatorMeanGradient != null) {
-      Op.Builder[(Output[Long], Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
         opType = "ResourceApplyCenteredRMSProp",
         name = s"$name/ApplyDense",
         input = (variable.handle,
@@ -153,7 +153,7 @@ class RMSProp protected (
       ).setAttribute("use_locking", useLocking)
           .build().asUntyped
     } else {
-      Op.Builder[(Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
         opType = "ResourceApplyRMSProp",
         name = s"$name/ApplyDense",
         input = (variable.handle,
@@ -178,7 +178,7 @@ class RMSProp protected (
     val accumulatorRMS = getSlot("AccumulatorRMS", variable)
     val accumulatorMomentum = getSlot("AccumulatorMomentum", variable)
     if (accumulatorMeanGradient != null) {
-      Op.Builder[(Output[Long], Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
         opType = "ResourceSparseApplyCenteredRMSProp",
         name = s"$name/ApplySparse",
         input = (variable.handle,
@@ -194,7 +194,7 @@ class RMSProp protected (
       ).setAttribute("use_locking", useLocking)
           .build().asUntyped
     } else {
-      Op.Builder[(Output[Long], Output[Long], Output[Long], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
         opType = "ResourceSparseApplyRMSProp",
         name = s"$name/ApplySparse",
         input = (variable.handle,

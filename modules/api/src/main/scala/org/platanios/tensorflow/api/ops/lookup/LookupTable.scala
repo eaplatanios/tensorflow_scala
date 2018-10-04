@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike, OutputOps, UntypedOp}
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, Resource}
 
 /** Lookup table that persists across different session runs.
   *
@@ -68,7 +68,7 @@ abstract class LookupTable[K, +V](
   * @param  defaultValue Default value to use if a key is missing from the table.
   */
 abstract class InitializableLookupTable[K, +V] private[lookup](
-    val handle: Output[Long],
+    val handle: Output[Resource],
     protected val initializer: LookupTableInitializer[K, V],
     val defaultValue: Output[V]
 ) extends LookupTable(
@@ -95,7 +95,7 @@ abstract class InitializableLookupTable[K, +V] private[lookup](
     * @return Created op output.
     */
   override def size(name: String = "Size"): Output[Long] = {
-    Op.Builder[Output[Long], Output[Long]](
+    Op.Builder[Output[Resource], Output[Long]](
       opType = "LookupTableSizeV2",
       name = s"${this.name}/$name",
       input = handle
@@ -114,7 +114,7 @@ abstract class InitializableLookupTable[K, +V] private[lookup](
   )(implicit ev: OutputOps.Aux[OL, K]): OL[V] = {
     Op.nameScope(name) {
       ev.applyUnary(keys, o => {
-        val values = Op.Builder[(Output[Long], Output[K], Output[V]), Output[V]](
+        val values = Op.Builder[(Output[Resource], Output[K], Output[V]), Output[V]](
           opType = "LookupTableFindV2",
           name = name,
           input = (handle, o, defaultValue)
@@ -188,8 +188,8 @@ object HashTable {
       sharedName: String = "",
       useNodeNameSharing: Boolean = false,
       name: String = "HashTable"
-  ): Output[Long] = {
-    Op.Builder[Unit, Output[Long]](
+  ): Output[Resource] = {
+    Op.Builder[Unit, Output[Resource]](
       opType = "HashTableV2",
       name = name,
       input = ()

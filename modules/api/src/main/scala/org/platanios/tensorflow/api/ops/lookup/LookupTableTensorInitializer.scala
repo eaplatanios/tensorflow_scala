@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
+import org.platanios.tensorflow.api.types.Resource
 
 /** Lookup table initializer that uses the provided tensors (containing keys and corresponding values) for initializing
   * a lookup table.
@@ -40,7 +41,7 @@ class LookupTableTensorInitializer[K, +V] protected (
       name: String = "Initialize"
   ): UntypedOp = {
     Op.nameScope(name) {
-      val initializationOp = Op.Builder[(Output[Long], Output[K], Output[V]), Unit](
+      val initializationOp = Op.Builder[(Output[Resource], Output[K], Output[V]), Unit](
         opType = "InitializeTableV2",
         name = name,
         input = (table.handle, keys, values)
