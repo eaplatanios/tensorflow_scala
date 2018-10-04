@@ -26,7 +26,7 @@ import scala.collection.{TraversableLike, breakOut}
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits
-    extends Priority8Implicits
+    extends Priority3Implicits
         with Basic.Implicits
         with Cast.Implicits
         with Math.Implicits
@@ -58,7 +58,7 @@ private[api] trait Implicits
   }
 }
 
-private[tensors] trait Priority8Implicits extends Priority7Implicits {
+private[tensors] trait Priority3Implicits extends Priority2Implicits {
   implicit def tensorFromConvertibleArray[T, V](value: Array[V])(implicit
       f: V => Tensor[T]
   ): Tensor[T] = {
@@ -72,60 +72,76 @@ private[tensors] trait Priority8Implicits extends Priority7Implicits {
   }
 }
 
-private[tensors] trait Priority7Implicits extends Priority6Implicits {
-  implicit def tUByte2Float[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Float] = f(value).castTo[Float]
-}
-
-private[tensors] trait Priority6Implicits extends Priority5Implicits {
-  implicit def tUByte2Double[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Double] = f(value).castTo[Double]
-}
-
-private[tensors] trait Priority5Implicits extends Priority4Implicits {
-  implicit def tUByte2Short[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Short] = f(value).castTo[Short]
-  implicit def tUShort2Float[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Float] = f(value).castTo[Float]
-}
-
-private[tensors] trait Priority4Implicits extends Priority3Implicits {
-  implicit def tByte2Float[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Float] = f(value).castTo[Float]
-  implicit def tUByte2Int[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Int] = f(value).castTo[Int]
-  implicit def tUShort2Double[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Double] = f(value).castTo[Double]
-}
-
-private[tensors] trait Priority3Implicits extends Priority2Implicits {
-  implicit def tByte2Double[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Double] = f(value).castTo[Double]
-  implicit def tShort2Float[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Float] = f(value).castTo[Float]
-  implicit def tUByte2Long[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Long] = f(value).castTo[Long]
-  implicit def tUShort2Int[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Int] = f(value).castTo[Int]
-  implicit def tUInt2Float[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[Float] = f(value).castTo[Float]
-}
-
 private[tensors] trait Priority2Implicits extends Priority1Implicits {
-  implicit def tByte2Short[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Short] = f(value).castTo[Short]
-  implicit def tShort2Double[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Double] = f(value).castTo[Double]
-  implicit def tInt2Float[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Float] = f(value).castTo[Float]
-  implicit def tUByte2UShort[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[UShort] = f(value).castTo[UShort]
-  implicit def tUShort2Long[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Long] = f(value).castTo[Long]
-  implicit def tUInt2Double[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[Double] = f(value).castTo[Double]
+  implicit def tInt2Long[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Long] = f(value).castTo[Long]
+  implicit def tLong2Float[V](value: V)(implicit f: V => Tensor[Long]): Tensor[Float] = f(value).castTo[Float]
 }
 
 private[tensors] trait Priority1Implicits extends Priority0Implicits {
-  implicit def tByte2Int[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Int] = f(value).castTo[Int]
-  implicit def tShort2Int[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Int] = f(value).castTo[Int]
-  implicit def tInt2Double[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Double] = f(value).castTo[Double]
-  implicit def tLong2Float[V](value: V)(implicit f: V => Tensor[Long]): Tensor[Float] = f(value).castTo[Float]
-  implicit def tUByte2UInt[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[UInt] = f(value).castTo[UInt]
-  implicit def tUShort2UInt[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[UInt] = f(value).castTo[UInt]
-  implicit def tUInt2Long[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[Long] = f(value).castTo[Long]
-  implicit def tULong2Float[V](value: V)(implicit f: V => Tensor[ULong]): Tensor[Float] = f(value).castTo[Float]
+  implicit def tInt2Float[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Float] = f(value).castTo[Float]
+  implicit def tLong2Double[V](value: V)(implicit f: V => Tensor[Long]): Tensor[Double] = f(value).castTo[Double]
 }
 
 private[tensors] trait Priority0Implicits {
-  implicit def tByte2Long[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Long] = f(value).castTo[Long]
-  implicit def tShort2Long[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Long] = f(value).castTo[Long]
-  implicit def tInt2Long[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Long] = f(value).castTo[Long]
-  implicit def tLong2Double[V](value: V)(implicit f: V => Tensor[Long]): Tensor[Double] = f(value).castTo[Double]
-  implicit def tUByte2ULong[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[ULong] = f(value).castTo[ULong]
-  implicit def tUShort2ULong[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[ULong] = f(value).castTo[ULong]
-  implicit def tUInt2ULong[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[ULong] = f(value).castTo[ULong]
-  implicit def tULong2Double[V](value: V)(implicit f: V => Tensor[ULong]): Tensor[Double] = f(value).castTo[Double]
+  implicit def tInt2Double[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Double] = f(value).castTo[Double]
 }
+
+// TODO: [TYPES] The following are diasbled for now because they slow compilation down significantly.
+
+//private[tensors] trait Priority7Implicits extends Priority6Implicits {
+//  implicit def tUByte2Float[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Float] = f(value).castTo[Float]
+//}
+//
+//private[tensors] trait Priority6Implicits extends Priority5Implicits {
+//  implicit def tUByte2Double[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Double] = f(value).castTo[Double]
+//}
+//
+//private[tensors] trait Priority5Implicits extends Priority4Implicits {
+//  implicit def tUByte2Short[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Short] = f(value).castTo[Short]
+//  implicit def tUShort2Float[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Float] = f(value).castTo[Float]
+//}
+//
+//private[tensors] trait Priority4Implicits extends Priority3Implicits {
+//  implicit def tByte2Float[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Float] = f(value).castTo[Float]
+//  implicit def tUByte2Int[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Int] = f(value).castTo[Int]
+//  implicit def tUShort2Double[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Double] = f(value).castTo[Double]
+//}
+//
+//private[tensors] trait Priority3Implicits extends Priority2Implicits {
+//  implicit def tByte2Double[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Double] = f(value).castTo[Double]
+//  implicit def tShort2Float[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Float] = f(value).castTo[Float]
+//  implicit def tUByte2Long[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[Long] = f(value).castTo[Long]
+//  implicit def tUShort2Int[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Int] = f(value).castTo[Int]
+//  implicit def tUInt2Float[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[Float] = f(value).castTo[Float]
+//}
+//
+//private[tensors] trait Priority2Implicits extends Priority1Implicits {
+//  implicit def tByte2Short[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Short] = f(value).castTo[Short]
+//  implicit def tShort2Double[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Double] = f(value).castTo[Double]
+//  implicit def tInt2Float[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Float] = f(value).castTo[Float]
+//  implicit def tUByte2UShort[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[UShort] = f(value).castTo[UShort]
+//  implicit def tUShort2Long[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[Long] = f(value).castTo[Long]
+//  implicit def tUInt2Double[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[Double] = f(value).castTo[Double]
+//}
+//
+//private[tensors] trait Priority1Implicits extends Priority0Implicits {
+//  implicit def tByte2Int[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Int] = f(value).castTo[Int]
+//  implicit def tShort2Int[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Int] = f(value).castTo[Int]
+//  implicit def tInt2Double[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Double] = f(value).castTo[Double]
+//  implicit def tLong2Float[V](value: V)(implicit f: V => Tensor[Long]): Tensor[Float] = f(value).castTo[Float]
+//  implicit def tUByte2UInt[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[UInt] = f(value).castTo[UInt]
+//  implicit def tUShort2UInt[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[UInt] = f(value).castTo[UInt]
+//  implicit def tUInt2Long[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[Long] = f(value).castTo[Long]
+//  implicit def tULong2Float[V](value: V)(implicit f: V => Tensor[ULong]): Tensor[Float] = f(value).castTo[Float]
+//}
+//
+//private[tensors] trait Priority0Implicits {
+//  implicit def tByte2Long[V](value: V)(implicit f: V => Tensor[Byte]): Tensor[Long] = f(value).castTo[Long]
+//  implicit def tShort2Long[V](value: V)(implicit f: V => Tensor[Short]): Tensor[Long] = f(value).castTo[Long]
+//  implicit def tInt2Long[V](value: V)(implicit f: V => Tensor[Int]): Tensor[Long] = f(value).castTo[Long]
+//  implicit def tLong2Double[V](value: V)(implicit f: V => Tensor[Long]): Tensor[Double] = f(value).castTo[Double]
+//  implicit def tUByte2ULong[V](value: V)(implicit f: V => Tensor[UByte]): Tensor[ULong] = f(value).castTo[ULong]
+//  implicit def tUShort2ULong[V](value: V)(implicit f: V => Tensor[UShort]): Tensor[ULong] = f(value).castTo[ULong]
+//  implicit def tUInt2ULong[V](value: V)(implicit f: V => Tensor[UInt]): Tensor[ULong] = f(value).castTo[ULong]
+//  implicit def tULong2Double[V](value: V)(implicit f: V => Tensor[ULong]): Tensor[Double] = f(value).castTo[Double]
+//}

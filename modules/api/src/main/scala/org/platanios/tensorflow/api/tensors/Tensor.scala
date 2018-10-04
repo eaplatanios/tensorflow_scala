@@ -395,6 +395,8 @@ class Tensor[+T] protected (
 object Tensor {
   private[tensors] val logger = Logger(LoggerFactory.getLogger("Tensor"))
 
+  //region Constructors
+
   private[api] def fromNativeHandle[T](
       nativeHandle: Long
   ): Tensor[T] = {
@@ -519,6 +521,58 @@ object Tensor {
       ones[T](tensor.dataType, shape)
   }
 
+  /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
+    *
+    * If `dataType` is not provided, then its value is inferred from `value`.
+    *
+    * For example:
+    * {{{
+    *   Tensor.fill(INT32, Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
+    * }}}
+    *
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @return Constructed tensor.
+    */
+  def fill[T: SupportedType](shape: Shape)(value: T): Tensor[T] = {
+    shape.assertFullyDefined()
+    val dataType = implicitly[SupportedType[T]].dataType
+    val hostHandle = dataType match {
+      case STRING =>
+        val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
+        val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
+        val numBytes = shape.numElements * (INT64.byteSize.get + numEncodedBytes)
+        val hostHandle = NativeTensor.allocate(STRING.cValue, shape.asArray.map(_.toLong), numBytes)
+        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
+        val baseOffset = INT64.byteSize.get * shape.numElements.toInt
+        var index = 0
+        var i = 0
+        while (i < shape.numElements) {
+          val numEncodedBytes = DataType.putElementInBuffer[String](
+            buffer, baseOffset + index, STRING.cast(value))
+          DataType.putElementInBuffer[Long](buffer, i * INT64.byteSize.get, index.toLong)
+          index += numEncodedBytes
+          i += 1
+        }
+        hostHandle
+      case _ =>
+        val numBytes = shape.numElements * dataType.byteSize.get
+        val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
+        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
+        var index = 0
+        var i = 0
+        while (i < shape.numElements) {
+          DataType.putElementInBuffer[T](buffer, index, dataType.cast(value))
+          index += dataType.byteSize.get
+          i += 1
+        }
+        hostHandle
+    }
+    val tensor = Tensor.fromHostNativeHandle[T](hostHandle)
+    NativeTensor.delete(hostHandle)
+    tensor
+  }
+
   /** $OpDocRandomRandomUniform
     *
     * @group RandomOps
@@ -590,58 +644,6 @@ object Tensor {
     Tensor.fromNativeHandle[T](NativeTensorOpsBasic.oneHot(
       executionContext.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
       actualOffValue.nativeHandle, axis))
-  }
-
-  /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
-    *
-    * If `dataType` is not provided, then its value is inferred from `value`.
-    *
-    * For example:
-    * {{{
-    *   Tensor.fill(INT32, Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
-    * }}}
-    *
-    * @param  shape Tensor shape.
-    * @tparam T Tensor data type.
-    * @return Constructed tensor.
-    */
-  def fill[T: SupportedType](shape: Shape)(value: T): Tensor[T] = {
-    shape.assertFullyDefined()
-    val dataType = implicitly[SupportedType[T]].dataType
-    val hostHandle = dataType match {
-      case STRING =>
-        val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
-        val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
-        val numBytes = shape.numElements * (INT64.byteSize.get + numEncodedBytes)
-        val hostHandle = NativeTensor.allocate(STRING.cValue, shape.asArray.map(_.toLong), numBytes)
-        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-        val baseOffset = INT64.byteSize.get * shape.numElements.toInt
-        var index = 0
-        var i = 0
-        while (i < shape.numElements) {
-          val numEncodedBytes = DataType.putElementInBuffer[String](
-            buffer, baseOffset + index, STRING.cast(value))
-          DataType.putElementInBuffer[Long](buffer, i * INT64.byteSize.get, index.toLong)
-          index += numEncodedBytes
-          i += 1
-        }
-        hostHandle
-      case _ =>
-        val numBytes = shape.numElements * dataType.byteSize.get
-        val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
-        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-        var index = 0
-        var i = 0
-        while (i < shape.numElements) {
-          DataType.putElementInBuffer[T](buffer, index, dataType.cast(value))
-          index += dataType.byteSize.get
-          i += 1
-        }
-        hostHandle
-    }
-    val tensor = Tensor.fromHostNativeHandle[T](hostHandle)
-    NativeTensor.delete(hostHandle)
-    tensor
   }
 
   /** Allocates a new tensor without worrying about the values stored in it.
@@ -738,6 +740,8 @@ object Tensor {
   def fromNPY[T: SupportedType](file: Path): Tensor[T] = {
     NPY.read(file)
   }
+
+  //endregion Constructors
 
   @throws[InvalidArgumentException]
   def makeProto[T](value: Tensor[T]): TensorProto = {

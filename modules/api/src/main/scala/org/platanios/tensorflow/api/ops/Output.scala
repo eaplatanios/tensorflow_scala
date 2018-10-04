@@ -91,10 +91,14 @@ final case class Output[+T] private(
     index: Int
 ) extends OutputLike[T] {
   /** Graph where the op belongs. */
-  override def graph: Graph = op.graph
+  override def graph: Graph = {
+    op.graph
+  }
 
   /** Name of this op output. This is simply set to `"<op.name>:<index>"`. */
-  override def name: String = s"${op.name}:$index"
+  override def name: String = {
+    s"${op.name}:$index"
+  }
 
   /** Data type of this op output. */
   override def dataType: DataType[T] = using(graph.reference) { r =>
@@ -102,7 +106,9 @@ final case class Output[+T] private(
   }
 
   /** Device on which this op output will be placed. */
-  override def device: String = op.device
+  override def device: String = {
+    op.device
+  }
 
   /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
   override def consumers: Array[Input[Any]] = using(graph.reference) { _ =>
