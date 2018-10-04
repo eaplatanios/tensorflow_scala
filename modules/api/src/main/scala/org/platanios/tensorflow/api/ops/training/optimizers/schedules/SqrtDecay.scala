@@ -59,21 +59,21 @@ class SqrtDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for square-root decay.")
     Op.nameScope(name) {
-      val stepValue = step.get.value.toFloat32
-      val decayFactorValue = Basic.constant(decayFactor).toFloat32
-      val decayThresholdValue = Basic.constant(decayThreshold).toFloat32
+      val stepValue = step.get.value.castTo[Float]
+      val decayFactorValue = Basic.constant(decayFactor).castTo[Float]
+      val decayThresholdValue = Basic.constant(decayThreshold).castTo[Float]
       val result = {
         if (startStep == 0L) {
           decay(value, stepValue, decayFactorValue, decayThresholdValue)
         } else {
-          val startStepValue = Basic.constant(startStep).toFloat32
+          val startStepValue = Basic.constant(startStep).castTo[Float]
           ControlFlow.cond(
             stepValue < startStepValue,
             () => value,
             () => decay(value, stepValue - startStepValue, decayFactorValue, decayThresholdValue))
         }
       }
-      result.cast(value.dataType)
+      result.castTo(value.dataType)
     }
   }
 

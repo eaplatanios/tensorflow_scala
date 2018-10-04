@@ -166,7 +166,7 @@ object Metric {
         weights
       } else {
         Op.createWith(controlDependencies = Set(weightsAssertBroadcastable(values, weights))) {
-          Math.multiply(weights, Basic.onesLike(values).toFloat32, name = "Broadcast")
+          Math.multiply(weights, Basic.onesLike(values).castTo[Float], name = "Broadcast")
         }
       }
     }

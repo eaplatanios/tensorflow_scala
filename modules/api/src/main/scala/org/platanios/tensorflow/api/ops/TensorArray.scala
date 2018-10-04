@@ -250,7 +250,7 @@ case class TensorArray[+T] private (
   ): TensorArray[V] = {
     Op.nameScope(name) {
       val splitFlow = maybeColocateWith(input.op) {
-        TensorArray.splitOp(handle, input, lengths.cast(INT64), flow, name)
+        TensorArray.splitOp(handle, input, lengths.castTo[Long], flow, name)
       }
       val returnValue = TensorArray(
         handle, splitFlow, dataType, inferShape, elementShape,

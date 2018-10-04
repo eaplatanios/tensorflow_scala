@@ -67,7 +67,7 @@ class BasicLSTMCell[T: IsNotQuantized] protected (
       // i = input gate, j = new input, f = forget gate, o = output gate
       val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
       val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
-      val forgetBiasTensor = Basic.constant(forgetBias).cast(f.dataType)
+      val forgetBiasTensor = Basic.constant(forgetBias).castTo(f.dataType)
       val c = Math.add(
         Math.multiply(input.state.c, Math.sigmoid(f + forgetBiasTensor)),
         Math.multiply(Math.sigmoid(i), activation(j)))

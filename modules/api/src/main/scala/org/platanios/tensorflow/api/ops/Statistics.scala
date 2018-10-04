@@ -48,7 +48,7 @@ trait Statistics {
   ): (Output[T], Output[T], Output[T], Output[T]) = {
     Op.nameScope(name) {
       val dynamicAxes = axes
-      val inputShape = Basic.shape(input, INT64).cast(input.dataType)
+      val inputShape = Basic.shape(input, INT64).castTo(input.dataType)
       val counts = Math.prod(Basic.gather(inputShape, dynamicAxes, axis = 0))
       val mSS = if (shift == null) input else input - shift
       val vSS = if (shift == null) Math.square(input) else Math.squaredDifference(input, shift)

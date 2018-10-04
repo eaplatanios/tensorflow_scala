@@ -134,7 +134,7 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
       })
       if (maximumIterations != null)
         initialFinished = Math.logicalOr(initialFinished, Math.greaterEqual(0, maximumIterations))
-      val initialSequenceLengths = Basic.zerosLike(initialFinished).toInt32
+      val initialSequenceLengths = Basic.zerosLike(initialFinished).castTo[Int]
       val initialTime = Basic.zeros(INT32, Shape.scalar())
 
       type LoopVariables = (

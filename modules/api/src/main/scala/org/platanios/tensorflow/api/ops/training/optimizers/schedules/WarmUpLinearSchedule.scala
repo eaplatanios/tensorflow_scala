@@ -54,14 +54,14 @@ class WarmUpLinearSchedule protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for warm-up schedule.")
     Op.nameScope(name) {
-      val stepValue = step.get.value.toFloat32
-      val warmUpStepsValue = Basic.constant(warmUpSteps).toFloat32
-      val warmUpOffsetValue = Basic.constant(warmUpOffset).toFloat32
+      val stepValue = step.get.value.castTo[Float]
+      val warmUpStepsValue = Basic.constant(warmUpSteps).castTo[Float]
+      val warmUpOffsetValue = Basic.constant(warmUpOffset).castTo[Float]
       ControlFlow.cond(
         stepValue < warmUpStepsValue,
-        () => value.toFloat32 * schedule(stepValue, warmUpStepsValue, warmUpOffsetValue),
+        () => value.castTo[Float] * schedule(stepValue, warmUpStepsValue, warmUpOffsetValue),
         () => value
-      ).cast(value.dataType)
+      ).castTo(value.dataType)
     }
   }
 

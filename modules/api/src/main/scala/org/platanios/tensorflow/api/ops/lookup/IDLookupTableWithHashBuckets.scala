@@ -102,7 +102,7 @@ class IDLookupTableWithHashBuckets[K: IsStringOrIntOrUInt] private[IDLookupTable
         if (numOOVBuckets == 0) {
           table.get.lookup(o)
         } else {
-          var buckets = hashSpecification.stringToHashBucket(o.cast(STRING), numOOVBuckets)
+          var buckets = hashSpecification.stringToHashBucket(o.castTo[String], numOOVBuckets)
           table.map(t => {
             val ids = t.lookup(o)
             buckets = Math.add(buckets, t.size())

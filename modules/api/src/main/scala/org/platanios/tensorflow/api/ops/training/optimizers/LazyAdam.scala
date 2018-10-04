@@ -115,8 +115,8 @@ class LazyAdam protected (
     val epsilon = getEpsilon(variable)
     var learningRate = getLearningRate(variable, iteration)
     val one = Basic.ones(learningRate.dataType, Shape())
-    learningRate = learningRate * Math.sqrt(one - beta2Power.cast(variable.dataType))
-    learningRate = learningRate / (one - beta1Power.cast(variable.dataType))
+    learningRate = learningRate * Math.sqrt(one - beta2Power.castTo(variable.dataType))
+    learningRate = learningRate / (one - beta1Power.castTo(variable.dataType))
 
     // m_t = beta1 * m + (1 - beta1) * gradient
     val mTSlice = beta1 * Basic.gather(m.value, gradient.indices, axis = 0) + (one - beta1) * gradient.values

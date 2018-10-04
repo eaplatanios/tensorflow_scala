@@ -88,7 +88,7 @@ class PrecisionAtK(
     val computedWeights = getWeights(weights)
     Op.nameScope(name) {
       val (_, topKIndices) = NN.topK(predictions, k)
-      groupedPrecisionMetric.compute((topKIndices.toInt64, targets), computedWeights, name)
+      groupedPrecisionMetric.compute((topKIndices.castTo[Long], targets), computedWeights, name)
     }
   }
 
@@ -110,7 +110,7 @@ class PrecisionAtK(
     val computedWeights = getWeights(weights)
     Op.nameScope(name) {
       val (_, topKIndices) = NN.topK(predictions, k)
-      groupedPrecisionMetric.streaming((topKIndices.toInt64, targets), computedWeights, name)
+      groupedPrecisionMetric.streaming((topKIndices.castTo[Long], targets), computedWeights, name)
     }
   }
 }

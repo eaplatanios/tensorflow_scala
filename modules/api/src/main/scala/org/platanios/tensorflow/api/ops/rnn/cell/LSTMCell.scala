@@ -96,7 +96,7 @@ class LSTMCell[T: IsNotQuantized] protected (
       val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
       val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
       // Diagonal connections
-      val forgetBiasTensor = Basic.constant(forgetBias).cast(f.dataType)
+      val forgetBiasTensor = Basic.constant(forgetBias).castTo(f.dataType)
       var firstTerm = f + forgetBiasTensor
       if (wfDiag != null)
         firstTerm = firstTerm + Math.multiply(wfDiag, input.state.c)
@@ -107,7 +107,7 @@ class LSTMCell[T: IsNotQuantized] protected (
         Math.multiply(input.state.c, Math.sigmoid(firstTerm)),
         Math.multiply(Math.sigmoid(secondTerm), activation(j)))
       if (cellClip != -1) {
-        val cellClipTensor = Basic.constant(cellClip).cast(c.dataType)
+        val cellClipTensor = Basic.constant(cellClip).castTo(c.dataType)
         c = c.clipByValue(-cellClipTensor, cellClipTensor)
       }
       var m = {
@@ -120,7 +120,7 @@ class LSTMCell[T: IsNotQuantized] protected (
       if (projectionKernel != null) {
         m = Math.matmul(m, projectionKernel)
         if (projectionClip != -1) {
-          val projectionClipTensor = Basic.constant(projectionClip).cast(m.dataType)
+          val projectionClipTensor = Basic.constant(projectionClip).castTo(m.dataType)
           m = m.clipByValue(-projectionClipTensor, projectionClipTensor)
         }
       }

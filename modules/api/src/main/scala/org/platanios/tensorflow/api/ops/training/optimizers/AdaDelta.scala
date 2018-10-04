@@ -70,7 +70,7 @@ class AdaDelta protected (
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.cast(variable.dataType).toOutput
+    learningRateTensor.castTo(variable.dataType).toOutput
   }
 
   protected def getRho[V](
@@ -78,7 +78,7 @@ class AdaDelta protected (
   ): Output[V] = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    rhoTensor.cast(variable.dataType).toOutput
+    rhoTensor.castTo(variable.dataType).toOutput
   }
 
   protected def getEpsilon[V](
@@ -86,7 +86,7 @@ class AdaDelta protected (
   ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    epsilonTensor.cast(variable.dataType).toOutput
+    epsilonTensor.castTo(variable.dataType).toOutput
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {

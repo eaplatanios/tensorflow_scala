@@ -2263,18 +2263,19 @@ object Op {
     if (nameScope == null) {
       oldNameScope
     } else {
+      val normalizedNameScope = normalizeNameScope(nameScope)
       // Check whether the provided name scope is valid.
       // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
       // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
-      if ((oldNameScope == "" && nameScope != "" && !checkName(nameScope))
-          || (oldNameScope != "" && !checkNameScope(nameScope)))
-        throw IllegalNameException(s"Illegal name scope '$nameScope'.")
-      if (nameScope == "")
+      if ((oldNameScope == "" && normalizedNameScope != "" && !checkName(normalizedNameScope))
+          || (oldNameScope != "" && !checkNameScope(normalizedNameScope)))
+        throw IllegalNameException(s"Illegal name scope '$normalizedNameScope'.")
+      if (normalizedNameScope == "")
         ""
-      else if (nameScope.endsWith("/"))
-        convertNameScopeToName(nameScope)
+      else if (normalizedNameScope.endsWith("/"))
+        convertNameScopeToName(normalizedNameScope)
       else
-        uniqueNameFn(nameScope)
+        uniqueNameFn(normalizedNameScope)
     }
   }
 
@@ -2420,6 +2421,10 @@ object Op {
     */
   private[api] def checkNameScope(nameScope: String): Boolean = {
     VALID_NAME_SCOPE_REGEX.pattern.matcher(nameScope).matches
+  }
+
+  def normalizeNameScope(nameScope: String): String = {
+    nameScope.replaceAll(":", "_")
   }
 
   /** Converts the provided name scope to a valid op name, by removing a trailing `"/"` if there exists one.

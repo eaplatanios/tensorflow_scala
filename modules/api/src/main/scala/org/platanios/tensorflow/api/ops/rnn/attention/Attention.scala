@@ -87,7 +87,7 @@ abstract class Attention[T: IsDecimal, AS, ASS](
   lazy val initialAlignment: Output[T] = {
     Op.nameScope(s"$name/InitialAlignment") {
       val fullShape = Basic.stack(
-        Seq(batchSize, alignmentSize.cast(batchSize.dataType)),
+        Seq(batchSize, alignmentSize.castTo(batchSize.dataType)),
         axis = 0)
       Basic.zeros(dataType, fullShape)
     }
@@ -169,7 +169,7 @@ abstract class SimpleAttention[T: IsDecimal](
     Op.nameScope(name) {
       val unmaskedScore = score(query, previousState)
       val maskedScore = Attention.maybeMaskScore(
-        unmaskedScore, memorySequenceLengths, scoreMaskValue.cast(query.dataType))
+        unmaskedScore, memorySequenceLengths, scoreMaskValue.castTo(query.dataType))
       val alignment = probability(maskedScore, previousState)
       (alignment, alignment)
     }
@@ -212,7 +212,7 @@ object Attention {
         Basic.sequenceMask(
           sequenceLengths,
           Basic.shape(values, INT32).slice(1)
-        ).cast(values.dataType)
+        ).castTo(values.dataType)
       }
     }
     if (sequenceMask == null) {

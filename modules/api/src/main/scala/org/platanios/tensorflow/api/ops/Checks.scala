@@ -172,7 +172,7 @@ trait Checks {
         }
         if (message != null) message +: d else d
       }
-      val tolerance = absTolerance.cast(x.dataType) + relTolerance.cast(x.dataType) * Math.abs(y)
+      val tolerance = absTolerance.castTo(x.dataType) + relTolerance.castTo(x.dataType) * Math.abs(y)
       val difference = Math.abs(x - y)
       assert(Math.all(Math.less(difference, tolerance)), processedData, summarize)
     }
@@ -461,7 +461,7 @@ trait Checks {
   ): Op[Seq[Output[Any]], Unit] = {
     Op.nameScope(name) {
       val stackedPredicates = Basic.stack(predicates, name = "StackPredicates")
-      val numTrue = Math.sum(Cast.cast(stackedPredicates, INT32), name = "NumTrue")
+      val numTrue = Math.sum(stackedPredicates.castTo[Int], name = "NumTrue")
       val condition = Math.lessEqual(numTrue, Basic.constant(n, name = "NumTrueConditionsLimit"))
       val processedData = {
         val d: Seq[Output[Any]] = {

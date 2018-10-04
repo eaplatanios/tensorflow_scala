@@ -215,7 +215,7 @@ trait Basic {
       value: Output[V],
       name: String = "Fill"
   ): Output[T] = {
-    val castedValue = Cast.cast(value, dataType)
+    val castedValue = value.castTo(dataType)
     Op.Builder[(Output[I], Output[T]), Output[T]](
       opType = "Fill",
       name = name,
@@ -364,9 +364,9 @@ trait Basic {
       case o: Output[_] =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined) {
-          constant(Tensor.fill[Long](Shape())(inputShape.numElements), name = name).cast(dataType)
+          constant(Tensor.fill[Long](Shape())(inputShape.numElements), name = name).castTo(dataType)
         } else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0)) {
-          constant(0L, name = name).cast(dataType)
+          constant(0L, name = name).castTo(dataType)
         } else {
           Op.Builder[Output[Any], Output[R]](
             opType = "Size",
@@ -377,11 +377,11 @@ trait Basic {
         }
       case o: OutputIndexedSlices[_] =>
         Op.nameScope(name) {
-          Math.prod(o.denseShape, Seq(0)).cast(dataType)
+          Math.prod(o.denseShape, Seq(0)).castTo(dataType)
         }
       case o: SparseOutput[_] =>
         Op.nameScope(name) {
-          Math.prod(o.denseShape, Seq(0)).cast(dataType)
+          Math.prod(o.denseShape, Seq(0)).castTo(dataType)
         }
     }
   }
@@ -406,7 +406,7 @@ trait Basic {
       case o: Output[_] =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined) {
-          constant(inputShape.toTensor[Long], name = name).cast(dataType)
+          constant(inputShape.toTensor[Long], name = name).castTo(dataType)
         } else {
           Op.Builder[Output[Any], Output[I]](
             opType = "Shape",
@@ -415,8 +415,8 @@ trait Basic {
           ).setAttribute("out_type", dataType)
               .build().output
         }
-      case o: OutputIndexedSlices[_] => Cast.cast(o.denseShape, dataType)
-      case o: SparseOutput[_] => Cast.cast(o.denseShape, dataType)
+      case o: OutputIndexedSlices[_] => o.denseShape.castTo(dataType)
+      case o: SparseOutput[_] => o.denseShape.castTo(dataType)
     }
   }
 
@@ -765,7 +765,7 @@ trait Basic {
             val mask = concatenate(Seq(
               fill(INT64, expandDims(nonNegativeConcatenationAxis, 0))(zero),
               constant(Tensor(1L)),
-              fill(INT64, shapeOfShape - nonNegativeConcatenationAxis.toInt64 - ones(INT64, Shape()))(zero)
+              fill(INT64, shapeOfShape - nonNegativeConcatenationAxis.castTo[Long] - ones(INT64, Shape()))(zero)
             ), zero)
             var begin = fill(INT64, shapeOfShape)(zero)
             shapes.map(shape => {
@@ -780,7 +780,7 @@ trait Basic {
             var start = zeros(INT64, Shape())
             var end = start
             shapes.map(shape => {
-              val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis, axis = 0).toInt64
+              val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis, axis = 0).castTo[Long]
               end = start + shapeConcatenationAxis
               // Compute the 1-D Output of indices relevant for this input.
               val indicesToSelect = squeeze(
@@ -929,7 +929,7 @@ trait Basic {
       case g: OutputIndexedSlices[T] =>
         val gradient = Math.unsortedSegmentSum(
           g.values,
-          Math.mod(g.indices.cast(inputShape.dataType), inputShape(0)),
+          Math.mod(g.indices.castTo(inputShape.dataType), inputShape(0)),
           inputShape(0))
         (gradient, concatenate(Seq(ones(splitShape.dataType, Shape()), splitShape(1 ::)), axis = 0))
       case g => (g, splitShape)
@@ -1023,7 +1023,7 @@ trait Basic {
         paddings: Output[I],
         name: String
     ): Output[T] = {
-      val constantValues = value.map(Basic.constant(_).cast(input.dataType))
+      val constantValues = value.map(Basic.constant(_).castTo(input.dataType))
           .getOrElse(Basic.zeros(input.dataType, Shape()))
       Op.Builder[(Output[T], Output[I], Output[T]), Output[T]](
         opType = "PadV2",
@@ -1745,7 +1745,7 @@ trait Basic {
       val rowVector = Math.range(Basic.zerosLike(maxLen), maxLen, Basic.onesLike(maxLen))
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
-      val matrix = Cast.cast(expandDims(lengths, -1), maxLen.dataType)
+      val matrix = expandDims(lengths, -1).castTo(maxLen.dataType)
       Math.less(rowVector, matrix)
     }
   }
@@ -1894,7 +1894,7 @@ trait Basic {
     val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
       shape(input, INT64)
     }
-    val indices = op.input._2.toInt64
+    val indices = op.input._2.castTo[Long]
     val indicesSize = expandDims(size(indices, INT64), zero)
     val axis = op.input._3
     val axisStatic = Output.constantValue(axis)
@@ -1906,9 +1906,9 @@ trait Basic {
       val gradient = OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = inputShape)
       (gradient, null, null)
     } else {
-      val intInputShape = inputShape.toInt32
-      val intIndicesSize = indicesSize.toInt32
-      val expandedAxis = axis.toInt32.expandDims(zero)
+      val intInputShape = inputShape.castTo[Int]
+      val intIndicesSize = indicesSize.castTo[Int]
+      val expandedAxis = axis.castTo[Int].expandDims(zero)
       val outerShape = slice(intInputShape, zero, expandedAxis)
       val outerSize = size(outerShape, INT32)
       val computedShape = slice(intInputShape, expandedAxis, size(inputShape, INT32).expandDims(zero))
@@ -1970,9 +1970,9 @@ trait Basic {
     val inputShape = shape(op.input._1, indices.dataType)
     if (indices.rank == 2 && indices.shape(-1) == 1) {
       (OutputIndexedSlices(
-        indices = Basic.squeeze(indices, axes = Seq(-1)).toInt64,
+        indices = Basic.squeeze(indices, axes = Seq(-1)).castTo[Long],
         values = outputGradient,
-        denseShape = inputShape.toInt64), null)
+        denseShape = inputShape.castTo[Long]), null)
     } else {
       (scatterND(indices, outputGradient, inputShape), null)
     }
@@ -2301,8 +2301,8 @@ trait Basic {
       name: String = "OneHot"
   ): Output[T] = {
     Op.nameScope(name) {
-      val actualOnValue = if (onValue != null) onValue.cast(dataType) else ones(dataType, Shape())
-      val actualOffValue = if (offValue != null) offValue.cast(dataType) else zeros(dataType, Shape())
+      val actualOnValue = if (onValue != null) onValue.castTo(dataType) else ones(dataType, Shape())
+      val actualOffValue = if (offValue != null) offValue.castTo(dataType) else zeros(dataType, Shape())
       Op.Builder[(Output[I], Output[Int], Output[T], Output[T]), Output[T]](
         opType = "OneHot",
         name = name,

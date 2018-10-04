@@ -118,7 +118,7 @@ class ConfusionMatrix[T: IsNumeric](
         if (numClassesOutput == null) {
           Math.add(Math.maximum(matchedPredictions.max(), matchedTargets.max()), 1L)
         } else {
-          val castedNumClasses = numClassesOutput.cast(INT64)
+          val castedNumClasses = numClassesOutput.castTo[Long]
           matchedTargets = ControlFlow.withControlDependencies(
             Set(Checks.assertLess(
               matchedTargets, castedNumClasses,
@@ -132,12 +132,12 @@ class ConfusionMatrix[T: IsNumeric](
           castedNumClasses
         }
       }
-      val computedWeights = matchedWeights.map(_.cast(dataType))
-          .getOrElse(Basic.onesLike(matchedPredictions).cast(dataType))
-      val denseShape = Basic.stack(Seq(inferredNumClasses, inferredNumClasses)).cast(INT64)
+      val computedWeights = matchedWeights.map(_.castTo(dataType))
+          .getOrElse(Basic.onesLike(matchedPredictions).castTo(dataType))
+      val denseShape = Basic.stack(Seq(inferredNumClasses, inferredNumClasses)).castTo[Long]
       val indices = Basic.transpose(Basic.stack(Seq(matchedTargets, matchedPredictions)))
       val confusionMatrix = SparseOutput(indices, computedWeights, denseShape)
-      val zeros = Basic.fill(dataType, denseShape.cast(INT32))(0)
+      val zeros = Basic.fill(dataType, denseShape.castTo[Int])(0)
       val value = confusionMatrix.addDense(zeros)
       valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
       value

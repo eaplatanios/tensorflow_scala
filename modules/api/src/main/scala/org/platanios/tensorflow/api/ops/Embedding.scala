@@ -69,7 +69,7 @@ trait Embedding {
           result
         }
       } else {
-        val numPartitions = Basic.constant(parameters.numPartitions).cast(ids.dataType)
+        val numPartitions = Basic.constant(parameters.numPartitions).castTo(ids.dataType)
         // Flatten the ids. There are two cases where we need to do this:
         //   - There is more than one parameter tensors.
         //   - There is a `transformFn` and ids is not statically known to be 1-D.
@@ -82,7 +82,7 @@ trait Embedding {
 
         // Cast partition assignments to integers for use in `dynamicPartition`.
         // There really should not be more than 2^32 partitions.
-        val partitionAssignments = transformedIds._1.toInt32
+        val partitionAssignments = transformedIds._1.castTo[Int]
         val newIds = transformedIds._2
 
         // Partition list of ids based on assignments into `parameters.numPartitions` separate lists.
@@ -195,14 +195,14 @@ trait Embedding {
         throw InvalidShapeException("The dense shapes of 'sparseIds' and 'sparseWeights' must be compatible.")
     }
     Op.nameScope(name) {
-      val segmentIds = sparseIds.indices(::, 0).cast(INT32)
+      val segmentIds = sparseIds.indices(::, 0).castTo[Int]
       val (ids, idx) = Basic.unique(sparseIds.values, 0, INT32)
       var embeddings = embeddingLookup(parameters, ids, partitionStrategy, maxNorm = maxNorm)
       if (ignoreWeights) {
         combiner.combine(embeddings, idx, segmentIds)
       } else {
         embeddings = embeddings.gather(idx)
-        val weights = sparseWeights.values.cast(embeddings.dataType)
+        val weights = sparseWeights.values.castTo(embeddings.dataType)
         // Reshape weights to allow broadcasting.
         val weightsStaticShape = weights.shape
         val weightsDynamicShape = Basic.shape(weights, INT64)
@@ -261,7 +261,7 @@ trait Embedding {
       // statically.
       val numTotalIds = {
         if (parameters.forall(p => p.staticShape.rank != -1 && p.staticShape(0) != -1)) {
-          Basic.constant(parameters.map(_.staticShape(0)).toTensor.sum()).cast(ids.dataType)
+          Basic.constant(parameters.map(_.staticShape(0)).toTensor.sum()).castTo(ids.dataType)
         } else {
           val axis0Sizes = parameters.map(p => {
             if (p.staticShape.rank != -1 && p.staticShape(0) != -1)
@@ -269,7 +269,7 @@ trait Embedding {
             else
               Op.colocateWith(Set(p.colocationOp), ignoreExisting = true)(p.dynamicShape(0))
           })
-          Math.sum(Basic.stack(axis0Sizes).cast(ids.dataType))
+          Math.sum(Basic.stack(axis0Sizes).castTo(ids.dataType))
         }
       }
       val one = Basic.ones(numPartitions.dataType, Shape())

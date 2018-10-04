@@ -54,14 +54,14 @@ class WarmUpExponentialSchedule protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for warm-up schedule.")
     Op.nameScope(name) {
-      val stepValue = step.get.value.toFloat32
-      val warmUpStepsValue = Basic.constant(warmUpSteps).toFloat32
-      val warmUpFactorValue = Basic.constant(warmUpFactor).toFloat32
+      val stepValue = step.get.value.castTo[Float]
+      val warmUpStepsValue = Basic.constant(warmUpSteps).castTo[Float]
+      val warmUpFactorValue = Basic.constant(warmUpFactor).castTo[Float]
       ControlFlow.cond(
         stepValue < warmUpStepsValue,
-        () => value.toFloat32 * schedule(stepValue, warmUpStepsValue, warmUpFactorValue),
+        () => value.castTo[Float] * schedule(stepValue, warmUpStepsValue, warmUpFactorValue),
         () => value
-      ).cast(value.dataType)
+      ).castTo(value.dataType)
     }
   }
 

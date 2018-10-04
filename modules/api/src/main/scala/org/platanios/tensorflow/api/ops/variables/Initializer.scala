@@ -117,9 +117,9 @@ case class DynamicConstantInitializer(value: Output[_]) extends Initializer {
   ): Output[T] = {
     Op.colocateWith(Set.empty, ignoreExisting = true) {
       if (shape.isCompatibleWith(value.shape)) {
-        Basic.identity(value.cast(dataType), name = "ConstantInitializer")
+        Basic.identity(value.castTo(dataType), name = "ConstantInitializer")
       } else if (shape.rank > 0 && value.shape.rank == 0 || (value.shape.rank == 1 && value.shape(0) == 1)) {
-        Basic.fill(dataType, shape)(value.cast(dataType), name = "ConstantInitializer")
+        Basic.fill(dataType, shape)(value.castTo(dataType), name = "ConstantInitializer")
       } else {
         throw ShapeMismatchException(
           s"The constant value shape '${value.shape}' is not compatible " +
@@ -145,8 +145,8 @@ case class RandomUniformInitializer(
     implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
     Random.randomUniform(dataType, shape)(
-      minValue = minValue.cast(dataType),
-      maxValue = maxValue.cast(dataType),
+      minValue = minValue.castTo(dataType),
+      maxValue = maxValue.castTo(dataType),
       seed = seed,
       name = "RandomUniformInitializer")
   }
@@ -168,8 +168,8 @@ case class RandomNormalInitializer(
     implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
     Random.randomNormal(dataType, shape)(
-      mean = mean.cast(dataType),
-      standardDeviation = standardDeviation.cast(dataType),
+      mean = mean.castTo(dataType),
+      standardDeviation = standardDeviation.castTo(dataType),
       seed = seed,
       name = "RandomNormalInitializer")
   }
@@ -191,8 +191,8 @@ case class RandomTruncatedNormalInitializer(
     implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
     Random.randomTruncatedNormal(dataType, shape)(
-      mean = mean.cast(dataType),
-      standardDeviation = standardDeviation.cast(dataType),
+      mean = mean.castTo(dataType),
+      standardDeviation = standardDeviation.castTo(dataType),
       seed = seed,
       name = "RandomTruncatedNormalInitializer")
   }
@@ -307,7 +307,7 @@ object VarianceScalingInitializer {
 
       Random.randomTruncatedNormal(dataType, shape)(
         mean = Basic.zeros(dataType, Shape()),
-        standardDeviation = Basic.constant(Math.sqrt(scale)).cast(dataType),
+        standardDeviation = Basic.constant(Math.sqrt(scale)).castTo(dataType),
         seed = seed)
     }
   }
@@ -325,8 +325,8 @@ object VarianceScalingInitializer {
 
       val limit = Math.sqrt(3.0f * scale)
       Random.randomUniform(dataType, shape)(
-        minValue = Basic.constant(-limit).cast(dataType),
-        maxValue = Basic.constant(limit).cast(dataType),
+        minValue = Basic.constant(-limit).castTo(dataType),
+        maxValue = Basic.constant(limit).castTo(dataType),
         seed = seed)
     }
   }

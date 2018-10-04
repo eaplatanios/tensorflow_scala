@@ -51,8 +51,8 @@ case class ExponentialPenalty(alpha: Float) extends LengthPenalty {
       scores
     } else {
       Op.nameScope("LengthPenalty") {
-        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor").cast(scores.dataType)
-        scores / (sequenceLengths.cast(scores.dataType) ^ penaltyFactor)
+        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor").castTo(scores.dataType)
+        scores / (sequenceLengths.castTo(scores.dataType) ^ penaltyFactor)
       }
     }
   }
@@ -73,10 +73,10 @@ case class GooglePenalty(alpha: Float) extends LengthPenalty {
       scores
     } else {
       Op.nameScope("LengthPenalty") {
-        val five = Basic.constant(5.0f, name = "Five").cast(scores.dataType)
-        val six = Basic.constant(6.0f, name = "Six").cast(scores.dataType)
-        val lengths = sequenceLengths.cast(scores.dataType)
-        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor").cast(scores.dataType)
+        val five = Basic.constant(5.0f, name = "Five").castTo(scores.dataType)
+        val six = Basic.constant(6.0f, name = "Six").castTo(scores.dataType)
+        val lengths = sequenceLengths.castTo(scores.dataType)
+        val penaltyFactor = Basic.constant(alpha, name = "PenaltyFactor").castTo(scores.dataType)
         scores / Math.divide((five + lengths) ^ penaltyFactor, six ^ penaltyFactor)
       }
     }

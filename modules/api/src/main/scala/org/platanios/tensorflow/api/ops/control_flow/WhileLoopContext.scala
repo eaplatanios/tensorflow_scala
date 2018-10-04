@@ -996,7 +996,7 @@ object WhileLoopVariable {
           OutputIndexedSlices(
             indices = Basic.zeros(INT64, Shape(0)),
             values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape.toInt64)
+            denseShape = fullShape.castTo[Long])
         }
       }
 
@@ -1064,7 +1064,7 @@ object WhileLoopVariable {
           SparseOutput(
             indices = Basic.zeros(INT64, Shape(0)),
             values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape.toInt64)
+            denseShape = fullShape.castTo[Long])
         }
       }
 

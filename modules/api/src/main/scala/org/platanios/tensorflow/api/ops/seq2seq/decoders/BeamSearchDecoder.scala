@@ -203,7 +203,7 @@ class BeamSearchDecoder[T, State, StateShape](
 
       // Calculate the total log probabilities for the new hypotheses (final shape = [batchSize, beamWidth, vocabSize]).
       val stepLogProbabilities = BeamSearchDecoder.maskLogProbabilities(
-        NN.logSoftmax(nextTupleOutput.toFloat32), endToken, previouslyFinished)
+        NN.logSoftmax(nextTupleOutput.castTo[Float]), endToken, previouslyFinished)
       val totalLogProbabilities = state.logProbabilities.expandDims(2) + stepLogProbabilities
 
       // Calculate the continuation lengths by adding to all continuing search states.
@@ -220,13 +220,13 @@ class BeamSearchDecoder[T, State, StateShape](
         dataType = INT32,
         onValue = 0,
         offValue = 1)
-      val addMask = Math.logicalNot(previouslyFinished).toInt32
+      val addMask = Math.logicalNot(previouslyFinished).castTo[Int]
       val newPredictionLengths = Math.add(
         lengthsToAdd * addMask.expandDims(2),
         predictionLengths.expandDims(2))
 
       // Calculate the scores for each search state.
-      val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths).toFloat32
+      val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths).castTo[Float]
 
       // During the first time step we only consider the initial search state.
       val scoresFlat = Basic.reshape(scores, Basic.stack[Int](Seq(batchSize, -1)))
@@ -240,8 +240,8 @@ class BeamSearchDecoder[T, State, StateShape](
       // Pick out the log probabilities, search state indices, and states according to the chosen predictions.
       val nextBeamLogProbabilities = evFloat.map(totalLogProbabilities, BeamSearchDecoder.gather(
         wordIndices, _, batchSize, vocabSize * beamWidth, Seq(-1), name = "NextBeamLogProbabilities"))
-      val nextPredictedIDs = Math.mod(wordIndices, vocabSize, name = "NextBeamPredictedIDs").cast(INT32)
-      val nextParentIDs = Math.divide(wordIndices, vocabSize, name = "NextBeamParentIDs").cast(INT32)
+      val nextPredictedIDs = Math.mod(wordIndices, vocabSize, name = "NextBeamPredictedIDs").castTo[Int]
+      val nextParentIDs = Math.divide(wordIndices, vocabSize, name = "NextBeamParentIDs").castTo[Int]
 
       // Append the new IDs to the current predictions.
       val gatheredFinished = evBoolean.map(previouslyFinished, BeamSearchDecoder.gather(
@@ -256,7 +256,7 @@ class BeamSearchDecoder[T, State, StateShape](
       //   3. Search states that have not yet finished have their length increased by 1.
       var nextPredictionLengths = evInt.map(state.sequenceLengths, BeamSearchDecoder.gather(
         nextParentIDs, _, batchSize, beamWidth, Seq(-1), name = "NextBeamLengthsGather"))
-      nextPredictionLengths = nextPredictionLengths + Math.logicalNot(gatheredFinished).toInt32
+      nextPredictionLengths = nextPredictionLengths + Math.logicalNot(gatheredFinished).castTo[Int]
 
       // Pick out the cell state according to the next search state parent IDs. We use a different gather shape here
       // because the cell state tensors (i.e., the tensors that would be gathered from) all have rank greater than two
@@ -290,7 +290,7 @@ class BeamSearchDecoder[T, State, StateShape](
       sequenceLengths: Output[Int]
   ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.DecoderState[State, StateShape], Output[Int]) = {
     // Get the maximum sequence length across all search states for each batch
-    val maxSequenceLengths = state.sequenceLengths.max(Tensor(1)).toInt32
+    val maxSequenceLengths = state.sequenceLengths.max(Tensor(1)).castTo[Int]
     val predictedIDs = BeamSearchDecoder.gatherTree(
       output.predictedIDs, output.parentIDs, maxSequenceLengths, endToken)
     val finalOutput = BeamSearchDecoder.FinalOutput(predictedIDs, output)
@@ -764,7 +764,7 @@ object BeamSearchDecoder {
         val valueShape = Basic.shape(output, INT32)
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
           batchSize(NewAxis), Tensor(beamWidth).toOutput,
-          valueShape(1 ::).cast(batchSize.dataType)), axis = 0))
+          valueShape(1 ::).castTo(batchSize.dataType)), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val expectedReshapedShape = Shape(staticBatchSize, beamWidth) ++ s
         if (!reshapedValue.shape.isCompatibleWith(expectedReshapedShape)) {
@@ -846,7 +846,7 @@ object BeamSearchDecoder {
         val valueShape = Basic.shape(output, INT32)
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
           batchSize(NewAxis) * Tensor(beamWidth).toOutput,
-          valueShape(2 ::).cast(batchSize.dataType)), axis = 0))
+          valueShape(2 ::).castTo(batchSize.dataType)), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val batchSizeBeamWidth = if (staticBatchSize != -1) staticBatchSize * beamWidth else -1
         val expectedReshapedShape = Shape(batchSizeBeamWidth) ++ s
@@ -1047,16 +1047,16 @@ object BeamSearchDecoder {
           val searchStateIndices = Basic.tile(
             Math.range(0, beamWidth).slice(NewAxis, NewAxis),
             Basic.stack[Int](Seq(maxTime, batchSize, 1)))
-          val mask = Basic.sequenceMask(sequenceLengths, maxTime).cast(INT32).transpose(Seq(2, 0, 1))
+          val mask = Basic.sequenceMask(sequenceLengths, maxTime).castTo[Int].transpose(Seq(2, 0, 1))
 
           // Use `beamWidth + 1` to mark the end of the beam.
           val maskedSearchStateIndices = (searchStateIndices * mask) + (1 - mask) * (beamWidth + 1)
-          val maxSequenceLengths = sequenceLengths.max(Tensor(1)).cast(INT32)
+          val maxSequenceLengths = sequenceLengths.max(Tensor(1)).castTo[Int]
           var sortedSearchStateIndices = gatherTree(
             maskedSearchStateIndices, parentIDs, maxSequenceLengths, beamWidth + 1)
 
           // For out of range steps, we simply copy the same beam.
-          sortedSearchStateIndices = Math.select(mask.cast(BOOLEAN), sortedSearchStateIndices, searchStateIndices)
+          sortedSearchStateIndices = Math.select(mask.castTo[Boolean], sortedSearchStateIndices, searchStateIndices)
 
           // Generate indices for `gatherND`.
           val timeIndices = Basic.tile(

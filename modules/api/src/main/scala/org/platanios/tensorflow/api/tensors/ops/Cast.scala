@@ -68,7 +68,23 @@ trait Cast {
 
 object Cast extends Cast {
   private[tensors] trait Implicits {
+    implicit def tensorConvertibleToCastOps[T, TC](
+        value: TC
+    )(implicit f: TC => Tensor[T]): CastOps[T] = {
+      new CastOps(f(value))
+    }
+
     implicit class CastOps[T](val tensor: Tensor[T]) {
+      /** $OpDocCastCast
+        *
+        * @group CastOps
+        * @param  dataType Target data type.
+        * @return Result as a new tensor.
+        */
+      def castTo[R](dataType: DataType[R]): Tensor[R] = {
+        castTo[R](dataType.evSupportedType)
+      }
+
       /** $OpDocCastCast
         *
         * @group CastOps
@@ -79,49 +95,25 @@ object Cast extends Cast {
         Cast.cast(tensor, implicitly[SupportedType[R]].dataType)
       }
 
-      /** $OpDocCastCast
+      /** $OpDocCastBitcast
         *
         * @group CastOps
-        * @tparam R Target data type.
+        * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
-      def castTo[R](dataType: DataType[R]): Tensor[R] = {
-        Cast.cast(tensor, dataType)
+      def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): Tensor[R] = {
+        bitcastTo[R](dataType.evSupportedType, ev)
       }
-    }
 
-    implicit class NumericCastOps[T: IsNumeric](val tensor: Tensor[T]) {
       /** $OpDocCastBitcast
         *
         * @group CastOps
         * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def bitcastTo[R: SupportedType]: Tensor[R] = {
+      def bitcastTo[R: SupportedType](implicit ev: IsNumeric[T]): Tensor[R] = {
         Cast.bitcast(tensor, implicitly[SupportedType[R]].dataType)
       }
-
-      /** $OpDocCastBitcast
-        *
-        * @group CastOps
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def bitcastTo[R](dataType: DataType[R]): Tensor[R] = {
-        Cast.bitcast(tensor, dataType)
-      }
-    }
-
-    implicit def tensorConvertibleToCastOps[T, TC](
-        value: TC
-    )(implicit f: TC => Tensor[T]): CastOps[T] = {
-      new CastOps(f(value))
-    }
-
-    implicit def tensorConvertibleToNumericCastOps[T: IsNumeric, TC](
-        value: TC
-    )(implicit f: TC => Tensor[T]): NumericCastOps[T] = {
-      new NumericCastOps(f(value))
     }
   }
 }

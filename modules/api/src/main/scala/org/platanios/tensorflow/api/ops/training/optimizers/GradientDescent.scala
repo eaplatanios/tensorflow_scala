@@ -59,7 +59,7 @@ class GradientDescent protected (
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.cast(variable.dataType).toOutput
+    learningRateTensor.castTo(variable.dataType).toOutput
   }
 
   protected def getMomentum[V](
@@ -67,7 +67,7 @@ class GradientDescent protected (
   ): Output[V] = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    momentumTensor.cast(variable.dataType).toOutput
+    momentumTensor.castTo(variable.dataType).toOutput
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {

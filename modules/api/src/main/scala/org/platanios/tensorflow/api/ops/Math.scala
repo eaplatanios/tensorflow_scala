@@ -294,7 +294,7 @@ trait Math {
         opType = "ReciprocalGrad",
         name = "ReciprocalGradient",
         gradientFn = Some(reciprocalHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (Basic.constant(-2).cast(cg.dataType) * cg * b * ca, rg)
+      (Basic.constant(-2).castTo(cg.dataType) * cg * b * ca, rg)
     }
   }
 
@@ -327,7 +327,7 @@ trait Math {
     val x = op.input
     // Using control dependencies to prevent 2*x from being computed too early.
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      outputGradient * (Basic.constant(2).cast(x.dataType) * conjugate(x))
+      outputGradient * (Basic.constant(2).castTo(x.dataType) * conjugate(x))
     }
   }
 
@@ -373,7 +373,7 @@ trait Math {
     val y = op.output
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val ga = divide(outputGradient, a)
-      (negate(conjugate(ga)) * y, Basic.constant(0.5).cast(ga.dataType) * ga)
+      (negate(conjugate(ga)) * y, Basic.constant(0.5).castTo(ga.dataType) * ga)
     }
   }
 
@@ -427,7 +427,7 @@ trait Math {
         opType = "RsqrtGrad",
         name = "RSqrtGradient",
         gradientFn = Some(rsqrtHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (Basic.constant(-1.5).cast(cg.dataType) * cg * b * square(ca), rg)
+      (Basic.constant(-1.5).castTo(cg.dataType) * cg * b * square(ca), rg)
     }
   }
 
@@ -866,7 +866,7 @@ trait Math {
         opType = "TanhGrad",
         name = "TanhGradient",
         gradientFn = Some(tanhHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (Basic.constant(-2.0).cast(outputGradient.dataType) * outputGradient * cb * ca, rg)
+      (Basic.constant(-2.0).castTo(outputGradient.dataType) * outputGradient * cb * ca, rg)
     }
   }
 
@@ -1059,7 +1059,7 @@ trait Math {
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
-    val twoOverRootPi = Basic.constant(2.0 / math.sqrt(math.Pi)).cast(outputGradient.dataType)
+    val twoOverRootPi = Basic.constant(2.0 / math.sqrt(math.Pi)).castTo(outputGradient.dataType)
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       outputGradient * twoOverRootPi * exp(negate(square(conjugate(x))))
     }
@@ -1092,7 +1092,7 @@ trait Math {
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
-    val minusTwoOverRootPi = Basic.constant(-2.0 / math.sqrt(math.Pi)).cast(outputGradient.dataType)
+    val minusTwoOverRootPi = Basic.constant(-2.0 / math.sqrt(math.Pi)).castTo(outputGradient.dataType)
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       outputGradient * minusTwoOverRootPi * exp(negate(square(conjugate(x))))
     }
@@ -1152,7 +1152,7 @@ trait Math {
         opType = "SigmoidGrad",
         name = "SigmoidGradient",
         gradientFn = Some(sigmoidHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (subtract(gb, Basic.constant(-2.0).cast(outputGradient.dataType) * gb * ca), rg)
+      (subtract(gb, Basic.constant(-2.0).castTo(outputGradient.dataType) * gb * ca), rg)
     }
   }
 
@@ -1623,7 +1623,7 @@ trait Math {
     val yShape = Basic.shape(y, INT64)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
     val xGradient = Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val two = Basic.constant(2).cast(outputGradient.dataType)
+      val two = Basic.constant(2).castTo(outputGradient.dataType)
       multiply(scalarMul(two, outputGradient), subtract(x, y))
     }
     (Basic.reshape(sum(xGradient, rx), xShape),
@@ -1725,13 +1725,13 @@ trait Math {
     val logX = {
       if (x.dataType.isComplex) {
         // real(x) < 0 is fine for the complex case.
-        select(notEqual(x, Basic.constant(0).cast(x.dataType)), log(x), Basic.zerosLike(x))
+        select(notEqual(x, Basic.constant(0).castTo(x.dataType)), log(x), Basic.zerosLike(x))
       } else {
         // There's no sensible real value to return if x < 0, so we return 0.
-        select(greater(x, Basic.constant(0).cast(x.dataType)), log(x), Basic.zerosLike(x))
+        select(greater(x, Basic.constant(0).castTo(x.dataType)), log(x), Basic.zerosLike(x))
       }
     }
-    (Basic.reshape(sum(outputGradient * y * pow(x, subtract(y, Basic.constant(1).cast(y.dataType))), rx), xShape),
+    (Basic.reshape(sum(outputGradient * y * pow(x, subtract(y, Basic.constant(1).castTo(y.dataType))), rx), xShape),
         Basic.reshape(sum(outputGradient * z * logX, ry), yShape))
   }
 
@@ -1803,7 +1803,7 @@ trait Math {
         input = (a, x)
       ).build().output
       // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
-      val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1).cast(a.dataType)), log(x)) - logGamma(a))
+      val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1).castTo(a.dataType)), log(x)) - logGamma(a))
       (Basic.reshape(sum(multiply(partialA, outputGradient), ra), aShape),
           Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
     }
@@ -2393,14 +2393,14 @@ trait Math {
       val inputSize = op.input._1.size
       val outputSize = op.output.size
       if (inputSize != -1 && outputSize != -1) {
-        Basic.constant(inputSize / scala.math.max(outputSize, 1)).cast(sumGrad.dataType)
+        Basic.constant(inputSize / scala.math.max(outputSize, 1)).castTo(sumGrad.dataType)
       } else {
         val inputShape = Basic.shape(op.input._1, INT64)
         val outputShape = Basic.shape(op.output, INT64)
         safeShapeDiv(prod(inputShape), prod(outputShape))
       }
     }
-    (divide(sumGrad, Cast.cast(factor, sumGrad.dataType)), null)
+    (divide(sumGrad, factor.castTo(sumGrad.dataType)), null)
   }
 
   /** $OpDocMathProd
@@ -2440,7 +2440,7 @@ trait Math {
     // cumulative product operations.
     val inputShape = Basic.shape(op.input._1, INT32)
     // Expand the gradient to the full input shape
-    val outputShapeKeptDims = Math.reducedShape(inputShape.toInt32, op.input._2)
+    val outputShapeKeptDims = Math.reducedShape(inputShape.castTo[Int], op.input._2)
     val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDims)
     var gradient = outputGradient
     gradient = Basic.reshape(gradient, outputShapeKeptDims)
@@ -2452,8 +2452,8 @@ trait Math {
     val (permutation, reducedNum, otherNum) = Op.createWith(device = "/cpu:0") {
       val rank = Basic.rank(op.input._1)
       // Reshape the reduction indices for the case where the parameters is a scalar.
-      val reductionIndices = floorMod(add(Basic.reshape(op.input._2.toInt32, Shape(-1)), rank), rank)
-      val reduced = Cast.cast(reductionIndices, INT32)
+      val reductionIndices = floorMod(add(Basic.reshape(op.input._2.castTo[Int], Shape(-1)), rank), rank)
+      val reduced = reductionIndices.castTo[Int]
       val indices = range(Basic.constant(0), rank)
       val (other, _) = Basic.listDiff(indices, reduced, INT32)
       (Basic.concatenate(Seq(reduced, other), 0),
@@ -2545,7 +2545,7 @@ trait Math {
 
     // Compute the number of selected (maximum or minimum) elements in each reduction dimension. If there are multiple
     // minimum or maximum elements then the gradient will be divided among them.
-    val indicators = Cast.cast(equal(y, op.input._1), gradient.dataType)
+    val indicators = equal(y, op.input._1).castTo(gradient.dataType)
     val numberOfSelected = Basic.reshape(sum(indicators, op.input._2), outputShapeKeptDims)
 
     (multiply(divide(indicators, numberOfSelected), gradient), null)
@@ -2651,7 +2651,7 @@ trait Math {
       name: String = "CountNonZero"
   ): Output[Long] = {
     Op.nameScope(name) {
-      sum(Cast.cast(notEqual(input, Basic.zeros(input.dataType, Shape())), INT64), axes, keepDims)
+      sum(notEqual(input, Basic.zeros(input.dataType, Shape())).castTo[Long], axes, keepDims)
     }
   }
 
@@ -2669,9 +2669,9 @@ trait Math {
     Op.nameScope(name) {
       val zero = Basic.zeros(input.dataType, Shape())
       input match {
-        case o: Output[T] => sum(Cast.cast(notEqual(o, zero), INT64))
-        case o: OutputIndexedSlices[T] => sum(Cast.cast(notEqual(o.values, zero), INT64))
-        case o: SparseOutput[T] => sum(Cast.cast(notEqual(o.values, zero), INT64))
+        case o: Output[T] => sum(notEqual(o, zero).castTo[Long])
+        case o: OutputIndexedSlices[T] => sum(notEqual(o.values, zero).castTo[Long])
+        case o: SparseOutput[T] => sum(notEqual(o.values, zero).castTo[Long])
       }
     }
   }
@@ -2826,7 +2826,7 @@ trait Math {
       name: String = "BinCount"
   ): Output[T] = {
     val inputNonEmpty = greater(prod(Basic.shape(input, INT32)), 0)
-    var outputSize = Cast.cast(inputNonEmpty, INT32) * (max(input) + 1)
+    var outputSize = inputNonEmpty.castTo[Int] * (max(input) + 1)
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
     if (maxLength != null)
@@ -2981,7 +2981,7 @@ trait Math {
     // Get the number of selected (minimum or maximum) elements in each segment.
     val gatheredOutputs = Basic.gather(op.output, op.input._2, axis = 0)
     val isSelected = equal(op.input._1, gatheredOutputs)
-    val numSelected = segmentSum(Cast.cast(isSelected, outputGradient.dataType), op.input._2)
+    val numSelected = segmentSum(isSelected.castTo(outputGradient.dataType), op.input._2)
 
     // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
     // elements in that segment.
@@ -3016,7 +3016,7 @@ trait Math {
         (0 until (gathered.rank - isPositive.rank)).foreach(_ => {
           isPositive = Basic.expandDims(isPositive, minusOne)
         })
-        Math.logicalAnd(isPositive, Basic.onesLike(gathered).cast(BOOLEAN))
+        Math.logicalAnd(isPositive, Basic.onesLike(gathered).castTo[Boolean])
       }
     }
     (Math.select(computedIsPositive, gathered, Basic.zerosLike(gathered)),
@@ -3144,7 +3144,7 @@ trait Math {
     // with `isPositive` here.
     val zero = Basic.zeros(op.input._1.dataType, Shape())
     val isZero = Math.equal(op.input._1, zero)
-    val numZeros = Math.unsortedSegmentSum(Cast.cast(isZero, INT32), op.input._2, op.input._3)
+    val numZeros = Math.unsortedSegmentSum(isZero.castTo[Int], op.input._2, op.input._3)
     // Handle case 3 and set the gradient to 0 for segments with more than one 0 as input.
     val gradient = Math.select(
       Math.greater(numZeros, 1),
@@ -3220,7 +3220,7 @@ trait Math {
     // Get the number of selected (minimum or maximum) elements in each segment.
     val (gatheredOutputs, zeroClippedIndices, isPositive) = gatherDropNegatives(op.output, op.input._2)
     val isSelected = Math.logicalAnd(Math.equal(op.input._1, gatheredOutputs), isPositive)
-    val numSelected = unsortedSegmentSum(Cast.cast(isSelected, outputGradient.dataType), op.input._2, op.input._3)
+    val numSelected = unsortedSegmentSum(isSelected.castTo(outputGradient.dataType), op.input._2, op.input._3)
     // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
     // elements in that segment.
     val weightedGradients = divide(outputGradient, numSelected)
@@ -4010,7 +4010,7 @@ trait Math {
         val shapeA = Basic.shape(a, INT32)
         val rankA = Basic.rank(a)
         var axesO = Basic.constant(mappedAxes, name = "Axes")
-        axesO = ((axesO >= 0).toInt32 * axesO) + ((axesO < 0).toInt32 * (axesO + rankA))
+        axesO = ((axesO >= 0).castTo[Int] * axesO) + ((axesO < 0).castTo[Int] * (axesO + rankA))
         val (free, _) = Basic.listDiff(Math.range(0, rankA), axesO, INT32)
         val freeAxes = Basic.gather(shapeA, free, axis = 0)
         val axesAxes = Basic.gather(shapeA, axesO, axis = 0)
@@ -4154,7 +4154,7 @@ trait Math {
     ): (Output[T], Output[Int]) = {
       val shapeA = Basic.shape(a, INT32)
       val rankA = Basic.rank(a)
-      val mappedAxes = ((axes >= 0).cast(INT32) * axes) + ((axes < 0).cast(INT32) * (axes + rankA))
+      val mappedAxes = ((axes >= 0).castTo[Int] * axes) + ((axes < 0).castTo[Int] * (axes + rankA))
       val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
       val freeAxes = Basic.gather(shapeA, free, axis = 0)
       val axesAxes = Basic.gather(shapeA, mappedAxes, axis = 0)
@@ -4581,7 +4581,7 @@ trait Math {
   ): Output[Float] = {
     Op.nameScope(name) {
       val zero = Basic.zeros(input.dataType, Shape(), name = "Zero")
-      mean(Cast.cast(equal(input, zero), FLOAT32))
+      mean(equal(input, zero).castTo[Float])
     }
   }
 
@@ -6180,7 +6180,7 @@ object Math extends Math {
       else
         axes
     }
-    val intAxes = floorMod(add(reshapedAxes.toInt32, inputRank), inputRank)
+    val intAxes = floorMod(add(reshapedAxes.castTo[Int], inputRank), inputRank)
     val axesShape = Basic.shape(intAxes, INT32)
     DataFlow.dynamicStitch(
       Seq(range(Basic.constant(0), inputRank), intAxes),

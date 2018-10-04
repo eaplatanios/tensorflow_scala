@@ -63,21 +63,21 @@ class ExponentialDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for exponential decay.")
     Op.nameScope(name) {
-      val stepValue = step.get.value.toFloat32
+      val stepValue = step.get.value.castTo[Float]
       val decayRateValue = Basic.constant(decayRate)
-      val decayStepsValue = Basic.constant(decaySteps).toFloat32
+      val decayStepsValue = Basic.constant(decaySteps).castTo[Float]
       val result = {
         if (startStep == 0L) {
           decay(value, stepValue, decayRateValue, decayStepsValue, staircase)
         } else {
-          val startStepValue = Basic.constant(startStep).toFloat32
+          val startStepValue = Basic.constant(startStep).castTo[Float]
           ControlFlow.cond(
             stepValue < startStepValue,
             () => value,
             () => decay(value, stepValue - startStepValue, decayRateValue, decayStepsValue, staircase))
         }
       }
-      result.cast(value.dataType)
+      result.castTo(value.dataType)
     }
   }
 

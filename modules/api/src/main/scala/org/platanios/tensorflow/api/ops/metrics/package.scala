@@ -90,11 +90,11 @@ package object metrics {
     Op.nameScope(name) {
       val numTruePositives = labelID match {
         case None =>
-          Sets.setSize(Sets.setIntersection(predictionIDs, labels)).toFloat32
+          Sets.setSize(Sets.setIntersection(predictionIDs, labels)).castTo[Float]
         case Some(selectedID) =>
           val filteredPredictionIDs = selectID(predictionIDs, selectedID)
           val filteredLabels = selectID(labels, selectedID)
-          Sets.setSize(Sets.setIntersection(filteredPredictionIDs, filteredLabels)).toFloat32
+          Sets.setSize(Sets.setIntersection(filteredPredictionIDs, filteredLabels)).castTo[Float]
       }
       weights match {
         case None => numTruePositives
@@ -168,11 +168,11 @@ package object metrics {
     Op.nameScope(name) {
       val numFalsePositives = labelID match {
         case None =>
-          Sets.setSize(Sets.setDifference(predictionIDs, labels, aMinusB = true)).toFloat32
+          Sets.setSize(Sets.setDifference(predictionIDs, labels, aMinusB = true)).castTo[Float]
         case Some(selectedID) =>
           val filteredPredictionIDs = selectID(predictionIDs, selectedID)
           val filteredLabels = selectID(labels, selectedID)
-          Sets.setSize(Sets.setDifference(filteredPredictionIDs, filteredLabels, aMinusB = true)).toFloat32
+          Sets.setSize(Sets.setDifference(filteredPredictionIDs, filteredLabels, aMinusB = true)).castTo[Float]
       }
       weights match {
         case None => numFalsePositives
@@ -246,11 +246,11 @@ package object metrics {
     Op.nameScope(name) {
       val numTruePositives = labelID match {
         case None =>
-          Sets.setSize(Sets.setDifference(predictionIDs, labels, aMinusB = false)).toFloat32
+          Sets.setSize(Sets.setDifference(predictionIDs, labels, aMinusB = false)).castTo[Float]
         case Some(selectedID) =>
           val filteredPredictionIDs = selectID(predictionIDs, selectedID)
           val filteredLabels = selectID(labels, selectedID)
-          Sets.setSize(Sets.setDifference(filteredPredictionIDs, filteredLabels, aMinusB = false)).toFloat32
+          Sets.setSize(Sets.setDifference(filteredPredictionIDs, filteredLabels, aMinusB = false)).castTo[Float]
       }
       weights match {
         case None => numTruePositives

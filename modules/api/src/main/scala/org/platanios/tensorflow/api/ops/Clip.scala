@@ -112,7 +112,7 @@ trait Clip {
   ): Output[T] = {
     Op.nameScope(name) {
       // Calculate the l2-norm per element and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val numElements = Basic.size(input, INT32).cast(input.dataType)
+      val numElements = Basic.size(input, INT32).castTo(input.dataType)
       val l2NormInv = Math.sum(input.square, keepDims = true).rsqrt
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
@@ -143,7 +143,7 @@ trait Clip {
         NN.l2Loss(v)
       })
       val halfSquaredNorm = Math.sum(Basic.stack(halfSquaredNorms))
-      val two = Basic.constant(2).cast(halfSquaredNorm.dataType)
+      val two = Basic.constant(2).castTo(halfSquaredNorm.dataType)
       Math.sqrt(halfSquaredNorm * two)
     }
   }

@@ -75,10 +75,10 @@ class Mean(
     Op.nameScope(name) {
       val (processedValues, numValues) = computedWeights match {
         case None =>
-          (values, Basic.size(values, INT64).toFloat32)
+          (values, Basic.size(values, INT64).castTo[Float])
         case Some(_) =>
           var (matchedValues, _, Some(matchedWeights)) = matchAxes(values, None, computedWeights)
-          matchedWeights = weightsBroadcast(matchedValues, matchedWeights.toFloat32)
+          matchedWeights = weightsBroadcast(matchedValues, matchedWeights.castTo[Float])
           matchedValues = Math.multiply(matchedValues, matchedWeights)
           val numValues = Math.sum(matchedWeights)
           (matchedValues, numValues)
@@ -110,10 +110,10 @@ class Mean(
         val count = Metric.variable[Float]("Count", Shape.scalar(), ZerosInitializer, variablesCollections)
         val (processedValues, numValues) = computedWeights match {
           case None =>
-            (values, Basic.size(values, INT64).toFloat32)
+            (values, Basic.size(values, INT64).castTo[Float])
           case Some(_) =>
             var (matchedValues, _, Some(matchedWeights)) = matchAxes(values, None, computedWeights)
-            matchedWeights = weightsBroadcast(matchedValues, matchedWeights.toFloat32)
+            matchedWeights = weightsBroadcast(matchedValues, matchedWeights.castTo[Float])
             matchedValues = Math.multiply(matchedValues, matchedWeights)
             val numValues = Math.sum(matchedWeights)
             (matchedValues, numValues)

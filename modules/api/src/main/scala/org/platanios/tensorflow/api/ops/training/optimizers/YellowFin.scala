@@ -84,7 +84,7 @@ class YellowFin protected (
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.cast(variable.dataType)
+    learningRateTensor.castTo(variable.dataType)
   }
 
   override protected def getMomentum[V](
@@ -92,7 +92,7 @@ class YellowFin protected (
   ): Output[V] = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    momentumTensor.cast(variable.dataType)
+    momentumTensor.castTo(variable.dataType)
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {
@@ -190,7 +190,7 @@ class YellowFin protected (
   ): UntypedOp = {
     val gradSquared = gradientsAndVariables.map(gv => {
       Op.colocateWith(Set(gv._2.op), ignoreExisting = true) {
-        Math.square(gv._1.toFloat32)
+        Math.square(gv._1.castTo[Float])
       }
     })
 
@@ -201,7 +201,7 @@ class YellowFin protected (
       val avg = Math.addN(gradNormSquared.map(movingAverage.average(_).get.read()))
       (sum, avg)
     }
-    val gradients = gradientsAndVariables.map(_._1.toFloat32)
+    val gradients = gradientsAndVariables.map(_._1.castTo[Float])
     val sparsityAvg = gradientsSparsity(gradients)
     val (hMin, hMax) = curvatureRange(gradNormSquaredSum, sparsityAvg)
     val gradVar = gradientsVariance(gradients, gradNormSquaredAvg, sparsityAvg)
@@ -226,10 +226,10 @@ class YellowFin protected (
         Math.maximum(Math.square(cubicRoot), Math.square((Math.sqrt(dr) - 1.0f) / (Math.sqrt(dr) + 1.0f)))
       },
       () => momentumVariable.value,
-      name = "MomentumTuneCond")).toFloat32
+      name = "MomentumTuneCond")).castTo[Float]
 
     def getLearningRate = {
-      (Math.square(Math.subtract(1.0f, Math.sqrt(momentum))) / hMin).toFloat32
+      (Math.square(Math.subtract(1.0f, Math.sqrt(momentum))) / hMin).castTo[Float]
     }
 
     val learningRate = Op.createWith(controlDependencies = Set(momentum.op)) {
@@ -258,8 +258,8 @@ class YellowFin protected (
         // If the sparse mini-batch gradient has 10 percent of its entries non-zero, its sparsity is 0.1. The norms of
         // dense gradients averaged over the full dataset are roughly estimated from the norms of mini-batch sparse
         // gradient norm * sqrt(sparsity). An extension may only correct the sparse blob.
-        val nonZeroCount = Math.addN(gradients.map(Math.countNonZeroSparse(_))).cast(gradients.head.dataType)
-        val totalCount = Math.addN(gradients.map(Basic.size(_, INT64))).cast(gradients.head.dataType)
+        val nonZeroCount = Math.addN(gradients.map(Math.countNonZeroSparse(_))).castTo(gradients.head.dataType)
+        val totalCount = Math.addN(gradients.map(Basic.size(_, INT64))).castTo(gradients.head.dataType)
         val sparsity = nonZeroCount / totalCount
         val sparsityAvgOp = movingAverage.computeForValues(Set(sparsity))
         val sparsityAvg = Op.createWith(controlDependencies = Set(sparsityAvgOp)) {
@@ -313,7 +313,7 @@ class YellowFin protected (
         grads.map(g => Math.square(movingAverage.average(g).get.read()))
       }
       var gradVar = Math.maximum(
-        Basic.constant(1e-6f).cast(gradNormSquaredAvg.dataType),
+        Basic.constant(1e-6f).castTo(gradNormSquaredAvg.dataType),
         gradNormSquaredAvg - Math.addN(gradAvgSquared.map(Math.sum(_))))
       sparsityAvg.foreach(gradVar *= _)
       gradVar

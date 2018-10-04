@@ -58,20 +58,20 @@ class CycleLinear10xDecay protected (
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for cycle-linear 10x decay.")
     Op.nameScope(name) {
-      val stepValue = step.get.value.toFloat32
-      val cycleStepsValue = Basic.constant(cycleSteps).toFloat32
+      val stepValue = step.get.value.castTo[Float]
+      val cycleStepsValue = Basic.constant(cycleSteps).castTo[Float]
       val result = {
         if (startStep == 0L) {
           decay(value, stepValue, cycleStepsValue)
         } else {
-          val startStepValue = Basic.constant(startStep).toFloat32
+          val startStepValue = Basic.constant(startStep).castTo[Float]
           ControlFlow.cond(
             stepValue < startStepValue,
             () => value,
             () => decay(value, stepValue - startStepValue, cycleStepsValue))
         }
       }
-      result.cast(value.dataType)
+      result.castTo(value.dataType)
     }
   }
 
@@ -81,7 +81,7 @@ class CycleLinear10xDecay protected (
       cycleSteps: Output[Float]
   ): Output[Float] = {
     // Cycle the rate linearly by 10x every `cycleSteps`, up and down.
-    val cyclePosition = 1.0f - Math.abs(((step % (2 * cycleSteps)) - cycleSteps).cast(FLOAT32) / cycleSteps)
+    val cyclePosition = 1.0f - Math.abs(((step % (2 * cycleSteps)) - cycleSteps).castTo[Float] / cycleSteps)
     (0.1f + cyclePosition) * 3.0f // 10x difference in each cycle (0.3 - 3).
   }
 }

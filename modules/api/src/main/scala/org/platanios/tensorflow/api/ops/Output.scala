@@ -278,7 +278,7 @@ object Output {
                       delta.asInstanceOf[Tensor[Int]]))))
       case "Cast" =>
         constantValue(output.op.inputsSeq(0)).map(preCast => {
-          preCast.cast(output.op.dataTypeAttribute("DstT"))
+          preCast.castTo(output.op.dataTypeAttribute("DstT"))
         })
       case "Concat" =>
         constantValue(output.op.inputsSeq(0)).flatMap(axis => {
@@ -678,7 +678,7 @@ final case class SparseOutput[+T](
     Op.Builder[(Output[Long], Output[Long], Output[T], Output[T]), Output[T]](
       opType = "SparseToDense",
       name = name,
-      input = (indices, denseShape, values, defaultValue.cast(dataType))
+      input = (indices, denseShape, values, defaultValue.castTo(dataType))
     ).setAttribute("validate_indices", validateIndices)
         .build().output
   }

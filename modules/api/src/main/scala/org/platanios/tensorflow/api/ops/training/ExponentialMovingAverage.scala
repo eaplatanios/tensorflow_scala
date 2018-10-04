@@ -282,7 +282,7 @@ object ExponentialMovingAverage {
     Op.createWith(nameScope = name) {
       Op.colocateWith(Set(variable.op), ignoreExisting = true) {
         val one = Basic.ones(decay.dataType, Shape())
-        val processedDecay = (one - decay).cast(variable.dataType)
+        val processedDecay = (one - decay).castTo(variable.dataType)
         val updateDelta = {
           if (zeroDebias)
             ExponentialMovingAverage.zeroDebias(variable, value, processedDecay)

@@ -77,9 +77,9 @@ class Accuracy(
   ): Output[Float] = {
     var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, Some(values._2), weights)
     matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.get.shape)
-    matchedPredictions = matchedPredictions.cast(matchedTargets.get.dataType)
+    matchedPredictions = matchedPredictions.castTo(matchedTargets.get.dataType)
     val isCorrect = Math.equal(matchedPredictions, matchedTargets.get)
-    meanMetric.compute(isCorrect.toFloat32, matchedWeights, name)
+    meanMetric.compute(isCorrect.castTo[Float], matchedWeights, name)
   }
 
   /** Creates ops for computing the value of this metric in a streaming fashion. This function returns an op for
@@ -98,9 +98,9 @@ class Accuracy(
   ): Metric.StreamingInstance[Output[Float]] = {
     var (matchedPredictions, matchedTargets, matchedWeights) = Metric.matchAxes(values._1, Some(values._2), weights)
     matchedPredictions.shape.assertIsCompatibleWith(matchedTargets.get.shape)
-    matchedPredictions = matchedPredictions.cast(matchedTargets.get.dataType)
+    matchedPredictions = matchedPredictions.castTo(matchedTargets.get.dataType)
     val isCorrect = Math.equal(matchedPredictions, matchedTargets.get)
-    meanMetric.streaming(isCorrect.toFloat32, matchedWeights, name)
+    meanMetric.streaming(isCorrect.castTo[Float], matchedWeights, name)
   }
 }
 

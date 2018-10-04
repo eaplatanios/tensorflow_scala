@@ -96,7 +96,7 @@ class AMSGrad protected (
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.cast(variable.dataType).toOutput
+    learningRateTensor.castTo(variable.dataType).toOutput
   }
 
   protected def getBeta1[V](
@@ -104,7 +104,7 @@ class AMSGrad protected (
   ): Output[V] = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    beta1Tensor.cast(variable.dataType).toOutput
+    beta1Tensor.castTo(variable.dataType).toOutput
   }
 
   protected def getBeta2[V](
@@ -112,7 +112,7 @@ class AMSGrad protected (
   ): Output[V] = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    beta2Tensor.cast(variable.dataType).toOutput
+    beta2Tensor.castTo(variable.dataType).toOutput
   }
 
   protected def getEpsilon[V](
@@ -120,7 +120,7 @@ class AMSGrad protected (
   ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    epsilonTensor.cast(variable.dataType).toOutput
+    epsilonTensor.castTo(variable.dataType).toOutput
   }
 
   protected def getBetaPowerAccumulators[T]: (Variable[T], Variable[T]) = {
@@ -169,8 +169,8 @@ class AMSGrad protected (
       val epsilon = getEpsilon(variable)
       var learningRate = getLearningRate(variable, iteration)
       val one = Basic.ones(learningRate.dataType, Shape())
-      learningRate = learningRate * Math.sqrt(one - beta2Power.cast(variable.dataType))
-      learningRate = learningRate / (one - beta1Power.cast(variable.dataType))
+      learningRate = learningRate * Math.sqrt(one - beta2Power.castTo(variable.dataType))
+      learningRate = learningRate / (one - beta1Power.castTo(variable.dataType))
 
       // m_t = beta1 * m + (1 - beta1) * gradient
       val mScaledGradient = gradient * (one - beta1)
@@ -203,8 +203,8 @@ class AMSGrad protected (
       val epsilon = getEpsilon(variable)
       var learningRate = getLearningRate(variable, iteration)
       val one = Basic.ones(learningRate.dataType, Shape())
-      learningRate = learningRate * Math.sqrt(one - beta2Power.cast(variable.dataType))
-      learningRate = learningRate / (one - beta1Power.cast(variable.dataType))
+      learningRate = learningRate * Math.sqrt(one - beta2Power.castTo(variable.dataType))
+      learningRate = learningRate / (one - beta1Power.castTo(variable.dataType))
 
       // m_t = beta1 * m + (1 - beta1) * gradient
       val mScaledGradient = gradient.values * (one - beta1)

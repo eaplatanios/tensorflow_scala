@@ -128,7 +128,7 @@ object DropoutWrapper {
         ): (Output[T], Int) = {
           (NN.dynamicDropout(
             value,
-            keepProbability.cast(value.dataType),
+            keepProbability.castTo(value.dataType),
             seed = generateSeed(saltPrefix, seed, index)
           ), index + 1)
         }
@@ -162,7 +162,7 @@ object DropoutWrapper {
             value.c,
             NN.dynamicDropout(
               input = value.m,
-              keepProbability = keepProbability.cast(value.m.dataType),
+              keepProbability = keepProbability.castTo(value.m.dataType),
               seed = generateSeed(saltPrefix, seed, index))
           ), index + 1)
         }

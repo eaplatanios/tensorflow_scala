@@ -624,7 +624,7 @@ private[api] object ControlFlow extends ControlFlow {
       predicates: Seq[Output[Boolean]]
   ): Op[Seq[Output[Any]], Unit] = {
     val stacked = Basic.stack(predicates, name = "StackedPredicates")
-    val numTrue = Math.sum(Cast.cast(stacked, INT32), name = "NumTruePredicates")
+    val numTrue = Math.sum(stacked.castTo[Int], name = "NumTruePredicates")
     val atMostOneTrue = Math.less(numTrue, Basic.constant(2, name = "TwoTruePredicates"))
     val errorData =
       Seq(

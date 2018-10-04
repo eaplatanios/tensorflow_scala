@@ -157,14 +157,14 @@ trait NN {
     Op.nameScope(name) {
       if (x.dataType == FLOAT64) {
         val squareSum = Math.sum(Math.square(x), axes = axes, keepDims = true)
-        val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Basic.constant(epsilon).cast(x.dataType)))
+        val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Basic.constant(epsilon).castTo(x.dataType)))
         Math.multiply(x, xInverseNorm)
       } else {
-        val preciseX = x.cast(FLOAT32)
+        val preciseX = x.castTo[Float]
         val squareSum = Math.sum(Math.square(preciseX), axes = axes, keepDims = true)
         val xInverseNorm = Math.rsqrt(Math.maximum(squareSum, Basic.constant(epsilon)))
         val result = Math.multiply(preciseX, xInverseNorm)
-        result.cast(x.dataType)
+        result.castTo(x.dataType)
       }
     }
   }
@@ -195,9 +195,9 @@ trait NN {
           Op.Builder[Output[Float], Output[Float]](
             opType = "Relu",
             name = n,
-            input = o.toFloat32
+            input = o.castTo[Float]
           ).setGradientFn(reluGradient(_, _)(implicitly[IsReal[Float]]))
-              .build().output.cast(o.dataType)
+              .build().output.castTo(o.dataType)
         } else {
           Op.Builder[Output[T], Output[T]](
             opType = "Relu",
@@ -215,7 +215,7 @@ trait NN {
       Op.nameScope(name) {
         val positive = reluOp(input, s"$name/PositivePart")
         val negative = reluOp(-input, s"$name/NegativePart")
-        positive - (Basic.constant(alpha, Shape.scalar()).cast(negative.dataType) * negative)
+        positive - (Basic.constant(alpha, Shape.scalar()).castTo(negative.dataType) * negative)
       }
     }
   }
@@ -406,7 +406,7 @@ trait NN {
     Op.nameScope(s"${op.name}/SELUHessian") {
       val zero = Basic.zeros(op.input._2.dataType, Shape())
       val alpha = Basic.constant(1.7580993408473768599402175208123, name = "Alpha")
-          .cast(op.output.dataType)
+          .castTo(op.output.dataType)
       val gradient0 = Op.Builder[(Output[T], Output[T]), Output[T]](
         opType = "EluGrad",
         name = "ELUGradient",
@@ -480,7 +480,7 @@ trait NN {
           input = (outputGradient, x)
         ).setGradientFn(softplusHessian(_, _)(implicitly[IsDecimal[T]]))
             .build().output
-        val two = Basic.constant(2.0f).cast(x.dataType)
+        val two = Basic.constant(2.0f).castTo(x.dataType)
         val d2x = Math.multiply(outputGradient, dy) / (Math.exp(-x) + two + Math.exp(x))
         (ddy, d2x)
       }
@@ -690,10 +690,10 @@ trait NN {
   ): Output[T] = {
     Op.nameScope(name) {
       if (logits.dataType == FLOAT16) {
-        val preciseLogits = logits.toFloat32
-        val preciseLabels = labels.toFloat32
+        val preciseLogits = logits.castTo[Float]
+        val preciseLabels = labels.castTo[Float]
         val crossEntropy = softmaxCrossEntropy(preciseLogits, preciseLabels, axis)
-        crossEntropy.cast(logits.dataType)
+        crossEntropy.castTo(logits.dataType)
       } else {
         val inputRank = Basic.rank(logits)
         // We need the original shape of the logits for shape inference.
@@ -796,9 +796,9 @@ trait NN {
   ): Output[T] = {
     Op.nameScope(name) {
       if (logits.dataType == FLOAT16) {
-        val preciseLogits = logits.toFloat32
+        val preciseLogits = logits.castTo[Float]
         val crossEntropy = sparseSoftmaxCrossEntropy(preciseLogits, labels, axis)
-        crossEntropy.cast(logits.dataType)
+        crossEntropy.castTo(logits.dataType)
       } else if (logits.rank == 2) { // Check if no reshapes are required.
         // Create the native op.
         // The second output tensor contains the gradients, which is used for the gradient computation.
@@ -862,11 +862,11 @@ trait NN {
   ): Output[T] = {
     Op.nameScope(name) {
       if (logits.dataType == FLOAT16) {
-        val preciseLogits = logits.toFloat32
-        val preciseLabels = labels.toFloat32
-        val preciseWeights = if (weights == null) null else weights.toFloat32
+        val preciseLogits = logits.castTo[Float]
+        val preciseLabels = labels.castTo[Float]
+        val preciseWeights = if (weights == null) null else weights.castTo[Float]
         val crossEntropy = sigmoidCrossEntropy(preciseLogits, preciseLabels, preciseWeights, name)
-        crossEntropy.cast(logits.dataType)
+        crossEntropy.castTo(logits.dataType)
       } else if (weights == null) {
         // The logistic loss formula from above is:
         //   x - x * z + log(1 + exp(-x))
@@ -918,8 +918,8 @@ trait NN {
       val output = Math.exp(logPredictions) - (logPredictions * targets)
       if (computeFullLoss) {
         // Need to create constant tensors here so that their data types can be matched to that of the targets.
-        val pointFive = Basic.constant(0.5).cast(targets.dataType)
-        val twoPi = Basic.constant(2 * math.Pi).cast(targets.dataType)
+        val pointFive = Basic.constant(0.5).castTo(targets.dataType)
+        val twoPi = Basic.constant(2 * math.Pi).castTo(targets.dataType)
         val stirlingApproximation = (targets * Math.log(targets)) - targets + (pointFive * Math.log(twoPi * targets))
         val zeros = Basic.zerosLike(targets)
         val ones = Basic.onesLike(targets)
@@ -982,10 +982,10 @@ trait NN {
         loss = Math.sum(loss)
         val totalSize = {
           if (weights != null) {
-            val eps = Basic.constant(1e-12f, name = "Epsilon").cast(logits.dataType)
+            val eps = Basic.constant(1e-12f, name = "Epsilon").castTo(logits.dataType)
             Math.sum(weights) + eps
           } else {
-            Basic.size(flatLabels, INT64).cast(logits.dataType)
+            Basic.size(flatLabels, INT64).castTo(logits.dataType)
           }
         }
         loss = Math.divide(loss, totalSize)
@@ -998,10 +998,10 @@ trait NN {
         loss = Math.sum(loss, axes = 1)
         val totalSize = {
           if (weights != null) {
-            val eps = Basic.constant(1e-12f, name = "Epsilon").cast(logits.dataType)
+            val eps = Basic.constant(1e-12f, name = "Epsilon").castTo(logits.dataType)
             Math.sum(weights, axes = 1) + eps
           } else {
-            Basic.shape(labels, INT64).slice(1).cast(logits.dataType)
+            Basic.shape(labels, INT64).slice(1).castTo(logits.dataType)
           }
         }
         loss = Math.divide(loss, totalSize)
@@ -1011,10 +1011,10 @@ trait NN {
         loss = Math.sum(loss, axes = 0)
         val totalSize = {
           if (weights != null) {
-            val eps = Basic.constant(1e-12f, name = "Epsilon").cast(logits.dataType)
+            val eps = Basic.constant(1e-12f, name = "Epsilon").castTo(logits.dataType)
             Math.sum(weights, axes = 0) + eps
           } else {
-            Basic.shape(labels, INT64).slice(0).cast(logits.dataType)
+            Basic.shape(labels, INT64).slice(0).castTo(logits.dataType)
           }
         }
         loss = Math.divide(loss, totalSize)
@@ -1072,7 +1072,7 @@ trait NN {
     if (keepProbability == 1.0) {
       input
     } else {
-      val keepProbabilityOutput = Basic.constant(keepProbability).cast(input.dataType)
+      val keepProbabilityOutput = Basic.constant(keepProbability).castTo(input.dataType)
       dynamicDropout(input, keepProbabilityOutput, scaleOutput, noiseShape, seed, name)
     }
   }
@@ -1150,7 +1150,7 @@ trait NN {
     // Flatten indices to 2-D.
     val indicesShape = Basic.shape(op.output._2, INT64)
     val indicesLastAxis = Basic.gather(indicesShape, Basic.size(indicesShape, INT64) - 1L, axis = 0)
-    val indices2D = Basic.reshape(op.output._2.toInt64, Basic.stack[Long](Seq(-1L, indicesLastAxis)))
+    val indices2D = Basic.reshape(op.output._2.castTo[Long], Basic.stack[Long](Seq(-1L, indicesLastAxis)))
 
     val inputShape = Basic.shape(op.input._1, INT64)
     val inputLastAxis = Basic.gather(inputShape, Basic.size(inputShape, INT64) - 1L, axis = 0)
@@ -2054,7 +2054,7 @@ object NN extends NN {
       Basic.expandDims(Math.subtract[Int](rank, 1), -1),
       Basic.ones(rank.dataType, Shape(1)))
     val output = Basic.reshape(input, Basic.concatenate(
-      Seq(Basic.constant(-1, Shape(1)).cast(lastAxisSize.dataType), lastAxisSize),
+      Seq(Basic.constant(-1, Shape(1)).castTo(lastAxisSize.dataType), lastAxisSize),
       axis = 0))
     // Set the output shape, if known.
     val shape = input.shape
