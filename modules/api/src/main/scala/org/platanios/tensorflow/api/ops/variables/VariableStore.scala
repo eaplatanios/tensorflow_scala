@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.variables
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, SupportedType}
 
 /** Variable store that carries a number of named variables.
   *
@@ -33,7 +33,6 @@ case class VariableStore private[variables]() {
   /** Gets or creates a variable.
     *
     * @param  name          Variable name.
-    * @param  dataType      Variable data type.
     * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
@@ -50,6 +49,7 @@ case class VariableStore private[variables]() {
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
     *                       to the variable's device. Typical use is to cache on the device where the ops using the
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @tparam T             Variable data type.
     * @return Requested variable.
     * @throws IllegalArgumentException If any of the provided arguments are not compatible with each other, or with the
     *                                  variables stored in this variable store.
@@ -61,9 +61,8 @@ case class VariableStore private[variables]() {
   @throws[IllegalArgumentException]
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
-  def getVariable[T](
+  def getVariable[T: SupportedType](
       name: String,
-      dataType: DataType[T],
       shape: Shape,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -72,6 +71,7 @@ case class VariableStore private[variables]() {
       collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
       cachingDevice: OpSpecification => String = null
   ): Variable[T] = {
+    val dataType = implicitly[SupportedType[T]].dataType
     // Single variable case.
     if (variables.contains(s"$name/part_0"))
       throw new IllegalArgumentException(

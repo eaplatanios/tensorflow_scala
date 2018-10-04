@@ -476,8 +476,6 @@ private[api] object Variable {
     * TODO: Add example.
     *
     * @param  name          Variable name.
-    * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
-    *                       the provided initial value. If it cannot be inferred, then it will default to `FLOAT32`.
     * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
     *                       shape of the variable from the provided initializer.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
@@ -495,12 +493,12 @@ private[api] object Variable {
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
     *                       to the variable's device. Typical use is to cache on the device where the ops using the
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @tparam T             Variable data type.
     * @return Requested variable.
     */
-  private[api] def getVariable[T](
+  private[api] def getVariable[T: SupportedType](
       name: String,
-      dataType: DataType[T],
-      shape: Shape = null,
+      shape: Shape,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
       trainable: Boolean = true,
@@ -508,8 +506,8 @@ private[api] object Variable {
       collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
       cachingDevice: OpSpecification => String = null
   ): Variable[T] = {
-    VariableScope.current.getVariable(
-      VariableStore.current, name, dataType, shape, initializer, regularizer,
+    VariableScope.current.getVariable[T](
+      VariableStore.current, name, shape, initializer, regularizer,
       trainable, reuse, collections, cachingDevice)
   }
 
@@ -522,8 +520,6 @@ private[api] object Variable {
     * to the documentation of [[getVariable]] for more details.
     *
     * @param  name          Variable name.
-    * @param  dataType      Data type for the value of the created variable. If not provided, its value is inferred from
-    *                       the provided initial value. If it cannot be inferred, then it will default to `FLOAT32`.
     * @param  shape         Shape for the value of the created variable. If `null`, an attempt will be made to infer the
     *                       shape of the variable from the provided initializer.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
@@ -538,11 +534,11 @@ private[api] object Variable {
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
     *                       to the variable's device. Typical use is to cache on the device where the ops using the
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @tparam T             Variable data type.
     * @return Requested variable.
     */
-  private[api] def getLocalVariable[T](
+  private[api] def getLocalVariable[T: SupportedType](
       name: String,
-      dataType: DataType[T],
       shape: Shape = null,
       initializer: Initializer = null,
       regularizer: Regularizer = null,
@@ -550,9 +546,9 @@ private[api] object Variable {
       collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
       cachingDevice: OpSpecification => String = null
   ): Variable[T] = {
-    VariableScope.current.getVariable(
-      VariableStore.current, name, dataType, shape,
-      initializer, regularizer, trainable = false, reuse,
+    VariableScope.current.getVariable[T](
+      VariableStore.current, name, shape, initializer,
+      regularizer, trainable = false, reuse,
       collections + Graph.Keys.LOCAL_VARIABLES, cachingDevice)
   }
 
@@ -695,7 +691,7 @@ private[api] object Variable {
 
   /** Variable getter type, useful for defining custom variable getters and stacking them. */
   trait VariableGetter {
-    def apply[T](
+    def apply[T: SupportedType](
         name: String,
         dataType: DataType[T],
         shape: Shape = null,
@@ -912,13 +908,13 @@ private[api] object Variable {
       if (variables.isEmpty) {
         // Return an empty tensor so we only need to check for the returned tensor size being 0 as an indication of
         // model readiness.
-        Basic.constant(Tensor.ofType(STRING))
+        Basic.constant(Tensor.empty[String])
       } else {
         // Get a 1-D boolean tensor listing whether each variable is initialized.
         val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toSeq))
         // Get a 1-D string tensor containing all the variable names.
         val variablesList = variables.map(_.handle.name).toSeq
-        val variableNames = Basic.constant(Tensor(variablesList.head, variablesList.tail: _*))
+        val variableNames = Basic.constant(Tensor(variablesList: _*))
         // Return a 1-D tensor containing the names of all uninitialized resources.
         Basic.booleanMask(variableNames, variablesMask)
       }
@@ -1292,7 +1288,7 @@ private[api] object Variable {
     var handle = op.input._1.asInstanceOf[Output[Long]]
     while (handle.op.opType != "VarHandleOp")
       handle = handle.op.inputsSeq(0).asInstanceOf[Output[Long]]
-    val parametersShape = handle.op.shapeAttribute("shape").toOutput(INT64)
+    val parametersShape = handle.op.shapeAttribute("shape").toOutput[Long]
     val indices = op.input._2.toInt64
     val size = Basic.expandDims(Basic.size(indices, INT64), 0)
     val valuesShape = Basic.concatenate(Seq(size, parametersShape(1 ::)), 0)

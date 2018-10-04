@@ -53,20 +53,16 @@ trait Basic {
       shape: Shape = null,
       name: String = "Constant"
   ): Output[T] = {
-
-    val temp: Tensor[Long] = 1
-
-    val inferredDataType = tensor.dataType
     val inferredShape = if (shape == null) tensor.shape else shape
     val constantTensor = AttrValue.newBuilder()
-        .setTensor(Tensor.makeProto(tensor, inferredDataType, inferredShape))
+        .setTensor(Tensor.makeProto[T](tensor, inferredShape))
         .build()
     Op.Builder[Unit, Output[T]](
       opType = "Const",
       name = name,
       input = ()
     ).setAttribute("value", constantTensor)
-        .setAttribute("dtype", inferredDataType)
+        .setAttribute("dtype", tensor.dataType)
         .build().output
   }
 
@@ -130,7 +126,7 @@ trait Basic {
   ): Output[T] = {
     // TODO: [OPS] Do we need this import?
     import dataType.evSupportedType
-    fill(dataType, shape)(dataType.cast(0), name = name)
+    fill(dataType, shape)(DataType.zero[T], name = name)
   }
 
   /** $OpDocBasicZerosLike
@@ -174,7 +170,7 @@ trait Basic {
   ): Output[T] = {
     // TODO: [OPS] Do we need this import?
     import dataType.evSupportedType
-    fill(dataType, shape)(dataType.cast(1), name = name)
+    fill(dataType, shape)(DataType.one[T], name = name)
   }
 
   /** $OpDocBasicOnesLike
@@ -219,20 +215,19 @@ trait Basic {
       value: Output[V],
       name: String = "Fill"
   ): Output[T] = {
-    val input1 = Basic.shape(value, INT64)
-    val input2 = Cast.cast(value, dataType)
-    Op.Builder[(Output[Long], Output[T]), Output[T]](
+    val castedValue = Cast.cast(value, dataType)
+    Op.Builder[(Output[I], Output[T]), Output[T]](
       opType = "Fill",
       name = name,
-      input = (input1, input2)
-    ).setGradientFn(fillGradient)
+      input = (shape, castedValue)
+    ).setGradientFn(fillGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
         .build().output
   }
 
-  protected def fillGradient[T](
-      op: Op[(Output[Long], Output[T]), Output[T]],
+  protected def fillGradient[T, I: IsInt32OrInt64](
+      op: Op[(Output[I], Output[T]), Output[T]],
       outputGradient: Output[T]
-  ): (Output[Long], Output[T]) = {
+  ): (Output[I], Output[T]) = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
@@ -306,7 +301,7 @@ trait Basic {
       if (shape == null)
         placeholder(INT64, Shape(-1), name + "/Shape")
       else
-        constant(shape.toTensor)
+        constant(shape.toTensor[Long])
     }
     SparseOutput[T](
       indices = placeholder(INT64, Shape(-1, -1), name + "/Indices"),
@@ -336,7 +331,7 @@ trait Basic {
       case o: Output[_] =>
         val inputRank = o.rank
         if (optimize && inputRank != -1) {
-          constant(Tensor.fill(INT32, Shape())(inputRank), name = name)
+          constant(Tensor.fill[Int](Shape())(inputRank), name = name)
         } else {
           Op.Builder[Output[Any], Output[Int]](
             opType = "Rank",
@@ -369,7 +364,7 @@ trait Basic {
       case o: Output[_] =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined) {
-          constant(Tensor.fill(INT64, Shape())(inputShape.numElements), name = name).cast(dataType)
+          constant(Tensor.fill[Long](Shape())(inputShape.numElements), name = name).cast(dataType)
         } else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0)) {
           constant(0L, name = name).cast(dataType)
         } else {
@@ -411,7 +406,7 @@ trait Basic {
       case o: Output[_] =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined) {
-          constant(inputShape.toTensor(INT64), name = name).cast(dataType)
+          constant(inputShape.toTensor[Long], name = name).cast(dataType)
         } else {
           Op.Builder[Output[Any], Output[I]](
             opType = "Shape",
@@ -766,10 +761,10 @@ trait Basic {
             // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
             val shapeOfShape = shape(shapes(0), INT64)
             // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
-            val zero = constant(Tensor.ofType(INT32, 0))
+            val zero = constant(Tensor(0))
             val mask = concatenate(Seq(
               fill(INT64, expandDims(nonNegativeConcatenationAxis, 0))(zero),
-              constant(Tensor.ofType(INT64, 1)),
+              constant(Tensor(1L)),
               fill(INT64, shapeOfShape - nonNegativeConcatenationAxis.toInt64 - ones(INT64, Shape()))(zero)
             ), zero)
             var begin = fill(INT64, shapeOfShape)(zero)
@@ -1044,7 +1039,7 @@ trait Basic {
     ): Tensor[T] = {
       Tensor.fromNativeHandle[T](NativeTensorOpsBasic.padV2(
         executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-        value.map(_.cast(input.dataType)).getOrElse(Tensor.zeros(input.dataType, Shape())).nativeHandle))
+        value.map(_.castTo(input.dataType)).getOrElse(Tensor.zeros(input.dataType, Shape())).nativeHandle))
     }
   }
 
@@ -1571,7 +1566,7 @@ trait Basic {
           val resultPaddings = stack((0 until numBlockDims).map(i => {
             concatenate[Int](Seq(padStart(i), padEnd(i))).toOutput
           }))
-          val zero = Tensor.zeros(padStart.dataType, Shape())
+          val zero = Tensor.zeros[Int](Shape())
           val resultCrops = stack((0 until numBlockDims).map(i => {
             concatenate[Int](Seq(zero, extraPadEnd(i))).toOutput
           }))
@@ -1864,16 +1859,26 @@ trait Basic {
   def gather[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
       input: Output[T],
       indices: Output[I1],
-      axis: Output[I2],
+      axis: Output[I2] = null,
       name: String = "Gather"
   ): Output[T] = {
-    Op.Builder[(Output[T], Output[I1], Output[I2]), Output[T]](
-      opType = "GatherV2",
-      name = name,
-      input = (input, indices, axis)
-    ).setGradientFn[(OutputLike[T], Output[I1], Output[I2]), Output[T]]({
-      gatherGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]])
-    }).build().output
+    if (axis != null) {
+      Op.Builder[(Output[T], Output[I1], Output[I2]), Output[T]](
+        opType = "GatherV2",
+        name = name,
+        input = (input, indices, axis)
+      ).setGradientFn[(OutputLike[T], Output[I1], Output[I2]), Output[T]]({
+        gatherGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]])
+      }).build().output
+    } else {
+      Op.Builder[(Output[T], Output[I1], Output[Int]), Output[T]](
+        opType = "GatherV2",
+        name = name,
+        input = (input, indices, Tensor.zeros[Int](Shape()))
+      ).setGradientFn[(OutputLike[T], Output[I1], Output[Int]), Output[T]]({
+        gatherGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[Int]])
+      }).build().output
+    }
   }
 
   protected def gatherGradient[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](

@@ -156,7 +156,7 @@ object Slot {
       initializer: Initializer,
       scope: String
   ): Variable[R] = {
-    val slot = Variable.getVariable(scope, dataType, shape, initializer, trainable = false)
+    val slot = Variable.getVariable[R](scope, shape, initializer, trainable = false)(dataType.evSupportedType)
     if (primary.partitionInformation != null) {
       // Primary is a partitioned variable, and so we need to also indicate that the slot is also a partitioned
       // variable. Slots have the same partitioning as their primaries. For example, when using the Adam optimizer for a
@@ -180,6 +180,6 @@ object Slot {
       initializer: Initializer,
       scope: String
   ): Variable[R] = {
-    Variable.getVariable(scope, dataType, shape, initializer, trainable = false)
+    Variable.getVariable[R](scope, shape, initializer, trainable = false)(dataType.evSupportedType)
   }
 }

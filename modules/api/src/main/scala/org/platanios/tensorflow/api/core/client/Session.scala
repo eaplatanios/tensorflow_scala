@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
+
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 /** Sessions provide the client interface for interacting with TensorFlow computations.

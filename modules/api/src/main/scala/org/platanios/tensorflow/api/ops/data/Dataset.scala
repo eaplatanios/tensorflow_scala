@@ -740,7 +740,7 @@ trait Dataset[T] { outer =>
       override implicit val evData: SupportedData[T] = providedEvData
 
       private def flatPaddedShapes: Seq[Output[Long]] = {
-        providedEvData.shapes(paddedShapes).map(_.toOutput(INT64))
+        providedEvData.shapes(paddedShapes).map(_.toOutput[Long])
       }
 
       private def flatPaddingValues: Seq[Output[Any]] = {

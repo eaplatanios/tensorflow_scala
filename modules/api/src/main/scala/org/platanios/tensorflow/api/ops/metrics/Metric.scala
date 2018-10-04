@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets, 
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{INT64, IsNotQuantized, SupportedType}
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.
@@ -104,16 +104,15 @@ object Metric {
   }
 
   /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
-  def variable[T](
+  def variable[T: SupportedType](
       name: String,
-      dataType: DataType[T] = null,
       shape: Shape = null,
       initializer: Initializer = ZerosInitializer,
       collections: Set[Graph.Key[Variable[Any]]] = Set.empty
   ): Variable[T] = {
     // TODO: [DISTRIBUTE] Add support for the distribute API.
-    Variable.getVariable(
-      name = name, dataType = dataType, shape = shape, initializer = initializer, trainable = false,
+    Variable.getVariable[T](
+      name, shape, initializer, trainable = false,
       collections = collections ++ Set(Metric.METRIC_VARIABLES, Graph.Keys.LOCAL_VARIABLES))
   }
 

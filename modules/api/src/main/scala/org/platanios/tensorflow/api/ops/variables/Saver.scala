@@ -1023,7 +1023,7 @@ trait SaverDefBuilder {
   ): Output[String] = {
     checkpointFormatVersion match {
       case SaverDef.CheckpointFormatVersion.V1 =>
-        val numberOfShards = Tensor.ofType(INT32, saveablesByDevice.length).toOutput
+        val numberOfShards = Tensor(saveablesByDevice.length).toOutput
         val shardedSaves = saveablesByDevice.zipWithIndex.map {
           case ((device, saveables), shard) =>
             Op.createWith(device = Saver.setCPU0(device)) {
@@ -1119,7 +1119,7 @@ trait SaverDefBuilder {
             // Compute the shapes and let the restore op decide if and how to do the reshape.
             saveable.saveSpecifications.map(s => {
               if (s.value().shape.isFullyDefined)
-                s.value().shape.toOutput(INT64)
+                s.value().shape.toOutput[Long]
               else
                 Basic.shape(s.value(), INT64)
             })

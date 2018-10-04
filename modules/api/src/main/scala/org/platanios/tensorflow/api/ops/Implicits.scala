@@ -46,7 +46,7 @@ private[api] trait Implicits
   implicit def outputFromSupportedType[T](value: T)(implicit
       evSupported: SupportedType[T]
   ): Output[T] = {
-    Basic.constant(Tensor.fill(evSupported.dataType, Shape())(value))
+    Basic.constant(Tensor.fill[T](Shape())(value))
   }
 
   implicit def outputFromTensor[T](value: Tensor[T]): Output[T] = {
@@ -54,11 +54,11 @@ private[api] trait Implicits
   }
 
   implicit def outputFromShape(shape: Shape): Output[Long] = {
-    Basic.constant(shape.toTensor)
+    Basic.constant(shape.toTensor[Long])
   }
 
   implicit def outputFromRange(range: Range): Output[Int] = {
-    Basic.constant(tensors.ops.Basic.stack(range.map(Tensor.fill(INT32, Shape()))))
+    Basic.constant(tensors.ops.Basic.stack(range.map(Tensor.fill[Int](Shape()))))
   }
 
   implicit def outputFromOutputLike[T](value: OutputLike[T]): Output[T] = {

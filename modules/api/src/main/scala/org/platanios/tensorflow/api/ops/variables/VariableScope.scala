@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, SupportedType}
 
 /** Variable scope that carries default settings to provide to `getVariable`.
   *
@@ -53,7 +53,6 @@ case class VariableScope private[variables](
     *
     * @param  store         Variable store currently being used to store variables.
     * @param  name          Variable name.
-    * @param  dataType      Variable data type.
     * @param  shape         Variable shape.
     * @param  initializer   Variable initializer. If `initializer` is `null` (the default), the default initializer
     *                       passed in the constructor is used. If that one is `null` too, then we use a new
@@ -71,6 +70,7 @@ case class VariableScope private[variables](
     * @param  cachingDevice Device specification describing where the variable should be cached for reading. Defaults
     *                       to the variable's device. Typical use is to cache on the device where the ops using the
     *                       variable reside, to deduplicate copying through `Switch` and other conditional statements.
+    * @tparam T             Variable data type.
     * @return Requested variable.
     * @throws IllegalArgumentException If any of the provided arguments are not compatible with each other, or with the
     *                                  variables stored in this variable store.
@@ -82,11 +82,10 @@ case class VariableScope private[variables](
   @throws[IllegalArgumentException]
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
-  def getVariable[T](
+  def getVariable[T: SupportedType](
       store: VariableStore,
       name: String,
-      dataType: DataType[T],
-      shape: Shape = null,
+      shape: Shape,
       initializer: Initializer = this.initializer,
       regularizer: Regularizer = this.regularizer,
       trainable: Boolean = true,
@@ -104,7 +103,7 @@ case class VariableScope private[variables](
     // variable creation.
     Op.nameScope("") {
       store.getVariable(
-        fullName, dataType, shape, initializer, regularizer,
+        fullName, shape, initializer, regularizer,
         trainable, reuse, collections, cachingDevice)
     }
   }
@@ -247,7 +246,7 @@ private[api] object VariableScope {
       oldGetter
     } else {
       new VariableGetter {
-        override def apply[T](
+        override def apply[T: SupportedType](
             name: String,
             dataType: DataType[T],
             shape: Shape,
@@ -260,9 +259,9 @@ private[api] object VariableScope {
             underlyingGetter: VariableGetter
         ): Variable[T] = {
           val baseGetter: VariableGetter = new VariableGetter {
-            override def apply[T](
+            override def apply[R: SupportedType](
                 name: String,
-                dataType: DataType[T],
+                dataType: DataType[R],
                 shape: Shape,
                 initializer: Initializer,
                 regularizer: Regularizer,
@@ -271,7 +270,7 @@ private[api] object VariableScope {
                 collections: Set[Graph.Key[Variable[Any]]],
                 cachingDevice: OpSpecification => String,
                 underlyingGetter: VariableGetter
-            ): Variable[T] = {
+            ): Variable[R] = {
               oldGetter(
                 name, dataType, shape, initializer, regularizer, trainable,
                 reuse, collections, cachingDevice, underlyingGetter)

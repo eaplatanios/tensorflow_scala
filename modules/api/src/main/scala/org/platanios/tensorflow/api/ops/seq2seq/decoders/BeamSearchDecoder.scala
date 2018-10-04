@@ -763,7 +763,7 @@ object BeamSearchDecoder {
       case (output: Output[_], s: Shape) =>
         val valueShape = Basic.shape(output, INT32)
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
-          batchSize(NewAxis), Tensor.ofType(batchSize.dataType, beamWidth).toOutput,
+          batchSize(NewAxis), Tensor(beamWidth).toOutput,
           valueShape(1 ::).cast(batchSize.dataType)), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val expectedReshapedShape = Shape(staticBatchSize, beamWidth) ++ s
@@ -845,7 +845,7 @@ object BeamSearchDecoder {
       case (output: Output[_], s: Shape) =>
         val valueShape = Basic.shape(output, INT32)
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
-          batchSize(NewAxis) * Tensor.ofType(batchSize.dataType, beamWidth).toOutput,
+          batchSize(NewAxis) * Tensor(beamWidth).toOutput,
           valueShape(2 ::).cast(batchSize.dataType)), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val batchSizeBeamWidth = if (staticBatchSize != -1) staticBatchSize * beamWidth else -1

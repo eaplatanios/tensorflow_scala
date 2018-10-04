@@ -15,8 +15,7 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.ops.{Op, OutputLike, UntypedOp}
-
+import org.platanios.tensorflow.api.ops._
 import shapeless._
 
 import scala.collection.TraversableLike
@@ -57,9 +56,33 @@ object Executable {
     }
   }
 
-  implicit def outputLikeExecutable[T, OL <: OutputLike[T]]: Executable[OL] = {
-    new Executable[OL] {
-      override def ops(executable: OL): Set[UntypedOp] = {
+  implicit def outputExecutable[T]: Executable[Output[T]] = {
+    new Executable[Output[T]] {
+      override def ops(executable: Output[T]): Set[UntypedOp] = {
+        Set(executable.op)
+      }
+    }
+  }
+
+  implicit def outputIndexedSlicesExecutable[T]: Executable[OutputIndexedSlices[T]] = {
+    new Executable[OutputIndexedSlices[T]] {
+      override def ops(executable: OutputIndexedSlices[T]): Set[UntypedOp] = {
+        Set(executable.op)
+      }
+    }
+  }
+
+  implicit def sparseOutputExecutable[T]: Executable[SparseOutput[T]] = {
+    new Executable[SparseOutput[T]] {
+      override def ops(executable: SparseOutput[T]): Set[UntypedOp] = {
+        Set(executable.op)
+      }
+    }
+  }
+
+  implicit def outputLikeExecutable[T]: Executable[OutputLike[T]] = {
+    new Executable[OutputLike[T]] {
+      override def ops(executable: OutputLike[T]): Set[UntypedOp] = {
         Set(executable.op)
       }
     }

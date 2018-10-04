@@ -177,7 +177,7 @@ trait Data {
       override val evData: SupportedData[Output[Long]] = implicitly[SupportedData[Output[Long]]]
 
       override def createHandle(): Output[Long] = {
-        Op.Builder[Unit, Output[Long]](
+        Op.Builder[(Output[Long], Output[Long], Output[Long]), Output[Long]](
           opType = "RangeDataset",
           name = name,
           input = (
@@ -444,9 +444,9 @@ trait Data {
     // returned dataset) INT64 ID that will be used to identify the appropriate Scala state, which is encapsulated in
     // the internal generator state, and captured in the provided callback function. The ID disambiguates between
     // multiple concurrently existing iterators.
-    val idDataset = datasetFromTensors(Tensor.ofType(INT64, 0L)).map((_: Output[Long]) => {
+    val idDataset = datasetFromTensors(Tensor(0L)).map((_: Output[Long]) => {
       Callback.callback((_: Unit) => {
-        Tensor.ofType(INT64, generatorState.nextId)
+        Tensor(generatorState.nextId)
       }, (), INT64, stateful = true)
     })
 

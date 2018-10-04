@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
+import org.platanios.tensorflow.api.types.{DataType, SupportedType}
 
 // TODO: [VARIABLES/DOC] Create a documentation page for the Scala API (https://www.tensorflow.org/programmers_guide/variables).
 // TODO: [VARIABLES/DOC/EXAMPLES] Examples.
@@ -77,23 +77,23 @@ package object variables {
         allowEmpty, writerVersion, saveRelativePaths, padGlobalStep, name)
     }
 
-    def variable[T](
-        name: String, dataType: DataType[T], shape: Shape = null, initializer: VariableInitializer = null,
+    def variable[T: SupportedType](
+        name: String, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
         cachingDevice: OpSpecification => String = null
     ): Variable[T] = {
       Variable.getVariable(
-        name, dataType, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
+        name, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
 
-    def localVariable[T](
-        name: String, dataType: DataType[T], shape: Shape = null, initializer: VariableInitializer = null,
+    def localVariable[T: SupportedType](
+        name: String, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
         cachingDevice: OpSpecification => String = null
     ): Variable[T] = {
-      Variable.getLocalVariable(name, dataType, shape, initializer, regularizer, reuse, collections, cachingDevice)
+      Variable.getLocalVariable(name, shape, initializer, regularizer, reuse, collections, cachingDevice)
     }
 
     def variableScope[R](
@@ -161,7 +161,7 @@ package object variables {
   /** This function defines the main logic of 'getVariable'. However, 'underlyingGetter' may override this logic.
     * That is why we pass it as an argument to the 'underlyingGetter'. */
   val defaultGetter: VariableGetter = new VariableGetter {
-    override def apply[T](
+    override def apply[T: SupportedType](
         name: String,
         dataType: DataType[T],
         shape: Shape,
@@ -187,7 +187,7 @@ package object variables {
     var currentGetter = defaultGetter
     Op.currentGraph.variableGetters.value.foreach(g => {
       currentGetter = new VariableGetter {
-        override def apply[T](
+        override def apply[T: SupportedType](
             name: String,
             dataType: DataType[T],
             shape: Shape,

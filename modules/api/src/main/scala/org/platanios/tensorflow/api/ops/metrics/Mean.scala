@@ -106,8 +106,8 @@ class Mean(
     val computedWeights = getWeights(weights)
     VariableScope.scope(name) {
       Op.nameScope(name) {
-        val total = Metric.variable("Total", FLOAT32, Shape.scalar(), ZerosInitializer, variablesCollections)
-        val count = Metric.variable("Count", FLOAT32, Shape.scalar(), ZerosInitializer, variablesCollections)
+        val total = Metric.variable[Float]("Total", Shape.scalar(), ZerosInitializer, variablesCollections)
+        val count = Metric.variable[Float]("Count", Shape.scalar(), ZerosInitializer, variablesCollections)
         val (processedValues, numValues) = computedWeights match {
           case None =>
             (values, Basic.size(values, INT64).toFloat32)

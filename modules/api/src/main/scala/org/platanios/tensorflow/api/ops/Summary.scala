@@ -50,7 +50,7 @@ trait Summary {
       family: String = null
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
-      val summary = Summary.tensorSummary(tensor, tag, Tensor.ofType(STRING), scope)
+      val summary = Summary.tensorSummary(tensor, tag, Tensor.empty[String], scope)
       collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
       summary
     }, name, family)
@@ -118,7 +118,7 @@ trait Summary {
   def image[T: IsReal](
       name: String,
       tensor: Output[T],
-      badColor: Tensor[UByte] = Tensor.ofType(UINT8, UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
+      badColor: Tensor[UByte] = Tensor(UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
       maxOutputs: Int = 3,
       collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
       family: String = null

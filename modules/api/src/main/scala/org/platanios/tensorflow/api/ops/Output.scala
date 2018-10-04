@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
-import org.platanios.tensorflow.api.types.{DataType, INT32, INT64, IsNumeric}
+import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
@@ -254,18 +254,19 @@ object Output {
       case "Const" => Option(output.op.tensorAttribute("value")) // TODO: !!! Make more robust.
       case "Shape" =>
         val inputShape = output.op.inputsSeq(0).shape
-        if (inputShape.isFullyDefined)
-          Some(inputShape.toTensor(output.dataType))
+        if (inputShape.isFullyDefined) {
+          Some(inputShape.toTensor[T](output.dataType.evSupportedType))
+        }
         None
       case "Size" =>
         val inputShape = output.op.inputsSeq(0).shape
         if (inputShape.isFullyDefined)
-          Some(Tensor.ofType(INT32, inputShape.asArray.product))
+          Some(Tensor(inputShape.asArray.product))
         None
       case "Rank" =>
         val inputShape = output.op.inputsSeq(0).shape
         if (inputShape.numElements != -1)
-          Some(Tensor.ofType(INT32, inputShape.numElements.toInt))
+          Some(Tensor(inputShape.numElements.toInt))
         None
       case "Range" =>
         constantValue(output.op.inputsSeq(0))
@@ -308,9 +309,8 @@ object Output {
         val fillShape = output.shape
         val fillValue = constantValue(output.op.inputsSeq(0))
         if (fillShape.isFullyDefined && fillValue.isDefined) {
-          val value = fillValue.get
-          Some(Tensor.fill(
-            dataType = value.dataType,
+          val value = fillValue.get.asInstanceOf[Tensor[T]]
+          Some(Tensor.fill[T](
             shape = fillShape
           )(value.scalar)(value.dataType.evSupportedType))
         } else {
@@ -413,7 +413,7 @@ object Output {
           var returnShape = Shape.unknown(tensor.shape(0))
           val valueOption = constantValue(tensor)
           if (valueOption.isDefined) {
-            val value = valueOption.get.toInt32
+            val value = valueOption.get.castTo[Int]
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             val shape = Shape(
               (0 until value.size.toInt).map(value.getElementAtFlattenedIndex): _*)

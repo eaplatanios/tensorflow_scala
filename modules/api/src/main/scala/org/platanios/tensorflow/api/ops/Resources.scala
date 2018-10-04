@@ -123,13 +123,13 @@ object Resources extends Resources {
       if (resources.isEmpty) {
         // Return an empty tensor so we only need to check for the returned tensor size being 0 as an indication of
         // model readiness.
-        Basic.constant(Tensor.ofType(STRING))
+        Basic.constant(Tensor.empty[String])
       } else {
         // Get a 1-D boolean tensor listing whether each resource is initialized.
         val resourcesMask = Math.logicalNot(Basic.stack(resources.map(_.isInitialized).toSeq))
         // Get a 1-D string tensor containing all the resource names.
         val resourcesList = resources.map(_.handle.name).toSeq
-        val resourceNames = Basic.constant(Tensor(resourcesList.head, resourcesList.tail: _*))
+        val resourceNames = Basic.constant(Tensor(resourcesList: _*))
         // Return a 1-D tensor containing the names of all uninitialized resources.
         Basic.booleanMask(resourceNames, resourcesMask)
       }

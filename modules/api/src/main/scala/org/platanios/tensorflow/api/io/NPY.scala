@@ -36,7 +36,11 @@ object NPY {
   protected val dtypeParser: Regex = """^[<=>]?(\w\d*)$""".r
 
   /** Represents an NPY file header. */
-  case class Header[T](description: String, fortranOrder: Boolean, shape: Shape) {
+  case class Header[T: SupportedType](
+      description: String,
+      fortranOrder: Boolean,
+      shape: Shape
+  ) {
     val dataType: DataType[T] = description match {
       case dtypeParser(t) => numpyDTypeToDataType(t).asInstanceOf[DataType[T]]
     }
@@ -57,7 +61,7 @@ object NPY {
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
   @throws[InvalidDataTypeException]
   @throws[IllegalArgumentException]
-  def read[T](file: Path): Tensor[T] = {
+  def read[T: SupportedType](file: Path): Tensor[T] = {
     val byteBuffer = ByteBuffer.wrap(Files.readAllBytes(file))
 
     // Check the first byte in the magic string.
@@ -95,17 +99,19 @@ object NPY {
     byteBuffer.order(header.byteOrder)
     val numBytes = header.shape.numElements * header.dataType.byteSize.get
     if (header.fortranOrder)
-      Tensor.fromBuffer(header.dataType, Shape.fromSeq(header.shape.asArray.reverse), numBytes, byteBuffer).transpose()
+      Tensor.fromBuffer[T](Shape.fromSeq(header.shape.asArray.reverse), numBytes, byteBuffer).transpose()
     else
-      Tensor.fromBuffer(header.dataType, header.shape, numBytes, byteBuffer)
+      Tensor.fromBuffer[T](header.shape, numBytes, byteBuffer)
   }
 
   /** Writes the provided tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method
     * will replace the file, if it already exists. */
   @throws[InvalidDataTypeException]
   def write[T](tensor: Tensor[T], file: Path, fortranOrder: Boolean = false): Unit = {
+    implicit val evSupportedType: SupportedType[T] = tensor.dataType.evSupportedType
+
     val description = ">" + dataTypeToNumpyDType(tensor.dataType)
-    val header = Header(description, fortranOrder, tensor.shape).toString
+    val header = Header[T](description, fortranOrder, tensor.shape).toString
 
     val resolvedHandle = tensor.resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)

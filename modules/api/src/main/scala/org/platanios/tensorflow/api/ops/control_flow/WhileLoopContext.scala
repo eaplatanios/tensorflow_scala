@@ -928,11 +928,11 @@ object WhileLoopVariable {
         Op.nameScope(name) {
           val fullShape = Basic.concatenate(Seq(
             batchSize.expandDims(0),
-            shape.toOutput(batchSize.dataType)
+            shape.toOutput[Int]
           ), axis = 0)
           val zero = Basic.zeros(implicitly[DataType[T]], fullShape)
           zero.setShape(Shape(staticBatchSize) ++ shape)
-          zero.asInstanceOf[Output[T]]
+          zero
         }
       }
 
@@ -991,12 +991,12 @@ object WhileLoopVariable {
         Op.nameScope(name) {
           val fullShape = Basic.concatenate(Seq(
             batchSize.expandDims(0),
-            shape.toOutput(batchSize.dataType)
+            shape.toOutput[Int]
           ), axis = 0)
           OutputIndexedSlices(
             indices = Basic.zeros(INT64, Shape(0)),
             values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape.toInt64).asInstanceOf[OutputIndexedSlices[T]]
+            denseShape = fullShape.toInt64)
         }
       }
 
@@ -1059,12 +1059,12 @@ object WhileLoopVariable {
         Op.nameScope(name) {
           val fullShape = Basic.concatenate(Seq(
             batchSize.expandDims(0),
-            shape.toOutput(batchSize.dataType)
+            shape.toOutput[Int]
           ), axis = 0)
           SparseOutput(
             indices = Basic.zeros(INT64, Shape(0)),
             values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape.toInt64).asInstanceOf[SparseOutput[T]]
+            denseShape = fullShape.toInt64)
         }
       }
 

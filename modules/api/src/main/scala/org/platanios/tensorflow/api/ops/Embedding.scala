@@ -127,7 +127,7 @@ trait Embedding {
         // Compute the dynamic element shape.
         val elementDynamicShape = {
           if (elementStaticShape.isFullyDefined) {
-            elementStaticShape.toOutput(INT64)
+            elementStaticShape.toOutput[Long]
           } else if (transformFn == null) {
             // It's important that we compute the shape on the right device to avoid data copies.
             Op.colocateWith(

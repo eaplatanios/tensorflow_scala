@@ -133,7 +133,7 @@ package object metrics {
     Op.nameScope(name) {
       val numTruePositives = sparseTruePositives(labels, predictionIDs, labelID, weights)
       val batchNumTruePositives = Math.sum(numTruePositives)
-      val accumulator = Metric.variable(s"$name/Accumulator", FLOAT32, Shape())
+      val accumulator = Metric.variable[Float](s"$name/Accumulator", Shape())
       val value = accumulator.value
       val update = accumulator.assignAdd(batchNumTruePositives)
       val reset = accumulator.initializer
@@ -211,7 +211,7 @@ package object metrics {
     Op.nameScope(name) {
       val numFalsePositives = sparseFalsePositives(labels, predictionIDs, labelID, weights)
       val batchNumFalsePositives = Math.sum(numFalsePositives)
-      val accumulator = Metric.variable(s"$name/Accumulator", FLOAT32, Shape())
+      val accumulator = Metric.variable[Float](s"$name/Accumulator", Shape())
       val value = accumulator.value
       val update = accumulator.assignAdd(batchNumFalsePositives)
       val reset = accumulator.initializer
@@ -289,7 +289,7 @@ package object metrics {
     Op.nameScope(name) {
       val numFalseNegatives = sparseFalseNegatives(labels, predictionIDs, labelID, weights)
       val batchNumFalseNegatives = Math.sum(numFalseNegatives)
-      val accumulator = Metric.variable(s"$name/Accumulator", FLOAT32, Shape())
+      val accumulator = Metric.variable[Float](s"$name/Accumulator", Shape())
       val value = accumulator.value
       val update = accumulator.assignAdd(batchNumFalseNegatives)
       val reset = accumulator.initializer

@@ -15,11 +15,9 @@
 
 package org.platanios.tensorflow.api.config
 
-import org.platanios.tensorflow.api.learn.estimators.Estimator
-
 import java.nio.file.Path
 
-/** TensorBoard configuration, which can be used when training using [[Estimator]]s.
+/** TensorBoard configuration, which can be used when training using estimators.
   *
   * @param  logDir         Directory containing the logs and summaries that the TensorBoard instance should use.
   * @param  host           Host to use for the TensorBoard service.
@@ -32,7 +30,8 @@ case class TensorBoardConfig(
     logDir: Path,
     host: String = "localhost",
     port: Int = 6006,
-    reloadInterval: Int = 5) {
+    reloadInterval: Int = 5
+) {
   private[api] val processBuilder = new ProcessBuilder(
     "tensorboard",
     "--logdir", logDir.toAbsolutePath.toString,

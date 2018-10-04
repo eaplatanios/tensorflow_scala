@@ -327,7 +327,7 @@ private[api] trait ControlFlow {
 }
 
 private[api] object ControlFlow extends ControlFlow {
-  private[ops] trait Implicits {
+  private[control_flow] trait Implicits {
     implicit class ControlFlowOps(val op: UntypedOp) {
       /** Returns `true` if the provided op is within a cond statement. */
       def isInCond: Boolean = {
@@ -1034,7 +1034,7 @@ private[api] object ControlFlow extends ControlFlow {
                 enforceShapeInvariant = false)
             }
             (null, null)
-          case None if outputGradient != null =>
+          case None if outputGradient._1 != null =>
             // This is the first time this switch node is visited. It comes from the exit branch of the switch, which
             // is `outputGradients(0)`. `outputGradients(1)` is empty at this point. We use `outputGradients(0)` for
             // both inputs to the merge for now, but we update the second input of the merge node when we visit this

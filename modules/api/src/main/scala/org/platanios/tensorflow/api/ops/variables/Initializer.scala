@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.ops.variables.VarianceScalingInitializer.FanInScalingMode
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, IsFloat16OrFloat32OrFloat64}
+import org.platanios.tensorflow.api.types.{DataType, IsFloat16OrFloat32OrFloat64, IsSupported}
 
 // TODO: [TYPES] Make initializers type safe.
 
@@ -103,7 +103,7 @@ case class ConstantInitializer(value: Tensor[_]) extends Initializer {
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
-    Basic.constant(value.cast(dataType), shape, name = "ConstantInitializer")
+    Basic.constant(value.castTo(dataType), shape, name = "ConstantInitializer")
   }
 }
 

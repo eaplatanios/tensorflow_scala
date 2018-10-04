@@ -388,8 +388,8 @@ trait Optimizer {
     nonSlotVariables.getOrElseUpdate(
       (name, colocationOps.map(_.graph).headOption),
       Op.colocateWith(colocationOps, ignoreExisting) {
-        Variable.getVariable(
-          name, initialValue.dataType, initializer = ConstantInitializer(initialValue), trainable = false)
+        Variable.getVariable[T](
+          name, initialValue.shape, initializer = ConstantInitializer(initialValue), trainable = false)
       }).asInstanceOf[Variable[T]]
   }
 

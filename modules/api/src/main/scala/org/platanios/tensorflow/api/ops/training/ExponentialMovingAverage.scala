@@ -321,12 +321,13 @@ object ExponentialMovingAverage {
       value: Output[T],
       decay: Output[T]
   ): Output[T] = {
+    implicit val evSupportedType: SupportedType[T] = unbiasedVariable.dataType.evSupportedType
     VariableScope.scope(unbiasedVariable.name) {
       Op.colocateWith(Set(unbiasedVariable.op), ignoreExisting = true) {
-        val biased = Variable.getVariable(
-          "Biased", unbiasedVariable.dataType, unbiasedVariable.shape, ZerosInitializer, trainable = false)
-        val localStep = Variable.getVariable(
-          "LocalStep", unbiasedVariable.dataType, Shape(), ZerosInitializer, trainable = false)
+        val biased = Variable.getVariable[T](
+          "Biased", unbiasedVariable.shape, ZerosInitializer, trainable = false)
+        val localStep = Variable.getVariable[T](
+          "LocalStep", Shape(), ZerosInitializer, trainable = false)
         val biasedUpdate = biased.assignSub((biased - value) * decay, VariableScope.current.name)
         val localStepUpdate = localStep.assignAdd(Basic.ones(localStep.dataType, Shape()))
         // Compute the value of the delta to update the unbiased EMA. Make sure to use the new values of the biased

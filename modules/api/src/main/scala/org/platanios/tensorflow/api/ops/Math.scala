@@ -2271,7 +2271,7 @@ trait Math {
       // Fast path: Avoid creating range and rank ops if the rank is known statically.
       val reductionAxes = tensor match {
         case o: Output[T] if o.rank == 0 =>
-          Basic.constant(Tensor.zeros(INT32, Shape(0)))
+          Basic.constant(Tensor.zeros[Int](Shape(0)))
         case o: Output[T] if o.rank > -1 =>
           Basic.constant(0 until o.rank)
         case o: OutputIndexedSlices[T] if o.denseShape.shape.isFullyDefined =>
@@ -2281,7 +2281,8 @@ trait Math {
         case _ => // Otherwise, we rely on range and rank to do the right thing at run-time.
           range(0, Basic.rank(tensor))
       }
-      reductionAxes.cast(axes.dataType)
+      // TODO: [TYPES] !!! This is wrong...
+      reductionAxes.asInstanceOf[Output[I]]
     }
   }
 
@@ -2334,14 +2335,14 @@ trait Math {
     } else if (rank != -1
         && axes.op.opType == "Const"
         && Output.constantValue(axes).exists(a => {
-      a.toInt32.entriesIterator.toArray[Int].sameElements((0 until rank).toArray[Int])
+      a.castTo[Int].entriesIterator.toArray[Int].sameElements((0 until rank).toArray[Int])
     })) {
       // In this case the reduction was over all dimensions.
       val reshapedOutputGradient = Basic.reshape(outputGradient, Shape(Array.fill(rank)(1)))
       val inputShape = {
         // If the shape is not fully defined but the rank is, we use the shape op.
         if (input.shape.isFullyDefined)
-          input.shape.toOutput(INT64)
+          input.shape.toOutput[Long]
         else
           Basic.shape(input, INT64)
       }
@@ -3993,7 +3994,7 @@ trait Math {
         val permutation = if (flipped) mappedAxes ++ free else free ++ mappedAxes
         val newShape = if (flipped) Shape(prodAxes, prodFree) else Shape(prodFree, prodAxes)
         val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
-        val freeAxesOutput = if (freeAxes.isEmpty) Basic.constant(Tensor.ofType(INT32)) else Basic.constant(freeAxes)
+        val freeAxesOutput = if (freeAxes.isEmpty) Basic.constant(Tensor.empty[Int]) else Basic.constant(freeAxes)
         (reshapedA, freeAxesOutput, freeAxes)
       } else {
         val (mappedAxes, freeAxesStatic) = {

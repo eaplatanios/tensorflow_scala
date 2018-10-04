@@ -130,20 +130,20 @@ class YellowFin protected (
     movingAverage = ExponentialMovingAverage(beta, zeroDebias = zeroDebias)
     val lr = Tensor(learningRate)
     val mu = Tensor(momentum)
-    learningRateVariable = Variable.getVariable(
-      "LearningRate", FLOAT32, Shape(), ConstantInitializer(lr), trainable = false)
-    momentumVariable = Variable.getVariable(
-      "Momentum", FLOAT32, Shape(), ConstantInitializer(mu), trainable = false)
-    learningRateFactorVariable = Variable.getVariable(
-      "LearningRateFactor", FLOAT32, Shape(), OnesInitializer, trainable = false)
+    learningRateVariable = Variable.getVariable[Float](
+      "LearningRate", Shape(), ConstantInitializer(lr), trainable = false)
+    momentumVariable = Variable.getVariable[Float](
+      "Momentum", Shape(), ConstantInitializer(mu), trainable = false)
+    learningRateFactorVariable = Variable.getVariable[Float](
+      "LearningRateFactor", Shape(), OnesInitializer, trainable = false)
     learningRateTensor = decay(learningRateVariable.value * learningRateFactorVariable.value, iteration)
     momentumTensor = momentumVariable.value
     betaTensor = Basic.constant(beta, name = "Beta")
-    step = Variable.getVariable("Step", INT32, Shape(), ZerosInitializer, trainable = false)
+    step = Variable.getVariable[Int]("Step", Shape(), ZerosInitializer, trainable = false)
     incrementStepOp = step.assignAdd(1, "IncrementStep").op
     doTune = Math.greater(step.value, 0)
-    curvatureWindow = Variable.getVariable(
-      "CurvatureWindow", FLOAT32, Shape(curvatureWindowWidth), ZerosInitializer, trainable = false)
+    curvatureWindow = Variable.getVariable[Float](
+      "CurvatureWindow", Shape(curvatureWindowWidth), ZerosInitializer, trainable = false)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }

@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT64}
+import org.platanios.tensorflow.api.types.{DataType, SupportedType}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
 import org.tensorflow.framework.TensorShapeProto
@@ -312,7 +312,9 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     *
     * @param  dimension Dimension whose size to return.
     */
-  def apply(dimension: Int): Int = size(dimension)
+  def apply(dimension: Int): Int = {
+    size(dimension)
+  }
 
   /** Gets a slice of this shape.
     *
@@ -327,19 +329,25 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
       Shape.unknown(slice.length(rank))
   }
 
-  /** Converts this shape to a one-dimensional tensor. */
-  def toTensor: Tensor[Long] = toTensor(INT64)
-
   /** Converts this shape to a one-dimensional tensor.
     *
-    * @param  dataType Data type to use for the tensor.
+    * @param  dataType  Data type to use for the tensor.
     * @return One-dimensional tensor representing this shape.
     */
   def toTensor[T](dataType: DataType[T]): Tensor[T] = {
+    toTensor[T](dataType.evSupportedType)
+  }
+
+  /** Converts this shape to a one-dimensional tensor.
+    *
+    * @tparam T Data type to use for the tensor.
+    * @return One-dimensional tensor representing this shape.
+    */
+  def toTensor[T: SupportedType]: Tensor[T] = {
     if (rank == 0)
-      Tensor.ofType(dataType)
+      Tensor.empty[T]
     else
-      Tensor.ofType(dataType, asArray.head, asArray.tail: _*)
+      Tensor(asArray: _*).castTo[T]
   }
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
@@ -347,8 +355,17 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     * @param  dataType Data type to use for the tensor.
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput[T](dataType: DataType[T], name: String = "Shape"): Output[T] = {
-    Basic.constant(toTensor(dataType), name = name)
+  def toOutput[T](dataType: DataType[T]): Output[T] = {
+    toOutput[T](dataType.evSupportedType)
+  }
+
+  /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
+    *
+    * @tparam T Data type to use for the tensor.
+    * @return One-dimensional op output tensor representing this shape.
+    */
+  def toOutput[T: SupportedType]: Output[T] = {
+    Basic.constant(toTensor[T], name = "Shape")
   }
 
   override def toProto: TensorShapeProto = toTensorShapeProto
@@ -362,12 +379,20 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
       TensorShapeProto.newBuilder().setUnknownRank(true).build()
     } else {
       val builder = TensorShapeProto.newBuilder()
-      array.zipWithIndex.foreach(a => builder.addDim(a._2, TensorShapeProto.Dim.newBuilder().setSize(a._1)))
+      array.zipWithIndex.foreach(a => {
+        builder.addDim(a._2, TensorShapeProto.Dim.newBuilder().setSize(a._1))
+      })
       builder.build()
     }
   }
 
-  override def toString: String = if (array == null) "<unknown>" else s"[${array.mkString(", ").replace("-1", "?")}]"
+  override def toString: String = {
+    if (array == null) {
+      "<unknown>"
+    } else {
+      s"[${array.mkString(", ").replace("-1", "?")}]"
+    }
+  }
 
   override def equals(that: Any): Boolean = that match {
     case that: Shape =>

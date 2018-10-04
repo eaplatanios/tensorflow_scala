@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.data.{SupportedData, Dataset}
+import org.platanios.tensorflow.api.ops.data.{Dataset, SupportedData}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, VARIANT}
+import org.platanios.tensorflow.api.types.{DataType, SupportedType, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 
@@ -434,7 +434,8 @@ private[api] class InstantiatedFunction[I, O] protected (
       val builder = Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
         opType = hashedName,
         name = "Call",
-        input = outputs ++ extraInputs)
+        input = outputs ++ extraInputs,
+        addAsIndividualInputs = true)
       builder.setAttribute("_noinline", inline)
       if (compiled) {
         val xlaScope = graphConstructionScope.value.attributes
@@ -667,7 +668,8 @@ class FunctionGraph(
       val opBuilder = Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
         opType = op.opType,
         name = op.name,
-        input = op.inputsSeq.map(addOutputAndParents))
+        input = op.inputsSeq.map(addOutputAndParents),
+        addAsIndividualInputs = true)
       op.toNodeDef.getAttrMap.asScala.foreach(attribute => {
         opBuilder.setAttribute(attribute._1, attribute._2)
       })
@@ -680,7 +682,7 @@ class FunctionGraph(
 
   /** Custom variable getter for variables created within this function graph. */
   private[ops] val customVariableGetter: VariableGetter = new VariableGetter {
-    override def apply[T](
+    override def apply[T: SupportedType](
         name: String,
         dataType: DataType[T],
         shape: Shape = null,
@@ -698,10 +700,9 @@ class FunctionGraph(
       // to give us the variable. The variable is stashed in extra_vars and returned to the caller. We capture these
       // variables so that the variable definition is hoisted upward to the outer-most graph.
       Op.createWith(outerGraph) {
-        val variable = outerVariableScope.getVariable(
+        val variable = outerVariableScope.getVariable[T](
           store = VariableStore.current,
           name = name,
-          dataType = dataType,
           shape = shape,
           initializer = initializer,
           regularizer = regularizer,
