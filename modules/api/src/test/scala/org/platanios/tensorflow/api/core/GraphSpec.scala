@@ -198,7 +198,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
     Op.createWith(graph) {
       // Create a minimal graph with zero variables.
-      val input = placeholder(FLOAT32, Shape(), name = "Input")
+      val input = placeholder[Float](Shape(), name = "Input")
       val offset = constant(42.0f, name = "Offset")
       val output = add(input, offset, name = "AddOffset")
 

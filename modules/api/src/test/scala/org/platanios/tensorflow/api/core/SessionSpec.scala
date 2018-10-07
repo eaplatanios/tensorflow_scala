@@ -27,7 +27,7 @@ class SessionSpec extends FlatSpec with Matchers {
     val graph = Graph()
     tf.createWith(graph = graph) {
       val a = tf.constant(Tensor(Tensor(2, 3)), name = "A")
-      val x = tf.placeholder(dataType = INT32, shape = Shape(1, 2), name = "X")
+      val x = tf.placeholder[Int](Shape(1, 2), name = "X")
       tf.subtract(tf.constant(1), tf.matmul(a = a, b = x, transposeB = true), name = "Y")
     }
     val session = Session(graph = graph)

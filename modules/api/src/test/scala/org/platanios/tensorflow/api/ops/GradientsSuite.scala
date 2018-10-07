@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64, INT32}
+import org.platanios.tensorflow.api.types.INT32
 import org.platanios.tensorflow.api.utilities.using
 
 import org.scalatest.junit.JUnitSuite
@@ -87,7 +87,7 @@ class GradientsSuite extends JUnitSuite {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
-    val gradients = Gradients.gradients(Array(output), inputs)
+    val gradients = Op.createWith(graph)(Gradients.gradients(Array(output), inputs))
     val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
@@ -99,7 +99,7 @@ class GradientsSuite extends JUnitSuite {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
-    val gradients = Gradients.ccGradients(Array(output), inputs)
+    val gradients = Op.createWith(graph)(Gradients.ccGradients(Array(output), inputs))
     val expectedGradients = buildExpectedCCGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
@@ -114,7 +114,7 @@ class GradientsSuite extends JUnitSuite {
       val b = Basic.constant(1.0, Shape(10), name = "b")
       val xw = Math.matmul(input, w, name = "xW")
       val h = NN.addBias(xw, b, name = "h")
-      val gradient = Gradients.gradients(Seq(h), Seq(w))(0)
+      val gradient = Gradients.gradients(Seq(h), Seq(w)).head
       assert(gradient.op.opType === "MatMul")
       assert(gradient.op.booleanAttribute("transpose_a"))
       assert(!gradient.op.booleanAttribute("transpose_b"))
@@ -128,7 +128,7 @@ class GradientsSuite extends JUnitSuite {
       val wx = Math.matmul(w, x)
       val wxSplit = Basic.splitEvenly(wx, 2, axis = 0)
       val c = Math.sum(wxSplit(1))
-      val gradient = Gradients.gradients(Seq(c), Seq(w))(0)
+      val gradient = Gradients.gradients(Seq(c), Seq(w)).head
       assert(gradient.op.opType === "MatMul")
     }
   }
@@ -161,16 +161,16 @@ class GradientsSuite extends JUnitSuite {
 
   @Test def testNonDifferentiableSwitchInWhileLoop(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val v = Basic.placeholder(FLOAT32, Shape.scalar())
+      val v = Basic.placeholder[Float](Shape.scalar())
       val lv = ControlFlow.whileLoop(
         (lv: (Output[Int], Output[Int], TensorArray[Int])) => Math.less(lv._1, 4),
         (lv: (Output[Int], Output[Int], TensorArray[Int])) => {
-          val a = Math.add(lv._2, Cast.cast(v, INT32))
+          val a = Math.add(lv._2, v.castTo[Int])
           (Math.add(lv._1, 1), a, lv._3.write(lv._1, a))
         },
         (Basic.constant(0), Basic.constant(0), TensorArray.create(4, INT32)))
       val target = lv._3.read(lv._1 - 1)
-      val gradient = Gradients.gradients(Seq(target), Seq(v))(0)
+      val gradient = Gradients.gradients(Seq(target), Seq(v)).head
       assert(gradient === null)
     }
   }
@@ -196,7 +196,7 @@ class GradientsSuite extends JUnitSuite {
         inputs += op
         // Remove the op from `reached` so we won't add the inputs again.
         reached -= op
-        op.inputsSeq.foreach(reachedQueue.enqueue(_))
+        op.inputsSeq.foreach(i => reachedQueue.enqueue(i.op))
       }
     }
     inputs
@@ -239,12 +239,12 @@ class GradientsSuite extends JUnitSuite {
     * @param  graph Graph in which to place the newly constructed ops.
     * @return Tuple containing the input and output tensors, respectively.
     */
-  private[this] def buildSuccessGraph(graph: Graph): (Array[Output[Any]], Output[Any]) = {
+  private[this] def buildSuccessGraph(graph: Graph): (Array[Output[Double]], Output[Double]) = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
-      (Array[Output[Any]](constant0, constant1), matmul)
+      (Array[Output[Double]](constant0, constant1), matmul)
     }
   }
 
@@ -291,10 +291,13 @@ class GradientsSuite extends JUnitSuite {
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
       Op.nameScope("Gradients") {
         val constant2 = {
-          if (gradientInputsProvided)
+          if (gradientInputsProvided) {
             Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
-          else
-            Basic.ones(matmul.dataType, matmul.shape, name = "Gradients_0")
+          } else {
+            Op.nameScope("Gradients_0") {
+              Basic.ones[Double](matmul.shape)
+            }
+          }
         }
         Op.nameScope("MatMulGradient") {
           val matmul1 = Math.matmul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul")

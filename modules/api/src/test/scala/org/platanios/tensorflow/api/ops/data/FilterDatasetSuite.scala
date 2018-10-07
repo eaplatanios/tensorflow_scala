@@ -36,7 +36,7 @@ class FilterDatasetSuite extends JUnitSuite {
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
-      assert(nextOutput.shape === Shape.scalar())
+      assert(nextOutput.shape == Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
       assert(session.run(fetches = nextOutput) == (0L: Tensor[Long]))

@@ -53,7 +53,7 @@ class FunctionSuite extends JUnitSuite {
       assert(flattenOutputValue.shape == Shape(4))
       assert(flattenOutputValue.entriesIterator.toSeq == Seq(2.4, -5.6, -0.3, 1.9))
 
-      val toInt32 = Function("cast", (o: Output[Double]) => o.cast(INT32))
+      val toInt32 = Function("cast", (o: Output[Double]) => o.castTo[Int])
       val toInt32Output = toInt32(input)
       val toInt32OutputValue = session.run(fetches = toInt32Output)
       assert(toInt32OutputValue.dataType == INT32)

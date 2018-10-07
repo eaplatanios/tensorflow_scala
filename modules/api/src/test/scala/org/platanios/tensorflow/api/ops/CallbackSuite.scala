@@ -29,13 +29,17 @@ import org.scalatest.junit.JUnitSuite
   * @author Emmanouil Antonios Platanios
   */
 class CallbackSuite extends JUnitSuite {
-  def square[T: IsNotQuantized](input: Tensor[T]): Tensor[T] = input.square
+  def square[T: IsNotQuantized : TF](input: Tensor[T]): Tensor[T] = {
+    input.square
+  }
 
-  def add[T: IsNumeric](inputs: Seq[Tensor[T]]): Tensor[T] = TensorMath.addN(inputs)
+  def add[T: IsNumeric : TF](inputs: Seq[Tensor[T]]): Tensor[T] = {
+    TensorMath.addN(inputs)
+  }
 
   @Test def testIdentitySingleInputSingleOutputCallback(): Unit = using(Graph()) { graph =>
     val (input, output) = Op.createWith(graph) {
-      val input = Basic.placeholder(FLOAT32)
+      val input = Basic.placeholder[Float]()
       val output = Callback.callback(square[Float], input, FLOAT32)
       (input, output)
     }
@@ -49,9 +53,9 @@ class CallbackSuite extends JUnitSuite {
 
   @Test def testIdentityMultipleInputSingleOutputCallback(): Unit = using(Graph()) { graph =>
     val (input1, input2, input3, output) = Op.createWith(graph) {
-      val input1 = Basic.placeholder(FLOAT64)
-      val input2 = Basic.placeholder(FLOAT64)
-      val input3 = Basic.placeholder(FLOAT64)
+      val input1 = Basic.placeholder[Double]()
+      val input2 = Basic.placeholder[Double]()
+      val input3 = Basic.placeholder[Double]()
       val output = Callback.callback(add[Double], Seq(input1, input2, input3), FLOAT64)
       (input1, input2, input3, output)
     }

@@ -37,10 +37,10 @@ class DatasetSuite extends JUnitSuite {
       val iterator = Data.datasetFromTensors(components).createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
-      assert(nextOutput.shape === components.shape)
+      assert(nextOutput.shape == components.shape)
       val session = Session()
       session.run(targets = initOp)
-      assert(components === session.run(fetches = nextOutput))
+      assert(components == session.run(fetches = nextOutput))
       assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
@@ -52,15 +52,15 @@ class DatasetSuite extends JUnitSuite {
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOp = iterator.next()
-      assert(components._1.shape === nextOp._1.shape)
-      assert(components._2.shape === nextOp._2.shape)
-      assert(components._3.shape === nextOp._3.shape)
+      assert(components._1.shape == nextOp._1.shape)
+      assert(components._2.shape == nextOp._2.shape)
+      assert(components._3.shape == nextOp._3.shape)
       val session = Session()
       session.run(targets = initOp)
       val results = session.run(fetches = nextOp)
-      assert(components._1 === results._1)
-      assert(components._2 === results._2)
-      assert(components._3 === results._3)
+      assert(components._1 == results._1)
+      assert(components._2 == results._2)
+      assert(components._3 == results._3)
       assertThrows[OutOfRangeException](session.run(fetches = nextOp))
     }
   }
@@ -71,7 +71,7 @@ class DatasetSuite extends JUnitSuite {
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
-      assert(nextOutput.shape === Shape.scalar())
+      assert(nextOutput.shape == Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
       assert(session.run(fetches = nextOutput) == (0L: Tensor[Long]))
@@ -88,7 +88,7 @@ class DatasetSuite extends JUnitSuite {
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
-      assert(nextOutput.shape === Shape.scalar())
+      assert(nextOutput.shape == Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
       assert(session.run(fetches = nextOutput) == (0L: Tensor[Long]))
@@ -107,7 +107,7 @@ class DatasetSuite extends JUnitSuite {
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
-      assert(nextOutput.shape === Shape.scalar())
+      assert(nextOutput.shape == Shape.scalar())
       val session = Session()
       session.run(targets = initOp)
       assert(session.run(fetches = nextOutput) == (0L: Tensor[Long]))
@@ -130,13 +130,13 @@ class DatasetSuite extends JUnitSuite {
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer
       val nextOutput = iterator.next()
-      assert(nextOutput.shape === Shape(1))
+      assert(nextOutput.shape == Shape(1))
       val session = Session()
       session.run(targets = initOp)
-      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 0))
-      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 1))
-      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 2))
-      assert(session.run(fetches = nextOutput) == Tensor.ofType(INT32, 3))
+      assert(session.run(fetches = nextOutput) == Tensor[Int](0))
+      assert(session.run(fetches = nextOutput) == Tensor[Int](1))
+      assert(session.run(fetches = nextOutput) == Tensor[Int](2))
+      assert(session.run(fetches = nextOutput) == Tensor[Int](3))
       assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
     }
   }
