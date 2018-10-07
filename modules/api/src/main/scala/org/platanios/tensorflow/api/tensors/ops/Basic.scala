@@ -905,6 +905,12 @@ trait Basic {
 
 object Basic extends Basic {
   private[tensors] trait Implicits {
+    implicit def tensorConvertibleToBasicOps[TC, T: TF](
+        value: TC
+    )(implicit f: TC => Tensor[T]): BasicOps[T] = {
+      new BasicOps(f(value))
+    }
+
     implicit class BasicOps[T: TF](tensor: Tensor[T]) {
       //region Tensor Manipulation Ops
 
@@ -947,7 +953,10 @@ object Basic extends Basic {
         * @param  axis      Dimension along which to split the input tensor.
         * @return Result as a sequence of new tensors.
         */
-      def splitEvenly(numSplits: Int, axis: Tensor[Int] = 0): Seq[Tensor[T]] = {
+      def splitEvenly(
+          numSplits: Int,
+          axis: Tensor[Int] = 0
+      ): Seq[Tensor[T]] = {
         Basic.splitEvenly(tensor, numSplits, axis)
       }
 
@@ -958,7 +967,10 @@ object Basic extends Basic {
         * @param  axis       Dimension along which to split the input tensor.
         * @return Result as a new tensor.
         */
-      def split[I: IsInt32OrInt64 : TF](splitSizes: Tensor[I], axis: Tensor[Int] = 0): Seq[Tensor[T]] = {
+      def split[I: IsInt32OrInt64 : TF](
+          splitSizes: Tensor[I],
+          axis: Tensor[Int] = 0
+      ): Seq[Tensor[T]] = {
         Basic.split(tensor, splitSizes, axis)
       }
 
@@ -1021,6 +1033,15 @@ object Basic extends Basic {
         Basic.matrixTranspose(tensor, conjugate)
       }
 
+      /** $OpDocBasicInvertPermutation
+        *
+        * @group BasicOps
+        * @return Result as a new tensor.
+        */
+      def invertPermutation(implicit ev: IsInt32OrInt64[T]): Tensor[T] = {
+        Basic.invertPermutation(tensor)
+      }
+
       /** $OpDocBasicReverse
         *
         * @group BasicOps
@@ -1055,7 +1076,10 @@ object Basic extends Basic {
         * @param  paddings  `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def spaceToBatch[I: IsInt32OrInt64 : TF](blockSize: Int, paddings: Tensor[I]): Tensor[T] = {
+      def spaceToBatch[I: IsInt32OrInt64 : TF](
+          blockSize: Int,
+          paddings: Tensor[I]
+      ): Tensor[T] = {
         Basic.spaceToBatch(tensor, blockSize, paddings)
       }
 
@@ -1083,7 +1107,10 @@ object Basic extends Basic {
         * @param  crops     `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def batchToSpace[I: IsInt32OrInt64 : TF](blockSize: Int, crops: Tensor[I]): Tensor[T] = {
+      def batchToSpace[I: IsInt32OrInt64 : TF](
+          blockSize: Int,
+          crops: Tensor[I]
+      ): Tensor[T] = {
         Basic.batchToSpace(tensor, blockSize, crops)
       }
 
@@ -1111,7 +1138,10 @@ object Basic extends Basic {
         * @param  dataFormat Format of the input and output data.
         * @return Result as a new tensor.
         */
-      def spaceToDepth(blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor[T] = {
+      def spaceToDepth(
+          blockSize: Int,
+          dataFormat: CNNDataFormat = CNNDataFormat.default
+      ): Tensor[T] = {
         Basic.spaceToDepth(tensor, blockSize, dataFormat)
       }
 
@@ -1122,7 +1152,10 @@ object Basic extends Basic {
         * @param  dataFormat Format of the input and output data.
         * @return Result as a new tensor.
         */
-      def depthToSpace(blockSize: Int, dataFormat: CNNDataFormat = CNNDataFormat.default): Tensor[T] = {
+      def depthToSpace(
+          blockSize: Int,
+          dataFormat: CNNDataFormat = CNNDataFormat.default
+      ): Tensor[T] = {
         Basic.depthToSpace(tensor, blockSize, dataFormat)
       }
 
@@ -1130,13 +1163,37 @@ object Basic extends Basic {
 
       //region Tensor Masking Ops
 
+      /** $OpDocBasicWhere
+        *
+        * @group BasicOps
+        * @return Result as a new tensor.
+        */
+      def where(implicit ev: IsBooleanOrNumeric[T]): Tensor[Long] = {
+        Basic.where(tensor)
+      }
+
       /** $OpDocBasicBooleanMask
         *
         * @group BasicOps
         * @param  mask `K`-dimensional boolean tensor, where `K <= N` and `K` must be known statically.
         * @return Result as a new tensor.
         */
-      def booleanMask(mask: Tensor[Boolean]): Tensor[T] = Basic.booleanMask(tensor, mask)
+      def booleanMask(mask: Tensor[Boolean]): Tensor[T] = {
+        Basic.booleanMask(tensor, mask)
+      }
+
+      /** $OpDocBasicSequenceMask
+        *
+        * @group BasicOps
+        * @param  maxLength Scalar integer tensor representing the maximum length of each row. Defaults to the maximum
+        *                   value in this tensor.
+        * @return Result as a new tensor.
+        */
+      def sequenceMask(
+          maxLength: Tensor[T] = null
+      )(implicit ev: IsIntOrUInt[T]): Tensor[Boolean] = {
+        Basic.sequenceMask(tensor, maxLength)
+      }
 
       //endregion Tensor Masking Ops
 
@@ -1147,7 +1204,9 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Tuple containing `output` and `indices`.
         */
-      def unique: (Tensor[T], Tensor[Int]) = Basic.unique(tensor, INT32)
+      def unique: (Tensor[T], Tensor[Int]) = {
+        Basic.unique(tensor, INT32)
+      }
 
       /** $OpDocBasicUnique
         *
@@ -1155,7 +1214,9 @@ object Basic extends Basic {
         * @param  indicesDataType Data type of the returned indices.
         * @return Tuple containing `output` and `indices`.
         */
-      def unique[I: IsInt32OrInt64 : TF](indicesDataType: DataType[I]): (Tensor[T], Tensor[I]) = {
+      def unique[I: IsInt32OrInt64 : TF](
+          indicesDataType: DataType[I]
+      ): (Tensor[T], Tensor[I]) = {
         Basic.unique(tensor, indicesDataType)
       }
 
@@ -1164,7 +1225,9 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Tuple containing `output`, `indices`, and `counts`.
         */
-      def uniqueWithCounts: (Tensor[T], Tensor[Int], Tensor[Int]) = Basic.uniqueWithCounts(tensor, INT32)
+      def uniqueWithCounts: (Tensor[T], Tensor[Int], Tensor[Int]) = {
+        Basic.uniqueWithCounts(tensor, INT32)
+      }
 
       /** $OpDocBasicUniqueWithCounts
         *
@@ -1233,6 +1296,24 @@ object Basic extends Basic {
 
       //endregion Tensor Slicing Ops
 
+      //region Tensor Ungrouped Ops
+
+      /** $OpDocBasicCheckNumerics
+        *
+        * @group BasicOps
+        * @param  message Prefix to print for the error message.
+        * @return Result as a new tensor which has the same value as the input tensor.
+        */
+      def checkNumerics(
+          message: String = ""
+      )(implicit ev: IsDecimal[T]): Tensor[T] = {
+        Basic.checkNumerics(tensor)
+      }
+
+      // TODO: [TENSORS] !!! oneHot
+
+      //endregion Tensor Ungrouped Ops
+
       //region Tensor Gradient Ops
 
       /** $OpDocBasicStopGradient
@@ -1256,70 +1337,5 @@ object Basic extends Basic {
 
       //endregion Tensor Gradient Ops
     }
-
-    implicit class DecimalBasicOps[T: IsDecimal : TF](val tensor: Tensor[T]) {
-      //region Tensor Ungrouped Ops
-
-      /** $OpDocBasicCheckNumerics
-        *
-        * @group BasicOps
-        * @param  message Prefix to print for the error message.
-        * @return Result as a new tensor which has the same value as the input tensor.
-        */
-      def checkNumerics(message: String = ""): Tensor[T] = {
-        Basic.checkNumerics(tensor)
-      }
-
-      //endregion Tensor Ungrouped Ops
-    }
-
-    implicit class BooleanOrNumericBasicOps[T: IsBooleanOrNumeric : TF](val tensor: Tensor[T]) {
-      //region Tensor Masking Ops
-
-      /** $OpDocBasicWhere
-        *
-        * @group BasicOps
-        * @return Result as a new tensor.
-        */
-      def where(): Tensor[Long] = Basic.where(tensor)
-
-      //endregion Tensor Masking Ops
-    }
-
-    implicit class IntOrUIntBasicOps[T: IsIntOrUInt : TF](val tensor: Tensor[T]) {
-      //region Tensor Masking Ops
-
-      /** $OpDocBasicSequenceMask
-        *
-        * @group BasicOps
-        * @param  maxLength Scalar integer tensor representing the maximum length of each row. Defaults to the maximum
-        *                   value in this tensor.
-        * @return Result as a new tensor.
-        */
-      def sequenceMask(maxLength: Tensor[T] = null): Tensor[Boolean] = {
-        Basic.sequenceMask(tensor, maxLength)
-      }
-
-      //endregion Tensor Masking Ops
-    }
-
-    implicit class Int32OrInt64BasicOps[T: IsInt32OrInt64 : TF](val tensor: Tensor[T]) {
-      //region Tensor Manipulation Ops
-
-      /** $OpDocBasicInvertPermutation
-        *
-        * @group BasicOps
-        * @return Result as a new tensor.
-        */
-      def invertPermutation(): Tensor[T] = Basic.invertPermutation(tensor)
-
-      //endregion Tensor Manipulation Ops
-    }
-
-    implicit def tensorConvertibleToBasicOps[TC, T: TF](value: TC)(implicit f: TC => Tensor[T]): BasicOps[T] = new BasicOps(f(value))
-    implicit def tensorConvertibleToDecimalBasicOps[TC, T: IsDecimal : TF](value: TC)(implicit f: TC => Tensor[T]): DecimalBasicOps[T] = new DecimalBasicOps(f(value))
-    implicit def tensorConvertibleToBooleanOrNumericBasicOps[TC, T: IsBooleanOrNumeric : TF](value: TC)(implicit f: TC => Tensor[T]): BooleanOrNumericBasicOps[T] = new BooleanOrNumericBasicOps(f(value))
-    implicit def tensorConvertibleToIntOrUIntBasicOps[TC, T: IsIntOrUInt : TF](value: TC)(implicit f: TC => Tensor[T]): IntOrUIntBasicOps[T] = new IntOrUIntBasicOps(f(value))
-    implicit def tensorConvertibleToInt32OrInt64BasicOps[TC, T: IsInt32OrInt64 : TF](value: TC)(implicit f: TC => Tensor[T]): Int32OrInt64BasicOps[T] = new Int32OrInt64BasicOps(f(value))
   }
 }

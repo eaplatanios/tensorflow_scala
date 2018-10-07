@@ -43,7 +43,7 @@ trait NN {
     *                       dimension.
     * @return Result as a new tensor.
     */
-  def addBias[T: IsNotQuantized : TF](
+  def addBias[T: IsNumeric : TF](
       value: Tensor[T],
       bias: Tensor[T],
       cNNDataFormat: CNNDataFormat = CNNDataFormat.default
@@ -87,7 +87,7 @@ trait NN {
     *                 `norm < sqrt(epsilon)`.
     * @return Result as a new tensor.
     */
-  def l2Normalize[T: IsFloat32OrFloat64 : TF](
+  def l2Normalize[T: IsNotQuantized : TF](
       x: Tensor[T],
       axes: Tensor[Int],
       epsilon: Float = 1e-12f
@@ -156,7 +156,7 @@ trait NN {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def elu[T: IsDecimal : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def elu[T: IsReal : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -170,7 +170,7 @@ trait NN {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def selu[T: IsDecimal : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def selu[T: IsReal : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -201,8 +201,6 @@ trait NN {
   def softsign[T: IsReal : TF](input: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsNN.softsign(executionContext.value.nativeHandle, input.nativeHandle))
   }
-
-  //endregion Activation Ops
 
   /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
     * two-dimensional tensors and then creates the corresponding native op. The output is transposed and reshaped
@@ -262,6 +260,8 @@ trait NN {
   def logSoftmax[T: IsDecimal : TF](logits: Tensor[T], axis: Int = -1): Tensor[T] = {
     softmaxHelper(logits, NativeTensorOpsNN.logSoftmax(executionContext.value.nativeHandle, _), axis)
   }
+
+  //endregion Activation Ops
 
   //region Loss Ops
 
@@ -570,11 +570,11 @@ trait NN {
     *                         generator, when combined with the graph-level seed.
     * @return Result as a new tensor that has the same shape as `input`.
     */
-  def dropout[T: IsFloat16OrFloat32OrFloat64 : TF](
+  def dropout[T: IsFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       keepProbability: Float,
       scaleOutput: Boolean = true,
-      noiseShape: Tensor[Int] = null,
+      noiseShape: Tensor[I] = null,
       seed: Option[Int] = None
   ): Tensor[T] = {
     require(keepProbability > 0.0 && keepProbability <= 1.0, s"'keepProbability' ($keepProbability) must be in (0, 1].")
@@ -582,7 +582,7 @@ trait NN {
     if (keepProbability == 1.0) {
       input
     } else {
-      val inferredNoiseShape = if (noiseShape == null) Basic.shape(input).toInt else noiseShape
+      val inferredNoiseShape = if (noiseShape == null) Basic.shape(input).castTo[I] else noiseShape
       // Uniform random variable in [keepProbability, 1.0 + keepProbability).
       val probability = keepProbability.toTensor.castTo(input.dataType)
       val random = Tensor.rand(
@@ -761,7 +761,7 @@ trait NN {
     * @param  dataFormat Format of the input and output data.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPool[T: IsNotQuantized : TF](
+  def maxPool[T: IsNumeric : TF](
       input: Tensor[T],
       windowSize: Seq[Int],
       stride1: Int,
@@ -789,7 +789,7 @@ trait NN {
     * @param  dataFormat     Format of the input and output data.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPoolGrad[T: IsReal : TF](
+  def maxPoolGrad[T: IsNumeric : TF](
       originalInput: Tensor[T],
       originalOutput: Tensor[T],
       outputGradient: Tensor[T],
@@ -819,7 +819,7 @@ trait NN {
     * @param  dataFormat     Format of the input and output data.
     * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPoolGradGrad[T: IsReal : TF](
+  def maxPoolGradGrad[T: IsNumeric : TF](
       originalInput: Tensor[T],
       originalOutput: Tensor[T],
       outputGradient: Tensor[T],
@@ -840,7 +840,13 @@ trait NN {
 
 object NN extends NN {
   private[tensors] trait Implicits {
-    implicit class MathNNOps[T: IsNotQuantized : TF](val tensor: Tensor[T]) {
+    implicit def tensorConvertibleToNNOps[TC, T: TF](
+        value: TC
+    )(implicit f: TC => Tensor[T]): NNOps[T] = {
+      new NNOps(f(value))
+    }
+
+    implicit class NNOps[T: TF](val tensor: Tensor[T]) {
       //region Core Ops
 
       /** $OpDocNNAddBias
@@ -853,7 +859,10 @@ object NN extends NN {
         *                       dimension.
         * @return Result as a new tensor.
         */
-      def addBias(bias: Tensor[T], cNNDataFormat: CNNDataFormat = CNNDataFormat.default): Tensor[T] = {
+      def addBias(
+          bias: Tensor[T],
+          cNNDataFormat: CNNDataFormat = CNNDataFormat.default
+      )(implicit ev: IsNumeric[T]): Tensor[T] = {
         NN.addBias(tensor, bias, cNNDataFormat)
       }
 
@@ -864,49 +873,30 @@ object NN extends NN {
         * @param  bias    Bias tensor.
         * @return Result as a new tensor.
         */
-      def linear(weights: Tensor[T], bias: Tensor[T] = null): Tensor[T] = {
+      def linear(
+          weights: Tensor[T],
+          bias: Tensor[T] = null
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         NN.linear(tensor, weights, bias)
+      }
+
+      /** $OpDocNNL2Normalize
+        *
+        * @group NNOps
+        * @param  axes    Tensor containing the axes along which to normalize.
+        * @param  epsilon Lower bound value for the norm. The created op will use `sqrt(epsilon)` as the divisor, if
+        *                 `norm < sqrt(epsilon)`.
+        * @return Result as a new tensor.
+        */
+      def l2Normalize(
+          axes: Tensor[Int],
+          epsilon: Float = 1e-12f
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        NN.l2Normalize(tensor, axes, epsilon)
       }
 
       //endregion CoreOps
 
-      /** $OpDocNNTopK
-        *
-        * @group NNOps
-        * @param  k      Scalar tensor containing the number of top elements to look for along the last axis of `input`.
-        * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
-        * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
-        *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
-        */
-      def topK(k: Tensor[Int] = 1, sorted: Boolean = true): (Tensor[T], Tensor[Int]) = {
-        NN.topK(tensor, k, sorted)
-      }
-
-      //region Pooling Ops
-
-      /** $OpDocNNMaxPool
-        *
-        * @param  windowSize The size of the pooling window for each dimension of the input tensor.
-        * @param  stride1    Stride of the sliding window along the second dimension of `input`.
-        * @param  stride2    Stride of the sliding window along the third dimension of `input`.
-        * @param  padding    Padding mode to use.
-        * @param  dataFormat Format of the input and output data.
-        * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
-        */
-      def maxPool(
-          windowSize: Seq[Int],
-          stride1: Int,
-          stride2: Int,
-          padding: ConvPaddingMode,
-          dataFormat: CNNDataFormat = CNNDataFormat.default
-      ): Tensor[T] = {
-        NN.maxPool(tensor, windowSize, stride1, stride2, padding, dataFormat)
-      }
-
-      //endregion Pooling Ops
-    }
-
-    implicit class RealNNOps[T: IsReal : TF](val tensor: Tensor[T]) {
       //region Activation Ops
 
       /** $OpDocNNRelu
@@ -916,7 +906,9 @@ object NN extends NN {
         *               part will be equal to `alpha * x` instead of `0`. Defaults to `0`.
         * @return Result as a new tensor.
         */
-      def relu(alpha: Float = 0.0f): Tensor[T] = {
+      def relu(
+          alpha: Float = 0.0f
+      )(implicit ev: IsReal[T]): Tensor[T] = {
         NN.relu(tensor, alpha)
       }
 
@@ -925,7 +917,7 @@ object NN extends NN {
         * @group NNOps
         * @return Result as a new tensor.
         */
-      def relu6: Tensor[T] = {
+      def relu6(implicit ev: IsReal[T]): Tensor[T] = {
         NN.relu6(tensor)
       }
 
@@ -934,40 +926,16 @@ object NN extends NN {
         * @group NNOps
         * @return Result as a new tensor.
         */
-      def crelu: Tensor[T] = {
+      def crelu(implicit ev: IsReal[T]): Tensor[T] = {
         NN.crelu(tensor)
       }
-
-      /** $OpDocNNSoftplus
-        *
-        * @group NNOps
-        * @return Result as a new tensor.
-        */
-      def softplus: Tensor[T] = {
-        NN.softplus(tensor)
-      }
-
-      /** $OpDocNNSoftsign
-        *
-        * @group NNOps
-        * @return Result as a new tensor.
-        */
-      def softsign: Tensor[T] = {
-        NN.softsign(tensor)
-      }
-
-      //endregion Activation Ops
-    }
-
-    implicit class DecimalNNOps[T: IsDecimal : TF](val tensor: Tensor[T]) {
-      //region Activation Ops
 
       /** $OpDocNNElu
         *
         * @group NNOps
         * @return Result as a new tensor.
         */
-      def elu: Tensor[T] = {
+      def elu(implicit ev: IsReal[T]): Tensor[T] = {
         NN.elu(tensor)
       }
 
@@ -976,11 +944,27 @@ object NN extends NN {
         * @group NNOps
         * @return Result as a new tensor.
         */
-      def selu: Tensor[T] = {
+      def selu(implicit ev: IsReal[T]): Tensor[T] = {
         NN.selu(tensor)
       }
 
-      //endregion Activation Ops
+      /** $OpDocNNSoftplus
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def softplus(implicit ev: IsReal[T]): Tensor[T] = {
+        NN.softplus(tensor)
+      }
+
+      /** $OpDocNNSoftsign
+        *
+        * @group NNOps
+        * @return Result as a new tensor.
+        */
+      def softsign(implicit ev: IsReal[T]): Tensor[T] = {
+        NN.softsign(tensor)
+      }
 
       /** $OpDocNNSoftmax
         *
@@ -988,7 +972,7 @@ object NN extends NN {
         * @param  axis Axis along which to perform the softmax. Defaults to `-1` denoting the last axis.
         * @return Result as a new tensor.
         */
-      def softmax(axis: Int = -1): Tensor[T] = {
+      def softmax(axis: Int = -1)(implicit ev: IsDecimal[T]): Tensor[T] = {
         NN.softmax(tensor, axis)
       }
 
@@ -998,8 +982,58 @@ object NN extends NN {
         * @param  axis Axis along which to perform the log-softmax. Defaults to `-1` denoting the last axis.
         * @return Result as a new tensor.
         */
-      def logSoftmax(axis: Int = -1): Tensor[T] = {
+      def logSoftmax(axis: Int = -1)(implicit ev: IsDecimal[T]): Tensor[T] = {
         NN.logSoftmax(tensor, axis)
+      }
+
+      //endregion Activation Ops
+
+      /** $OpDocNNDropout
+        *
+        * @group NNOps
+        * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
+        * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
+        * @param  noiseShape      Rank-1 tensor representing the shape for the randomly generated keep/drop flags.
+        * @param  seed            Optional random seed, used to generate a random seed pair for the random number
+        *                         generator, when combined with the graph-level seed.
+        * @return Result as a new tensor that has the same shape as `input`.
+        */
+      def dropout[I: IsInt32OrInt64 : TF](
+          keepProbability: Float,
+          scaleOutput: Boolean = true,
+          noiseShape: Tensor[I] = null,
+          seed: Option[Int] = None
+      )(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+        NN.dropout(tensor, keepProbability, scaleOutput, noiseShape, seed)
+      }
+
+      /** $OpDocNNTopK
+        *
+        * @group NNOps
+        * @param  k      Scalar tensor containing the number of top elements to look for along the last axis of `input`.
+        * @param  sorted If `true`, the resulting `k` elements will be sorted by their values in descending order.
+        * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
+        *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
+        */
+      def topK(
+          k: Tensor[Int] = 1,
+          sorted: Boolean = true
+      )(implicit ev: IsReal[T]): (Tensor[T], Tensor[Int]) = {
+        NN.topK(tensor, k, sorted)
+      }
+
+      /** $OpDocNNInTopK
+        *
+        * @group NNOps
+        * @param  targets Tensor containing the targets.
+        * @param  k       Scalar tensor containing the number of top elements to look at.
+        * @return Result as a new tensor.
+        */
+      def inTopK[I: IsInt32OrInt64 : TF](
+          targets: Tensor[I],
+          k: Tensor[I]
+      )(implicit ev: T =:= Float): Tensor[Boolean] = {
+        NN.inTopK(tensor.asInstanceOf[Tensor[Float]], targets, k)
       }
 
       //region Convolution Ops
@@ -1029,14 +1063,35 @@ object NN extends NN {
           // TODO: [OPS/NN] Enforce the batch and depth dilation constraint at compile time.
           dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
           useCuDNNOnGPU: Boolean = true
-      ): Tensor[T] = {
+      )(implicit ev: IsDecimal[T]): Tensor[T] = {
         NN.conv2D(tensor, filter, stride1, stride2, padding, dataFormat, dilations, useCuDNNOnGPU)
       }
 
       //endregion Convolution Ops
-    }
 
-    implicit class BFloat16OrFloat16OrFloat32NNOps[T: IsBFloat16OrFloat16OrFloat32 : TF](val tensor: Tensor[T]) {
+      //region Pooling Ops
+
+      /** $OpDocNNMaxPool
+        *
+        * @param  windowSize The size of the pooling window for each dimension of the input tensor.
+        * @param  stride1    Stride of the sliding window along the second dimension of `input`.
+        * @param  stride2    Stride of the sliding window along the third dimension of `input`.
+        * @param  padding    Padding mode to use.
+        * @param  dataFormat Format of the input and output data.
+        * @return Result as a new 4-D tensor whose dimension order depends on the value of `dataFormat`.
+        */
+      def maxPool(
+          windowSize: Seq[Int],
+          stride1: Int,
+          stride2: Int,
+          padding: ConvPaddingMode,
+          dataFormat: CNNDataFormat = CNNDataFormat.default
+      )(implicit ev: IsNumeric[T]): Tensor[T] = {
+        NN.maxPool(tensor, windowSize, stride1, stride2, padding, dataFormat)
+      }
+
+      //endregion Pooling Ops
+
       //region Normalization Ops
 
       /** $OpDocNNLocalResponseNormalization
@@ -1054,7 +1109,7 @@ object NN extends NN {
           alpha: Float = 1.0f,
           beta: Float = 0.5f,
           name: String = "LRN"
-      ): Tensor[T] = {
+      )(implicit ev: IsBFloat16OrFloat16OrFloat32[T]): Tensor[T] = {
         NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
       }
 
@@ -1072,70 +1127,12 @@ object NN extends NN {
           bias: Float = 1.0f,
           alpha: Float = 1.0f,
           beta: Float = 0.5f
-      ): Tensor[T] = {
+      )(implicit ev: IsBFloat16OrFloat16OrFloat32[T]): Tensor[T] = {
         NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
       }
 
       //endregion Normalization Ops
     }
-
-    implicit class Float16OrFloat32OrFloat64NNOps[T: IsFloat16OrFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
-      /** $OpDocNNDropout
-        *
-        * @group NNOps
-        * @param  keepProbability Probability (i.e., number in the interval `(0, 1]`) that each element is kept.
-        * @param  scaleOutput     If `true`, the outputs will be divided by the keep probability.
-        * @param  noiseShape      Rank-1 tensor representing the shape for the randomly generated keep/drop flags.
-        * @param  seed            Optional random seed, used to generate a random seed pair for the random number
-        *                         generator, when combined with the graph-level seed.
-        * @return Result as a new tensor that has the same shape as `input`.
-        */
-      def dropout(
-          keepProbability: Float,
-          scaleOutput: Boolean = true,
-          noiseShape: Tensor[Int] = null,
-          seed: Option[Int] = None
-      ): Tensor[T] = {
-        NN.dropout(tensor, keepProbability, scaleOutput, noiseShape, seed)
-      }
-    }
-
-    implicit class Float32OrFloat64NNOps[T: IsFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
-      //region Core Ops
-
-      /** $OpDocNNL2Normalize
-        *
-        * @group NNOps
-        * @param  axes    Tensor containing the axes along which to normalize.
-        * @param  epsilon Lower bound value for the norm. The created op will use `sqrt(epsilon)` as the divisor, if
-        *                 `norm < sqrt(epsilon)`.
-        * @return Result as a new tensor.
-        */
-      def l2Normalize(axes: Tensor[Int], epsilon: Float = 1e-12f): Tensor[T] = NN.l2Normalize(tensor, axes, epsilon)
-
-      //endregion Core Ops
-    }
-
-    implicit class Float32NNOps(val tensor: Tensor[Float]) {
-      /** $OpDocNNInTopK
-        *
-        * @group NNOps
-        * @param  targets Tensor containing the targets.
-        * @param  k       Scalar tensor containing the number of top elements to look at.
-        * @return Result as a new tensor.
-        */
-      def inTopK[I: IsInt32OrInt64 : TF](targets: Tensor[I], k: Tensor[I]): Tensor[Boolean] = {
-        NN.inTopK(tensor, targets, k)
-      }
-    }
-
-    implicit def tensorConvertibleToMathNNOps[TC, T: IsNotQuantized : TF](value: TC)(implicit f: TC => Tensor[T]): MathNNOps[T] = new MathNNOps(f(value))
-    implicit def tensorConvertibleToRealNNOps[TC, T: IsReal : TF](value: TC)(implicit f: TC => Tensor[T]): RealNNOps[T] = new RealNNOps(f(value))
-    implicit def tensorConvertibleToDecimalNNOps[TC, T: IsDecimal : TF](value: TC)(implicit f: TC => Tensor[T]): DecimalNNOps[T] = new DecimalNNOps(f(value))
-    implicit def tensorConvertibleToBFloat16OrFloat16OrFloat32NNOps[TC, T: IsBFloat16OrFloat16OrFloat32 : TF](value: TC)(implicit f: TC => Tensor[T]): BFloat16OrFloat16OrFloat32NNOps[T] = new BFloat16OrFloat16OrFloat32NNOps(f(value))
-    implicit def tensorConvertibleToFloat16OrFloat32OrFloat64NNOps[TC, T: IsFloat16OrFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Float16OrFloat32OrFloat64NNOps[T] = new Float16OrFloat32OrFloat64NNOps(f(value))
-    implicit def tensorConvertibleToFloat32OrFloat64NNOps[TC, T: IsFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Float32OrFloat64NNOps[T] = new Float32OrFloat64NNOps(f(value))
-    implicit def tensorConvertibleToFloat32NNOps[TC](value: TC)(implicit f: TC => Tensor[Float]): Float32NNOps = new Float32NNOps(f(value))
   }
 
   /** Creates an op that flattens the outer axes of `input` and keeps its last axis. */

@@ -422,7 +422,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def logGamma[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def logGamma[T: IsFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -436,7 +436,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def digamma[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def digamma[T: IsFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -1217,7 +1217,36 @@ trait Math {
     sum(notEqual(input, Tensor.zeros(input.dataType, Shape())).castTo[Long], axes, keepDims)
   }
 
-  //endregion Reduction Ops
+  /** $OpDocMathArgmin
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @return Result as a new tensor.
+    */
+  def argmin[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+      input: Tensor[T],
+      axes: Tensor[I]
+  ): Tensor[Long] = {
+    argmin(input, axes, INT64)
+  }
+
+  /** $OpDocMathArgmin
+    *
+    * @group MathOps
+    * @param  input          Input tensor.
+    * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  outputDataType Data type for the output tensor.
+    * @return Result as a new tensor.
+    */
+  def argmin[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
+      input: Tensor[T],
+      axes: Tensor[I],
+      outputDataType: DataType[IR]
+  ): Tensor[IR] = {
+    Tensor.fromNativeHandle[IR](NativeTensorOpsMath.argMin(
+      executionContext.value.nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
+  }
 
   /** $OpDocMathArgmax
     *
@@ -1250,36 +1279,45 @@ trait Math {
       executionContext.value.nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
   }
 
-  /** $OpDocMathArgmin
+  /** $OpDocMathCumsum
     *
     * @group MathOps
-    * @param  input Input tensor.
-    * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  input     Input tensor.
+    * @param  axis      Tensor containing the axis along which to perform the cumulative sum.
+    * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative sum.
+    * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
     * @return Result as a new tensor.
     */
-  def argmin[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  def cumsum[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
-      axes: Tensor[I]
-  ): Tensor[Long] = {
-    argmin(input, axes, INT64)
+      axis: Tensor[I],
+      exclusive: Boolean = false,
+      reverse: Boolean = false
+  ): Tensor[T] = {
+    Tensor.fromNativeHandle[T](NativeTensorOpsMath.cumsum(
+      executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
   }
 
-  /** $OpDocMathArgmin
+  /** $OpDocMathCumprod
     *
     * @group MathOps
-    * @param  input          Input tensor.
-    * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-    * @param  outputDataType Data type for the output tensor.
+    * @param  input     Input tensor.
+    * @param  axis      Tensor containing the axis along which to perform the cumulative product.
+    * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative product.
+    * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
     * @return Result as a new tensor.
     */
-  def argmin[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
+  def cumprod[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
-      axes: Tensor[I],
-      outputDataType: DataType[IR]
-  ): Tensor[IR] = {
-    Tensor.fromNativeHandle[IR](NativeTensorOpsMath.argMin(
-      executionContext.value.nativeHandle, input.nativeHandle, axes.nativeHandle, outputDataType.cValue))
+      axis: Tensor[I],
+      exclusive: Boolean = false,
+      reverse: Boolean = false
+  ): Tensor[T] = {
+    Tensor.fromNativeHandle[T](NativeTensorOpsMath.cumprod(
+      executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
   }
+
+  //endregion Reduction Ops
 
   /** $OpDocMathBinCount
     *
@@ -1319,44 +1357,6 @@ trait Math {
     }
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.bincount(
       executionContext.value.nativeHandle, input.nativeHandle, outputSize.nativeHandle, effectiveWeights.nativeHandle))
-  }
-
-  /** $OpDocMathCumsum
-    *
-    * @group MathOps
-    * @param  input     Input tensor.
-    * @param  axis      Tensor containing the axis along which to perform the cumulative sum.
-    * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative sum.
-    * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
-    * @return Result as a new tensor.
-    */
-  def cumsum[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
-      input: Tensor[T],
-      axis: Tensor[I],
-      exclusive: Boolean = false,
-      reverse: Boolean = false
-  ): Tensor[T] = {
-    Tensor.fromNativeHandle[T](NativeTensorOpsMath.cumsum(
-      executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
-  }
-
-  /** $OpDocMathCumprod
-    *
-    * @group MathOps
-    * @param  input     Input tensor.
-    * @param  axis      Tensor containing the axis along which to perform the cumulative product.
-    * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative product.
-    * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
-    * @return Result as a new tensor.
-    */
-  def cumprod[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
-      input: Tensor[T],
-      axis: Tensor[I],
-      exclusive: Boolean = false,
-      reverse: Boolean = false
-  ): Tensor[T] = {
-    Tensor.fromNativeHandle[T](NativeTensorOpsMath.cumprod(
-      executionContext.value.nativeHandle, input.nativeHandle, axis.nativeHandle, exclusive, reverse))
   }
 
   //region Segment Ops
@@ -1453,6 +1453,7 @@ trait Math {
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
   }
 
+  // TODO: [TENSORS] Missing 'unsortedSegmentMean'.
   // TODO: [TENSORS] Missing 'unsortedSegmentProd'.
   // TODO: [TENSORS] Missing 'unsortedSegmentMin'.
 
@@ -1855,7 +1856,7 @@ trait Math {
     * @param  imag Tensor containing the imaginary component.
     * @return Result as a new tensor.
     */
-  def complex64(real: Tensor[Float], imag: Tensor[Float]): Tensor[ComplexFloat] = {
+  def complexFloat(real: Tensor[Float], imag: Tensor[Float]): Tensor[ComplexFloat] = {
     Tensor.fromNativeHandle[ComplexFloat](NativeTensorOpsMath.complex(
       executionContext.value.nativeHandle, real.nativeHandle, imag.nativeHandle, COMPLEX64.cValue))
   }
@@ -1867,9 +1868,153 @@ trait Math {
     * @param  imag Tensor containing the imaginary component.
     * @return Result as a new tensor.
     */
-  def complex128(real: Tensor[Double], imag: Tensor[Double]): Tensor[ComplexDouble] = {
+  def complexDouble(real: Tensor[Double], imag: Tensor[Double]): Tensor[ComplexDouble] = {
     Tensor.fromNativeHandle[ComplexDouble](NativeTensorOpsMath.complex(
       executionContext.value.nativeHandle, real.nativeHandle, imag.nativeHandle, COMPLEX128.cValue))
+  }
+
+  /** $OpDocMathReal
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def realFloat[TL[A] <: TensorLike[A]](
+      input: TL[ComplexFloat],
+      name: String = "Real"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexFloat]
+  ): TL[Float] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Float](NativeTensorOpsMath.real(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT32.cValue))
+    })
+  }
+
+  /** $OpDocMathReal
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def realDouble[TL[A] <: TensorLike[A]](
+      input: TL[ComplexDouble],
+      name: String = "Real"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexDouble]
+  ): TL[Double] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Double](NativeTensorOpsMath.real(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT64.cValue))
+    })
+  }
+
+  /** $OpDocMathImag
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def imagFloat[TL[A] <: TensorLike[A]](
+      input: TL[ComplexFloat],
+      name: String = "Imag"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexFloat]
+  ): TL[Float] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Float](NativeTensorOpsMath.imag(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT32.cValue))
+    })
+  }
+
+  /** $OpDocMathImag
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def imagDouble[TL[A] <: TensorLike[A]](
+      input: TL[ComplexDouble],
+      name: String = "Imag"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexDouble]
+  ): TL[Double] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Double](NativeTensorOpsMath.imag(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT64.cValue))
+    })
+  }
+
+  /** $OpDocMathAbs
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def magnitudeFloat[TL[A] <: TensorLike[A]](
+      input: TL[ComplexFloat],
+      name: String = "Magnitude"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexFloat]
+  ): TL[Float] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Float](NativeTensorOpsMath.complexAbs(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT32.cValue))
+    })
+  }
+
+  /** $OpDocMathAbs
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def magnitudeDouble[TL[A] <: TensorLike[A]](
+      input: TL[ComplexDouble],
+      name: String = "Magnitude"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexDouble]
+  ): TL[Double] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Double](NativeTensorOpsMath.complexAbs(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT64.cValue))
+    })
+  }
+
+  /** $OpDocMathAngle
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def angleFloat[TL[A] <: TensorLike[A]](
+      input: TL[ComplexFloat],
+      name: String = "Angle"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexFloat]
+  ): TL[Float] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Float](NativeTensorOpsMath.angle(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT32.cValue))
+    })
+  }
+
+  /** $OpDocMathAngle
+    *
+    * @group MathOps
+    * @param  input Input tensor.
+    * @return Result as a new tensor.
+    */
+  def angleDouble[TL[A] <: TensorLike[A]](
+      input: TL[ComplexDouble],
+      name: String = "Angle"
+  )(implicit
+      ev: TensorOps.Aux[TL, ComplexDouble]
+  ): TL[Double] = {
+    ev.applyUnary(input, t => {
+      Tensor.fromNativeHandle[Double](NativeTensorOpsMath.angle(
+        executionContext.value.nativeHandle, t.nativeHandle, FLOAT64.cValue))
+    })
   }
 
   /** $OpDocMathConjugate
@@ -1937,8 +2082,80 @@ trait Math {
 
 object Math extends Math {
   private[tensors] trait Implicits {
+    implicit def tensorConvertibleToMathOps[TC, T: TF](
+        value: TC
+    )(implicit f: TC => Tensor[T]): MathOps[T] = {
+      new MathOps(f(value))
+    }
+
+    implicit def tensorConvertibleToFloatMathOps[TC](
+        value: TC
+    )(implicit f: TC => Tensor[Float]): FloatMathOps = {
+      new FloatMathOps(f(value))
+    }
+
+    implicit def tensorConvertibleToDoubleMathOps[TC](
+        value: TC
+    )(implicit f: TC => Tensor[Double]): DoubleMathOps = {
+      new DoubleMathOps(f(value))
+    }
+
+    implicit def tensorConvertibleToComplexFloatMathOps[TC](
+        value: TC
+    )(implicit f: TC => Tensor[ComplexFloat]): ComplexFloatMathOps = {
+      new ComplexFloatMathOps(f(value))
+    }
+
+    implicit def tensorConvertibleToComplexDoubleMathOps[TC](
+        value: TC
+    )(implicit f: TC => Tensor[ComplexDouble]): ComplexDoubleMathOps = {
+      new ComplexDoubleMathOps(f(value))
+    }
+
     implicit class MathOps[T: TF](val tensor: Tensor[T]) {
+      /** $OpDocMathSelect
+        *
+        * @group MathOps
+        * @param  x Tensor which may have the same shape as `condition`. If `condition` has rank `1`, then `t` may have
+        *           a higher rank, but its first dimension must match the size of `condition`.
+        * @param  y Tensor with the same data type and shape as `t`.
+        * @return Created op output.
+        */
+      def select[R: TF](
+          x: Tensor[R],
+          y: Tensor[R]
+      )(implicit ev: T =:= Boolean): Tensor[R] = {
+        Math.select(tensor.asInstanceOf[Tensor[Boolean]], x, y)
+      }
+
       //region Operators
+
+      /** $OpDocMathLogicalNot
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def unary_!(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        logicalNot
+      }
+
+      /** $OpDocMathLogicalAnd
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def &&(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        logicalAnd(other)
+      }
+
+      /** $OpDocMathLogicalOr
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def ||(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        logicalOr(other)
+      }
 
       /** $OpDocMathEqual
         *
@@ -2086,9 +2303,551 @@ object Math extends Math {
       }
 
       //endregion Operators
-    }
 
-    implicit class NumericMathOps[T: IsNumeric : TF](val tensor: Tensor[T]) {
+      //region Unary Ops
+
+      /** $OpDocMathAbs
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def abs(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.abs(tensor)
+      }
+
+      /** $OpDocMathNegate
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def negate(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.negate(tensor)
+      }
+
+      /** $OpDocMathReciprocal
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def reciprocal(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.reciprocal(tensor)
+      }
+
+      /** $OpDocMathSquare
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def square(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.square(tensor)
+      }
+
+      /** $OpDocMathSqrt
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def sqrt(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.sqrt(tensor)
+      }
+
+      /** $OpDocMathRsqrt
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def rsqrt(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.rsqrt(tensor)
+      }
+
+      /** $OpDocMathExp
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def exp(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.exp(tensor)
+      }
+
+      /** $OpDocMathExpm1
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def expm1(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.expm1(tensor)
+      }
+
+      /** $OpDocMathLog
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def log(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.log(tensor)
+      }
+
+      /** $OpDocMathLog1p
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def log1p(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.log1p(tensor)
+      }
+
+      /** $OpDocMathSin
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def sin(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.sin(tensor)
+      }
+
+      /** $OpDocMathCos
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def cos(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.cos(tensor)
+      }
+
+      /** $OpDocMathTan
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def tan(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.tan(tensor)
+      }
+
+      /** $OpDocMathAsin
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def asin(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.asin(tensor)
+      }
+
+      /** $OpDocMathAcos
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def acos(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.acos(tensor)
+      }
+
+      /** $OpDocMathAtan
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def atan(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.atan(tensor)
+      }
+
+      /** $OpDocMathSinh
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def sinh(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.sinh(tensor)
+      }
+
+      /** $OpDocMathCosh
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def cosh(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.cosh(tensor)
+      }
+
+      /** $OpDocMathTanh
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def tanh(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.tanh(tensor)
+      }
+
+      /** $OpDocMathAsinh
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def asinh(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.asinh(tensor)
+      }
+
+      /** $OpDocMathAcosh
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def acosh(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.acosh(tensor)
+      }
+
+      /** $OpDocMathAtanh
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def atanh(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.atanh(tensor)
+      }
+
+      /** $OpDocMathLogGamma
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def logGamma(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+        Math.logGamma(tensor)
+      }
+
+      /** $OpDocMathDigamma
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def digamma(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+        Math.digamma(tensor)
+      }
+
+      /** $OpDocMathErf
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def erf(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.erf(tensor)
+      }
+
+      /** $OpDocMathErfc
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def erfc(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.erfc(tensor)
+      }
+
+      /** $OpDocMathSigmoid
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def sigmoid(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.sigmoid(tensor)
+      }
+
+      /** $OpDocMathLogSigmoid
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def logSigmoid(implicit ev: IsDecimal[T]): Tensor[T] = {
+        Math.logSigmoid(tensor)
+      }
+
+      /** $OpDocMathSign
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def sign(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.sign(tensor)
+      }
+
+      /** $OpDocMathRound
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def round(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.round(tensor)
+      }
+
+      /** $OpDocMathRoundInt
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def roundInt(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+        Math.roundInt(tensor)
+      }
+
+      /** $OpDocMathFloor
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def floor(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+        Math.floor(tensor)
+      }
+
+      /** $OpDocMathCeil
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def ceil(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+        Math.ceil(tensor)
+      }
+
+      /** $OpDocMathIsNaN
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def isNaN(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[Boolean] = {
+        Math.isNaN(tensor)
+      }
+
+      /** $OpDocMathIsInf
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def isInf(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[Boolean] = {
+        Math.isInf(tensor)
+      }
+
+      /** $OpDocMathIsFinite
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def isFinite(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[Boolean] = {
+        Math.isFinite(tensor)
+      }
+
+      //endregion Unary Ops
+
+      //region Binary Ops
+
+      /** $OpDocMathAdd
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def add(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.add(tensor, other)
+      }
+
+      /** $OpDocMathSubtract
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def subtract(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.subtract(tensor, other)
+      }
+
+      /** $OpDocMathMultiply
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def multiply(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.multiply(tensor, other)
+      }
+
+      /** $OpDocMathDivide
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def divide(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.divide(tensor, other)
+      }
+
+      /** $OpDocMathFloorDivide
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      @deprecated("Use `truncateDivide` instead.", "0.1")
+      def floorDivide(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.floorDivide(tensor, other)
+      }
+
+      /** $OpDocMathTruncateDivide
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def truncateDivide(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.truncateDivide(tensor, other)
+      }
+
+      /** $OpDocMathRealDivide
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def realDivide(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.realDivide(tensor, other)
+      }
+
+      /** $OpDocMathSquaredDifference
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def squaredDifference(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.squaredDifference(tensor, other)
+      }
+
+      /** $OpDocMathMod
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def mod(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.mod(tensor, other)
+      }
+
+      /** $OpDocMathFloorMod
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def floorMod(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.floorMod(tensor, other)
+      }
+
+      /** $OpDocMathTruncateMod
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def truncateMod(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.truncateMod(tensor, other)
+      }
+
+      /** $OpDocMathPow
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def pow(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.pow(tensor, other)
+      }
+
+      /** $OpDocMathIgammac
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def igammac(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+        Math.igammac(tensor, other)
+      }
+
+      /** $OpDocMathIgamma
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def igamma(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+        Math.igamma(tensor, other)
+      }
+
+      /** $OpDocMathZeta
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def zeta(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+        Math.zeta(tensor, other)
+      }
+
+      /** $OpDocMathPolygamma
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def polygamma(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+        Math.polygamma(tensor, other)
+      }
+
+      /** $OpDocMathAtan2
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def atan2(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+        Math.atan2(tensor, other)
+      }
+
+      /** $OpDocMathMinimum
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def minimum(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.minimum(tensor, other)
+      }
+
+      /** $OpDocMathMaximum
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def maximum(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.maximum(tensor, other)
+      }
+
+      //endregion Binary Ops
+
+      //region Logical Ops
+
+      /** $OpDocMathLogicalNot
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def logicalNot(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        Math.logicalNot(tensor.asInstanceOf[Tensor[Boolean]])
+      }
+
+      /** $OpDocMathLogicalAnd
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def logicalAnd(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        Math.logicalAnd(tensor.asInstanceOf[Tensor[Boolean]], other)
+      }
+
+      /** $OpDocMathLogicalOr
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def logicalOr(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        Math.logicalOr(tensor.asInstanceOf[Tensor[Boolean]], other)
+      }
+
+      /** $OpDocMathLogicalXOr
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def logicalXOr(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        Math.logicalXOr(tensor.asInstanceOf[Tensor[Boolean]], other)
+      }
+
+      //endregion Logical Ops
+
       //region Comparison Ops
 
       /** $OpDocMathEqual
@@ -2096,49 +2855,63 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def equal(other: Tensor[T]): Tensor[Boolean] = Math.equal(tensor, other)
+      def equal(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.equal(tensor, other)
+      }
 
       /** $OpDocMathNotEqual
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def notEqual(other: Tensor[T]): Tensor[Boolean] = Math.notEqual(tensor, other)
+      def notEqual(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.notEqual(tensor, other)
+      }
 
       /** $OpDocMathApproximatelyEqual
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def approximatelyEqual(other: Tensor[T]): Tensor[Boolean] = Math.approximatelyEqual(tensor, other)
+      def approximatelyEqual(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.approximatelyEqual(tensor, other)
+      }
 
       /** $OpDocMathLess
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def less(other: Tensor[T]): Tensor[Boolean] = Math.less(tensor, other)
+      def less(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.less(tensor, other)
+      }
 
       /** $OpDocMathLessEqual
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def lessEqual(other: Tensor[T]): Tensor[Boolean] = Math.lessEqual(tensor, other)
+      def lessEqual(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.lessEqual(tensor, other)
+      }
 
       /** $OpDocMathGreater
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def greater(other: Tensor[T]): Tensor[Boolean] = Math.greater(tensor, other)
+      def greater(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.greater(tensor, other)
+      }
 
       /** $OpDocMathGreaterEqual
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def greaterEqual(other: Tensor[T]): Tensor[Boolean] = Math.greaterEqual(tensor, other)
+      def greaterEqual(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.greaterEqual(tensor, other)
+      }
 
       //endregion Comparison Ops
 
@@ -2151,7 +2924,12 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def sum(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = Math.sum(tensor, axes, keepDims)
+      def sum[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.sum(tensor, axes, keepDims)
+      }
 
       /** $OpDocMathMean
         *
@@ -2160,385 +2938,12 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def mean(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = Math.mean(tensor, axes, keepDims)
-
-      /** $OpDocMathCountNonZero
-        *
-        * @group MathOps
-        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @param  keepDims If `true`, retain the reduced axes.
-        * @return Result as a new tensor.
-        */
-      def countNonZero(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[Long] = {
-        Math.countNonZero(tensor, axes, keepDims)
+      def mean[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.mean(tensor, axes, keepDims)
       }
-
-      //endregion Reduction Ops
-
-      //region Segment Ops
-
-      /** $OpDocMathSegmentSum
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @return Result as a new tensor.
-        */
-      def segmentSum[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
-        Math.segmentSum(tensor, segmentIndices)
-      }
-
-      /** $OpDocMathSegmentProd
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @return Result as a new tensor.
-        */
-      def segmentProd[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
-        Math.segmentProd(tensor, segmentIndices)
-      }
-
-      /** $OpDocMathUnsortedSegmentSum
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices.
-        * @param  segmentsNumber Number of segments.
-        * @return Result as a new tensor.
-        */
-      def unsortedSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
-          segmentIndices: Tensor[I1],
-          segmentsNumber: Tensor[I2]
-      ): Tensor[T] = {
-        Math.unsortedSegmentSum(tensor, segmentIndices, segmentsNumber)
-      }
-
-      //endregion Segment Ops
-
-      //region Other Ops
-
-      /** $OpDocMathZerosFraction
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def zerosFraction: Tensor[Float] = {
-        Math.zerosFraction(tensor)
-      }
-
-      //endregion Other Ops
-    }
-
-    implicit class MathMathOps[T: IsNotQuantized : TF](val tensor: Tensor[T]) {
-      //region Unary Ops
-
-      /** $OpDocMathAbs
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def abs: Tensor[T] = Math.abs(tensor)
-
-      /** $OpDocMathNegate
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def negate: Tensor[T] = Math.negate(tensor)
-
-      /** $OpDocMathReciprocal
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def reciprocal: Tensor[T] = Math.reciprocal(tensor)
-
-      /** $OpDocMathSquare
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def square: Tensor[T] = Math.square(tensor)
-
-      /** $OpDocMathSqrt
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def sqrt: Tensor[T] = Math.sqrt(tensor)
-
-      /** $OpDocMathRsqrt
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def rsqrt: Tensor[T] = Math.rsqrt(tensor)
-
-      /** $OpDocMathExp
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def exp: Tensor[T] = Math.exp(tensor)
-
-      /** $OpDocMathExpm1
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def expm1: Tensor[T] = Math.expm1(tensor)
-
-      /** $OpDocMathLog
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def log: Tensor[T] = Math.log(tensor)
-
-      /** $OpDocMathLog1p
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def log1p: Tensor[T] = Math.log1p(tensor)
-
-      /** $OpDocMathSin
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def sin: Tensor[T] = Math.sin(tensor)
-
-      /** $OpDocMathCos
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def cos: Tensor[T] = Math.cos(tensor)
-
-      /** $OpDocMathTan
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def tan: Tensor[T] = Math.tan(tensor)
-
-      /** $OpDocMathAsin
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def asin: Tensor[T] = Math.asin(tensor)
-
-      /** $OpDocMathAcos
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def acos: Tensor[T] = Math.acos(tensor)
-
-      /** $OpDocMathAtan
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def atan: Tensor[T] = Math.atan(tensor)
-
-      /** $OpDocMathSinh
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def sinh: Tensor[T] = Math.sinh(tensor)
-
-      /** $OpDocMathCosh
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def cosh: Tensor[T] = Math.cosh(tensor)
-
-      /** $OpDocMathTanh
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def tanh: Tensor[T] = Math.tanh(tensor)
-
-      /** $OpDocMathAsinh
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def asinh: Tensor[T] = Math.asinh(tensor)
-
-      /** $OpDocMathAcosh
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def acosh: Tensor[T] = Math.acosh(tensor)
-
-      /** $OpDocMathAtanh
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def atanh: Tensor[T] = Math.atanh(tensor)
-
-      /** $OpDocMathLogGamma
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def logGamma: Tensor[T] = Math.logGamma(tensor)
-
-      /** $OpDocMathDigamma
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def digamma: Tensor[T] = Math.digamma(tensor)
-
-      /** $OpDocMathErf
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def erf: Tensor[T] = Math.erf(tensor)
-
-      /** $OpDocMathErfc
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def erc: Tensor[T] = Math.erfc(tensor)
-
-      /** $OpDocMathSigmoid
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def sigmoid: Tensor[T] = Math.sigmoid(tensor)
-
-      /** $OpDocMathSign
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def sign: Tensor[T] = Math.sign(tensor)
-
-      /** $OpDocMathRound
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def round: Tensor[T] = Math.round(tensor)
-
-      //endregion Unary Ops
-
-      //region Binary Ops
-
-      /** $OpDocMathAdd
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def add(other: Tensor[T]): Tensor[T] = Math.add(tensor, other)
-
-      /** $OpDocMathSubtract
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def subtract(other: Tensor[T]): Tensor[T] = Math.subtract(tensor, other)
-
-      /** $OpDocMathMultiply
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def multiply(other: Tensor[T]): Tensor[T] = Math.multiply(tensor, other)
-
-      /** $OpDocMathDivide
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def divide(other: Tensor[T]): Tensor[T] = Math.divide(tensor, other)
-
-      /** $OpDocMathFloorDivide
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      @deprecated("Use `truncateDivide` instead.", "0.1")
-      def floorDivide(other: Tensor[T]): Tensor[T] = Math.floorDivide(tensor, other)
-
-      /** $OpDocMathTruncateDivide
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def truncateDivide(other: Tensor[T]): Tensor[T] = Math.truncateDivide(tensor, other)
-
-      /** $OpDocMathRealDivide
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def realDivide(other: Tensor[T]): Tensor[T] = Math.realDivide(tensor, other)
-
-      /** $OpDocMathSquaredDifference
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def squaredDifference(other: Tensor[T]): Tensor[T] = Math.squaredDifference(tensor, other)
-
-      /** $OpDocMathMod
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def mod(other: Tensor[T]): Tensor[T] = Math.mod(tensor, other)
-
-      /** $OpDocMathFloorMod
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def floorMod(other: Tensor[T]): Tensor[T] = Math.floorMod(tensor, other)
-
-      /** $OpDocMathTruncateMod
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def truncateMod(other: Tensor[T]): Tensor[T] = Math.truncateMod(tensor, other)
-
-      /** $OpDocMathPow
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def pow(other: Tensor[T]): Tensor[T] = Math.pow(tensor, other)
-
-      /** $OpDocMathMaximum
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def maximum(other: Tensor[T]): Tensor[T] = Math.maximum(tensor, other)
-
-      /** $OpDocMathMinimum
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def minimum(other: Tensor[T]): Tensor[T] = Math.minimum(tensor, other)
-
-      //endregion Binary Ops
-
-      //region Reduction Ops
 
       /** $OpDocMathProd
         *
@@ -2547,7 +2952,10 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def prod(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+      def prod[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.prod(tensor, axes, keepDims)
       }
 
@@ -2558,7 +2966,10 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def min(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+      def min[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.min(tensor, axes, keepDims)
       }
 
@@ -2569,8 +2980,39 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def max(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+      def max[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.max(tensor, axes, keepDims)
+      }
+
+      /** $OpDocMathAll
+        *
+        * @group MathOps
+        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  keepDims If `true`, retain the reduced axes.
+        * @return Result as a new tensor.
+        */
+      def all[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        Math.all(tensor.asInstanceOf[Tensor[Boolean]], axes, keepDims)
+      }
+
+      /** $OpDocMathAny
+        *
+        * @group MathOps
+        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  keepDims If `true`, retain the reduced axes.
+        * @return Result as a new tensor.
+        */
+      def any[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+        Math.any(tensor.asInstanceOf[Tensor[Boolean]], axes, keepDims)
       }
 
       /** $OpDocMathLogSumExp
@@ -2580,25 +3022,52 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def logSumExp(axes: Seq[Int] = null, keepDims: Boolean = false): Tensor[T] = {
+      def logSumExp(
+          axes: Seq[Int] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.logSumExp(tensor, axes, keepDims)
       }
 
-      //endregion Reduction Ops
-
-      //region Segment Ops
-
-      /** $OpDocMathSegmentMean
+      /** $OpDocMathCountNonZero
         *
         * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def segmentMean[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
-        Math.segmentMean(tensor, segmentIndices)
+      def countNonZero[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I] = null,
+          keepDims: Boolean = false
+      )(implicit ev: IsNotQuantized[T]): Tensor[Long] = {
+        Math.countNonZero(tensor, axes, keepDims)
       }
 
-      //endregion Segment Ops
+      /** $OpDocMathArgmin
+        *
+        * @group MathOps
+        * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @return Result as a new tensor.
+        */
+      def argmin[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I]
+      )(implicit ev: IsNotQuantized[T]): Tensor[Long] = {
+        Math.argmin(tensor, axes)
+      }
+
+      /** $OpDocMathArgmin
+        *
+        * @group MathOps
+        * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  outputDataType Data type for the output tensor.
+        * @return Result as a new tensor.
+        */
+      def argmin[I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
+          axes: Tensor[I],
+          outputDataType: DataType[IR]
+      )(implicit ev: IsNotQuantized[T]): Tensor[IR] = {
+        Math.argmin(tensor, axes, outputDataType)
+      }
 
       /** $OpDocMathArgmax
         *
@@ -2606,7 +3075,9 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmax[I: IsInt32OrInt64 : TF](axes: Tensor[I]): Tensor[Long] = {
+      def argmax[I: IsInt32OrInt64 : TF](
+          axes: Tensor[I]
+      )(implicit ev: IsNotQuantized[T]): Tensor[Long] = {
         Math.argmax(tensor, axes)
       }
 
@@ -2620,30 +3091,8 @@ object Math extends Math {
       def argmax[I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
           axes: Tensor[I],
           outputDataType: DataType[IR]
-      ): Tensor[IR] = {
+      )(implicit ev: IsNotQuantized[T]): Tensor[IR] = {
         Math.argmax(tensor, axes, outputDataType)
-      }
-
-      /** $OpDocMathArgmin
-        *
-        * @group MathOps
-        * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @return Result as a new tensor.
-        */
-      def argmin[I: IsInt32OrInt64 : TF](axes: Tensor[I]): Tensor[Long] = Math.argmin(tensor, axes)
-
-      /** $OpDocMathArgmin
-        *
-        * @group MathOps
-        * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @param  outputDataType Data type for the output tensor.
-        * @return Result as a new tensor.
-        */
-      def argmin[I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
-          axes: Tensor[I],
-          outputDataType: DataType[IR]
-      ): Tensor[IR] = {
-        Math.argmin(tensor, axes, outputDataType)
       }
 
       /** $OpDocMathCumsum
@@ -2658,7 +3107,7 @@ object Math extends Math {
           axis: Tensor[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
-      ): Tensor[T] = {
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.cumsum(tensor, axis, exclusive, reverse)
       }
 
@@ -2674,9 +3123,177 @@ object Math extends Math {
           axis: Tensor[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
-      ): Tensor[T] = {
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.cumprod(tensor, axis, exclusive, reverse)
       }
+
+      //endregion Reduction Ops
+
+      /** $OpDocMathBinCount
+        *
+        * @group MathOps
+        * @param  weights   If not `null`, this tensor must have the same shape as `input`. For each value in `input`, the
+        *                   corresponding bin count will be incremented by the corresponding weight instead of `1`.
+        * @param  minLength If not `null`, this ensures the output has length at least `minLength`, padding with zeros at
+        *                   the end, if necessary.
+        * @param  maxLength If not `null`, this skips values in `input` that are equal or greater than `maxLength`,
+        *                   ensuring that the output has length at most `maxLength`.
+        * @param  dataType  If `weights` is `null`, this determines the data type used for the output tensor (i.e., the
+        *                   tensor containing the bin counts).
+        * @return Result as a new tensor.
+        */
+      def binCount[R: IsInt32OrInt64OrFloat32OrFloat64 : TF](
+          dataType: DataType[R],
+          weights: Tensor[R] = null,
+          minLength: Tensor[Int] = null,
+          maxLength: Tensor[Int] = null
+      )(implicit ev: T =:= Int): Tensor[R] = {
+        Math.binCount(tensor.asInstanceOf[Tensor[Int]], dataType, weights, minLength, maxLength)
+      }
+
+      //region Segment Ops
+
+      /** $OpDocMathSegmentSum
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentSum[I: IsInt32OrInt64 : TF](
+          segmentIndices: Tensor[I]
+      )(implicit ev: IsNumeric[T]): Tensor[T] = {
+        Math.segmentSum(tensor, segmentIndices)
+      }
+
+      /** $OpDocMathSegmentMean
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentMean[I: IsInt32OrInt64 : TF](
+          segmentIndices: Tensor[I]
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.segmentMean(tensor, segmentIndices)
+      }
+
+      /** $OpDocMathSegmentProd
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentProd[I: IsInt32OrInt64 : TF](
+          segmentIndices: Tensor[I]
+      )(implicit ev: IsNumeric[T]): Tensor[T] = {
+        Math.segmentProd(tensor, segmentIndices)
+      }
+
+      /** $OpDocMathSegmentMin
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentMin[I: IsInt32OrInt64 : TF](
+          segmentIndices: Tensor[I]
+      )(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.segmentMin(tensor, segmentIndices)
+      }
+
+      /** $OpDocMathSegmentMax
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @return Result as a new tensor.
+        */
+      def segmentMax[I: IsInt32OrInt64 : TF](
+          segmentIndices: Tensor[I]
+      )(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.segmentMax(tensor, segmentIndices)
+      }
+
+      /** $OpDocMathUnsortedSegmentSum
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices.
+        * @param  segmentsNumber Number of segments.
+        * @return Result as a new tensor.
+        */
+      def unsortedSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
+          segmentIndices: Tensor[I1],
+          segmentsNumber: Tensor[I2]
+      )(implicit ev: IsNumeric[T]): Tensor[T] = {
+        Math.unsortedSegmentSum(tensor, segmentIndices, segmentsNumber)
+      }
+
+      // TODO: [TENSORS] Missing 'unsortedSegmentMean'.
+      // TODO: [TENSORS] Missing 'unsortedSegmentProd'.
+      // TODO: [TENSORS] Missing 'unsortedSegmentMin'.
+
+      /** $OpDocMathUnsortedSegmentMax
+        *
+        * @group MathOps
+        * @param  segmentIndices Segment indices.
+        * @param  segmentsNumber Number of segments.
+        * @return Result as a new tensor.
+        */
+      def unsortedSegmentMax[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
+          segmentIndices: Tensor[I1],
+          segmentsNumber: Tensor[I2]
+      )(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.unsortedSegmentMax(tensor, segmentIndices, segmentsNumber)
+      }
+
+      /** $OpDocMathSparseSegmentSum
+        *
+        * @group MathOps
+        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  numSegments    Optional scalar indicating the size of the output tensor.
+        * @return Result as a new tensor.
+        */
+      def sparseSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
+          indices: Tensor[I1],
+          segmentIndices: Tensor[Int],
+          numSegments: Tensor[I2] = null
+      )(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.sparseSegmentSum(tensor, indices, segmentIndices, numSegments)
+      }
+
+      /** $OpDocMathSparseSegmentMean
+        *
+        * @group MathOps
+        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  numSegments    Optional scalar indicating the size of the output tensor.
+        * @return Result as a new tensor.
+        */
+      def sparseSegmentMean[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
+          indices: Tensor[I1],
+          segmentIndices: Tensor[Int],
+          numSegments: Tensor[I2] = null
+      )(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.sparseSegmentMean(tensor, indices, segmentIndices, numSegments)
+      }
+
+      /** $OpDocMathSparseSegmentSumSqrtN
+        *
+        * @group MathOps
+        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
+        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
+        * @param  numSegments    Optional scalar indicating the size of the output tensor.
+        * @return Result as a new tensor.
+        */
+      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
+          indices: Tensor[I1],
+          segmentIndices: Tensor[Int],
+          numSegments: Tensor[I2] = null
+      )(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices, numSegments)
+      }
+
+      //endregion Segment Ops
 
       //region Matrix Ops
 
@@ -2685,14 +3302,18 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def diag: Tensor[T] = Math.diag(tensor)
+      def diag(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.diag(tensor)
+      }
 
       /** $OpDocMathDiagPart
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def diagPart: Tensor[T] = Math.diagPart(tensor)
+      def diagPart(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+        Math.diagPart(tensor)
+      }
 
       /** $OpDocMathMatrixDiag
         *
@@ -2700,7 +3321,9 @@ object Math extends Math {
         * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its
         *         last dimension duplicated.
         */
-      def matrixDiag: Tensor[T] = Math.matrixDiag(tensor)
+      def matrixDiag: Tensor[T] = {
+        Math.matrixDiag(tensor)
+      }
 
       /** $OpDocMathMatrixSetDiag
         *
@@ -2708,7 +3331,9 @@ object Math extends Math {
         * @param  diagonal Rank-`K` tensor, where `K >= 1`.
         * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `input`.
         */
-      def matrixSetDiag(diagonal: Tensor[T]): Tensor[T] = Math.matrixSetDiag(tensor, diagonal)
+      def matrixSetDiag(diagonal: Tensor[T]): Tensor[T] = {
+        Math.matrixSetDiag(tensor, diagonal)
+      }
 
       /** $OpDocMathMatrixDiagPart
         *
@@ -2716,7 +3341,9 @@ object Math extends Math {
         * @return Result as a new tensor containing the diagonal(s) and having shape equal to
         *         `input.shape[:-2] + [min(input.shape[-2:])]`.
         */
-      def matrixDiagPart: Tensor[T] = Math.matrixDiagPart(tensor)
+      def matrixDiagPart: Tensor[T] = {
+        Math.matrixDiagPart(tensor)
+      }
 
       /** $OpDocMathMatrixBandPart
         *
@@ -2739,7 +3366,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def trace: Tensor[T] = {
+      def trace(implicit ev: IsNumeric[T]): Tensor[T] = {
         Math.trace(tensor)
       }
 
@@ -2765,8 +3392,20 @@ object Math extends Math {
           conjugateB: Boolean = false,
           aIsSparse: Boolean = false,
           bIsSparse: Boolean = false
-      ): Tensor[T] = {
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.matmul(tensor, other, transposeA, transposeB, conjugateA, conjugateB, aIsSparse, bIsSparse)
+      }
+
+      /** $OpDocMathCross
+        *
+        * @group MathOps
+        * @param  other Tensor to multiply with.
+        * @return Result as a new tensor.
+        */
+      def cross(
+          other: Tensor[T]
+      )(implicit ev: IsReal[T]): Tensor[T] = {
+        Math.cross(tensor, other)
       }
 
       /** Dynamic version (i.e., where `numAxes` may be a tensor) of the `tensorDot` op.
@@ -2778,7 +3417,10 @@ object Math extends Math {
         * @param  numAxes Number of axes to contract.
         * @return Created op output.
         */
-      def tensorDot(other: Tensor[T], numAxes: Tensor[Int]): Tensor[T] = {
+      def tensorDot(
+          other: Tensor[T],
+          numAxes: Tensor[Int]
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.tensorDot(tensor, other, numAxes)
       }
 
@@ -2792,123 +3434,29 @@ object Math extends Math {
         * @param  axesB Axes to contract in `b`.
         * @return Created op output.
         */
-      def tensorDot(other: Tensor[T], axesA: Tensor[Int], axesB: Tensor[Int]): Tensor[T] = {
+      def tensorDot(
+          other: Tensor[T],
+          axesA: Tensor[Int],
+          axesB: Tensor[Int]
+      )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.tensorDot(tensor, other, axesA, axesB)
       }
 
       //endregion Matrix Ops
-    }
 
-    implicit class RealMathOps[T: IsReal : TF](val tensor: Tensor[T]) {
-      /** $OpDocMathLogSigmoid
+      //region Complex Ops
+
+      /** $OpDocMathConjugate
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def logSigmoid: Tensor[T] = Math.logSigmoid(tensor)
-
-      //region Segment Ops
-
-      /** $OpDocMathSegmentMin
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @return Result as a new tensor.
-        */
-      def segmentMin[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
-        Math.segmentMin(tensor, segmentIndices)
+      def conjugate(implicit ev: IsComplex[T]): Tensor[T] = {
+        Math.conjugate(tensor)
       }
 
-      /** $OpDocMathSegmentMax
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @return Result as a new tensor.
-        */
-      def segmentMax[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
-        Math.segmentMax(tensor, segmentIndices)
-      }
+      //endregion Complex Ops
 
-      /** $OpDocMathUnsortedSegmentMax
-        *
-        * @group MathOps
-        * @param  segmentIndices Segment indices.
-        * @param  segmentsNumber Number of segments.
-        * @return Result as a new tensor.
-        */
-      def unsortedSegmentMax[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
-          segmentIndices: Tensor[I1],
-          segmentsNumber: Tensor[I2]
-      ): Tensor[T] = {
-        Math.unsortedSegmentMax(tensor, segmentIndices, segmentsNumber)
-      }
-
-      /** $OpDocMathSparseSegmentSum
-        *
-        * @group MathOps
-        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @param  numSegments    Optional scalar indicating the size of the output tensor.
-        * @return Result as a new tensor.
-        */
-      def sparseSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
-          indices: Tensor[I1],
-          segmentIndices: Tensor[Int],
-          numSegments: Tensor[I2] = null
-      ): Tensor[T] = {
-        Math.sparseSegmentSum(tensor, indices, segmentIndices, numSegments)
-      }
-
-      /** $OpDocMathSparseSegmentMean
-        *
-        * @group MathOps
-        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @param  numSegments    Optional scalar indicating the size of the output tensor.
-        * @return Result as a new tensor.
-        */
-      def sparseSegmentMean[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
-          indices: Tensor[I1],
-          segmentIndices: Tensor[Int],
-          numSegments: Tensor[I2] = null
-      ): Tensor[T] = {
-        Math.sparseSegmentMean(tensor, indices, segmentIndices, numSegments)
-      }
-
-      /** $OpDocMathSparseSegmentSumSqrtN
-        *
-        * @group MathOps
-        * @param  indices        One-dimensional tensor with rank equal to that of `segmentIndices`.
-        * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
-        * @param  numSegments    Optional scalar indicating the size of the output tensor.
-        * @return Result as a new tensor.
-        */
-      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
-          indices: Tensor[I1],
-          segmentIndices: Tensor[Int],
-          numSegments: Tensor[I2] = null
-      ): Tensor[T] = {
-        Math.sparseSegmentSumSqrtN(tensor, indices, segmentIndices, numSegments)
-      }
-
-      //endregion Segment Ops
-
-      //region Matrix Ops
-
-      /** $OpDocMathCross
-        *
-        * @group MathOps
-        * @param  other Tensor to multiply with.
-        * @return Result as a new tensor.
-        */
-      def cross(other: Tensor[T]): Tensor[T] = {
-        Math.cross(tensor, other)
-      }
-
-      //endregion Matrix Ops
-    }
-
-    implicit class Int32OrInt64OrFloat32OrFloat64MathOps[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
       //region Bucketization Ops
 
       /** $OpDocMathBucketize
@@ -2917,213 +3465,58 @@ object Math extends Math {
         * @param  boundaries Sorted sequence of numbers specifying the boundaries of the buckets.
         * @return Result as a new tensor.
         */
-      def bucketize(boundaries: Seq[Float]): Tensor[T] = Math.bucketize(tensor, boundaries)
+      def bucketize(
+          boundaries: Seq[Float]
+      )(implicit ev: IsInt32OrInt64OrFloat32OrFloat64[T]): Tensor[T] = {
+        Math.bucketize(tensor, boundaries)
+      }
 
       //endregion Bucketization Ops
+
+      //region Other Ops
+
+      /** $OpDocMathZerosFraction
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def zerosFraction(implicit ev: IsNumeric[T]): Tensor[Float] = {
+        Math.zerosFraction(tensor)
+      }
+
+      //endregion Other Ops
     }
 
-    implicit class Float16OrFloat32OrFloat64MathOps[T: IsFloat16OrFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
-      //region Unary Ops
-
-      /** $OpDocMathRoundInt
+    implicit class FloatMathOps(val tensor: Tensor[Float]) {
+      /** Creates a new complex number with the provided imaginary part.
         *
-        * @group MathOps
-        * @return Result as a new tensor.
+        * @param  imag Imaginary part.
+        * @return Resulting complex number.
         */
-      def roundInt: Tensor[T] = Math.roundInt(tensor)
-
-      /** $OpDocMathFloor
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def floor: Tensor[T] = Math.floor(tensor)
-
-      /** $OpDocMathCeil
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def ceil: Tensor[T] = Math.ceil(tensor)
-
-      /** $OpDocMathIsNaN
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def isNaN: Tensor[Boolean] = Math.isNaN(tensor)
-
-      /** $OpDocMathIsInf
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def isInf: Tensor[Boolean] = Math.isInf(tensor)
-
-      /** $OpDocMathIsFinite
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def isFinite: Tensor[Boolean] = Math.isFinite(tensor)
-
-      //endregion Unary Ops
-    }
-
-    implicit class Float32OrFloat64MathOps[T: IsFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
-      //region Binary Ops
-
-      /** $OpDocMathIgammac
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def igammac(other: Tensor[T]): Tensor[T] = Math.igammac(tensor, other)
-
-      /** $OpDocMathIgamma
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def igamma(other: Tensor[T]): Tensor[T] = Math.igamma(tensor, other)
-
-      /** $OpDocMathZeta
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def zeta(other: Tensor[T]): Tensor[T] = Math.zeta(tensor, other)
-
-      /** $OpDocMathPolygamma
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def polygamma(other: Tensor[T]): Tensor[T] = Math.polygamma(tensor, other)
-
-      /** $OpDocMathAtan2
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def atan2(other: Tensor[T]): Tensor[T] = Math.atan2(tensor, other)
-
-      //endregion Binary Ops
-    }
-
-    implicit class ComplexMathOps[T: IsComplex : TF](val tensor: Tensor[T]) {
-      /** $OpDocMathConjugate
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def conjugate: Tensor[T] = Math.conjugate(tensor)
-    }
-
-    implicit class BooleanMathOps(val tensor: Tensor[Boolean]) {
-      //region Operators
-
-      /** $OpDocMathLogicalNot
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def unary_! : Tensor[Boolean] = logicalNot
-
-      /** $OpDocMathLogicalAnd
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def &&(other: Tensor[Boolean]): Tensor[Boolean] = logicalAnd(other)
-
-      /** $OpDocMathLogicalOr
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def ||(other: Tensor[Boolean]): Tensor[Boolean] = logicalOr(other)
-
-      //endregion Operators
-
-      //region Logical Ops
-
-      /** $OpDocMathLogicalNot
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def logicalNot: Tensor[Boolean] = Math.logicalNot(tensor)
-
-      /** $OpDocMathLogicalAnd
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def logicalAnd(other: Tensor[Boolean]): Tensor[Boolean] = Math.logicalAnd(tensor, other)
-
-      /** $OpDocMathLogicalOr
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def logicalOr(other: Tensor[Boolean]): Tensor[Boolean] = Math.logicalOr(tensor, other)
-
-      /** $OpDocMathLogicalXOr
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def logicalXOr(other: Tensor[Boolean]): Tensor[Boolean] = Math.logicalXOr(tensor, other)
-
-      //endregion Logical Ops
-
-      //region Reduction Ops
-
-      /** $OpDocMathAll
-        *
-        * @group MathOps
-        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @param  keepDims If `true`, retain the reduced axes.
-        * @return Result as a new tensor.
-        */
-      def all(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[Boolean] = Math.all(tensor, axes, keepDims)
-
-      /** $OpDocMathAny
-        *
-        * @group MathOps
-        * @param  axes     Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
-        * @param  keepDims If `true`, retain the reduced axes.
-        * @return Result as a new tensor.
-        */
-      def any(axes: Tensor[Int] = null, keepDims: Boolean = false): Tensor[Boolean] = Math.any(tensor, axes, keepDims)
-
-      //endregion Reduction Ops
-    }
-
-    implicit class Float32MathOps(val tensor: Tensor[Float]) {
-      def toComplex(imag: Tensor[Float] = Tensor.zeros[Float](tensor.shape)): Tensor[ComplexFloat] = {
-        Math.complex64(tensor, imag)
+      def toComplex(imag: Tensor[Float] = 0.0f): Tensor[ComplexFloat] = {
+        Math.complexFloat(tensor, imag)
       }
     }
 
-    implicit class Float64MathOps(val tensor: Tensor[Double]) {
-      def toComplex(imag: Tensor[Double] = Tensor.zeros[Double](tensor.shape)): Tensor[ComplexDouble] = {
-        Math.complex128(tensor, imag)
+    implicit class DoubleMathOps(val tensor: Tensor[Double]) {
+      /** Creates a new complex number with the provided imaginary part.
+        *
+        * @param  imag Imaginary part.
+        * @return Resulting complex number.
+        */
+      def toComplex(imag: Tensor[Double] = 0.0): Tensor[ComplexDouble] = {
+        Math.complexDouble(tensor, imag)
       }
     }
 
-    implicit class Complex64MathOps(val tensor: Tensor[ComplexFloat]) {
+    implicit class ComplexFloatMathOps(val tensor: Tensor[ComplexFloat]) {
       /** $OpDocMathReal
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def real(implicit ev: TensorOps.Aux[Tensor, ComplexFloat]): Tensor[Float] = {
-        ev.applyUnary(tensor, t => {
-          Tensor.fromNativeHandle[Float](NativeTensorOpsMath.real(
-            executionContext.value.nativeHandle, t.nativeHandle, FLOAT32.cValue))
-        })
+      def real: Tensor[Float] = {
+        Math.realFloat(tensor.asInstanceOf[Tensor[ComplexFloat]])
       }
 
       /** $OpDocMathImag
@@ -3131,11 +3524,17 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def imag(implicit ev: TensorOps.Aux[Tensor, ComplexFloat]): Tensor[Float] = {
-        ev.applyUnary(tensor, t => {
-          Tensor.fromNativeHandle[Float](NativeTensorOpsMath.imag(
-            executionContext.value.nativeHandle, t.nativeHandle, FLOAT32.cValue))
-        })
+      def imag: Tensor[Float] = {
+        Math.imagFloat(tensor.asInstanceOf[Tensor[ComplexFloat]])
+      }
+
+      /** $OpDocMathAbs
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def magnitude: Tensor[Float] = {
+        Math.magnitudeFloat(tensor.asInstanceOf[Tensor[ComplexFloat]])
       }
 
       /** $OpDocMathAngle
@@ -3143,25 +3542,19 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def angle(implicit ev: TensorOps.Aux[Tensor, ComplexFloat]): Tensor[Float] = {
-        ev.applyUnary(tensor, t => {
-          Tensor.fromNativeHandle[Float](NativeTensorOpsMath.angle(
-            executionContext.value.nativeHandle, t.nativeHandle, FLOAT32.cValue))
-        })
+      def angle: Tensor[Float] = {
+        Math.angleFloat(tensor.asInstanceOf[Tensor[ComplexFloat]])
       }
     }
 
-    implicit class Complex128MathOps(val tensor: Tensor[ComplexDouble]) {
+    implicit class ComplexDoubleMathOps(val tensor: Tensor[ComplexDouble]) {
       /** $OpDocMathReal
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def real(implicit ev: TensorOps.Aux[Tensor, ComplexDouble]): Tensor[Double] = {
-        ev.applyUnary(tensor, t => {
-          Tensor.fromNativeHandle[Double](NativeTensorOpsMath.real(
-            executionContext.value.nativeHandle, t.nativeHandle, FLOAT64.cValue))
-        })
+      def real: Tensor[Double] = {
+        Math.realDouble(tensor.asInstanceOf[Tensor[ComplexDouble]])
       }
 
       /** $OpDocMathImag
@@ -3169,11 +3562,17 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def imag(implicit ev: TensorOps.Aux[Tensor, ComplexDouble]): Tensor[Double] = {
-        ev.applyUnary(tensor, t => {
-          Tensor.fromNativeHandle[Double](NativeTensorOpsMath.imag(
-            executionContext.value.nativeHandle, t.nativeHandle, FLOAT64.cValue))
-        })
+      def imag: Tensor[Double] = {
+        Math.imagDouble(tensor.asInstanceOf[Tensor[ComplexDouble]])
+      }
+
+      /** $OpDocMathAbs
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def magnitude: Tensor[Double] = {
+        Math.magnitudeDouble(tensor.asInstanceOf[Tensor[ComplexDouble]])
       }
 
       /** $OpDocMathAngle
@@ -3181,50 +3580,9 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def angle(implicit ev: TensorOps.Aux[Tensor, ComplexDouble]): Tensor[Double] = {
-        ev.applyUnary(tensor, t => {
-          Tensor.fromNativeHandle[Double](NativeTensorOpsMath.angle(
-            executionContext.value.nativeHandle, t.nativeHandle, FLOAT64.cValue))
-        })
+      def angle: Tensor[Double] = {
+        Math.angleDouble(tensor.asInstanceOf[Tensor[ComplexDouble]])
       }
     }
-
-    implicit class Int32MathOps(val tensor: Tensor[Int]) {
-      /** $OpDocMathBinCount
-        *
-        * @group MathOps
-        * @param  weights   If not `null`, this tensor must have the same shape as `input`. For each value in `input`, the
-        *                   corresponding bin count will be incremented by the corresponding weight instead of `1`.
-        * @param  minLength If not `null`, this ensures the output has length at least `minLength`, padding with zeros at
-        *                   the end, if necessary.
-        * @param  maxLength If not `null`, this skips values in `input` that are equal or greater than `maxLength`,
-        *                   ensuring that the output has length at most `maxLength`.
-        * @param  dataType  If `weights` is `null`, this determines the data type used for the output tensor (i.e., the
-        *                   tensor containing the bin counts).
-        * @return Result as a new tensor.
-        */
-      def binCount[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](
-          dataType: DataType[T],
-          weights: Tensor[T] = null,
-          minLength: Tensor[Int] = null,
-          maxLength: Tensor[Int] = null
-      ): Tensor[T] = {
-        Math.binCount(tensor, dataType, weights, minLength, maxLength)
-      }
-    }
-
-    implicit def tensorConvertibleToNumericMathOps[TC, T: IsNumeric : TF](value: TC)(implicit f: TC => Tensor[T]): NumericMathOps[T] = new NumericMathOps(f(value))
-    implicit def tensorConvertibleToMathMathOps[TC, T: IsNotQuantized : TF](value: TC)(implicit f: TC => Tensor[T]): MathMathOps[T] = new MathMathOps(f(value))
-    implicit def tensorConvertibleToRealMathOps[TC, T: IsReal : TF](value: TC)(implicit f: TC => Tensor[T]): RealMathOps[T] = new RealMathOps(f(value))
-    implicit def tensorConvertibleToInt32OrInt64OrFloat32OrFloat64MathOps[TC, T: IsInt32OrInt64OrFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Int32OrInt64OrFloat32OrFloat64MathOps[T] = new Int32OrInt64OrFloat32OrFloat64MathOps(f(value))
-    implicit def tensorConvertibleToFloat16OrFloat32OrFloat64MathOps[TC, T: IsFloat16OrFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Float16OrFloat32OrFloat64MathOps[T] = new Float16OrFloat32OrFloat64MathOps(f(value))
-    implicit def tensorConvertibleToFloat32OrFloat64MathOps[TC, T: IsFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Float32OrFloat64MathOps[T] = new Float32OrFloat64MathOps(f(value))
-    implicit def tensorConvertibleToComplexMathOps[TC, T: IsComplex : TF](value: TC)(implicit f: TC => Tensor[T]): ComplexMathOps[T] = new ComplexMathOps(f(value))
-    implicit def tensorConvertibleToBooleanMathOps[TC](value: TC)(implicit f: TC => Tensor[Boolean]): BooleanMathOps = new BooleanMathOps(f(value))
-    implicit def tensorConvertibleToFloat32MathOps[TC](value: TC)(implicit f: TC => Tensor[Float]): Float32MathOps = new Float32MathOps(f(value))
-    implicit def tensorConvertibleToFloat64MathOps[TC](value: TC)(implicit f: TC => Tensor[Double]): Float64MathOps = new Float64MathOps(f(value))
-    implicit def tensorConvertibleToComplex64MathOps[TC](value: TC)(implicit f: TC => Tensor[ComplexFloat]): Complex64MathOps = new Complex64MathOps(f(value))
-    implicit def tensorConvertibleToComplex128MathOps[TC](value: TC)(implicit f: TC => Tensor[ComplexDouble]): Complex128MathOps = new Complex128MathOps(f(value))
-    implicit def tensorConvertibleToInt32MathOps[TC](value: TC)(implicit f: TC => Tensor[Int]): Int32MathOps = new Int32MathOps(f(value))
   }
 }
