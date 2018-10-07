@@ -61,7 +61,7 @@ trait Lookup {
     * @param  name              Name for the created table.
     * @return Created table.
     */
-  def indexTableFromFile[K: IsStringOrIntOrUInt : TF](
+  def indexTableFromFile[K: TF : IsStringOrIntOrUInt](
       filename: String,
       keysDataType: DataType[K],
       delimiter: String = "\t",

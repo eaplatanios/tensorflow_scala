@@ -58,7 +58,7 @@ import org.platanios.tensorflow.api.types.{DataType, TF, INT64, IsStringOrIntOrU
   *
   * @author Emmanouil Antonios Platanios
   */
-class IDLookupTableWithHashBuckets[K: IsStringOrIntOrUInt : TF] private[IDLookupTableWithHashBuckets](
+class IDLookupTableWithHashBuckets[K: TF : IsStringOrIntOrUInt] private[IDLookupTableWithHashBuckets](
     val table: Option[HashTable[K, Long]],
     override val keysDataType: DataType[K],
     val numOOVBuckets: Int,
@@ -115,7 +115,7 @@ class IDLookupTableWithHashBuckets[K: IsStringOrIntOrUInt : TF] private[IDLookup
 }
 
 object IDLookupTableWithHashBuckets {
-  def apply[K: IsStringOrIntOrUInt : TF](
+  def apply[K: TF : IsStringOrIntOrUInt](
       table: HashTable[K, Long],
       numOOVBuckets: Int,
       hashSpecification: HashSpecification = FAST_HASH,
@@ -126,7 +126,7 @@ object IDLookupTableWithHashBuckets {
   }
 
   @throws[IllegalArgumentException]
-  def empty[K: IsStringOrIntOrUInt : TF](
+  def empty[K: TF : IsStringOrIntOrUInt](
       keysDataType: DataType[K],
       numOOVBuckets: Int,
       hashSpecification: HashSpecification = FAST_HASH,

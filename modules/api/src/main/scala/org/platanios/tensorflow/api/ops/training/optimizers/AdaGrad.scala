@@ -59,7 +59,7 @@ class AdaGrad protected (
 ) extends Optimizer {
   protected var learningRateTensor: Output[Float] = _
 
-  protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
+  protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
@@ -76,7 +76,7 @@ class AdaGrad protected (
     })
   }
 
-  override def prepare[I: IsInt32OrInt64 : TF](
+  override def prepare[I: TF : IsInt32OrInt64](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -84,7 +84,7 @@ class AdaGrad protected (
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }
 
-  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -101,7 +101,7 @@ class AdaGrad protected (
         .build().asUntyped
   }
 
-  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

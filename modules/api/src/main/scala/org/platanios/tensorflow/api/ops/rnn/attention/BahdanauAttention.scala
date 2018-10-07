@@ -55,7 +55,7 @@ import org.platanios.tensorflow.api.types.{INT32, IsDecimal, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BahdanauAttention[T: IsDecimal : TF](
+class BahdanauAttention[T: TF : IsDecimal](
     override protected val memory: Output[T],
     protected val memoryWeights: Output[T],
     protected val queryWeights: Output[T],
@@ -134,7 +134,7 @@ class BahdanauAttention[T: IsDecimal : TF](
 }
 
 object BahdanauAttention {
-  def apply[T: IsDecimal : TF](
+  def apply[T: TF : IsDecimal](
       memory: Output[T],
       memoryWeights: Output[T],
       queryWeights: Output[T],

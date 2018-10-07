@@ -1679,7 +1679,7 @@ private[ops] object Saveable {
         restoredTensor = Basic.reshape(
           restoredTensors.head,
           restoredShapes.head
-        )(TF.fromDataType(dataType), IsInt32OrInt64[I], TF.fromDataType(shapeDataType))
+        )(TF.fromDataType(dataType), TF.fromDataType(shapeDataType), IsInt32OrInt64[I])
       }
       // Copy the restored tensor to the variable's device.
       restoredTensor = Op.createWith(device = variableDevice) {

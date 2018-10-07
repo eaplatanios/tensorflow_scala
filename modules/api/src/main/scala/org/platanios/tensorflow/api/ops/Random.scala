@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.FloatDefault
 
 /** Contains functions for constructing ops related to random numbers and tensors.
   *
@@ -63,7 +64,7 @@ trait Random {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def randomUniform[T: IsInt32OrInt64OrFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
+  def randomUniform[T: FloatDefault : TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
       shape: Output[I],
       minValue: Output[T] = null,
       maxValue: Output[T] = null,
@@ -109,7 +110,7 @@ trait Random {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def randomNormal[T: IsFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
+  def randomNormal[T: FloatDefault : TF : IsFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
       shape: Output[I],
       mean: Output[T] = null,
       standardDeviation: Output[T] = null,
@@ -144,7 +145,7 @@ trait Random {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def randomTruncatedNormal[T: IsFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
+  def randomTruncatedNormal[T: FloatDefault : TF : IsFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
       shape: Output[I],
       mean: Output[T] = null,
       standardDeviation: Output[T] = null,

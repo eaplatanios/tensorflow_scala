@@ -323,7 +323,7 @@ object BasicDecoder {
             output,
             axes = -1,
             outputDataType = INT32
-          )(ev, TF.fromDataType(output.dataType), IsInt32OrInt64[Int], TF[Int], TF[Int])
+          )(TF.fromDataType(output.dataType), ev, TF[Int], IsInt32OrInt64[Int], TF[Int])
         }))
       }
     }

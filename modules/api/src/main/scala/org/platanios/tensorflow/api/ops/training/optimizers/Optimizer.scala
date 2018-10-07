@@ -22,6 +22,7 @@ import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Initializer, Variable, VariableScope}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
 
 import scala.collection.mutable
 
@@ -74,7 +75,7 @@ trait Optimizer {
     * @param  name                       Name for the created op.
     * @return Created op.
     */
-  final def minimize[T: IsFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
+  final def minimize[T: TF : IsFloat32OrFloat64, I: LongDefault : TF : IsInt32OrInt64](
       loss: Output[T],
       lossGradients: Seq[OutputLike[Any]] = null,
       variables: Set[Variable[Any]] = null,
@@ -105,7 +106,7 @@ trait Optimizer {
     * @throws IllegalArgumentException If there are no variables to optimize.
     */
   @throws[IllegalArgumentException]
-  def computeGradients[T: IsFloat32OrFloat64 : TF](
+  def computeGradients[T: TF : IsFloat32OrFloat64](
       loss: Output[T],
       lossGradients: Seq[OutputLike[Any]] = null,
       variables: Set[Variable[Any]] = null,
@@ -129,7 +130,7 @@ trait Optimizer {
     implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
 
     val variableProcessors = collectedVariables.map(v => {
-      getVariableProcessor(v)(ev, TF.fromDataType(v.dataType))
+      getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
     })
     val variableTargets = variableProcessors.map(_.target)
     val gradients = {
@@ -158,7 +159,7 @@ trait Optimizer {
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  def applyGradients[I: IsInt32OrInt64 : TF](
+  def applyGradients[I: LongDefault : TF : IsInt32OrInt64](
       gradientsAndVariables: Seq[(OutputLike[Any], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
@@ -188,7 +189,7 @@ trait Optimizer {
         // TODO: [TYPES] !!! Super hacky. Remove in the future.
         implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
 
-        val p = getVariableProcessor(v)(ev, TF.fromDataType(v.dataType))
+        val p = getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"Update/${v.op.name}") {
           Op.colocateWith(Set(v.op), ignoreExisting = true) {
@@ -227,7 +228,7 @@ trait Optimizer {
 
   /** Creates all necessary tensors before applying the gradients. This function is called from within an op creation
     * context that uses as its name scope the name that users have chosen for the application of gradients. */
-  def prepare[I: IsInt32OrInt64 : TF](iteration: Option[Variable[I]]): Unit = {
+  def prepare[I: TF : IsInt32OrInt64](iteration: Option[Variable[I]]): Unit = {
     // No preparation is done by default.
   }
 
@@ -252,7 +253,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -270,7 +271,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -296,7 +297,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparseDuplicateIndices[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  def applySparseDuplicateIndices[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -426,7 +427,7 @@ trait Optimizer {
 
 private[optimizers] object Optimizer {
   /** Gets the appropriate variable processor to use for `variable`. */
-  private[optimizers] def getVariableProcessor[T: IsFloat32OrFloat64 : TF](
+  private[optimizers] def getVariableProcessor[T: TF : IsFloat32OrFloat64](
       variable: Variable[T]
   ): VariableProcessor[T] = {
     variable match {
@@ -446,7 +447,7 @@ private[optimizers] object Optimizer {
     def target: Output[Resource]
 
     /** Returns the update ops for updating this variable using the gradient provided by `gradient`. */
-    def updateOp[I: IsInt32OrInt64 : TF](
+    def updateOp[I: TF : IsInt32OrInt64](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -454,14 +455,14 @@ private[optimizers] object Optimizer {
   }
 
   /** Variable processor for resource-based variables. */
-  private[Optimizer] case class ResourceVariableProcessor[T: IsFloat32OrFloat64 : TF](
+  private[Optimizer] case class ResourceVariableProcessor[T: TF : IsFloat32OrFloat64](
       variable: Variable[T]
   ) extends VariableProcessor[T] {
     override def target: Output[Resource] = {
       variable.handle
     }
 
-    override def updateOp[I: IsInt32OrInt64 : TF](
+    override def updateOp[I: TF : IsInt32OrInt64](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -484,7 +485,7 @@ private[optimizers] object Optimizer {
       variable.handle
     }
 
-    override def updateOp[I: IsInt32OrInt64 : TF](
+    override def updateOp[I: TF : IsInt32OrInt64](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -499,7 +500,7 @@ private[optimizers] object Optimizer {
     * @param  input Indexed slices with potentially duplicate indices.
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
-  private[Optimizer] def deDuplicateOutputIndexedSlices[T: IsNumeric : TF](
+  private[Optimizer] def deDuplicateOutputIndexedSlices[T: TF : IsNumeric](
       input: OutputIndexedSlices[T]
   ): OutputIndexedSlices[T] = {
     val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0), INT32)

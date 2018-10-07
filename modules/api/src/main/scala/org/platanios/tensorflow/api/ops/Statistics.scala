@@ -39,7 +39,7 @@ trait Statistics {
     *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
     *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
     */
-  def sufficientStatistics[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  def sufficientStatistics[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       input: Output[T],
       axes: Output[I],
       shift: Output[T] = null,
@@ -68,7 +68,7 @@ trait Statistics {
     * @param  name   Name for the created op.
     * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
     */
-  def momentsFromSufficientStatistics[T: IsNotQuantized : TF](
+  def momentsFromSufficientStatistics[T: TF : IsNotQuantized](
       counts: Output[T],
       meanSS: Output[T],
       varSS: Output[T],
@@ -107,7 +107,7 @@ trait Statistics {
     * @param  name     Name for the created op.
     * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
     */
-  def moments[T: IsNotQuantized : TF](
+  def moments[T: TF : IsNotQuantized](
       input: Output[T],
       axes: Seq[Int],
       weights: Output[T] = null,
@@ -184,7 +184,7 @@ object Statistics extends Statistics {
         *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
         *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
         */
-      def sufficientStatistics[I: IsInt32OrInt64 : TF](
+      def sufficientStatistics[I: TF : IsInt32OrInt64](
           axes: Output[I],
           shift: Output[T] = null,
           keepDims: Boolean = false

@@ -102,7 +102,7 @@ class LazyAdam protected (
 ) {
   override val ignoreDuplicateSparseIndices: Boolean = true
 
-  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

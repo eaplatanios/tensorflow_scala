@@ -66,7 +66,7 @@ trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def scalar[T: IsReal : TF](
+  def scalar[T: TF : IsReal](
       name: String,
       value: Output[T],
       collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
@@ -89,7 +89,7 @@ trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def histogram[T: IsReal : TF](
+  def histogram[T: TF : IsReal](
       name: String,
       values: Output[T],
       collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
@@ -115,7 +115,7 @@ trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def image[T: IsReal : TF](
+  def image[T: TF : IsReal](
       name: String,
       tensor: Output[T],
       badColor: Tensor[UByte] = Tensor(UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
@@ -292,7 +292,7 @@ object Summary extends Summary {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def scalarSummary[T: IsReal : TF](
+  private[Summary] def scalarSummary[T: TF : IsReal](
       value: Output[T],
       tags: Output[String],
       name: String = "ScalarSummary"
@@ -312,7 +312,7 @@ object Summary extends Summary {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def histogramSummary[T: IsReal : TF](
+  private[Summary] def histogramSummary[T: TF : IsReal](
       values: Output[T],
       tag: Output[String],
       name: String = "HistogramSummary"
@@ -335,7 +335,7 @@ object Summary extends Summary {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def imageSummary[T: IsReal : TF](
+  private[Summary] def imageSummary[T: TF : IsReal](
       tensor: Output[T],
       badColor: Tensor[UByte],
       tag: Output[String],
@@ -518,7 +518,7 @@ object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeScalarSummary[T: IsReal : TF](
+  private[Summary] def writeScalarSummary[T: TF : IsReal](
       writerHandle: Output[Resource],
       globalStep: Output[Long],
       value: Output[T],
@@ -542,7 +542,7 @@ object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeHistogramSummary[T: IsReal : TF](
+  private[Summary] def writeHistogramSummary[T: TF : IsReal](
       writerHandle: Output[Resource],
       globalStep: Output[Long],
       values: Output[T],
@@ -569,7 +569,7 @@ object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeImageSummary[T: IsReal : TF](
+  private[Summary] def writeImageSummary[T: TF : IsReal](
       writerHandle: Output[Resource],
       globalStep: Output[Long],
       tensor: Output[T],

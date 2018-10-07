@@ -162,7 +162,7 @@ class ExponentialMovingAverage protected (
       val updates = variables.map(v => {
         ExponentialMovingAverage.assignMovingAverage(
           variableAverages(v), v.value, decayTensor, zeroDebias = false
-        )(ev, TF.fromDataType(v.dataType)).op
+        )(TF.fromDataType(v.dataType), ev).op
       })
       ControlFlow.group(updates).asUntyped
     }
@@ -209,7 +209,7 @@ class ExponentialMovingAverage protected (
         val zeroDebias = zeroDebiasVariables.contains(average)
         ExponentialMovingAverage.assignMovingAverage(
           average, v, decayTensor, zeroDebias = zeroDebias
-        )(ev, TF.fromDataType(v.dataType)).op
+        )(TF.fromDataType(v.dataType), ev).op
       })
       ControlFlow.group(updates).asUntyped
     }
@@ -279,7 +279,7 @@ object ExponentialMovingAverage {
     * @param  name       Name for the created ops.
     * @return Value of `variable` after the moving average update.
     */
-  private[ExponentialMovingAverage] def assignMovingAverage[T: IsNotQuantized : TF](
+  private[ExponentialMovingAverage] def assignMovingAverage[T: TF : IsNotQuantized](
       variable: Variable[T],
       value: Output[T],
       decay: Output[Float],
@@ -323,7 +323,7 @@ object ExponentialMovingAverage {
     * @return Tensor containing the amount that should be added to the unbiased variable. Computing this tensor will
     *         also update the shadow variables appropriately.
     */
-  private[ExponentialMovingAverage] def zeroDebias[T: IsNotQuantized : TF](
+  private[ExponentialMovingAverage] def zeroDebias[T: TF : IsNotQuantized](
       unbiasedVariable: Variable[T],
       value: Output[T],
       decay: Output[T]

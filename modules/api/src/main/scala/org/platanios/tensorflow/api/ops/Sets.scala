@@ -31,7 +31,7 @@ trait Sets {
     * @param  name            Name for the created op.
     * @return Tensor containing the set sizes.
     */
-  def setSize[T: IsIntOrUInt : TF](
+  def setSize[T: TF : IsIntOrUInt](
       input: SparseOutput[T],
       validateIndices: Boolean = true,
       name: String = "SetSize"
@@ -304,7 +304,7 @@ object SetOps {
     type Type = E
   }
 
-  implicit def outputOutputSetOps[T: IsIntOrUInt : TF]: SetOps.Aux[Output[T], Output[T], T] = {
+  implicit def outputOutputSetOps[T: TF : IsIntOrUInt]: SetOps.Aux[Output[T], Output[T], T] = {
     new SetOps[Output[T]] {
       override type ArgType = Output[T]
       override type Type = T
@@ -327,7 +327,7 @@ object SetOps {
     }
   }
 
-  implicit def outputSparseOutputSetOps[T: IsIntOrUInt : TF]: SetOps.Aux[Output[T], SparseOutput[T], T] = {
+  implicit def outputSparseOutputSetOps[T: TF : IsIntOrUInt]: SetOps.Aux[Output[T], SparseOutput[T], T] = {
     new SetOps[Output[T]] {
       override type ArgType = SparseOutput[T]
       override type Type = T
@@ -350,7 +350,7 @@ object SetOps {
     }
   }
 
-  implicit def sparseOutputSparseOutputSetOps[T: IsIntOrUInt : TF]: SetOps.Aux[SparseOutput[T], SparseOutput[T], T] = {
+  implicit def sparseOutputSparseOutputSetOps[T: TF : IsIntOrUInt]: SetOps.Aux[SparseOutput[T], SparseOutput[T], T] = {
     new SetOps[SparseOutput[T]] {
       override type ArgType = SparseOutput[T]
       override type Type = T

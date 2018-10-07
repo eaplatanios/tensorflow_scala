@@ -58,7 +58,7 @@ import org.platanios.tensorflow.api.types._
   *
   * @author Emmanouil Antonios Platanios
   */
-class ConfusionMatrix[T: IsNumeric : TF](
+class ConfusionMatrix[T: TF : IsNumeric](
     val nameScope: String,
     protected val defaultWeights: Option[Tensor[Float]] = None,
     val numClasses: Int = -1,
@@ -187,7 +187,7 @@ object ConfusionMatrix {
     * @tparam T Data type for the confusion matrix.
     * @return New confusion matrix metric.
     */
-  def apply[T: IsNumeric : TF](
+  def apply[T: TF : IsNumeric](
       nameScope: String,
       defaultWeights: Option[Tensor[Float]] = None,
       numClasses: Int = -1,

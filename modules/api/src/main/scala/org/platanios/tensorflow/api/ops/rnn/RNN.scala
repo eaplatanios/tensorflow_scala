@@ -197,13 +197,13 @@ trait RNN {
           var sequence = evO.outputs(input)
           if (sequenceLengths == null)
             sequence = sequence.map(input => {
-              Basic.reverse(input, timeAxis)(TF.fromDataType(input.dataType), IsInt32OrInt64[Int], TF[Int])
+              Basic.reverse(input, timeAxis)(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int])
             })
           else
             sequence = sequence.map(input => {
               Basic.reverseSequence(
                 input, sequenceLengths, timeAxis, batchAxis
-              )(TF.fromDataType(input.dataType), IsInt32OrInt64[Int], TF[Int])
+              )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int])
             })
           evO.fromOutputs(input, sequence)
         }

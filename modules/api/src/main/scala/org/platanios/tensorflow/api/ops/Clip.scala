@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 /** Contains functions for constructing ops related to clipping tensor values.
   *
@@ -34,7 +35,7 @@ trait Clip {
     * @param  name         Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByValue[T: IsNotQuantized : TF](
+  def clipByValue[T: TF : IsNotQuantized](
       input: Output[T],
       clipValueMin: Output[T],
       clipValueMax: Output[T],
@@ -44,11 +45,11 @@ trait Clip {
       opType = "ClipByValue",
       name = name,
       input = (input, clipValueMin, clipValueMax)
-    ).setGradientFn(clipByValueGradient(_, _)(IsNotQuantized[T], TF[T]))
+    ).setGradientFn(clipByValueGradient(_, _)(TF[T], IsNotQuantized[T]))
         .build().output
   }
 
-  protected def clipByValueGradient[T: IsNotQuantized : TF](
+  protected def clipByValueGradient[T: TF : IsNotQuantized](
       op: Op[(Output[T], Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T], Output[T]) = {
@@ -81,7 +82,7 @@ trait Clip {
     * @param  name     Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByNorm[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  def clipByNorm[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
       input: Output[T],
       clipNorm: Output[T],
       axes: Output[I] = null,
@@ -105,7 +106,7 @@ trait Clip {
     * @param  name     Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByAverageNorm[T: IsNotQuantized : TF](
+  def clipByAverageNorm[T: TF : IsNotQuantized](
       input: Output[T],
       clipNorm: Output[T],
       name: String = "ClipByAverageNorm"
@@ -129,7 +130,7 @@ trait Clip {
     * @param  name   Name prefix for created ops.
     * @return Created op output.
     */
-  def globalNorm[T: IsDecimal : TF](
+  def globalNorm[T: TF : IsDecimal](
       inputs: Seq[OutputLike[T]],
       name: String = "GlobalNorm"
   ): Output[T] = {
@@ -158,7 +159,7 @@ trait Clip {
     * @param  name       Name prefix for created ops.
     * @return Tuple containing the clipped tensors as well as the global norm that was used for the clipping.
     */
-  def clipByGlobalNorm[T: IsDecimal : TF](
+  def clipByGlobalNorm[T: TF : IsDecimal](
       inputs: Seq[OutputLike[T]],
       clipNorm: Output[T],
       globalNorm: Output[T] = null,
@@ -227,7 +228,7 @@ object Clip extends Clip {
         * @param  name     Name prefix for created ops.
         * @return Created op output.
         */
-      def clipByNorm[I: IsInt32OrInt64 : TF](
+      def clipByNorm[I: IntDefault : TF : IsInt32OrInt64](
           clipNorm: Output[T],
           axes: Output[I] = null,
           name: String = "ClipByNorm"

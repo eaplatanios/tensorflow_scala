@@ -90,7 +90,7 @@ class AMSGrad protected (
   protected var beta2Tensor       : Output[Float] = _
   protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
+  protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
@@ -143,7 +143,7 @@ class AMSGrad protected (
     getOrCreateNonSlotVariable("Beta2Power", beta2, Set(firstVariable.op), ignoreExisting = true)
   }
 
-  override def prepare[I: IsInt32OrInt64 : TF](
+  override def prepare[I: TF : IsInt32OrInt64](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -154,7 +154,7 @@ class AMSGrad protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -188,7 +188,7 @@ class AMSGrad protected (
     }
   }
 
-  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

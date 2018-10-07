@@ -76,7 +76,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertEqual[T: IsNumeric : TF](
+  def assertEqual[T: TF : IsNumeric](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -110,7 +110,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNoneEqual[T: IsNumeric : TF](
+  def assertNoneEqual[T: TF : IsNumeric](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -146,7 +146,7 @@ trait Checks {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  def assertNear[T: IsReal : TF](
+  def assertNear[T: TF : IsReal](
       x: Output[T],
       y: Output[T],
       relTolerance: Output[Float] = 0.00001f,
@@ -189,7 +189,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertLess[T: IsNumeric : TF](
+  def assertLess[T: TF : IsNumeric](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -223,7 +223,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertLessEqual[T: IsNumeric : TF](
+  def assertLessEqual[T: TF : IsNumeric](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -257,7 +257,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertGreater[T: IsNumeric : TF](
+  def assertGreater[T: TF : IsNumeric](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -291,7 +291,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertGreaterEqual[T: IsNumeric : TF](
+  def assertGreaterEqual[T: TF : IsNumeric](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -324,7 +324,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertPositive[T: IsNumeric : TF](
+  def assertPositive[T: TF : IsNumeric](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,
@@ -356,7 +356,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNegative[T: IsNumeric : TF](
+  def assertNegative[T: TF : IsNumeric](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,
@@ -388,7 +388,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNonPositive[T: IsNumeric : TF](
+  def assertNonPositive[T: TF : IsNumeric](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,
@@ -420,7 +420,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNonNegative[T: IsNumeric : TF](
+  def assertNonNegative[T: TF : IsNumeric](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,

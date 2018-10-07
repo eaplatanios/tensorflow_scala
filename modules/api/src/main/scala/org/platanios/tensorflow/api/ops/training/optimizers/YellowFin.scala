@@ -24,6 +24,7 @@ import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSche
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
 
 /** Optimizer that implements the YellowFin algorithm.
   *
@@ -78,7 +79,7 @@ class YellowFin protected (
   protected var incrementStepOp: UntypedOp                = _
   protected var doTune         : Output[Boolean]          = _
 
-  override protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
+  override protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
@@ -108,7 +109,7 @@ class YellowFin protected (
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  override def applyGradients[I: IsInt32OrInt64 : TF](
+  override def applyGradients[I: LongDefault : TF : IsInt32OrInt64](
       gradientsAndVariables: Seq[(OutputLike[Any], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
@@ -126,7 +127,7 @@ class YellowFin protected (
     }
   }
 
-  override def prepare[I: IsInt32OrInt64 : TF](
+  override def prepare[I: TF : IsInt32OrInt64](
       iteration: Option[Variable[I]]
   ): Unit = {
     movingAverage = ExponentialMovingAverage(beta, zeroDebias = zeroDebias)
@@ -150,7 +151,7 @@ class YellowFin protected (
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }
 
-  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -168,7 +169,7 @@ class YellowFin protected (
         .build().asUntyped
   }
 
-  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

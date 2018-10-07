@@ -117,7 +117,7 @@ object Metric {
   }
 
   /** Divides two values, returning 0 if the denominator is <= 0. */
-  def safeDiv[T: IsNotQuantized : TF](
+  def safeDiv[T: TF : IsNotQuantized](
       numerator: Output[T],
       denominator: Output[T],
       name: String = "SafeDiv"
@@ -131,7 +131,7 @@ object Metric {
   }
 
   /** Divides two scalar values, returning 0 if the denominator is 0. */
-  def safeScalarDiv[T: IsNotQuantized : TF](
+  def safeScalarDiv[T: TF : IsNotQuantized](
       numerator: Output[T],
       denominator: Output[T],
       name: String = "SafeScalarDiv"

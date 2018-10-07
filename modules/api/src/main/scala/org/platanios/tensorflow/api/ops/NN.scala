@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 import scala.language.postfixOps
 
@@ -43,7 +44,7 @@ trait NN {
     * @param  name          Name for the created op.
     * @return Created op output.
     */
-  def addBias[T: IsNumeric : TF](
+  def addBias[T: TF : IsNumeric](
       value: Output[T],
       bias: Output[T],
       cNNDataFormat: CNNDataFormat = CNNDataFormat.default,
@@ -54,11 +55,11 @@ trait NN {
       name = name,
       input = (value, bias)
     ).setAttribute("data_format", cNNDataFormat.toString)
-        .setGradientFn(addBiasGradient(_, _)(IsNumeric[T], TF[T]))
+        .setGradientFn(addBiasGradient(_, _)(TF[T], IsNumeric[T]))
         .build().output
   }
 
-  protected def addBiasGradient[T: IsNumeric : TF](
+  protected def addBiasGradient[T: TF : IsNumeric](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -74,12 +75,12 @@ trait NN {
       name = "BiasAddGradient",
       input = outputGradient
     ).setAttribute("data_format", cNNDataFormatName)
-        .setGradientFn(addBiasHessian(_, _)(IsNumeric[T], TF[T]))
+        .setGradientFn(addBiasHessian(_, _)(TF[T], IsNumeric[T]))
         .build().output
     (outputGradient, gradient)
   }
 
-  protected def addBiasHessian[T: IsNumeric : TF](
+  protected def addBiasHessian[T: TF : IsNumeric](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -118,7 +119,7 @@ trait NN {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def linear[T: IsNotQuantized : TF](
+  def linear[T: TF : IsNotQuantized](
       x: Output[T],
       weights: Output[T],
       bias: Output[T] = null,
@@ -148,7 +149,7 @@ trait NN {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def l2Normalize[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+  def l2Normalize[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
       x: Output[T],
       axes: Output[I],
       epsilon: Float = 1e-12f,
@@ -182,7 +183,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def relu[T: IsReal : TF](
+  def relu[T: TF : IsReal](
       input: Output[T],
       alpha: Float = 0.0f,
       name: String = "ReLU"
@@ -196,14 +197,14 @@ trait NN {
             opType = "Relu",
             name = n,
             input = o.castTo[Float]
-          ).setGradientFn(reluGradient(_, _)(IsReal[Float], TF[Float]))
+          ).setGradientFn(reluGradient(_, _)(TF[Float], IsReal[Float]))
               .build().output.castTo[T]
         } else {
           Op.Builder[Output[T], Output[T]](
             opType = "Relu",
             name = n,
             input = o
-          ).setGradientFn(reluGradient(_, _)(IsReal[T], TF[T]))
+          ).setGradientFn(reluGradient(_, _)(TF[T], IsReal[T]))
               .build().output
         }
       })
@@ -220,7 +221,7 @@ trait NN {
     }
   }
 
-  protected def reluGradient[T: IsReal : TF](
+  protected def reluGradient[T: TF : IsReal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -228,11 +229,11 @@ trait NN {
       opType = "ReluGrad",
       name = "ReLUGradient",
       input = (outputGradient, op.output)
-    ).setGradientFn(reluHessian(_, _)(IsReal[T], TF[T]))
+    ).setGradientFn(reluHessian(_, _)(TF[T], IsReal[T]))
         .build().output
   }
 
-  protected def reluHessian[T: IsReal : TF](
+  protected def reluHessian[T: TF : IsReal](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -240,7 +241,7 @@ trait NN {
       opType = "ReluGrad",
       name = "ReLUHessian",
       input = (outputGradient, op.input._2)
-    ).setGradientFn(reluHessian(_, _)(IsReal[T], TF[T]))
+    ).setGradientFn(reluHessian(_, _)(TF[T], IsReal[T]))
         .build().output
     (gradient, Basic.zerosLike(op.input._2))
   }
@@ -252,7 +253,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def relu6[T: IsReal : TF, OL[A] <: OutputLike[A]](
+  def relu6[T: TF : IsReal, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "ReLU6"
   )(implicit
@@ -263,12 +264,12 @@ trait NN {
         opType = "Relu6",
         name = name,
         input = o
-      ).setGradientFn(relu6Gradient(_, _)(IsReal[T], TF[T]))
+      ).setGradientFn(relu6Gradient(_, _)(TF[T], IsReal[T]))
           .build().output
     })
   }
 
-  protected def relu6Gradient[T: IsReal : TF](
+  protected def relu6Gradient[T: TF : IsReal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -276,11 +277,11 @@ trait NN {
       opType = "Relu6Grad",
       name = "ReLU6Gradient",
       input = (outputGradient, op.input)
-    ).setGradientFn(relu6Hessian(_, _)(IsReal[T], TF[T]))
+    ).setGradientFn(relu6Hessian(_, _)(TF[T], IsReal[T]))
         .build().output
   }
 
-  protected def relu6Hessian[T: IsReal : TF](
+  protected def relu6Hessian[T: TF : IsReal](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -288,7 +289,7 @@ trait NN {
       opType = "Relu6Grad",
       name = "ReLU6Hessian",
       input = (outputGradient, op.input._2)
-    ).setGradientFn(reluHessian(_, _)(IsReal[T], TF[T]))
+    ).setGradientFn(reluHessian(_, _)(TF[T], IsReal[T]))
         .build().output
     (gradient, Basic.zerosLike(op.input._2))
   }
@@ -301,7 +302,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def crelu[T: IsReal : TF](
+  def crelu[T: TF : IsReal](
       input: Output[T],
       axis: Output[Int] = -1,
       name: String = "CReLU"
@@ -318,7 +319,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def elu[T: IsReal : TF, OL[A] <: OutputLike[A]](
+  def elu[T: TF : IsReal, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "ELU"
   )(implicit
@@ -329,12 +330,12 @@ trait NN {
         opType = "Elu",
         name = name,
         input = o
-      ).setGradientFn(eluGradient(_, _)(IsReal[T], TF[T]))
+      ).setGradientFn(eluGradient(_, _)(TF[T], IsReal[T]))
           .build().output
     })
   }
 
-  protected def eluGradient[T: IsReal : TF](
+  protected def eluGradient[T: TF : IsReal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -342,11 +343,11 @@ trait NN {
       opType = "EluGrad",
       name = "ELUGradient",
       input = (outputGradient, op.input)
-    ).setGradientFn(eluHessian(_, _)(IsReal[T], TF[T]))
+    ).setGradientFn(eluHessian(_, _)(TF[T], IsReal[T]))
         .build().output
   }
 
-  protected def eluHessian[T: IsReal : TF](
+  protected def eluHessian[T: TF : IsReal](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -355,7 +356,7 @@ trait NN {
       opType = "EluGrad",
       name = "ELUGradient",
       input = (outputGradient, op.input._2)
-    ).setGradientFn(eluHessian(_, _)(IsReal[T], TF[T]))
+    ).setGradientFn(eluHessian(_, _)(TF[T], IsReal[T]))
         .build().output
     val gradient1 = Math.select(
       Math.less(op.input._2, zero),
@@ -371,7 +372,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def selu[T: IsReal : TF, OL[A] <: OutputLike[A]](
+  def selu[T: TF : IsReal, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "SELU"
   )(implicit
@@ -382,12 +383,12 @@ trait NN {
         opType = "Selu",
         name = name,
         input = o
-      ).setGradientFn(seluGradient(_, _)(IsReal[T], TF[T]))
+      ).setGradientFn(seluGradient(_, _)(TF[T], IsReal[T]))
           .build().output
     })
   }
 
-  protected def seluGradient[T: IsReal : TF](
+  protected def seluGradient[T: TF : IsReal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -395,11 +396,11 @@ trait NN {
       opType = "SeluGrad",
       name = "SELUGradient",
       input = (outputGradient, op.input)
-    ).setGradientFn(eluHessian(_, _)(IsReal[T], TF[T]))
+    ).setGradientFn(eluHessian(_, _)(TF[T], IsReal[T]))
         .build().output
   }
 
-  protected def seluHessian[T: IsReal : TF](
+  protected def seluHessian[T: TF : IsReal](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -411,7 +412,7 @@ trait NN {
         opType = "EluGrad",
         name = "ELUGradient",
         input = (outputGradient, op.output)
-      ).setGradientFn(eluHessian(_, _)(IsReal[T], TF[T]))
+      ).setGradientFn(eluHessian(_, _)(TF[T], IsReal[T]))
           .build().output
       val gradient1 = Math.select(
         Math.less(op.input._2, zero),
@@ -419,7 +420,7 @@ trait NN {
           opType = "EluGrad",
           name = "ELUGradient",
           input = (outputGradient, Math.add(op.output, alpha))
-        ).setGradientFn(eluHessian(_, _)(IsReal[T], TF[T]))
+        ).setGradientFn(eluHessian(_, _)(TF[T], IsReal[T]))
             .build().output,
         Basic.zerosLike(op.input._2))
 
@@ -438,7 +439,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def softplus[T: IsDecimal : TF, OL[A] <: OutputLike[A]](
+  def softplus[T: TF : IsDecimal, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "Softplus"
   )(implicit
@@ -449,12 +450,12 @@ trait NN {
         opType = "Softplus",
         name = name,
         input = o
-      ).setGradientFn(softplusGradient(_, _)(IsDecimal[T], TF[T]))
+      ).setGradientFn(softplusGradient(_, _)(TF[T], IsDecimal[T]))
           .build().output
     })
   }
 
-  protected def softplusGradient[T: IsDecimal : TF](
+  protected def softplusGradient[T: TF : IsDecimal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -462,11 +463,11 @@ trait NN {
       opType = "SoftplusGrad",
       name = "SoftplusGradient",
       input = (outputGradient, op.input)
-    ).setGradientFn(softplusHessian(_, _)(IsDecimal[T], TF[T]))
+    ).setGradientFn(softplusHessian(_, _)(TF[T], IsDecimal[T]))
         .build().output
   }
 
-  protected def softplusHessian[T: IsDecimal : TF](
+  protected def softplusHessian[T: TF : IsDecimal](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -478,7 +479,7 @@ trait NN {
           opType = "SoftplusGrad",
           name = "SoftplusGradient",
           input = (outputGradient, x)
-        ).setGradientFn(softplusHessian(_, _)(IsDecimal[T], TF[T]))
+        ).setGradientFn(softplusHessian(_, _)(TF[T], IsDecimal[T]))
             .build().output
         val two = Basic.constant(2.0f).castTo[T]
         val d2x = Math.multiply(outputGradient, dy) / (Math.exp(-x) + two + Math.exp(x))
@@ -494,7 +495,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def softsign[T: IsDecimal : TF, OL[A] <: OutputLike[A]](
+  def softsign[T: TF : IsDecimal, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "Softsign"
   )(implicit
@@ -505,12 +506,12 @@ trait NN {
         opType = "Softsign",
         name = name,
         input = o
-      ).setGradientFn(softsignGradient(_, _)(IsDecimal[T], TF[T]))
+      ).setGradientFn(softsignGradient(_, _)(TF[T], IsDecimal[T]))
           .build().output
     })
   }
 
-  protected def softsignGradient[T: IsDecimal : TF](
+  protected def softsignGradient[T: TF : IsDecimal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -524,7 +525,7 @@ trait NN {
   /** Helper function for [[softmax]] and [[logSoftmax]] that reshapes and transposes the input logits into
     * two-dimensional tensors and then creates the corresponding native op. The output is transposed and reshaped
     * back. */
-  protected def softmaxHelper[T: IsDecimal : TF](
+  protected def softmaxHelper[T: TF : IsDecimal](
       logits: Output[T],
       opType: String,
       axis: Int = -1,
@@ -540,9 +541,9 @@ trait NN {
         input = logits
       ).setGradientFn[Output[T], Output[T]]({
         if (opType == "Softmax")
-          softmaxGradient(_, _)(IsDecimal[T], TF[T])
+          softmaxGradient(_, _)(TF[T], IsDecimal[T])
         else
-          logSoftmaxGradient(_, _)(IsDecimal[T], TF[T])
+          logSoftmaxGradient(_, _)(TF[T], IsDecimal[T])
       }).build().output
     } else if (isLastAxis) {
       Op.nameScope(name) {
@@ -555,9 +556,9 @@ trait NN {
           input = flatLogits
         ).setGradientFn[Output[T], Output[T]]({
           if (opType == "Softmax")
-            softmaxGradient(_, _)(IsDecimal[T], TF[T])
+            softmaxGradient(_, _)(TF[T], IsDecimal[T])
           else
-            logSoftmaxGradient(_, _)(IsDecimal[T], TF[T])
+            logSoftmaxGradient(_, _)(TF[T], IsDecimal[T])
         }).build().output
         Basic.reshape(output, inputShape)
       }
@@ -579,9 +580,9 @@ trait NN {
           input = flatLogits
         ).setGradientFn[Output[T], Output[T]]({
           if (opType == "Softmax")
-            softmaxGradient(_, _)(IsDecimal[T], TF[T])
+            softmaxGradient(_, _)(TF[T], IsDecimal[T])
           else
-            logSoftmaxGradient(_, _)(IsDecimal[T], TF[T])
+            logSoftmaxGradient(_, _)(TF[T], IsDecimal[T])
         }).build().output
         // We transform back the output tensor.
         output = Basic.reshape(output, shapeAfterSwap)
@@ -601,7 +602,7 @@ trait NN {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def softmax[T: IsDecimal : TF](
+  def softmax[T: TF : IsDecimal](
       logits: Output[T],
       axis: Int = -1,
       name: String = "Softmax"
@@ -617,7 +618,7 @@ trait NN {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def logSoftmax[T: IsDecimal : TF](
+  def logSoftmax[T: TF : IsDecimal](
       logits: Output[T],
       axis: Int = -1,
       name: String = "LogSoftmax"
@@ -625,7 +626,7 @@ trait NN {
     softmaxHelper(logits, "LogSoftmax", axis, name)
   }
 
-  protected def softmaxGradient[T: IsDecimal : TF](
+  protected def softmaxGradient[T: TF : IsDecimal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -633,7 +634,7 @@ trait NN {
     (outputGradient - Math.sum(outputGradient * softmax, 1, keepDims = true)) * softmax
   }
 
-  protected def logSoftmaxGradient[T: IsDecimal : TF](
+  protected def logSoftmaxGradient[T: TF : IsDecimal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -652,7 +653,7 @@ trait NN {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def l2Loss[T: IsDecimal : TF](
+  def l2Loss[T: TF : IsDecimal](
       input: Output[T],
       name: String = "L2Loss"
   ): Output[T] = {
@@ -660,11 +661,11 @@ trait NN {
       opType = "L2Loss",
       name = name,
       input = input
-    ).setGradientFn(l2LossGradient(_, _)(IsDecimal[T], TF[T]))
+    ).setGradientFn(l2LossGradient(_, _)(TF[T], IsDecimal[T]))
         .build().output
   }
 
-  protected def l2LossGradient[T: IsDecimal : TF](
+  protected def l2LossGradient[T: TF : IsDecimal](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -682,7 +683,7 @@ trait NN {
     * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
     *         the softmax cross entropy loss.
     */
-  def softmaxCrossEntropy[T: IsDecimal : TF](
+  def softmaxCrossEntropy[T: TF : IsDecimal](
       logits: Output[T],
       labels: Output[T],
       axis: Int = -1,
@@ -711,7 +712,7 @@ trait NN {
           opType = "SoftmaxCrossEntropyWithLogits",
           name = name,
           input = (flatLogits, flatLabels)
-        ).setGradientFn(softmaxCrossEntropyGradient(_, _)(IsDecimal[T], TF[T]))
+        ).setGradientFn(softmaxCrossEntropyGradient(_, _)(TF[T], IsDecimal[T]))
             .build().output._1
         // The output shape should be the input shape without the axis over which the cross entropy was computed.
         val outputShape = Basic.slice[Long, Long](
@@ -736,7 +737,7 @@ trait NN {
     }
   }
 
-  protected def softmaxCrossEntropyGradient[T: IsDecimal : TF](
+  protected def softmaxCrossEntropyGradient[T: TF : IsDecimal](
       op: Op[(Output[T], Output[T]), (Output[T], Output[T])],
       outputGradient: (Output[T], Output[T])
   ): (Output[T], Output[T]) = {
@@ -788,7 +789,7 @@ trait NN {
     * @return Created op output, with the same shape as `labels` and the same data type as `logits`, containing the
     *         softmax cross entropy loss.
     */
-  def sparseSoftmaxCrossEntropy[T: IsDecimal : TF, I: IsInt32OrInt64 : TF](
+  def sparseSoftmaxCrossEntropy[T: TF : IsDecimal, I: TF : IsInt32OrInt64](
       logits: Output[T],
       labels: Output[I],
       axis: Int = -1,
@@ -806,7 +807,7 @@ trait NN {
           opType = "SparseSoftmaxCrossEntropyWithLogits",
           name = name,
           input = (logits, labels)
-        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(IsDecimal[T], TF[T], IsInt32OrInt64[I], TF[I]))
+        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(TF[T], IsDecimal[T], TF[I], IsInt32OrInt64[I]))
             .build().output._1
       } else {
         // Reshape logits to rank 2 and labels to rank 1.
@@ -818,7 +819,7 @@ trait NN {
           opType = "SparseSoftmaxCrossEntropyWithLogits",
           name = name,
           input = (flatLogits, flatLabels)
-        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(IsDecimal[T], TF[T], IsInt32OrInt64[I], TF[I]))
+        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(TF[T], IsDecimal[T], TF[I], IsInt32OrInt64[I]))
             .build().output._1
         val reshapedOutput = Basic.reshape(output, Basic.shape(labels))
         reshapedOutput.setShape(labels.shape)
@@ -827,7 +828,7 @@ trait NN {
     }
   }
 
-  protected def sparseSoftmaxCrossEntropyGradient[T: IsDecimal : TF, I: IsInt32OrInt64 : TF](
+  protected def sparseSoftmaxCrossEntropyGradient[T: TF : IsDecimal, I: TF : IsInt32OrInt64](
       op: Op[(Output[T], Output[I]), (Output[T], Output[T])],
       outputGradient: (Output[T], Output[T])
   ): (Output[T], Output[I]) = {
@@ -854,7 +855,7 @@ trait NN {
     * @return Created op output, with rank one less than that of `logits` and the same data type as `logits`, containing
     *         the sigmoid cross entropy loss.
     */
-  def sigmoidCrossEntropy[T: IsDecimal : TF](
+  def sigmoidCrossEntropy[T: TF : IsDecimal](
       logits: Output[T],
       labels: Output[T],
       weights: Output[T] = null,
@@ -908,7 +909,7 @@ trait NN {
     * @param  name            Name for the created op.
     * @return Created op output.
     */
-  def logPoissonLoss[T: IsDecimal : TF](
+  def logPoissonLoss[T: TF : IsDecimal](
       logPredictions: Output[T],
       targets: Output[T],
       computeFullLoss: Boolean = false,
@@ -952,7 +953,7 @@ trait NN {
     * @throws InvalidShapeException If any of `logits`, `labels`, or `weights` has invalid shape.
     */
   @throws[InvalidShapeException]
-  def sequenceLoss[T: IsDecimal : TF, L : TF](
+  def sequenceLoss[T: TF : IsDecimal, L : TF](
       logits: Output[T],
       labels: Output[L],
       lossFn: (Output[T], Output[L]) => Output[T],
@@ -1026,7 +1027,7 @@ trait NN {
   //endregion Loss Ops
 
   /** Returns the `noiseShape` for the provided input, making the best effort possible to deal with unknown sizes. */
-  private[api] def getNoiseShape[T: TF, I: IsInt32OrInt64 : TF](
+  private[api] def getNoiseShape[T: TF, I: TF : IsInt32OrInt64](
       input: Output[T],
       noiseShape: Output[I]
   ): Output[I] = {
@@ -1057,7 +1058,7 @@ trait NN {
     * @throws IllegalArgumentException If `keepProbability` is not in the interval `(0, 1]`.
     */
   @throws[IllegalArgumentException]
-  def dropout[T: IsFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
+  def dropout[T: TF : IsFloat16OrFloat32OrFloat64, I: IntDefault : TF : IsInt32OrInt64](
       input: Output[T],
       keepProbability: Float,
       scaleOutput: Boolean = true,
@@ -1089,7 +1090,7 @@ trait NN {
     * @param  name            Name for the created op.
     * @return Created op output that has the same shape as `input`.
     */
-  def dynamicDropout[T: IsFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
+  def dynamicDropout[T: TF : IsFloat16OrFloat32OrFloat64, I: IntDefault : TF : IsInt32OrInt64](
       input: Output[T],
       keepProbability: Output[T],
       scaleOutput: Boolean = true,
@@ -1129,7 +1130,7 @@ trait NN {
     * @return Tuple containing the created op outputs: (i) `values`: the `k` largest elements along each last
     *         dimensional slice, and (ii) `indices`: the indices of `values` within the last axis of `input`.
     */
-  def topK[T: IsReal : TF](
+  def topK[T: TF : IsReal](
       input: Output[T],
       k: Output[Int],
       sorted: Boolean = true,
@@ -1140,11 +1141,11 @@ trait NN {
       name = name,
       input = (input, k)
     ).setAttribute("sorted", sorted)
-        .setGradientFn(topKGradient(_, _)(IsReal[T], TF[T]))
+        .setGradientFn(topKGradient(_, _)(TF[T], IsReal[T]))
         .build().output
   }
 
-  protected def topKGradient[T: IsReal : TF](
+  protected def topKGradient[T: TF : IsReal](
       op: Op[(Output[T], Output[Int]), (Output[T], Output[Int])],
       outputGradient: (Output[T], Output[Int])
   ): (Output[T], Output[Int]) = {
@@ -1183,7 +1184,7 @@ trait NN {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def inTopK[I: IsInt32OrInt64 : TF](
+  def inTopK[I: TF : IsInt32OrInt64](
       predictions: Output[Float],
       targets: Output[I],
       k: Output[I],
@@ -1215,7 +1216,7 @@ trait NN {
     * @param  name          Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def conv2D[T: IsDecimal : TF](
+  def conv2D[T: TF : IsDecimal](
       input: Output[T],
       filter: Output[T],
       stride1: Long,
@@ -1236,11 +1237,11 @@ trait NN {
         .setAttribute("data_format", dataFormat.name)
         .setAttribute("dilations", Array[Long](dilations._1, dilations._2, dilations._3, dilations._4))
         .setAttribute("use_cudnn_on_gpu", useCuDNNOnGPU)
-        .setGradientFn(conv2DGradient(_, _)(IsDecimal[T], TF[T]))
+        .setGradientFn(conv2DGradient(_, _)(TF[T], IsDecimal[T]))
         .build().output
   }
 
-  protected def conv2DGradient[T: IsDecimal : TF](
+  protected def conv2DGradient[T: TF : IsDecimal](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1277,7 +1278,7 @@ trait NN {
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def conv2DBackpropInput[T: IsDecimal : TF](
+  def conv2DBackpropInput[T: TF : IsDecimal](
       inputSizes: Output[Int],
       filter: Output[T],
       outputGradient: Output[T],
@@ -1321,7 +1322,7 @@ trait NN {
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def conv2DBackpropFilter[T: IsDecimal : TF](
+  def conv2DBackpropFilter[T: TF : IsDecimal](
       input: Output[T],
       filterSizes: Output[Int],
       outputGradient: Output[T],
@@ -1360,7 +1361,7 @@ trait NN {
     * @param  name       Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPool[T: IsNumeric : TF](
+  def maxPool[T: TF : IsNumeric](
       input: Output[T],
       windowSize: Output[Int],
       // TODO: [OPS|NN] Enforce the batch and depth stride constraint at compile time.
@@ -1375,11 +1376,11 @@ trait NN {
       input = (input, windowSize, strides)
     ).setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
-        .setGradientFn(maxPoolGradient(_, _)(IsNumeric[T], TF[T]))
+        .setGradientFn(maxPoolGradient(_, _)(TF[T], IsNumeric[T]))
         .build().output
   }
 
-  protected def maxPoolGradient[T: IsNumeric : TF](
+  protected def maxPoolGradient[T: TF : IsNumeric](
       op: Op[(Output[T], Output[Int], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[Int], Output[Int]) = {
@@ -1405,7 +1406,7 @@ trait NN {
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPoolGrad[T: IsNumeric : TF](
+  def maxPoolGrad[T: TF : IsNumeric](
       originalInput: Output[T],
       originalOutput: Output[T],
       outputGradient: Output[T],
@@ -1422,11 +1423,11 @@ trait NN {
       input = (originalInput, originalOutput, outputGradient, windowSize, strides)
     ).setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
-        .setGradientFn(maxPoolHessian(_, _)(IsNumeric[T], TF[T]))
+        .setGradientFn(maxPoolHessian(_, _)(TF[T], IsNumeric[T]))
         .build().output
   }
 
-  protected def maxPoolHessian[T: IsNumeric : TF](
+  protected def maxPoolHessian[T: TF : IsNumeric](
       op: Op[(Output[T], Output[T], Output[T], Output[Int], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T], Output[T], Output[Int], Output[Int]) = {
@@ -1454,7 +1455,7 @@ trait NN {
     * @param  name           Name for the created op.
     * @return Created op output, which is a 4-D tensor whose dimension order depends on the value of `dataFormat`.
     */
-  def maxPoolGradGrad[T: IsNumeric : TF](
+  def maxPoolGradGrad[T: TF : IsNumeric](
       originalInput: Output[T],
       originalOutput: Output[T],
       outputGradient: Output[T],
@@ -1471,11 +1472,11 @@ trait NN {
       input = (originalInput, originalOutput, outputGradient, windowSize, strides)
     ).setAttribute("padding", padding.name)
         .setAttribute("data_format", dataFormat.name)
-        .setGradientFn(maxPoolHessianGradient(_, _)(IsNumeric[T], TF[T]))
+        .setGradientFn(maxPoolHessianGradient(_, _)(TF[T], IsNumeric[T]))
         .build().output
   }
 
-  protected def maxPoolHessianGradient[T: IsNumeric : TF](
+  protected def maxPoolHessianGradient[T: TF : IsNumeric](
       op: Op[(Output[T], Output[T], Output[T], Output[Int], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T], Output[T], Output[Int], Output[Int]) = {
@@ -1505,7 +1506,7 @@ trait NN {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def lrn[T: IsBFloat16OrFloat16OrFloat32 : TF](
+  def lrn[T: TF : IsBFloat16OrFloat16OrFloat32](
       input: Output[T],
       depthRadius: Int = 5,
       bias: Float = 1.0f,
@@ -1527,7 +1528,7 @@ trait NN {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def localResponseNormalization[T: IsBFloat16OrFloat16OrFloat32 : TF](
+  def localResponseNormalization[T: TF : IsBFloat16OrFloat16OrFloat32](
       input: Output[T],
       depthRadius: Int = 5,
       bias: Float = 1.0f,
@@ -1543,11 +1544,11 @@ trait NN {
         .setAttribute("bias", bias)
         .setAttribute("alpha", alpha)
         .setAttribute("beta", beta)
-        .setGradientFn(lrnGradient(_, _)(IsBFloat16OrFloat16OrFloat32[T], TF[T]))
+        .setGradientFn(lrnGradient(_, _)(TF[T], IsBFloat16OrFloat16OrFloat32[T]))
         .build().output
   }
 
-  protected def lrnGradient[T: IsBFloat16OrFloat16OrFloat32 : TF](
+  protected def lrnGradient[T: TF : IsBFloat16OrFloat16OrFloat32](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1573,7 +1574,7 @@ trait NN {
     * @param  name     Name for the created ops.
     * @return Batch-normalized tensor `x`.
     */
-  def batchNormalization[T: IsDecimal : TF](
+  def batchNormalization[T: TF : IsDecimal](
       x: Output[T],
       mean: Output[T],
       variance: Output[T],
@@ -1604,7 +1605,7 @@ trait NN {
     * @throws IllegalArgumentException If `isTraining == false` and `mean` and `variance` are both `None`.
     */
   @throws[IllegalArgumentException]
-  def fusedBatchNormalization[T: IsDecimal : TF](
+  def fusedBatchNormalization[T: TF : IsDecimal](
       x: Output[T],
       scale: Output[Float],
       offset: Output[Float],
@@ -1631,11 +1632,11 @@ trait NN {
     ).setAttribute("epsilon", if (epsilon > minEpsilon) epsilon else minEpsilon)
         .setAttribute("data_format", dataFormat.name)
         .setAttribute("is_training", isTraining)
-        .setGradientFn(fusedBatchNormalizationGradient(_, _)(IsDecimal[T], TF[T]))
+        .setGradientFn(fusedBatchNormalizationGradient(_, _)(TF[T], IsDecimal[T]))
         .build().output
   }
 
-  protected def fusedBatchNormalizationGradient[T: IsDecimal : TF](
+  protected def fusedBatchNormalizationGradient[T: TF : IsDecimal](
       op: Op[(Output[T], Output[Float], Output[Float], Output[Float], Output[Float]), (Output[T], Output[Float], Output[Float], Output[Float], Output[Float])],
       outputGradient: (Output[T], Output[Float], Output[Float], Output[Float], Output[Float])
   ): (Output[T], Output[Float], Output[Float], Output[Float], Output[Float]) = {
@@ -1733,7 +1734,7 @@ object NN extends NN {
         *                 `norm < sqrt(epsilon)`.
         * @return Created op output.
         */
-      def l2Normalize[I: IsInt32OrInt64 : TF](
+      def l2Normalize[I: TF : IsInt32OrInt64](
           axes: Output[I],
           epsilon: Float = 1e-12f
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -1843,7 +1844,7 @@ object NN extends NN {
         *                         generator, when combined with the graph-level seed.
         * @return Created op output that has the same shape as `input`.
         */
-      def dropout[I: IsInt32OrInt64 : TF](
+      def dropout[I: IntDefault : IsInt32OrInt64 : TF](
           keepProbability: Float,
           scaleOutput: Boolean = true,
           noiseShape: Output[I] = null,
@@ -1862,7 +1863,7 @@ object NN extends NN {
         *                         generator, when combined with the graph-level seed.
         * @return Created op output that has the same shape as `input`.
         */
-      def dynamicDropout[I: IsInt32OrInt64 : TF](
+      def dynamicDropout[I: IntDefault : TF : IsInt32OrInt64](
           keepProbability: Output[T],
           scaleOutput: Boolean = true,
           noiseShape: Output[I] = null,
@@ -1893,7 +1894,7 @@ object NN extends NN {
         * @param  k       Scalar tensor containing the number of top elements to look at.
         * @return Created op output.
         */
-      def inTopK[I: IsInt32OrInt64 : TF](
+      def inTopK[I: TF : IsInt32OrInt64](
           targets: Output[I],
           k: Output[I]
       )(implicit ev: T =:= Float): Output[Boolean] = {
@@ -2067,7 +2068,7 @@ object NN extends NN {
   }
 
   /** Creates an op that swaps the axes `axis1` and `axis2` in `input` and ignores all axes after `axis2`. */
-  private[ops] def swapAxes[T: TF, I: IsInt32OrInt64 : TF](
+  private[ops] def swapAxes[T: TF, I: TF : IsInt32OrInt64](
       input: Output[T],
       axis1: Output[I],
       axis2: Output[I],

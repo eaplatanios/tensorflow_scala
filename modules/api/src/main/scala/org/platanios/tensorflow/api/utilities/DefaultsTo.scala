@@ -25,4 +25,6 @@ object DefaultsTo {
   implicit def fallback[T, D]: DefaultsTo[T, D] = null
 
   type IntDefault[T] = DefaultsTo[T, Int]
+  type LongDefault[T] = DefaultsTo[T, Long]
+  type FloatDefault[T] = DefaultsTo[T, Float]
 }

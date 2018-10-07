@@ -45,7 +45,7 @@ import org.platanios.tensorflow.api.types.{INT32, IsDecimal, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LuongAttention[T: IsDecimal : TF](
+class LuongAttention[T: TF : IsDecimal](
     override protected val memory: Output[T],
     protected val memoryWeights: Output[T],
     protected val probabilityFn: Output[T] => Output[T],
@@ -122,7 +122,7 @@ class LuongAttention[T: IsDecimal : TF](
 }
 
 object LuongAttention {
-  def apply[T: IsDecimal : TF](
+  def apply[T: TF : IsDecimal](
       memory: Output[T],
       memoryWeights: Output[T],
       probabilityFn: Output[T] => Output[T] = null,

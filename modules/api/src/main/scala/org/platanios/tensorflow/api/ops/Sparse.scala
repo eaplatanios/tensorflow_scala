@@ -33,7 +33,7 @@ trait Sparse {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def sparseAdd[T: IsNumeric : TF, TR: IsReal : TF](
+  def sparseAdd[T: TF : IsNumeric, TR: TF : IsReal](
       x: SparseOutput[T],
       y: SparseOutput[T],
       threshold: Output[TR],
@@ -54,7 +54,7 @@ trait Sparse {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sparseDenseAdd[T: IsNumeric : TF](
+  def sparseDenseAdd[T: TF : IsNumeric](
       x: SparseOutput[T],
       y: Output[T],
       name: String = "SparseDenseAdd"
@@ -92,7 +92,7 @@ object Sparse extends Sparse {
         * @param  name      Name for the created op.
         * @return Created op output.
         */
-      def add[TR: IsReal : TF](
+      def add[TR: TF : IsReal](
           other: SparseOutput[T],
           threshold: Output[TR],
           name: String = "SparseAdd"

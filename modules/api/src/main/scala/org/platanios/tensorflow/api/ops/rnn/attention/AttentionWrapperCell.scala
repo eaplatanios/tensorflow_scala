@@ -44,7 +44,7 @@ import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-class AttentionWrapperCell[T: IsNotQuantized : TF, S, SS, AS, ASS] private[attention] (
+class AttentionWrapperCell[T: TF : IsNotQuantized, S, SS, AS, ASS] private[attention] (
     val cell: RNNCell[Output[T], Shape, S, SS],
     val attentions: Seq[Attention[T, AS, ASS]], // TODO: Allow for varying supported types in the sequence.
     val attentionLayerWeights: Seq[Output[T]] = null,
@@ -194,7 +194,7 @@ class AttentionWrapperCell[T: IsNotQuantized : TF, S, SS, AS, ASS] private[atten
 }
 
 object AttentionWrapperCell {
-  def apply[T: IsNotQuantized : TF, S, SS, AS, ASS](
+  def apply[T: TF : IsNotQuantized, S, SS, AS, ASS](
       cell: RNNCell[Output[T], Shape, S, SS],
       attentions: Seq[Attention[T, AS, ASS]],
       attentionLayerWeights: Seq[Output[T]] = null,

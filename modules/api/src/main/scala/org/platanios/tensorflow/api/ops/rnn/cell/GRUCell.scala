@@ -36,7 +36,7 @@ import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-class GRUCell[T: IsNotQuantized : TF] protected (
+class GRUCell[T: TF : IsNotQuantized] protected (
     val gateKernel: Output[T],
     val gateBias: Output[T],
     val candidateKernel: Output[T],
@@ -68,7 +68,7 @@ class GRUCell[T: IsNotQuantized : TF] protected (
 }
 
 object GRUCell {
-  def apply[T: IsNotQuantized : TF](
+  def apply[T: TF : IsNotQuantized](
       gateKernel: Output[T],
       gateBias: Output[T],
       candidateKernel: Output[T],

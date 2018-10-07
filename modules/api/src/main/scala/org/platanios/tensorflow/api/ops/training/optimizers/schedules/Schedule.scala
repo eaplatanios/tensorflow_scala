@@ -38,7 +38,7 @@ trait Schedule[-T] {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  def apply[V <: T : TF, I: IsInt32OrInt64 : TF](
+  def apply[V <: T : TF, I: TF : IsInt32OrInt64](
       value: Output[V],
       step: Option[Variable[I]]
   ): Output[V]

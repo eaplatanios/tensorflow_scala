@@ -41,7 +41,7 @@ import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicLSTMCell[T: IsNotQuantized : TF] protected (
+class BasicLSTMCell[T: TF : IsNotQuantized] protected (
     val kernel: Output[T],
     val bias: Output[T],
     val activation: Output[T] => Output[T],
@@ -78,7 +78,7 @@ class BasicLSTMCell[T: IsNotQuantized : TF] protected (
 }
 
 object BasicLSTMCell {
-  def apply[T: IsNotQuantized : TF](
+  def apply[T: TF : IsNotQuantized](
       kernel: Output[T],
       bias: Output[T],
       activation: Output[T] => Output[T],

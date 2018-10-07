@@ -40,7 +40,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Attention[T: IsDecimal : TF, AS, ASS](
+abstract class Attention[T: TF : IsDecimal, AS, ASS](
     protected val memory: Output[T],
     protected val memorySequenceLengths: Output[Int] = null,
     val checkInnerDimensionsDefined: Boolean = true,
@@ -139,7 +139,7 @@ abstract class Attention[T: IsDecimal : TF, AS, ASS](
 }
 
 /** Base class for attention models that use as state the previous alignment. */
-abstract class SimpleAttention[T: IsDecimal : TF](
+abstract class SimpleAttention[T: TF : IsDecimal](
     override protected val memory: Output[T],
     override protected val memorySequenceLengths: Output[Int] = null,
     override val checkInnerDimensionsDefined: Boolean = true,
@@ -189,7 +189,7 @@ object Attention {
 
   /** Potentially masks the provided values tensor based on the provided sequence lengths. */
   @throws[InvalidShapeException]
-  private[attention] def maybeMaskValues[T: IsNotQuantized : TF](
+  private[attention] def maybeMaskValues[T: TF : IsNotQuantized](
       values: Output[T],
       sequenceLengths: Output[Int],
       checkInnerDimensionsDefined: Boolean
@@ -230,7 +230,7 @@ object Attention {
   }
 
   /** Potentially masks the provided score tensor based on the provided sequence lengths. */
-  private[attention] def maybeMaskScore[T: IsNotQuantized : TF](
+  private[attention] def maybeMaskScore[T: TF : IsNotQuantized](
       score: Output[T],
       sequenceLengths: Output[Int],
       scoreMaskValue: Output[T]

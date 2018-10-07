@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** Length penalty function to be used while decoding. */
 trait LengthPenalty {
-  def apply[T: IsNotQuantized : TF](
+  def apply[T: TF : IsNotQuantized](
       scores: Output[T],
       sequenceLengths: Output[Int]
   ): Output[T]
@@ -29,7 +29,7 @@ trait LengthPenalty {
 
 /** No length penalty. */
 case object NoPenalty extends LengthPenalty {
-  override def apply[T: IsNotQuantized : TF](
+  override def apply[T: TF : IsNotQuantized](
       scores: Output[T],
       sequenceLengths: Output[Int]
   ): Output[T] = {
@@ -43,7 +43,7 @@ case object NoPenalty extends LengthPenalty {
   * @param  alpha Length penalty weight (disabled if set to `0.0f`).
   */
 case class ExponentialPenalty(alpha: Float) extends LengthPenalty {
-  override def apply[T: IsNotQuantized : TF](
+  override def apply[T: TF : IsNotQuantized](
       scores: Output[T],
       sequenceLengths: Output[Int]
   ): Output[T] = {
@@ -65,7 +65,7 @@ case class ExponentialPenalty(alpha: Float) extends LengthPenalty {
   * @param  alpha Length penalty weight (disabled if set to `0.0f`).
   */
 case class GooglePenalty(alpha: Float) extends LengthPenalty {
-  override def apply[T: IsNotQuantized : TF](
+  override def apply[T: TF : IsNotQuantized](
       scores: Output[T],
       sequenceLengths: Output[Int]
   ): Output[T] = {

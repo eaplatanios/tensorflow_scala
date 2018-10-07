@@ -117,7 +117,7 @@ object DropoutWrapper {
   }
 
   object Supported {
-    implicit def outputSupported[T: IsFloat16OrFloat32OrFloat64 : TF]: Supported[Output[T]] = {
+    implicit def outputSupported[T: TF : IsFloat16OrFloat32OrFloat64]: Supported[Output[T]] = {
       new Supported[Output[T]] {
         override def dropout(
             value: Output[T],
@@ -135,7 +135,7 @@ object DropoutWrapper {
       }
     }
 
-    implicit def tensorArraySupported[T: IsFloat16OrFloat32OrFloat64 : TF]: Supported[TensorArray[T]] = {
+    implicit def tensorArraySupported[T: TF : IsFloat16OrFloat32OrFloat64]: Supported[TensorArray[T]] = {
       new Supported[TensorArray[T]] {
         override def dropout(
             value: TensorArray[T],
@@ -149,7 +149,7 @@ object DropoutWrapper {
       }
     }
 
-    implicit def lstmStateSupported[T: IsFloat16OrFloat32OrFloat64 : TF]: Supported[LSTMState[T]] = {
+    implicit def lstmStateSupported[T: TF : IsFloat16OrFloat32OrFloat64]: Supported[LSTMState[T]] = {
       new Supported[LSTMState[T]] {
         override def dropout(
             value: LSTMState[T],

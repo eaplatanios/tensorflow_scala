@@ -54,7 +54,7 @@ class CosineDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: Float : TF, I: IsInt32OrInt64 : TF](
+  override def apply[V <: Float : TF, I: TF : IsInt32OrInt64](
       value: Output[V],
       step: Option[Variable[I]]
   ): Output[V] = {
