@@ -284,7 +284,7 @@ class Tensor[+T] protected (
     ops.Basic.stridedSlice(
       this, beginTensor, endTensor, stridesTensor, stridedSlice._4,
       stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8
-    )(TF.fromDataType(dataType), IsInt32OrInt64[Int], TF[Int])
+    )(TF.fromDataType(dataType), TF[Int], IsInt32OrInt64[Int])
   }
 
   /** Returns a summary of the contents of this tensor.

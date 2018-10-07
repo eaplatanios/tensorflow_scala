@@ -36,7 +36,7 @@ object NPY {
   protected val dtypeParser: Regex = """^[<=>]?(\w\d*)$""".r
 
   /** Represents an NPY file header. */
-  case class Header[T: SupportedType](
+  case class Header[T: TF](
       description: String,
       fortranOrder: Boolean,
       shape: Shape
@@ -61,7 +61,7 @@ object NPY {
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
   @throws[InvalidDataTypeException]
   @throws[IllegalArgumentException]
-  def read[T: SupportedType](file: Path): Tensor[T] = {
+  def read[T: TF](file: Path): Tensor[T] = {
     val byteBuffer = ByteBuffer.wrap(Files.readAllBytes(file))
 
     // Check the first byte in the magic string.
@@ -107,9 +107,7 @@ object NPY {
   /** Writes the provided tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method
     * will replace the file, if it already exists. */
   @throws[InvalidDataTypeException]
-  def write[T](tensor: Tensor[T], file: Path, fortranOrder: Boolean = false): Unit = {
-    implicit val evSupportedType: SupportedType[T] = tensor.dataType.evSupportedType
-
+  def write[T: TF](tensor: Tensor[T], file: Path, fortranOrder: Boolean = false): Unit = {
     val description = ">" + dataTypeToNumpyDType(tensor.dataType)
     val header = Header[T](description, fortranOrder, tensor.shape).toString
 

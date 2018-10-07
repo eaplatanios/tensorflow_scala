@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.io
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.UnavailableException
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, TF}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{CheckpointReader => NativeCheckpointReader}
 
@@ -65,7 +65,7 @@ class CheckpointReader private[CheckpointReader] (
     * @throws UnavailableException If this checkpoint reader object has already been disposed.
     */
   @throws[UnavailableException]
-  def getTensor[T](name: String): Option[Tensor[T]] = {
+  def getTensor[T: TF](name: String): Option[Tensor[T]] = {
     if (nativeHandle == 0)
       throw UnavailableException("This checkpoint reader has already been disposed.")
     Option(NativeCheckpointReader.getTensor(nativeHandle, name)).map(Tensor.fromNativeHandle[T])
