@@ -20,14 +20,15 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
-import org.platanios.tensorflow.api.ops.{Basic, Output}
-import org.platanios.tensorflow.api.tensors.ops.Basic.stack
-import org.platanios.tensorflow.api.tensors.ops.{Math, Random}
+import org.platanios.tensorflow.api.ops.{Op, Output, Basic => OutputBasic}
+import org.platanios.tensorflow.api.tensors.ops.{Basic, Math, Random}
 import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
-import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic, Sparse => NativeTensorOpsSparse}
+import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
+import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOpsRandom}
+import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
@@ -151,7 +152,7 @@ class Tensor[+T] protected (
     val parsedDevice = DeviceSpecification.fromString(device).toString.stripPrefix("/device:")
     val handle = NativeTensor.eagerCopyToDevice(
       nativeHandle, executionContext.value.nativeHandle, parsedDevice)
-    Tensor.fromNativeHandle(handle)
+    Tensor.fromNativeHandle[T](handle)
   }
 
   private[api] def resolve(): Long = {
@@ -168,7 +169,10 @@ class Tensor[+T] protected (
         lengthsOffset + length
       case _ => index * dataType.byteSize.get
     }
-    val value = DataType.getElementFromBuffer[T](buffer, offset)(dataType.evSupportedType)
+    val value = DataType.getElementFromBuffer[T](
+      buffer = buffer,
+      index = offset
+    )(TF.fromDataType(dataType))
     NativeHandleLock synchronized {
       if (resolvedHandle != 0)
         NativeTensor.delete(resolvedHandle)
@@ -187,6 +191,8 @@ class Tensor[+T] protected (
   }
 
   def entriesIterator: Iterator[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+
     object resolved extends (() => Unit) {
       private[Tensor] val lock   = Tensor.this.NativeHandleLock
       private[Tensor] var handle = resolve()
@@ -210,7 +216,9 @@ class Tensor[+T] protected (
       override def hasDefiniteSize: Boolean = true
       override def size: Int = remaining
 
-      private val buffer: ByteBuffer = NativeTensor.buffer(resolved.handle).order(ByteOrder.nativeOrder)
+      private val buffer: ByteBuffer = {
+        NativeTensor.buffer(resolved.handle).order(ByteOrder.nativeOrder)
+      }
 
       Disposer.add(this, resolved)
 
@@ -227,9 +235,9 @@ class Tensor[+T] protected (
             val length = DataType.getElementFromBuffer[Long](buffer, i * INT64.byteSize.get)
             DataType.getElementFromBuffer[T](
               buffer,
-              lengthsOffset + length.ensuring(_ <= Int.MaxValue).toInt)(dataType.evSupportedType)
+              lengthsOffset + length.ensuring(_ <= Int.MaxValue).toInt)
           case _ =>
-            DataType.getElementFromBuffer[T](buffer, i * dataType.byteSize.get)(dataType.evSupportedType)
+            DataType.getElementFromBuffer[T](buffer, i * dataType.byteSize.get)
         }
 
         i += 1
@@ -275,7 +283,8 @@ class Tensor[+T] protected (
     val stridesTensor: Tensor[Int] = stridedSlice._3
     ops.Basic.stridedSlice(
       this, beginTensor, endTensor, stridesTensor, stridedSlice._4,
-      stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8)
+      stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8
+    )(TF.fromDataType(dataType), IsInt32OrInt64[Int], TF[Int])
   }
 
   /** Returns a summary of the contents of this tensor.
@@ -306,7 +315,10 @@ class Tensor[+T] protected (
           slice.mkString("[", ", ", "]")
         case _ =>
           val innerSummary = {
-            def summarizeSlice(index: Int) = summarize(tensor(index).reshape(tensor.shape(1 ::)), maxEntries)
+            def summarizeSlice(index: Int) = {
+              implicit val evTF: TF[T] = TF.fromDataType(dataType)
+              summarize(tensor(index).reshape(tensor.shape(1 ::)), maxEntries)
+            }
 
             if (tensor.shape(0) <= math.max(maxEntries, 6))
               for (i <- 0 until tensor.shape(0)) yield summarizeSlice(i)
@@ -335,13 +347,13 @@ class Tensor[+T] protected (
   /** Returns the tensor indexed slices that has the same value as this tensor. */
   override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
     TensorIndexedSlices(
-      indices = (0 until shape(0)).toTensor.castTo[Long],
+      indices = (0 until shape(0)).toTensor.toLong,
       values = this,
-      denseShape = shape.toTensor[Long])
+      denseShape = shape.toTensor)
   }
 
   def toOutput: Output[T] = {
-    Basic.constant(cpu())
+    OutputBasic.constant(cpu())
   }
 
   override def toProto: TensorProto = {
@@ -359,11 +371,11 @@ class Tensor[+T] protected (
   /** Writes this tensor to the provided file, using the Numpy (i.e., `.npy`) file format. Note that this method will
     * replace the file, if it already exists. */
   def writeNPY(file: Path, fortranOrder: Boolean = false): Unit = {
-    NPY.write(this, file, fortranOrder)
+    NPY.write(this, file, fortranOrder)(TF.fromDataType(dataType))
   }
 
   override def toString: String = {
-    s"$dataType$shape"
+    s"Tensor[$dataType, $shape]"
   }
 
   override def equals(that: Any): Boolean = that match {
@@ -397,9 +409,7 @@ object Tensor {
 
   //region Constructors
 
-  private[api] def fromNativeHandle[T](
-      nativeHandle: Long
-  ): Tensor[T] = {
+  private[api] def fromNativeHandle[T](nativeHandle: Long): Tensor[T] = {
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
       nativeHandleWrapper.Lock.synchronized {
@@ -417,32 +427,20 @@ object Tensor {
     tensor
   }
 
-  private[api] def fromHostNativeHandle[T](
-      nativeHandle: Long
-  ): Tensor[T] = {
+  private[api] def fromHostNativeHandle[T](nativeHandle: Long): Tensor[T] = {
     Tensor.fromNativeHandle(NativeTensor.eagerAllocate(nativeHandle))
   }
 
-  def empty[T: SupportedType]: Tensor[T] = {
+  def empty[T: TF]: Tensor[T] = {
     Tensor.allocate[T](Shape(0))
   }
 
-  def empty[T](dataType: DataType[T]): Tensor[T] = {
-    Tensor.allocate[T](dataType, Shape(0))
-  }
-
-  def apply[T: SupportedType](): Tensor[T] = {
+  def apply[T: TF](): Tensor[T] = {
     empty[T]
   }
 
-  def apply[T](tensors: Tensor[T]*): Tensor[T] = {
-    stack(tensors, axis = 0)
-  }
-
-  def apply[TC, T](tensors: TC*)(implicit
-      f: TC => Tensor[T]
-  ): Tensor[T] = {
-    stack(tensors.map(f), axis = 0)
+  def apply[T: TF](tensors: Tensor[T]*): Tensor[T] = {
+    Basic.stack(tensors, axis = 0)
   }
 
   /** Returns a new tensor with shape `shape` and all elements set to zero.
@@ -450,75 +448,85 @@ object Tensor {
     * For example:
     * {{{
     *   Tensor.zeros[Int](Shape(3, 4)) == Tensor(Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0))
+    * }}}
+    *
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @return Constructed tensor.
+    */
+  def zeros[T: TF](shape: Shape): Tensor[T] = {
+    fill[T](shape)(DataType.zero[T])
+  }
+
+  /** Returns a new tensor with shape `shape` and all elements set to zero.
+    *
+    * For example:
+    * {{{
+    *   Tensor.zeros[Int](Shape(3, 4)) == Tensor(Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0))
+    * }}}
+    *
+    * @param dataType Tensor data type.
+    * @param  shape    Tensor shape.
+    * @return Constructed tensor.
+    */
+  def zeros[T](dataType: DataType[T], shape: Shape): Tensor[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    fill[T](shape)(DataType.zero[T])
+  }
+
+  /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to zero. */
+  def zerosLike[T](
+      tensor: Tensor[T],
+      shape: Shape = null
+  ): Tensor[T] = {
+    if (shape == null) {
+      zeros(tensor.dataType, tensor.shape)
+    } else {
+      zeros(tensor.dataType, shape)
+    }
+  }
+
+  /** Returns a new tensor with shape `shape` and all elements set to ones.
+    *
+    * For example:
+    * {{{
+    *   Tensor.ones[Int](Shape(3, 4)) == Tensor(Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1))
+    * }}}
+    *
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @return Constructed tensor.
+    */
+  def ones[T: TF](shape: Shape): Tensor[T] = {
+    fill[T](shape)(DataType.one[T])
+  }
+
+  /** Returns a new tensor with shape `shape` and all elements set to ones.
+    *
+    * For example:
+    * {{{
+    *   Tensor.ones[Int](Shape(3, 4)) == Tensor(Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1))
     * }}}
     *
     * @param  dataType Tensor data type.
     * @param  shape    Tensor shape.
     * @return Constructed tensor.
     */
-  def zeros[T](dataType: DataType[T], shape: Shape): Tensor[T] = {
-    zeros[T](shape)(dataType.evSupportedType)
-  }
-
-  /** Returns a new tensor with shape `shape` and all elements set to zero.
-    *
-    * For example:
-    * {{{
-    *   Tensor.zeros[Int](Shape(3, 4)) == Tensor(Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0), Tensor(0, 0, 0, 0))
-    * }}}
-    *
-    * @param  shape Tensor shape.
-    * @tparam T Tensor data type.
-    * @return Constructed tensor.
-    */
-  def zeros[T: SupportedType](shape: Shape): Tensor[T] = {
-    Tensor.fill[T](shape)(DataType.zero[T])
-  }
-
-  /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to zero. */
-  def zerosLike[T](tensor: Tensor[T], shape: Shape = null): Tensor[T] = {
-    if (shape == null)
-      zeros[T](tensor.dataType, tensor.shape)
-    else
-      zeros[T](tensor.dataType, shape)
-  }
-
-  /** Returns a new tensor with shape `shape` and all elements set to ones.
-    *
-    * For example:
-    * {{{
-    *   Tensor.ones[Int](Shape(3, 4)) == Tensor(Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1))
-    * }}}
-    *
-    * @param  dataType Tensor data type.
-    * @param  shape Tensor shape.
-    * @return Constructed tensor.
-    */
   def ones[T](dataType: DataType[T], shape: Shape): Tensor[T] = {
-    ones[T](shape)(dataType.evSupportedType)
-  }
-
-  /** Returns a new tensor with shape `shape` and all elements set to ones.
-    *
-    * For example:
-    * {{{
-    *   Tensor.ones[Int](Shape(3, 4)) == Tensor(Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1), Tensor(1, 1, 1, 1))
-    * }}}
-    *
-    * @param  shape Tensor shape.
-    * @tparam T Tensor data type.
-    * @return Constructed tensor.
-    */
-  def ones[T: SupportedType](shape: Shape): Tensor[T] = {
-    Tensor.fill[T](shape)(DataType.one[T])
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    fill[T](shape)(DataType.one[T])
   }
 
   /** Returns a new tensor with the same data type and shape as the provided tensor, and all elements set to one. */
-  def onesLike[T](tensor: Tensor[T], shape: Shape = null): Tensor[T] = {
-    if (shape == null)
-      ones[T](tensor.dataType, tensor.shape)
-    else
-      ones[T](tensor.dataType, shape)
+  def onesLike[T](
+      tensor: Tensor[T],
+      shape: Shape = null
+  ): Tensor[T] = {
+    if (shape == null) {
+      ones(tensor.dataType, tensor.shape)
+    } else {
+      ones(tensor.dataType, shape)
+    }
   }
 
   /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
@@ -534,9 +542,9 @@ object Tensor {
     * @tparam T Tensor data type.
     * @return Constructed tensor.
     */
-  def fill[T: SupportedType](shape: Shape)(value: T): Tensor[T] = {
+  def fill[T: TF](shape: Shape)(value: T): Tensor[T] = {
     shape.assertFullyDefined()
-    val dataType = implicitly[SupportedType[T]].dataType
+    val dataType = implicitly[TF[T]].dataType
     val hostHandle = dataType match {
       case STRING =>
         val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
@@ -548,8 +556,7 @@ object Tensor {
         var index = 0
         var i = 0
         while (i < shape.numElements) {
-          val numEncodedBytes = DataType.putElementInBuffer[String](
-            buffer, baseOffset + index, STRING.cast(value))
+          val numEncodedBytes = DataType.putElementInBuffer[T](buffer, baseOffset + index, value)
           DataType.putElementInBuffer[Long](buffer, i * INT64.byteSize.get, index.toLong)
           index += numEncodedBytes
           i += 1
@@ -562,7 +569,7 @@ object Tensor {
         var index = 0
         var i = 0
         while (i < shape.numElements) {
-          DataType.putElementInBuffer[T](buffer, index, dataType.cast(value))
+          DataType.putElementInBuffer[T](buffer, index, value)
           index += dataType.byteSize.get
           i += 1
         }
@@ -573,9 +580,28 @@ object Tensor {
     tensor
   }
 
+  /** Returns a new tensor of type `dataType` with shape `shape` and all elements set to `value`.
+    *
+    * If `dataType` is not provided, then its value is inferred from `value`.
+    *
+    * For example:
+    * {{{
+    *   Tensor.fill(INT32, Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
+    * }}}
+    *
+    * @param  dataType Tensor data type.
+    * @param  shape    Tensor shape.
+    * @return Constructed tensor.
+    */
+  def fill[T](dataType: DataType[T], shape: Shape)(value: T): Tensor[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    fill[T](shape)(value)
+  }
+
   /** $OpDocRandomRandomUniform
     *
     * @group RandomOps
+    * @param  dataType Data type for the output tensor.
     * @param  shape    Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  minValue Scalar tensor containing the inclusive lower bound on the random of random values to generate.
     *                  Defaults to `0`.
@@ -587,18 +613,33 @@ object Tensor {
     * @tparam I Shape type.
     * @return New random tensor.
     */
-  def rand[T: IsInt32OrInt64OrFloat16OrFloat32OrFloat64 : SupportedType, I: IsInt32OrInt64](
+  def rand[T: IsInt32OrInt64OrFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+      dataType: DataType[T],
       shape: Tensor[I],
       minValue: Tensor[T] = null,
       maxValue: Tensor[T] = null,
       seed: Option[Int] = None
   ): Tensor[T] = {
-    Random.randomUniform[T, I](shape, minValue, maxValue, seed)
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val minValueWithDefault = if (minValue == null) Tensor.zeros(dataType, Shape()) else minValue
+    val maxValueWithDefault = if (maxValue == null) Tensor.ones(dataType, Shape()) else maxValue
+    if (dataType.isInteger) {
+      Tensor.fromNativeHandle[T](NativeTensorOpsRandom.randomUniformInt(
+        executionContext.value.nativeHandle, shape.nativeHandle, minValueWithDefault.nativeHandle,
+        maxValueWithDefault.nativeHandle, graphSeed.getOrElse(0).toLong, opSeed.getOrElse(0).toLong))
+    } else {
+      val random = Tensor.fromNativeHandle[T](NativeTensorOpsRandom.randomUniform(
+        executionContext.value.nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
+        opSeed.getOrElse(0).toLong))
+      Math.add(random * (maxValueWithDefault - minValueWithDefault), minValue)
+    }
   }
 
   /** $OpDocRandomRandomNormal
     *
     * @group RandomOps
+    * @param  dataType          Data type for the output tensor.
     * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
     * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
@@ -609,13 +650,52 @@ object Tensor {
     * @tparam I Shape type.
     * @return New random tensor.
     */
-  def randn[T: IsFloat16OrFloat32OrFloat64 : SupportedType, I: IsInt32OrInt64](
+  def randn[T: IsFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+      dataType: DataType[T],
       shape: Tensor[I],
       mean: Tensor[T] = null,
       standardDeviation: Tensor[T] = null,
       seed: Option[Int] = None
   ): Tensor[T] = {
-    Random.randomNormal[T, I](shape, mean, standardDeviation, seed)
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val meanWithDefault = if (mean == null) Tensor.zeros(dataType, Shape()) else mean
+    val standardDeviationWithDefault = if (standardDeviation == null) Tensor.ones(dataType, Shape()) else standardDeviation
+    val random = Tensor.fromNativeHandle[T](NativeTensorOpsRandom.randomStandardNormal(
+      executionContext.value.nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
+      opSeed.getOrElse(0).toLong))
+    Math.add(random * standardDeviationWithDefault, meanWithDefault)
+  }
+
+  /** $OpDocRandomRandomTruncatedNormal
+    *
+    * @group RandomOps
+    * @param  dataType          Data type for the output tensor.
+    * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
+    * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
+    * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
+    *                           `1`.
+    * @param  seed              Optional random seed, used to generate a random seed pair for the random number
+    *                           generator, when combined with the graph-level seed.
+    * @tparam T Data type for the output tensor.
+    * @tparam I Shape type.
+    * @return Result as a new tensor.
+    */
+  def randTruncN[T: IsFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+      dataType: DataType[T],
+      shape: Tensor[I],
+      mean: Tensor[T] = null,
+      standardDeviation: Tensor[T] = null,
+      seed: Option[Int] = None
+  ): Tensor[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val meanWithDefault = if (mean == null) Tensor.zeros(dataType, Shape()) else mean
+    val standardDeviationWithDefault = if (standardDeviation == null) Tensor.ones(dataType, Shape()) else standardDeviation
+    val random = Tensor.fromNativeHandle[T](NativeTensorOpsRandom.truncatedNormal(
+      executionContext.value.nativeHandle, shape.nativeHandle, dataType.cValue, graphSeed.getOrElse(0).toLong,
+      opSeed.getOrElse(0).toLong))
+    Math.add(random * standardDeviationWithDefault, meanWithDefault)
   }
 
   /** $OpDocBasicOneHot
@@ -632,32 +712,18 @@ object Tensor {
     * @tparam I Indices tensor data type.
     * @return Result as a new tensor.
     */
-  def oneHot[T: SupportedType, I: IsInt32OrInt64OrUInt8](
+  def oneHot[T: TF, I: IsInt32OrInt64OrUInt8](
       indices: Tensor[I],
       depth: Tensor[Int],
       onValue: Tensor[T] = null,
       offValue: Tensor[T] = null,
       axis: Int = -1
   ): Tensor[T] = {
-    val actualOnValue = if (onValue != null) onValue else Tensor(1).castTo[T]
-    val actualOffValue = if (offValue != null) offValue else Tensor(0).castTo[T]
+    val actualOnValue = if (onValue != null) onValue else Tensor.ones[T](Shape())
+    val actualOffValue = if (offValue != null) offValue else Tensor.zeros[T](Shape())
     Tensor.fromNativeHandle[T](NativeTensorOpsBasic.oneHot(
       executionContext.value.nativeHandle, indices.nativeHandle, depth.nativeHandle, actualOnValue.nativeHandle,
       actualOffValue.nativeHandle, axis))
-  }
-
-  /** Allocates a new tensor without worrying about the values stored in it.
-    *
-    * @param  dataType Tensor data type.
-    * @param  shape    Tensor shape.
-    * @return Allocated tensor.
-    * @throws IllegalArgumentException If `T` is `String` and the shape is non-empty, because the number of bytes
-    *                                  required for a string tensor are not known until all its element values
-    *                                  are known.
-    */
-  @throws[IllegalArgumentException]
-  private def allocate[T](dataType: DataType[T], shape: Shape): Tensor[T] = {
-    allocate[T](shape)(dataType.evSupportedType)
   }
 
   /** Allocates a new tensor without worrying about the values stored in it.
@@ -670,8 +736,8 @@ object Tensor {
     *                                  are known.
     */
   @throws[IllegalArgumentException]
-  private def allocate[T: SupportedType](shape: Shape): Tensor[T] = {
-    val dataType = implicitly[SupportedType[T]].dataType
+  private def allocate[T: TF](shape: Shape): Tensor[T] = {
+    val dataType = implicitly[TF[T]].dataType
     val hostHandle = dataType match {
       case STRING if shape.numElements == 0 =>
         NativeTensor.allocate(dataType.cValue, Array[Long](0), 0)
@@ -689,22 +755,12 @@ object Tensor {
   }
 
   @throws[IllegalArgumentException]
-  def fromBuffer[T](
-      dataType: DataType[T],
+  def fromBuffer[T: TF](
       shape: Shape,
       numBytes: Long,
       buffer: ByteBuffer
   ): Tensor[T] = {
-    fromBuffer[T](shape, numBytes, buffer)(dataType.evSupportedType)
-  }
-
-  @throws[IllegalArgumentException]
-  def fromBuffer[T: SupportedType](
-      shape: Shape,
-      numBytes: Long,
-      buffer: ByteBuffer
-  ): Tensor[T] = {
-    val dataType = implicitly[SupportedType[T]].dataType
+    val dataType = implicitly[TF[T]].dataType
     dataType.byteSize match {
       case Some(byteSize) if byteSize * shape.numElements != numBytes =>
         throw InvalidArgumentException(
@@ -737,7 +793,7 @@ object Tensor {
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */
   @throws[InvalidDataTypeException]
   @throws[IllegalArgumentException]
-  def fromNPY[T: SupportedType](file: Path): Tensor[T] = {
+  def fromNPY[T: TF](file: Path): Tensor[T] = {
     NPY.read(file)
   }
 
@@ -770,7 +826,7 @@ object Tensor {
       }
     } else {
       value.entriesIterator.foreach(v => {
-        DataType.addToTensorProtoBuilder[T](tensorProtoBuilder, v)(value.dataType.evSupportedType)
+        DataType.addToTensorProtoBuilder[T](tensorProtoBuilder, v)(TF.fromDataType(value.dataType))
       })
     }
     tensorProtoBuilder.build()
@@ -816,7 +872,7 @@ final case class TensorIndexedSlices[+T](
 
   /** Shape of these tensor indexed slices. */
   override val shape: Shape = {
-    Shape(denseShape.castTo[Int].entriesIterator.toSeq: _*)
+    Shape(denseShape.toInt.entriesIterator.toSeq: _*)
   }
 
   /** Device on which these tensor indexed slices will be placed. */
@@ -839,10 +895,11 @@ final case class TensorIndexedSlices[+T](
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
 
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Math.unsortedSegmentSum(
       data = values,
       segmentIndices = indices,
-      segmentsNumber = denseShape(0).castTo[Int])
+      segmentsNumber = denseShape(0).toInt)
   }
 
   /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].
@@ -854,11 +911,11 @@ final case class TensorIndexedSlices[+T](
   }
 
   override def toString: String = {
-    "TensorIndexedSlices(" +
+    "TensorIndexedSlices[" +
         s"indices = $indices, " +
         s"values = $values, " +
         s"denseShape = $denseShape, " +
-        s"device = $device)"
+        s"device = $device]"
   }
 }
 
@@ -920,7 +977,7 @@ final case class SparseTensor[+T](
 
   /** Shape of this sparse tensor. */
   override val shape: Shape = {
-    Shape(denseShape.castTo[Int].entriesIterator.toSeq: _*)
+    Shape(denseShape.toInt.entriesIterator.toSeq: _*)
   }
 
   /** Device on which this sparse op output will be placed. */
@@ -930,7 +987,8 @@ final case class SparseTensor[+T](
 
   /** Returns the tensor that this [[TensorLike]] object represents. */
   override def toTensor: Tensor[T] = {
-    toTensor()(values.dataType.evSupportedType)
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    toTensor()
   }
 
   /** Converts this sparse tensor to a dense tensor.
@@ -959,7 +1017,7 @@ final case class SparseTensor[+T](
     *                         lexicographic order and that there are no repeats.
     * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toTensor[V >: T : SupportedType](
+  def toTensor[V >: T : TF](
       defaultValue: Tensor[V] = null,
       validateIndices: Boolean = true
   ): Tensor[T] = {
@@ -980,10 +1038,10 @@ final case class SparseTensor[+T](
   }
 
   override def toString: String = {
-    "SparseTensor(" +
+    "SparseTensor[" +
         s"indices = $indices, " +
         s"values = $values, " +
         s"denseShape = $denseShape, " +
-        s"device = $device)"
+        s"device = $device]"
   }
 }

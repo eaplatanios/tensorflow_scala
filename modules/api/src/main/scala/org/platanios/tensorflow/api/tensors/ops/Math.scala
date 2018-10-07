@@ -36,7 +36,7 @@ trait Math {
     * @param  y         Tensor with the same data type and shape as `t`.
     * @return Result as a new tensor.
     */
-  def select[T](
+  def select[T: TF](
       condition: Tensor[Boolean],
       x: Tensor[T],
       y: Tensor[T]
@@ -54,13 +54,12 @@ trait Math {
     *               sequence.
     * @return Result as a new tensor.
     */
-  def range[T: IsNumeric](
+  def range[T: IsNumeric : TF](
       start: Tensor[T],
       limit: Tensor[T],
       delta: Tensor[T] = null
   ): Tensor[T] = {
-    implicit val evSupportedType: SupportedType[T] = start.dataType.evSupportedType
-    val deltaWithDefault = if (delta == null) Tensor.ones[T](Shape()) else delta
+    val deltaWithDefault = if (delta == null) Tensor.ones(start.dataType, Shape()) else delta
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.range(
       executionContext.value.nativeHandle, start.nativeHandle, limit.nativeHandle,
       deltaWithDefault.nativeHandle))
@@ -75,7 +74,7 @@ trait Math {
     * @param  numberOfValues Rank 0 (i.e., scalar) tensor that contains the number of values in the number sequence.
     * @return Result as a new tensor.
     */
-  def linspace[T: IsBFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+  def linspace[T: IsBFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
       start: Tensor[T],
       stop: Tensor[T],
       numberOfValues: Tensor[I]
@@ -90,7 +89,7 @@ trait Math {
     * @param  inputs Input tensors.
     * @return Result as a new tensor.
     */
-  def addN[T: IsNumeric](inputs: Seq[Tensor[T]]): Tensor[T] = {
+  def addN[T: IsNumeric : TF](inputs: Seq[Tensor[T]]): Tensor[T] = {
     if (inputs.length == 1)
       inputs.head
     else
@@ -108,7 +107,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def abs[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def abs[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     if (x.dataType.isComplex) {
@@ -129,7 +128,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def negate[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def negate[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -143,7 +142,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def reciprocal[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def reciprocal[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -157,7 +156,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def square[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def square[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -171,7 +170,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def sqrt[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def sqrt[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -185,7 +184,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def rsqrt[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def rsqrt[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -199,7 +198,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def exp[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def exp[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -213,7 +212,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def expm1[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def expm1[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -227,7 +226,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def log[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def log[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -241,7 +240,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def log1p[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def log1p[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -255,7 +254,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def sin[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def sin[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -269,7 +268,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def cos[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def cos[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -283,7 +282,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def tan[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def tan[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -297,7 +296,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def asin[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def asin[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -311,7 +310,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def acos[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def acos[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -325,7 +324,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def atan[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def atan[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -339,7 +338,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def sinh[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def sinh[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -353,7 +352,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def cosh[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def cosh[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -367,7 +366,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def tanh[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def tanh[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -381,7 +380,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def asinh[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def asinh[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -395,7 +394,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def acosh[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def acosh[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -409,7 +408,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def atanh[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def atanh[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -423,7 +422,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def logGamma[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def logGamma[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -437,7 +436,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def digamma[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def digamma[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -451,7 +450,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def erf[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def erf[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -465,7 +464,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def erfc[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def erfc[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -479,7 +478,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def sigmoid[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def sigmoid[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -493,7 +492,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def logSigmoid[T: IsReal, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def logSigmoid[T: IsReal : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     negate(NN.softplus(negate(x)))
@@ -505,7 +504,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def sign[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def sign[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -519,7 +518,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def round[T: IsNotQuantized, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def round[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -533,7 +532,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def roundInt[T: IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def roundInt[T: IsFloat16OrFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(x, t => {
@@ -547,7 +546,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def floor[T: IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def floor[T: IsFloat16OrFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(x, t => {
@@ -561,7 +560,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def ceil[T: IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def ceil[T: IsFloat16OrFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(x, t => {
@@ -575,7 +574,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def isNaN[T: IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def isNaN[T: IsFloat16OrFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[Boolean] = {
     ev.applyUnary(x, t => {
@@ -589,7 +588,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def isInf[T: IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def isInf[T: IsFloat16OrFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[Boolean] = {
     ev.applyUnary(x, t => {
@@ -603,7 +602,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def isFinite[T: IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def isFinite[T: IsFloat16OrFloat32OrFloat64 : TF, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[Boolean] = {
     ev.applyUnary(x, t => {
@@ -623,7 +622,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def add[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def add[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.add(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -635,7 +634,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def subtract[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def subtract[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.sub(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -647,7 +646,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def multiply[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def multiply[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.mul(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -659,7 +658,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def divide[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def divide[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.div(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -672,7 +671,7 @@ trait Math {
     * @return Result as a new tensor.
     */
   @deprecated("Use `truncateDivide` instead.", "0.1")
-  def floorDivide[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def floorDivide[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.floorDiv(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -684,7 +683,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def truncateDivide[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def truncateDivide[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.truncateDiv(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -696,7 +695,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def realDivide[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def realDivide[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.realDiv(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -708,7 +707,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def squaredDifference[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def squaredDifference[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.squaredDifference(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -720,7 +719,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def mod[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def mod[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.mod(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -732,7 +731,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def floorMod[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def floorMod[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.floorMod(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -744,7 +743,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def truncateMod[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def truncateMod[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.truncateMod(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -756,7 +755,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def pow[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def pow[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.pow(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -770,7 +769,7 @@ trait Math {
     * @param  x Second input tensor.
     * @return Result as a new tensor.
     */
-  def igammac[T: IsFloat32OrFloat64](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def igammac[T: IsFloat32OrFloat64 : TF](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.igammac(
       executionContext.value.nativeHandle, a.nativeHandle, x.nativeHandle))
   }
@@ -782,7 +781,7 @@ trait Math {
     * @param  x Second input tensor.
     * @return Result as a new tensor.
     */
-  def igamma[T: IsFloat32OrFloat64](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def igamma[T: IsFloat32OrFloat64 : TF](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.igamma(
       executionContext.value.nativeHandle, a.nativeHandle, x.nativeHandle))
   }
@@ -794,7 +793,7 @@ trait Math {
     * @param  q Second input tensor.
     * @return Result as a new tensor.
     */
-  def zeta[T: IsFloat32OrFloat64](x: Tensor[T], q: Tensor[T]): Tensor[T] = {
+  def zeta[T: IsFloat32OrFloat64 : TF](x: Tensor[T], q: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.zeta(
       executionContext.value.nativeHandle, x.nativeHandle, q.nativeHandle))
   }
@@ -806,7 +805,7 @@ trait Math {
     * @param  x Second input tensor.
     * @return Result as a new tensor.
     */
-  def polygamma[T: IsFloat32OrFloat64](n: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def polygamma[T: IsFloat32OrFloat64 : TF](n: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.polygamma(
       executionContext.value.nativeHandle, n.nativeHandle, x.nativeHandle))
   }
@@ -818,7 +817,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def atan2[T: IsFloat32OrFloat64](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def atan2[T: IsFloat32OrFloat64 : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.atan2(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -830,7 +829,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def minimum[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def minimum[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.minimum(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -842,7 +841,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def maximum[T: IsNotQuantized](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def maximum[T: IsNotQuantized : TF](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.maximum(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -857,7 +856,7 @@ trait Math {
     * @param  x Third input tensor.
     * @return Result as a new tensor.
     */
-  def incompleteBeta[T: IsFloat32OrFloat64](a: Tensor[T], b: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def incompleteBeta[T: IsFloat32OrFloat64 : TF](a: Tensor[T], b: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.betainc(
       executionContext.value.nativeHandle, a.nativeHandle, b.nativeHandle, x.nativeHandle))
   }
@@ -921,7 +920,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def equal[T: IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def equal[T: IsNumeric : TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.equal(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -933,7 +932,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def notEqual[T: IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def notEqual[T: IsNumeric : TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.notEqual(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -946,7 +945,7 @@ trait Math {
     * @param  tolerance Comparison tolerance value.
     * @return Result as a new tensor.
     */
-  def approximatelyEqual[T: IsNumeric](
+  def approximatelyEqual[T: IsNumeric : TF](
       x: Tensor[T],
       y: Tensor[T],
       tolerance: Float = 0.00001f
@@ -962,7 +961,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def less[T: IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def less[T: IsNumeric : TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.less(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -974,7 +973,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def lessEqual[T: IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def lessEqual[T: IsNumeric : TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.lessEqual(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -986,7 +985,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def greater[T: IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def greater[T: IsNumeric : TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.greater(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -998,7 +997,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def greaterEqual[T: IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def greaterEqual[T: IsNumeric : TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.greaterEqual(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -1007,7 +1006,7 @@ trait Math {
 
   //region Reduction Ops
 
-  private[this] def reductionAxes[T, I: IsInt32OrInt64, TL[A] <: TensorLike[A]](
+  private[this] def reductionAxes[T: TF, I: IsInt32OrInt64 : TF, TL[A] <: TensorLike[A]](
       tensorLike: TL[T],
       axes: Tensor[I]
   ): Tensor[I] = {
@@ -1037,7 +1036,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def sum[T: IsNumeric, I: IsInt32OrInt64](
+  def sum[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1058,7 +1057,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def mean[T: IsNumeric, I: IsInt32OrInt64](
+  def mean[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1079,7 +1078,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def prod[T: IsNotQuantized, I: IsInt32OrInt64](
+  def prod[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1100,7 +1099,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def min[T: IsNotQuantized, I: IsInt32OrInt64](
+  def min[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1121,7 +1120,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def max[T: IsNotQuantized, I: IsInt32OrInt64](
+  def max[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1142,7 +1141,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def all[I: IsInt32OrInt64](
+  def all[I: IsInt32OrInt64 : TF](
       input: Tensor[Boolean],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1163,7 +1162,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def any[I: IsInt32OrInt64](
+  def any[I: IsInt32OrInt64 : TF](
       input: Tensor[Boolean],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1184,7 +1183,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def logSumExp[T: IsNotQuantized](
+  def logSumExp[T: IsNotQuantized : TF](
       input: Tensor[T],
       axes: Seq[Int] = null,
       keepDims: Boolean = false
@@ -1194,7 +1193,7 @@ trait Math {
     } else {
       val axesTensor: Tensor[Int] = axes
       val maxValue = Basic.stopGradient(max(input, axesTensor, keepDims = true))
-      val result = add(log(sum(exp(input - maxValue), axesTensor, keepDims = true)), maxValue)
+      val result = add(log(sum(exp(subtract(input, maxValue)), axesTensor, keepDims = true)), maxValue)
       if (keepDims)
         result
       else
@@ -1210,12 +1209,12 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def countNonZero[T: IsNumeric, I: IsInt32OrInt64](
+  def countNonZero[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
   ): Tensor[Long] = {
-    sum(Cast.cast(notEqual(input, Tensor.zeros(input.dataType, Shape())), INT64), axes, keepDims)
+    sum(notEqual(input, Tensor.zeros(input.dataType, Shape())).castTo[Long], axes, keepDims)
   }
 
   //endregion Reduction Ops
@@ -1227,7 +1226,10 @@ trait Math {
     * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @return Result as a new tensor.
     */
-  def argmax[T: IsNotQuantized, I: IsInt32OrInt64](input: Tensor[T], axes: Tensor[I]): Tensor[Long] = {
+  def argmax[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+      input: Tensor[T],
+      axes: Tensor[I]
+  ): Tensor[Long] = {
     argmax(input, axes, INT64)
   }
 
@@ -1239,7 +1241,7 @@ trait Math {
     * @param  outputDataType Data type for the output tensor.
     * @return Result as a new tensor.
     */
-  def argmax[T: IsNotQuantized, I: IsInt32OrInt64, IR: IsInt32OrInt64](
+  def argmax[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I],
       outputDataType: DataType[IR]
@@ -1255,7 +1257,10 @@ trait Math {
     * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @return Result as a new tensor.
     */
-  def argmin[T: IsNotQuantized, I: IsInt32OrInt64](input: Tensor[T], axes: Tensor[I]): Tensor[Long] = {
+  def argmin[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+      input: Tensor[T],
+      axes: Tensor[I]
+  ): Tensor[Long] = {
     argmin(input, axes, INT64)
   }
 
@@ -1267,7 +1272,7 @@ trait Math {
     * @param  outputDataType Data type for the output tensor.
     * @return Result as a new tensor.
     */
-  def argmin[T: IsNotQuantized, I: IsInt32OrInt64, IR: IsInt32OrInt64](
+  def argmin[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axes: Tensor[I],
       outputDataType: DataType[IR]
@@ -1290,15 +1295,15 @@ trait Math {
     *                   ensuring that the output has length at most `maxLength`.
     * @return Result as a new tensor.
     */
-  def binCount[T: IsInt32OrInt64OrFloat32OrFloat64](
+  def binCount[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](
       input: Tensor[Int],
       dataType: DataType[T],
       weights: Tensor[T] = null,
       minLength: Tensor[Int] = null,
       maxLength: Tensor[Int] = null
   ): Tensor[T] = {
-    val inputNonEmpty = greater(prod(Basic.shape(input, INT32)), 0)
-    var outputSize = inputNonEmpty.castTo[Int] * add(max(input), Tensor.ones[Int](Shape()))
+    val inputNonEmpty = greater(prod(Basic.shape(input).toInt), 0)
+    var outputSize = inputNonEmpty.toInt * add(max(input), Tensor.ones[Int](Shape()))
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
     if (maxLength != null)
@@ -1309,7 +1314,7 @@ trait Math {
       } else if (dataType == null) {
         Tensor.zeros[Int](Shape.scalar())
       } else {
-        Tensor.zeros[T](dataType, Shape.scalar)
+        Tensor.zeros(dataType, Shape.scalar())
       }
     }
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.bincount(
@@ -1325,7 +1330,7 @@ trait Math {
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
     * @return Result as a new tensor.
     */
-  def cumsum[T: IsNotQuantized, I: IsInt32OrInt64](
+  def cumsum[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axis: Tensor[I],
       exclusive: Boolean = false,
@@ -1344,7 +1349,7 @@ trait Math {
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
     * @return Result as a new tensor.
     */
-  def cumprod[T: IsNotQuantized, I: IsInt32OrInt64](
+  def cumprod[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       axis: Tensor[I],
       exclusive: Boolean = false,
@@ -1363,7 +1368,10 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentSum[T: IsNumeric, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentSum[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
+      data: Tensor[T],
+      segmentIndices: Tensor[I]
+  ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentSum(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1375,7 +1383,10 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMean[T: IsNotQuantized, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentMean[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
+      data: Tensor[T],
+      segmentIndices: Tensor[I]
+  ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentMean(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1387,7 +1398,10 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentProd[T: IsNumeric, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentProd[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
+      data: Tensor[T],
+      segmentIndices: Tensor[I]
+  ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentProd(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1399,7 +1413,10 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMin[T: IsReal, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentMin[T: IsReal : TF, I: IsInt32OrInt64 : TF](
+      data: Tensor[T],
+      segmentIndices: Tensor[I]
+  ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentMin(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1411,7 +1428,10 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMax[T: IsReal, I: IsInt32OrInt64](data: Tensor[T], segmentIndices: Tensor[I]): Tensor[T] = {
+  def segmentMax[T: IsReal : TF, I: IsInt32OrInt64 : TF](
+      data: Tensor[T],
+      segmentIndices: Tensor[I]
+  ): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.segmentMax(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle))
   }
@@ -1424,12 +1444,12 @@ trait Math {
     * @param  segmentsNumber Number of segments.
     * @return Result as a new tensor.
     */
-  def unsortedSegmentSum[T: IsNumeric, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentSum[T: IsNumeric : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Tensor[T],
       segmentIndices: Tensor[I1],
       segmentsNumber: Tensor[I2]
   ): Tensor[T] = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.unsortedSegmentSum(
+    Tensor.fromNativeHandle[T](NativeTensorOpsMath.unsortedSegmentSum(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
   }
 
@@ -1444,12 +1464,12 @@ trait Math {
     * @param  segmentsNumber Number of segments.
     * @return Result as a new tensor.
     */
-  def unsortedSegmentMax[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentMax[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Tensor[T],
       segmentIndices: Tensor[I1],
       segmentsNumber: Tensor[I2]
   ): Tensor[T] = {
-    Tensor.fromNativeHandle(NativeTensorOpsMath.unsortedSegmentMax(
+    Tensor.fromNativeHandle[T](NativeTensorOpsMath.unsortedSegmentMax(
       executionContext.value.nativeHandle, data.nativeHandle, segmentIndices.nativeHandle, segmentsNumber.nativeHandle))
   }
 
@@ -1464,7 +1484,7 @@ trait Math {
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSum[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentSum[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Tensor[T],
       indices: Tensor[I1],
       segmentIndices: Tensor[Int],
@@ -1488,7 +1508,7 @@ trait Math {
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentMean[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentMean[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Tensor[T],
       indices: Tensor[I1],
       segmentIndices: Tensor[Int],
@@ -1512,7 +1532,7 @@ trait Math {
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSumSqrtN[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentSumSqrtN[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Tensor[T],
       indices: Tensor[I1],
       segmentIndices: Tensor[Int],
@@ -1537,7 +1557,7 @@ trait Math {
     * @param  diagonal Diagonal values, represented as a rank-`K` tensor, where `K` can be at most `3`.
     * @return Result as a new tensor.
     */
-  def diag[T: IsNotQuantized](diagonal: Tensor[T]): Tensor[T] = {
+  def diag[T: IsNotQuantized : TF](diagonal: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.diag(
       executionContext.value.nativeHandle, diagonal.nativeHandle))
   }
@@ -1548,7 +1568,7 @@ trait Math {
     * @param  input Rank-`K` input tensor, where `K` is either `2`, `4`, or `6`.
     * @return Result as a new tensor.
     */
-  def diagPart[T: IsNotQuantized](input: Tensor[T]): Tensor[T] = {
+  def diagPart[T: IsNotQuantized : TF](input: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.diagPart(
       executionContext.value.nativeHandle, input.nativeHandle))
   }
@@ -1560,7 +1580,7 @@ trait Math {
     * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its 
     *         last dimension duplicated.
     */
-  def matrixDiag[T](diagonal: Tensor[T]): Tensor[T] = {
+  def matrixDiag[T: TF](diagonal: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.matrixDiag(
       executionContext.value.nativeHandle, diagonal.nativeHandle))
   }
@@ -1572,7 +1592,7 @@ trait Math {
     * @param  diagonal Rank-`K` tensor, where `K >= 1`.
     * @return Result as a new tensor with rank equal to `K + 1` and shape equal to the shape of `input`.
     */
-  def matrixSetDiag[T](input: Tensor[T], diagonal: Tensor[T]): Tensor[T] = {
+  def matrixSetDiag[T: TF](input: Tensor[T], diagonal: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle(NativeTensorOpsMath.matrixSetDiag(
       executionContext.value.nativeHandle, input.nativeHandle, diagonal.nativeHandle))
   }
@@ -1584,7 +1604,7 @@ trait Math {
     * @return Result as a new tensor containing the diagonal(s) and having shape equal to
     *         `input.shape[:-2] + [min(input.shape[-2:])]`.
     */
-  def matrixDiagPart[T](input: Tensor[T]): Tensor[T] = {
+  def matrixDiagPart[T: TF](input: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.matrixDiagPart(
       executionContext.value.nativeHandle, input.nativeHandle))
   }
@@ -1599,7 +1619,7 @@ trait Math {
     *                           the entire upper triangle is kept.
     * @return Result as a new tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
     */
-  def matrixBandPart[T, I: IsInt32OrInt64](
+  def matrixBandPart[T: TF, I: IsInt32OrInt64 : TF](
       input: Tensor[T],
       numSubDiagonals: Tensor[I],
       numSuperDiagonals: Tensor[I]
@@ -1615,7 +1635,7 @@ trait Math {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def trace[T: IsNumeric](input: Tensor[T]): Tensor[T] = {
+  def trace[T: IsNumeric : TF](input: Tensor[T]): Tensor[T] = {
     sum(matrixDiagPart(input), axes = -1)
   }
 
@@ -1626,7 +1646,7 @@ trait Math {
     * @param  tensor Tensor to multiply the scalar tensor with.
     * @return Result as a new tensor.
     */
-  def scalarMul[T: IsNotQuantized, TL[A] <: TensorLike[A]](
+  def scalarMul[T: IsNotQuantized : TF, TL[A] <: TensorLike[A]](
       scalar: Tensor[T],
       tensor: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
@@ -1648,7 +1668,7 @@ trait Math {
     * @param  bIsSparse  If `true`, `b` is treated as a sparse matrix (i.e., it is assumed it contains many zeros).
     * @return Result as a new tensor.
     */
-  def matmul[T: IsNotQuantized](
+  def matmul[T: IsNotQuantized : TF](
       a: Tensor[T],
       b: Tensor[T],
       transposeA: Boolean = false,
@@ -1682,7 +1702,7 @@ trait Math {
     }
   }
 
-  private[this] def transposeConjugateToAdjoint[T: IsNotQuantized](
+  private[this] def transposeConjugateToAdjoint[T: IsNotQuantized : TF](
       tensor: Tensor[T],
       transpose: Boolean,
       conj: Boolean
@@ -1704,7 +1724,7 @@ trait Math {
     }
   }
 
-  private[this] def transposeConjugateToTranspose[T: IsNotQuantized](
+  private[this] def transposeConjugateToTranspose[T: IsNotQuantized : TF](
       tensor: Tensor[T],
       transpose: Boolean,
       conj: Boolean
@@ -1733,7 +1753,7 @@ trait Math {
     * @param  b Second input tensor.
     * @return Result as a new tensor.
     */
-  def cross[T: IsReal](a: Tensor[T], b: Tensor[T]): Tensor[T] = {
+  def cross[T: IsReal : TF](a: Tensor[T], b: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.cross(
       executionContext.value.nativeHandle, a.nativeHandle, b.nativeHandle))
   }
@@ -1749,7 +1769,11 @@ trait Math {
     * @throws InvalidShapeException If `numAxes` is not a scalar.
     */
   @throws[InvalidShapeException]
-  def tensorDot[T: IsNotQuantized](a: Tensor[T], b: Tensor[T], numAxes: Tensor[Int]): Tensor[T] = {
+  def tensorDot[T: IsNotQuantized : TF](
+      a: Tensor[T],
+      b: Tensor[T],
+      numAxes: Tensor[Int]
+  ): Tensor[T] = {
     if (numAxes.rank != 0)
       throw InvalidShapeException("'numAxes' must be a scalar.")
     tensorDot(a, b, range(subtract(a.rank, numAxes), a.rank), range(0, numAxes))
@@ -1768,7 +1792,7 @@ trait Math {
     * @throws InvalidShapeException If `axesA` or `axesB` is not a scalar.
     */
   @throws[InvalidShapeException]
-  def tensorDot[T: IsNotQuantized](
+  def tensorDot[T: IsNotQuantized : TF](
       a: Tensor[T],
       b: Tensor[T],
       axesA: Tensor[Int],
@@ -1791,9 +1815,9 @@ trait Math {
       *         that contains the shape of the free axes.
       */
     def tensorDotReshape(a: Tensor[T], axes: Tensor[Int], flipped: Boolean = false): (Tensor[T], Tensor[Int]) = {
-      val shapeA = Basic.shape(a, INT64)
+      val shapeA = Basic.shape(a)
       val rankA = Basic.rank(a)
-      val mappedAxes = ((axes >= 0).castTo[Int] * axes) + ((axes < 0).castTo[Int] * (axes + rankA.castTo[Int]))
+      val mappedAxes = ((axes >= 0).toInt * axes) + ((axes < 0).toInt * (axes + rankA.toInt))
       val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
       val freeAxes = Basic.gather(shapeA, free)
       val axesAxes = Basic.gather(shapeA, mappedAxes)
@@ -1811,7 +1835,7 @@ trait Math {
         }
       }
       val reshapedA = Basic.reshape(Basic.transpose(a, permutation), newShape)
-      (reshapedA, freeAxes.castTo[Int])
+      (reshapedA, freeAxes.toInt)
     }
 
     val (reshapedA, freeA) = tensorDotReshape(a, axesA)
@@ -1854,7 +1878,7 @@ trait Math {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def conjugate[T, TL[A] <: TensorLike[A]](
+  def conjugate[T: TF, TL[A] <: TensorLike[A]](
       input: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(input, t => {
@@ -1884,7 +1908,7 @@ trait Math {
     * @param  boundaries Sorted sequence of numbers specifying the boundaries of the buckets.
     * @return Result as a new tensor.
     */
-  def bucketize[T: IsInt32OrInt64OrFloat32OrFloat64](
+  def bucketize[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](
       input: Tensor[T],
       boundaries: Seq[Float]
   ): Tensor[T] = {
@@ -1902,10 +1926,10 @@ trait Math {
     * @param  input Input tensor.
     * @return Result as a new tensor.
     */
-  def zerosFraction[T: IsNumeric](
+  def zerosFraction[T: IsNumeric : TF](
       input: Tensor[T]
   ): Tensor[Float] = {
-    mean(Cast.cast(equal(input, Tensor.fill(Shape())(0).castTo(input.dataType)), FLOAT32))
+    mean(equal(input, Tensor.zeros(input.dataType, Shape())).toFloat)
   }
 
   //endregion Other Ops
@@ -1913,7 +1937,7 @@ trait Math {
 
 object Math extends Math {
   private[tensors] trait Implicits {
-    implicit class NumericMathOps[T: IsNumeric](val tensor: Tensor[T]) {
+    implicit class MathOps[T: TF](val tensor: Tensor[T]) {
       //region Operators
 
       /** $OpDocMathEqual
@@ -1921,45 +1945,150 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def ==(other: Tensor[T]): Tensor[Boolean] = equal(other)
+      def ===(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.equal(tensor, other)
+      }
 
       /** $OpDocMathNotEqual
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def !=(other: Tensor[T]): Tensor[Boolean] = notEqual(other)
+      def =!=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.notEqual(tensor, other)
+      }
 
       /** $OpDocMathLess
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def <(other: Tensor[T]): Tensor[Boolean] = less(other)
+      def <(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.less(tensor, other)
+      }
 
       /** $OpDocMathLessEqual
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def <=(other: Tensor[T]): Tensor[Boolean] = lessEqual(other)
+      def <=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.lessEqual(tensor, other)
+      }
 
       /** $OpDocMathGreater
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def >(other: Tensor[T]): Tensor[Boolean] = greater(other)
+      def >(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.greater(tensor, other)
+      }
 
       /** $OpDocMathGreaterEqual
         *
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def >=(other: Tensor[T]): Tensor[Boolean] = greaterEqual(other)
+      def >=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+        Math.greaterEqual(tensor, other)
+      }
+
+      /** $OpDocMathNegate
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def unary_-(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        Math.negate(tensor.castTo[T])
+      }
+
+      /** $OpDocMathAdd
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def +(other: Tensor[T])(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        Math.add(tensor, other)
+      }
+
+      /** $OpDocMathSubtract
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def -(other: Tensor[T])(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        Math.subtract(tensor, other)
+      }
+
+      /** $OpDocMathMultiply
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def *(other: Tensor[T])(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        Math.multiply(tensor, other)
+      }
+
+      /** $OpDocMathDivide
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def /(other: Tensor[T])(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        if (tensor.dataType.isFloatingPoint || tensor.dataType.isComplex)
+          Math.divide(tensor, other)
+        else
+          Math.truncateDivide(tensor, other)
+      }
+
+      /** $OpDocMathMod
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def %(other: Tensor[T])(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        Math.mod(tensor, other)
+      }
+
+      /** $OpDocMathPow
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def **(other: Tensor[T])(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        Math.pow(tensor, other)
+      }
+
+      /** $OpDocMathPow
+        *
+        * @group MathOps
+        * @return Result as a new tensor.
+        */
+      def ^(other: Tensor[T])(implicit
+          ev: IsNotQuantized[T]
+      ): Tensor[T] = {
+        Math.pow(tensor, other)
+      }
 
       //endregion Operators
+    }
 
+    implicit class NumericMathOps[T: IsNumeric : TF](val tensor: Tensor[T]) {
       //region Comparison Ops
 
       /** $OpDocMathEqual
@@ -2054,7 +2183,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentSum[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+      def segmentSum[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
         Math.segmentSum(tensor, segmentIndices)
       }
 
@@ -2064,7 +2193,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentProd[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+      def segmentProd[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
         Math.segmentProd(tensor, segmentIndices)
       }
 
@@ -2075,7 +2204,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentSum[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unsortedSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           segmentIndices: Tensor[I1],
           segmentsNumber: Tensor[I2]
       ): Tensor[T] = {
@@ -2091,79 +2220,14 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def zerosFraction: Tensor[Float] = Math.zerosFraction(tensor)
+      def zerosFraction: Tensor[Float] = {
+        Math.zerosFraction(tensor)
+      }
 
       //endregion Other Ops
     }
 
-    implicit class MathMathOps[T: IsNotQuantized](val tensor: Tensor[T]) {
-      //region Operators
-
-      /** $OpDocMathNegate
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def unary_- : Tensor[T] = negate
-
-      /** $OpDocMathAdd
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def +(other: Tensor[T]): Tensor[T] = add(other)
-
-      /** $OpDocMathSubtract
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def -(other: Tensor[T]): Tensor[T] = subtract(other)
-
-      /** $OpDocMathMultiply
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def *(other: Tensor[T]): Tensor[T] = multiply(other)
-
-      private[this] def divHelper(x: Tensor[T], y: Tensor[T]): Tensor[T] = {
-        if (x.dataType.isFloatingPoint || x.dataType.isComplex)
-          Math.divide(x, y)
-        else
-          Math.truncateDivide(x, y)
-      }
-
-      /** $OpDocMathDivide
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def /(other: Tensor[T]): Tensor[T] = divHelper(tensor, other)
-
-      /** $OpDocMathMod
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def %(other: Tensor[T]): Tensor[T] = mod(other)
-
-      /** $OpDocMathPow
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def **(other: Tensor[T]): Tensor[T] = pow(other)
-
-      /** $OpDocMathPow
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def ^(other: Tensor[T]): Tensor[T] = pow(other)
-
-      //endregion Operators
-
+    implicit class MathMathOps[T: IsNotQuantized : TF](val tensor: Tensor[T]) {
       //region Unary Ops
 
       /** $OpDocMathAbs
@@ -2530,7 +2594,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMean[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+      def segmentMean[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
         Math.segmentMean(tensor, segmentIndices)
       }
 
@@ -2542,7 +2606,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmax[I: IsInt32OrInt64](axes: Tensor[I]): Tensor[Long] = {
+      def argmax[I: IsInt32OrInt64 : TF](axes: Tensor[I]): Tensor[Long] = {
         Math.argmax(tensor, axes)
       }
 
@@ -2553,7 +2617,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmax[I: IsInt32OrInt64, IR: IsInt32OrInt64](
+      def argmax[I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
           axes: Tensor[I],
           outputDataType: DataType[IR]
       ): Tensor[IR] = {
@@ -2566,7 +2630,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmin[I: IsInt32OrInt64](axes: Tensor[I]): Tensor[Long] = Math.argmin(tensor, axes)
+      def argmin[I: IsInt32OrInt64 : TF](axes: Tensor[I]): Tensor[Long] = Math.argmin(tensor, axes)
 
       /** $OpDocMathArgmin
         *
@@ -2575,7 +2639,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmin[I: IsInt32OrInt64, IR: IsInt32OrInt64](
+      def argmin[I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
           axes: Tensor[I],
           outputDataType: DataType[IR]
       ): Tensor[IR] = {
@@ -2590,7 +2654,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
         * @return Result as a new tensor.
         */
-      def cumsum[I: IsInt32OrInt64](
+      def cumsum[I: IsInt32OrInt64 : TF](
           axis: Tensor[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -2606,7 +2670,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
         * @return Result as a new tensor.
         */
-      def cumprod[I: IsInt32OrInt64](
+      def cumprod[I: IsInt32OrInt64 : TF](
           axis: Tensor[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -2663,7 +2727,10 @@ object Math extends Math {
         *                           the entire upper triangle is kept.
         * @return Result as a new tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
         */
-      def matrixBandPart[I: IsInt32OrInt64](numSubDiagonals: Tensor[I], numSuperDiagonals: Tensor[I]): Tensor[T] = {
+      def matrixBandPart[I: IsInt32OrInt64 : TF](
+          numSubDiagonals: Tensor[I],
+          numSuperDiagonals: Tensor[I]
+      ): Tensor[T] = {
         Math.matrixBandPart(tensor, numSubDiagonals, numSuperDiagonals)
       }
 
@@ -2672,7 +2739,9 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def trace: Tensor[T] = Math.trace(tensor)
+      def trace: Tensor[T] = {
+        Math.trace(tensor)
+      }
 
       /** $OpDocMathMatmul
         *
@@ -2730,7 +2799,7 @@ object Math extends Math {
       //endregion Matrix Ops
     }
 
-    implicit class RealMathOps[T: IsReal](val tensor: Tensor[T]) {
+    implicit class RealMathOps[T: IsReal : TF](val tensor: Tensor[T]) {
       /** $OpDocMathLogSigmoid
         *
         * @group MathOps
@@ -2746,7 +2815,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMin[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+      def segmentMin[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
         Math.segmentMin(tensor, segmentIndices)
       }
 
@@ -2756,7 +2825,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMax[I: IsInt32OrInt64](segmentIndices: Tensor[I]): Tensor[T] = {
+      def segmentMax[I: IsInt32OrInt64 : TF](segmentIndices: Tensor[I]): Tensor[T] = {
         Math.segmentMax(tensor, segmentIndices)
       }
 
@@ -2767,7 +2836,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentMax[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unsortedSegmentMax[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           segmentIndices: Tensor[I1],
           segmentsNumber: Tensor[I2]
       ): Tensor[T] = {
@@ -2782,7 +2851,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSum[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def sparseSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           indices: Tensor[I1],
           segmentIndices: Tensor[Int],
           numSegments: Tensor[I2] = null
@@ -2798,7 +2867,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentMean[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def sparseSegmentMean[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           indices: Tensor[I1],
           segmentIndices: Tensor[Int],
           numSegments: Tensor[I2] = null
@@ -2814,7 +2883,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           indices: Tensor[I1],
           segmentIndices: Tensor[Int],
           numSegments: Tensor[I2] = null
@@ -2839,7 +2908,7 @@ object Math extends Math {
       //endregion Matrix Ops
     }
 
-    implicit class Int32OrInt64OrFloat32OrFloat64MathOps[T: IsInt32OrInt64OrFloat32OrFloat64](val tensor: Tensor[T]) {
+    implicit class Int32OrInt64OrFloat32OrFloat64MathOps[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
       //region Bucketization Ops
 
       /** $OpDocMathBucketize
@@ -2853,7 +2922,7 @@ object Math extends Math {
       //endregion Bucketization Ops
     }
 
-    implicit class Float16OrFloat32OrFloat64MathOps[T: IsFloat16OrFloat32OrFloat64](val tensor: Tensor[T]) {
+    implicit class Float16OrFloat32OrFloat64MathOps[T: IsFloat16OrFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
       //region Unary Ops
 
       /** $OpDocMathRoundInt
@@ -2901,7 +2970,7 @@ object Math extends Math {
       //endregion Unary Ops
     }
 
-    implicit class Float32OrFloat64MathOps[T: IsFloat32OrFloat64](val tensor: Tensor[T]) {
+    implicit class Float32OrFloat64MathOps[T: IsFloat32OrFloat64 : TF](val tensor: Tensor[T]) {
       //region Binary Ops
 
       /** $OpDocMathIgammac
@@ -2942,7 +3011,7 @@ object Math extends Math {
       //endregion Binary Ops
     }
 
-    implicit class ComplexMathOps[T: IsComplex](val tensor: Tensor[T]) {
+    implicit class ComplexMathOps[T: IsComplex : TF](val tensor: Tensor[T]) {
       /** $OpDocMathConjugate
         *
         * @group MathOps
@@ -3134,7 +3203,7 @@ object Math extends Math {
         *                   tensor containing the bin counts).
         * @return Result as a new tensor.
         */
-      def binCount[T: IsInt32OrInt64OrFloat32OrFloat64](
+      def binCount[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](
           dataType: DataType[T],
           weights: Tensor[T] = null,
           minLength: Tensor[Int] = null,
@@ -3144,13 +3213,13 @@ object Math extends Math {
       }
     }
 
-    implicit def tensorConvertibleToNumericMathOps[TC, T: IsNumeric](value: TC)(implicit f: TC => Tensor[T]): NumericMathOps[T] = new NumericMathOps(f(value))
-    implicit def tensorConvertibleToMathMathOps[TC, T: IsNotQuantized](value: TC)(implicit f: TC => Tensor[T]): MathMathOps[T] = new MathMathOps(f(value))
-    implicit def tensorConvertibleToRealMathOps[TC, T: IsReal](value: TC)(implicit f: TC => Tensor[T]): RealMathOps[T] = new RealMathOps(f(value))
-    implicit def tensorConvertibleToInt32OrInt64OrFloat32OrFloat64MathOps[TC, T: IsInt32OrInt64OrFloat32OrFloat64](value: TC)(implicit f: TC => Tensor[T]): Int32OrInt64OrFloat32OrFloat64MathOps[T] = new Int32OrInt64OrFloat32OrFloat64MathOps(f(value))
-    implicit def tensorConvertibleToFloat16OrFloat32OrFloat64MathOps[TC, T: IsFloat16OrFloat32OrFloat64](value: TC)(implicit f: TC => Tensor[T]): Float16OrFloat32OrFloat64MathOps[T] = new Float16OrFloat32OrFloat64MathOps(f(value))
-    implicit def tensorConvertibleToFloat32OrFloat64MathOps[TC, T: IsFloat32OrFloat64](value: TC)(implicit f: TC => Tensor[T]): Float32OrFloat64MathOps[T] = new Float32OrFloat64MathOps(f(value))
-    implicit def tensorConvertibleToComplexMathOps[TC, T: IsComplex](value: TC)(implicit f: TC => Tensor[T]): ComplexMathOps[T] = new ComplexMathOps(f(value))
+    implicit def tensorConvertibleToNumericMathOps[TC, T: IsNumeric : TF](value: TC)(implicit f: TC => Tensor[T]): NumericMathOps[T] = new NumericMathOps(f(value))
+    implicit def tensorConvertibleToMathMathOps[TC, T: IsNotQuantized : TF](value: TC)(implicit f: TC => Tensor[T]): MathMathOps[T] = new MathMathOps(f(value))
+    implicit def tensorConvertibleToRealMathOps[TC, T: IsReal : TF](value: TC)(implicit f: TC => Tensor[T]): RealMathOps[T] = new RealMathOps(f(value))
+    implicit def tensorConvertibleToInt32OrInt64OrFloat32OrFloat64MathOps[TC, T: IsInt32OrInt64OrFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Int32OrInt64OrFloat32OrFloat64MathOps[T] = new Int32OrInt64OrFloat32OrFloat64MathOps(f(value))
+    implicit def tensorConvertibleToFloat16OrFloat32OrFloat64MathOps[TC, T: IsFloat16OrFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Float16OrFloat32OrFloat64MathOps[T] = new Float16OrFloat32OrFloat64MathOps(f(value))
+    implicit def tensorConvertibleToFloat32OrFloat64MathOps[TC, T: IsFloat32OrFloat64 : TF](value: TC)(implicit f: TC => Tensor[T]): Float32OrFloat64MathOps[T] = new Float32OrFloat64MathOps(f(value))
+    implicit def tensorConvertibleToComplexMathOps[TC, T: IsComplex : TF](value: TC)(implicit f: TC => Tensor[T]): ComplexMathOps[T] = new ComplexMathOps(f(value))
     implicit def tensorConvertibleToBooleanMathOps[TC](value: TC)(implicit f: TC => Tensor[Boolean]): BooleanMathOps = new BooleanMathOps(f(value))
     implicit def tensorConvertibleToFloat32MathOps[TC](value: TC)(implicit f: TC => Tensor[Float]): Float32MathOps = new Float32MathOps(f(value))
     implicit def tensorConvertibleToFloat64MathOps[TC](value: TC)(implicit f: TC => Tensor[Double]): Float64MathOps = new Float64MathOps(f(value))

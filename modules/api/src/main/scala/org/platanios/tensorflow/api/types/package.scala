@@ -87,9 +87,86 @@ package object types {
 
   //region Type Traits
 
+  trait TF[T] {
+    @inline def dataType: types.DataType[T]
+  }
+
+  object TF {
+    def apply[T: TF]: TF[T] = {
+      implicitly[TF[T]]
+    }
+
+    def fromDataType[T](dataType: types.DataType[T]): TF[T] = {
+      val providedDataType = dataType
+      new TF[T] {
+        override def dataType: types.DataType[T] = {
+          providedDataType
+        }
+      }
+    }
+
+    implicit val stringEvTF       : TF[String]        = fromDataType(STRING)
+    implicit val booleanEvTF      : TF[Boolean]       = fromDataType(BOOLEAN)
+    implicit val halfEvTF         : TF[Half]          = fromDataType(FLOAT16)
+    implicit val floatEvTF        : TF[Float]         = fromDataType(FLOAT32)
+    implicit val doubleEvTF       : TF[Double]        = fromDataType(FLOAT64)
+    implicit val truncatedHalfEvTF: TF[TruncatedHalf] = fromDataType(BFLOAT16)
+    implicit val complexFloatEvTF : TF[ComplexFloat]  = fromDataType(COMPLEX64)
+    implicit val complexDoubleEvTF: TF[ComplexDouble] = fromDataType(COMPLEX128)
+    implicit val byteEvTF         : TF[Byte]          = fromDataType(INT8)
+    implicit val shortEvTF        : TF[Short]         = fromDataType(INT16)
+    implicit val intEvTF          : TF[Int]           = fromDataType(INT32)
+    implicit val longEvTF         : TF[Long]          = fromDataType(INT64)
+    implicit val uByteEvTF        : TF[UByte]         = fromDataType(UINT8)
+    implicit val uShortEvTF       : TF[UShort]        = fromDataType(UINT16)
+    implicit val uIntEvTF         : TF[UInt]          = fromDataType(UINT32)
+    implicit val uLongEvTF        : TF[ULong]         = fromDataType(UINT64)
+    implicit val qByteEvTF        : TF[QByte]         = fromDataType(QINT8)
+    implicit val qShortEvTF       : TF[QShort]        = fromDataType(QINT16)
+    implicit val qIntEvTF         : TF[QInt]          = fromDataType(QINT32)
+    implicit val qUByteEvTF       : TF[QUByte]        = fromDataType(QUINT8)
+    implicit val qUShortEvTF      : TF[QUShort]       = fromDataType(QUINT16)
+    implicit val resourceEvTF     : TF[Resource]      = fromDataType(RESOURCE)
+    implicit val variantEvTF      : TF[Variant]       = fromDataType(VARIANT)
+  }
+
+  //  type Float32OrFloat64 = Float | Double
+  //  type Float16OrFloat32OrFloat64 = Half | Float | Double
+  //  type BFloat16OrFloat32OrFloat64 = TruncatedHalf | Float | Double
+  //  type BFloat16OrFloat16OrFloat32 = TruncatedHalf | Half | Float
+  //  type Decimal = TruncatedHalf | Half | Float | Double
+  //  type Int32OrInt64 = Int | Long
+//    type SignedInteger = Byte | Short | Int | Long | UByte | UShort | UInt | ULong
+//    type UnsignedInteger = UByte | UShort | UInt | ULong
+//    type Integer = SignedInteger | UnsignedInteger
+  //  type Real = TruncatedHalf | Half | Float | Double | Byte | Short | Int | Long | UByte | UShort | UInt | ULong
+  //  type Complex = ComplexFloat | ComplexDouble
+//    type NotQuantized = TruncatedHalf | Half | Float | Double | Byte | Short | Int | Long | UByte | UShort | UInt | ULong | ComplexFloat | ComplexDouble
+//    type Quantized = QByte | QShort | QInt | QUByte | QUShort
+
+  //  type IsFloat32OrFloat64[T] = Union.IsSubtype[T, Float32OrFloat64]
+  //  type IsFloat16OrFloat32OrFloat64[T] = Union.IsSubtype[T, Float16OrFloat32OrFloat64]
+  //  type IsBFloat16OrFloat32OrFloat64[T] = Union.IsSubtype[T, BFloat16OrFloat32OrFloat64]
+  //  type IsBFloat16OrFloat16OrFloat32[T] = Union.IsSubtype[T, BFloat16OrFloat16OrFloat32]
+  //  type IsDecimal[T] = Union.IsSubtype[T, Decimal]
+  //  type IsInt32OrInt64[T] = Union.IsSubtype[T, Int32OrInt64]
+  //  type IsInt32OrInt64OrFloat32OrFloat64[T] = Union.IsSubtype[T, Int32OrInt64 | Float32OrFloat64]
+  //  type IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T] = Union.IsSubtype[T, Int32OrInt64 | Float16OrFloat32OrFloat64]
+  //  type IsInt32OrInt64OrUInt8[T] = Union.IsSubtype[T, Int32OrInt64 | UByte]
+  //  type IsIntOrUInt[T] = Union.IsSubtype[T, IntOrUInt]
+  //  type IsStringOrIntOrUInt[T] = Union.IsSubtype[T, String | IntOrUInt]
+  //  type IsReal[T] = Union.IsSubtype[T, Real]
+  //  type IsComplex[T] = Union.IsSubtype[T, Complex]
+  //  type IsNotQuantized[T] = Union.IsSubtype[T, NotQuantized]
+  //  type IsQuantized[T] = Union.IsSubtype[T, Quantized]
+  //  type IsNumeric[T] = Union.IsSubtype[T, Numeric]
+  //  type IsBooleanOrNumeric[T] = Union.IsSubtype[T, BooleanOrNumeric]
+
   trait IsFloat32OrFloat64[T]
 
   object IsFloat32OrFloat64 {
+    def apply[T: IsFloat32OrFloat64]: IsFloat32OrFloat64[T] = implicitly[IsFloat32OrFloat64[T]]
+
     implicit val floatEvidence : IsFloat32OrFloat64[Float]  = new IsFloat32OrFloat64[Float] {}
     implicit val doubleEvidence: IsFloat32OrFloat64[Double] = new IsFloat32OrFloat64[Double] {}
   }
@@ -117,6 +194,8 @@ package object types {
   trait IsBFloat16OrFloat16OrFloat32[T]
 
   object IsBFloat16OrFloat16OrFloat32 {
+    def apply[T: IsBFloat16OrFloat16OrFloat32]: IsBFloat16OrFloat16OrFloat32[T] = implicitly[IsBFloat16OrFloat16OrFloat32[T]]
+
     implicit val truncatedHalfEvidence: IsBFloat16OrFloat16OrFloat32[TruncatedHalf] = new IsBFloat16OrFloat16OrFloat32[TruncatedHalf] {}
     implicit val halfEvidence         : IsBFloat16OrFloat16OrFloat32[Half]          = new IsBFloat16OrFloat16OrFloat32[Half] {}
     implicit val floatEvidence        : IsBFloat16OrFloat16OrFloat32[Float]         = new IsBFloat16OrFloat16OrFloat32[Float] {}
@@ -125,6 +204,8 @@ package object types {
   trait IsDecimal[T]
 
   object IsDecimal {
+    def apply[T: IsDecimal]: IsDecimal[T] = implicitly[IsDecimal[T]]
+
     implicit val halfEvidence         : IsDecimal[Half]          = new IsDecimal[Half] {}
     implicit val floatEvidence        : IsDecimal[Float]         = new IsDecimal[Float] {}
     implicit val doubleEvidence       : IsDecimal[Double]        = new IsDecimal[Double] {}
@@ -139,6 +220,8 @@ package object types {
   trait IsInt32OrInt64[T]
 
   object IsInt32OrInt64 extends IsInt32OrInt64LowPriority {
+    def apply[T: IsInt32OrInt64]: IsInt32OrInt64[T] = implicitly[IsInt32OrInt64[T]]
+
     implicit val intEvidence: IsInt32OrInt64[Int] = new IsInt32OrInt64[Int] {}
   }
 
@@ -209,6 +292,8 @@ package object types {
   trait IsReal[T]
 
   object IsReal {
+    def apply[T: IsReal]: IsReal[T] = implicitly[IsReal[T]]
+
     implicit def decimalEvidence[T: IsDecimal]: IsReal[T] = new IsReal[T] {}
     implicit def intOrUIntEvidence[T: IsIntOrUInt]: IsReal[T] = new IsReal[T] {}
   }
@@ -223,6 +308,8 @@ package object types {
   trait IsNotQuantized[T]
 
   object IsNotQuantized extends IsNotQuantizedPriority3 {
+    def apply[T: IsNotQuantized]: IsNotQuantized[T] = implicitly[IsNotQuantized[T]]
+
     implicit val halfEvidence         : IsNotQuantized[Half]          = new IsNotQuantized[Half] {}
     implicit val floatEvidence        : IsNotQuantized[Float]         = new IsNotQuantized[Float] {}
     implicit val doubleEvidence       : IsNotQuantized[Double]        = new IsNotQuantized[Double] {}
@@ -269,6 +356,8 @@ package object types {
   trait IsNumeric[T]
 
   object IsNumeric extends IsNumericPriority0 {
+    def apply[T: IsNumeric]: IsNumeric[T] = implicitly[IsNumeric[T]]
+
     implicit val halfEvidence         : IsNumeric[Half]          = new IsNumeric[Half] {}
     implicit val floatEvidence        : IsNumeric[Float]         = new IsNumeric[Float] {}
     implicit val doubleEvidence       : IsNumeric[Double]        = new IsNumeric[Double] {}

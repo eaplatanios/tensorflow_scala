@@ -39,7 +39,7 @@ case class DataType[+T](
     private[api] val cValue: Int,
     byteSize: Option[Int],
     protoType: org.tensorflow.framework.DataType
-)(implicit val evSupportedType: SupportedType[T]) {
+) {
   //region Data Type Properties
 
   /** Size in bytes of each value with this data type, as returned by the native TensorFlow library. Returns `None` if
@@ -81,19 +81,6 @@ case class DataType[+T](
 
   //endregion Data Type Set Helper Methods
 
-  /** Casts the provided value to this data type.
-    *
-    * Note that this method allows downcasting.
-    *
-    * @param  value Value to cast.
-    * @return Casted value.
-    * @throws UnsupportedOperationException For unsupported data types on the Scala side.
-    */
-  @throws[UnsupportedOperationException]
-  @inline def cast[R](value: R)(implicit ev: SupportedType[R]): T = {
-    evSupportedType.cast(value)
-  }
-
   override def toString: String = {
     name
   }
@@ -112,29 +99,29 @@ case class DataType[+T](
 object DataType {
   //region Data Type Instances
 
-  val STRING    : DataType[String]        = DataType[String]("STRING", cValue = 7, byteSize = None, DT_STRING)
-  val BOOLEAN   : DataType[Boolean]       = DataType[Boolean]("BOOLEAN", cValue = 10, byteSize = Some(1), DT_BOOL)
-  val FLOAT16   : DataType[Half]          = DataType[Half]("FLOAT16", cValue = 19, byteSize = Some(2), DT_HALF)
-  val FLOAT32   : DataType[Float]         = DataType[Float]("FLOAT32", cValue = 1, byteSize = Some(4), DT_FLOAT)
-  val FLOAT64   : DataType[Double]        = DataType[Double]("FLOAT64", cValue = 2, byteSize = Some(8), DT_DOUBLE)
-  val BFLOAT16  : DataType[TruncatedHalf] = DataType[TruncatedHalf]("BFLOAT16", cValue = 14, byteSize = Some(2), DT_BFLOAT16)
-  val COMPLEX64 : DataType[ComplexFloat]  = DataType[ComplexFloat]("COMPLEX64", cValue = 8, byteSize = Some(8), DT_COMPLEX64)
-  val COMPLEX128: DataType[ComplexDouble] = DataType[ComplexDouble]("COMPLEX128", cValue = 18, byteSize = Some(16), DT_COMPLEX128)
-  val INT8      : DataType[Byte]          = DataType[Byte]("INT8", cValue = 6, byteSize = Some(1), DT_INT8)
-  val INT16     : DataType[Short]         = DataType[Short]("INT16", cValue = 5, byteSize = Some(2), DT_INT16)
-  val INT32     : DataType[Int]           = DataType[Int]("INT32", cValue = 3, byteSize = Some(4), DT_INT32)
-  val INT64     : DataType[Long]          = DataType[Long]("INT64", cValue = 9, byteSize = Some(8), DT_INT64)
-  val UINT8     : DataType[UByte]         = DataType[UByte]("UINT8", cValue = 4, byteSize = Some(1), DT_UINT8)
-  val UINT16    : DataType[UShort]        = DataType[UShort]("UINT16", cValue = 17, byteSize = Some(2), DT_UINT16)
-  val UINT32    : DataType[UInt]          = DataType[UInt]("UINT32", cValue = 22, byteSize = Some(4), DT_UINT32)
-  val UINT64    : DataType[ULong]         = DataType[ULong]("UINT64", cValue = 23, byteSize = Some(8), DT_UINT64)
-  val QINT8     : DataType[QByte]         = DataType[QByte]("QINT8", cValue = 11, byteSize = Some(1), DT_QINT8)
-  val QINT16    : DataType[QShort]        = DataType[QShort]("QINT16", cValue = 15, byteSize = Some(2), DT_QINT16)
-  val QINT32    : DataType[QInt]          = DataType[QInt]("QINT32", cValue = 13, byteSize = Some(4), DT_QINT32)
-  val QUINT8    : DataType[QUByte]        = DataType[QUByte]("QUINT8", cValue = 12, byteSize = Some(1), DT_QUINT8)
-  val QUINT16   : DataType[QUShort]       = DataType[QUShort]("QUINT16", cValue = 16, byteSize = Some(2), DT_QUINT16)
-  val RESOURCE  : DataType[Resource]      = DataType[Resource]("RESOURCE", cValue = 20, byteSize = Some(1), DT_RESOURCE)
-  val VARIANT   : DataType[Variant]       = DataType[Variant]("VARIANT", cValue = 21, byteSize = Some(1), DT_VARIANT)
+  val STRING    : DataType[String]        = DataType[String]("String", cValue = 7, byteSize = None, DT_STRING)
+  val BOOLEAN   : DataType[Boolean]       = DataType[Boolean]("Boolean", cValue = 10, byteSize = Some(1), DT_BOOL)
+  val FLOAT16   : DataType[Half]          = DataType[Half]("Half", cValue = 19, byteSize = Some(2), DT_HALF)
+  val FLOAT32   : DataType[Float]         = DataType[Float]("Float", cValue = 1, byteSize = Some(4), DT_FLOAT)
+  val FLOAT64   : DataType[Double]        = DataType[Double]("Double", cValue = 2, byteSize = Some(8), DT_DOUBLE)
+  val BFLOAT16  : DataType[TruncatedHalf] = DataType[TruncatedHalf]("TruncatedFloat", cValue = 14, byteSize = Some(2), DT_BFLOAT16)
+  val COMPLEX64 : DataType[ComplexFloat]  = DataType[ComplexFloat]("ComplexFloat", cValue = 8, byteSize = Some(8), DT_COMPLEX64)
+  val COMPLEX128: DataType[ComplexDouble] = DataType[ComplexDouble]("ComplexDouble", cValue = 18, byteSize = Some(16), DT_COMPLEX128)
+  val INT8      : DataType[Byte]          = DataType[Byte]("Byte", cValue = 6, byteSize = Some(1), DT_INT8)
+  val INT16     : DataType[Short]         = DataType[Short]("Short", cValue = 5, byteSize = Some(2), DT_INT16)
+  val INT32     : DataType[Int]           = DataType[Int]("Int", cValue = 3, byteSize = Some(4), DT_INT32)
+  val INT64     : DataType[Long]          = DataType[Long]("Long", cValue = 9, byteSize = Some(8), DT_INT64)
+  val UINT8     : DataType[UByte]         = DataType[UByte]("UByte", cValue = 4, byteSize = Some(1), DT_UINT8)
+  val UINT16    : DataType[UShort]        = DataType[UShort]("UShort", cValue = 17, byteSize = Some(2), DT_UINT16)
+  val UINT32    : DataType[UInt]          = DataType[UInt]("UInt", cValue = 22, byteSize = Some(4), DT_UINT32)
+  val UINT64    : DataType[ULong]         = DataType[ULong]("ULong", cValue = 23, byteSize = Some(8), DT_UINT64)
+  val QINT8     : DataType[QByte]         = DataType[QByte]("QByte", cValue = 11, byteSize = Some(1), DT_QINT8)
+  val QINT16    : DataType[QShort]        = DataType[QShort]("QShort", cValue = 15, byteSize = Some(2), DT_QINT16)
+  val QINT32    : DataType[QInt]          = DataType[QInt]("QInt", cValue = 13, byteSize = Some(4), DT_QINT32)
+  val QUINT8    : DataType[QUByte]        = DataType[QUByte]("QUByte", cValue = 12, byteSize = Some(1), DT_QUINT8)
+  val QUINT16   : DataType[QUShort]       = DataType[QUShort]("QUShort", cValue = 16, byteSize = Some(2), DT_QUINT16)
+  val RESOURCE  : DataType[Resource]      = DataType[Resource]("Resource", cValue = 20, byteSize = Some(1), DT_RESOURCE)
+  val VARIANT   : DataType[Variant]       = DataType[Variant]("Variant", cValue = 21, byteSize = Some(1), DT_VARIANT)
 
   // TODO: [TYPES] !!! Remove the following.
 
@@ -218,45 +205,6 @@ object DataType {
     dataType.asInstanceOf[DataType[T]]
   }
 
-  /** Returns the data type that corresponds to the provided name.
-    *
-    * @param  name Data type name.
-    * @return Data type corresponding to the provided C value.
-    * @throws IllegalArgumentException If an invalid data type name is provided.
-    */
-  @throws[IllegalArgumentException]
-  private[api] def fromName[T](name: String): DataType[T] = {
-    val dataType = name match {
-      case "BOOLEAN" => BOOLEAN
-      case "STRING" => STRING
-      case "FLOAT16" => FLOAT16
-      case "FLOAT32" => FLOAT32
-      case "FLOAT64" => FLOAT64
-      case "BFLOAT16" => BFLOAT16
-      case "COMPLEX64" => COMPLEX64
-      case "COMPLEX128" => COMPLEX128
-      case "INT8" => INT8
-      case "INT16" => INT16
-      case "INT32" => INT32
-      case "INT64" => INT64
-      case "UINT8" => UINT8
-      case "UINT16" => UINT16
-      case "UINT32" => UINT32
-      case "UINT64" => UINT64
-      case "QINT8" => QINT8
-      case "QINT16" => QINT16
-      case "QINT32" => QINT32
-      case "QUINT8" => QUINT8
-      case "QUINT16" => QUINT16
-      case "RESOURCE" => RESOURCE
-      case "VARIANT" => VARIANT
-      case value => throw new IllegalArgumentException(
-        s"Data type name '$value' is not recognized in Scala " +
-            s"(TensorFlow version ${NativeLibrary.version}).")
-    }
-    dataType.asInstanceOf[DataType[T]]
-  }
-
   //endregion Helper Methods
 
   /** "Zero" value for the provided data type.
@@ -266,8 +214,8 @@ object DataType {
     * @throws IllegalArgumentException If the provided data type is not supported (which should never happen).
     */
   @throws[IllegalArgumentException]
-  @inline def zero[T: SupportedType]: T = {
-    val dataType = implicitly[SupportedType[T]].dataType
+  @inline def zero[T: TF]: T = {
+    val dataType = TF[T].dataType
     val value = dataType match {
       case STRING => ""
       case BOOLEAN => false
@@ -305,8 +253,8 @@ object DataType {
     * @throws IllegalArgumentException If the provided data type is not supported (which should never happen).
     */
   @throws[IllegalArgumentException]
-  @inline def one[T: SupportedType]: T = {
-    val dataType = implicitly[SupportedType[T]].dataType
+  @inline def one[T: TF]: T = {
+    val dataType = TF[T].dataType
     val value = dataType match {
       case STRING => ???
       case BOOLEAN => true
@@ -348,12 +296,12 @@ object DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def putElementInBuffer[T: SupportedType](
+  private[api] def putElementInBuffer[T: TF](
       buffer: ByteBuffer,
       index: Int,
       value: T
   ): Int = {
-    val dataType = implicitly[SupportedType[T]].dataType
+    val dataType = TF[T].dataType
     (value, dataType) match {
       case (v: String, STRING) =>
         val stringBytes = v.getBytes(StandardCharsets.ISO_8859_1)
@@ -429,11 +377,11 @@ object DataType {
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
   @throws[UnsupportedOperationException]
-  private[api] def getElementFromBuffer[T: SupportedType](
+  private[api] def getElementFromBuffer[T: TF](
       buffer: ByteBuffer,
       index: Int
   ): T = {
-    val dataType = implicitly[SupportedType[T]].dataType
+    val dataType = TF[T].dataType
     val value = dataType match {
       case STRING =>
         val bufferWithOffset = buffer.duplicate().position(index).asInstanceOf[ByteBuffer]
@@ -466,11 +414,11 @@ object DataType {
     value.asInstanceOf[T]
   }
 
-  private[api] def addToTensorProtoBuilder[T: SupportedType](
+  private[api] def addToTensorProtoBuilder[T: TF](
       builder: TensorProto.Builder,
       value: T
   ): Unit = {
-    val dataType = implicitly[SupportedType[T]].dataType
+    val dataType = TF[T].dataType
     (value, dataType) match {
       case (v: String, STRING) => builder.addStringVal(ByteString.copyFrom(v.getBytes))
       case (v: Boolean, BOOLEAN) => builder.addBoolVal(v)
