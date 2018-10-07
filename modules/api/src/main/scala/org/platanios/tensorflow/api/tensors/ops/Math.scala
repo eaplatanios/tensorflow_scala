@@ -2082,9 +2082,9 @@ trait Math {
 
 object Math extends Math {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToMathOps[TC, T: TF](
-        value: TC
-    )(implicit f: TC => Tensor[T]): MathOps[T] = {
+    implicit def tensorConvertibleToMathOps[TC, T](value: TC)(implicit
+        f: TC => Tensor[T]
+    ): MathOps[T] = {
       new MathOps(f(value))
     }
 
@@ -2112,7 +2112,11 @@ object Math extends Math {
       new ComplexDoubleMathOps(f(value))
     }
 
-    implicit class MathOps[T: TF](val tensor: Tensor[T]) {
+    implicit class MathOps[T](val tensor: Tensor[T]) {
+      private implicit val evTF: TF[T] = {
+        TF.fromDataType(tensor.dataType)
+      }
+
       /** $OpDocMathSelect
         *
         * @group MathOps

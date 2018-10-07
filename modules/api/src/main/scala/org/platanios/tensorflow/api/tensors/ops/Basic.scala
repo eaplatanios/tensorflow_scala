@@ -905,13 +905,17 @@ trait Basic {
 
 object Basic extends Basic {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToBasicOps[TC, T: TF](
+    implicit def tensorConvertibleToBasicOps[TC, T](
         value: TC
     )(implicit f: TC => Tensor[T]): BasicOps[T] = {
       new BasicOps(f(value))
     }
 
-    implicit class BasicOps[T: TF](tensor: Tensor[T]) {
+    implicit class BasicOps[T](tensor: Tensor[T]) {
+      private implicit val evTF: TF[T] = {
+        TF.fromDataType(tensor.dataType)
+      }
+
       //region Tensor Manipulation Ops
 
       /** $OpDocBasicExpandDims

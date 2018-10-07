@@ -840,13 +840,17 @@ trait NN {
 
 object NN extends NN {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToNNOps[TC, T: TF](
+    implicit def tensorConvertibleToNNOps[TC, T](
         value: TC
     )(implicit f: TC => Tensor[T]): NNOps[T] = {
       new NNOps(f(value))
     }
 
-    implicit class NNOps[T: TF](val tensor: Tensor[T]) {
+    implicit class NNOps[T](val tensor: Tensor[T]) {
+      private implicit val evTF: TF[T] = {
+        TF.fromDataType(tensor.dataType)
+      }
+
       //region Core Ops
 
       /** $OpDocNNAddBias
