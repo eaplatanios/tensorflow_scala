@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.types.{INT64, IsNotQuantized, IsInt32OrInt64}
+import org.platanios.tensorflow.api.types.{INT64, IsInt32OrInt64, IsNotQuantized, TF}
 
 /** Contains functions for constructing ops related to statistics.
   *
@@ -39,7 +39,7 @@ trait Statistics {
     *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
     *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
     */
-  def sufficientStatistics[T: IsNotQuantized, I: IsInt32OrInt64](
+  def sufficientStatistics[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I],
       shift: Output[T] = null,
@@ -48,7 +48,7 @@ trait Statistics {
   ): (Output[T], Output[T], Output[T], Output[T]) = {
     Op.nameScope(name) {
       val dynamicAxes = axes
-      val inputShape = Basic.shape(input, INT64).castTo(input.dataType)
+      val inputShape = Basic.shape(input).castTo[T](TF.fromDataType(input.dataType))
       val counts = Math.prod(Basic.gather(inputShape, dynamicAxes, axis = 0))
       val mSS = if (shift == null) input else input - shift
       val vSS = if (shift == null) Math.square(input) else Math.squaredDifference(input, shift)
@@ -68,7 +68,7 @@ trait Statistics {
     * @param  name   Name for the created op.
     * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
     */
-  def momentsFromSufficientStatistics[T: IsNotQuantized](
+  def momentsFromSufficientStatistics[T: IsNotQuantized : TF](
       counts: Output[T],
       meanSS: Output[T],
       varSS: Output[T],
@@ -107,7 +107,7 @@ trait Statistics {
     * @param  name     Name for the created op.
     * @return Tuple containing the created op outputs: (i) the mean tensor, and (ii) the variance tensor.
     */
-  def moments[T: IsNotQuantized](
+  def moments[T: IsNotQuantized : TF](
       input: Output[T],
       axes: Seq[Int],
       weights: Output[T] = null,
@@ -163,13 +163,13 @@ trait Statistics {
 
 object Statistics extends Statistics {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToStatisticsOps[OC, T](
+    implicit def outputConvertibleToStatisticsOps[OC, T: TF](
         value: OC
     )(implicit f: OC => Output[T]): StatisticsOps[T] = {
       new StatisticsOps(f(value))
     }
 
-    implicit class StatisticsOps[T](val output: Output[T]) {
+    implicit class StatisticsOps[T: TF](val output: Output[T]) {
       /** $OpDocStatisticsSufficientStatistics
         *
         * @group StatisticsOps
@@ -184,7 +184,7 @@ object Statistics extends Statistics {
         *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
         *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
         */
-      def sufficientStatistics[I: IsInt32OrInt64](
+      def sufficientStatistics[I: IsInt32OrInt64 : TF](
           axes: Output[I],
           shift: Output[T] = null,
           keepDims: Boolean = false

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.{IsNumeric, IsReal}
+import org.platanios.tensorflow.api.types.{IsNumeric, IsReal, TF}
 
 /** Contains functions for constructing ops related to sparse tensors.
   *
@@ -33,7 +33,7 @@ trait Sparse {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def sparseAdd[T: IsNumeric, TR: IsReal](
+  def sparseAdd[T: IsNumeric : TF, TR: IsReal : TF](
       x: SparseOutput[T],
       y: SparseOutput[T],
       threshold: Output[TR],
@@ -54,7 +54,7 @@ trait Sparse {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sparseDenseAdd[T: IsNumeric](
+  def sparseDenseAdd[T: IsNumeric : TF](
       x: SparseOutput[T],
       y: Output[T],
       name: String = "SparseDenseAdd"
@@ -69,13 +69,13 @@ trait Sparse {
 
 object Sparse extends Sparse {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToSparseOps[OC, T](
+    implicit def outputConvertibleToSparseOps[OC, T: TF](
         value: OC
     )(implicit f: OC => SparseOutput[T]): SparseOps[T] = {
       new SparseOps(f(value))
     }
 
-    implicit class SparseOps[T](val sparseOutput: SparseOutput[T]) {
+    implicit class SparseOps[T: TF](val sparseOutput: SparseOutput[T]) {
       def +(other: SparseOutput[T])(implicit ev: IsNumeric[T]): SparseOutput[T] = {
         add(other, threshold = 0)
       }
@@ -92,7 +92,7 @@ object Sparse extends Sparse {
         * @param  name      Name for the created op.
         * @return Created op output.
         */
-      def add[TR: IsReal](
+      def add[TR: IsReal : TF](
           other: SparseOutput[T],
           threshold: Output[TR],
           name: String = "SparseAdd"

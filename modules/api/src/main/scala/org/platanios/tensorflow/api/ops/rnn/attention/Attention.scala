@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.types.{DataType, INT32, INT64, IsDecimal, IsNotQuantized}
+import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
 
@@ -40,7 +40,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Attention[T: IsDecimal, AS, ASS](
+abstract class Attention[T: IsDecimal : TF, AS, ASS](
     protected val memory: Output[T],
     protected val memorySequenceLengths: Output[Int] = null,
     val checkInnerDimensionsDefined: Boolean = true,
@@ -87,9 +87,9 @@ abstract class Attention[T: IsDecimal, AS, ASS](
   lazy val initialAlignment: Output[T] = {
     Op.nameScope(s"$name/InitialAlignment") {
       val fullShape = Basic.stack(
-        Seq(batchSize, alignmentSize.castTo(batchSize.dataType)),
+        Seq(batchSize, alignmentSize.castTo[Int]),
         axis = 0)
-      Basic.zeros(dataType, fullShape)
+      Basic.zeros[T, Int](fullShape)
     }
   }
 
@@ -139,7 +139,7 @@ abstract class Attention[T: IsDecimal, AS, ASS](
 }
 
 /** Base class for attention models that use as state the previous alignment. */
-abstract class SimpleAttention[T: IsDecimal](
+abstract class SimpleAttention[T: IsDecimal : TF](
     override protected val memory: Output[T],
     override protected val memorySequenceLengths: Output[Int] = null,
     override val checkInnerDimensionsDefined: Boolean = true,
@@ -169,7 +169,7 @@ abstract class SimpleAttention[T: IsDecimal](
     Op.nameScope(name) {
       val unmaskedScore = score(query, previousState)
       val maskedScore = Attention.maybeMaskScore(
-        unmaskedScore, memorySequenceLengths, scoreMaskValue.castTo(query.dataType))
+        unmaskedScore, memorySequenceLengths, scoreMaskValue.castTo[T])
       val alignment = probability(maskedScore, previousState)
       (alignment, alignment)
     }
@@ -177,19 +177,19 @@ abstract class SimpleAttention[T: IsDecimal](
 }
 
 object Attention {
-  private[attention] def dimSize(
-      value: Output[_],
+  private[attention] def dimSize[T: TF](
+      value: Output[T],
       axis: Int
   ): Output[Int] = {
     if (value.rank != -1 && value.shape(axis) != -1)
       Basic.constant(value.shape(axis))
     else
-      Basic.shape(value, INT32).slice(axis)
+      Basic.shape(value).castTo[Int].slice(axis)
   }
 
   /** Potentially masks the provided values tensor based on the provided sequence lengths. */
   @throws[InvalidShapeException]
-  private[attention] def maybeMaskValues[T: IsNotQuantized](
+  private[attention] def maybeMaskValues[T: IsNotQuantized : TF](
       values: Output[T],
       sequenceLengths: Output[Int],
       checkInnerDimensionsDefined: Boolean
@@ -207,22 +207,22 @@ object Attention {
           if (sequenceLengths.shape(0) != -1)
             Basic.constant(sequenceLengths.shape(0))
           else
-            Basic.shape(sequenceLengths, INT32).slice(0)
+            Basic.shape(sequenceLengths).castTo[Int].slice(0)
         }
         Basic.sequenceMask(
           sequenceLengths,
-          Basic.shape(values, INT32).slice(1)
-        ).castTo(values.dataType)
+          Basic.shape(values).castTo[Int].slice(1)
+        ).castTo[T]
       }
     }
     if (sequenceMask == null) {
       values
     } else {
       val rank = if (values.rank != -1) Basic.constant(values.rank) else Basic.rank(values)
-      val extraOnes = Basic.ones(INT32, Basic.expandDims(rank - 2, 0))
+      val extraOnes = Basic.ones[Int, Int](Basic.expandDims(rank - 2, 0))
       val mask = sequenceMask.reshape(
         Basic.concatenate(Seq(
-          Basic.shape(sequenceMask, INT32),
+          Basic.shape(sequenceMask).castTo[Int],
           extraOnes
         ), axis = 0))
       values * mask
@@ -230,7 +230,7 @@ object Attention {
   }
 
   /** Potentially masks the provided score tensor based on the provided sequence lengths. */
-  private[attention] def maybeMaskScore[T: IsNotQuantized](
+  private[attention] def maybeMaskScore[T: IsNotQuantized : TF](
       score: Output[T],
       sequenceLengths: Output[Int],
       scoreMaskValue: Output[T]
@@ -240,7 +240,7 @@ object Attention {
     } else {
       val scoreMask = Basic.sequenceMask(
         sequenceLengths,
-        Basic.shape(score, INT32).slice(1))
+        Basic.shape(score).castTo[Int].slice(1))
       Math.select(scoreMask, score, scoreMaskValue * Basic.onesLike(score))
     }
   }

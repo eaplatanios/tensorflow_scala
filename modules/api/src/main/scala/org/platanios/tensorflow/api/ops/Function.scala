@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.data.{Dataset, SupportedData}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, SupportedType, Variant, VARIANT}
+import org.platanios.tensorflow.api.types.{DataType, TF, Variant, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 
@@ -495,12 +495,12 @@ object InstantiatedFunction {
         case None =>
           inputs.appendAll((inputNames, inputDataTypes).zipped
               .map((name, dataType) => {
-                Basic.placeholder(dataType = dataType, name = name)
+                Basic.placeholder(name = name)(TF.fromDataType(dataType))
               }))
         case Some(shapes) =>
           inputs.appendAll((inputNames, inputDataTypes, shapes).zipped
               .map((name, dataType, shape) => {
-                Basic.placeholder(dataType = dataType, shape = shape, name = name)
+                Basic.placeholder(shape, name = name)(TF.fromDataType(dataType))
               }))
       }
 
@@ -636,7 +636,7 @@ class FunctionGraph(
         // Substitute with a placeholder and hoist the new input placeholder out of any control flow context we might
         // currently be in.
         val placeholder = Op.createWith(controlDependencies = Set.empty) {
-          Basic.placeholder(output.dataType, output.shape)
+          Basic.placeholder(output.shape)(TF.fromDataType(output.dataType))
         }
         extraArgs.append(placeholder)
         extraInputs.append(outerGraph match {
@@ -682,7 +682,7 @@ class FunctionGraph(
 
   /** Custom variable getter for variables created within this function graph. */
   private[ops] val customVariableGetter: VariableGetter = new VariableGetter {
-    override def apply[T: SupportedType](
+    override def apply[T: TF](
         name: String,
         dataType: DataType[T],
         shape: Shape = null,

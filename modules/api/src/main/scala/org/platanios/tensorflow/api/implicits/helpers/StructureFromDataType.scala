@@ -32,8 +32,8 @@ import scala.collection.{MapLike, SeqLike}
 trait StructureFromDataType[D]
 
 object StructureFromDataType {
-  private type DataTypes3[D] = (INT64, D, INT64)
-  private type Shapes3 = (Shape, Shape, Shape)
+  private type SparseDataType[D] = (INT64, D, INT64)
+  private type SparseShape = (Shape, Shape, Shape)
 
   type Aux[T, O, D, S] = StructureFromDataType[D]
 
@@ -41,12 +41,12 @@ object StructureFromDataType {
     new StructureFromDataType[DataType[T]] {}
   }
 
-  implicit def fromOutputIndexedSlices[T]: Aux[TensorIndexedSlices[T], OutputIndexedSlices[T], DataTypes3[DataType[T]], Shapes3] = {
-    new StructureFromDataType[DataTypes3[DataType[T]]] {}
+  implicit def fromOutputIndexedSlices[T]: Aux[TensorIndexedSlices[T], OutputIndexedSlices[T], SparseDataType[DataType[T]], SparseShape] = {
+    new StructureFromDataType[SparseDataType[DataType[T]]] {}
   }
 
-  implicit def fromSparseOutput[T]: Aux[SparseTensor[T], SparseOutput[T], DataTypes3[DataType[T]], Shapes3] = {
-    new StructureFromDataType[DataTypes3[DataType[T]]] {}
+  implicit def fromSparseOutput[T]: Aux[SparseTensor[T], SparseOutput[T], SparseDataType[DataType[T]], SparseShape] = {
+    new StructureFromDataType[SparseDataType[DataType[T]]] {}
   }
 
   implicit def fromArray[T, O, D, S](implicit

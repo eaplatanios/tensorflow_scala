@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.IsNotQuantized
+import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** The Gated Recurrent Unit (GRU) cell.
   *
@@ -36,7 +36,7 @@ import org.platanios.tensorflow.api.types.IsNotQuantized
   *
   * @author Emmanouil Antonios Platanios
   */
-class GRUCell[T: IsNotQuantized] protected (
+class GRUCell[T: IsNotQuantized : TF] protected (
     val gateKernel: Output[T],
     val gateBias: Output[T],
     val candidateKernel: Output[T],
@@ -61,14 +61,14 @@ class GRUCell[T: IsNotQuantized] protected (
       val (r, u) = (value(0), value(1))
       val rState = Math.multiply(r, state)
       val c = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, rState), axis = 1), candidateKernel), candidateBias)
-      val newH = Math.add(Math.multiply(u, state), Math.multiply(Basic.ones(u.dataType, Shape()) - u, c))
+      val newH = Math.add(Math.multiply(u, state), Math.multiply(Basic.ones[T](Shape()) - u, c))
       Tuple(newH, newH)
     }
   }
 }
 
 object GRUCell {
-  def apply[T: IsNotQuantized](
+  def apply[T: IsNotQuantized : TF](
       gateKernel: Output[T],
       gateBias: Output[T],
       candidateKernel: Output[T],

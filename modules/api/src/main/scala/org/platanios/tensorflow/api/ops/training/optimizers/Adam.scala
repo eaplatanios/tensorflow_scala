@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, Resource, TF}
 
 /** Optimizer that implements the Adam optimization algorithm.
   *
@@ -73,7 +73,7 @@ import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuanti
   */
 class Adam protected (
     val learningRate: Float = 0.001f,
-    val decay: Schedule[Float] = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule[Float](),
     val beta1: Float = 0.9f,
     val beta2: Float = 0.999f,
     val useNesterov: Boolean = false,
@@ -89,49 +89,49 @@ class Adam protected (
   protected var beta2Tensor       : Output[Float] = _
   protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate[V, I: IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.castTo(variable.dataType).toOutput
+    learningRateTensor.castTo[V].toOutput
   }
 
-  protected def getBeta1[V](
+  protected def getBeta1[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    beta1Tensor.castTo(variable.dataType).toOutput
+    beta1Tensor.castTo[V].toOutput
   }
 
-  protected def getBeta2[V](
+  protected def getBeta2[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    beta2Tensor.castTo(variable.dataType).toOutput
+    beta2Tensor.castTo[V].toOutput
   }
 
-  protected def getEpsilon[V](
+  protected def getEpsilon[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    epsilonTensor.castTo(variable.dataType).toOutput
+    epsilonTensor.castTo[V].toOutput
   }
 
-  protected def getBetaPowerAccumulators[T]: (Variable[T], Variable[T]) = {
-    (getNonSlotVariable("Beta1Power", Op.currentGraph),
-        getNonSlotVariable("Beta2Power", Op.currentGraph))
+  protected def getBetaPowerAccumulators: (Variable[Float], Variable[Float]) = {
+    (getNonSlotVariable[Float]("Beta1Power", Op.currentGraph),
+        getNonSlotVariable[Float]("Beta2Power", Op.currentGraph))
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     // Create slots for the first and second moments.
     variables.foreach(v => {
-      zerosSlot("M", v, name)
-      zerosSlot("V", v, name)
+      zerosSlot("M", v, name)(TF.fromDataType(v.dataType))
+      zerosSlot("V", v, name)(TF.fromDataType(v.dataType))
     })
     // We create the 'beta1' and 'beta2' accumulators on the same device as the first variable. We sort the variables
     // list to make sure this device is consistent across workers (these need to go on the same parameter server,
@@ -141,7 +141,7 @@ class Adam protected (
     getOrCreateNonSlotVariable("Beta2Power", beta2, Set(firstVariable.op), ignoreExisting = true)
   }
 
-  override def prepare[I: IsInt32OrInt64](
+  override def prepare[I: IsInt32OrInt64 : TF](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -152,13 +152,13 @@ class Adam protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    val m = getSlot("M", variable)
-    val v = getSlot("V", variable)
+    val m = getSlot[T, T]("M", variable)
+    val v = getSlot[T, T]("V", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
       opType = "ResourceApplyAdam",
@@ -166,8 +166,8 @@ class Adam protected (
       input = (variable.handle,
           m.handle,
           v.handle,
-          beta1Power.value.castTo(variable.dataType),
-          beta2Power.value.castTo(variable.dataType),
+          beta1Power.value.castTo[T],
+          beta2Power.value.castTo[T],
           getLearningRate(variable, iteration),
           getBeta1(variable),
           getBeta2(variable),
@@ -178,7 +178,7 @@ class Adam protected (
         .build().asUntyped
   }
 
-  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -186,14 +186,14 @@ class Adam protected (
     Op.nameScope(s"$name/ApplySparse") {
       val m = getSlot[T, T]("M", variable)
       val v = getSlot[T, T]("V", variable)
-      val (beta1Power, beta2Power) = getBetaPowerAccumulators[T]
+      val (beta1Power, beta2Power) = getBetaPowerAccumulators
       val beta1 = getBeta1(variable)
       val beta2 = getBeta2(variable)
       val epsilon = getEpsilon(variable)
       var learningRate = getLearningRate(variable, iteration)
-      val one = Basic.ones(learningRate.dataType, Shape())
-      learningRate = learningRate * Math.sqrt(one - beta2Power.castTo(variable.dataType))
-      learningRate = learningRate / (one - beta1Power.castTo(variable.dataType))
+      val one = Basic.ones[T](Shape())
+      learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
+      learningRate = learningRate / (one - beta1Power.value.castTo[T])
 
       // m_t = beta1 * m + (1 - beta1) * gradient
       val mScaledGradient = gradient.values * (one - beta1)
@@ -235,7 +235,7 @@ class Adam protected (
 object Adam {
   def apply(
       learningRate: Float = 0.001f,
-      decay: Schedule[Float] = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
       useNesterov: Boolean = false,

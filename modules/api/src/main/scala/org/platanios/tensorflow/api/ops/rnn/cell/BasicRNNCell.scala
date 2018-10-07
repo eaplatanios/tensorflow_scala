@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.IsNotQuantized
+import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** The most basic RNN cell.
   *
@@ -33,7 +33,7 @@ import org.platanios.tensorflow.api.types.IsNotQuantized
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicRNNCell[T: IsNotQuantized] protected (
+class BasicRNNCell[T: IsNotQuantized : TF] protected (
     val kernel: Output[T],
     val bias: Output[T],
     val activation: Output[T] => Output[T],
@@ -59,7 +59,7 @@ class BasicRNNCell[T: IsNotQuantized] protected (
 }
 
 object BasicRNNCell {
-  def apply[T: IsNotQuantized](
+  def apply[T: IsNotQuantized : TF](
       kernel: Output[T],
       bias: Output[T],
       activation: Output[T] => Output[T],

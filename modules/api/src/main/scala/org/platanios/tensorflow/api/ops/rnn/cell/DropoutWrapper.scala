@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.ops.{NN, Op, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.types.IsFloat16OrFloat32OrFloat64
+import org.platanios.tensorflow.api.types.{IsFloat16OrFloat32OrFloat64, TF}
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -117,7 +117,7 @@ object DropoutWrapper {
   }
 
   object Supported {
-    implicit def outputSupported[T: IsFloat16OrFloat32OrFloat64]: Supported[Output[T]] = {
+    implicit def outputSupported[T: IsFloat16OrFloat32OrFloat64 : TF]: Supported[Output[T]] = {
       new Supported[Output[T]] {
         override def dropout(
             value: Output[T],
@@ -128,14 +128,14 @@ object DropoutWrapper {
         ): (Output[T], Int) = {
           (NN.dynamicDropout(
             value,
-            keepProbability.castTo(value.dataType),
+            keepProbability.castTo[T],
             seed = generateSeed(saltPrefix, seed, index)
           ), index + 1)
         }
       }
     }
 
-    implicit def tensorArraySupported[T: IsFloat16OrFloat32OrFloat64]: Supported[TensorArray[T]] = {
+    implicit def tensorArraySupported[T: IsFloat16OrFloat32OrFloat64 : TF]: Supported[TensorArray[T]] = {
       new Supported[TensorArray[T]] {
         override def dropout(
             value: TensorArray[T],
@@ -149,7 +149,7 @@ object DropoutWrapper {
       }
     }
 
-    implicit def lstmStateSupported[T: IsFloat16OrFloat32OrFloat64]: Supported[LSTMState[T]] = {
+    implicit def lstmStateSupported[T: IsFloat16OrFloat32OrFloat64 : TF]: Supported[LSTMState[T]] = {
       new Supported[LSTMState[T]] {
         override def dropout(
             value: LSTMState[T],
@@ -162,7 +162,7 @@ object DropoutWrapper {
             value.c,
             NN.dynamicDropout(
               input = value.m,
-              keepProbability = keepProbability.castTo(value.m.dataType),
+              keepProbability = keepProbability.castTo[T],
               seed = generateSeed(saltPrefix, seed, index))
           ), index + 1)
         }

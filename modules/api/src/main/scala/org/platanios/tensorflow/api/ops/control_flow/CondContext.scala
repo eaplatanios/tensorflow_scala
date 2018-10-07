@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.types.TF
 import org.platanios.tensorflow.api.utilities.Collections
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
@@ -76,7 +77,7 @@ private[api] case class CondContext private[control_flow] (
     } else {
       op.inputsSeq.zipWithIndex.foreach({
         case (input, index) =>
-          val realInput = add(input)
+          val realInput = add(input)(TF.fromDataType(input.dataType))
           if (realInput != input)
             ControlFlow.updateInput(op, index, realInput)
       })
@@ -95,7 +96,7 @@ private[api] case class CondContext private[control_flow] (
       op.graph.preventFetching(op)
   }
 
-  override def add[T](output: Output[T]): Output[T] = {
+  override def add[T: TF](output: Output[T]): Output[T] = {
     if (values.contains(output.name)) {
       // Use the real value if it comes from an outer context. This is needed in particular for nested conditionals.
       externalValues.getOrElse(output.name, output).asInstanceOf[Output[T]]
@@ -132,7 +133,7 @@ private[api] case class CondContext private[control_flow] (
   }
 
   /** Processes an op output used in a conditional branch. */
-  private[control_flow] def processOutput[T](
+  private[control_flow] def processOutput[T: TF](
       output: Output[T]
   ): Output[T] = {
     if (!values.contains(output.name)) {
@@ -333,7 +334,7 @@ object CondOutput {
           output: Output[T],
           context: CondContext
       ): Output[T] = {
-        context.processOutput(output)
+        context.processOutput(output)(TF.fromDataType(output.dataType))
       }
       override def flatten(
           processedOutput: Output[T]
@@ -363,14 +364,17 @@ object CondOutput {
           context: CondContext
       ): OutputIndexedSlices[T] = {
         val indices = context.processOutput(output.indices)
-        val values = context.processOutput(output.values)
+        val values = context.processOutput(output.values)(TF.fromDataType(output.values.dataType))
         val denseShape = {
           if (output.denseShape != null)
             context.processOutput(output.denseShape)
           else
             null
         }
-        OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
+        OutputIndexedSlices(
+          indices = indices,
+          values = values,
+          denseShape = denseShape)
       }
 
       override def flatten(
@@ -401,14 +405,17 @@ object CondOutput {
           context: CondContext
       ): SparseOutput[T] = {
         val indices = context.processOutput(output.indices)
-        val values = context.processOutput(output.values)
+        val values = context.processOutput(output.values)(TF.fromDataType(output.values.dataType))
         val denseShape = {
           if (output.denseShape != null)
             context.processOutput(output.denseShape)
           else
             null
         }
-        SparseOutput(indices = indices, values = values, denseShape = denseShape)
+        SparseOutput(
+          indices = indices,
+          values = values,
+          denseShape = denseShape)
       }
 
       override def flatten(
@@ -451,7 +458,8 @@ object CondOutput {
           output: TensorArray[T],
           values: Seq[OutputLike[Any]]
       ): (TensorArray[T], Seq[OutputLike[Any]]) = {
-        val newTensorArray = output.copy(flow = values.head.asInstanceOf[Output[Float]])
+        val newTensorArray = output.copy(
+          flow = values.head.asInstanceOf[Output[Float]])
         // TODO: !!! [TENSOR_ARRAY] What about colocate with?
         (newTensorArray, values.tail)
       }

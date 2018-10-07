@@ -129,7 +129,7 @@ object Resources extends Resources {
         val resourcesMask = Math.logicalNot(Basic.stack(resources.map(_.isInitialized).toSeq))
         // Get a 1-D string tensor containing all the resource names.
         val resourcesList = resources.map(_.handle.name).toSeq
-        val resourceNames = Basic.constant(Tensor(resourcesList: _*))
+        val resourceNames = Basic.constant(resourcesList: Tensor[String])
         // Return a 1-D tensor containing the names of all uninitialized resources.
         Basic.booleanMask(resourceNames, resourcesMask)
       }

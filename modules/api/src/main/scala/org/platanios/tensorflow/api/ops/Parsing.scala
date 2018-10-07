@@ -33,7 +33,7 @@ trait Parsing {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def encodeTensor[T](
+  def encodeTensor[T: TF](
       tensor: Output[T],
       name: String = "EncodeTensor"
   ): Output[String] = {
@@ -47,22 +47,21 @@ trait Parsing {
   /** $OpDocParsingDecodeTensor
     *
     * @group ParsingOps
-    * @param  data     Tensor containing a serialized `TensorProto` proto.
-    * @param  dataType Data type of the serialized tensor. The provided data type must match the data type of the
-    *                  serialized tensor and no implicit conversion will take place.
-    * @param  name     Name for the created op.
+    * @param  data Tensor containing a serialized `TensorProto` proto.
+    * @param  name Name for the created op.
+    * @tparam T Data type of the serialized tensor. The provided data type must match the data type of the
+    *           serialized tensor and no implicit conversion will take place.
     * @return Created op output.
     */
-  def decodeTensor[T](
+  def decodeTensor[T: TF](
       data: Output[String],
-      dataType: DataType[T],
       name: String = "DecodeTensor"
   ): Output[T] = {
     Op.Builder[Output[String], Output[T]](
       opType = "ParseTensor",
       name = name,
       input = data
-    ).setAttribute("out_type", dataType)
+    ).setAttribute("out_type", TF[T].dataType)
         .build().output
   }
 
@@ -70,15 +69,14 @@ trait Parsing {
     *
     * @group ParsingOps
     * @param  bytes        Tensor interpreted as raw bytes. All the elements must have the same length.
-    * @param  dataType     Output tensor data type.
     * @param  littleEndian Boolean value indicating whether the input `bytes` are stored in little-endian order. Ignored
     *                      for `dataType` values that are stored in a single byte, like [[UINT8]].
     * @param  name         Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def decodeRaw[T](
+  def decodeRaw[T: TF](
       bytes: Output[String],
-      dataType: DataType[T],
       littleEndian: Boolean = true,
       name: String = "DecodeRaw"
   ): Output[T] = {
@@ -86,7 +84,7 @@ trait Parsing {
       opType = "DecodeRaw",
       name = name,
       input = bytes
-    ).setAttribute("out_type", dataType)
+    ).setAttribute("out_type", TF[T].dataType)
         .setAttribute("little_endian", littleEndian)
         .build().output
   }
@@ -107,7 +105,7 @@ trait Parsing {
     * @param  name               Name for the created op.
     * @return Created op outputs.
     */
-  def decodeCSV[T](
+  def decodeCSV[T: TF](
       records: Output[String],
       recordDefaults: Seq[Output[T]],
       dataTypes: Seq[DataType[T]],
@@ -128,21 +126,20 @@ trait Parsing {
   /** $OpDocParsingStringToNumber
     *
     * @group ParsingOps
-    * @param  data     Tensor containing string representations of numbers.
-    * @param  dataType Output tensor data type.
-    * @param  name     Name for the created op.
+    * @param  data Tensor containing string representations of numbers.
+    * @param  name Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def stringToNumber[T](
+  def stringToNumber[T: TF](
       data: Output[String],
-      dataType: DataType[T],
       name: String = "StringToNumber"
   ): Output[T] = {
     Op.Builder[Output[String], Output[T]](
       opType = "StringToNumber",
       name = name,
       input = data
-    ).setAttribute("out_type", dataType)
+    ).setAttribute("out_type", TF[T].dataType)
         .build().output
   }
 
@@ -180,12 +177,11 @@ object Parsing extends Parsing {
     * To treat sparse input as dense, provide a `defaultValue`. Otherwise, the parsing functions will fail on any
     * examples missing this feature.
     *
-    * @param  dataType     Data type of the input feature.
     * @param  shape        Shape of the input feature.
     * @param  defaultValue Value to be used if an example is missing this feature. It must match the specified `shape`.
+    * @tparam T Data type of the input feature.
     */
-  case class FixedLengthFeature[T](
-      dataType: DataType[T],
+  case class FixedLengthFeature[T: TF](
       shape: Shape,
       defaultValue: Tensor[T] = null
   ) extends Feature {
@@ -203,16 +199,15 @@ object Parsing extends Parsing {
     * To treat sparse input as dense, set `allowMissing` to `true`. Otherwise, the parsing functions will fail on any
     * examples missing this feature.
     *
-    * @param  dataType     Data type of the input feature.
     * @param  shape        Shape of the input feature.
     * @param  allowMissing Boolean value specifying whether to allow this feature to be missing from a feature list
     *                      item. It is available only for parsing `SequenceExample`s, but not for parsing `Example`s.
     * @param  defaultValue Scalar value to be used to pad multiple `Example`s to their maximum length. It is irrelevant
     *                      for parsing a single `Example` or `SequenceExample`. Defaults to `""` for data type
     *                      [[STRING]] and to `0` otherwise.
+    * @tparam T Data type of the input feature.
     */
-  case class FixedLengthSequenceFeature[T](
-      dataType: DataType[T],
+  case class FixedLengthSequenceFeature[T: TF](
       shape: Shape,
       allowMissing: Boolean = false,
       defaultValue: Tensor[T] = null
@@ -263,17 +258,16 @@ object Parsing extends Parsing {
     *                       be [[INT64]] and its length must always match the rank of the `valueKey` feature's value.
     * @param  valueKey      Name of the value feature. The underlying feature's type must be `dataType` and its rank
     *                       must always match that of all the `indexKey`s' features.
-    * @param  dataType      Data type of the `valueKey` feature.
     * @param  size          Sequence of integers specifying the dense shape of the [[SparseTensor]]. The length of this
     *                       sequence must be equal to the length of the `indexKey` sequence. For each entry `i`, all
     *                       values in the `indexKey(i)`-th feature must be in the interval `[0, size(i))`.
     * @param  alreadySorted Boolean value specifying whether the values in `valueKey` are already sorted by their index
     *                       position. If so, we skip sorting.
+    * @tparam T Data type of the `valueKey` feature.
     */
-  case class SparseFeature(
+  case class SparseFeature[T: TF](
       indexKey: Seq[String],
       valueKey: String,
-      dataType: DataType[_],
       size: Seq[Int],
       alreadySorted: Boolean = false
   ) extends Feature

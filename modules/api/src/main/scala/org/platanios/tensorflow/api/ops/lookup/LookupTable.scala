@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike, OutputOps, UntypedOp}
-import org.platanios.tensorflow.api.types.{DataType, Resource}
+import org.platanios.tensorflow.api.types.{DataType, Resource, TF}
 
 /** Lookup table that persists across different session runs.
   *
@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.types.{DataType, Resource}
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class LookupTable[K, +V](
+abstract class LookupTable[K: TF, +V: TF](
     val keysDataType: DataType[K],
     val valuesDataType: DataType[V],
     val name: String
@@ -67,7 +67,7 @@ abstract class LookupTable[K, +V](
   * @param  initializer  Lookup table initializer to use.
   * @param  defaultValue Default value to use if a key is missing from the table.
   */
-abstract class InitializableLookupTable[K, +V] private[lookup](
+abstract class InitializableLookupTable[K: TF, +V: TF] private[lookup](
     val handle: Output[Resource],
     protected val initializer: LookupTableInitializer[K, V],
     val defaultValue: Output[V]
@@ -147,7 +147,7 @@ abstract class InitializableLookupTable[K, +V] private[lookup](
   * @param  useNodeNameSharing If set to `true` and `sharedName` is empty, the table is shared using the node name.
   * @param  name               Name for the created table.
   */
-case class HashTable[K, +V](
+case class HashTable[K: TF, +V: TF](
     override protected val initializer: LookupTableInitializer[K, V],
     override val defaultValue: Output[V],
     container: String = "",
@@ -181,7 +181,7 @@ object HashTable {
     * @param  name               Name for the created op.
     * @return Created op.
     */
-  private[lookup] def createHashTable[K, V](
+  private[lookup] def createHashTable[K: TF, V: TF](
       keysDataType: DataType[K],
       valuesDataType: DataType[V],
       container: String = "",

@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, TF}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
@@ -1069,7 +1069,7 @@ object Op {
             outputs: Seq[Output[Any]],
             reference: Option[OutputIndexedSlices[T]]
         ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
-          (OutputIndexedSlices(
+          (OutputIndexedSlices[T](
             indices = outputs(0).asInstanceOf[Output[Long]],
             values = outputs(1).asInstanceOf[Output[T]],
             denseShape = outputs(2).asInstanceOf[Output[Long]]),
@@ -1135,13 +1135,13 @@ object Op {
             case Some(_: OutputIndexedSlices[T]) =>
               (OutputIndexedSlices(
                 indices = outputs(0).asInstanceOf[Output[Long]],
-                values = outputs(1),
+                values = outputs(1).asInstanceOf[Output[T]],
                 denseShape = outputs(2).asInstanceOf[Output[Long]]),
                   outputs.drop(3))
             case Some(_: SparseOutput[T]) =>
               (SparseOutput(
                 indices = outputs(0).asInstanceOf[Output[Long]],
-                values = outputs(1),
+                values = outputs(1).asInstanceOf[Output[T]],
                 denseShape = outputs(2).asInstanceOf[Output[Long]]),
                   outputs.drop(3))
             case None =>
@@ -1593,35 +1593,35 @@ object Op {
       }
     }
 
-//    implicit def outputLikeEvidence[T]: OpOutputPrimitive[OutputLike[T]] = {
-//      new OpOutputPrimitive[OutputLike[T]] {
-//        @inline override def fromOutputs(
-//            outputs: Seq[Output[Any]]
-//        ): (OutputLike[T], Seq[Output[Any]]) = {
-//          if (outputs.size == 1) {
-//            (outputs.head.asInstanceOf[Output[T]], outputs.tail)
-//          } else if (outputs.head.rank == 1) {
-//            (OutputIndexedSlices(
-//              indices = outputs(0).asInstanceOf[Output[Long]],
-//              values = outputs(1).asInstanceOf[Output[T]],
-//              denseShape = outputs(2).asInstanceOf[Output[Long]]),
-//                outputs.drop(3))
-//          } else {
-//            (SparseOutput(
-//              indices = outputs(0).asInstanceOf[Output[Long]],
-//              values = outputs(1).asInstanceOf[Output[T]],
-//              denseShape = outputs(2).asInstanceOf[Output[Long]]),
-//                outputs.drop(3))
-//          }
-//        }
-//
-//        @inline override def fromOutputLikes(
-//            outputs: Seq[OutputLike[Any]]
-//        ): (OutputLike[T], Seq[OutputLike[Any]]) = {
-//          (outputs.head.asInstanceOf[OutputLike[T]], outputs.tail)
-//        }
-//      }
-//    }
+    implicit def outputLikeEvidence[T]: OpOutputPrimitive[OutputLike[T]] = {
+      new OpOutputPrimitive[OutputLike[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (OutputLike[T], Seq[Output[Any]]) = {
+          if (outputs.size == 1) {
+            (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+          } else if (outputs.head.rank == 1) {
+            (OutputIndexedSlices(
+              indices = outputs(0).asInstanceOf[Output[Long]],
+              values = outputs(1).asInstanceOf[Output[T]],
+              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                outputs.drop(3))
+          } else {
+            (SparseOutput(
+              indices = outputs(0).asInstanceOf[Output[Long]],
+              values = outputs(1).asInstanceOf[Output[T]],
+              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                outputs.drop(3))
+          }
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (OutputLike[T], Seq[OutputLike[Any]]) = {
+          (outputs.head.asInstanceOf[OutputLike[T]], outputs.tail)
+        }
+      }
+    }
   }
 
   //endregion Type Traits

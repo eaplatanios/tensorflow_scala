@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVari
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.types.{INT32, IsInt32OrInt64, TF}
 
 import scala.language.postfixOps
 
@@ -88,7 +88,9 @@ trait RNN {
         processedInput = {
           if (!timeMajor) {
             // [B, T, D] => [T, B, D]
-            processedInput.map(RNN.transposeBatchTime)
+            processedInput.map(i => {
+              RNN.transposeBatchTime(i)(TF.fromDataType(i.dataType))
+            })
           } else {
             processedInput
           }
@@ -120,7 +122,12 @@ trait RNN {
         if (!timeMajor) {
           // [T, B, D] => [B, T, D]
           finalTuple = Tuple(
-            evO.fromOutputs(input, finalTupleOutputs.map(RNN.transposeBatchTime)), finalTuple.state)
+            output = evO.fromOutputs(
+              input,
+              finalTupleOutputs.map(o => {
+                RNN.transposeBatchTime(o)(TF.fromDataType(o.dataType))
+              })),
+            state = finalTuple.state)
         }
         finalTuple
       }
@@ -189,9 +196,15 @@ trait RNN {
         def reverse(input: O): O = {
           var sequence = evO.outputs(input)
           if (sequenceLengths == null)
-            sequence = sequence.map(input => Basic.reverse(input, timeAxis))
+            sequence = sequence.map(input => {
+              Basic.reverse(input, timeAxis)(TF.fromDataType(input.dataType), IsInt32OrInt64[Int], TF[Int])
+            })
           else
-            sequence = sequence.map(input => Basic.reverseSequence(input, sequenceLengths, timeAxis, batchAxis))
+            sequence = sequence.map(input => {
+              Basic.reverseSequence(
+                input, sequenceLengths, timeAxis, batchAxis
+              )(TF.fromDataType(input.dataType), IsInt32OrInt64[Int], TF[Int])
+            })
           evO.fromOutputs(input, sequence)
         }
 
@@ -238,7 +251,7 @@ object RNN extends RNN {
   ): Tuple[O, S] = {
     // Construct an initial output.
     val inputs = evO.outputs(input)
-    val inputShape = Basic.shape(inputs.head, INT32)
+    val inputShape = Basic.shape(inputs.head)(TF.fromDataType(inputs.head.dataType)).castTo[Int]
     val timeSteps = inputShape(0)
     val batchSize = bestEffortInputBatchSize(inputs)
     val inputsGotShape = inputs.map(_.shape.withRankAtLeast(3))
@@ -262,16 +275,22 @@ object RNN extends RNN {
       else
         (null, timeSteps)
     }
-    val time = Basic.zeros(INT32, Shape(), name = "Time")
+    val time = Op.nameScope("Time")(Basic.zeros[Int](Shape()))
     val outputTensorArrays = evO.shapes(cell.outputShape).zipWithIndex.map({
-      case (shape, index) => TensorArray.create(
-        timeSteps, inferredDataType,
-        elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
-        name = s"Output_$index")
+      case (shape, index) =>
+        TensorArray.create(
+          size = timeSteps,
+          dataType = inferredDataType,
+          elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
+          name = s"Output_$index")(TF.fromDataType(inferredDataType))
     })
     val inputTensorArrays = inputs.zipWithIndex.map({
       case (in, index) => TensorArray.create(
-        timeSteps, in.dataType, elementShape = in.shape(1 ::), name = s"Input_$index").unstack(in)
+        size = timeSteps,
+        dataType = in.dataType,
+        elementShape = in.shape(1 ::),
+        name = s"Input_$index"
+      )(TF.fromDataType(in.dataType)).unstack(in)(TF.fromDataType(in.dataType))
     })
 
     type LoopVariables = (Output[Int], Seq[TensorArray[Any]], Seq[Output[Any]])
@@ -299,10 +318,13 @@ object RNN extends RNN {
         }
       }
       val nextOutputTensorArrays = loopVariables._2.zip(nextOutputs).map({
-        case (tensorArray, output) => tensorArray.write(time, output)
+        case (tensorArray, output) =>
+          tensorArray.write(time, output)(TF.fromDataType(output.dataType))
       })
       (time + 1, nextOutputTensorArrays, nextStates)
     }
+
+    implicit val evTF: TF[Any] = TF.fromDataType(initialStates.head.dataType)
 
     // Make sure that we run at least 1 step, if necessary, to ensure that the tensor arrays pick up the dynamic shape.
     val loopBound = Math.minimum(timeSteps, Math.maximum(1, maxSequenceLength))
@@ -375,7 +397,7 @@ object RNN extends RNN {
         newOutput
       } else {
         Op.colocateWith(Set(newOutput.op), ignoreExisting = true) {
-          Math.select(copyCond, output, newOutput)
+          Math.select(copyCond, output, newOutput)(TF.fromDataType(output.dataType))
         }
       }
     }
@@ -429,7 +451,7 @@ object RNN extends RNN {
   /** Transposes the batch and time dimensions of the input tensor, while retaining as much of the static shape
     * information as possible. If the input tensor has rank less than `2` it returns the original tensor. */
   @throws[InvalidShapeException]
-  private[api] def transposeBatchTime[T](input: Output[T]): Output[T] = {
+  private[api] def transposeBatchTime[T: TF](input: Output[T]): Output[T] = {
     val staticShape = input.shape
     if (staticShape.rank != -1 && staticShape.rank < 2) {
       input
@@ -477,7 +499,9 @@ object RNN extends RNN {
       Basic.constant(batchSize)
     } else {
       // Fallback to the dynamic batch size of the first input.
-      Basic.shape(inputs.head, INT32).slice(1)
+      Basic.shape(inputs.head)(TF.fromDataType(inputs.head.dataType))
+          .castTo[Int]
+          .slice(1)
     }
   }
 }

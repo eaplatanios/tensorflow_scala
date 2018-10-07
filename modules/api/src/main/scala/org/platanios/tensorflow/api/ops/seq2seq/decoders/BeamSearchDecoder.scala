@@ -91,7 +91,7 @@ class BeamSearchDecoder[T, State, StateShape](
   /** Scalar tensor representing the batch size of the input values. */
   override val batchSize: Output[Int] = {
     Op.nameScope(name) {
-      Basic.size(beginTokens, INT32)
+      Basic.size(beginTokens).castTo[Int]
     }
   }
 
@@ -150,7 +150,7 @@ class BeamSearchDecoder[T, State, StateShape](
   override def initialize(): (Output[Boolean], Output[T], BeamSearchDecoder.DecoderState[State, StateShape]) = {
     Op.nameScope(s"$name/Initialize") {
       val finished = Basic.oneHot(
-        indices = Basic.zeros(INT32, batchSize.expandDims(0)),
+        indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
         depth = beamWidth,
         dataType = BOOLEAN,
         onValue = false,
@@ -158,13 +158,13 @@ class BeamSearchDecoder[T, State, StateShape](
       val initialState = BeamSearchDecoder.DecoderState[State, StateShape](
         modelState = processedInitialCellState,
         logProbabilities = Basic.oneHot(
-          indices = Basic.zeros(INT32, batchSize.expandDims(0)),
+          indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
           depth = beamWidth,
           dataType = FLOAT32,
-          onValue = Basic.zeros(FLOAT32, Shape()),
+          onValue = Basic.zeros[Float](Shape()),
           offValue = Basic.constant(Float.MinValue)),
         finished = finished,
-        sequenceLengths = Basic.zeros(INT32, Basic.stack[Int](Seq(batchSize, beamWidth))))
+        sequenceLengths = Basic.zeros[Int, Int](Basic.stack[Int](Seq(batchSize, beamWidth))))
       (finished, beginInput, initialState)
     }
   }
@@ -179,6 +179,7 @@ class BeamSearchDecoder[T, State, StateShape](
       input: Output[T],
       state: BeamSearchDecoder.DecoderState[State, StateShape]
   ): (BeamSearchDecoder.DecoderOutput, BeamSearchDecoder.DecoderState[State, StateShape], Output[T], Output[Boolean]) = {
+    implicit val evTF: TF[T] = TF.fromDataType(input.dataType)
     Op.nameScope(s"$name/Next") {
       val mergedInput = evT.mapWithShape(
         input, input.shape(2 ::),
@@ -195,7 +196,7 @@ class BeamSearchDecoder[T, State, StateShape](
         BeamSearchDecoder.maybeSplitBatchBeams(_, _, batchSize, beamWidth))
 
       // Perform the beam search step.
-      val staticBatchSize = Output.constantValue(batchSize).map(_.scalar.asInstanceOf[Int]).getOrElse(-1)
+      val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
 
       // Calculate the current lengths of the predictions.
       val predictionLengths = state.sequenceLengths
@@ -211,11 +212,11 @@ class BeamSearchDecoder[T, State, StateShape](
         if (nextTupleOutput.shape(-1) != -1)
           Basic.constant(nextTupleOutput.shape(-1))
         else
-          Basic.shape(nextTupleOutput, INT32).slice(-1)
+          Basic.shape(nextTupleOutput).castTo[Int].slice(-1)
       }
 
       var lengthsToAdd = Basic.oneHot(
-        indices = Basic.fill(endToken.dataType, Basic.stack[Int](Seq(batchSize, beamWidth)))(endToken),
+        indices = Basic.fill[Int, Int](Basic.stack[Int](Seq(batchSize, beamWidth)))(endToken),
         depth = vocabSize,
         dataType = INT32,
         onValue = 0,
@@ -614,17 +615,17 @@ object BeamSearchDecoder {
       endToken: Output[Int],
       finished: Output[Boolean]
   ): Output[Float] = {
-    val vocabSize = Basic.shape(logProbabilities, INT32).slice(2)
+    val vocabSize = Basic.shape(logProbabilities).castTo[Int].slice(2)
     // Finished examples are replaced with a vector that has all its probability mass on `endToken`
     val finishedRow = Basic.oneHot(
       indices = endToken,
       depth = vocabSize,
       dataType = FLOAT32,
-      onValue = Basic.zeros(FLOAT32, Shape()),
+      onValue = Basic.zeros[Float](Shape()),
       offValue = Basic.constant(Float.MinValue))
     val finishedLogProbabilities = Basic.tile(
       input = finishedRow.reshape(Shape(1, 1, -1)),
-      multiples = Basic.concatenate[Int](Seq(Basic.shape(finished, INT32), Tensor(1)), 0))
+      multiples = Basic.concatenate[Int](Seq(Basic.shape(finished).castTo[Int], Tensor(1)), 0))
     val finishedMask = Basic.tile(
       input = finished.expandDims(2),
       multiples = Basic.stack[Int](Seq(1, 1, vocabSize)))
@@ -661,21 +662,22 @@ object BeamSearchDecoder {
   }
 
   @throws[InvalidArgumentException]
-  private[decoders] def tileBatch[O <: OutputLikeOrTensorArray[_]](
-      value: O,
+  private[decoders] def tileBatch[T, OL[A] <: OutputLikeOrTensorArray[A]](
+      value: OL[T],
       multiplier: Int
-  ): O = {
+  ): OL[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     value match {
-      case output: Output[_] =>
+      case output: Output[T] =>
         if (output.rank == -1) {
           throw InvalidArgumentException("The provided tensor must have statically known rank.")
         } else if (output.rank == 0) {
           val tiling = Tensor(multiplier)
           val tiled = Basic.tile(output.expandDims(0), tiling)
           tiled.setShape(Shape(multiplier))
-          tiled.asInstanceOf[O]
+          tiled.asInstanceOf[OL[T]]
         } else {
-          val outputShape = Basic.shape(output, INT32)
+          val outputShape = Basic.shape(output).castTo[Int]
           val tiling = ArrayBuffer.fill(output.rank + 1)(1)
           tiling(1) = multiplier
           val tiledStaticBatchSize = if (output.shape(0) != -1) output.shape(0) * multiplier else -1
@@ -685,9 +687,9 @@ object BeamSearchDecoder {
             tiled.setShape(Shape(tiledStaticBatchSize) ++ output.shape(1 ::))
           else
             tiled.setShape(Shape(tiledStaticBatchSize))
-          tiled.asInstanceOf[O]
+          tiled.asInstanceOf[OL[T]]
         }
-      case _: TensorArray[_] =>
+      case _: TensorArray[T] =>
         value
       case _ =>
         throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
@@ -717,21 +719,21 @@ object BeamSearchDecoder {
     *                                  are known statically).
     */
   @throws[InvalidArgumentException]
-  def maybeSplitBatchBeams[O <: OutputLikeOrTensorArray[_]](
-      value: O,
+  def maybeSplitBatchBeams[T, OL[A] <: OutputLikeOrTensorArray[A]](
+      value: OL[T],
       shape: Shape,
       batchSize: Output[Int],
       beamWidth: Int
-  ): O = {
+  ): OL[T] = {
     value match {
-      case output: Output[_] =>
+      case output: Output[T] =>
         if (output.rank == -1)
           throw InvalidArgumentException(s"Expected tensor ($output) to have known rank, but it was unknown.")
         else if (output.rank == 0)
           value
         else
           splitBatchBeams(value, shape, batchSize, beamWidth)
-      case _: TensorArray[_] =>
+      case _: TensorArray[T] =>
         value
       case _ =>
         throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
@@ -753,18 +755,19 @@ object BeamSearchDecoder {
     */
   @throws[InvalidArgumentException]
   @throws[InvalidShapeException]
-  private[BeamSearchDecoder] def splitBatchBeams[O <: OutputLikeOrTensorArray[_]](
-      value: O,
+  private[BeamSearchDecoder] def splitBatchBeams[T, OL[A] <: OutputLikeOrTensorArray[A]](
+      value: OL[T],
       shape: Shape,
       batchSize: Output[Int],
       beamWidth: Int
-  ): O = {
+  ): OL[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     (value, shape) match {
-      case (output: Output[_], s: Shape) =>
-        val valueShape = Basic.shape(output, INT32)
+      case (output: Output[T], s: Shape) =>
+        val valueShape = Basic.shape(output).castTo[Int]
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
           batchSize(NewAxis), Tensor(beamWidth).toOutput,
-          valueShape(1 ::).castTo(batchSize.dataType)), axis = 0))
+          valueShape(1 ::).castTo[Int]), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val expectedReshapedShape = Shape(staticBatchSize, beamWidth) ++ s
         if (!reshapedValue.shape.isCompatibleWith(expectedReshapedShape)) {
@@ -775,8 +778,8 @@ object BeamSearchDecoder {
                 "Perhaps you forgot to create a zero state with batchSize = encoderBatchSize * beamWidth?")
         }
         reshapedValue.setShape(expectedReshapedShape)
-        reshapedValue.asInstanceOf[O]
-      case (_: TensorArray[_], _) =>
+        reshapedValue.asInstanceOf[OL[T]]
+      case (_: TensorArray[T], _) =>
         value
       case _ =>
         throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
@@ -798,21 +801,22 @@ object BeamSearchDecoder {
     *                                  are known statically).
     */
   @throws[InvalidArgumentException]
-  private[BeamSearchDecoder] def maybeMergeBatchBeams[O <: OutputLikeOrTensorArray[_]](
-      value: O,
+  private[BeamSearchDecoder] def maybeMergeBatchBeams[T, OL[A] <: OutputLikeOrTensorArray[A]](
+      value: OL[T],
       shape: Shape,
       batchSize: Output[Int],
       beamWidth: Int
-  ): O = {
+  ): OL[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     value match {
-      case output: Output[_] =>
+      case output: Output[T] =>
         if (output.rank == -1)
           throw InvalidArgumentException(s"Expected tensor ($output) to have known rank, but it was unknown.")
         else if (output.rank == 0)
           value
         else
           mergeBatchBeams(value, shape, batchSize, beamWidth)
-      case _: TensorArray[_] =>
+      case _: TensorArray[T] =>
         value
       case _ =>
         throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
@@ -835,18 +839,19 @@ object BeamSearchDecoder {
     */
   @throws[InvalidArgumentException]
   @throws[InvalidShapeException]
-  private[BeamSearchDecoder] def mergeBatchBeams[O <: OutputLikeOrTensorArray[_]](
-      value: O,
+  private[BeamSearchDecoder] def mergeBatchBeams[T, OL[A] <: OutputLikeOrTensorArray[A]](
+      value: OL[T],
       shape: Shape,
       batchSize: Output[Int],
       beamWidth: Int
-  ): O = {
+  ): OL[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     (value, shape) match {
-      case (output: Output[_], s: Shape) =>
-        val valueShape = Basic.shape(output, INT32)
+      case (output: Output[T], s: Shape) =>
+        val valueShape = Basic.shape(output).castTo[Int]
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
           batchSize(NewAxis) * Tensor(beamWidth).toOutput,
-          valueShape(2 ::).castTo(batchSize.dataType)), axis = 0))
+          valueShape(2 ::).castTo[Int]), axis = 0))
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         val batchSizeBeamWidth = if (staticBatchSize != -1) staticBatchSize * beamWidth else -1
         val expectedReshapedShape = Shape(batchSizeBeamWidth) ++ s
@@ -858,8 +863,8 @@ object BeamSearchDecoder {
                 "Perhaps you forgot to create a zero state with batchSize = encoderBatchSize * beamWidth?")
         }
         reshapedValue.setShape(expectedReshapedShape)
-        reshapedValue.asInstanceOf[O]
-      case (_: TensorArray[_], _) =>
+        reshapedValue.asInstanceOf[OL[T]]
+      case (_: TensorArray[T], _) =>
         value
       case _ =>
         throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
@@ -884,23 +889,24 @@ object BeamSearchDecoder {
     *                                  unknown rank.
     */
   @throws[InvalidArgumentException]
-  private[BeamSearchDecoder] def maybeGather[O <: OutputLikeOrTensorArray[_]](
+  private[BeamSearchDecoder] def maybeGather[T, OL[A] <: OutputLikeOrTensorArray[A]](
       gatherIndices: Output[Int],
-      gatherFrom: O,
+      gatherFrom: OL[T],
       batchSize: Output[Int],
       rangeSize: Output[Int],
       gatherShape: Seq[Output[Int]],
       name: String = "GatherTensorHelper"
-  ): O = {
+  ): OL[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(gatherFrom.dataType)
     gatherFrom match {
-      case gatherFromOutput: Output[_] =>
+      case gatherFromOutput: Output[T] =>
         if (gatherFromOutput.rank == -1)
           throw InvalidArgumentException(s"Expected tensor ($gatherFromOutput) to have known rank, but it was unknown.")
         else if (gatherFromOutput.rank < gatherShape.size)
           gatherFrom
         else
           gather(gatherIndices, gatherFrom, batchSize, rangeSize, gatherShape, name)
-      case _: TensorArray[_] =>
+      case _: TensorArray[T] =>
         gatherFrom
       case _ =>
         throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
@@ -924,28 +930,29 @@ object BeamSearchDecoder {
     * @throws InvalidArgumentException If `gatherFrom` is of an unsupported type.
     */
   @throws[InvalidArgumentException]
-  private[BeamSearchDecoder] def gather[O <: OutputLikeOrTensorArray[_]](
+  private[BeamSearchDecoder] def gather[T, OL[A] <: OutputLikeOrTensorArray[A]](
       gatherIndices: Output[Int],
-      gatherFrom: O,
+      gatherFrom: OL[T],
       batchSize: Output[Int],
       rangeSize: Output[Int],
       gatherShape: Seq[Output[Int]],
       name: String = "GatherTensorHelper"
-  ): O = {
+  ): OL[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(gatherFrom.dataType)
     gatherFrom match {
-      case gatherFromOutput: Output[_] =>
+      case gatherFromOutput: Output[T] =>
         Op.nameScope(name) {
           val range = (Math.range(0, batchSize) * rangeSize).expandDims(1)
           val reshapedGatherIndices = (gatherIndices + range).reshape(Shape(-1))
           var output = Basic.gather(gatherFromOutput.reshape(Basic.stack(gatherShape)), reshapedGatherIndices, axis = 0)
-          val finalShape = Basic.shape(gatherFromOutput, INT32).slice(0 :: (1 + gatherShape.size))
+          val finalShape = Basic.shape(gatherFromOutput).castTo[Int].slice(0 :: (1 + gatherShape.size))
           val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
           val finalStaticShape = Shape(staticBatchSize) ++ gatherFromOutput.shape(1 :: (1 + gatherShape.size))
           output = Basic.reshape(output, finalShape, name = "Output")
           output.setShape(finalStaticShape)
-          output.asInstanceOf[O]
+          output.asInstanceOf[OL[T]]
         }
-      case _: TensorArray[_] =>
+      case _: TensorArray[T] =>
         gatherFrom
       case _ =>
         throw InvalidArgumentException("Unsupported argument type for use with the beam search decoder.")
@@ -976,14 +983,15 @@ object BeamSearchDecoder {
 
   /** Returns an assertion op checking that the elements of the stacked tensor array (i.e., `tensor`) can be reshaped
     * to `[batchSize, beamSize, -1]`. At this point, the tensor array elements have a known rank of at least `1`. */
-  private[BeamSearchDecoder] def checkBatchBeam(
-      tensor: Output[_],
+  private[BeamSearchDecoder] def checkBatchBeam[T](
+      tensor: Output[T],
       batchSize: Output[Int],
       beamWidth: Output[Int]
   ): UntypedOp = {
+    implicit val evTF: TF[T] = TF.fromDataType(tensor.dataType)
     Checks.assert(
       condition = {
-        val shape = Basic.shape(tensor, INT32)
+        val shape = Basic.shape(tensor).castTo[Int]
         if (tensor.rank == 2)
           Math.equal(shape(1), batchSize * beamWidth)
         else
@@ -1011,15 +1019,16 @@ object BeamSearchDecoder {
     * @return A tensor array where the search states are sorted in each tensor, or `value` itself, if it is not a tensor
     *         array or does not meet the shape requirements.
     */
-  private[BeamSearchDecoder] def maybeSortTensorArrayBeams[O <: OutputLikeOrTensorArray[_]](
-      value: O,
+  private[BeamSearchDecoder] def maybeSortTensorArrayBeams[T, OL[A] <: OutputLikeOrTensorArray[A]](
+      value: OL[T],
       sequenceLengths: Output[Int],
       parentIDs: Output[Int],
       batchSize: Output[Int],
       beamWidth: Int
-  ): O = {
+  ): OL[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     value match {
-      case ta: TensorArray[_] if (!ta.inferShape || ta.elementShape.isEmpty) ||
+      case ta: TensorArray[T] if (!ta.inferShape || ta.elementShape.isEmpty) ||
           ta.elementShape.get(0) == -1 ||
           ta.elementShape.get(1) < 1 =>
         val shape = ta.elementShape match {
@@ -1030,18 +1039,18 @@ object BeamSearchDecoder {
           s"The tensor array '${ta.handle.name}' in the cell state is not amenable to sorting based on the beam " +
               s"search result. For a tensor array to be sorted, its elements shape must be defined and have at least " +
               s"a rank of 1. However, the elements shape in the provided tensor array is: $shape.")
-        ta.asInstanceOf[O]
-      case ta: TensorArray[_] if !checkStaticBatchBeam(
+        ta.asInstanceOf[OL[T]]
+      case ta: TensorArray[T] if !checkStaticBatchBeam(
         shape = Shape(ta.elementShape.get(0)),
         batchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1),
         beamWidth = beamWidth) =>
-        ta.asInstanceOf[O]
-      case ta: TensorArray[_] =>
+        ta.asInstanceOf[OL[T]]
+      case ta: TensorArray[T] =>
         val stackedTensorArray = ta.stack()
         Op.createWith(controlDependencies = Set(checkBatchBeam(stackedTensorArray, batchSize, beamWidth))) {
-          val maxTime = Basic.shape(parentIDs, INT32).slice(0)
-          val batchSize = Basic.shape(parentIDs, INT32).slice(1)
-          val beamWidth = Basic.shape(parentIDs, INT32).slice(2)
+          val maxTime = Basic.shape(parentIDs).castTo[Int].slice(0)
+          val batchSize = Basic.shape(parentIDs).castTo[Int].slice(1)
+          val beamWidth = Basic.shape(parentIDs).castTo[Int].slice(2)
 
           // Generate search state indices that will be reordered by the `gatherTree` op.
           val searchStateIndices = Basic.tile(
@@ -1068,9 +1077,9 @@ object BeamSearchDecoder {
           val indices = Basic.stack(Seq(timeIndices, batchIndices, sortedSearchStateIndices), -1)
 
           // Gather from a tensor with collapsed additional dimensions.
-          val finalShape = Basic.shape(stackedTensorArray, INT32)
+          val finalShape = Basic.shape(stackedTensorArray).castTo[Int]
           val gatherFrom = stackedTensorArray.reshape(Basic.stack[Int](Seq(maxTime, batchSize, beamWidth, -1)))
-          Basic.gatherND(gatherFrom, indices).reshape(finalShape).asInstanceOf[O]
+          Basic.gatherND(gatherFrom, indices).reshape(finalShape).asInstanceOf[OL[T]]
         }
       case _ =>
         value

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.types.IsInt32OrInt64
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 /** Trait for implementing optimization learning rate scheduling methods.
   *
@@ -38,18 +38,18 @@ trait Schedule[-T] {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  def apply[V <: T, I: IsInt32OrInt64](
+  def apply[V <: T : TF, I: IsInt32OrInt64 : TF](
       value: Output[V],
       step: Option[Variable[I]]
   ): Output[V]
 
   /** Composes the provided `other` schedule with this schedule and returns the resulting schedule. */
-  def >>[V <: T](other: Schedule[V]): ComposedSchedule[V] = {
+  def >>[V <: T : TF](other: Schedule[V]): ComposedSchedule[V] = {
     ComposedSchedule(other, this)
   }
 
   /** Composes this schedule with the provided, `other` schedule and returns the resulting schedule. */
-  def compose[V <: T](other: Schedule[V]): ComposedSchedule[V] = {
+  def compose[V <: T : TF](other: Schedule[V]): ComposedSchedule[V] = {
     ComposedSchedule(this, other)
   }
 }

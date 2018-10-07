@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types.{DataType, INT64, STRING, IsStringOrIntOrUInt}
+import org.platanios.tensorflow.api.types.{DataType, TF, INT64, IsStringOrIntOrUInt}
 
 /** String to ID lookup table wrapper that assigns out-of-vocabulary keys to buckets.
   *
@@ -58,7 +58,7 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING, IsStringOrIn
   *
   * @author Emmanouil Antonios Platanios
   */
-class IDLookupTableWithHashBuckets[K: IsStringOrIntOrUInt] private[IDLookupTableWithHashBuckets](
+class IDLookupTableWithHashBuckets[K: IsStringOrIntOrUInt : TF] private[IDLookupTableWithHashBuckets](
     val table: Option[HashTable[K, Long]],
     override val keysDataType: DataType[K],
     val numOOVBuckets: Int,
@@ -115,7 +115,7 @@ class IDLookupTableWithHashBuckets[K: IsStringOrIntOrUInt] private[IDLookupTable
 }
 
 object IDLookupTableWithHashBuckets {
-  def apply[K: IsStringOrIntOrUInt](
+  def apply[K: IsStringOrIntOrUInt : TF](
       table: HashTable[K, Long],
       numOOVBuckets: Int,
       hashSpecification: HashSpecification = FAST_HASH,
@@ -126,7 +126,7 @@ object IDLookupTableWithHashBuckets {
   }
 
   @throws[IllegalArgumentException]
-  def empty[K: IsStringOrIntOrUInt](
+  def empty[K: IsStringOrIntOrUInt : TF](
       keysDataType: DataType[K],
       numOOVBuckets: Int,
       hashSpecification: HashSpecification = FAST_HASH,

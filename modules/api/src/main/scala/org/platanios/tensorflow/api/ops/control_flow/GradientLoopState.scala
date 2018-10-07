@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.Resource
+import org.platanios.tensorflow.api.types.{Resource, TF}
 
 import scala.collection.mutable
 
@@ -142,7 +142,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * If back-propagation "uses" a value produced by the forward loop, an accumulator is added in the forward loop to
     * collect its values. We use the accumulated value. This method must be called for the backward loop context.
     * `value` must be in the forward loop and is needed for back-propagation. */
-  private[control_flow] def getRealValue[T](
+  private[control_flow] def getRealValue[T: TF](
       value: Output[T]
   ): Output[T] = {
     historyMap.getOrElseUpdate(value.name, {
@@ -201,7 +201,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * @param  deadBranch Set to `true`, if and only if `value` is on a dead branch of a conditional.
     * @return Resource handle to a stack that contains the accumulated history of the tensor.
     */
-  private[control_flow] def addForwardAccumulator[T](
+  private[control_flow] def addForwardAccumulator[T: TF](
       value: Output[T],
       deadBranch: Boolean = false
   ): Output[Resource] = {
@@ -270,7 +270,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     * @param  deadBranch   Set to `true`, if and only if `value` is on a dead branch of a conditional.
     * @return Current value (popped from the top of the stack).
     */
-  private[control_flow] def addBackwardAccumulatedValue[T](
+  private[control_flow] def addBackwardAccumulatedValue[T: TF](
       historyValue: Output[Resource],
       value: Output[T],
       deadBranch: Boolean = false

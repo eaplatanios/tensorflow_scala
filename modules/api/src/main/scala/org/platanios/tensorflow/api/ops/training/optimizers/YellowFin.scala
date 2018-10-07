@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.training.ExponentialMovingAverage
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{Resource, FLOAT32, INT32, INT64, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types._
 
 /** Optimizer that implements the YellowFin algorithm.
   *
@@ -53,7 +53,7 @@ import org.platanios.tensorflow.api.types.{Resource, FLOAT32, INT32, INT64, IsIn
   */
 class YellowFin protected (
     override val learningRate: Float = 1.0f,
-    override val decay: Schedule[Float] = FixedSchedule,
+    override val decay: Schedule[Float] = FixedSchedule[Float](),
     override val momentum: Float = 0.0f,
     val beta: Float = 0.999f,
     val curvatureWindowWidth: Int = 20,
@@ -78,25 +78,27 @@ class YellowFin protected (
   protected var incrementStepOp: UntypedOp                = _
   protected var doTune         : Output[Boolean]          = _
 
-  override protected def getLearningRate[V, I: IsInt32OrInt64](
+  override protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.castTo(variable.dataType)
+    learningRateTensor.castTo[V]
   }
 
-  override protected def getMomentum[V](
+  override protected def getMomentum[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    momentumTensor.castTo(variable.dataType)
+    momentumTensor.castTo[V]
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {
-    variables.foreach(v => zerosSlot("Momentum", v, name))
+    variables.foreach(v => {
+      zerosSlot("Momentum", v, name)(TF.fromDataType(v.dataType))
+    })
   }
 
   /** Creates an op that applies the provided gradients to the provided variables.
@@ -106,7 +108,7 @@ class YellowFin protected (
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  override def applyGradients[I: IsInt32OrInt64](
+  override def applyGradients[I: IsInt32OrInt64 : TF](
       gradientsAndVariables: Seq[(OutputLike[Any], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
@@ -124,7 +126,7 @@ class YellowFin protected (
     }
   }
 
-  override def prepare[I: IsInt32OrInt64](
+  override def prepare[I: IsInt32OrInt64 : TF](
       iteration: Option[Variable[I]]
   ): Unit = {
     movingAverage = ExponentialMovingAverage(beta, zeroDebias = zeroDebias)
@@ -148,7 +150,7 @@ class YellowFin protected (
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }
 
-  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -157,7 +159,7 @@ class YellowFin protected (
       opType = "ResourceApplyMomentum",
       name = s"$name/ApplyDense",
       input = (variable.handle,
-          getSlot("Momentum", variable).handle,
+          getSlot[T, T]("Momentum", variable).handle,
           getLearningRate(variable, iteration),
           gradient,
           getMomentum(variable))
@@ -166,7 +168,7 @@ class YellowFin protected (
         .build().asUntyped
   }
 
-  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -175,7 +177,7 @@ class YellowFin protected (
       opType = "ResourceSparseApplyMomentum",
       name = s"$name/ApplySparse",
       input = (variable.handle,
-          getSlot("Momentum", variable).handle,
+          getSlot[T, T]("Momentum", variable).handle,
           getLearningRate(variable, iteration),
           gradient.values,
           gradient.indices,
@@ -201,7 +203,9 @@ class YellowFin protected (
       val avg = Math.addN(gradNormSquared.map(movingAverage.average(_).get.read()))
       (sum, avg)
     }
-    val gradients = gradientsAndVariables.map(_._1.castTo[Float])
+    val gradients = gradientsAndVariables.map(gv => {
+      gv._1.castTo[Float]
+    })
     val sparsityAvg = gradientsSparsity(gradients)
     val (hMin, hMax) = curvatureRange(gradNormSquaredSum, sparsityAvg)
     val gradVar = gradientsVariance(gradients, gradNormSquaredAvg, sparsityAvg)
@@ -258,8 +262,8 @@ class YellowFin protected (
         // If the sparse mini-batch gradient has 10 percent of its entries non-zero, its sparsity is 0.1. The norms of
         // dense gradients averaged over the full dataset are roughly estimated from the norms of mini-batch sparse
         // gradient norm * sqrt(sparsity). An extension may only correct the sparse blob.
-        val nonZeroCount = Math.addN(gradients.map(Math.countNonZeroSparse(_))).castTo(gradients.head.dataType)
-        val totalCount = Math.addN(gradients.map(Basic.size(_, INT64))).castTo(gradients.head.dataType)
+        val nonZeroCount = Math.addN(gradients.map(Math.countNonZeroSparse(_))).castTo[Float]
+        val totalCount = Math.addN(gradients.map(Basic.size(_))).castTo[Float]
         val sparsity = nonZeroCount / totalCount
         val sparsityAvgOp = movingAverage.computeForValues(Set(sparsity))
         val sparsityAvg = Op.createWith(controlDependencies = Set(sparsityAvgOp)) {
@@ -313,7 +317,7 @@ class YellowFin protected (
         grads.map(g => Math.square(movingAverage.average(g).get.read()))
       }
       var gradVar = Math.maximum(
-        Basic.constant(1e-6f).castTo(gradNormSquaredAvg.dataType),
+        Basic.constant(1e-6f).castTo[Float],
         gradNormSquaredAvg - Math.addN(gradAvgSquared.map(Math.sum(_))))
       sparsityAvg.foreach(gradVar *= _)
       gradVar
@@ -343,7 +347,7 @@ class YellowFin protected (
 object YellowFin {
   def apply(
       learningRate: Float = 1.0f,
-      decay: Schedule[Float] = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       momentum: Float = 0.0f,
       beta: Float = 0.999f,
       curvatureWindowWidth: Int = 20,

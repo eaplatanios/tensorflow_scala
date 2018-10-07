@@ -63,8 +63,8 @@ private[api] case class WhileLoopContext private[control_flow] (
     private[ops] var pivot: Output[Boolean] = null,
     private var pivotForPredicate: UntypedOp = null,
     private var pivotForBody: UntypedOp = null,
-    private[control_flow] val loopEnters: mutable.Set[Output[_]] = mutable.Set.empty[Output[_]],
-    private[control_flow] val loopExits: mutable.Set[Output[_]] = mutable.Set.empty[Output[_]],
+    private[control_flow] val loopEnters: mutable.Set[Output[Any]] = mutable.Set.empty[Output[Any]],
+    private[control_flow] val loopExits: mutable.Set[Output[Any]] = mutable.Set.empty[Output[Any]],
     private val _name: String = "WhileLoopContext"
 ) extends Context() with ProtoSerializable {
   require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
@@ -137,7 +137,7 @@ private[api] case class WhileLoopContext private[control_flow] (
   //    outerContext.foreach(_.addInnerOp(op))
   //  }
 
-  override def add[T](output: Output[T]): Output[T] = {
+  override def add[T: TF](output: Output[T]): Output[T] = {
     if (values.contains(output.name)) {
       // Use the real value if it comes from an outer context. This is needed in particular for nested conditionals.
       externalValues.getOrElse(output.name, output).asInstanceOf[Output[T]]
@@ -168,7 +168,12 @@ private[api] case class WhileLoopContext private[control_flow] (
         val result = outerContext.map(_.add(output)).getOrElse(output)
         // Create an enter op to make `result` known to this loop context.
         val enter = Op.createWith(controlDependencies = Set.empty) {
-          val enter = ControlFlow.enter(result, name, isConstant = true, parallelIterations)
+          val enter = ControlFlow.enter(
+            input = result,
+            frameName = name,
+            isConstant = true,
+            parallelIterations = parallelIterations
+          )(TF.fromDataType(result.dataType))
           enter.graph.preventFeeding(enter)
           enter
         }
@@ -215,11 +220,20 @@ private[api] case class WhileLoopContext private[control_flow] (
       // Let the context know the loop variables so the loop variables would be added to the outer contexts properly.
       initializeValues(flattenedLoopVariables)
       val realVariables = outerContext.map(c => {
-        flattenedLoopVariables.map(c.add[Any])
+        flattenedLoopVariables.map(v => {
+          c.add(v)(TF.fromDataType(v.dataType))
+        })
       }).getOrElse(flattenedLoopVariables)
       val enterVariables = Op.createWith(controlDependencies = Set.empty) {
-        val enterVariables = realVariables.map(v => ControlFlow.enter(
-          v, name, isConstant = false, parallelIterations, useInputShape = flattenedShapeInvariants.isEmpty))
+        val enterVariables = realVariables.map(v => {
+          ControlFlow.enter(
+            input = v,
+            frameName = name,
+            isConstant = false,
+            parallelIterations = parallelIterations,
+            useInputShape = flattenedShapeInvariants.isEmpty
+          )(TF.fromDataType(v.dataType))
+        })
         enterVariables.foreach(v => v.graph.preventFeeding(v))
         enterVariables
       }
@@ -245,17 +259,23 @@ private[api] case class WhileLoopContext private[control_flow] (
       loopEnters.clear()
       loopEnters ++= enterVariables
 
-      val mergeVariables = enterVariables.map(v => ControlFlow.merge(Seq(v, v))._1)
+      val mergeVariables = enterVariables.map(v => {
+        ControlFlow.merge(Seq(v, v))(TF.fromDataType(v.dataType))._1
+      })
       pivotForPredicate = mergeVariables(0).op
 
       // Build the graph for the predicate.
       val packedPredicateVariables = ev.fromOutputs(loopVariables, mergeVariables)
       val predicateResult = predicateFn(packedPredicateVariables)
       pivot = ControlFlow.loopCond(predicateResult, name = "LoopCond")
-      val switchVariables = mergeVariables.map(v => ControlFlow.colocatedSwitch(v, pivot))
+      val switchVariables = mergeVariables.map(v => {
+        ControlFlow.colocatedSwitch(v, pivot)(TF.fromDataType(v.dataType))
+      })
 
       // Build the graph for the body.
-      val bodyVariables = switchVariables.map(v => Basic.identity(v._2))
+      val bodyVariables = switchVariables.map(v => {
+        Basic.identity(v._2)(TF.fromDataType(v._2.dataType))
+      })
       pivotForBody = bodyVariables(0).op
       val packedBodyVariables = ev.fromOutputs(loopVariables, bodyVariables)
       val bodyResult = bodyFn(packedBodyVariables)
@@ -265,11 +285,13 @@ private[api] case class WhileLoopContext private[control_flow] (
 
       // Add the `NextIteration` op and the back edges to complete the loop.
       mergeVariables.zip(flattenedBodyResult).map(p => {
-        WhileLoopContext.addNextIterationAndBackEdge(p._1, p._2)
+        WhileLoopContext.addNextIterationAndBackEdge(p._1, p._2)(TF.fromDataType(p._1.dataType))
       })
 
       // Add the exit ops.
-      val exitVariables = switchVariables.map(v => ControlFlow.exit(v._1))
+      val exitVariables = switchVariables.map(v => {
+        ControlFlow.exit(v._1)(TF.fromDataType(v._1.dataType))
+      })
       loopExits.clear()
       loopExits ++= exitVariables
 
@@ -343,26 +365,28 @@ private[api] case class WhileLoopContext private[control_flow] (
   private[control_flow] def addForwardLoopCounter(
       outerGradientLoopState: Option[GradientLoopState]
   ): (Output[Int], Output[Int]) = {
-    val n = Basic.zeros(INT32, Shape(), name = "ForwardLoopCounter")
-    outerGradientLoopState.foreach(state => {
-      // Force the stack pushes of the i-th execution of an inner loop to be ordered before the pushes of the (i+1)-th
-      // execution of the same inner loop.
-      ControlFlow.addControlInput(n.op, state.forwardIndex.op.inputsSeq(0).op)
-    })
-    enter()
-    values += n.name
-    val enterN = ControlFlow.enter(n, name, isConstant = false, parallelIterations, name = "ForwardLoopCounter")
-    loopEnters += enterN
-    val mergeN = ControlFlow.merge(Seq(enterN, enterN))._1
-    val switchN = ControlFlow.switch(mergeN, pivot)
-    val index = Math.add(switchN._2, Basic.ones(INT32, Shape()))
-    val nextN = ControlFlow.nextIteration(index)
-    ControlFlow.updateInput(mergeN.op, 1, nextN)
-    val exitN = ControlFlow.exit(switchN._1, name = "ForwardLoopCounter").toOutput
-    loopExits += exitN
-    exitResult(Seq(exitN))
-    exit()
-    (exitN, nextN)
+    Op.nameScope("ForwardLoopCounter") {
+      val n = Basic.zeros[Int](Shape())
+      outerGradientLoopState.foreach(state => {
+        // Force the stack pushes of the i-th execution of an inner loop to be ordered before the pushes of the (i+1)-th
+        // execution of the same inner loop.
+        ControlFlow.addControlInput(n.op, state.forwardIndex.op.inputsSeq(0).op)
+      })
+      enter()
+      values += n.name
+      val enterN = ControlFlow.enter(n, name, isConstant = false, parallelIterations)
+      loopEnters += enterN
+      val mergeN = ControlFlow.merge(Seq(enterN, enterN))._1
+      val switchN = ControlFlow.switch(mergeN, pivot)
+      val index = Math.add(switchN._2, Basic.ones[Int](Shape()))
+      val nextN = ControlFlow.nextIteration(index)
+      ControlFlow.updateInput(mergeN.op, 1, nextN)
+      val exitN = ControlFlow.exit(switchN._1).toOutput
+      loopExits += exitN
+      exitResult(Seq(exitN))
+      exit()
+      (exitN, nextN)
+    }
   }
 
   /** Adds the back-propagation loop that counts the number of iterations.
@@ -383,29 +407,31 @@ private[api] case class WhileLoopContext private[control_flow] (
       count: Output[Int],
       outerGradientLoopState: Option[GradientLoopState]
   ): Output[Int] = {
-    val one = Basic.ones(INT32, Shape(), name = "BackwardLoopCounter")
-    enter()
-    values += count.name
-    val enterC = ControlFlow.enter(count, name, isConstant = false, parallelIterations, name = "BackwardLoopCounter")
-    loopEnters += enterC
-    val mergeC = ControlFlow.merge(Seq(enterC, enterC))._1
-    pivotForPredicate = mergeC.op
-    pivot = ControlFlow.loopCond(Math.greaterEqual(mergeC, one), name = "BackwardLoopCounter")
-    val switchC = ControlFlow.switch(mergeC, pivot)
-    val indexC = Math.subtract(switchC._2, one)
-    pivotForBody = indexC.op
-    val nextC = ControlFlow.nextIteration(indexC)
-    ControlFlow.updateInput(mergeC.op, 1, nextC)
-    val exitC = ControlFlow.exit(switchC._1, name = "BackwardLoopCounter")
-    loopExits += exitC
-    outerGradientLoopState.foreach(state => {
-      // Force the stack pops of the i-th execution of an inner loop to be ordered before the pops of the (i+1)-th
-      // execution of the same inner loop.
-      ControlFlow.addControlInput(state.backwardSync, exitC.op)
-    })
-    exitResult(Seq(exitC))
-    exit()
-    nextC
+    Op.nameScope("BackwardLoopCounter") {
+      val one = Basic.ones[Int](Shape())
+      enter()
+      values += count.name
+      val enterC = ControlFlow.enter(count, name, isConstant = false, parallelIterations)
+      loopEnters += enterC
+      val mergeC = ControlFlow.merge(Seq(enterC, enterC))._1
+      pivotForPredicate = mergeC.op
+      pivot = ControlFlow.loopCond(Math.greaterEqual(mergeC, one))
+      val switchC = ControlFlow.switch(mergeC, pivot)
+      val indexC = Math.subtract(switchC._2, one)
+      pivotForBody = indexC.op
+      val nextC = ControlFlow.nextIteration(indexC)
+      ControlFlow.updateInput(mergeC.op, 1, nextC)
+      val exitC = ControlFlow.exit(switchC._1)
+      loopExits += exitC
+      outerGradientLoopState.foreach(state => {
+        // Force the stack pops of the i-th execution of an inner loop to be ordered before the pops of the (i+1)-th
+        // execution of the same inner loop.
+        ControlFlow.addControlInput(state.backwardSync, exitC.op)
+      })
+      exitResult(Seq(exitC))
+      exit()
+      nextC
+    }
   }
 
   /** Adds an accumulation loop for every loop invariant.
@@ -419,7 +445,7 @@ private[api] case class WhileLoopContext private[control_flow] (
     * @param  gradient Partial gradient of an iteration for a loop invariant.
     * @return Gradient for a loop invariant.
     */
-  private[control_flow] def addBackwardAccumulator[T, OL[A] <: OutputLike[A]](
+  private[control_flow] def addBackwardAccumulator[T: TF, OL[A] <: OutputLike[A]](
       op: Op[_, _],
       gradient: OL[T]
   ): OL[T] = {
@@ -433,7 +459,7 @@ private[api] case class WhileLoopContext private[control_flow] (
         val acc: Output[T] = {
           if (shape.isFullyDefined) {
             outerContext.foreach(_.enter())
-            val acc = Basic.zerosLike(g, name = "BackwardAccumulator")
+            val acc = Basic.zerosLike(g, name = "BackwardAccumulator")(TF.fromDataType(g.dataType))
             outerContext.foreach(_.exit())
             acc
           } else {
@@ -444,7 +470,7 @@ private[api] case class WhileLoopContext private[control_flow] (
                 // We are in a nested while loop.
                 val forwardContext = context.gradientLoopState.get.forwardContext
                 forwardContext.outerContext.foreach(_.enter())
-                val zerosShape = resourceSafeShape(value)
+                val zerosShape = resourceSafeShape(value)(TF.fromDataType(value.dataType))
                 forwardContext.outerContext.foreach(_.exit())
                 val outerGradientLoopState = context.gradientLoopState.get.outerGradientLoopState.get
                 val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
@@ -456,7 +482,7 @@ private[api] case class WhileLoopContext private[control_flow] (
                 acc
               case _ =>
                 outerContext.foreach(_.enter())
-                val zerosShape = resourceSafeShape(value)
+                val zerosShape = resourceSafeShape(value)(TF.fromDataType(value.dataType))
                 val acc = Basic.zeros(g.dataType, zerosShape)
                 outerContext.foreach(_.exit())
                 // TODO: [CONTROL_FLOW] Figure out if this is necessary.
@@ -490,11 +516,11 @@ private[api] case class WhileLoopContext private[control_flow] (
         // statically, we will have to get the shape dynamically from the forward inference. Getting the shape right for
         // the zeros is only needed for the base case when the loop exits without running any iterations.
         outerContext.foreach(_.enter())
-        val indicesAcc = Basic.zeros(g.indices.dataType, Shape(1))
+        val indicesAcc = Basic.zeros(g.dataType, Shape(1))
         val valuesAcc = {
           if (g.values.shape.isFullyDefined) {
             val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*)
-            Basic.zeros(g.values.dataType, zerosShape)
+            Basic.zeros(g.dataType, zerosShape)
           } else {
             val value = op.inputsSeq(0)
             // TODO: !!! [CONTROL_FLOW] Is this even necessary for obtaining the shape?
@@ -504,29 +530,39 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val forwardContext = context.gradientLoopState.get.forwardContext
                 forwardContext.outerContext.foreach(_.enter())
                 val zerosShape = Basic.concatenate[Long](
-                  Seq(Tensor(1L), resourceSafeShape(value).slice(1 ::)), axis = 0)
+                  Seq(
+                    Tensor(1L),
+                    resourceSafeShape(value)(TF.fromDataType(value.dataType)).slice(1 ::)
+                  ), axis = 0)
                 forwardContext.outerContext.foreach(_.exit())
                 val outerGradientLoopState = context.gradientLoopState.get.outerGradientLoopState.get
                 val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
                 context.enter()
                 val realShape = outerGradientLoopState.addBackwardAccumulatedValue(historyZerosShape, zerosShape)
-                val acc = Basic.zeros(g.values.dataType, realShape)
+                val acc = Basic.zeros(g.dataType, realShape)
                 context.exit()
                 // TODO: [CONTROL_FLOW] Figure out if this is necessary.
                 // acc.setShape(g.values.shape)
                 acc
               case _ =>
+                val dataType = op.inputsSeq(0).dataType
                 val zerosShape = Basic.concatenate[Long](
-                  Seq(Tensor(1L), resourceSafeShape(op.inputsSeq(0)).slice(1 ::)), axis = 0)
-                Basic.zeros(g.values.dataType, zerosShape)
+                  Seq(
+                    Tensor(1L),
+                    resourceSafeShape(op.inputsSeq(0))(TF.fromDataType(dataType)).slice(1 ::)
+                  ), axis = 0)
+                Basic.zeros[T](zerosShape)
             }
           }
         }
         val denseShapeAcc = Option(g.denseShape).map(shape => {
           if (shape.shape.isFullyDefined) {
-            Basic.zeros(shape.dataType, shape.shape)
+            Basic.zeros[Long](shape.shape)
           } else {
-            Basic.zerosLike(Basic.shape(op.inputsSeq(0), INT64, optimize = false), optimize = false)
+            val dataType = op.inputsSeq(0).dataType
+            Basic.zerosLike(
+              Basic.shape(op.inputsSeq(0), optimize = false)(TF.fromDataType(dataType)),
+              optimize = false)
           }
         })
         outerContext.foreach(_.exit())
@@ -538,7 +574,13 @@ private[api] case class WhileLoopContext private[control_flow] (
         // Set `useInputShape` to `false` since the accumulator tensors will grow in size. If `useInputShape` is `true`,
         // the `updateInput` call below will result in incompatible shapes.
         val enterAcc = initAcc.map(a => {
-          ControlFlow.enter(a, name, isConstant = false, parallelIterations, useInputShape = false)
+          ControlFlow.enter(
+            input = a,
+            frameName = name,
+            isConstant = false,
+            parallelIterations = parallelIterations,
+            useInputShape = false
+          )(TF.fromDataType(a.dataType))
         })
         // Manually set appropriate partial shapes.
         enterAcc.head.setShape(Shape(-1))
@@ -547,24 +589,32 @@ private[api] case class WhileLoopContext private[control_flow] (
         else if (valuesAcc.rank != -1)
           enterAcc(1).setShape(Shape(-1))
         loopEnters ++= enterAcc
-        val mergeAcc = enterAcc.map(a => ControlFlow.merge(Seq(a, a))._1)
-        val switchAcc = mergeAcc.map(a => ControlFlow.switch(a, pivot))
+        val mergeAcc = enterAcc.map(a => {
+          ControlFlow.merge(Seq(a, a))(TF.fromDataType(a.dataType))._1
+        })
+        val switchAcc = mergeAcc.map(a => {
+          ControlFlow.switch(a, pivot)(TF.fromDataType(a.dataType))
+        })
 
         // The actual accumulation.
         var addAcc = mutable.ListBuffer(
-          Basic.concatenate(Seq(switchAcc(0)._2, g.indices), 0),
-          Basic.concatenate(Seq(switchAcc(1)._2, g.values), 0))
+          Basic.concatenate[Long](Seq(switchAcc(0)._2.asInstanceOf[Output[Long]], g.indices), 0),
+          Basic.concatenate[T](Seq(switchAcc(1)._2.asInstanceOf[Output[T]], g.values), 0))
         denseShapeAcc.foreach(_ => {
           // TODO: [TYPES] Can handle types better here by not using sequences of tensors.
           // For the shape we just keep the maximum.
           addAcc += Math.maximum(
             g.denseShape,
             switchAcc(2)._2.asInstanceOf[Output[Long]]
-          ).asInstanceOf[OutputLike[Any]]
+          ).asInstanceOf[Output[Any]]
         })
-        val nextAcc = addAcc.map(ControlFlow.nextIteration(_))
+        val nextAcc = addAcc.map(a => {
+          ControlFlow.nextIteration(a)(TF.fromDataType(a.dataType))
+        })
         mergeAcc.zip(nextAcc).foreach(a => ControlFlow.updateInput(a._1.op, 1, a._2))
-        val exitAcc = switchAcc.map(a => ControlFlow.exit(a._1))
+        val exitAcc = switchAcc.map(a => {
+          ControlFlow.exit(a._1)(TF.fromDataType(a._1.dataType))
+        })
         loopExits ++= exitAcc
         exitResult(exitAcc)
         OutputIndexedSlices(
@@ -578,14 +628,14 @@ private[api] case class WhileLoopContext private[control_flow] (
   }
 
   /** Returns the shape of `value` of the shape of the variable it points to. */
-  private def resourceSafeShape(value: Output[_]): Output[Long] = {
+  private def resourceSafeShape[T: TF](value: Output[T]): Output[Long] = {
     if (value.dataType == RESOURCE) {
       var v = value
       while (v.op.inputsSeq.nonEmpty)
-        v = v.op.inputsSeq(0)
+        v = v.op.inputsSeq(0).asInstanceOf[Output[T]]
       v.op.shapeAttribute("shape")
     } else {
-      Basic.shape(value, INT64, optimize = false)
+      Basic.shape(value, optimize = false)
     }
   }
 
@@ -634,7 +684,7 @@ object WhileLoopContext {
 
   /** Creates a next iteration op for `v` and adds a back edge from `v` to `m`. */
   @throws[IllegalArgumentException]
-  private[ops] def addNextIterationAndBackEdge[T, OL[A] <: OutputLike[A]](
+  private[ops] def addNextIterationAndBackEdge[T: TF, OL[A] <: OutputLike[A]](
       m: OL[T],
       v: OL[T],
       enforceShapeInvariant: Boolean = true
@@ -915,7 +965,7 @@ object WhileLoopVariable {
     type ShapeType = TS
   }
 
-  implicit def outputWhileLoopVariable[T]: Aux[Output[T], Shape] = {
+  implicit def outputWhileLoopVariable[T: TF]: Aux[Output[T], Shape] = {
     new WhileLoopVariable[Output[T]] {
       override type ShapeType = Shape
 
@@ -927,10 +977,10 @@ object WhileLoopVariable {
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         Op.nameScope(name) {
           val fullShape = Basic.concatenate(Seq(
-            batchSize.expandDims(0),
-            shape.toOutput[Int]
+            batchSize.expandDims(0).castTo[Long],
+            shape.toOutput
           ), axis = 0)
-          val zero = Basic.zeros(implicitly[DataType[T]], fullShape)
+          val zero = Basic.zeros[T](fullShape)
           zero.setShape(Shape(staticBatchSize) ++ shape)
           zero
         }
@@ -979,7 +1029,7 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def outputIndexedSlicesWhileLoopVariable[T]: Aux[OutputIndexedSlices[T], Shape] = {
+  implicit def outputIndexedSlicesWhileLoopVariable[T: TF]: Aux[OutputIndexedSlices[T], Shape] = {
     new WhileLoopVariable[OutputIndexedSlices[T]] {
       override type ShapeType = Shape
 
@@ -990,13 +1040,13 @@ object WhileLoopVariable {
       ): OutputIndexedSlices[T] = {
         Op.nameScope(name) {
           val fullShape = Basic.concatenate(Seq(
-            batchSize.expandDims(0),
-            shape.toOutput[Int]
+            batchSize.expandDims(0).castTo[Long],
+            shape.toOutput
           ), axis = 0)
           OutputIndexedSlices(
-            indices = Basic.zeros(INT64, Shape(0)),
-            values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape.castTo[Long])
+            indices = Basic.zeros[Long](Shape(0)),
+            values = Basic.zeros[T](Shape.fromSeq(0 +: shape.asArray)),
+            denseShape = fullShape)
         }
       }
 
@@ -1047,7 +1097,7 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def sparseOutputWhileLoopVariable[T]: Aux[SparseOutput[T], Shape] = {
+  implicit def sparseOutputWhileLoopVariable[T: TF]: Aux[SparseOutput[T], Shape] = {
     new WhileLoopVariable[SparseOutput[T]] {
       override type ShapeType = Shape
 
@@ -1058,13 +1108,13 @@ object WhileLoopVariable {
       ): SparseOutput[T] = {
         Op.nameScope(name) {
           val fullShape = Basic.concatenate(Seq(
-            batchSize.expandDims(0),
-            shape.toOutput[Int]
+            batchSize.expandDims(0).castTo[Long],
+            shape.toOutput
           ), axis = 0)
           SparseOutput(
-            indices = Basic.zeros(INT64, Shape(0)),
-            values = Basic.zeros(implicitly[DataType[T]], Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape.castTo[Long])
+            indices = Basic.zeros[Long](Shape(0)),
+            values = Basic.zeros[T](Shape.fromSeq(0 +: shape.asArray)),
+            denseShape = fullShape)
         }
       }
 
@@ -1115,7 +1165,7 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def tensorArrayWhileLoopVariable[T]: Aux[TensorArray[T], Shape] = {
+  implicit def tensorArrayWhileLoopVariable[T: TF]: Aux[TensorArray[T], Shape] = {
     new WhileLoopVariable[TensorArray[T]] {
       override type ShapeType = Shape
 

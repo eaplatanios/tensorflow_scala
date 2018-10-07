@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.NewAxis
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
-import org.platanios.tensorflow.api.types.{INT32, IsDecimal}
+import org.platanios.tensorflow.api.types.{INT32, IsDecimal, TF}
 
 /** Bahdanau-style (multiplicative) attention scoring.
   *
@@ -55,7 +55,7 @@ import org.platanios.tensorflow.api.types.{INT32, IsDecimal}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BahdanauAttention[T: IsDecimal](
+class BahdanauAttention[T: IsDecimal : TF](
     override protected val memory: Output[T],
     protected val memoryWeights: Output[T],
     protected val queryWeights: Output[T],
@@ -79,13 +79,13 @@ class BahdanauAttention[T: IsDecimal](
         values,
         Basic.stack(Seq(
           Basic.constant(-1),
-          Basic.shape(values, INT32).slice(-1))))
+          Basic.shape(values).castTo[Int].slice(-1))))
       val product = Math.matmul(reshapedLogits, memoryWeights)
       val reshapedProduct = Basic.reshape(
         product,
         Basic.concatenate(Seq(
-          Basic.shape(values, INT32).slice(0 :: -1),
-          Basic.shape(memoryWeights, INT32).slice(-1, NewAxis)
+          Basic.shape(values).castTo[Int].slice(0 :: -1),
+          Basic.shape(memoryWeights).castTo[Int].slice(-1, NewAxis)
         ), axis = 0))
       reshapedProduct.setShape(values.shape(0 :: -1) + memoryWeights.shape(-1))
       reshapedProduct
@@ -134,7 +134,7 @@ class BahdanauAttention[T: IsDecimal](
 }
 
 object BahdanauAttention {
-  def apply[T: IsDecimal](
+  def apply[T: IsDecimal : TF](
       memory: Output[T],
       memoryWeights: Output[T],
       queryWeights: Output[T],

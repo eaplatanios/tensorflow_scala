@@ -39,7 +39,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def select[T](
+  def select[T: TF](
       condition: Output[Boolean],
       x: Output[T],
       y: Output[T],
@@ -49,10 +49,11 @@ trait Math {
       opType = "Select",
       name = name,
       input = (condition, x, y)
-    ).setGradientFn(selectGradient[T]).build().output
+    ).setGradientFn(selectGradient(_, _)(TF[T]))
+        .build().output
   }
 
-  protected def selectGradient[T](
+  protected def selectGradient[T: TF](
       op: Op[(Output[Boolean], Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[Boolean], Output[T], Output[T]) = {
@@ -74,13 +75,13 @@ trait Math {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def range[T: IsNumeric](
+  def range[T: IsNumeric : TF](
       start: Output[T],
       limit: Output[T],
       delta: Output[T] = null,
       name: String = "Range"
   ): Output[T] = {
-    val deltaWithDefault = if (delta == null) Basic.ones(start.dataType, Shape()) else delta
+    val deltaWithDefault = if (delta == null) Basic.ones[T](Shape()) else delta
     Op.Builder[(Output[T], Output[T], Output[T]), Output[T]](
       opType = "Range",
       name = name,
@@ -98,7 +99,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def linspace[T: IsBFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+  def linspace[T: IsBFloat16OrFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
       start: Output[T],
       stop: Output[T],
       numberOfValues: Output[I],
@@ -118,7 +119,7 @@ trait Math {
     * @param  name   Created op name.
     * @return Created op output.
     */
-  def addN[T: IsNumeric](
+  def addN[T: IsNumeric : TF](
       inputs: Seq[Output[T]],
       name: String = "AddN"
   ): Output[T] = {
@@ -129,12 +130,12 @@ trait Math {
         opType = "AddN",
         name = name,
         input = inputs
-      ).setGradientFn(addNGradient(_, _)(implicitly[IsNumeric[T]]))
+      ).setGradientFn(addNGradient(_, _)(IsNumeric[T], TF[T]))
           .build().output
     }
   }
 
-  protected def addNGradient[T: IsNumeric](
+  protected def addNGradient[T: IsNumeric : TF](
       op: Op[Seq[Output[T]], Output[T]],
       outputGradient: Output[T]
   ): Seq[Output[T]] = {
@@ -150,7 +151,7 @@ trait Math {
     * @throws InvalidArgumentException If any of the inputs has a different data type and/or shape than the rest.
     */
   @throws[InvalidArgumentException]
-  def accumulateN[T: IsNumeric](
+  def accumulateN[T: IsNumeric : TF](
       inputs: Seq[Output[T]],
       shape: Shape = null,
       name: String = "AccumulateN"
@@ -171,12 +172,12 @@ trait Math {
         name = name,
         input = inputs
       ).setAttribute("shape", shape)
-          .setGradientFn(accumulateNGradient(_, _)(implicitly[IsNumeric[T]]))
+          .setGradientFn(accumulateNGradient(_, _)(IsNumeric[T], TF[T]))
           .build().output
     }
   }
 
-  protected def accumulateNGradient[T: IsNumeric](
+  protected def accumulateNGradient[T: IsNumeric : TF](
       op: Op[Seq[Output[T]], Output[T]],
       outputGradient: Output[T]
   ): Seq[Output[T]] = {
@@ -194,7 +195,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def abs[T: IsReal, OL[A] <: OutputLike[A]](
+  def abs[T: IsReal : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Abs"
   )(implicit
@@ -205,11 +206,11 @@ trait Math {
         opType = "Abs",
         name = name,
         input = o
-      ).setGradientFn(absGradient(_, _)(implicitly[IsReal[T]]))
+      ).setGradientFn(absGradient(_, _)(IsReal[T], TF[T]))
           .build().output)
   }
 
-  protected def absGradient[T: IsReal](
+  protected def absGradient[T: IsReal : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -223,7 +224,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def negate[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def negate[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Negate"
   )(implicit
@@ -234,11 +235,11 @@ trait Math {
         opType = "Neg",
         name = name,
         input = o
-      ).setGradientFn(negateGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(negateGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def negateGradient[T: IsNotQuantized](
+  protected def negateGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -252,7 +253,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def reciprocal[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def reciprocal[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Reciprocal"
   )(implicit
@@ -263,11 +264,11 @@ trait Math {
         opType = "Reciprocal",
         name = name,
         input = o
-      ).setGradientFn(reciprocalGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(reciprocalGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def reciprocalGradient[T: IsNotQuantized](
+  protected def reciprocalGradient[T: IsNotQuantized : TF](
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
@@ -276,10 +277,10 @@ trait Math {
       outputGradient,
       opType = "ReciprocalGrad",
       name = "ReciprocalGradient",
-      gradientFn = Some(reciprocalHessian(_, _)(implicitly[IsNotQuantized[T]])))
+      gradientFn = Some(reciprocalHessian(_, _)(IsNotQuantized[T], TF[T])))
   }
 
-  protected def reciprocalHessian[T: IsNotQuantized](
+  protected def reciprocalHessian[T: IsNotQuantized : TF](
       op: Op[(Output[T], OutputLike[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], OutputLike[T]) = {
@@ -293,8 +294,8 @@ trait Math {
         outputGradient,
         opType = "ReciprocalGrad",
         name = "ReciprocalGradient",
-        gradientFn = Some(reciprocalHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (Basic.constant(-2).castTo(cg.dataType) * cg * b * ca, rg)
+        gradientFn = Some(reciprocalHessian(_, _)(IsNotQuantized[T], TF[T])))
+      (Basic.constant(-2).castTo[T] * cg * b * ca, rg)
     }
   }
 
@@ -305,7 +306,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def square[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def square[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Reciprocal"
   )(implicit
@@ -316,18 +317,18 @@ trait Math {
         opType = "Square",
         name = name,
         input = o
-      ).setGradientFn(squareGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(squareGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def squareGradient[T: IsNotQuantized](
+  protected def squareGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
     // Using control dependencies to prevent 2*x from being computed too early.
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      outputGradient * (Basic.constant(2).castTo(x.dataType) * conjugate(x))
+      outputGradient * (Basic.constant(2).castTo[T] * conjugate(x))
     }
   }
 
@@ -338,7 +339,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sqrt[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def sqrt[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Sqrt"
   )(implicit
@@ -349,11 +350,11 @@ trait Math {
         opType = "Sqrt",
         name = name,
         input = o
-      ).setGradientFn(sqrtGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(sqrtGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def sqrtGradient[T: IsNotQuantized](
+  protected def sqrtGradient[T: IsNotQuantized : TF](
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
@@ -362,10 +363,10 @@ trait Math {
       outputGradient,
       opType = "SqrtGrad",
       name = "SqrtGradient",
-      gradientFn = Some(sqrtHessian(_, _)(implicitly[IsNotQuantized[T]])))
+      gradientFn = Some(sqrtHessian(_, _)(IsNotQuantized[T], TF[T])))
   }
 
-  protected def sqrtHessian[T: IsNotQuantized](
+  protected def sqrtHessian[T: IsNotQuantized : TF](
       op: Op[(Output[T], OutputLike[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], OutputLike[T]) = {
@@ -373,7 +374,7 @@ trait Math {
     val y = op.output
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val ga = divide(outputGradient, a)
-      (negate(conjugate(ga)) * y, Basic.constant(0.5).castTo(ga.dataType) * ga)
+      (negate(conjugate(ga)) * y, Basic.constant(0.5).castTo[T] * ga)
     }
   }
 
@@ -384,7 +385,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def rsqrt[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def rsqrt[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Rqsrt"
   )(implicit
@@ -395,11 +396,11 @@ trait Math {
         opType = "Rsqrt",
         name = name,
         input = o
-      ).setGradientFn(rsqrtGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(rsqrtGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def rsqrtGradient[T: IsNotQuantized](
+  protected def rsqrtGradient[T: IsNotQuantized : TF](
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
@@ -408,10 +409,10 @@ trait Math {
       outputGradient,
       opType = "RsqrtGrad",
       name = "RSqrtGradient",
-      gradientFn = Some(rsqrtHessian(_, _)(implicitly[IsNotQuantized[T]])))
+      gradientFn = Some(rsqrtHessian(_, _)(IsNotQuantized[T], TF[T])))
   }
 
-  protected def rsqrtHessian[T: IsNotQuantized](
+  protected def rsqrtHessian[T: IsNotQuantized : TF](
       op: Op[(Output[T], OutputLike[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], OutputLike[T]) = {
@@ -426,8 +427,8 @@ trait Math {
         outputGradient,
         opType = "RsqrtGrad",
         name = "RSqrtGradient",
-        gradientFn = Some(rsqrtHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (Basic.constant(-1.5).castTo(cg.dataType) * cg * b * square(ca), rg)
+        gradientFn = Some(rsqrtHessian(_, _)(IsNotQuantized[T], TF[T])))
+      (Basic.constant(-1.5).castTo[T] * cg * b * square(ca), rg)
     }
   }
 
@@ -438,7 +439,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def exp[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def exp[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Exp"
   )(implicit
@@ -449,11 +450,11 @@ trait Math {
         opType = "Exp",
         name = name,
         input = o
-      ).setGradientFn(expGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(expGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def expGradient[T: IsNotQuantized](
+  protected def expGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -469,7 +470,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def expm1[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def expm1[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Expm1"
   )(implicit
@@ -480,11 +481,11 @@ trait Math {
         opType = "Expm1",
         name = name,
         input = o
-      ).setGradientFn(expm1Gradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(expm1Gradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def expm1Gradient[T: IsNotQuantized](
+  protected def expm1Gradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -500,7 +501,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def log[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def log[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Log"
   )(implicit
@@ -511,11 +512,11 @@ trait Math {
         opType = "Log",
         name = name,
         input = o
-      ).setGradientFn(logGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(logGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def logGradient[T: IsNotQuantized](
+  protected def logGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -531,7 +532,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def log1p[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def log1p[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Log1p"
   )(implicit
@@ -542,17 +543,17 @@ trait Math {
         opType = "Log1p",
         name = name,
         input = o
-      ).setGradientFn(log1pGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(log1pGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def log1pGradient[T: IsNotQuantized](
+  protected def log1pGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val one = Basic.ones(x.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       outputGradient * reciprocal(one + conjugate(x))
     }
   }
@@ -564,7 +565,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sin[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def sin[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Sin"
   )(implicit
@@ -575,11 +576,11 @@ trait Math {
         opType = "Sin",
         name = name,
         input = o
-      ).setGradientFn(sinGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(sinGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def sinGradient[T: IsNotQuantized](
+  protected def sinGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -595,7 +596,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def cos[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def cos[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Cos"
   )(implicit
@@ -606,11 +607,11 @@ trait Math {
         opType = "Cos",
         name = name,
         input = o
-      ).setGradientFn(cosGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(cosGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def cosGradient[T: IsNotQuantized](
+  protected def cosGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -626,7 +627,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def tan[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def tan[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Tan"
   )(implicit
@@ -637,11 +638,11 @@ trait Math {
         opType = "Tan",
         name = name,
         input = o
-      ).setGradientFn(tanGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(tanGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def tanGradient[T: IsNotQuantized](
+  protected def tanGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -657,7 +658,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def asin[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def asin[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Asin"
   )(implicit
@@ -668,17 +669,17 @@ trait Math {
         opType = "Asin",
         name = name,
         input = o
-      ).setGradientFn(asinGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(asinGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def asinGradient[T: IsNotQuantized](
+  protected def asinGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val one = Basic.ones(x.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       outputGradient * reciprocal(sqrt(one - square(conjugate(x))))
     }
   }
@@ -690,7 +691,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def acos[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def acos[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Acos"
   )(implicit
@@ -701,17 +702,17 @@ trait Math {
         opType = "Acos",
         name = name,
         input = o
-      ).setGradientFn(acosGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(acosGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def acosGradient[T: IsNotQuantized](
+  protected def acosGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val one = Basic.ones(x.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       negate(outputGradient) * reciprocal(sqrt(one - square(conjugate(x))))
     }
   }
@@ -723,7 +724,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def atan[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def atan[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Atan"
   )(implicit
@@ -734,17 +735,17 @@ trait Math {
         opType = "Atan",
         name = name,
         input = o
-      ).setGradientFn(atanGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(atanGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def atanGradient[T: IsNotQuantized](
+  protected def atanGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val one = Basic.ones(x.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       outputGradient * reciprocal(one+ square(conjugate(x)))
     }
   }
@@ -756,7 +757,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sinh[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def sinh[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Sinh"
   )(implicit
@@ -767,11 +768,11 @@ trait Math {
         opType = "Sinh",
         name = name,
         input = o
-      ).setGradientFn(sinhGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(sinhGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def sinhGradient[T: IsNotQuantized](
+  protected def sinhGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -788,7 +789,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def cosh[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def cosh[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Cosh"
   )(implicit
@@ -799,11 +800,11 @@ trait Math {
         opType = "Cosh",
         name = name,
         input = o
-      ).setGradientFn(coshGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(coshGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def coshGradient[T: IsNotQuantized](
+  protected def coshGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -820,7 +821,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def tanh[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def tanh[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Tanh"
   )(implicit
@@ -831,11 +832,11 @@ trait Math {
         opType = "Tanh",
         name = name,
         input = o
-      ).setGradientFn(tanhGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(tanhGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def tanhGradient[T: IsNotQuantized](
+  protected def tanhGradient[T: IsNotQuantized : TF](
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
@@ -847,11 +848,11 @@ trait Math {
         outputGradient,
         opType = "TanhGrad",
         name = "TanhGradient",
-        gradientFn = Some(tanhHessian(_, _)(implicitly[IsNotQuantized[T]])))
+        gradientFn = Some(tanhHessian(_, _)(IsNotQuantized[T], TF[T])))
     }
   }
 
-  protected def tanhHessian[T: IsNotQuantized](
+  protected def tanhHessian[T: IsNotQuantized : TF](
       op: Op[(Output[T], OutputLike[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], OutputLike[T]) = {
@@ -865,8 +866,8 @@ trait Math {
         outputGradient,
         opType = "TanhGrad",
         name = "TanhGradient",
-        gradientFn = Some(tanhHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (Basic.constant(-2.0).castTo(outputGradient.dataType) * outputGradient * cb * ca, rg)
+        gradientFn = Some(tanhHessian(_, _)(IsNotQuantized[T], TF[T])))
+      (Basic.constant(-2.0).castTo[T] * outputGradient * cb * ca, rg)
     }
   }
 
@@ -877,7 +878,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def asinh[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def asinh[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "ASinh"
   )(implicit
@@ -888,11 +889,11 @@ trait Math {
         opType = "Asinh",
         name = name,
         input = o
-      ).setGradientFn(asinhGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(asinhGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def asinhGradient[T: IsNotQuantized](
+  protected def asinhGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -909,7 +910,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def acosh[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def acosh[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "ACosh"
   )(implicit
@@ -920,11 +921,11 @@ trait Math {
         opType = "Acosh",
         name = name,
         input = o
-      ).setGradientFn(acoshGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(acoshGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def acoshGradient[T: IsNotQuantized](
+  protected def acoshGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -941,7 +942,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def atanh[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def atanh[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "ATanh"
   )(implicit
@@ -952,17 +953,17 @@ trait Math {
         opType = "Atanh",
         name = name,
         input = o
-      ).setGradientFn(atanhGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(atanhGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def atanhGradient[T: IsNotQuantized](
+  protected def atanhGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val one = Basic.ones(x.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       outputGradient * reciprocal(one - square(conjugate(x)))
     }
   }
@@ -974,7 +975,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def logGamma[T: IsFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def logGamma[T: IsFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "LogGamma"
   )(implicit
@@ -985,11 +986,11 @@ trait Math {
         opType = "Lgamma",
         name = name,
         input = o
-      ).setGradientFn(logGammaGradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+      ).setGradientFn(logGammaGradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
           .build().output)
   }
 
-  protected def logGammaGradient[T: IsFloat32OrFloat64](
+  protected def logGammaGradient[T: IsFloat32OrFloat64 : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1006,7 +1007,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def digamma[T: IsFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def digamma[T: IsFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Digamma"
   )(implicit
@@ -1017,17 +1018,17 @@ trait Math {
         opType = "Digamma",
         name = name,
         input = o
-      ).setGradientFn(digammaGradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+      ).setGradientFn(digammaGradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
           .build().output)
   }
 
-  def digammaGradient[T: IsFloat32OrFloat64](
+  def digammaGradient[T: IsFloat32OrFloat64 : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val one = Basic.ones(x.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       outputGradient * polygamma(one, conjugate(x))
     }
   }
@@ -1039,7 +1040,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def erf[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def erf[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Erf"
   )(implicit
@@ -1050,16 +1051,16 @@ trait Math {
         opType = "Erf",
         name = name,
         input = o
-      ).setGradientFn(erfGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(erfGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def erfGradient[T: IsNotQuantized](
+  protected def erfGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
-    val twoOverRootPi = Basic.constant(2.0 / math.sqrt(math.Pi)).castTo(outputGradient.dataType)
+    val twoOverRootPi = Basic.constant(2.0 / math.sqrt(math.Pi)).castTo[T]
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       outputGradient * twoOverRootPi * exp(negate(square(conjugate(x))))
     }
@@ -1072,7 +1073,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def erfc[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def erfc[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Erfc"
   )(implicit
@@ -1083,16 +1084,16 @@ trait Math {
         opType = "Erfc",
         name = name,
         input = o
-      ).setGradientFn(erfcGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(erfcGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def erfcGradient[T: IsNotQuantized](
+  protected def erfcGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
-    val minusTwoOverRootPi = Basic.constant(-2.0 / math.sqrt(math.Pi)).castTo(outputGradient.dataType)
+    val minusTwoOverRootPi = Basic.constant(-2.0 / math.sqrt(math.Pi)).castTo[T]
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       outputGradient * minusTwoOverRootPi * exp(negate(square(conjugate(x))))
     }
@@ -1105,7 +1106,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sigmoid[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def sigmoid[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Sigmoid"
   )(implicit
@@ -1116,11 +1117,11 @@ trait Math {
         opType = "Sigmoid",
         name = name,
         input = o
-      ).setGradientFn(sigmoidGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(sigmoidGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def sigmoidGradient[T: IsNotQuantized](
+  protected def sigmoidGradient[T: IsNotQuantized : TF](
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
@@ -1132,11 +1133,11 @@ trait Math {
         outputGradient,
         opType = "SigmoidGrad",
         name = "SigmoidGradient",
-        gradientFn = Some(sigmoidHessian(_, _)(implicitly[IsNotQuantized[T]])))
+        gradientFn = Some(sigmoidHessian(_, _)(IsNotQuantized[T], TF[T])))
     }
   }
 
-  protected def sigmoidHessian[T: IsNotQuantized](
+  protected def sigmoidHessian[T: IsNotQuantized : TF](
       op: Op[(Output[T], OutputLike[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], OutputLike[T]) = {
@@ -1151,8 +1152,8 @@ trait Math {
         outputGradient,
         opType = "SigmoidGrad",
         name = "SigmoidGradient",
-        gradientFn = Some(sigmoidHessian(_, _)(implicitly[IsNotQuantized[T]])))
-      (subtract(gb, Basic.constant(-2.0).castTo(outputGradient.dataType) * gb * ca), rg)
+        gradientFn = Some(sigmoidHessian(_, _)(IsNotQuantized[T], TF[T])))
+      (subtract(gb, Basic.constant(-2.0).castTo[T] * gb * ca), rg)
     }
   }
 
@@ -1163,7 +1164,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def logSigmoid[T: IsDecimal, OL[A] <: OutputLike[A]](
+  def logSigmoid[T: IsDecimal : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "LogSigmoid"
   )(implicit
@@ -1181,7 +1182,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sign[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def sign[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Sign"
   )(implicit
@@ -1192,11 +1193,11 @@ trait Math {
         opType = "Sign",
         name = name,
         input = o
-      ).setGradientFn(signGradient(_, _)(implicitly[IsNotQuantized[T]]))
+      ).setGradientFn(signGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output)
   }
 
-  protected def signGradient[T: IsNotQuantized](
+  protected def signGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1210,7 +1211,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def round[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def round[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Round"
   )(implicit
@@ -1231,7 +1232,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def roundInt[T: IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def roundInt[T: IsFloat16OrFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "RoundInt"
   )(implicit
@@ -1252,7 +1253,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def floor[T: IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def floor[T: IsFloat16OrFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Floor"
   )(implicit
@@ -1273,7 +1274,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def ceil[T: IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def ceil[T: IsFloat16OrFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Ceil"
   )(implicit
@@ -1294,7 +1295,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def isNaN[T: IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def isNaN[T: IsFloat16OrFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "IsNaN"
   )(implicit
@@ -1315,7 +1316,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def isInf[T: IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def isInf[T: IsFloat16OrFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "IsInf"
   )(implicit
@@ -1336,7 +1337,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def isFinite[T: IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def isFinite[T: IsFloat16OrFloat32OrFloat64 : TF, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "IsFinite"
   )(implicit
@@ -1356,7 +1357,7 @@ trait Math {
 
   /** Returns `true` if the shapes of `x`, `y`, and `gradient` are all fully specified (i.e., statically known)
     * and equal. */
-  protected def shapeFullySpecifiedAndEqual[T](
+  protected def shapeFullySpecifiedAndEqual[T: TF](
       x: Output[T],
       y: Output[T],
       gradient: Output[T]
@@ -1376,7 +1377,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def add[T: IsNotQuantized](
+  def add[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Add"
@@ -1385,11 +1386,11 @@ trait Math {
       opType = "Add",
       name = name,
       input = (x, y)
-    ).setGradientFn(addGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(addGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def addGradient[T: IsNotQuantized](
+  protected def addGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1398,8 +1399,8 @@ trait Math {
     if (shapeFullySpecifiedAndEqual(x, y, outputGradient)) {
       (outputGradient, outputGradient)
     } else {
-      val xShape = Basic.shape(x, INT64)
-      val yShape = Basic.shape(y, INT64)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
       val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       (Basic.reshape(sum(outputGradient, rx), xShape),
           Basic.reshape(sum(outputGradient, ry), yShape))
@@ -1414,7 +1415,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def subtract[T: IsNotQuantized](
+  def subtract[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Subtract"
@@ -1423,11 +1424,11 @@ trait Math {
       opType = "Sub",
       name = name,
       input = (x, y)
-    ).setGradientFn(subtractGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(subtractGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def subtractGradient[T: IsNotQuantized](
+  protected def subtractGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1436,8 +1437,8 @@ trait Math {
     if (shapeFullySpecifiedAndEqual(x, y, outputGradient)) {
       (outputGradient, -outputGradient)
     } else {
-      val xShape = Basic.shape(x, INT64)
-      val yShape = Basic.shape(y, INT64)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
       val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       (Basic.reshape(sum(outputGradient, rx), xShape),
           Basic.reshape(-sum(outputGradient, ry), yShape))
@@ -1452,7 +1453,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def multiply[T: IsNotQuantized](
+  def multiply[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Multiply"
@@ -1461,11 +1462,11 @@ trait Math {
       opType = "Mul",
       name = name,
       input = (x, y)
-    ).setGradientFn(multiplyGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(multiplyGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def multiplyGradient[T: IsNotQuantized](
+  protected def multiplyGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1475,8 +1476,8 @@ trait Math {
         (outputGradient.dataType == INT32 || outputGradient.dataType == FLOAT32)) {
       (outputGradient * y, outputGradient * x)
     } else {
-      val xShape = Basic.shape(x, INT64)
-      val yShape = Basic.shape(y, INT64)
+      val xShape = Basic.shape(x)
+      val yShape = Basic.shape(y)
       val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
       (Basic.reshape(sum(multiply(outputGradient, y), rx), xShape),
           Basic.reshape(sum(multiply(x, outputGradient), ry), yShape))
@@ -1491,7 +1492,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def divide[T: IsNotQuantized](
+  def divide[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Divide"
@@ -1500,18 +1501,18 @@ trait Math {
       opType = "Div",
       name = name,
       input = (x, y)
-    ).setGradientFn(divideGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(divideGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def divideGradient[T: IsNotQuantized](
+  protected def divideGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     val x = op.input._1
     val y = op.input._2
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
     (Basic.reshape(sum(divide(outputGradient, y), rx), xShape),
         Basic.reshape(sum(multiply(outputGradient, divide(divide(negate(x), y), y)), ry), yShape))
@@ -1526,7 +1527,7 @@ trait Math {
     * @return Created op output.
     */
   @deprecated("Use `truncateDivide` instead.", "0.1")
-  def floorDivide[T: IsNotQuantized](
+  def floorDivide[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "FloorDivide"
@@ -1546,7 +1547,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def truncateDivide[T: IsNotQuantized](
+  def truncateDivide[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "TruncateDivide"
@@ -1566,7 +1567,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def realDivide[T: IsNotQuantized](
+  def realDivide[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "RealDivide"
@@ -1575,18 +1576,18 @@ trait Math {
       opType = "RealDiv",
       name = name,
       input = (x, y)
-    ).setGradientFn(realDivideGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(realDivideGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def realDivideGradient[T: IsNotQuantized](
+  protected def realDivideGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     val x = conjugate(op.input._1)
     val y = conjugate(op.input._2)
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
     (Basic.reshape(sum(realDivide(outputGradient, y), rx), xShape),
         Basic.reshape(sum(multiply(outputGradient, realDivide(realDivide(negate(x), y), y)), ry), yShape))
@@ -1600,7 +1601,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def squaredDifference[T: IsNotQuantized](
+  def squaredDifference[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "SquaredDifference"
@@ -1609,21 +1610,21 @@ trait Math {
       opType = "SquaredDifference",
       name = name,
       input = (x, y)
-    ).setGradientFn(squaredDifferenceGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(squaredDifferenceGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def squaredDifferenceGradient[T: IsNotQuantized](
+  protected def squaredDifferenceGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     val x = op.input._1
     val y = op.input._2
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
     val xGradient = Op.createWith(controlDependencies = Set(outputGradient.op)) {
-      val two = Basic.constant(2).castTo(outputGradient.dataType)
+      val two = Basic.constant(2).castTo[T]
       multiply(scalarMul(two, outputGradient), subtract(x, y))
     }
     (Basic.reshape(sum(xGradient, rx), xShape),
@@ -1638,7 +1639,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def mod[T: IsNotQuantized](
+  def mod[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Mod"
@@ -1658,7 +1659,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def floorMod[T: IsNotQuantized](
+  def floorMod[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "FloorMod"
@@ -1678,7 +1679,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def truncateMod[T: IsNotQuantized](
+  def truncateMod[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "TruncateMod"
@@ -1698,7 +1699,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def pow[T: IsNotQuantized](
+  def pow[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Pow"
@@ -1707,31 +1708,31 @@ trait Math {
       opType = "Pow",
       name = name,
       input = (x, y)
-    ).setGradientFn(powGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(powGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def powGradient[T: IsNotQuantized](
+  protected def powGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     val x = op.input._1
     val y = op.input._2
     val z = conjugate(op.output)
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
     // Avoid false singularity at x = 0.
     val logX = {
       if (x.dataType.isComplex) {
         // real(x) < 0 is fine for the complex case.
-        select(notEqual(x, Basic.constant(0).castTo(x.dataType)), log(x), Basic.zerosLike(x))
+        select(notEqual(x, Basic.constant(0).castTo[T]), log(x), Basic.zerosLike(x))
       } else {
         // There's no sensible real value to return if x < 0, so we return 0.
-        select(greater(x, Basic.constant(0).castTo(x.dataType)), log(x), Basic.zerosLike(x))
+        select(greater(x, Basic.constant(0).castTo[T]), log(x), Basic.zerosLike(x))
       }
     }
-    (Basic.reshape(sum(outputGradient * y * pow(x, subtract(y, Basic.constant(1).castTo(y.dataType))), rx), xShape),
+    (Basic.reshape(sum(outputGradient * y * pow(x, subtract(y, Basic.constant(1).castTo[T])), rx), xShape),
         Basic.reshape(sum(outputGradient * z * logX, ry), yShape))
   }
 
@@ -1745,7 +1746,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def igammac[T: IsFloat32OrFloat64](
+  def igammac[T: IsFloat32OrFloat64 : TF](
       a: Output[T],
       x: Output[T],
       name: String = "Igammac"
@@ -1754,11 +1755,11 @@ trait Math {
       opType = "Igammac",
       name = name,
       input = (a, x)
-    ).setGradientFn(igammacGradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+    ).setGradientFn(igammacGradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
         .build().output
   }
 
-  protected def igammacGradient[T: IsFloat32OrFloat64](
+  protected def igammacGradient[T: IsFloat32OrFloat64 : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1774,7 +1775,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def igamma[T: IsFloat32OrFloat64](
+  def igamma[T: IsFloat32OrFloat64 : TF](
       a: Output[T],
       x: Output[T],
       name: String = "Igamma"
@@ -1783,18 +1784,18 @@ trait Math {
       opType = "Igamma",
       name = name,
       input = (a, x)
-    ).setGradientFn(igammaGradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+    ).setGradientFn(igammaGradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
         .build().output
   }
 
-  protected def igammaGradient[T: IsFloat32OrFloat64](
+  protected def igammaGradient[T: IsFloat32OrFloat64 : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     val a = op.input._1
     val x = op.input._2
-    val aShape = Basic.shape(a, INT64)
-    val xShape = Basic.shape(x, INT64)
+    val aShape = Basic.shape(a)
+    val xShape = Basic.shape(x)
     val (ra, rx) = Basic.broadcastGradientArguments(aShape, xShape)
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val partialA = Op.Builder[(Output[T], Output[T]), Output[T]](
@@ -1803,7 +1804,7 @@ trait Math {
         input = (a, x)
       ).build().output
       // Perform operations in log space before summing, because Gamma(a) and Gamma'(a) can grow large.
-      val partialX = exp(negate(x) + multiply(subtract(a, Basic.constant(1).castTo(a.dataType)), log(x)) - logGamma(a))
+      val partialX = exp(negate(x) + multiply(subtract(a, Basic.ones[T](Shape())), log(x)) - logGamma(a))
       (Basic.reshape(sum(multiply(partialA, outputGradient), ra), aShape),
           Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
     }
@@ -1817,7 +1818,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def zeta[T: IsFloat32OrFloat64](
+  def zeta[T: IsFloat32OrFloat64 : TF](
       x: Output[T],
       q: Output[T],
       name: String = "Zeta"
@@ -1826,21 +1827,21 @@ trait Math {
       opType = "Zeta",
       name = name,
       input = (x, q)
-    ).setGradientFn(zetaGradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+    ).setGradientFn(zetaGradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
         .build().output
   }
 
-  protected def zetaGradient[T: IsFloat32OrFloat64](
+  protected def zetaGradient[T: IsFloat32OrFloat64 : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val x = conjugate(op.input._1)
       val q = conjugate(op.input._2)
-      val xShape = Basic.shape(x, INT64)
-      val qShape = Basic.shape(q, INT64)
+      val xShape = Basic.shape(x)
+      val qShape = Basic.shape(q)
       val (_, rq) = Basic.broadcastGradientArguments(xShape, qShape)
-      val partialQ = negate(x) * zeta(add(x, Basic.ones(x.dataType, Shape())), q)
+      val partialQ = negate(x) * zeta(add(x, Basic.ones[T](Shape())), q)
       (null, Basic.reshape(sum(multiply(partialQ, outputGradient), rq), qShape))
     }
   }
@@ -1853,7 +1854,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def polygamma[T: IsFloat32OrFloat64](
+  def polygamma[T: IsFloat32OrFloat64 : TF](
       n: Output[T],
       x: Output[T],
       name: String = "Polygamma"
@@ -1862,21 +1863,21 @@ trait Math {
       opType = "Polygamma",
       name = name,
       input = (n, x)
-    ).setGradientFn(polygammaGradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+    ).setGradientFn(polygammaGradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
         .build().output
   }
 
-  protected def polygammaGradient[T: IsFloat32OrFloat64](
+  protected def polygammaGradient[T: IsFloat32OrFloat64 : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       val n = conjugate(op.input._1)
       val x = conjugate(op.input._2)
-      val nShape = Basic.shape(n, INT64)
-      val xShape = Basic.shape(x, INT64)
+      val nShape = Basic.shape(n)
+      val xShape = Basic.shape(x)
       val (_, rx) = Basic.broadcastGradientArguments(nShape, xShape)
-      val partialX = polygamma(add(n, Basic.ones(n.dataType, Shape())), x)
+      val partialX = polygamma(add(n, Basic.ones[T](Shape())), x)
       (null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
     }
   }
@@ -1889,7 +1890,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def atan2[T: IsFloat32OrFloat64](
+  def atan2[T: IsFloat32OrFloat64 : TF](
       x: Output[T],
       y: Output[T],
       name: String = "ATan2"
@@ -1898,11 +1899,11 @@ trait Math {
       opType = "Atan2",
       name = name,
       input = (x, y)
-    ).setGradientFn(atan2Gradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+    ).setGradientFn(atan2Gradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
         .build().output
   }
 
-  protected def atan2Gradient[T: IsFloat32OrFloat64](
+  protected def atan2Gradient[T: IsFloat32OrFloat64 : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1923,7 +1924,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def minimum[T: IsNotQuantized](
+  def minimum[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Minimum"
@@ -1932,18 +1933,18 @@ trait Math {
       opType = "Minimum",
       name = name,
       input = (x, y)
-    ).setGradientFn(minimumGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(minimumGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def minimumGradient[T: IsNotQuantized](
+  protected def minimumGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     val x = op.input._1
     val y = op.input._2
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val zeros = Basic.zerosLike(outputGradient)
     val xMask = lessEqual(x, y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
@@ -1961,7 +1962,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def maximum[T: IsNotQuantized](
+  def maximum[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Maximum"
@@ -1970,18 +1971,18 @@ trait Math {
       opType = "Maximum",
       name = name,
       input = (x, y)
-    ).setGradientFn(maximumGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(maximumGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def maximumGradient[T: IsNotQuantized](
+  protected def maximumGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
     val x = op.input._1
     val y = op.input._2
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val zeros = Basic.zerosLike(outputGradient)
     val xMask = greaterEqual(x, y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
@@ -2002,7 +2003,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def incompleteBeta[T: IsFloat32OrFloat64](
+  def incompleteBeta[T: IsFloat32OrFloat64 : TF](
       a: Output[T],
       b: Output[T],
       x: Output[T],
@@ -2012,11 +2013,11 @@ trait Math {
       opType = "Betainc",
       name = name,
       input = (a, b, x)
-    ).setGradientFn(incompleteBetaGradient(_, _)(implicitly[IsFloat32OrFloat64[T]]))
+    ).setGradientFn(incompleteBetaGradient(_, _)(IsFloat32OrFloat64[T], TF[T]))
         .build().output
   }
 
-  protected def incompleteBetaGradient[T: IsFloat32OrFloat64](
+  protected def incompleteBetaGradient[T: IsFloat32OrFloat64 : TF](
       op: Op[(Output[T], Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T], Output[T]) = {
@@ -2024,12 +2025,12 @@ trait Math {
     val a = conjugate(op.input._1)
     val b = conjugate(op.input._2)
     val x = conjugate(op.input._3)
-    val aShape = Basic.shape(a, INT64)
-    val xShape = Basic.shape(x, INT64)
+    val aShape = Basic.shape(a)
+    val xShape = Basic.shape(x)
     val (_, rx) = Basic.broadcastGradientArguments(aShape, xShape)
     // Perform operations in log space before summing, because terms can grow large.
     val logBeta = logGamma(a) + logGamma(b) - logGamma(a + b)
-    val one = Basic.ones(b.dataType, Shape())
+    val one = Basic.ones[T](Shape())
     val partialX = exp(((b - one) * log(one - x)) + ((a - one) * log(x)) - logBeta)
     (null, null, Basic.reshape(sum(multiply(partialX, outputGradient), rx), xShape))
   }
@@ -2122,7 +2123,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def equal[T: IsNumeric](
+  def equal[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Equal"
@@ -2142,7 +2143,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def notEqual[T: IsNumeric](
+  def notEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       name: String = "NotEqual"
@@ -2163,7 +2164,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def approximatelyEqual[T: IsNumeric](
+  def approximatelyEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       tolerance: Float = 0.00001f,
@@ -2185,7 +2186,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def less[T: IsNumeric](
+  def less[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Less"
@@ -2205,7 +2206,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def lessEqual[T: IsNumeric](
+  def lessEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       name: String = "LessEqual"
@@ -2225,7 +2226,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def greater[T: IsNumeric](
+  def greater[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       name: String = "Greater"
@@ -2245,7 +2246,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def greaterEqual[T: IsNumeric](
+  def greaterEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       name: String = "GreaterEqual"
@@ -2261,7 +2262,7 @@ trait Math {
 
   //region Reduction Ops
 
-  protected def reductionAxes[T, I: IsInt32OrInt64, OL[A] <: OutputLike[A]](
+  protected def reductionAxes[T: TF, I: IsInt32OrInt64 : TF, OL[A] <: OutputLike[A]](
       tensor: OL[T],
       axes: Output[I]
   ): Output[I] = {
@@ -2286,7 +2287,7 @@ trait Math {
     }
   }
 
-  protected def safeShapeDiv[T: IsNotQuantized](
+  protected def safeShapeDiv[T: IsNotQuantized : TF](
       x: Output[T],
       y: Output[T]
   ): Output[T] = {
@@ -2302,7 +2303,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sum[T: IsNumeric, I: IsInt32OrInt64](
+  def sum[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2316,12 +2317,12 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(sumGradient(_, _)(implicitly[IsNumeric[T]], implicitly[IsInt32OrInt64[I]]))
+          .setGradientFn(sumGradient(_, _)(IsNumeric[T], TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
   }
 
-  protected def sumGradient[T: IsNumeric, I: IsInt32OrInt64](
+  protected def sumGradient[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2342,13 +2343,13 @@ trait Math {
       val inputShape = {
         // If the shape is not fully defined but the rank is, we use the shape op.
         if (input.shape.isFullyDefined)
-          input.shape.toOutput[Long]
+          input.shape.toOutput
         else
-          Basic.shape(input, INT64)
+          Basic.shape(input)
       }
       (Basic.tile(reshapedOutputGradient, inputShape), null)
     } else {
-      val inputShape = Basic.shape(input, INT32)
+      val inputShape = Basic.shape(input).castTo[Int]
       val outputShapeKeptDimensions = Math.reducedShape(inputShape, axes)
       val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDimensions)
       val reshapedOutputGradient = Basic.reshape(outputGradient, outputShapeKeptDimensions)
@@ -2365,7 +2366,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def mean[T: IsNotQuantized, I: IsInt32OrInt64](
+  def mean[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2379,12 +2380,12 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(meanGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I]]))
+          .setGradientFn(meanGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
   }
 
-  protected def meanGradient[T: IsNotQuantized, I: IsInt32OrInt64](
+  protected def meanGradient[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2393,14 +2394,14 @@ trait Math {
       val inputSize = op.input._1.size
       val outputSize = op.output.size
       if (inputSize != -1 && outputSize != -1) {
-        Basic.constant(inputSize / scala.math.max(outputSize, 1)).castTo(sumGrad.dataType)
+        Basic.constant(inputSize / scala.math.max(outputSize, 1)).castTo[T]
       } else {
-        val inputShape = Basic.shape(op.input._1, INT64)
-        val outputShape = Basic.shape(op.output, INT64)
-        safeShapeDiv(prod(inputShape), prod(outputShape))
+        val inputShape = Basic.shape(op.input._1)
+        val outputShape = Basic.shape(op.output)
+        safeShapeDiv(prod(inputShape), prod(outputShape)).castTo[T]
       }
     }
-    (divide(sumGrad, factor.castTo(sumGrad.dataType)), null)
+    (divide(sumGrad, factor), null)
   }
 
   /** $OpDocMathProd
@@ -2412,7 +2413,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def prod[T: IsNotQuantized, I: IsInt32OrInt64](
+  def prod[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2426,19 +2427,19 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(prodGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I]]))
+          .setGradientFn(prodGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
   }
 
-  def prodGradient[T: IsNotQuantized, I: IsInt32OrInt64](
+  def prodGradient[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
     // The gradient can be expressed by dividing the product by each entry of the input tensor, but this approach
     // can't deal with zeros in the input. Here, we avoid this problem by composing the output as a product of two
     // cumulative product operations.
-    val inputShape = Basic.shape(op.input._1, INT32)
+    val inputShape = Basic.shape(op.input._1).castTo[Int]
     // Expand the gradient to the full input shape
     val outputShapeKeptDims = Math.reducedShape(inputShape.castTo[Int], op.input._2)
     val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDims)
@@ -2462,7 +2463,7 @@ trait Math {
     }
 
     val permuted = Basic.transpose(op.input._1, permutation)
-    val permutedShape = Basic.shape(permuted, INT64)
+    val permutedShape = Basic.shape(permuted)
     val reshaped = Basic.reshape(permuted, Basic.concatenate(Seq(reducedNum, otherNum)))
 
     // Calculate the product, leaving out the current entry.
@@ -2486,7 +2487,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def min[T: IsNotQuantized, I: IsInt32OrInt64](
+  def min[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2500,7 +2501,7 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(minOrMaxGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I]]))
+          .setGradientFn(minOrMaxGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
   }
@@ -2514,7 +2515,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def max[T: IsNotQuantized, I: IsInt32OrInt64](
+  def max[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2528,16 +2529,16 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(minOrMaxGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I]]))
+          .setGradientFn(minOrMaxGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
   }
 
-  protected def minOrMaxGradient[T: IsNotQuantized, I: IsInt32OrInt64](
+  protected def minOrMaxGradient[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
-    val inputShape = Basic.shape(op.input._1, INT32)
+    val inputShape = Basic.shape(op.input._1).castTo[Int]
     val outputShapeKeptDims = Math.reducedShape(inputShape, op.input._2)
     val y = Basic.reshape(op.output, outputShapeKeptDims)
     var gradient = outputGradient
@@ -2545,7 +2546,7 @@ trait Math {
 
     // Compute the number of selected (maximum or minimum) elements in each reduction dimension. If there are multiple
     // minimum or maximum elements then the gradient will be divided among them.
-    val indicators = equal(y, op.input._1).castTo(gradient.dataType)
+    val indicators = equal(y, op.input._1).castTo[T]
     val numberOfSelected = Basic.reshape(sum(indicators, op.input._2), outputShapeKeptDims)
 
     (multiply(divide(indicators, numberOfSelected), gradient), null)
@@ -2560,7 +2561,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def all[I: IsInt32OrInt64](
+  def all[I: IsInt32OrInt64 : TF](
       input: Output[Boolean],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2587,7 +2588,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def any[I: IsInt32OrInt64](
+  def any[I: IsInt32OrInt64 : TF](
       input: Output[Boolean],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2614,7 +2615,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def logSumExp[T: IsNotQuantized, I: IsInt32OrInt64](
+  def logSumExp[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2627,7 +2628,7 @@ trait Math {
         val maxValue = Basic.stopGradient(max(input, axes, keepDims = true))
         var result = log(sum(exp(subtract(input, maxValue)), axes, keepDims = keepDims))
         if (!keepDims)
-          result += Basic.reshape(maxValue, Basic.shape(result, INT64))
+          result += Basic.reshape(maxValue, Basic.shape(result))
         else
           result += maxValue
         result
@@ -2644,14 +2645,14 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def countNonZero[T: IsNumeric, I: IsInt32OrInt64](
+  def countNonZero[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
       name: String = "CountNonZero"
   ): Output[Long] = {
     Op.nameScope(name) {
-      sum(notEqual(input, Basic.zeros(input.dataType, Shape())).castTo[Long], axes, keepDims)
+      sum(notEqual(input, Basic.zeros[T](Shape())).castTo[Long], axes, keepDims)
     }
   }
 
@@ -2662,12 +2663,12 @@ trait Math {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def countNonZeroSparse[T: IsNumeric, OL[A] <: OutputLike[A]](
+  def countNonZeroSparse[T: IsNumeric : TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "CountNonZero"
   ): Output[Long] = {
     Op.nameScope(name) {
-      val zero = Basic.zeros(input.dataType, Shape())
+      val zero = Basic.zeros[T](Shape())
       input match {
         case o: Output[T] => sum(notEqual(o, zero).castTo[Long])
         case o: OutputIndexedSlices[T] => sum(notEqual(o.values, zero).castTo[Long])
@@ -2685,7 +2686,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def argmin[T: IsNotQuantized, I: IsInt32OrInt64, R](
+  def argmin[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF, R : TF](
       input: Output[T],
       axes: Output[I],
       outputDataType: DataType[R],
@@ -2708,7 +2709,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def argmax[T: IsNotQuantized, I: IsInt32OrInt64, R](
+  def argmax[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF, R : TF](
       input: Output[T],
       axes: Output[I],
       outputDataType: DataType[R],
@@ -2732,7 +2733,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def cumsum[T: IsNotQuantized, I: IsInt32OrInt64](
+  def cumsum[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axis: Output[I],
       exclusive: Boolean = false,
@@ -2745,11 +2746,11 @@ trait Math {
       input = (input, axis)
     ).setAttribute("exclusive", exclusive)
         .setAttribute("reverse", reverse)
-        .setGradientFn(cumsumGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(cumsumGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def cumsumGradient[T: IsNotQuantized, I: IsInt32OrInt64](
+  protected def cumsumGradient[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2769,7 +2770,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def cumprod[T: IsNotQuantized, I: IsInt32OrInt64](
+  def cumprod[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axis: Output[I],
       exclusive: Boolean = false,
@@ -2782,11 +2783,11 @@ trait Math {
       input = (input, axis)
     ).setAttribute("exclusive", exclusive)
         .setAttribute("reverse", reverse)
-        .setGradientFn(cumprodGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(cumprodGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def cumprodGradient[T: IsNotQuantized, I: IsInt32OrInt64](
+  protected def cumprodGradient[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2817,7 +2818,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def binCount[T: IsInt32OrInt64OrFloat32OrFloat64](
+  def binCount[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](
       input: Output[Int],
       dataType: DataType[T],
       weights: Output[T] = null,
@@ -2825,7 +2826,7 @@ trait Math {
       maxLength: Output[Int] = null,
       name: String = "BinCount"
   ): Output[T] = {
-    val inputNonEmpty = greater(prod(Basic.shape(input, INT32)), 0)
+    val inputNonEmpty = greater(prod(Basic.shape(input).castTo[Int]), 0)
     var outputSize = inputNonEmpty.castTo[Int] * (max(input) + 1)
     if (minLength != null)
       outputSize = maximum(minLength, outputSize)
@@ -2835,7 +2836,7 @@ trait Math {
       if (weights != null) {
         weights
       } else {
-        Basic.zeros(dataType, Shape.scalar())
+        Basic.zeros[T](Shape.scalar())
       }
     }
     Op.Builder[(Output[Int], Output[Int], Output[T]), Output[T]](
@@ -2855,7 +2856,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentSum[T: IsNumeric, I: IsInt32OrInt64](
+  def segmentSum[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentSum"
@@ -2864,11 +2865,11 @@ trait Math {
       opType = "SegmentSum",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentSumGradient(_, _)(implicitly[IsNumeric[T]], implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(segmentSumGradient(_, _)(IsNumeric[T], TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def segmentSumGradient[T: IsNumeric, I: IsInt32OrInt64](
+  protected def segmentSumGradient[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2883,7 +2884,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentMean[T: IsNotQuantized, I: IsInt32OrInt64](
+  def segmentMean[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentMean"
@@ -2892,20 +2893,20 @@ trait Math {
       opType = "SegmentMean",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentMeanGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(segmentMeanGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def segmentMeanGradient[T: IsNotQuantized, I: IsInt32OrInt64](
+  protected def segmentMeanGradient[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
     val inputRank = Basic.rank(op.input._1)
     val onesShape = Basic.concatenate(Seq(
-      Basic.shape(op.input._2, INT32),
-      Basic.fill(INT32, Basic.expandDims(subtract(inputRank, 1), 0))(
-        Basic.ones(inputRank.dataType, Shape()))))
-    val ones = Basic.fill(outputGradient.dataType, onesShape)(Basic.ones(outputGradient.dataType, Shape()))
+      Basic.shape(op.input._2).castTo[Int],
+      Basic.fill[Int, Int](Basic.expandDims(subtract(inputRank, 1), 0))(
+        Basic.ones[Int](Shape()))))
+    val ones = Basic.fill[T, Int](onesShape)(Basic.ones[T](Shape()))
     val scaledGradient = divide(outputGradient, segmentSum(ones, op.input._2))
     (Basic.gather(scaledGradient, op.input._2, axis = 0), null)
   }
@@ -2918,7 +2919,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentProd[T: IsNumeric, I: IsInt32OrInt64](
+  def segmentProd[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentProd"
@@ -2940,7 +2941,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentMin[T: IsReal, I: IsInt32OrInt64](
+  def segmentMin[T: IsReal : TF, I: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentMin"
@@ -2949,7 +2950,7 @@ trait Math {
       opType = "SegmentMin",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentMinOrMaxGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(segmentMinOrMaxGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
@@ -2961,7 +2962,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentMax[T: IsReal, I: IsInt32OrInt64](
+  def segmentMax[T: IsReal : TF, I: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentMax"
@@ -2970,18 +2971,18 @@ trait Math {
       opType = "SegmentMax",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentMinOrMaxGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(segmentMinOrMaxGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def segmentMinOrMaxGradient[T: IsReal, I: IsInt32OrInt64](
+  protected def segmentMinOrMaxGradient[T: IsReal : TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
     // Get the number of selected (minimum or maximum) elements in each segment.
     val gatheredOutputs = Basic.gather(op.output, op.input._2, axis = 0)
     val isSelected = equal(op.input._1, gatheredOutputs)
-    val numSelected = segmentSum(isSelected.castTo(outputGradient.dataType), op.input._2)
+    val numSelected = segmentSum(isSelected.castTo[T], op.input._2)
 
     // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
     // elements in that segment.
@@ -2992,7 +2993,7 @@ trait Math {
     (select(isSelected, gatheredGradients, zeros), null)
   }
 
-  protected def gatherDropNegatives[T: IsNumeric, I: IsInt32OrInt64](
+  protected def gatherDropNegatives[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       parameters: Output[T],
       indices: Output[I],
       zeroClippedIndices: Output[I] = null,
@@ -3009,7 +3010,7 @@ trait Math {
       if (isPositive != null) {
         isPositive
       } else {
-        val zero = Basic.zeros(indices.dataType, Shape())
+        val zero = Basic.zeros[I](Shape())
         var isPositive = Math.greaterEqual(indices, zero)
         // `select` requires that the condition has the same shape as the other two arguments.
         val minusOne = Basic.constant(-1)
@@ -3033,7 +3034,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentSum[T: IsNumeric, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentSum[T: IsNumeric : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3043,11 +3044,11 @@ trait Math {
       opType = "UnsortedSegmentSum",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentSumGradient(_, _)(implicitly[IsNumeric[T]], implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+    ).setGradientFn(unsortedSegmentSumGradient(_, _)(IsNumeric[T], TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
         .build().output
   }
 
-  protected def unsortedSegmentSumGradient[T: IsNumeric, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def unsortedSegmentSumGradient[T: IsNumeric : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
@@ -3062,7 +3063,7 @@ trait Math {
     * @param  segmentsNumber Number of segments.
     * @return Created op output.
     */
-  protected def unsortedSegmentN[T: IsNotQuantized, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def unsortedSegmentN[T: IsNotQuantized : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3070,12 +3071,12 @@ trait Math {
   ): Output[T] = {
     Op.nameScope(name) {
       // `binCount` does not support negative indices and so we use `unsortedSegmentSum`.
-      val ones = Basic.ones(data.dataType, Basic.shape(segmentIndices, INT64))
+      val ones = Basic.ones[T](Basic.shape(segmentIndices))
       val N = unsortedSegmentSum(ones, segmentIndices, segmentsNumber)
       val outputRank = Basic.rank(data) - Basic.rank(segmentIndices)
-      val outputRankTiled = Basic.tile(Basic.ones(segmentsNumber.dataType, Shape(1)), outputRank.expandDims(0))
+      val outputRankTiled = Basic.tile(Basic.ones[I2](Shape(1)), outputRank.expandDims(0))
       val broadcastShape = Basic.concatenate(Seq(segmentsNumber.expandDims(0), outputRankTiled))
-      val one = Basic.ones(N.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       maximum(one, Basic.reshape(N, broadcastShape))
     }
   }
@@ -3089,7 +3090,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentMean[T: IsNotQuantized, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentMean[T: IsNotQuantized : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3112,7 +3113,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentProd[T: IsNotQuantized, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentProd[T: IsNotQuantized : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3122,11 +3123,11 @@ trait Math {
       opType = "UnsortedSegmentProd",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentProdGradient(_, _)(implicitly[IsNotQuantized[T]], implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+    ).setGradientFn(unsortedSegmentProdGradient(_, _)(IsNotQuantized[T], TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
         .build().output
   }
 
-  protected def unsortedSegmentProdGradient[T: IsNotQuantized, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def unsortedSegmentProdGradient[T: IsNotQuantized : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
@@ -3142,7 +3143,7 @@ trait Math {
 
     // Note that `unsortedSegmentSum` will filter out the negative indices, and so we do not need to do a `logicalAnd`
     // with `isPositive` here.
-    val zero = Basic.zeros(op.input._1.dataType, Shape())
+    val zero = Basic.zeros[T](Shape())
     val isZero = Math.equal(op.input._1, zero)
     val numZeros = Math.unsortedSegmentSum(isZero.castTo[Int], op.input._2, op.input._3)
     // Handle case 3 and set the gradient to 0 for segments with more than one 0 as input.
@@ -3176,7 +3177,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentMin[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentMin[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3186,7 +3187,7 @@ trait Math {
       opType = "UnsortedSegmentMin",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
         .build().output
   }
 
@@ -3199,7 +3200,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentMax[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentMax[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3209,18 +3210,18 @@ trait Math {
       opType = "UnsortedSegmentMax",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
         .build().output
   }
 
-  protected def unsortedSegmentMinOrMaxGradient[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def unsortedSegmentMinOrMaxGradient[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
     // Get the number of selected (minimum or maximum) elements in each segment.
     val (gatheredOutputs, zeroClippedIndices, isPositive) = gatherDropNegatives(op.output, op.input._2)
     val isSelected = Math.logicalAnd(Math.equal(op.input._1, gatheredOutputs), isPositive)
-    val numSelected = unsortedSegmentSum(isSelected.castTo(outputGradient.dataType), op.input._2, op.input._3)
+    val numSelected = unsortedSegmentSum(isSelected.castTo[T], op.input._2, op.input._3)
     // Compute the gradient for each segment. The gradient for the ith segment is divided evenly among the selected
     // elements in that segment.
     val weightedGradients = divide(outputGradient, numSelected)
@@ -3239,7 +3240,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentSqrtN[T: IsNotQuantized, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unsortedSegmentSqrtN[T: IsNotQuantized : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3261,7 +3262,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def sparseSegmentSum[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentSum[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       indices: Output[I1],
       segmentIndices: Output[Int],
@@ -3273,23 +3274,23 @@ trait Math {
         opType = "SparseSegmentSum",
         name = name,
         input = (data, indices, segmentIndices)
-      ).setGradientFn(sparseSegmentSumGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]]))
+      ).setGradientFn(sparseSegmentSumGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1]))
           .build().output
     } else {
       Op.Builder[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]](
         opType = "SparseSegmentSumWithNumSegments",
         name = name,
         input = (data, indices, segmentIndices, numSegments)
-      ).setGradientFn(sparseSegmentSumWithNumSegmentsGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+      ).setGradientFn(sparseSegmentSumWithNumSegmentsGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
           .build().output
     }
   }
 
-  protected def sparseSegmentSumGradient[T: IsReal, I1: IsInt32OrInt64](
+  protected def sparseSegmentSumGradient[T: IsReal : TF, I1: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int]) = {
-    val inputRows = Basic.shape(op.input._1, INT64).slice(0)
+    val inputRows = Basic.shape(op.input._1).slice(0)
     val gradient = unsortedSegmentSum(
       Basic.gather(outputGradient, op.input._3, axis = 0),
       op.input._2,
@@ -3297,11 +3298,11 @@ trait Math {
     (gradient, null, null)
   }
 
-  protected def sparseSegmentSumWithNumSegmentsGradient[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def sparseSegmentSumWithNumSegmentsGradient[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int], Output[I2]) = {
-    val inputRows = Basic.shape(op.input._1, INT64).slice(0)
+    val inputRows = Basic.shape(op.input._1).slice(0)
     val gradient = unsortedSegmentSum(
       Basic.gather(outputGradient, op.input._3, axis = 0),
       op.input._2,
@@ -3319,7 +3320,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def sparseSegmentMean[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentMean[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       indices: Output[I1],
       segmentIndices: Output[Int],
@@ -3331,23 +3332,23 @@ trait Math {
         opType = "SparseSegmentMean",
         name = name,
         input = (data, indices, segmentIndices)
-      ).setGradientFn(sparseSegmentMeanGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]]))
+      ).setGradientFn(sparseSegmentMeanGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1]))
           .build().output
     } else {
       Op.Builder[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]](
         opType = "SparseSegmentMeanWithNumSegments",
         name = name,
         input = (data, indices, segmentIndices, numSegments)
-      ).setGradientFn(sparseSegmentMeanWithNumSegmentsGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+      ).setGradientFn(sparseSegmentMeanWithNumSegmentsGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
           .build().output
     }
   }
 
-  protected def sparseSegmentMeanGradient[T: IsReal, I1: IsInt32OrInt64](
+  protected def sparseSegmentMeanGradient[T: IsReal : TF, I1: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int]) = {
-    val inputRows = Basic.shape(op.input._1, INT64).slice(0)
+    val inputRows = Basic.shape(op.input._1).slice(0)
     val gradient = Op.Builder[(Output[T], Output[I1], Output[Int], Output[Long]), Output[T]](
       opType = "SparseSegmentMeanGrad",
       name = "SparseSegmentMeanGrad",
@@ -3356,11 +3357,11 @@ trait Math {
     (gradient, null, null)
   }
 
-  protected def sparseSegmentMeanWithNumSegmentsGradient[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def sparseSegmentMeanWithNumSegmentsGradient[T: IsReal: TF, I1: IsInt32OrInt64: TF, I2: IsInt32OrInt64: TF](
       op: Op[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int], Output[I2]) = {
-    val inputRows = Basic.shape(op.input._1, INT64).slice(0)
+    val inputRows = Basic.shape(op.input._1).slice(0)
     val gradient = Op.Builder[(Output[T], Output[I1], Output[Int], Output[Long]), Output[T]](
       opType = "SparseSegmentMeanGrad",
       name = "SparseSegmentMeanGrad",
@@ -3379,7 +3380,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def sparseSegmentSumSqrtN[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def sparseSegmentSumSqrtN[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       data: Output[T],
       indices: Output[I1],
       segmentIndices: Output[Int],
@@ -3391,23 +3392,23 @@ trait Math {
         opType = "SparseSegmentSqrtN",
         name = name,
         input = (data, indices, segmentIndices)
-      ).setGradientFn(sparseSegmentSumSqrtNGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]]))
+      ).setGradientFn(sparseSegmentSumSqrtNGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1]))
           .build().output
     } else {
       Op.Builder[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]](
         opType = "SparseSegmentSqrtNWithNumSegments",
         name = name,
         input = (data, indices, segmentIndices, numSegments)
-      ).setGradientFn(sparseSegmentSumSqrtNWithNumSegmentsGradient(_, _)(implicitly[IsReal[T]], implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+      ).setGradientFn(sparseSegmentSumSqrtNWithNumSegmentsGradient(_, _)(IsReal[T], TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
           .build().output
     }
   }
 
-  protected def sparseSegmentSumSqrtNGradient[T: IsReal, I1: IsInt32OrInt64](
+  protected def sparseSegmentSumSqrtNGradient[T: IsReal : TF, I1: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int]) = {
-    val inputRows = Basic.shape(op.input._1, INT64).slice(0)
+    val inputRows = Basic.shape(op.input._1).slice(0)
     val gradient = Op.Builder[(Output[T], Output[I1], Output[Int], Output[Long]), Output[T]](
       opType = "SparseSegmentSqrtNGrad",
       name = "SparseSegmentSumSqrtNGrad",
@@ -3416,11 +3417,11 @@ trait Math {
     (gradient, null, null)
   }
 
-  protected def sparseSegmentSumSqrtNWithNumSegmentsGradient[T: IsReal, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def sparseSegmentSumSqrtNWithNumSegmentsGradient[T: IsReal : TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int], Output[I2]) = {
-    val inputRows = Basic.shape(op.input._1, INT64).slice(0)
+    val inputRows = Basic.shape(op.input._1).slice(0)
     val gradient = Op.Builder[(Output[T], Output[I1], Output[Int], Output[Long]), Output[T]](
       opType = "SparseSegmentSqrtNGrad",
       name = "SparseSegmentSumSqrtNGrad",
@@ -3440,7 +3441,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def diag[T: IsNotQuantized](
+  def diag[T: IsNotQuantized : TF](
       diagonal: Output[T],
       name: String = "Diag"
   ): Output[T] = {
@@ -3448,11 +3449,11 @@ trait Math {
       opType = "Diag",
       name = name,
       input = diagonal
-    ).setGradientFn(diagGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(diagGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def diagGradient[T: IsNotQuantized](
+  protected def diagGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -3466,7 +3467,7 @@ trait Math {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def diagPart[T: IsNotQuantized](
+  def diagPart[T: IsNotQuantized : TF](
       input: Output[T],
       name: String = "DiagPart"
   ): Output[T] = {
@@ -3474,11 +3475,11 @@ trait Math {
       opType = "DiagPart",
       name = name,
       input = input
-    ).setGradientFn(diagPartGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(diagPartGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def diagPartGradient[T: IsNotQuantized](
+  protected def diagPartGradient[T: IsNotQuantized : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -3493,7 +3494,7 @@ trait Math {
     * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `diagonal`, with its last
     *         dimension duplicated.
     */
-  def matrixDiag[T](
+  def matrixDiag[T : TF](
       diagonal: Output[T],
       name: String = "MatrixDiag"
   ): Output[T] = {
@@ -3501,11 +3502,11 @@ trait Math {
       opType = "MatrixDiag",
       name = name,
       input = diagonal
-    ).setGradientFn(matrixDiagGradient)
+    ).setGradientFn(matrixDiagGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def matrixDiagGradient[T](
+  protected def matrixDiagGradient[T : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -3520,7 +3521,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output with rank equal to `K + 1` and shape equal to the shape of `input`.
     */
-  def matrixSetDiag[T](
+  def matrixSetDiag[T : TF](
       input: Output[T],
       diagonal: Output[T],
       name: String = "MatrixSetDiag"
@@ -3529,11 +3530,11 @@ trait Math {
       opType = "MatrixSetDiag",
       name = name,
       input = (input, diagonal)
-    ).setGradientFn(matrixSetDiagGradient)
+    ).setGradientFn(matrixSetDiagGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def matrixSetDiagGradient[T](
+  protected def matrixSetDiagGradient[T : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -3545,7 +3546,7 @@ trait Math {
         Basic.constant(tensors.ops.Basic.stack((batchShape.asArray :+ matrixShape.asArray.min).map(Tensor(_))))
       } else {
         Op.colocateWith(Set(outputGradient.op), ignoreExisting = true) {
-          val gradShape = Basic.shape(outputGradient, INT32)
+          val gradShape = Basic.shape(outputGradient).castTo[Int]
           val gradRank = Basic.rank(outputGradient)
           val batchShape = Basic.slice(gradShape, 0, gradRank - 2)
           val matrixShape = Basic.slice(gradShape, gradRank - 2, 2)
@@ -3555,7 +3556,7 @@ trait Math {
       }
     }
     val gradInput = matrixSetDiag(
-      outputGradient, Basic.fill(outputGradient.dataType, diagShape)(0))
+      outputGradient, Basic.fill[T, Int](diagShape)(Tensor.zeros[T](Shape())))
     val gradDiag = matrixDiagPart(outputGradient)
     (gradInput, gradDiag)
   }
@@ -3568,7 +3569,7 @@ trait Math {
     * @return Created op output containing the diagonal(s) and having shape equal to
     *         `input.shape[::-2] + [min(input.shape[-2::])]`.
     */
-  def matrixDiagPart[T](
+  def matrixDiagPart[T: TF](
       input: Output[T],
       name: String = "MatrixDiagPart"
   ): Output[T] = {
@@ -3576,11 +3577,11 @@ trait Math {
       opType = "MatrixDiagPart",
       name = name,
       input = input
-    ).setGradientFn(matrixDiagPartGradient)
+    ).setGradientFn(matrixDiagPartGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def matrixDiagPartGradient[T](
+  protected def matrixDiagPartGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -3602,7 +3603,7 @@ trait Math {
     * @param  name              Name for the created op.
     * @return Created op output.
     */
-  def matrixBandPart[T, I: IsInt32OrInt64](
+  def matrixBandPart[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       numSubDiagonals: Output[I],
       numSuperDiagonals: Output[I],
@@ -3612,11 +3613,11 @@ trait Math {
       opType = "MatrixBandPart",
       name = name,
       input = (input, numSubDiagonals, numSuperDiagonals)
-    ).setGradientFn(matrixBandPartGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(matrixBandPartGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def matrixBandPartGradient[T, I: IsInt32OrInt64](
+  protected def matrixBandPartGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I], Output[I]) = {
@@ -3630,7 +3631,7 @@ trait Math {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def trace[T: IsNumeric](
+  def trace[T: IsNumeric : TF](
       input: Output[T],
       name: String = "Trace"
   ): Output[T] = {
@@ -3647,7 +3648,7 @@ trait Math {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def scalarMul[T: IsNotQuantized, OL[A] <: OutputLike[A]](
+  def scalarMul[T: IsNotQuantized : TF, OL[A] <: OutputLike[A]](
       scalar: Output[T],
       tensor: OL[T],
       name: String = "ScalarMul"
@@ -3676,7 +3677,7 @@ trait Math {
     * @return Created op output that has the same data type as `a` and `b` and where each inner-most matrix is the
     *         product of the corresponding matrices in `a` and `b`.
     */
-  def matmul[T: IsNotQuantized](
+  def matmul[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       transposeA: Boolean = false,
@@ -3699,7 +3700,7 @@ trait Math {
         input = (x, y)
       ).setAttribute("adj_x", adjointX)
           .setAttribute("adj_y", adjointY)
-          .setGradientFn(batchMatmulGradient(_, _)(implicitly[IsNotQuantized[T]]))
+          .setGradientFn(batchMatmulGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output
     } else if ((aIsSparse || bIsSparse) &&
         sparseMatMulDataTypes.contains(a.dataType) &&
@@ -3714,7 +3715,7 @@ trait Math {
           .setAttribute("transpose_b", transposeY)
           .setAttribute("a_is_sparse", aIsSparse)
           .setAttribute("b_is_sparse", bIsSparse)
-          .setGradientFn(sparseMatmulGradient(_, _)(implicitly[IsNotQuantized[T]]))
+          .setGradientFn(sparseMatmulGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output
     } else {
       val (x, transposeX) = transposeConjugateToTranspose(a, transposeA, conjugateA)
@@ -3725,12 +3726,12 @@ trait Math {
         input = (x, y)
       ).setAttribute("transpose_a", transposeX)
           .setAttribute("transpose_b", transposeY)
-          .setGradientFn(matmulGradient(_, _)(implicitly[IsNotQuantized[T]]))
+          .setGradientFn(matmulGradient(_, _)(IsNotQuantized[T], TF[T]))
           .build().output
     }
   }
 
-  protected def transposeConjugateToAdjoint[T: IsNotQuantized](
+  protected def transposeConjugateToAdjoint[T: IsNotQuantized : TF](
       tensor: Output[T],
       transpose: Boolean,
       conj: Boolean
@@ -3743,7 +3744,7 @@ trait Math {
     }
   }
 
-  protected def transposeConjugateToTranspose[T: IsNotQuantized](
+  protected def transposeConjugateToTranspose[T: IsNotQuantized : TF](
       tensor: Output[T],
       transpose: Boolean,
       conj: Boolean
@@ -3756,7 +3757,7 @@ trait Math {
     }
   }
 
-  protected def batchMatmulGradient[T: IsNotQuantized](
+  protected def batchMatmulGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -3780,7 +3781,7 @@ trait Math {
     }
   }
 
-  protected def matmulGradient[T: IsNotQuantized](
+  protected def matmulGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -3804,7 +3805,7 @@ trait Math {
     }
   }
 
-  protected def sparseMatmulGradient[T: IsNotQuantized](
+  protected def sparseMatmulGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -3860,7 +3861,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def cross[T: IsReal](
+  def cross[T: IsReal : TF](
       a: Output[T],
       b: Output[T],
       name: String = "Cross"
@@ -3869,11 +3870,11 @@ trait Math {
       opType = "Cross",
       name = name,
       input = (a, b)
-    ).setGradientFn(crossGradient(_, _)(implicitly[IsReal[T]]))
+    ).setGradientFn(crossGradient(_, _)(IsReal[T], TF[T]))
         .build().output
   }
 
-  protected def crossGradient[T: IsReal](
+  protected def crossGradient[T: IsReal : TF](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -3892,7 +3893,7 @@ trait Math {
     * @throws InvalidArgumentException If the `numAxes < 1` or the rank of `a` is unknown.
     */
   @throws[InvalidArgumentException]
-  def tensorDot[T: IsNotQuantized](
+  def tensorDot[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       numAxes: Int
@@ -3911,7 +3912,7 @@ trait Math {
     * @throws InvalidArgumentException If the `numAxes < 1` or the rank of `a` is unknown.
     */
   @throws[InvalidArgumentException]
-  def tensorDot[T: IsNotQuantized](
+  def tensorDot[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       numAxes: Int,
@@ -3936,7 +3937,7 @@ trait Math {
     * @throws InvalidArgumentException If the size of `axesA` does not match the size of `axesB`.
     */
   @throws[InvalidArgumentException]
-  def tensorDot[T: IsNotQuantized](
+  def tensorDot[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       axesA: Seq[Int],
@@ -3957,7 +3958,7 @@ trait Math {
     * @throws InvalidArgumentException If the size of `axesA` does not match the size of `axesB`.
     */
   @throws[InvalidArgumentException]
-  def tensorDot[T: IsNotQuantized](
+  def tensorDot[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       axesA: Seq[Int],
@@ -4007,7 +4008,7 @@ trait Math {
             (axes, null)
           }
         }
-        val shapeA = Basic.shape(a, INT32)
+        val shapeA = Basic.shape(a).castTo[Int]
         val rankA = Basic.rank(a)
         var axesO = Basic.constant(mappedAxes, name = "Axes")
         axesO = ((axesO >= 0).castTo[Int] * axesO) + ((axesO < 0).castTo[Int] * (axesO + rankA))
@@ -4055,7 +4056,7 @@ trait Math {
     * @throws InvalidArgumentException If `numAxes` is not a scalar.
     */
   @throws[InvalidArgumentException]
-  def tensorDotDynamic[T: IsNotQuantized](
+  def tensorDotDynamic[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       numAxes: Output[Int]
@@ -4076,7 +4077,7 @@ trait Math {
     * @throws InvalidArgumentException If `numAxes` is not a scalar.
     */
   @throws[InvalidArgumentException]
-  def tensorDotDynamic[T: IsNotQuantized](
+  def tensorDotDynamic[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       numAxes: Output[Int],
@@ -4101,7 +4102,7 @@ trait Math {
     * @throws InvalidArgumentException If the rank `axesA` or `axesB` if larger than `1`.
     */
   @throws[InvalidArgumentException]
-  def tensorDotDynamic[T: IsNotQuantized](
+  def tensorDotDynamic[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       axesA: Output[Int],
@@ -4124,7 +4125,7 @@ trait Math {
     * @throws InvalidArgumentException If the rank `axesA` or `axesB` if larger than `1`.
     */
   @throws[InvalidArgumentException]
-  def tensorDotDynamic[T: IsNotQuantized](
+  def tensorDotDynamic[T: IsNotQuantized : TF](
       a: Output[T],
       b: Output[T],
       axesA: Output[Int],
@@ -4152,7 +4153,7 @@ trait Math {
         axes: Output[Int],
         flipped: Boolean = false
     ): (Output[T], Output[Int]) = {
-      val shapeA = Basic.shape(a, INT32)
+      val shapeA = Basic.shape(a).castTo[Int]
       val rankA = Basic.rank(a)
       val mappedAxes = ((axes >= 0).castTo[Int] * axes) + ((axes < 0).castTo[Int] * (axes + rankA))
       val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
@@ -4215,8 +4216,8 @@ trait Math {
   ): (Output[Float], Output[Float]) = {
     val x = op.input._1
     val y = op.input._2
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
     (Basic.reshape(sum(realFloat(outputGradient), rx), xShape),
         Basic.reshape(sum(imagFloat(outputGradient), ry), yShape))
@@ -4250,8 +4251,8 @@ trait Math {
   ): (Output[Double], Output[Double]) = {
     val x = op.input._1
     val y = op.input._2
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
     val (rx, ry) = Basic.broadcastGradientArguments(xShape, yShape)
     (Basic.reshape(sum(realDouble(outputGradient), rx), xShape),
         Basic.reshape(sum(imagDouble(outputGradient), ry), yShape))
@@ -4287,7 +4288,7 @@ trait Math {
       op: Op[Output[ComplexFloat], Output[Float]],
       outputGradient: Output[Float]
   ): Output[ComplexFloat] = {
-    complexFloat(outputGradient, Basic.zeros(FLOAT32, Shape()))
+    complexFloat(outputGradient, Basic.zeros[Float](Shape()))
   }
 
   /** $OpDocMathReal
@@ -4320,7 +4321,7 @@ trait Math {
       op: Op[Output[ComplexDouble], Output[Double]],
       outputGradient: Output[Double]
   ): Output[ComplexDouble] = {
-    complexDouble(outputGradient, Basic.zeros(FLOAT64, Shape()))
+    complexDouble(outputGradient, Basic.zeros[Double](Shape()))
   }
 
   /** $OpDocMathImag
@@ -4353,7 +4354,7 @@ trait Math {
       op: Op[Output[ComplexFloat], Output[Float]],
       outputGradient: Output[Float]
   ): Output[ComplexFloat] = {
-    complexFloat(Basic.zeros(FLOAT32, Shape()), outputGradient)
+    complexFloat(Basic.zeros[Float](Shape()), outputGradient)
   }
 
   /** $OpDocMathImag
@@ -4386,7 +4387,7 @@ trait Math {
       op: Op[Output[ComplexDouble], Output[Double]],
       outputGradient: Output[Double]
   ): Output[ComplexDouble] = {
-    complexDouble(Basic.zeros(FLOAT64, Shape()), outputGradient)
+    complexDouble(Basic.zeros[Double](Shape()), outputGradient)
   }
 
   /** $OpDocMathAbs
@@ -4398,7 +4399,7 @@ trait Math {
     */
   def magnitudeFloat[OL[A] <: OutputLike[A]](
       x: OL[ComplexFloat],
-      name: String = "Abs"
+      name: String = "Magnitude"
   )(implicit
       ev: OutputOps.Aux[OL, ComplexFloat]
   ): OL[Float] = {
@@ -4428,7 +4429,7 @@ trait Math {
     */
   def magnitudeDouble[OL[A] <: OutputLike[A]](
       x: OL[ComplexDouble],
-      name: String = "Abs"
+      name: String = "Magnitude"
   )(implicit
       ev: OutputOps.Aux[OL, ComplexDouble]
   ): OL[Double] = {
@@ -4506,7 +4507,7 @@ trait Math {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def conjugate[T, OL[A] <: OutputLike[A]](
+  def conjugate[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "Conjugate"
   )(implicit
@@ -4518,7 +4519,7 @@ trait Math {
           opType = "Conj",
           name = name,
           input = o
-        ).setGradientFn(conjugateGradient)
+        ).setGradientFn(conjugateGradient(_, _)(TF[T]))
             .build().output
       } else {
         o
@@ -4526,7 +4527,7 @@ trait Math {
     })
   }
 
-  protected def conjugateGradient[T](
+  protected def conjugateGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -4551,7 +4552,7 @@ trait Math {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def bucketize[T: IsInt32OrInt64OrFloat32OrFloat64](
+  def bucketize[T: IsInt32OrInt64OrFloat32OrFloat64 : TF](
       input: Output[T],
       boundaries: Seq[Float],
       name: String = "Bucketize"
@@ -4575,12 +4576,12 @@ trait Math {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def zerosFraction[T: IsNumeric](
+  def zerosFraction[T: IsNumeric : TF](
       input: Output[T],
       name: String = "ZerosFraction"
   ): Output[Float] = {
     Op.nameScope(name) {
-      val zero = Basic.zeros(input.dataType, Shape(), name = "Zero")
+      val zero = Basic.zeros[T](Shape())
       mean(equal(input, zero).castTo[Float])
     }
   }
@@ -4592,37 +4593,37 @@ trait Math {
 
 object Math extends Math {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToMathOps[OC, T](
+    implicit def outputConvertibleToMathOps[OC, T: TF](
         value: OC
     )(implicit f: OC => Output[T]): MathOps[T] = {
       new MathOps(f(value))
     }
 
-    implicit def outputConvertibleToFloatOps[OC](
+    implicit def outputConvertibleToFloatMathOps[OC](
         value: OC
-    )(implicit f: OC => Output[Float]): FloatOps = {
-      new FloatOps(f(value))
+    )(implicit f: OC => Output[Float]): FloatMathOps = {
+      new FloatMathOps(f(value))
     }
 
-    implicit def outputConvertibleToDoubleOps[OC](
+    implicit def outputConvertibleToDoubleMathOps[OC](
         value: OC
-    )(implicit f: OC => Output[Double]): DoubleOps = {
-      new DoubleOps(f(value))
+    )(implicit f: OC => Output[Double]): DoubleMathOps = {
+      new DoubleMathOps(f(value))
     }
 
-    implicit def outputConvertibleToComplexFloatOps[OC](
+    implicit def outputConvertibleToComplexFloatMathOps[OC](
         value: OC
-    )(implicit f: OC => Output[ComplexFloat]): ComplexFloatOps = {
-      new ComplexFloatOps(f(value))
+    )(implicit f: OC => Output[ComplexFloat]): ComplexFloatMathOps = {
+      new ComplexFloatMathOps(f(value))
     }
 
-    implicit def outputConvertibleToComplexDoubleOps[OC](
+    implicit def outputConvertibleToComplexDoubleMathOps[OC](
         value: OC
-    )(implicit f: OC => Output[ComplexDouble]): ComplexDoubleOps = {
-      new ComplexDoubleOps(f(value))
+    )(implicit f: OC => Output[ComplexDouble]): ComplexDoubleMathOps = {
+      new ComplexDoubleMathOps(f(value))
     }
 
-    implicit class MathOps[T](val output: Output[T]) {
+    implicit class MathOps[T: TF](val output: Output[T]) {
       /** $OpDocMathSelect
         *
         * @group MathOps
@@ -4631,7 +4632,7 @@ object Math extends Math {
         * @param  y Tensor with the same data type and shape as `t`.
         * @return Created op output.
         */
-      def select[R](
+      def select[R: TF](
           x: Output[R],
           y: Output[R]
       )(implicit ev: T =:= Boolean): Output[R] = {
@@ -4672,7 +4673,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def ==(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+      def ===(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
         equal(other)
       }
 
@@ -4681,7 +4682,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def !=(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+      def =!=(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
         notEqual(other)
       }
 
@@ -5424,7 +5425,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def sum[I: IsInt32OrInt64](
+      def sum[I: IsInt32OrInt64 : TF](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNumeric[T]): Output[T] = {
@@ -5438,7 +5439,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def mean[I: IsInt32OrInt64](
+      def mean[I: IsInt32OrInt64 : TF](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5452,7 +5453,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def prod[I: IsInt32OrInt64](
+      def prod[I: IsInt32OrInt64 : TF](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5466,7 +5467,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def min[I: IsInt32OrInt64](
+      def min[I: IsInt32OrInt64 : TF](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5480,7 +5481,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def max[I: IsInt32OrInt64](
+      def max[I: IsInt32OrInt64 : TF](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5494,8 +5495,8 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def all(
-          axes: Output[Int] = null,
+      def all[I: IsInt32OrInt64 : TF](
+          axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: T =:= Boolean): Output[Boolean] = {
         Math.all(output.asInstanceOf[Output[Boolean]], axes, keepDims)
@@ -5508,8 +5509,8 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def any(
-          axes: Output[Int] = null,
+      def any[I: IsInt32OrInt64 : TF](
+          axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: T =:= Boolean): Output[Boolean] = {
         Math.any(output.asInstanceOf[Output[Boolean]], axes, keepDims)
@@ -5522,7 +5523,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def logSumExp[I: IsInt32OrInt64](
+      def logSumExp[I: IsInt32OrInt64 : TF](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5549,7 +5550,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmin[I: IsInt32OrInt64](
+      def argmin[I: IsInt32OrInt64 : TF](
           axes: Output[I]
       )(implicit ev: IsNotQuantized[T]): Output[Long] = {
         Math.argmin(output, axes, outputDataType = INT64)
@@ -5562,7 +5563,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmin[I: IsInt32OrInt64, IR: IsInt32OrInt64](
+      def argmin[I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
           axes: Output[I],
           outputDataType: DataType[IR]
       )(implicit ev: IsNotQuantized[T]): Output[IR] = {
@@ -5575,7 +5576,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmax[I: IsInt32OrInt64](
+      def argmax[I: IsInt32OrInt64 : TF](
           axes: Output[I]
       )(implicit ev: IsNotQuantized[T]): Output[Long] = {
         Math.argmax(output, axes, outputDataType = INT64)
@@ -5588,7 +5589,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmax[I: IsInt32OrInt64, IR: IsInt32OrInt64](
+      def argmax[I: IsInt32OrInt64 : TF, IR: IsInt32OrInt64 : TF](
           axes: Output[I],
           outputDataType: DataType[IR]
       )(implicit ev: IsNotQuantized[T]): Output[IR] = {
@@ -5603,7 +5604,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
         * @return Result as a new tensor.
         */
-      def cumsum[I: IsInt32OrInt64](
+      def cumsum[I: IsInt32OrInt64 : TF](
           axis: Output[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -5619,7 +5620,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
         * @return Result as a new tensor.
         */
-      def cumprod[I: IsInt32OrInt64](
+      def cumprod[I: IsInt32OrInt64 : TF](
           axis: Output[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -5642,7 +5643,7 @@ object Math extends Math {
         *                   ensuring that the output has length at most `maxLength`.
         * @return Created op output.
         */
-      def binCount[R: IsInt32OrInt64OrFloat32OrFloat64](
+      def binCount[R: IsInt32OrInt64OrFloat32OrFloat64 : TF](
           dataType: DataType[R],
           weights: Output[R] = null,
           minLength: Output[Int] = null,
@@ -5659,7 +5660,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentSum[I: IsInt32OrInt64](
+      def segmentSum[I: IsInt32OrInt64 : TF](
           segmentIndices: Output[I]
       )(implicit ev: IsNumeric[T]): Output[T] = {
         Math.segmentSum(output, segmentIndices)
@@ -5671,7 +5672,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMean[I: IsInt32OrInt64](
+      def segmentMean[I: IsInt32OrInt64 : TF](
           segmentIndices: Output[I]
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
         Math.segmentMean(output, segmentIndices)
@@ -5683,7 +5684,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentProd[I: IsInt32OrInt64](
+      def segmentProd[I: IsInt32OrInt64 : TF](
           segmentIndices: Output[I]
       )(implicit ev: IsNumeric[T]): Output[T] = {
         Math.segmentProd(output, segmentIndices)
@@ -5695,7 +5696,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMin[I: IsInt32OrInt64](
+      def segmentMin[I: IsInt32OrInt64 : TF](
           segmentIndices: Output[I]
       )(implicit ev: IsReal[T]): Output[T] = {
         Math.segmentMin(output, segmentIndices)
@@ -5707,7 +5708,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMax[I: IsInt32OrInt64](
+      def segmentMax[I: IsInt32OrInt64 : TF](
           segmentIndices: Output[I]
       )(implicit ev: IsReal[T]): Output[T] = {
         Math.segmentMax(output, segmentIndices)
@@ -5720,7 +5721,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentSum[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unsortedSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsNumeric[T]): Output[T] = {
@@ -5734,7 +5735,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Created op output.
         */
-      def unsortedSegmentMean[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unsortedSegmentMean[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5748,7 +5749,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Created op output.
         */
-      def unsortedSegmentProd[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unsortedSegmentProd[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5762,7 +5763,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentMin[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unsortedSegmentMin[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsReal[T]): Output[T] = {
@@ -5776,7 +5777,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentMax[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unsortedSegmentMax[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsReal[T]): Output[T] = {
@@ -5791,7 +5792,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSum[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def sparseSegmentSum[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           indices: Output[I1],
           segmentIndices: Output[Int],
           numSegments: Output[I2] = null
@@ -5807,7 +5808,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentMean[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def sparseSegmentMean[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           indices: Output[I1],
           segmentIndices: Output[Int],
           numSegments: Output[I2] = null
@@ -5823,7 +5824,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def sparseSegmentSumSqrtN[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           indices: Output[I1],
           segmentIndices: Output[Int],
           numSegments: Output[I2] = null
@@ -5892,7 +5893,7 @@ object Math extends Math {
         *                           the entire upper triangle is kept.
         * @return Tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
         */
-      def matrixBandPart[I: IsInt32OrInt64](
+      def matrixBandPart[I: IsInt32OrInt64 : TF](
           numSubDiagonals: Output[I],
           numSuperDiagonals: Output[I]
       ): Output[T] = {
@@ -6055,7 +6056,7 @@ object Math extends Math {
       //endregion Other Ops
     }
 
-    implicit class FloatOps(val output: Output[Float]) {
+    implicit class FloatMathOps(val output: Output[Float]) {
       /** Creates a new complex number with the provided imaginary part.
         *
         * @param  imag Imaginary part.
@@ -6066,7 +6067,7 @@ object Math extends Math {
       }
     }
 
-    implicit class DoubleOps(val output: Output[Double]) {
+    implicit class DoubleMathOps(val output: Output[Double]) {
       /** Creates a new complex number with the provided imaginary part.
         *
         * @param  imag Imaginary part.
@@ -6077,7 +6078,7 @@ object Math extends Math {
       }
     }
 
-    implicit class ComplexFloatOps(val output: Output[ComplexFloat]) {
+    implicit class ComplexFloatMathOps(val output: Output[ComplexFloat]) {
       /** $OpDocMathReal
         *
         * @group MathOps
@@ -6115,7 +6116,7 @@ object Math extends Math {
       }
     }
 
-    implicit class ComplexDoubleOps(val output: Output[ComplexDouble]) {
+    implicit class ComplexDoubleMathOps(val output: Output[ComplexDouble]) {
       /** $OpDocMathReal
         *
         * @group MathOps
@@ -6124,7 +6125,6 @@ object Math extends Math {
       def real: Output[Double] = {
         Math.realDouble(output.asInstanceOf[Output[ComplexDouble]])
       }
-
 
       /** $OpDocMathImag
         *
@@ -6168,12 +6168,12 @@ object Math extends Math {
     * @param  axes       Reduction axes.
     * @return One-dimensional tensor representing the reduction output shape, assuming `keepDims` is `true`.
     */
-  private[api] def reducedShape[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  private[api] def reducedShape[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       inputShape: Output[I1],
       axes: Output[I2]
   ): Output[I1] = {
     // Cast needed for SparseOutput reductions.
-    val inputRank = Basic.size(inputShape, INT32)
+    val inputRank = Basic.size(inputShape).castTo[Int]
     val reshapedAxes = {
       if (axes.rank == 0)
         Basic.reshape(axes, Seq(1))
@@ -6181,10 +6181,10 @@ object Math extends Math {
         axes
     }
     val intAxes = floorMod(add(reshapedAxes.castTo[Int], inputRank), inputRank)
-    val axesShape = Basic.shape(intAxes, INT32)
+    val axesShape = Basic.shape(intAxes).castTo[Int]
     DataFlow.dynamicStitch(
       Seq(range(Basic.constant(0), inputRank), intAxes),
-      Seq(inputShape, Basic.ones(inputShape.dataType, axesShape)))
+      Seq(inputShape, Basic.ones[I1, Int](axesShape)))
   }
 
   /** @define OpDocMathSelect

@@ -59,7 +59,7 @@ object Gradients {
     gradient
   }
 
-  def unaryHelper[T, OL[A] <: OutputLike[A], GO[A] >: OL[A]](
+  def unaryHelper[T: TF, OL[A] <: OutputLike[A], GO[A] >: OL[A]](
       output: Output[T],
       outputGradient: OL[T],
       opType: String,
@@ -110,7 +110,7 @@ object Gradients {
     * @param name
     * @return
     */
-  def gradients[T](
+  def gradients[T: TF](
       ys: Seq[Output[Any]],
       xs: Seq[Output[T]],
       dys: Seq[OutputLike[T]] = null,
@@ -155,7 +155,8 @@ object Gradients {
 
       controlFlowGradientState.foreach(state => {
         state.processUnusedLoopExits(pendingCounts, destinationOps).filter(isTrainable).foreach(loopExit => {
-          setGradient(accumulatedGradients, loopExit, state.zerosLikeForExit(loopExit))
+          val zeros = state.zerosLikeForExit(loopExit)(TF.fromDataType(loopExit.dataType))
+          setGradient(accumulatedGradients, loopExit, zeros)
           readyOps.enqueue(loopExit.op)
         })
       })
@@ -203,6 +204,8 @@ object Gradients {
                     Some(gradientUID),
                     ignoreExisting = true
                   ) {
+                    // TODO: [TF] !!!
+                    implicit val evTF: TF[Any] = TF.fromDataType(inputGradients.head.dataType)
                     inputGradients = ControlFlow.tuple(inputGradients)
                   }
                 }
@@ -254,8 +257,11 @@ object Gradients {
                     // For an unused exit, if it has floating-point outputs, we back-propagate a zero gradient.
                     // Otherwise, we just ignore it.
                     state.unusedExits.foreach(exit => {
-                      if (isTrainable(exit))
-                        setGradient(accumulatedGradients, exit, controlFlowGradientState.get.zerosLikeForExit(exit))
+                      if (isTrainable(exit)) {
+                        val zeros = controlFlowGradientState.get
+                            .zerosLikeForExit(exit)(TF.fromDataType(exit.dataType))
+                        setGradient(accumulatedGradients, exit, zeros)
+                      }
                       readyOps.enqueue(exit.op)
                     })
                   } else {
@@ -380,16 +386,23 @@ object Gradients {
           maybeColocateWith(y.op, colocateGradientsWithOps, gradientUID) {
             y match {
               case o: Output[_] =>
-                Basic.onesLike(o, name = s"Gradients_$index")
+                Basic.onesLike(
+                  o.asInstanceOf[Output[Any]],
+                  name = s"Gradients_$index"
+                )(TF.fromDataType(o.dataType))
               case o: OutputIndexedSlices[_] =>
                 if (o.denseShape == null) {
                   throw new IllegalArgumentException(
                     "The dense shape of output indexed slices must " +
                         "be known in order to obtain their gradients.")
                 }
-                Basic.ones(o.dataType, o.denseShape, name = s"Gradients_$index")
+                Op.nameScope(s"Gradients_$index") {
+                  Basic.ones(o.dataType, o.denseShape)
+                }
               case o: SparseOutput[_] =>
-                Basic.ones(o.dataType, o.denseShape, name = s"Gradients_$index")
+                Op.nameScope(s"Gradients_$index") {
+                  Basic.ones(o.dataType, o.denseShape)
+                }
             }
           }
         } else {
@@ -416,11 +429,11 @@ object Gradients {
           // to identify which gradient call a gradient value is coming from.
           dy match {
             case o: Output[_] =>
-              Basic.identity(o, name = s"Gradients_$index")
+              Basic.identity(o, name = s"Gradients_$index")(TF.fromDataType(o.dataType))
             case o: OutputIndexedSlices[_] =>
               OutputIndexedSlices(
                 Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
-                Basic.identity(o.values, name = s"Gradients_${index}_Values"),
+                Basic.identity(o.values, name = s"Gradients_${index}_Values")(TF.fromDataType(o.dataType)),
                 if (o.denseShape == null)
                   o.denseShape
                 else
@@ -428,7 +441,7 @@ object Gradients {
             case o: SparseOutput[_] =>
               SparseOutput(
                 Basic.identity(o.indices, name = s"Gradients_${index}_Indices"),
-                Basic.identity(o.values, name = s"Gradients_${index}_Values"),
+                Basic.identity(o.values, name = s"Gradients_${index}_Values")(TF.fromDataType(o.dataType)),
                 if (o.denseShape == null)
                   o.denseShape
                 else
@@ -609,9 +622,13 @@ object Gradients {
               gradientUID,
               ignoreExisting = true
             ) {
+              // TODO: [TF] !!!
+              implicit val evTF: TF[Any] = TF.fromDataType(outputs.head.dataType)
               Math.addN(outputs.map(_.asInstanceOf[Output[Any]]))
             }
         }
+        // TODO: [TF] !!!
+        implicit val evTF: TF[Any] = TF.fromDataType(deviceContributions.head.dataType)
         Math.addN(deviceContributions)
       } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices[Any]])) {
         def addNOutputIndexedSlices(
@@ -623,6 +640,8 @@ object Gradients {
           } else if (gradients.length == 1) {
             gradients.head
           } else {
+            // TODO: [TF] !!!
+            implicit val evTF: TF[Any] = TF.fromDataType(gradients.head.dataType)
             OutputIndexedSlices(
               Basic.concatenate(gradients.map(_.indices)),
               Basic.concatenate(gradients.map(_.values)),
@@ -659,6 +678,8 @@ object Gradients {
       implicit val ev: IsNumeric[Any] = new IsNumeric[Any] {}
 
       if (gradients.forall(_.isInstanceOf[Output[Any]])) {
+        // TODO: [TF] !!!
+        implicit val evTF: TF[Any] = TF.fromDataType(gradients.head.dataType)
         Math.accumulateN(gradients.map(_.asInstanceOf[Output[Any]]))
       } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices[Any]])) {
         def addNOutputIndexedSlices(
@@ -670,6 +691,8 @@ object Gradients {
           } else if (gradients.length == 1) {
             gradients.head
           } else {
+            // TODO: [TF] !!!
+            implicit val evTF: TF[Any] = TF.fromDataType(gradients.head.dataType)
             OutputIndexedSlices(
               Basic.concatenate(gradients.map(_.indices)),
               Basic.concatenate(gradients.map(_.values)),
@@ -700,35 +723,35 @@ object Gradients {
     *
     * @param  y  Tensors whose partial derivatives are computed.
     * @param  x  Tensors with respect to which the gradients are computed.
-    * @param  dx Tensors to use as the initial gradients. They represent the symbolic partial derivatives of some loss
+    * @param  dy Tensors to use as the initial gradients. They represent the symbolic partial derivatives of some loss
     *            function `L` with respect to `y`. If `null`, then ones are used. The number of tensors in `dx` must
     *            match the number of tensors in `y`.
     * @return Partial derivatives of the `y`s given each one of the `x`s.
     * @throws IllegalArgumentException If the length of `y` does not match the length of `dx`.
     */
   @throws[IllegalArgumentException]
-  def ccGradients(
+  def ccGradients[T: TF](
       y: Array[Output[Any]],
-      x: Array[Output[Any]],
-      dx: Array[Output[Any]] = null
-  ): Array[Output[Any]] = {
+      x: Array[Output[T]],
+      dy: Array[Output[T]] = null
+  ): Array[Output[T]] = {
     // TODO: Overload this method with all possible uses for it.
-    if (dx != null && dx.length != y.length) {
+    if (dy != null && dy.length != y.length) {
       throw new IllegalArgumentException(
-        s"The number of ys (${y.length}) must match the number of dxs (${dx.length}).")
+        s"The number of ys (${y.length}) must match the number of dxs (${dy.length}).")
     }
 
     // Obtain the graph and verify that all provided op outputs are defined over the same graph
     val graph = y.head.graph
     y.foreach(o => Op.assertSameGraph(o.op, y.head.op))
     x.foreach(o => Op.assertSameGraph(o.op, y.head.op))
-    if (dx != null)
-      dx.foreach(o => Op.assertSameGraph(o.op, y.head.op))
+    if (dy != null)
+      dy.foreach(o => Op.assertSameGraph(o.op, y.head.op))
 
     // Map all arrays to the corresponding data structures used by the JNI layer
     val yJNI = y.map(o => NativeOutput(o.op.nativeHandle, o.index))
     val xJNI = x.map(o => NativeOutput(o.op.nativeHandle, o.index))
-    val dxJNI = if (dx == null) null else dx.map(o => NativeOutput(o.op.nativeHandle, o.index))
+    val dxJNI = if (dy == null) null else dy.map(o => NativeOutput(o.op.nativeHandle, o.index))
 
     // Add the gradients to the graph and collect them to the array that is returned
     val jniGradients = NativeGraph.addGradients(graph.nativeHandle, yJNI, xJNI, dxJNI)

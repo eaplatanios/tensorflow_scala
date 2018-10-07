@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.{DataType, Resource, INT32}
+import org.platanios.tensorflow.api.types.{DataType, Resource, TF}
 
 /** Contains functions for constructing ops related to data flow.
   *
@@ -61,7 +61,7 @@ trait DataFlow {
     * @param  name               Name for the created op.
     * @return Created op outputs (i.e., partitions).
     */
-  def dynamicPartition[T](
+  def dynamicPartition[T: TF](
       data: Output[T],
       partitions: Output[Int],
       numberOfPartitions: Int,
@@ -72,22 +72,22 @@ trait DataFlow {
       name = name,
       input = (data, partitions)
     ).setAttribute("num_partitions", numberOfPartitions)
-        .setGradientFn(dynamicPartitionGradient)
+        .setGradientFn(dynamicPartitionGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def dynamicPartitionGradient[T](
+  protected def dynamicPartitionGradient[T: TF](
       op: Op[(Output[T], Output[Int]), Seq[Output[T]]],
       outputGradient: Seq[Output[T]]
   ): (Output[T], Output[Int]) = {
     val data = op.input._1
     val indices = op.input._2
     val numberOfPartitions = op.longAttribute("num_partitions").asInstanceOf[Int]
-    val prefixShape = Basic.shape(indices, INT32)
+    val prefixShape = Basic.shape(indices).castTo[Int]
     val originalIndices = Basic.reshape(Math.range(Basic.constant(0), Math.prod(prefixShape)), prefixShape)
     val partitionedIndices = dynamicPartition(originalIndices, indices, numberOfPartitions)
     val reconstructed = dynamicStitch(partitionedIndices, outputGradient)
-    (Basic.reshape(reconstructed, Basic.shape(data, INT32)), null)
+    (Basic.reshape(reconstructed, Basic.shape(data).castTo[Int]), null)
   }
 
   /** Creates an op that interleaves the values from the `data` tensors into a single tensor.
@@ -140,7 +140,7 @@ trait DataFlow {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def dynamicStitch[T](
+  def dynamicStitch[T: TF](
       indices: Seq[Output[Int]],
       data: Seq[Output[T]],
       name: String = "DynamicStitch"
@@ -149,11 +149,11 @@ trait DataFlow {
       opType = "DynamicStitch",
       name = name,
       input = (indices, data)
-    ).setGradientFn(dynamicStitchGradient)
+    ).setGradientFn(dynamicStitchGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def dynamicStitchGradient[T](
+  protected def dynamicStitchGradient[T: TF](
       op: Op[(Seq[Output[Int]], Seq[Output[T]]), Output[T]],
       outputGradient:  Output[T]
   ): (Seq[Output[Int]], Seq[Output[T]]) = {
@@ -197,7 +197,7 @@ trait DataFlow {
     * @param  name        Name for the created op.
     * @return Created op output, which has the same value as `element`.
     */
-  def stackPush[T](
+  def stackPush[T: TF](
       stackHandle: Output[Resource],
       element: Output[T],
       swapMemory: Boolean = false,
@@ -218,7 +218,7 @@ trait DataFlow {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def stackPop[T](
+  def stackPop[T: TF](
       stackHandle: Output[Resource],
       elementType: DataType[T],
       name: String = "StackPop"

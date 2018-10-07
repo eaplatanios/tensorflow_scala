@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.IsInt32OrInt64
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 /** Scheduling method helper for composing two existing learning rate scheduling methods.
   *
@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.types.IsInt32OrInt64
   *
   * @author Emmanouil Antonios Platanios
   */
-class ComposedSchedule[-T] protected (
+class ComposedSchedule[-T: TF] protected (
     val schedule1: Schedule[T],
     val schedule2: Schedule[T]
 ) extends Schedule[T] {
@@ -43,7 +43,7 @@ class ComposedSchedule[-T] protected (
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: T, I: IsInt32OrInt64](
+  override def apply[V <: T : TF, I: IsInt32OrInt64 : TF](
       value: Output[V],
       step: Option[Variable[I]]
   ): Output[V] = {
@@ -52,7 +52,7 @@ class ComposedSchedule[-T] protected (
 }
 
 object ComposedSchedule {
-  def apply[T](
+  def apply[T: TF](
       schedule1: Schedule[T],
       schedule2: Schedule[T]
   ): ComposedSchedule[T] = {

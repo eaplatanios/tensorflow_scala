@@ -48,19 +48,18 @@ import org.platanios.tensorflow.api.types._
   * Note that the possible labels are assumed to be `[0, 1, 2, 3, 4]`, resulting in a 5x5 confusion matrix.
   *
   * @param  nameScope            Name prefix for the created ops.
-  * @param  dataType             Data type for the confusion matrix.
   * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
   * @param  numClasses           Number of classes over which the confusion matrix is computed.
   * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
   * @param  valuesCollections    Graph collections in which to add the metric values.
   * @param  updatesCollections   Graph collections in which to add the metric updates.
   * @param  resetsCollections    Graph collections in which to add the metric resets.
+  * @tparam T Data type for the confusion matrix.
   *
   * @author Emmanouil Antonios Platanios
   */
-class ConfusionMatrix[T: IsNumeric](
+class ConfusionMatrix[T: IsNumeric : TF](
     val nameScope: String,
-    val dataType: DataType[T],
     protected val defaultWeights: Option[Tensor[Float]] = None,
     val numClasses: Int = -1,
     val variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
@@ -132,12 +131,12 @@ class ConfusionMatrix[T: IsNumeric](
           castedNumClasses
         }
       }
-      val computedWeights = matchedWeights.map(_.castTo(dataType))
-          .getOrElse(Basic.onesLike(matchedPredictions).castTo(dataType))
+      val computedWeights = matchedWeights.map(_.castTo[T])
+          .getOrElse(Basic.onesLike(matchedPredictions).castTo[T])
       val denseShape = Basic.stack(Seq(inferredNumClasses, inferredNumClasses)).castTo[Long]
       val indices = Basic.transpose(Basic.stack(Seq(matchedTargets, matchedPredictions)))
       val confusionMatrix = SparseOutput(indices, computedWeights, denseShape)
-      val zeros = Basic.fill(dataType, denseShape.castTo[Int])(0)
+      val zeros = Basic.fill[T, Long](denseShape)(Tensor.zeros[T](Shape()))
       val value = confusionMatrix.addDense(zeros)
       valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
       value
@@ -162,7 +161,7 @@ class ConfusionMatrix[T: IsNumeric](
       Op.nameScope(name) {
         val accumulator = Metric.variable[T](
           s"$name/Accumulator", Shape(numClasses, numClasses), ZerosInitializer,
-          variablesCollections)(dataType.evSupportedType)
+          variablesCollections)
         val value = compute(values, weights, name = "Value")
         val update = accumulator.assignAdd(value, name = "Update")
         val reset = accumulator.initializer
@@ -179,18 +178,17 @@ object ConfusionMatrix {
   /** Creates a new confusion matrix metric.
     *
     * @param  nameScope            Name prefix for the created ops.
-    * @param  dataType             Data type for the confusion matrix.
     * @param  defaultWeights       Default weights with which all computed metric values are multiplied.
     * @param  numClasses           Number of classes over which the confusion matrix is computed.
     * @param  variablesCollections Graph collections in which to add the metric variables (for streaming metrics).
     * @param  valuesCollections    Graph collections in which to add the metric values.
     * @param  updatesCollections   Graph collections in which to add the metric updates.
     * @param  resetsCollections    Graph collections in which to add the metric resets.
+    * @tparam T Data type for the confusion matrix.
     * @return New confusion matrix metric.
     */
-  def apply[T: IsNumeric](
+  def apply[T: IsNumeric : TF](
       nameScope: String,
-      dataType: DataType[T],
       defaultWeights: Option[Tensor[Float]] = None,
       numClasses: Int = -1,
       variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
@@ -199,7 +197,7 @@ object ConfusionMatrix {
       resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
   ): ConfusionMatrix[T] = {
     new ConfusionMatrix(
-      nameScope, dataType, defaultWeights, numClasses, variablesCollections,
+      nameScope, defaultWeights, numClasses, variablesCollections,
       valuesCollections, updatesCollections, resetsCollections)
   }
 }

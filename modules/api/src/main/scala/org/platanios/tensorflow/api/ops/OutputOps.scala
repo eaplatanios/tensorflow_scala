@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.types.TF
+
 /** Type trait for defining functions operating on and returning op outputs.
   *
   * @author Emmanouil Antonios Platanios
@@ -28,7 +30,7 @@ trait OutputOps[OL[A] <: OutputLike[A]] {
     * @param  fn    Unary function to apply.
     * @return Resulting output-like object that matches the type of `outputLike`.
     */
-  @inline def applyUnary[R](
+  @inline def applyUnary[R: TF](
       value: OL[T],
       fn: Output[T] => Output[R]
   ): OL[R]
@@ -40,11 +42,11 @@ object OutputOps {
     type T = TT
   }
 
-  implicit def outputOps[TT]: OutputOps.Aux[Output, TT] = {
+  implicit def outputOps[TT: TF]: OutputOps.Aux[Output, TT] = {
     new OutputOps[Output] {
       override type T = TT
 
-      @inline override def applyUnary[R](
+      @inline override def applyUnary[R: TF](
           value: Output[T],
           fn: Output[T] => Output[R]
       ): Output[R] = {
@@ -53,11 +55,11 @@ object OutputOps {
     }
   }
 
-  implicit def outputIndexedSlicesOps[TT]: OutputOps.Aux[OutputIndexedSlices, TT] = {
+  implicit def outputIndexedSlicesOps[TT: TF]: OutputOps.Aux[OutputIndexedSlices, TT] = {
     new OutputOps[OutputIndexedSlices] {
       override type T = TT
 
-      @inline override def applyUnary[R](
+      @inline override def applyUnary[R: TF](
           value: OutputIndexedSlices[T],
           fn: Output[T] => Output[R]
       ): OutputIndexedSlices[R] = {
@@ -66,11 +68,11 @@ object OutputOps {
     }
   }
 
-  implicit def sparseOutputOps[TT]: OutputOps.Aux[SparseOutput, TT] = {
+  implicit def sparseOutputOps[TT: TF]: OutputOps.Aux[SparseOutput, TT] = {
     new OutputOps[SparseOutput] {
       override type T = TT
 
-      @inline override def applyUnary[R](
+      @inline override def applyUnary[R: TF](
           value: SparseOutput[T],
           fn: Output[T] => Output[R]
       ): SparseOutput[R] = {
@@ -79,11 +81,11 @@ object OutputOps {
     }
   }
 
-  implicit def outputLikeOps[TT]: OutputOps.Aux[OutputLike, TT] = {
+  implicit def outputLikeOps[TT: TF]: OutputOps.Aux[OutputLike, TT] = {
     new OutputOps[OutputLike] {
       override type T = TT
 
-      @inline override def applyUnary[R](
+      @inline override def applyUnary[R: TF](
           value: OutputLike[T],
           fn: Output[T] => Output[R]
       ): OutputLike[R] = {

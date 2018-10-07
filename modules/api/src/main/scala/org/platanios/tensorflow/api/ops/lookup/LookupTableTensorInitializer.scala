@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
-import org.platanios.tensorflow.api.types.Resource
+import org.platanios.tensorflow.api.types.{Resource, TF}
 
 /** Lookup table initializer that uses the provided tensors (containing keys and corresponding values) for initializing
   * a lookup table.
@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.types.Resource
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTensorInitializer[K, +V] protected (
+class LookupTableTensorInitializer[K: TF, +V: TF] protected (
     val keys: Output[K],
     val values: Output[V]
 ) extends LookupTableInitializer(keys.dataType, values.dataType) {
@@ -36,7 +36,7 @@ class LookupTableTensorInitializer[K, +V] protected (
     * @param  table Table to initialize.
     * @return Created initialization op for `table`.
     */
-  override def initialize[VV >: V](
+  override def initialize[VV >: V : TF](
       table: InitializableLookupTable[K, VV],
       name: String = "Initialize"
   ): UntypedOp = {
@@ -53,7 +53,7 @@ class LookupTableTensorInitializer[K, +V] protected (
 }
 
 object LookupTableTensorInitializer {
-  def apply[K, V](
+  def apply[K: TF, V: TF](
       keys: Output[K],
       values: Output[V]
   ): LookupTableTensorInitializer[K, V] = {

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types.{INT32, STRING, IsNumeric, IsReal}
+import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to checks and assertions.
   *
@@ -76,7 +76,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertEqual[T: IsNumeric](
+  def assertEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -110,7 +110,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNoneEqual[T: IsNumeric](
+  def assertNoneEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -146,7 +146,7 @@ trait Checks {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  def assertNear[T: IsReal](
+  def assertNear[T: IsReal : TF](
       x: Output[T],
       y: Output[T],
       relTolerance: Output[Float] = 0.00001f,
@@ -172,7 +172,7 @@ trait Checks {
         }
         if (message != null) message +: d else d
       }
-      val tolerance = absTolerance.castTo(x.dataType) + relTolerance.castTo(x.dataType) * Math.abs(y)
+      val tolerance = absTolerance.castTo[T] + relTolerance.castTo[T] * Math.abs(y)
       val difference = Math.abs(x - y)
       assert(Math.all(Math.less(difference, tolerance)), processedData, summarize)
     }
@@ -189,7 +189,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertLess[T: IsNumeric](
+  def assertLess[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -223,7 +223,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertLessEqual[T: IsNumeric](
+  def assertLessEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -257,7 +257,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertGreater[T: IsNumeric](
+  def assertGreater[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -291,7 +291,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertGreaterEqual[T: IsNumeric](
+  def assertGreaterEqual[T: IsNumeric : TF](
       x: Output[T],
       y: Output[T],
       message: Output[String] = null,
@@ -324,7 +324,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertPositive[T: IsNumeric](
+  def assertPositive[T: IsNumeric : TF](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,
@@ -342,7 +342,7 @@ trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLess(Basic.zeros(input.dataType, Shape()), input, data = processedData, summarize = summarize)
+      assertLess(Basic.zeros[T](Shape()), input, data = processedData, summarize = summarize)
     }
   }
 
@@ -356,7 +356,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNegative[T: IsNumeric](
+  def assertNegative[T: IsNumeric : TF](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,
@@ -374,7 +374,7 @@ trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLess(input, Basic.zeros(input.dataType, Shape()), data = processedData, summarize = summarize)
+      assertLess(input, Basic.zeros[T](Shape()), data = processedData, summarize = summarize)
     }
   }
 
@@ -388,7 +388,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNonPositive[T: IsNumeric](
+  def assertNonPositive[T: IsNumeric : TF](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,
@@ -406,7 +406,7 @@ trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLessEqual(input, Basic.zeros(input.dataType, Shape()), data = processedData, summarize = summarize)
+      assertLessEqual(input, Basic.zeros[T](Shape()), data = processedData, summarize = summarize)
     }
   }
 
@@ -420,7 +420,7 @@ trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNonNegative[T: IsNumeric](
+  def assertNonNegative[T: IsNumeric : TF](
       input: Output[T],
       message: Output[String] = null,
       data: Seq[Output[Any]] = null,
@@ -438,7 +438,7 @@ trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLessEqual(Basic.zeros(input.dataType, Shape()), input, data = processedData, summarize = summarize)
+      assertLessEqual(Basic.zeros[T](Shape()), input, data = processedData, summarize = summarize)
     }
   }
 

@@ -42,7 +42,7 @@ trait Image {
     * @return Created op output, which is a `4`-dimensional tensor with shape
     *         `[batch, outputRows, outputCols, slidingWindowSizes(1) * slidingWindowSizes(2) * depth]`.
     */
-  def extractImagePatches[T: IsReal](
+  def extractImagePatches[T: IsReal : TF](
       images: Output[T],
       slidingWindowSizes: Seq[Int],
       strides: Seq[Int],
@@ -157,7 +157,7 @@ trait Image {
     * @param name          Name for the created op.
     * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
     */
-  def resizeArea[T: IsReal](
+  def resizeArea[T: IsReal : TF](
       images: Output[T],
       size: Output[Int],
       alignCorners: Boolean = false,
@@ -182,7 +182,7 @@ trait Image {
     * @param name          Name for the created op.
     * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
     */
-  def resizeBilinear[T: IsReal](
+  def resizeBilinear[T: IsReal : TF](
       images: Output[T],
       size: Output[Int],
       alignCorners: Boolean = false,
@@ -207,7 +207,7 @@ trait Image {
     * @param name          Name for the created op.
     * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
     */
-  def resizeBicubic[T: IsReal](
+  def resizeBicubic[T: IsReal : TF](
       images: Output[T],
       size: Output[Int],
       alignCorners: Boolean = false,
@@ -232,7 +232,7 @@ trait Image {
     * @param name          Name for the created op.
     * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
     */
-  def resizeNearestNeighbor[T: IsReal](
+  def resizeNearestNeighbor[T: IsReal : TF](
       images: Output[T],
       size: Output[Int],
       alignCorners: Boolean = false,

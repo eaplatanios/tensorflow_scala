@@ -17,14 +17,14 @@ package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.IsInt32OrInt64
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 /** Dummy scheduling method representing no schedule being used. Useful as a default value for `Schedule`-valued
   * function arguments.
   *
   * @author Emmanouil Antonios Platanios
   */
-case object FixedSchedule extends Schedule[Any] {
+case class FixedSchedule[-T: TF]() extends Schedule[T] {
   /** Applies the scheduling method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -35,7 +35,7 @@ case object FixedSchedule extends Schedule[Any] {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: Any, I: IsInt32OrInt64](
+  override def apply[V <: T : TF, I: IsInt32OrInt64 : TF](
       value: Output[V],
       step: Option[Variable[I]]
   ): Output[V] = {

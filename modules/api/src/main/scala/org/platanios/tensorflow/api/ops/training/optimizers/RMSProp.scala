@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{DynamicConstantInitializer, OnesInitializer, Variable}
-import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, Resource, TF}
 
 /** Optimizer that implements the RMSProp optimization algorithm.
   *
@@ -60,7 +60,7 @@ import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuanti
   */
 class RMSProp protected (
     val learningRate: Float = 0.01f,
-    val decay: Schedule[Float] = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule[Float](),
     val rho: Float = 0.9f,
     val momentum: Float = 0.0f,
     val epsilon: Float = 1e-10f,
@@ -75,50 +75,56 @@ class RMSProp protected (
   protected var momentumTensor    : Output[Float] = _
   protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate[V, I: IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.castTo(variable.dataType).toOutput
+    learningRateTensor.castTo[V].toOutput
   }
 
-  protected def getRho[V](
+  protected def getRho[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    rhoTensor.castTo(variable.dataType).toOutput
+    rhoTensor.castTo[V].toOutput
   }
 
-  protected def getMomentum[V](
+  protected def getMomentum[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    momentumTensor.castTo(variable.dataType).toOutput
+    momentumTensor.castTo[V].toOutput
   }
 
-  protected def getEpsilon[V](
+  protected def getEpsilon[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    epsilonTensor.castTo(variable.dataType).toOutput
+    epsilonTensor.castTo[V].toOutput
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     variables.foreach(v => {
-      val rmsInit = if (v.shape.isFullyDefined) OnesInitializer else DynamicConstantInitializer(Basic.onesLike(v))
-      getSlot("AccumulatorRMS", v, v.dataType, rmsInit, v.shape, name)
+      val evTF = TF.fromDataType(v.dataType)
+      val rmsInit = {
+        if (v.shape.isFullyDefined)
+          OnesInitializer
+        else
+          DynamicConstantInitializer(Basic.onesLike(v)(evTF))(evTF)
+      }
+      getSlot("AccumulatorRMS", v, v.dataType, rmsInit, v.shape, name)(evTF, evTF)
       if (centered)
-        zerosSlot("AccumulatorMeanGradient", v, name)
-      zerosSlot("AccumulatorMomentum", v, name)
+        zerosSlot("AccumulatorMeanGradient", v, name)(evTF)
+      zerosSlot("AccumulatorMomentum", v, name)(evTF)
     })
   }
 
-  override def prepare[I: IsInt32OrInt64](
+  override def prepare[I: IsInt32OrInt64 : TF](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -129,14 +135,14 @@ class RMSProp protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    val accumulatorMeanGradient = if (centered) getSlot("AccumulatorMeanGradient", variable) else null
-    val accumulatorRMS = getSlot("AccumulatorRMS", variable)
-    val accumulatorMomentum = getSlot("AccumulatorMomentum", variable)
+    val accumulatorMeanGradient = if (centered) getSlot[T, T]("AccumulatorMeanGradient", variable) else null
+    val accumulatorRMS = getSlot[T, T]("AccumulatorRMS", variable)
+    val accumulatorMomentum = getSlot[T, T]("AccumulatorMomentum", variable)
     if (accumulatorMeanGradient != null) {
       Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
         opType = "ResourceApplyCenteredRMSProp",
@@ -169,14 +175,14 @@ class RMSProp protected (
     }
   }
 
-  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    val accumulatorMeanGradient = if (centered) getSlot("AccumulatorMeanGradient", variable) else null
-    val accumulatorRMS = getSlot("AccumulatorRMS", variable)
-    val accumulatorMomentum = getSlot("AccumulatorMomentum", variable)
+    val accumulatorMeanGradient = if (centered) getSlot[T, T]("AccumulatorMeanGradient", variable) else null
+    val accumulatorRMS = getSlot[T, T]("AccumulatorRMS", variable)
+    val accumulatorMomentum = getSlot[T, T]("AccumulatorMomentum", variable)
     if (accumulatorMeanGradient != null) {
       Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
         opType = "ResourceSparseApplyCenteredRMSProp",
@@ -215,7 +221,7 @@ class RMSProp protected (
 object RMSProp {
   def apply(
       learningRate: Float = 0.01f,
-      decay: Schedule[Float] = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       rho: Float = 0.9f,
       momentum: Float = 0.0f,
       epsilon: Float = 1e-10f,

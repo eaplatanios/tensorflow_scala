@@ -54,7 +54,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Variable[+T] private (
+case class Variable[+T: TF] private (
     override val dataType: DataType[T],
     private val variableHandle: Output[Resource],
     private val initializeOp: UntypedOp,
@@ -181,7 +181,7 @@ case class Variable[+T] private (
     * @return Created op.
     */
   @throws[UnsupportedOperationException]
-  override def gather[I: IsInt32OrInt64](
+  override def gather[I: IsInt32OrInt64 : TF](
       indices: Output[I],
       name: String = "Gather"
   ): Output[T] = {
@@ -207,7 +207,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the assignment.
     */
   @throws[UnsupportedOperationException]
-  override def assign[V >: T](
+  override def assign[V >: T : TF](
       value: Output[V],
       name: String = "Assign"
   ): Output[V] = {
@@ -227,7 +227,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignAdd[V >: T](
+  override def assignAdd[V >: T : TF](
       value: Output[V],
       name: String = "AssignAdd"
   ): Output[V] = {
@@ -247,7 +247,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignSub[V >: T](
+  override def assignSub[V >: T : TF](
       value: Output[V],
       name: String = "AssignSub"
   ): Output[V] = {
@@ -268,7 +268,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatter[V >: T, I: IsInt32OrInt64](
+  override def assignScatter[V >: T : TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       values: Output[V],
       name: String = "AssignScatter"
@@ -290,7 +290,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterAdd[V >: T : IsNumeric, I: IsInt32OrInt64](
+  override def assignScatterAdd[V >: T : IsNumeric : TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       values: Output[V],
       name: String = "AssignScatterAdd"
@@ -313,7 +313,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterSub[V >: T : IsNumeric, I: IsInt32OrInt64](
+  override def assignScatterSub[V >: T : IsNumeric : TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       values: Output[V],
       name: String = "AssignScatterSub"
@@ -336,7 +336,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMul[V >: T : IsNumeric, I: IsInt32OrInt64](
+  override def assignScatterMul[V >: T : IsNumeric : TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       values: Output[V],
       name: String = "AssignScatterMul"
@@ -359,7 +359,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterDiv[V >: T : IsNumeric, I: IsInt32OrInt64](
+  override def assignScatterDiv[V >: T : IsNumeric : TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       values: Output[V],
       name: String = "AssignScatterDiv"
@@ -382,7 +382,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMin[V >: T : IsNumeric, I: IsInt32OrInt64](
+  override def assignScatterMin[V >: T : IsNumeric : TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       values: Output[V],
       name: String = "AssignScatterMin"
@@ -405,7 +405,7 @@ case class Variable[+T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMax[V >: T : IsNumeric, I: IsInt32OrInt64](
+  override def assignScatterMax[V >: T : IsNumeric : TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       values: Output[V],
       name: String = "AssignScatterMax"
@@ -496,7 +496,7 @@ private[api] object Variable {
     * @tparam T             Variable data type.
     * @return Requested variable.
     */
-  private[api] def getVariable[T: SupportedType](
+  private[api] def getVariable[T: TF](
       name: String,
       shape: Shape,
       initializer: Initializer = null,
@@ -537,7 +537,7 @@ private[api] object Variable {
     * @tparam T             Variable data type.
     * @return Requested variable.
     */
-  private[api] def getLocalVariable[T: SupportedType](
+  private[api] def getLocalVariable[T: TF](
       name: String,
       shape: Shape = null,
       initializer: Initializer = null,
@@ -571,7 +571,7 @@ private[api] object Variable {
     * @param  name          Created variable name.
     * @return Created variable.
     */
-  private[variables] def apply[T](
+  private[variables] def apply[T: TF](
       initializer: Initializer,
       dataType: DataType[T],
       shape: Shape,
@@ -587,7 +587,7 @@ private[api] object Variable {
         val variableHandle = variable(shape, dataType, sharedName = trueName, name = nameScope)
         val initialValue = Op.createWith(nameScope = "Initializer") {
           Op.colocateWith(Set(variableHandle.op), ignoreExisting = true) {
-            initializer(dataType, shape, null)
+            initializer[T](shape, null)
           }
         }
         val initializeOp = assign(
@@ -684,14 +684,16 @@ private[api] object Variable {
       else
         null
     }
-    val createdVariable = Variable(dataType, handle, initializeOp, cachedValue, graphElement)
+    val createdVariable = Variable(
+      dataType, handle, initializeOp, cachedValue, graphElement
+    )(TF.fromDataType(dataType))
     createdVariable.partitionInformation = saveSliceInformation
     createdVariable
   }
 
   /** Variable getter type, useful for defining custom variable getters and stacking them. */
   trait VariableGetter {
-    def apply[T: SupportedType](
+    def apply[T: TF](
         name: String,
         dataType: DataType[T],
         shape: Shape = null,
@@ -914,7 +916,7 @@ private[api] object Variable {
         val variablesMask = Math.logicalNot(Basic.stack(variables.map(_.isInitialized).toSeq))
         // Get a 1-D string tensor containing all the variable names.
         val variablesList = variables.map(_.handle.name).toSeq
-        val variableNames = Basic.constant(Tensor(variablesList: _*))
+        val variableNames = Basic.constant(variablesList: Tensor[String])
         // Return a 1-D tensor containing the names of all uninitialized resources.
         Basic.booleanMask(variableNames, variablesMask)
       }
@@ -939,7 +941,7 @@ private[api] object Variable {
     * @param  initialValue Initial value for the variable.
     * @return Initial value to use, with some of its dependencies potentially replaced.
     */
-  private[Variable] def tryGuardAgainstUninitializedDependencies[T](
+  private[Variable] def tryGuardAgainstUninitializedDependencies[T: TF](
       variableName: String,
       initialValue: Output[T]
   ): Output[T] = {
@@ -971,7 +973,7 @@ private[api] object Variable {
     *         corresponding graph that uses the variable's initialized values. This is done on a best-effort basis. If
     *         no modifications need to be made then `output` will be returned unchanged.
     */
-  private[Variable] def safeInitialValueFromOutput[T](
+  private[Variable] def safeInitialValueFromOutput[T: TF](
       variableName: String,
       initialValue: Output[T],
       opCache: mutable.Map[String, UntypedOp]
@@ -994,7 +996,9 @@ private[api] object Variable {
             // Recursively build initializer expressions for the inputs.
             var modified = false
             val newOpInputs = initialValue.op.inputsSeq.map(opInput => {
-              val newOpInput = safeInitialValueFromOutput(variableName, opInput, opCache)
+              val newOpInput = safeInitialValueFromOutput(
+                variableName, opInput, opCache
+              )(TF.fromDataType(opInput.dataType))
               modified ||= newOpInput != opInput
               newOpInput
             })
@@ -1051,7 +1055,7 @@ private[api] object Variable {
     * @param  name       Name for the created variable op.
     * @return Created variable op.
     */
-  private[variables] def variable[T](
+  private[variables] def variable[T: TF](
       shape: Shape,
       dataType: DataType[T],
       container: String = "",
@@ -1101,7 +1105,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[variables] def readVariable[T](
+  private[variables] def readVariable[T: TF](
       variable: Output[Resource],
       dataType: DataType[T],
       name: String = "ReadVariable"
@@ -1112,11 +1116,11 @@ private[api] object Variable {
       name = name,
       input = variable.asInstanceOf[Output[T]]
     ).setAttribute("dtype", dataType)
-        .setGradientFn(readVariableGradient)
+        .setGradientFn(readVariableGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def readVariableGradient[T](
+  protected def readVariableGradient[T: TF](
       op: Op[OutputLike[T], Output[T]],
       outputGradient: Output[T]
   ): OutputLike[T] = {
@@ -1135,7 +1139,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[variables] def unsafeReadVariable[T](
+  private[variables] def unsafeReadVariable[T: TF](
       variable: Output[Resource],
       dataType: DataType[T],
       name: String = "UnsafeReadVariable"
@@ -1181,7 +1185,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assign[T](
+  private[ops] def assign[T: TF](
       variable: Output[Resource],
       value: Output[T],
       name: String = "AssignVariable"
@@ -1204,7 +1208,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assignAdd[T](
+  private[ops] def assignAdd[T: TF](
       variable: Output[Resource],
       value: Output[T],
       name: String = "AssignAddVariable"
@@ -1226,7 +1230,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assignSub[T](
+  private[ops] def assignSub[T: TF](
       variable: Output[Resource],
       value: Output[T],
       name: String = "AssignSubVariable"
@@ -1260,7 +1264,7 @@ private[api] object Variable {
     * @param  name            Name for the created op.
     * @return Created op.
     */
-  private[ops] def gather[T, I: IsInt32OrInt64](
+  private[ops] def gather[T: TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       dataType: DataType[T] = null,
@@ -1274,11 +1278,11 @@ private[api] object Variable {
       input = (variable.asInstanceOf[Output[T]], indices)
     ).setAttribute("dtype", if (dataType == null) variable.dataType else dataType)
         .setAttribute("validate_indices", validateIndices)
-        .setGradientFn(gatherGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(gatherGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def gatherGradient[T, I: IsInt32OrInt64](
+  protected def gatherGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(OutputLike[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (OutputLike[T], Output[I]) = {
@@ -1288,9 +1292,9 @@ private[api] object Variable {
     var handle = op.input._1.asInstanceOf[Output[Resource]]
     while (handle.op.opType != "VarHandleOp")
       handle = handle.op.inputsSeq(0).asInstanceOf[Output[Resource]]
-    val parametersShape = handle.op.shapeAttribute("shape").toOutput[Long]
+    val parametersShape = handle.op.shapeAttribute("shape").toOutput
     val indices = op.input._2.castTo[Long]
-    val size = Basic.expandDims(Basic.size(indices, INT64), 0)
+    val size = Basic.expandDims(Basic.size(indices), 0)
     val valuesShape = Basic.concatenate(Seq(size, parametersShape(1 ::)), 0)
     val values = Basic.reshape(outputGradient, valuesShape)
     val reshapedIndices = Basic.reshape(indices, size)
@@ -1325,7 +1329,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterUpdate[T, I: IsInt32OrInt64](
+  private[ops] def scatterUpdate[T: TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1363,7 +1367,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterAdd[T: IsNumeric, I: IsInt32OrInt64](
+  private[ops] def scatterAdd[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1401,7 +1405,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterSub[T: IsNumeric, I: IsInt32OrInt64](
+  private[ops] def scatterSub[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1439,7 +1443,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterMul[T: IsNumeric, I: IsInt32OrInt64](
+  private[ops] def scatterMul[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1477,7 +1481,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterDiv[T: IsNumeric, I: IsInt32OrInt64](
+  private[ops] def scatterDiv[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1515,7 +1519,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterMin[T: IsNumeric, I: IsInt32OrInt64](
+  private[ops] def scatterMin[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1553,7 +1557,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterMax[T: IsNumeric, I: IsInt32OrInt64](
+  private[ops] def scatterMax[T: IsNumeric : TF, I: IsInt32OrInt64 : TF](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],

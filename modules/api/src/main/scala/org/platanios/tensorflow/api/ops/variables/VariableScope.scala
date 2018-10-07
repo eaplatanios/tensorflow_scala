@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
-import org.platanios.tensorflow.api.types.{DataType, SupportedType}
+import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Variable scope that carries default settings to provide to `getVariable`.
   *
@@ -82,7 +82,7 @@ case class VariableScope private[variables](
   @throws[IllegalArgumentException]
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
-  def getVariable[T: SupportedType](
+  def getVariable[T: TF](
       store: VariableStore,
       name: String,
       shape: Shape,
@@ -246,7 +246,7 @@ private[api] object VariableScope {
       oldGetter
     } else {
       new VariableGetter {
-        override def apply[T: SupportedType](
+        override def apply[T: TF](
             name: String,
             dataType: DataType[T],
             shape: Shape,
@@ -259,7 +259,7 @@ private[api] object VariableScope {
             underlyingGetter: VariableGetter
         ): Variable[T] = {
           val baseGetter: VariableGetter = new VariableGetter {
-            override def apply[R: SupportedType](
+            override def apply[R: TF](
                 name: String,
                 dataType: DataType[R],
                 shape: Shape,

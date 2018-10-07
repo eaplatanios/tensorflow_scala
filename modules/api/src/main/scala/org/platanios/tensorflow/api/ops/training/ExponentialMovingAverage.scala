@@ -146,9 +146,10 @@ class ExponentialMovingAverage protected (
       // In order to lower communication bandwidth across devices we keep the moving averages on the same device as the
       // original variables. For other tensors, we rely on the existing device allocation mechanism.
       Op.initializationScope {
+        val evTF = TF.fromDataType(v.dataType)
         val average = Slot.create(
-          v, v.dataType, DynamicConstantInitializer(v.initializedValue),
-          name, colocateWithPrimary = true)
+          v, v.dataType, DynamicConstantInitializer(v.initializedValue)(evTF),
+          name, colocateWithPrimary = true)(evTF, evTF)
         Op.currentGraph.addToCollection(average, Graph.Keys.MOVING_AVERAGE_VARIABLES)
         variableAverages.update(v, average)
       }
@@ -159,7 +160,9 @@ class ExponentialMovingAverage protected (
 
     Op.nameScope(name) {
       val updates = variables.map(v => {
-        ExponentialMovingAverage.assignMovingAverage(variableAverages(v), v.value, decayTensor, zeroDebias = false).op
+        ExponentialMovingAverage.assignMovingAverage(
+          variableAverages(v), v.value, decayTensor, zeroDebias = false
+        )(ev, TF.fromDataType(v.dataType)).op
       })
       ControlFlow.group(updates).asUntyped
     }
@@ -187,7 +190,9 @@ class ExponentialMovingAverage protected (
       // original variables. For other tensors, we rely on the existing device allocation mechanism.
       Op.initializationScope {
         val colocateWithPrimary = Set("Variable", "VariableV2", "VarHandleOp").contains(v.op.opType)
-        val average = Slot.zerosForOutput(v, v.dataType, name, colocateWithPrimary = colocateWithPrimary)
+        val evTF = TF.fromDataType(v.dataType)
+        val average = Slot.zerosForOutput(
+          v, v.dataType, name, colocateWithPrimary = colocateWithPrimary)(evTF, evTF)
         Op.currentGraph.addToCollection(average, Graph.Keys.MOVING_AVERAGE_VARIABLES)
         if (zeroDebias)
           zeroDebiasVariables += average
@@ -202,19 +207,21 @@ class ExponentialMovingAverage protected (
       val updates = values.map(v => {
         val average = valueAverages(v)
         val zeroDebias = zeroDebiasVariables.contains(average)
-        ExponentialMovingAverage.assignMovingAverage(average, v, decayTensor, zeroDebias = zeroDebias).op
+        ExponentialMovingAverage.assignMovingAverage(
+          average, v, decayTensor, zeroDebias = zeroDebias
+        )(ev, TF.fromDataType(v.dataType)).op
       })
       ControlFlow.group(updates).asUntyped
     }
   }
 
   /** Returns the variable holding the average for `variable`. */
-  def average[T](variable: Variable[T]): Option[Variable[T]] = {
+  def average[T: TF](variable: Variable[T]): Option[Variable[T]] = {
     variableAverages.get(variable).map(_.asInstanceOf[Variable[T]])
   }
 
   /** Returns the variable holding the average for `value`. */
-  def average[T](value: Output[T]): Option[Variable[T]] = {
+  def average[T: TF](value: Output[T]): Option[Variable[T]] = {
     valueAverages.get(value).map(_.asInstanceOf[Variable[T]])
   }
 
@@ -272,7 +279,7 @@ object ExponentialMovingAverage {
     * @param  name       Name for the created ops.
     * @return Value of `variable` after the moving average update.
     */
-  private[ExponentialMovingAverage] def assignMovingAverage[T: IsNotQuantized](
+  private[ExponentialMovingAverage] def assignMovingAverage[T: IsNotQuantized : TF](
       variable: Variable[T],
       value: Output[T],
       decay: Output[Float],
@@ -316,12 +323,11 @@ object ExponentialMovingAverage {
     * @return Tensor containing the amount that should be added to the unbiased variable. Computing this tensor will
     *         also update the shadow variables appropriately.
     */
-  private[ExponentialMovingAverage] def zeroDebias[T: IsNotQuantized](
+  private[ExponentialMovingAverage] def zeroDebias[T: IsNotQuantized : TF](
       unbiasedVariable: Variable[T],
       value: Output[T],
       decay: Output[T]
   ): Output[T] = {
-    implicit val evSupportedType: SupportedType[T] = unbiasedVariable.dataType.evSupportedType
     VariableScope.scope(unbiasedVariable.name) {
       Op.colocateWith(Set(unbiasedVariable.op), ignoreExisting = true) {
         val biased = Variable.getVariable[T](
@@ -329,12 +335,12 @@ object ExponentialMovingAverage {
         val localStep = Variable.getVariable[T](
           "LocalStep", Shape(), ZerosInitializer, trainable = false)
         val biasedUpdate = biased.assignSub((biased - value) * decay, VariableScope.current.name)
-        val localStepUpdate = localStep.assignAdd(Basic.ones(localStep.dataType, Shape()))
+        val localStepUpdate = localStep.assignAdd(Basic.ones[T](Shape()))
         // Compute the value of the delta to update the unbiased EMA. Make sure to use the new values of the biased
         // variable and the local step.
         Op.createWith(controlDependencies = Set(biasedUpdate.op, localStepUpdate.op)) {
           // This function gets `1 - decay`, and so we use `1.0 - decay` in the exponent.
-          val one = Basic.ones(decay.dataType, Shape())
+          val one = Basic.ones[T](Shape())
           unbiasedVariable - (biased.read() / (one - Math.pow(one - decay, localStep.read())))
         }
       }

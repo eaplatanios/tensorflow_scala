@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.lookup
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
-import org.platanios.tensorflow.api.types.{DataType, Resource, IsStringOrIntOrUInt}
+import org.platanios.tensorflow.api.types.{DataType, IsStringOrIntOrUInt, Resource, TF}
 
 /** Lookup table initializer that uses a text file.
   *
@@ -62,7 +62,7 @@ import org.platanios.tensorflow.api.types.{DataType, Resource, IsStringOrIntOrUI
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTextFileInitializer[K, +V] protected (
+class LookupTableTextFileInitializer[K: TF, +V: TF] protected (
     val filename: Output[String],
     override val keysDataType: DataType[K],
     override val valuesDataType: DataType[V],
@@ -74,7 +74,7 @@ class LookupTableTextFileInitializer[K, +V] protected (
   if (vocabularySize != -1 && vocabularySize <= 0)
     throw InvalidArgumentException("The vocabulary size must be positive, if provided.")
 
-  override def initialize[VV >: V](
+  override def initialize[VV >: V : TF](
       table: InitializableLookupTable[K, VV],
       name: String = "LookupTableTextFileInitialize"
   ): UntypedOp = {
@@ -100,7 +100,7 @@ class LookupTableTextFileInitializer[K, +V] protected (
 }
 
 object LookupTableTextFileInitializer {
-  def apply[K, V](
+  def apply[K: TF, V: TF](
       filename: Output[String],
       keysDataType: DataType[K],
       valuesDataType: DataType[V],
@@ -131,7 +131,7 @@ case object TextFileLineNumber extends TextFileFieldExtractor[Long] {
 }
 
 /** Text file field extractor that extracts the whole line as a field. */
-case class TextFileWholeLine[+K]()(implicit
+case class TextFileWholeLine[+K: TF]()(implicit
     ev: IsStringOrIntOrUInt[K]
 ) extends TextFileFieldExtractor[K] {
   override val name : String = "WHOLE_LINE"
@@ -142,7 +142,7 @@ case class TextFileWholeLine[+K]()(implicit
   *
   * @param  index Column index.
   */
-case class TextFileColumn[+K](index: Int) extends TextFileFieldExtractor[K] {
+case class TextFileColumn[+K: TF](index: Int) extends TextFileFieldExtractor[K] {
   override val name : String = s"COLUMN[$index]"
   override val value: Int    = index
 }

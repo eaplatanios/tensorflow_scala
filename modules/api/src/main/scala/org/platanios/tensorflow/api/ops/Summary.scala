@@ -43,7 +43,7 @@ trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def tensor[T](
+  def tensor[T: TF](
       name: String,
       tensor: Output[T],
       collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
@@ -66,7 +66,7 @@ trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def scalar[T: IsReal](
+  def scalar[T: IsReal : TF](
       name: String,
       value: Output[T],
       collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
@@ -89,7 +89,7 @@ trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def histogram[T: IsReal](
+  def histogram[T: IsReal : TF](
       name: String,
       values: Output[T],
       collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
@@ -115,7 +115,7 @@ trait Summary {
     *                     display on TensorBoard.
     * @return Created op output.
     */
-  def image[T: IsReal](
+  def image[T: IsReal : TF](
       name: String,
       tensor: Output[T],
       badColor: Tensor[UByte] = Tensor(UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
@@ -241,7 +241,7 @@ object Summary extends Summary {
     * @param  family      If provided, used as prefix for the summary tag name.
     * @return Created summary op output.
     */
-  private[Summary] def scoped[T](
+  private[Summary] def scoped[T: TF](
       function: (String, String) => Output[T],
       name: String,
       family: String = null
@@ -271,7 +271,7 @@ object Summary extends Summary {
     * @param  name            Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def tensorSummary[T](
+  private[Summary] def tensorSummary[T: TF](
       tensor: Output[T],
       tag: Output[String],
       summaryMetadata: Output[String],
@@ -292,7 +292,7 @@ object Summary extends Summary {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def scalarSummary[T: IsReal](
+  private[Summary] def scalarSummary[T: IsReal : TF](
       value: Output[T],
       tags: Output[String],
       name: String = "ScalarSummary"
@@ -312,7 +312,7 @@ object Summary extends Summary {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def histogramSummary[T: IsReal](
+  private[Summary] def histogramSummary[T: IsReal : TF](
       values: Output[T],
       tag: Output[String],
       name: String = "HistogramSummary"
@@ -335,7 +335,7 @@ object Summary extends Summary {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  private[Summary] def imageSummary[T: IsReal](
+  private[Summary] def imageSummary[T: IsReal : TF](
       tensor: Output[T],
       badColor: Tensor[UByte],
       tag: Output[String],
@@ -493,7 +493,7 @@ object Summary extends Summary {
     * @param  name            Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeTensorSummary[T](
+  private[Summary] def writeTensorSummary[T: TF](
       writerHandle: Output[Resource],
       globalStep: Output[Long],
       tag: Output[String],
@@ -518,7 +518,7 @@ object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeScalarSummary[T: IsReal](
+  private[Summary] def writeScalarSummary[T: IsReal : TF](
       writerHandle: Output[Resource],
       globalStep: Output[Long],
       value: Output[T],
@@ -542,7 +542,7 @@ object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeHistogramSummary[T: IsReal](
+  private[Summary] def writeHistogramSummary[T: IsReal : TF](
       writerHandle: Output[Resource],
       globalStep: Output[Long],
       values: Output[T],
@@ -569,7 +569,7 @@ object Summary extends Summary {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  private[Summary] def writeImageSummary[T: IsReal](
+  private[Summary] def writeImageSummary[T: IsReal : TF](
       writerHandle: Output[Resource],
       globalStep: Output[Long],
       tensor: Output[T],

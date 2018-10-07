@@ -1310,8 +1310,9 @@ object Graph {
         val kind = collectionDef.getKindCase
         if (kind != CollectionDef.KindCase.BYTES_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
-        collectionDef.getBytesList.getValueList.asScala
-            .foreach(v => graph.addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), this))
+        collectionDef.getBytesList.getValueList.asScala.foreach(v => {
+          graph.addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), this)
+        })
       }
     }
 

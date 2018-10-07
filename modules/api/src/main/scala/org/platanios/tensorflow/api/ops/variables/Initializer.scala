@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.ops.variables.VarianceScalingInitializer.FanInScalingMode
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, IsFloat16OrFloat32OrFloat64}
+import org.platanios.tensorflow.api.types.{DataType, IsFloat16OrFloat32OrFloat64, TF}
 
 // TODO: [TYPES] Make initializers type safe.
 
@@ -31,13 +31,12 @@ import org.platanios.tensorflow.api.types.{DataType, IsFloat16OrFloat32OrFloat64
   * @author Emmanouil Antonios Platanios
   */
 trait Initializer {
-  def apply[T](
-      dataType: DataType[T],
+  def apply[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
     Op.initializationScope {
-      initialValue(dataType, shape, partitionInfo)
+      initialValue(shape, partitionInfo)
     }
   }
 
@@ -51,8 +50,7 @@ trait Initializer {
     * @throws ShapeMismatchException If the initializer cannot produce a value with the requested shape.
     */
   @throws[ShapeMismatchException]
-  def initialValue[T](
-      dataType: DataType[T],
+  def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T]
@@ -62,64 +60,65 @@ private[variables] case class InitializerWithPartitionInformation(
     initializer: Initializer,
     partitionInfo: PartitionInformation
 ) extends Initializer {
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
     if (partitionInfo == null)
-      initializer.initialValue(dataType, shape, this.partitionInfo)
+      initializer.initialValue(shape, this.partitionInfo)
     else
-      initializer.initialValue(dataType, shape, partitionInfo)
+      initializer.initialValue(shape, partitionInfo)
   }
 }
 
 /** Initializer that sets all elements of the variable tensor to zeros. */
 object ZerosInitializer extends Initializer {
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
-    Basic.zeros(dataType, shape, name = "ZerosInitializer")
+    Op.nameScope("ZerosInitializer") {
+      Basic.zeros[T](shape)
+    }
   }
 }
 
 /** Initializer that sets all elements of the variable tensor to ones. */
 object OnesInitializer extends Initializer {
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
-    Basic.ones(dataType, shape, name = "OnesInitializer")
+    Op.nameScope("OnesInitializer") {
+      Basic.ones[T](shape)
+    }
   }
 }
 
 /** Initializer that sets the value of the variable to the provided `value`. */
-case class ConstantInitializer(value: Tensor[_]) extends Initializer {
-  override def initialValue[T](
-      dataType: DataType[T],
+case class ConstantInitializer[V: TF](value: Tensor[V]) extends Initializer {
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
-    Basic.constant(value.castTo(dataType), shape, name = "ConstantInitializer")
+    Basic.constant(value.castTo[T], shape, name = "ConstantInitializer")
   }
 }
 
 /** Initializer that sets the value of the variable to the provided `value`. */
-case class DynamicConstantInitializer(value: Output[_]) extends Initializer {
+case class DynamicConstantInitializer[V: TF](value: Output[V]) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
     Op.colocateWith(Set.empty, ignoreExisting = true) {
       if (shape.isCompatibleWith(value.shape)) {
-        Basic.identity(value.castTo(dataType), name = "ConstantInitializer")
+        Basic.identity(value.castTo[T], name = "ConstantInitializer")
       } else if (shape.rank > 0 && value.shape.rank == 0 || (value.shape.rank == 1 && value.shape(0) == 1)) {
-        Basic.fill(dataType, shape)(value.castTo(dataType), name = "ConstantInitializer")
+        Op.nameScope("ConstantInitializer") {
+          Basic.fill(shape)(value.castTo[T])
+        }
       } else {
         throw ShapeMismatchException(
           s"The constant value shape '${value.shape}' is not compatible " +
@@ -135,8 +134,7 @@ case class RandomUniformInitializer(
     maxValue: Tensor[Float] = 1.0f,
     seed: Option[Int] = None
 ) extends Initializer {
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
@@ -144,9 +142,10 @@ case class RandomUniformInitializer(
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
-    Random.randomUniform(dataType, shape)(
-      minValue = minValue.castTo(dataType),
-      maxValue = maxValue.castTo(dataType),
+    Random.randomUniform(
+      shape = shape,
+      minValue = minValue.castTo[T],
+      maxValue = maxValue.castTo[T],
       seed = seed,
       name = "RandomUniformInitializer")
   }
@@ -158,8 +157,7 @@ case class RandomNormalInitializer(
     standardDeviation: Tensor[Float] = 1.0f,
     seed: Option[Int] = None
 ) extends Initializer {
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
@@ -167,9 +165,10 @@ case class RandomNormalInitializer(
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
-    Random.randomNormal(dataType, shape)(
-      mean = mean.castTo(dataType),
-      standardDeviation = standardDeviation.castTo(dataType),
+    Random.randomNormal(
+      shape = shape,
+      mean = mean.castTo[T],
+      standardDeviation = standardDeviation.castTo[T],
       seed = seed,
       name = "RandomNormalInitializer")
   }
@@ -181,8 +180,7 @@ case class RandomTruncatedNormalInitializer(
     standardDeviation: Tensor[Float] = 1.0f,
     seed: Option[Int] = None
 ) extends Initializer {
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
@@ -190,9 +188,10 @@ case class RandomTruncatedNormalInitializer(
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
-    Random.randomTruncatedNormal(dataType, shape)(
-      mean = mean.castTo(dataType),
-      standardDeviation = standardDeviation.castTo(dataType),
+    Random.randomTruncatedNormal(
+      shape = shape,
+      mean = mean.castTo[T],
+      standardDeviation = standardDeviation.castTo[T],
       seed = seed,
       name = "RandomTruncatedNormalInitializer")
   }
@@ -223,15 +222,14 @@ class VarianceScalingInitializer(
     val seed: Option[Int] = None
 ) extends Initializer {
   @throws[ShapeMismatchException]
-  override def initialValue[T](
-      dataType: DataType[T],
+  override def initialValue[T: TF](
       shape: Shape,
       partitionInfo: PartitionInformation
   ): Output[T] = {
     val scale = scalingMode.scale(
       initialScale,
       if (partitionInfo != null) partitionInfo.fullShape else shape)
-    distribution.initialValue(scale, dataType, shape, seed)
+    distribution.initialValue(scale, shape, seed)
   }
 }
 
@@ -286,18 +284,16 @@ object VarianceScalingInitializer {
   }
 
   sealed trait Distribution {
-    def initialValue[T](
+    def initialValue[T: TF](
         scale: Float,
-        dataType: DataType[T],
         shape: Shape,
         seed: Option[Int] = None
     ): Output[T]
   }
 
   case object NormalDistribution extends Distribution {
-    override def initialValue[T](
+    override def initialValue[T: TF](
         scale: Float,
-        dataType: DataType[T],
         shape: Shape,
         seed: Option[Int] = None
     ): Output[T] = {
@@ -305,17 +301,17 @@ object VarianceScalingInitializer {
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
       implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
-      Random.randomTruncatedNormal(dataType, shape)(
-        mean = Basic.zeros(dataType, Shape()),
-        standardDeviation = Basic.constant(Math.sqrt(scale)).castTo(dataType),
+      Random.randomTruncatedNormal(
+        shape = shape,
+        mean = Basic.zeros[T](Shape()),
+        standardDeviation = Basic.constant(Math.sqrt(scale)).castTo[T],
         seed = seed)
     }
   }
 
   case object UniformDistribution extends Distribution {
-    override def initialValue[T](
+    override def initialValue[T: TF](
         scale: Float,
-        dataType: DataType[T],
         shape: Shape,
         seed: Option[Int] = None
     ): Output[T] = {
@@ -324,9 +320,10 @@ object VarianceScalingInitializer {
       implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
 
       val limit = Math.sqrt(3.0f * scale)
-      Random.randomUniform(dataType, shape)(
-        minValue = Basic.constant(-limit).castTo(dataType),
-        maxValue = Basic.constant(limit).castTo(dataType),
+      Random.randomUniform(
+        shape = shape,
+        minValue = Basic.constant(-limit).castTo[T],
+        maxValue = Basic.constant(limit).castTo[T],
         seed = seed)
     }
   }

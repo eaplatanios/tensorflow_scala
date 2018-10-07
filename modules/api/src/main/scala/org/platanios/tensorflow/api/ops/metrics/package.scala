@@ -53,12 +53,12 @@ package object metrics {
       selectedID: Output[Long]
   ): SparseOutput[Long] = {
     // The shape of filled IDs is the same as `ids` with the last axis size collapsed to 1.
-    val idsShape = Basic.shape(ids, INT64)
-    val idsLastAxis = Basic.size(idsShape, INT64) - 1L
+    val idsShape = Basic.shape(ids)
+    val idsLastAxis = Basic.size(idsShape) - 1L
     val filledSelectedIDShape = Math.reducedShape(idsShape, Basic.reshape(idsLastAxis, Shape(1)))
 
     // Intersect `ids` with the selected ID.
-    val filledSelectedID = Basic.fill(INT64, filledSelectedIDShape)(selectedID)
+    val filledSelectedID = Basic.fill[Long, Long](filledSelectedIDShape)(selectedID)
     val result = Sets.setIntersection(filledSelectedID, ids)
     SparseOutput(result.indices, result.values, idsShape)
   }

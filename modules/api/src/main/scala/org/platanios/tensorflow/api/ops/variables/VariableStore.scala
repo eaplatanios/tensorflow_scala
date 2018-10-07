@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.variables
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
-import org.platanios.tensorflow.api.types.{DataType, SupportedType}
+import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Variable store that carries a number of named variables.
   *
@@ -61,7 +61,7 @@ case class VariableStore private[variables]() {
   @throws[IllegalArgumentException]
   @throws[ShapeMismatchException]
   @throws[InvalidDataTypeException]
-  def getVariable[T: SupportedType](
+  def getVariable[T: TF](
       name: String,
       shape: Shape,
       initializer: Initializer = null,
@@ -71,7 +71,7 @@ case class VariableStore private[variables]() {
       collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
       cachingDevice: OpSpecification => String = null
   ): Variable[T] = {
-    val dataType = implicitly[SupportedType[T]].dataType
+    val dataType = implicitly[TF[T]].dataType
     // Single variable case.
     if (variables.contains(s"$name/part_0"))
       throw new IllegalArgumentException(

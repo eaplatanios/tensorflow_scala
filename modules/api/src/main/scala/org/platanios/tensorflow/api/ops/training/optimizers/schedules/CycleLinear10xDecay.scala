@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{FLOAT32, IsInt32OrInt64}
+import org.platanios.tensorflow.api.types.{FLOAT32, IsInt32OrInt64, TF}
 
 /** Cycle-linear 10x decay method.
   *
@@ -51,7 +51,7 @@ class CycleLinear10xDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: Float, I: IsInt32OrInt64](
+  override def apply[V <: Float : TF, I: IsInt32OrInt64 : TF](
       value: Output[V],
       step: Option[Variable[I]]
   ): Output[V] = {
@@ -71,7 +71,7 @@ class CycleLinear10xDecay protected (
             () => decay(value, stepValue - startStepValue, cycleStepsValue))
         }
       }
-      result.castTo(value.dataType)
+      result.castTo[V]
     }
   }
 

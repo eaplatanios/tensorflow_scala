@@ -26,15 +26,15 @@ trait Cast {
     *
     * @group CastOps
     *
-    * @param  input    Tensor to cast.
-    * @param  dataType Target data type.
+    * @param  input Tensor to cast.
+    * @tparam R Target data type.
     * @return Created op output.
     */
-  def cast[T, R, OL[TT] <: OutputLike[TT]](
+  private[Cast] def cast[T: TF, R: TF, OL[TT] <: OutputLike[TT]](
       input: OL[T],
-      dataType: DataType[R],
       truncate: Boolean = false
   )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
+    val dataType = TF[R].dataType
     if (input.dataType == dataType) {
       input.asInstanceOf[OL[R]]
     } else {
@@ -46,14 +46,14 @@ trait Cast {
             input = o
           ).setAttribute("DstT", dataType)
               .setAttribute("Truncate", truncate)
-              .setGradientFn(castGradient)
+              .setGradientFn(castGradient(_, _)(TF[T], TF[R]))
               .build().output
         })
       }
     }
   }
 
-  protected def castGradient[T, R](
+  protected def castGradient[T: TF, R: TF](
       op: Op[Output[T], Output[R]],
       outputGradient: Output[R]
   ): Output[T] = {
@@ -61,7 +61,7 @@ trait Cast {
     val sourceDataType = op.input.dataType
     val destinationDataType = outputGradient.dataType
     if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType)) {
-      cast(outputGradient, sourceDataType)
+      cast[R, T, Output](outputGradient)
     } else {
       null
     }
@@ -73,16 +73,14 @@ trait Cast {
     *
     * @group CastOps
     *
-    * @param  input    Input tensor.
-    * @param  dataType Target data type.
-    * @param  name     Name for the created op.
+    * @param  input Input tensor.
+    * @tparam R Target data type.
     * @return Created op output.
     */
-  def bitcast[T: IsNumeric, R](
-      input: Output[T],
-      dataType: DataType[R],
-      name: String = "Bitcast"
+  private[Cast] def bitcast[T: IsNumeric, R: TF](
+      input: Output[T]
   ): Output[R] = {
+    val dataType = TF[R].dataType
     Op.nameScope(s"${input.name}/BitcastTo$dataType") {
       Op.Builder[Output[T], Output[R]](
         opType = "Bitcast",
@@ -103,6 +101,20 @@ object Cast extends Cast {
     }
 
     implicit class CastOps[T](val output: Output[T]) {
+      private implicit val evTF: TF[T] = {
+        TF.fromDataType(output.dataType)
+      }
+
+      /** $OpDocCastCast
+        *
+        * @group CastOps
+        * @tparam R Target data type.
+        * @return Result as a new tensor.
+        */
+      def castTo[R: TF]: Output[R] = {
+        Cast.cast[T, R, Output](output)
+      }
+
       /** $OpDocCastCast
         *
         * @group CastOps
@@ -110,7 +122,8 @@ object Cast extends Cast {
         * @return Result as a new tensor.
         */
       def castTo[R](dataType: DataType[R]): Output[R] = {
-        castTo[R](dataType.evSupportedType)
+        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+        Cast.cast[T, R, Output](output)
       }
 
       /** $OpDocCastCast
@@ -119,19 +132,19 @@ object Cast extends Cast {
         * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def castTo[R: SupportedType]: Output[R] = {
-        Cast.cast(output, implicitly[SupportedType[R]].dataType)
+      def castTo[R: TF](truncate: Boolean): Output[R] = {
+        Cast.cast[T, R, Output](output, truncate)
       }
 
-      /** $OpDocCastBitcast
+      /** $OpDocCastCast
         *
         * @group CastOps
-        *
         * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
-      def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): Output[R] = {
-        bitcastTo[R](dataType.evSupportedType, ev)
+      def castTo[R](dataType: DataType[R], truncate: Boolean): Output[R] = {
+        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+        Cast.cast[T, R, Output](output, truncate)
       }
 
       /** $OpDocCastBitcast
@@ -141,9 +154,45 @@ object Cast extends Cast {
         * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def bitcastTo[R: SupportedType](implicit ev: IsNumeric[T]): Output[R] = {
-        Cast.bitcast(output, implicitly[SupportedType[R]].dataType)
+      def bitcastTo[R: TF](implicit ev: IsNumeric[T]): Output[R] = {
+        Cast.bitcast[T, R](output)
       }
+
+      /** $OpDocCastBitcast
+        *
+        * @group CastOps
+        *
+        * @tparam R Target data type.
+        * @return Result as a new tensor.
+        */
+      def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): Output[R] = {
+        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+        Cast.bitcast[T, R](output)
+      }
+
+      def toStringTensor: Output[String] = output.castTo[String]
+      def toBoolean: Output[Boolean] = output.castTo[Boolean]
+      def toHalf: Output[Half] = output.castTo[Half]
+      def toFloat: Output[Float] = output.castTo[Float]
+      def toDouble: Output[Double] = output.castTo[Double]
+      def toTruncatedHalf: Output[TruncatedHalf] = output.castTo[TruncatedHalf]
+      def toComplexFloat: Output[ComplexFloat] = output.castTo[ComplexFloat]
+      def toComplexDouble: Output[ComplexDouble] = output.castTo[ComplexDouble]
+      def toByte: Output[Byte] = output.castTo[Byte]
+      def toShort: Output[Short] = output.castTo[Short]
+      def toInt: Output[Int] = output.castTo[Int]
+      def toLong: Output[Long] = output.castTo[Long]
+      def toUByte: Output[UByte] = output.castTo[UByte]
+      def toUShort: Output[UShort] = output.castTo[UShort]
+      def toUInt: Output[UInt] = output.castTo[UInt]
+      def toULong: Output[ULong] = output.castTo[ULong]
+      def toQByte: Output[QByte] = output.castTo[QByte]
+      def toQShort: Output[QShort] = output.castTo[QShort]
+      def toQInt: Output[QInt] = output.castTo[QInt]
+      def toQUByte: Output[QUByte] = output.castTo[QUByte]
+      def toQUShort: Output[QUShort] = output.castTo[QUShort]
+      def toResource: Output[Resource] = output.castTo[Resource]
+      def toVariant: Output[Variant] = output.castTo[Variant]
     }
   }
 

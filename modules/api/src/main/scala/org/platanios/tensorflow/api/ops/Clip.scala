@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.types.{INT32, INT64, IsDecimal, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to clipping tensor values.
   *
@@ -34,7 +34,7 @@ trait Clip {
     * @param  name         Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByValue[T: IsNotQuantized](
+  def clipByValue[T: IsNotQuantized : TF](
       input: Output[T],
       clipValueMin: Output[T],
       clipValueMax: Output[T],
@@ -44,20 +44,20 @@ trait Clip {
       opType = "ClipByValue",
       name = name,
       input = (input, clipValueMin, clipValueMax)
-    ).setGradientFn(clipByValueGradient(_, _)(implicitly[IsNotQuantized[T]]))
+    ).setGradientFn(clipByValueGradient(_, _)(IsNotQuantized[T], TF[T]))
         .build().output
   }
 
-  protected def clipByValueGradient[T: IsNotQuantized](
+  protected def clipByValueGradient[T: IsNotQuantized : TF](
       op: Op[(Output[T], Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T], Output[T]) = {
     val x = op.input._1
     val y = op.input._2
     val z = op.input._3
-    val xShape = Basic.shape(x, INT64)
-    val yShape = Basic.shape(y, INT64)
-    val zShape = Basic.shape(z, INT64)
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
+    val zShape = Basic.shape(z)
     val zeros = Basic.zerosLike(outputGradient)
     val xyMask = Math.less(x, y)
     val xzMask = Math.greater(x, z)
@@ -81,7 +81,7 @@ trait Clip {
     * @param  name     Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByNorm[T: IsNotQuantized, I: IsInt32OrInt64](
+  def clipByNorm[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       clipNorm: Output[T],
       axes: Output[I] = null,
@@ -105,19 +105,19 @@ trait Clip {
     * @param  name     Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByAverageNorm[T: IsNotQuantized](
+  def clipByAverageNorm[T: IsNotQuantized : TF](
       input: Output[T],
       clipNorm: Output[T],
       name: String = "ClipByAverageNorm"
   ): Output[T] = {
     Op.nameScope(name) {
       // Calculate the l2-norm per element and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val numElements = Basic.size(input, INT32).castTo(input.dataType)
+      val numElements = Basic.size(input).castTo[T]
       val l2NormInv = Math.sum(input.square, keepDims = true).rsqrt
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(intermediate.shape)
-      val one = Basic.ones(input.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       Basic.identity(intermediate * Math.minimum(l2NormInv * numElements, one / clipNorm))
     }
   }
@@ -129,7 +129,7 @@ trait Clip {
     * @param  name   Name prefix for created ops.
     * @return Created op output.
     */
-  def globalNorm[T: IsDecimal](
+  def globalNorm[T: IsDecimal : TF](
       inputs: Seq[OutputLike[T]],
       name: String = "GlobalNorm"
   ): Output[T] = {
@@ -143,7 +143,7 @@ trait Clip {
         NN.l2Loss(v)
       })
       val halfSquaredNorm = Math.sum(Basic.stack(halfSquaredNorms))
-      val two = Basic.constant(2).castTo(halfSquaredNorm.dataType)
+      val two = Basic.constant(2).castTo[T]
       Math.sqrt(halfSquaredNorm * two)
     }
   }
@@ -158,7 +158,7 @@ trait Clip {
     * @param  name       Name prefix for created ops.
     * @return Tuple containing the clipped tensors as well as the global norm that was used for the clipping.
     */
-  def clipByGlobalNorm[T: IsDecimal](
+  def clipByGlobalNorm[T: IsDecimal : TF](
       inputs: Seq[OutputLike[T]],
       clipNorm: Output[T],
       globalNorm: Output[T] = null,
@@ -166,7 +166,7 @@ trait Clip {
   ): (Seq[OutputLike[T]], Output[T]) = {
     Op.nameScope(name) {
       val norm = if (globalNorm != null) globalNorm else this.globalNorm(inputs)
-      val one = Basic.ones(norm.dataType, Shape())
+      val one = Basic.ones[T](Shape())
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.
       val scale = clipNorm * Math.minimum(Math.divide(one, norm), Math.divide(one, clipNorm))
       val values = inputs.map {
@@ -193,13 +193,13 @@ trait Clip {
 
 object Clip extends Clip {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToClipOps[OC, T](
+    implicit def outputConvertibleToClipOps[OC, T: TF](
         value: OC
     )(implicit f: OC => Output[T]): ClipOps[T] = {
       new ClipOps(f(value))
     }
 
-    implicit class ClipOps[T](val output: Output[T]) {
+    implicit class ClipOps[T: TF](val output: Output[T]) {
       /** $OpDocClipClipByValue
         *
         * @group ClipOps
@@ -227,7 +227,7 @@ object Clip extends Clip {
         * @param  name     Name prefix for created ops.
         * @return Created op output.
         */
-      def clipByNorm[I: IsInt32OrInt64](
+      def clipByNorm[I: IsInt32OrInt64 : TF](
           clipNorm: Output[T],
           axes: Output[I] = null,
           name: String = "ClipByNorm"

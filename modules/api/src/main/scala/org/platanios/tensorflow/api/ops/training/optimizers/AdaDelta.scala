@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, Resource, TF}
 
 /** Optimizer that implements the AdaDelta optimization algorithm.
   *
@@ -52,7 +52,7 @@ import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuanti
   */
 class AdaDelta protected (
     val learningRate: Float = 0.01f,
-    val decay: Schedule[Float] = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule[Float](),
     val rho: Float = 0.95f,
     val epsilon: Float = 1e-8f,
     override val ignoreDuplicateSparseIndices: Boolean = false,
@@ -64,39 +64,39 @@ class AdaDelta protected (
   protected var rhoTensor         : Output[Float] = _
   protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate[V, I: IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.castTo(variable.dataType).toOutput
+    learningRateTensor.castTo[V].toOutput
   }
 
-  protected def getRho[V](
+  protected def getRho[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    rhoTensor.castTo(variable.dataType).toOutput
+    rhoTensor.castTo[V].toOutput
   }
 
-  protected def getEpsilon[V](
+  protected def getEpsilon[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    epsilonTensor.castTo(variable.dataType).toOutput
+    epsilonTensor.castTo[V].toOutput
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     variables.foreach(v => {
-      zerosSlot("Accumulator", v, name)
-      zerosSlot("AccumulatorUpdate", v, name)
+      zerosSlot("Accumulator", v, name)(TF.fromDataType(v.dataType))
+      zerosSlot("AccumulatorUpdate", v, name)(TF.fromDataType(v.dataType))
     })
   }
 
-  override def prepare[I: IsInt32OrInt64](
+  override def prepare[I: IsInt32OrInt64 : TF](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -106,13 +106,13 @@ class AdaDelta protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    val accumulator = getSlot("Accumulator", variable)
-    val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
+    val accumulator = getSlot[T, T]("Accumulator", variable)
+    val accumulatorUpdate = getSlot[T, T]("AccumulatorUpdate", variable)
     Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T]), Unit](
       opType = "ResourceApplyAdadelta",
       name = s"$name/ApplyDense",
@@ -127,13 +127,13 @@ class AdaDelta protected (
         .build().asUntyped
   }
 
-  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    val accumulator = getSlot("Accumulator", variable)
-    val accumulatorUpdate = getSlot("AccumulatorUpdate", variable)
+    val accumulator = getSlot[T, T]("Accumulator", variable)
+    val accumulatorUpdate = getSlot[T, T]("AccumulatorUpdate", variable)
     Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
       opType = "ResourceSparseApplyAdadelta",
       name = s"$name/ApplyDense",
@@ -153,7 +153,7 @@ class AdaDelta protected (
 object AdaDelta {
   def apply(
       learningRate: Float = 0.01f,
-      decay: Schedule[Float] = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       rho: Float = 0.95f,
       epsilon: Float = 1e-8f,
       ignoreDuplicateSparseIndices: Boolean = false,

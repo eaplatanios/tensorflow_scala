@@ -17,11 +17,11 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OutputIndexedSlices, UntypedOp}
+import org.platanios.tensorflow.api.ops.{Basic, Math, OutputIndexedSlices, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, TF}
 
 /** Optimizer that implements a variant of the Adam optimization algorithm that handles sparse updates more efficiently.
   *
@@ -88,7 +88,7 @@ import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized}
   */
 class LazyAdam protected (
     override val learningRate: Float = 0.001f,
-    override val decay: Schedule[Float] = FixedSchedule,
+    override val decay: Schedule[Float] = FixedSchedule[Float](),
     override val beta1: Float = 0.9f,
     override val beta2: Float = 0.999f,
     override val useNesterov: Boolean = false,
@@ -102,21 +102,21 @@ class LazyAdam protected (
 ) {
   override val ignoreDuplicateSparseIndices: Boolean = true
 
-  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
     val m = getSlot[T, T]("M", variable)
     val v = getSlot[T, T]("V", variable)
-    val (beta1Power, beta2Power) = getBetaPowerAccumulators[T]
+    val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val beta1 = getBeta1(variable)
     val beta2 = getBeta2(variable)
     val epsilon = getEpsilon(variable)
     var learningRate = getLearningRate(variable, iteration)
-    val one = Basic.ones(learningRate.dataType, Shape())
-    learningRate = learningRate * Math.sqrt(one - beta2Power.castTo(variable.dataType))
-    learningRate = learningRate / (one - beta1Power.castTo(variable.dataType))
+    val one = Basic.ones[T](Shape())
+    learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
+    learningRate = learningRate / (one - beta1Power.value.castTo[T])
 
     // m_t = beta1 * m + (1 - beta1) * gradient
     val mTSlice = beta1 * Basic.gather(m.value, gradient.indices, axis = 0) + (one - beta1) * gradient.values
@@ -139,7 +139,7 @@ class LazyAdam protected (
 object LazyAdam {
   def apply(
       learningRate: Float = 0.001f,
-      decay: Schedule[Float] = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
       useNesterov: Boolean = false,

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Contains helper functions for creating slots.
   *
@@ -39,7 +39,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def zeros[T, R](
+  def zeros[T: TF, R: TF](
       primary: Variable[T],
       dataType: DataType[R],
       name: String,
@@ -57,7 +57,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def zerosForOutput[T, R](
+  def zerosForOutput[T: TF, R: TF](
       primary: Output[T],
       dataType: DataType[R],
       name: String,
@@ -83,7 +83,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def create[T, R](
+  def create[T: TF, R: TF](
       primary: Variable[T],
       dataType: DataType[R],
       initializer: Initializer,
@@ -119,7 +119,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def createForOutput[T, R](
+  def createForOutput[T: TF, R: TF](
       primary: Output[T],
       dataType: DataType[R],
       initializer: Initializer,
@@ -149,14 +149,14 @@ object Slot {
   }
 
   /** Helper function for creating slot variables. */
-  private def createSlotVariable[T, R](
+  private def createSlotVariable[T: TF, R: TF](
       primary: Variable[T],
       dataType: DataType[R],
       shape: Shape,
       initializer: Initializer,
       scope: String
   ): Variable[R] = {
-    val slot = Variable.getVariable[R](scope, shape, initializer, trainable = false)(dataType.evSupportedType)
+    val slot = Variable.getVariable[R](scope, shape, initializer, trainable = false)
     if (primary.partitionInformation != null) {
       // Primary is a partitioned variable, and so we need to also indicate that the slot is also a partitioned
       // variable. Slots have the same partitioning as their primaries. For example, when using the Adam optimizer for a
@@ -173,13 +173,13 @@ object Slot {
   }
 
   /** Helper function for creating slot variables. */
-  private def createSlotVariable[T, R](
+  private def createSlotVariable[T: TF, R: TF](
       primary: Output[T],
       dataType: DataType[R],
       shape: Shape,
       initializer: Initializer,
       scope: String
   ): Variable[R] = {
-    Variable.getVariable[R](scope, shape, initializer, trainable = false)(dataType.evSupportedType)
+    Variable.getVariable[R](scope, shape, initializer, trainable = false)
   }
 }

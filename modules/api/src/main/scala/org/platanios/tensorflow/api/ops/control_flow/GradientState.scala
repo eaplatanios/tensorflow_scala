@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.INT64
+import org.platanios.tensorflow.api.types.{DataType, INT64, TF}
 
 import scala.collection.mutable
 
@@ -96,7 +96,7 @@ private[ops] class GradientState private[control_flow] () {
     * @param  value Output of an exit op.
     * @return Zeros tensor with the same data type and shape as `value`.
     */
-  private[ops] def zerosLikeForExit[T](value: Output[T]): Output[T] = {
+  private[ops] def zerosLikeForExit[T: TF](value: Output[T]): Output[T] = {
     val forwardContext = value.op.controlFlowContext
     val outerForwardContext = forwardContext.flatMap(_.outerContext).flatMap(_.whileLoopContext())
     val outerGradientLoopState = outerForwardContext.flatMap(map.get)
@@ -106,20 +106,20 @@ private[ops] class GradientState private[control_flow] () {
         if (value.shape.isFullyDefined) {
           // If the shape is known statically, we just create a zeros tensor with the right shape in the right context.
           gradientLoopState.backwardContext.enter()
-          val result = Basic.zeros(value.dataType, value.shape)
+          val result = Basic.zeros[T](value.shape)
           gradientLoopState.backwardContext.exit()
           result
         } else {
           // Only the shape of `value` is needed for back-propagation.
           forwardContext.flatMap(_.outerContext).foreach(_.enter())
-          val shape = Basic.shape(value, INT64, optimize = false)
+          val shape = Basic.shape(value, optimize = false)
           forwardContext.flatMap(_.outerContext).foreach(_.exit())
           // Save the shape to a stack.
           val historyShape = gradientLoopState.addForwardAccumulator(shape)
           // Get the shape back from the stack.
           gradientLoopState.backwardContext.enter()
           val realShape = gradientLoopState.addBackwardAccumulatedValue(historyShape, shape)
-          val result = Basic.zeros(value.dataType, realShape)
+          val result = Basic.zeros[T](realShape)
           gradientLoopState.backwardContext.exit()
           result
         }
@@ -127,7 +127,7 @@ private[ops] class GradientState private[control_flow] () {
         // This is not a nested loop.
         if (value.shape.isFullyDefined) {
           // If the shape is known statically, we just create a zeros tensor with the right shape.
-          Basic.zeros(value.dataType, value.shape)
+          Basic.zeros[T](value.shape)
         } else {
           Basic.zerosLike(value, optimize = false)
         }
@@ -167,7 +167,10 @@ private[ops] class GradientState private[control_flow] () {
                 })
               }) match {
                 case Some((predicate, branch)) => Some(
-                  branch.other.selectSwitchResult(ControlFlow.colocatedSwitch(result, predicate)))
+                  branch.other.selectSwitchResult(ControlFlow.colocatedSwitch(
+                    result,
+                    predicate
+                  )(TF.fromDataType(value.dataType))))
                 case None => Some(result)
               }
             } else {
@@ -182,8 +185,11 @@ private[ops] class GradientState private[control_flow] () {
                   val condContext = c.asInstanceOf[CondContext]
                   condContext.outerContext.foreach(_.enter())
                   val value = condContext.branch.other.selectSwitchResult(
-                    ControlFlow.colocatedSwitch(op.inputsSeq(0), condContext.predicate))
-                  val shape = Basic.shape(value, INT64, optimize = false)
+                    ControlFlow.colocatedSwitch(
+                      op.inputsSeq(0),
+                      condContext.predicate
+                    )(TF.fromDataType(op.inputsSeq(0).dataType)))
+                  val shape = Basic.shape(value, optimize = false)(TF.fromDataType(value.dataType))
                   condContext.outerContext.foreach(_.exit())
                   value.op.controlFlowContext = Some(condContext)
                   shape.op.controlFlowContext = Some(condContext)
@@ -191,7 +197,7 @@ private[ops] class GradientState private[control_flow] () {
                 })
               } else {
                 op.controlFlowContext.foreach(_.enter())
-                val shape = Basic.shape(value, INT64, optimize = false)
+                val shape = Basic.shape(value, optimize = false)(TF.fromDataType(value.dataType))
                 op.controlFlowContext.foreach(_.exit())
                 Some(shape)
               }
@@ -273,14 +279,13 @@ private[ops] class GradientState private[control_flow] () {
       }).filter(m => m.op.inputsSeq(0) == m.op.inputsSeq(1)).foreach(merge => {
         // The value of this loop variable at iteration i+1 does not depend on its value at iteration i and so we use
         // zeros as the gradients for all iterations > 0.
-        val dataType = merge.op.inputsSeq(0).dataType
         val shape = merge.op.inputsSeq(0).shape
         val nextGradientValue = {
           if (shape.isFullyDefined) {
             gradientLoopState.backwardContext.enter()
             // Create a zeros tensor and use it for iterations > 0.
-            val gradientValue = Basic.zeros(dataType, shape)
-            val nextGradientValue = ControlFlow.nextIteration(gradientValue)
+            val gradientValue = Basic.zeros(merge.op.inputsSeq(0).dataType, shape)
+            val nextGradientValue = ControlFlow.nextIteration(gradientValue)(TF.fromDataType(gradientValue.dataType))
             gradientLoopState.backwardContext.exit()
             nextGradientValue
           } else {
@@ -288,12 +293,12 @@ private[ops] class GradientState private[control_flow] () {
             val outerGradientContext = gradientLoopState.backwardContext.outerContext
             outerGradientContext.foreach(_.enter())
             val enterGradient = merge.op.inputsSeq(0).op.inputsSeq(0)
-            val gradientShape = Basic.shape(enterGradient, INT64, optimize = false)
-            val gradientValue = Basic.zeros(dataType, gradientShape)
+            val gradientShape = Basic.shape(enterGradient, optimize = false)(TF.fromDataType(enterGradient.dataType))
+            val gradientValue = Basic.zeros(merge.op.inputsSeq(0).dataType, gradientShape)
             outerGradientContext.foreach(_.exit())
             // Use the zeros for iterations > 0.
             gradientLoopState.backwardContext.enter()
-            val nextGradientValue = ControlFlow.nextIteration(gradientValue)
+            val nextGradientValue = ControlFlow.nextIteration(gradientValue)(TF.fromDataType(gradientValue.dataType))
             gradientLoopState.backwardContext.exit()
             nextGradientValue
           }

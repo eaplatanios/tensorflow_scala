@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVari
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT32, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{INT32, IsInt32OrInt64, IsNotQuantized, TF}
 
 import scala.language.postfixOps
 
@@ -255,28 +255,33 @@ object BasicDecoder {
       Op.nameScope(name) {
         if (!timeMajor) {
           // [B, T, D] => [T, B, D]
-          inputs = inputs.map(RNN.transposeBatchTime)
+          inputs = inputs.map(i => {
+            RNN.transposeBatchTime(i)(TF.fromDataType(i.dataType))
+          })
         }
         inputs.map(input => {
           TensorArray.create(
-            size = Basic.shape(input, INT32).slice(0),
+            size = Basic.shape(input)(TF.fromDataType(input.dataType)).castTo[Int].slice(0),
             dataType = input.dataType,
             elementShape = input.shape(1 ::)
-          ).unstack(input)
+          )(TF.fromDataType(input.dataType)).unstack(input)(TF.fromDataType(input.dataType))
         })
       }
     }
 
     private[this] val zeroInputs: Seq[Output[Any]] = {
       Op.nameScope(name) {
-        inputs.map(input => Basic.zerosLike(input.gather(0)))
+        inputs.map(input => {
+          implicit val evTF: TF[Any] = TF.fromDataType(input.dataType)
+          Basic.zerosLike(input.gather(0))
+        })
       }
     }
 
     /** Scalar tensor representing the batch size of a tensor returned by `sample()`. */
     override val batchSize: Output[Int] = {
       Op.nameScope(name) {
-        Basic.size(sequenceLengths, INT32)
+        Basic.size(sequenceLengths).castTo[Int]
       }
     }
 
@@ -314,7 +319,11 @@ object BasicDecoder {
           // TODO: [TYPES] !!! Super hacky. Remove in the future.
           implicit val ev: IsNotQuantized[Any] = new IsNotQuantized[Any] {}
 
-          Math.argmax(output, axes = -1, outputDataType = INT32)
+          Math.argmax(
+            output,
+            axes = -1,
+            outputDataType = INT32
+          )(ev, TF.fromDataType(output.dataType), IsInt32OrInt64[Int], TF[Int], TF[Int])
         }))
       }
     }
@@ -368,7 +377,7 @@ object BasicDecoder {
     /** Scalar tensor representing the batch size of a tensor returned by `sample()`. */
     override val batchSize: Output[Int] = {
       Op.nameScope(name) {
-        Basic.size(beginTokens, INT32)
+        Basic.size(beginTokens).castTo[Int]
       }
     }
 
@@ -378,7 +387,7 @@ object BasicDecoder {
         name: String = "ZeroSample"
     ): Output[Int] = {
       Op.nameScope(name) {
-        Basic.fill(endToken.dataType, batchSize.expandDims(0))(0, name)
+        Basic.fill[Int, Int](batchSize.expandDims(0))(0)
       }
     }
 
@@ -400,6 +409,7 @@ object BasicDecoder {
 
         // TODO: [TYPES] !!! Super hacky. Remove in the future.
         implicit val ev: IsNotQuantized[T] = new IsNotQuantized[T] {}
+        implicit val evTF: TF[T] = TF.fromDataType(input.dataType)
 
         Math.argmax(input, axes = -1, outputDataType = endToken.dataType)
       }

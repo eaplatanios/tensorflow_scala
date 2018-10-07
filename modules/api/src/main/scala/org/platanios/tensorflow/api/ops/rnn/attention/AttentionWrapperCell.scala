@@ -20,7 +20,8 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
-import org.platanios.tensorflow.api.types.{INT32, IsNotQuantized}
+import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** RNN cell that wraps another RNN cell and adds support for attention to it.
   *
@@ -43,13 +44,13 @@ import org.platanios.tensorflow.api.types.{INT32, IsNotQuantized}
   *
   * @author Emmanouil Antonios Platanios
   */
-class AttentionWrapperCell[T: IsNotQuantized, S, SS, AS, ASS] private[attention] (
+class AttentionWrapperCell[T: IsNotQuantized : TF, S, SS, AS, ASS] private[attention] (
     val cell: RNNCell[Output[T], Shape, S, SS],
     val attentions: Seq[Attention[T, AS, ASS]], // TODO: Allow for varying supported types in the sequence.
     val attentionLayerWeights: Seq[Output[T]] = null,
     val cellInputFn: (Output[T], Output[T]) => Output[T] = {
       (input: Output[T], attention: Output[T]) =>
-        Basic.concatenate(Seq(input, attention), -1)
+        Basic.concatenate(Seq(input, attention), -1)(TF.fromDataType(input.dataType))
     },
     val outputAttention: Boolean = true,
     val storeAlignmentsHistory: Boolean = false,
@@ -88,14 +89,15 @@ class AttentionWrapperCell[T: IsNotQuantized, S, SS, AS, ASS] private[attention]
           if (state.rank != -1 && state.shape(0) != -1)
             Basic.constant(state.shape(0))
           else
-            Basic.shape(state, INT32).slice(0)
+            Basic.shape(state).castTo[Int].slice(0)
         }
         val initialAlignments = attentions.map(_.initialAlignment)
         AttentionWrapperState(
           cellState = initialCellState,
-          time = Basic.zeros(INT32, Shape.scalar()),
-          attention = Basic.fill(
-            state.dataType, Basic.stack[Int](Seq(batchSize, attentionLayersSize)))(0),
+          time = Basic.zeros[Int](Shape.scalar()),
+          attention = Basic.fill[T, Int](
+            Basic.stack[Int](Seq(batchSize, attentionLayersSize))
+          )(Tensor.zeros[T](Shape())),
           alignments = initialAlignments,
           alignmentsHistory = {
             if (storeAlignmentsHistory)
@@ -192,13 +194,13 @@ class AttentionWrapperCell[T: IsNotQuantized, S, SS, AS, ASS] private[attention]
 }
 
 object AttentionWrapperCell {
-  def apply[T: IsNotQuantized, S, SS, AS, ASS](
+  def apply[T: IsNotQuantized : TF, S, SS, AS, ASS](
       cell: RNNCell[Output[T], Shape, S, SS],
       attentions: Seq[Attention[T, AS, ASS]],
       attentionLayerWeights: Seq[Output[T]] = null,
       cellInputFn: (Output[T], Output[T]) => Output[T] = {
         (input: Output[T], attention: Output[T]) =>
-          Basic.concatenate(Seq(input, attention), -1)
+          Basic.concatenate(Seq(input, attention), -1)(TF.fromDataType(input.dataType))
       },
       outputAttention: Boolean = true,
       storeAlignmentsHistory: Boolean = false,

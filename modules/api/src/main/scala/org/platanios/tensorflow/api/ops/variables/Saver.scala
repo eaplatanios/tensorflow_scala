@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32, INT64, IsInt32OrInt64}
+import org.platanios.tensorflow.api.types.{DataType, TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.utilities.Proto
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
@@ -1118,10 +1118,11 @@ trait SaverDefBuilder {
           if (reshape) {
             // Compute the shapes and let the restore op decide if and how to do the reshape.
             saveable.saveSpecifications.map(s => {
+              val sValue = s.value()
               if (s.value().shape.isFullyDefined)
-                s.value().shape.toOutput[Long]
+                sValue.shape.toOutput
               else
-                Basic.shape(s.value(), INT64)
+                Basic.shape(sValue)(TF.fromDataType(sValue.dataType))
             })
           } else {
             null
@@ -1372,7 +1373,7 @@ object SaverDefBuilder {
     * @return Created op output.
     */
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
-  private def restoreOp[T](
+  private def restoreOp[T: TF](
       filenamePattern: Output[String],
       tensorName: String,
       preferredShard: Int = -1,
@@ -1400,7 +1401,7 @@ object SaverDefBuilder {
     * @return Created op output.
     */
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
-  private def restoreSliceOp[T](
+  private def restoreSliceOp[T: TF](
       filenamePattern: Output[String],
       tensorName: String,
       slice: String,
@@ -1671,15 +1672,23 @@ private[ops] object Saveable {
         restoredTensors: Seq[Output[Any]],
         restoredShapes: Seq[Output[I]] = null
     ): UntypedOp = {
-      var restoredTensor = {
-        if (restoredShapes != null)
-          Basic.reshape(restoredTensors.head, restoredShapes.head)
-        else
-          restoredTensors.head
+      val dataType = restoredTensors.head.dataType
+      val shapeDataType = restoredShapes.head.dataType
+      var restoredTensor = restoredTensors.head
+      if (restoredShapes != null) {
+        restoredTensor = Basic.reshape(
+          restoredTensors.head,
+          restoredShapes.head
+        )(TF.fromDataType(dataType), IsInt32OrInt64[I], TF.fromDataType(shapeDataType))
       }
       // Copy the restored tensor to the variable's device.
-      restoredTensor = Op.createWith(device = variableDevice)(Basic.identity(restoredTensor))
-      Variable.assign(variable.handle, restoredTensor).asUntyped
+      restoredTensor = Op.createWith(device = variableDevice) {
+        Basic.identity(restoredTensor)(TF.fromDataType(dataType))
+      }
+      Variable.assign(
+        variable.handle,
+        restoredTensor
+      )(TF.fromDataType(dataType)).asUntyped
     }
   }
 }

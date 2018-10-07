@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
-import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, Resource, TF}
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
   *
@@ -50,7 +50,7 @@ import org.platanios.tensorflow.api.types.{Resource, IsInt32OrInt64, IsNotQuanti
   */
 class AdaGrad protected (
     val learningRate: Float = 0.01f,
-    val decay: Schedule[Float] = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule[Float](),
     val epsilon: Float = 1e-8f,
     override val ignoreDuplicateSparseIndices: Boolean = false,
     val useLocking: Boolean = false,
@@ -59,23 +59,24 @@ class AdaGrad protected (
 ) extends Optimizer {
   protected var learningRateTensor: Output[Float] = _
 
-  protected def getLearningRate[V, I: IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.castTo(variable.dataType).toOutput
+    learningRateTensor.castTo[V].toOutput
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     variables.foreach(v => {
       val initializer = ConstantInitializer(epsilon)
-      getSlot("Accumulator", v, v.dataType, initializer, v.shape, name)
+      val evTF = TF.fromDataType(v.dataType)
+      getSlot("Accumulator", v, v.dataType, initializer, v.shape, name)(evTF, evTF)
     })
   }
 
-  override def prepare[I: IsInt32OrInt64](
+  override def prepare[I: IsInt32OrInt64 : TF](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -83,12 +84,12 @@ class AdaGrad protected (
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }
 
-  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    val accumulator = getSlot("Accumulator", variable)
+    val accumulator = getSlot[T, T]("Accumulator", variable)
     Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T]), Unit](
       opType = "ResourceApplyAdagrad",
       name = s"$name/ApplyDense",
@@ -100,12 +101,12 @@ class AdaGrad protected (
         .build().asUntyped
   }
 
-  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
   ): UntypedOp = {
-    val accumulator = getSlot("Accumulator", variable)
+    val accumulator = getSlot[T, T]("Accumulator", variable)
     Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[Long]), Unit](
       opType = "ResourceSparseApplyAdagrad",
       name = s"$name/ApplySparse",
@@ -122,7 +123,7 @@ class AdaGrad protected (
 object AdaGrad {
   def apply(
       learningRate: Float = 0.01f,
-      decay: Schedule[Float] = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       epsilon: Float = 1e-8f,
       ignoreDuplicateSparseIndices: Boolean = false,
       useLocking: Boolean = false,

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.ProtoSerializable
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.INT64
+import org.platanios.tensorflow.api.types.TF
 
 import com.google.protobuf.GeneratedMessageV3
 import org.tensorflow.framework.ValuesDef
@@ -111,7 +111,7 @@ abstract class Context protected (
       } else {
         op.inputsSeq.zipWithIndex.foreach({
           case (input, index) =>
-            val realInput = add(input)
+            val realInput = add(input)(TF.fromDataType(input.dataType))
             if (realInput != input)
               ControlFlow.updateInput(op, index, realInput)
         })
@@ -133,7 +133,10 @@ abstract class Context protected (
       enter()
       externalInputs
           .filter(_.outputsSeq.nonEmpty)
-          .map(op => Basic.identity(op.outputsSeq(0)).op)
+          .map(op => {
+            val output = op.outputsSeq(0)
+            Basic.identity(output)(TF.fromDataType(output.dataType)).op
+          })
           .foreach(ControlFlow.addControlInput(op, _))
       exit()
     }
@@ -144,7 +147,7 @@ abstract class Context protected (
   }
 
   /** Adds `output` to the current context and its outer context recursively. */
-  def add[T](output: Output[T]): Output[T]
+  def add[T: TF](output: Output[T]): Output[T]
 
   /** Returns `true` if back-propagation is supported for this control flow context. */
   def backPropagate: Boolean
@@ -280,16 +283,17 @@ object Context {
       op: UntypedOp,
       index: Int
   ): Output[Any] = {
+    val dataType = op.outputsSeq(index).dataType
     if (ControlFlow.isSwitch(op)) {
       op.controlFlowContext.filter(_.isInstanceOf[CondContext]).map(c => {
         val condContext = c.asInstanceOf[CondContext]
         // We are in a conditional context and so we use a switch to create zeros only when needed.
         val switch = condContext.branch.other.selectSwitchResult(
-          ControlFlow.switch(op.inputsSeq(0), condContext.predicate))
-        Basic.zeros(op.outputsSeq(index).dataType, Basic.shape(switch, INT64, optimize = false))
-      }).getOrElse(Basic.zerosLike(op.outputsSeq(index), optimize = false))
+          ControlFlow.switch(op.inputsSeq(0), condContext.predicate)(TF.fromDataType(dataType)))
+        Basic.zeros(dataType, Basic.shape(switch, optimize = false)(TF.fromDataType(dataType)))
+      }).getOrElse(Basic.zerosLike(op.outputsSeq(index), optimize = false)(TF.fromDataType(dataType)))
     } else {
-      Basic.zerosLike(op.outputsSeq(index), optimize = false)
+      Basic.zerosLike(op.outputsSeq(index), optimize = false)(TF.fromDataType(dataType))
     }
   }
 }

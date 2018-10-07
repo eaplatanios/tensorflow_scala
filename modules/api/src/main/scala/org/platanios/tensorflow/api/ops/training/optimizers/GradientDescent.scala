@@ -41,7 +41,7 @@ import org.platanios.tensorflow.api.types._
   */
 class GradientDescent protected (
     val learningRate: Float,   // TODO: [TYPES] Should be allowed to also be `Double`.
-    val decay: Schedule[Float] = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule[Float](),
     val momentum: Float = 0.0f,
     val useNesterov: Boolean = false,
     val useLocking: Boolean = false,
@@ -53,29 +53,32 @@ class GradientDescent protected (
   protected var learningRateTensor: Output[Float] = _
   protected var momentumTensor    : Output[Float] = _
 
-  protected def getLearningRate[V, I: IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: IsInt32OrInt64 : TF](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.castTo(variable.dataType).toOutput
+    learningRateTensor.castTo[V].toOutput
   }
 
-  protected def getMomentum[V](
+  protected def getMomentum[V: TF](
       variable: Variable[V]
   ): Output[V] = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    momentumTensor.castTo(variable.dataType).toOutput
+    momentumTensor.castTo[V].toOutput
   }
 
   override def createSlots(variables: Seq[Variable[Any]]): Unit = {
-    if (momentum > 0.0f)
-      variables.foreach(v => zerosSlot("Momentum", v, name))
+    if (momentum > 0.0f) {
+      variables.foreach(v => {
+        zerosSlot("Momentum", v, name)(TF.fromDataType(v.dataType))
+      })
+    }
   }
 
-  override def prepare[I: IsInt32OrInt64](
+  override def prepare[I: IsInt32OrInt64 : TF](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -85,7 +88,7 @@ class GradientDescent protected (
       momentumTensor = Basic.constant(momentum, name = "Momentum")
   }
 
-  override def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -95,7 +98,7 @@ class GradientDescent protected (
         opType = "ResourceApplyMomentum",
         name = s"$name/ApplyDense",
         input = (variable.handle,
-            getSlot("Momentum", variable).handle,
+            getSlot[T, T]("Momentum", variable).handle,
             getLearningRate(variable, iteration),
             gradient,
             getMomentum(variable))
@@ -114,7 +117,7 @@ class GradientDescent protected (
     }
   }
 
-  override def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -124,7 +127,7 @@ class GradientDescent protected (
         opType = "ResourceSparseApplyMomentum",
         name = s"$name/ApplySparse",
         input = (variable.handle,
-            getSlot("Momentum", variable).handle,
+            getSlot[T, T]("Momentum", variable).handle,
             getLearningRate(variable, iteration),
             gradient.values,
             gradient.indices,
@@ -140,7 +143,7 @@ class GradientDescent protected (
     }
   }
 
-  override def applySparseDuplicateIndices[T: IsNotQuantized, I: IsInt32OrInt64](
+  override def applySparseDuplicateIndices[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -152,7 +155,7 @@ class GradientDescent protected (
 object GradientDescent {
   def apply(
       learningRate: Float,
-      decay: Schedule[Float] = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       momentum: Float = 0.0f,
       useNesterov: Boolean = false,
       useLocking: Boolean = false,

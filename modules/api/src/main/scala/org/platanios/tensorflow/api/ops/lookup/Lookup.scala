@@ -15,9 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.lookup
 
-import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types.{DataType, INT64, STRING, IsStringOrIntOrUInt}
+import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.types.{DataType, INT64, IsStringOrIntOrUInt, TF}
 
 /** Contains functions for constructing ops related to lookup tables.
   *
@@ -62,7 +61,7 @@ trait Lookup {
     * @param  name              Name for the created table.
     * @return Created table.
     */
-  def indexTableFromFile[K: IsStringOrIntOrUInt](
+  def indexTableFromFile[K: IsStringOrIntOrUInt : TF](
       filename: String,
       keysDataType: DataType[K],
       delimiter: String = "\t",

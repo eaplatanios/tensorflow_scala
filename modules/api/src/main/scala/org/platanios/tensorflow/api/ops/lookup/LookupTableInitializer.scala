@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.ops.UntypedOp
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Lookup table initializer.
   *
@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.types.DataType
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class LookupTableInitializer[K, +V](
+abstract class LookupTableInitializer[K: TF, +V: TF](
     val keysDataType: DataType[K],
     val valuesDataType: DataType[V]
 ) {
@@ -34,7 +34,7 @@ abstract class LookupTableInitializer[K, +V](
     * @param  table Table to initialize.
     * @return Created initialization op for `table`.
     */
-  def initialize[VV >: V](
+  def initialize[VV >: V : TF](
       table: InitializableLookupTable[K, VV],
       name: String = "Initialize"
   ): UntypedOp

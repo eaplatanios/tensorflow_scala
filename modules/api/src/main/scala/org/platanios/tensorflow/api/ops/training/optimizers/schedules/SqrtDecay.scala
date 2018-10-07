@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.IsInt32OrInt64
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 /** Square root decay method.
   *
@@ -52,7 +52,7 @@ class SqrtDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: Float, I: IsInt32OrInt64](
+  override def apply[V <: Float : TF, I: IsInt32OrInt64 : TF](
       value: Output[V],
       step: Option[Variable[I]]
   ): Output[V] = {
@@ -73,7 +73,7 @@ class SqrtDecay protected (
             () => decay(value, stepValue - startStepValue, decayFactorValue, decayThresholdValue))
         }
       }
-      result.castTo(value.dataType)
+      result.castTo[V]
     }
   }
 

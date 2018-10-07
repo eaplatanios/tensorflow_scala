@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, SupportedType}
+import org.platanios.tensorflow.api.types.{DataType, TF}
 
 // TODO: [VARIABLES/DOC] Create a documentation page for the Scala API (https://www.tensorflow.org/programmers_guide/variables).
 // TODO: [VARIABLES/DOC/EXAMPLES] Examples.
@@ -53,8 +53,8 @@ package object variables {
 
     val ZerosInitializer: variables.ZerosInitializer.type = variables.ZerosInitializer
     val OnesInitializer : variables.OnesInitializer.type  = variables.OnesInitializer
-    def ConstantInitializer(value: Tensor[_]): variables.Initializer = variables.ConstantInitializer(value)
-    def ConstantInitializer(value: Output[_]): variables.Initializer = variables.DynamicConstantInitializer(value)
+    def ConstantInitializer[T: TF](value: Tensor[T]): variables.Initializer = variables.ConstantInitializer(value)
+    def ConstantInitializer[T: TF](value: Output[T]): variables.Initializer = variables.DynamicConstantInitializer(value)
     val RandomUniformInitializer        : variables.RandomUniformInitializer.type         = variables.RandomUniformInitializer
     val RandomNormalInitializer         : variables.RandomNormalInitializer.type          = variables.RandomNormalInitializer
     val RandomTruncatedNormalInitializer: variables.RandomTruncatedNormalInitializer.type = variables.RandomTruncatedNormalInitializer
@@ -77,7 +77,7 @@ package object variables {
         allowEmpty, writerVersion, saveRelativePaths, padGlobalStep, name)
     }
 
-    def variable[T: SupportedType](
+    def variable[T: TF](
         name: String, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, trainable: Boolean = true, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
@@ -87,7 +87,7 @@ package object variables {
         name, shape, initializer, regularizer, trainable, reuse, collections, cachingDevice)
     }
 
-    def localVariable[T: SupportedType](
+    def localVariable[T: TF](
         name: String, shape: Shape = null, initializer: VariableInitializer = null,
         regularizer: VariableRegularizer = null, reuse: Reuse = ReuseOrCreateNew,
         collections: Set[Graph.Key[Variable[Any]]] = Set.empty,
@@ -161,7 +161,7 @@ package object variables {
   /** This function defines the main logic of 'getVariable'. However, 'underlyingGetter' may override this logic.
     * That is why we pass it as an argument to the 'underlyingGetter'. */
   val defaultGetter: VariableGetter = new VariableGetter {
-    override def apply[T: SupportedType](
+    override def apply[T: TF](
         name: String,
         dataType: DataType[T],
         shape: Shape,
@@ -187,7 +187,7 @@ package object variables {
     var currentGetter = defaultGetter
     Op.currentGraph.variableGetters.value.foreach(g => {
       currentGetter = new VariableGetter {
-        override def apply[T: SupportedType](
+        override def apply[T: TF](
             name: String,
             dataType: DataType[T],
             shape: Shape,

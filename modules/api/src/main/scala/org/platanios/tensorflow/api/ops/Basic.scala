@@ -35,7 +35,7 @@ import scala.language.postfixOps
   * @author Emmanouil Antonios Platanios
   */
 trait Basic {
-  //region Tensor Creation Ops
+  //region Tensor Constructors
 
   /** $OpDocBasicConstant
     *
@@ -43,6 +43,7 @@ trait Basic {
     * @param  tensor Constant value.
     * @param  shape  Shape of the resulting tensor.
     * @param  name   Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
     * @throws InvalidShapeException If `shape != null`, `verifyShape == true`, and the shape of values does not match
     *                               the provided `shape`.
@@ -71,9 +72,10 @@ trait Basic {
     * @group BasicOps
     * @param  input Input tensor to guarantee that is constant.
     * @param  name  Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output which is equal to the input tensor.
     */
-  def guaranteeConstant[T](
+  def guaranteeConstant[T: TF](
       input: Output[T],
       name: String = "GuaranteeConstant"
   ): Output[T] = {
@@ -81,22 +83,21 @@ trait Basic {
       opType = "GuaranteeConst",
       name = name,
       input = input
-    ).setGradientFn(identityGradient)
+    ).setGradientFn(identityGradient(_, _)(TF[T]))
         .build().output
   }
 
   /** $OpDocBasicImmutableConstant
     *
     * @group BasicOps
-    * @param  dataType         Data type of the resulting tensor.
     * @param  shape            Shape of the resulting tensor.
     * @param  memoryRegionName Name of the read-only memory region used by the tensor. Please refer to the C++
     *                          `NewReadOnlyMemoryRegionFromFile` function in `tensorflow::Env`.
     * @param  name             Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  private[ops] def immutableConstant[T](
-      dataType: DataType[T],
+  def immutableConstant[T: TF](
       shape: Shape,
       memoryRegionName: String,
       name: String = "ImmutableConstant"
@@ -105,7 +106,7 @@ trait Basic {
       opType = "ImmutableConst",
       name = name,
       input = ()
-    ).setAttribute("dtype", dataType)
+    ).setAttribute("dtype", TF[T].dataType)
         .setAttribute("shape", shape)
         .setAttribute("memory_region_name", memoryRegionName)
         .build().output
@@ -114,19 +115,62 @@ trait Basic {
   /** $OpDocBasicZeros
     *
     * @group BasicOps
-    * @param  dataType Tensor data type.
-    * @param  shape    Tensor shape.
-    * @param  name     Name for the created op.
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def zeros[T, I: IsInt32OrInt64](
+  def zeros[T: TF](shape: Output[Long]): Output[T] = {
+    Op.nameScope("Zeros") {
+      fill[T, Long](shape)(Tensor.zeros[T](Shape()))
+    }
+  }
+
+  /** $OpDocBasicZeros
+    *
+    * @group BasicOps
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
+    * @return Created op output.
+    */
+  def zeros[T: TF, I: IsInt32OrInt64 : TF](shape: Output[I]): Output[T] = {
+    Op.nameScope("Zeros") {
+      fill[T, I](shape)(Tensor.zeros[T](Shape()))
+    }
+  }
+
+  /** $OpDocBasicZeros
+    *
+    * @group BasicOps
+    * @param  dataType Tensor data type.
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @return Created op output.
+    */
+  def zeros[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    Op.nameScope("Zeros") {
+      fill[T, Long](shape)(Tensor.zeros[T](Shape()))
+    }
+  }
+
+  /** $OpDocBasicZeros
+    *
+    * @group BasicOps
+    * @param  dataType Tensor data type.
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
+    * @return Created op output.
+    */
+  def zeros[T, I: IsInt32OrInt64 : TF](
       dataType: DataType[T],
-      shape: Output[I],
-      name: String = "Zeros"
+      shape: Output[I]
   ): Output[T] = {
-    // TODO: [OPS] Do we need this import?
-    import dataType.evSupportedType
-    fill(dataType, shape)(DataType.zero[T], name = name)
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    Op.nameScope("Zeros") {
+      fill[T, I](shape)(Tensor.zeros[T](Shape()))
+    }
   }
 
   /** $OpDocBasicZerosLike
@@ -136,16 +180,19 @@ trait Basic {
     * @param  optimize Boolean flag indicating whether to optimize this op if the shape of `input` is known at graph
     *                  creation time.
     * @param  name     Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def zerosLike[T](
+  def zerosLike[T: TF](
       input: Output[T],
       optimize: Boolean = true,
       name: String = "ZerosLike"
   ): Output[T] = {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
-      zeros(input.dataType, input.shape, name)
+      Op.nameScope(name) {
+        zeros(input.dataType, input.shape)
+      }
     } else {
       Op.Builder[Output[T], Output[T]](
         opType = "ZerosLike",
@@ -158,19 +205,62 @@ trait Basic {
   /** $OpDocBasicOnes
     *
     * @group BasicOps
-    * @param  dataType Tensor data type.
-    * @param  shape    Tensor shape.
-    * @param  name     Name for the created op.
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def ones[T, I: IsInt32OrInt64](
+  def ones[T: TF](shape: Output[Long]): Output[T] = {
+    Op.nameScope("Ones") {
+      fill[T, Long](shape)(Tensor.ones[T](Shape()))
+    }
+  }
+
+  /** $OpDocBasicOnes
+    *
+    * @group BasicOps
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
+    * @return Created op output.
+    */
+  def ones[T: TF, I: IsInt32OrInt64 : TF](shape: Output[I]): Output[T] = {
+    Op.nameScope("Ones") {
+      fill[T, I](shape)(Tensor.ones[T](Shape()))
+    }
+  }
+
+  /** $OpDocBasicOnes
+    *
+    * @group BasicOps
+    * @param  dataType Tensor data type.
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @return Created op output.
+    */
+  def ones[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    Op.nameScope("Ones") {
+      fill[T, Long](shape)(Tensor.ones[T](Shape()))
+    }
+  }
+
+  /** $OpDocBasicOnes
+    *
+    * @group BasicOps
+    * @param  dataType Tensor data type.
+    * @param  shape Tensor shape.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
+    * @return Created op output.
+    */
+  def ones[T, I: IsInt32OrInt64 : TF](
       dataType: DataType[T],
-      shape: Output[I],
-      name: String = "Ones"
+      shape: Output[I]
   ): Output[T] = {
-    // TODO: [OPS] Do we need this import?
-    import dataType.evSupportedType
-    fill(dataType, shape)(DataType.one[T], name = name)
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    Op.nameScope("Ones") {
+      fill[T, I](shape)(Tensor.ones[T](Shape()))
+    }
   }
 
   /** $OpDocBasicOnesLike
@@ -180,16 +270,19 @@ trait Basic {
     * @param  optimize Boolean flag indicating whether to optimize this op if the shape of `input` is known at graph
     *                  creation time.
     * @param  name     Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def onesLike[T](
+  def onesLike[T: TF](
       input: Output[T],
       optimize: Boolean = true,
       name: String = "OnesLike"
   ): Output[T] = {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
-      ones(input.dataType, input.shape, name)
+      Op.nameScope(name) {
+        ones(input.dataType, input.shape)
+      }
     } else {
       Op.Builder[Output[T], Output[T]](
         opType = "OnesLike",
@@ -202,29 +295,44 @@ trait Basic {
   /** $OpDocBasicFill
     *
     * @group BasicOps
-    * @param  dataType Optional data type for the created tensor.
-    * @param  shape    Shape of the output tensor.
-    * @param  value    Value to fill the output tensor.
-    * @param  name     Name for the created op.
+    * @param  shape Tensor shape.
+    * @param  value Value to fill the output tensor.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def fill[T, V, I: IsInt32OrInt64](
-      dataType: DataType[T],
-      shape: Output[I]
-  )(
-      value: Output[V],
-      name: String = "Fill"
+  def fill[T: TF, I: IsInt32OrInt64 : TF](shape: Output[I])(
+      value: Output[T]
   ): Output[T] = {
-    val castedValue = value.castTo(dataType)
     Op.Builder[(Output[I], Output[T]), Output[T]](
       opType = "Fill",
-      name = name,
-      input = (shape, castedValue)
-    ).setGradientFn(fillGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+      name = "Fill",
+      input = (shape, value)
+    ).setGradientFn(fillGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def fillGradient[T, I: IsInt32OrInt64](
+  /** $OpDocBasicFill
+    *
+    * @group BasicOps
+    * @param  dataType Tensor data type.
+    * @param  shape    Tensor shape.
+    * @param  value    Value to fill the output tensor.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
+    * @return Created op output.
+    */
+  def fill[T, I: IsInt32OrInt64 : TF](
+      dataType: DataType[T],
+      shape: Output[I]
+  )(
+      value: Output[T]
+  ): Output[T] = {
+    implicit val evTF: TF[T] = TF.fromDataType(dataType)
+    fill[T, I](shape)(value)
+  }
+
+  protected def fillGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[I], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[I], Output[T]) = {
@@ -238,14 +346,13 @@ trait Basic {
   /** $OpDocBasicPlaceholder
     *
     * @group BasicOps
-    * @param  dataType Data type of the elements in the tensor that will be fed.
-    * @param  shape    Shape of the tensor that will be fed. The shape can be any partially-specified, or even
-    *                  completely unknown.
-    * @param  name     Name for the created op.
+    * @param  shape Shape of the tensor that will be fed. The shape can be any partially-specified,
+    *               or even completely unknown.
+    * @param  name  Name for the created op.
+    * @tparam T Data type of the elements in the tensor that will be fed.
     * @return Created op output.
     */
-  def placeholder[T](
-      dataType: DataType[T],
+  def placeholder[T: TF](
       shape: Shape = null,
       name: String = "Placeholder"
   ): Output[T] = {
@@ -253,7 +360,7 @@ trait Basic {
       opType = "Placeholder",
       name = name,
       input = ()
-    ).setAttribute("dtype", dataType)
+    ).setAttribute("dtype", TF[T].dataType)
     if (shape != null && shape.rank != -1)
       opBuilder.setAttribute("shape", shape)
     opBuilder.build().output
@@ -266,9 +373,10 @@ trait Basic {
     * @param  shape   Shape of the tensor that will be fed. The shape can be any partially-specified, or even completely
     *                 unknown.
     * @param  name    Name for the created op.
+    * @tparam T Data type of the elements in the tensor that will be fed.
     * @return Created op output.
     */
-  def placeholderWithDefault[T](
+  def placeholderWithDefault[T: TF](
       default: Output[T],
       shape: Shape,
       name: String = "PlaceholderWithDefault"
@@ -278,38 +386,37 @@ trait Basic {
       name = name,
       input = default
     ).setAttribute("shape", shape)
-        .setGradientFn(identityGradient)
+        .setGradientFn(identityGradient(_, _)(TF[T]))
         .build().output
   }
 
   /** $OpDocBasicSparsePlaceholder
     *
     * @group BasicOps
-    * @param  dataType Data type of the elements in the tensor that will be fed.
-    * @param  shape    Shape of the tensor that will be fed. The shape can be any partially-specified, or even
-    *                  completely unknown. This represents the shape of the dense tensor that corresponds to the sparse
-    *                  tensor that this placeholder refers to.
-    * @param  name     Name for the created op.
+    * @param  shape Shape of the tensor that will be fed. The shape can be any partially-specified, or even
+    *               completely unknown. This represents the shape of the dense tensor that corresponds to the sparse
+    *               tensor that this placeholder refers to.
+    * @param  name  Name for the created op.
+    * @tparam T Data type of the elements in the tensor that will be fed.
     * @return Created op output.
     */
-  def sparsePlaceholder[T](
-      dataType: DataType[T],
+  def sparsePlaceholder[T: TF](
       shape: Shape = null,
       name: String = "SparsePlaceholder"
   ): SparseOutput[T] = {
     val shapeWithDefault = {
       if (shape == null)
-        placeholder(INT64, Shape(-1), name + "/Shape")
+        placeholder[Long](Shape(-1), s"$name/Shape")
       else
-        constant(shape.toTensor[Long])
+        constant(shape.toTensor)
     }
     SparseOutput[T](
-      indices = placeholder(INT64, Shape(-1, -1), name + "/Indices"),
-      values = placeholder(dataType, Shape(-1), name + "/Values"),
+      indices = placeholder[Long](Shape(-1, -1), s"$name/Indices"),
+      values = placeholder[T](Shape(-1), s"$name/Values"),
       denseShape = shapeWithDefault)
   }
 
-  //endregion Tensor Creation Ops
+  //endregion Tensor Constructors
 
   //region Tensor Shape Ops
 
@@ -322,25 +429,25 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def rank[O <: OutputLike[_]](
-      input: O,
+  def rank[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
       optimize: Boolean = true,
       name: String = "Rank"
   ): Output[Int] = {
     input match {
-      case o: Output[_] =>
+      case o: Output[T] =>
         val inputRank = o.rank
         if (optimize && inputRank != -1) {
           constant(Tensor.fill[Int](Shape())(inputRank), name = name)
         } else {
-          Op.Builder[Output[Any], Output[Int]](
+          Op.Builder[Output[T], Output[Int]](
             opType = "Rank",
             name = name,
             input = o
           ).build().output
         }
-      case o: OutputIndexedSlices[_] => size(o.denseShape, INT32, optimize = optimize, name = name)
-      case o: SparseOutput[_] => size(o.denseShape, INT32, optimize = optimize, name = name)
+      case o: OutputIndexedSlices[T] => size(o.denseShape, optimize = optimize, name = name).castTo[Int]
+      case o: SparseOutput[T] => size(o.denseShape, optimize = optimize, name = name).castTo[Int]
     }
   }
 
@@ -354,34 +461,33 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def size[O <: OutputLike[_], R: IsInt32OrInt64](
-      input: O,
-      dataType: DataType[R],
+  def size[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
       optimize: Boolean = true,
       name: String = "Size"
-  ): Output[R] = {
+  ): Output[Long] = {
     input match {
-      case o: Output[_] =>
+      case o: Output[T] =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined) {
-          constant(Tensor.fill[Long](Shape())(inputShape.numElements), name = name).castTo(dataType)
+          constant(Tensor.fill[Long](Shape())(inputShape.numElements), name = name)
         } else if (optimize && inputShape.rank > -1 && inputShape.asArray.contains(0)) {
-          constant(0L, name = name).castTo(dataType)
+          constant(0L, name = name)
         } else {
-          Op.Builder[Output[Any], Output[R]](
+          Op.Builder[Output[T], Output[Long]](
             opType = "Size",
             name = name,
             input = o
-          ).setAttribute("out_type", dataType)
+          ).setAttribute("out_type", INT64)
               .build().output
         }
-      case o: OutputIndexedSlices[_] =>
+      case o: OutputIndexedSlices[T] =>
         Op.nameScope(name) {
-          Math.prod(o.denseShape, Seq(0)).castTo(dataType)
+          Math.prod(o.denseShape, Seq(0))
         }
-      case o: SparseOutput[_] =>
+      case o: SparseOutput[T] =>
         Op.nameScope(name) {
-          Math.prod(o.denseShape, Seq(0)).castTo(dataType)
+          Math.prod(o.denseShape, Seq(0))
         }
     }
   }
@@ -390,55 +496,68 @@ trait Basic {
     *
     * @group BasicOps
     * @param  input    Tensor whose shape to return.
-    * @param  dataType Data type for the resulting tensor.
     * @param  optimize Boolean flag indicating whether to optimize this op creation by using a constant op with the
     *                  shape of that `input` at graph creation time (instead of execution time), if known.
     * @param  name     Name for the created op.
     * @return Created op output, which is one-dimensional.
     */
-  def shape[O <: OutputLike[_], T, I: IsInt32OrInt64](
-      input: O,
-      dataType: DataType[I],
+  def shape[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
       optimize: Boolean = true,
       name: String = "Shape"
-  ): Output[I] = {
+  ): Output[Long] = {
     input match {
-      case o: Output[_] =>
+      case o: Output[T] =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined) {
-          constant(inputShape.toTensor[Long], name = name).castTo(dataType)
+          constant(inputShape.toTensor, name = name)
         } else {
-          Op.Builder[Output[Any], Output[I]](
+          Op.Builder[Output[T], Output[Long]](
             opType = "Shape",
             name = name,
             input = o
-          ).setAttribute("out_type", dataType)
+          ).setAttribute("out_type", INT64)
               .build().output
         }
-      case o: OutputIndexedSlices[_] => o.denseShape.castTo(dataType)
-      case o: SparseOutput[_] => o.denseShape.castTo(dataType)
+      case o: OutputIndexedSlices[T] => o.denseShape
+      case o: SparseOutput[T] => o.denseShape
     }
   }
 
   /** $OpDocBasicShapeN
     *
     * @group BasicOps
-    * @param  inputs   Tensors whose shapes to return.
-    * @param  dataType Data type for the resulting tensors.
-    * @param  name     Name for the created op.
+    * @param  inputs Tensors whose shapes to return.
+    * @tparam T Data type of the input tensors.
+    * @tparam I Data type for the resulting tensors.
     * @return Created op outputs, all of which are one-dimensional.
     */
-  def shapeN[T, I: IsInt32OrInt64](
-      inputs: Seq[Output[T]],
-      dataType: DataType[I],
-      name: String = "ShapeN"
+  def shapeN[T: TF, I: IsInt32OrInt64 : TF](
+      inputs: Seq[Output[T]]
   ): Seq[Output[I]] = {
     Op.Builder[Seq[Output[T]], Seq[Output[I]]](
       opType = "ShapeN",
-      name = name,
+      name = "ShapeN",
       input = inputs
-    ).setAttribute("out_type", dataType)
+    ).setAttribute("out_type", TF[I].dataType)
         .build().output
+  }
+
+  /** $OpDocBasicShapeN
+    *
+    * @group BasicOps
+    * @param  inputs   Tensors whose shapes to return.
+    * @param  dataType Data type of the input tensors.
+    * @tparam T Data type of the input tensors.
+    * @tparam I Data type for the resulting tensors.
+    * @return Created op outputs, all of which are one-dimensional.
+    */
+  def shapeN[T: TF, I: IsInt32OrInt64](
+      inputs: Seq[Output[T]],
+      dataType: DataType[I]
+  ): Seq[Output[I]] = {
+    implicit val evTF: TF[I] = TF.fromDataType(dataType)
+    shapeN[T, I](inputs)
   }
 
   //endregion Tensor Shape Ops
@@ -452,7 +571,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def identity[T, OL[A] <: OutputLike[A]](
+  def identity[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "Identity"
   ): OL[T] = {
@@ -463,7 +582,7 @@ trait Basic {
             opType = "Identity",
             name = name,
             input = i
-          ).setGradientFn(identityGradient)
+          ).setGradientFn(identityGradient(_, _)(TF[T]))
               .build().output
         case i: OutputIndexedSlices[T] =>
           val indices = identity(i.indices, name = "IndicesIdentity")
@@ -479,10 +598,10 @@ trait Basic {
     }.asInstanceOf[OL[T]]
   }
 
-  protected def identityGradient[I](
-      op: Op[I, I],
-      outputGradient: I
-  ): I = {
+  protected def identityGradient[T: TF](
+      op: Op[Output[T], Output[T]],
+      outputGradient: Output[T]
+  ): Output[T] = {
     outputGradient
   }
 
@@ -496,7 +615,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def expandDims[T, I: IsInt32OrInt64](
+  def expandDims[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axis: Output[I],
       name: String = "ExpandDims"
@@ -505,7 +624,7 @@ trait Basic {
       opType = "ExpandDims",
       name = name,
       input = (input, axis)
-    ).setGradientFn(expandDimsGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(expandDimsGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
@@ -518,7 +637,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def squeeze[T](
+  def squeeze[T: TF](
       input: Output[T],
       axes: Seq[Int] = null,
       name: String = "Squeeze"
@@ -530,23 +649,26 @@ trait Basic {
     if (axes != null)
       builder.setAttribute("squeeze_dims", axes.map(_.asInstanceOf[Long]).toArray)
     builder
-        .setGradientFn(squeezeGradient)
+        .setGradientFn(squeezeGradient(_, _)(TF[T]))
         .build().output
   }
 
   /** Reshapes the gradient to the shape of the original input. */
-  protected def reshapeToInput[T](input: Output[T], gradient: Output[T]): Output[T] = {
-    reshape(gradient, shape(input, INT64))
+  protected def reshapeToInput[T: TF](
+      input: Output[T],
+      gradient: Output[T]
+  ): Output[T] = {
+    reshape(gradient, shape(input))
   }
 
-  protected def expandDimsGradient[T, I: IsInt32OrInt64](
+  protected def expandDimsGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
     (reshapeToInput(op.input._1, outputGradient), null)
   }
 
-  protected def squeezeGradient[T](
+  protected def squeezeGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -561,7 +683,7 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def stack[T](
+  def stack[T: TF](
       inputs: Seq[Output[T]],
       axis: Int = 0,
       name: String = "Stack"
@@ -571,11 +693,11 @@ trait Basic {
       name = name,
       input = inputs
     ).setAttribute("axis", axis)
-        .setGradientFn(stackGradient)
+        .setGradientFn(stackGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def stackGradient[T](
+  protected def stackGradient[T: TF](
       op: Op[Seq[Output[T]], Output[T]],
       outputGradient: Output[T]
   ): Seq[Output[T]] = {
@@ -591,7 +713,7 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def parallelStack[T](
+  def parallelStack[T: TF](
       inputs: Seq[Output[T]],
       name: String = "ParallelStack"
   ): Output[T] = {
@@ -619,7 +741,7 @@ trait Basic {
     */
   @throws[IndexOutOfBoundsException]
   @throws[IllegalArgumentException]
-  def unstack[T](
+  def unstack[T: TF](
       input: Output[T],
       number: Int = -1,
       axis: Int = 0,
@@ -645,15 +767,17 @@ trait Basic {
       input = input
     ).setAttribute("num", num)
         .setAttribute("axis", axis)
-        .setGradientFn(unstackGradient)
+        .setGradientFn(unstackGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def unstackGradient[T](
+  protected def unstackGradient[T: TF](
       op: Op[Output[T], Seq[Output[T]]],
       outputGradient: Seq[Output[T]]
   ): Output[T] = {
-    stack(inputs = outputGradient.map(_.toOutput), axis = op.longAttribute("axis").toInt)
+    stack(
+      inputs = outputGradient.map(_.toOutput),
+      axis = op.longAttribute("axis").toInt)
   }
 
   /** $OpDocBasicConcatenate
@@ -666,7 +790,7 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def concatenate[T](
+  def concatenate[T: TF](
       inputs: Seq[Output[T]],
       axis: Output[Int] = 0,
       name: String = "Concatenate"
@@ -678,12 +802,12 @@ trait Basic {
         opType = "ConcatV2",
         name = name,
         input = (inputs, axis)
-      ).setGradientFn(concatenateGradient)
+      ).setGradientFn[(Seq[OutputLike[T]], Output[Int]), OutputLike[T]](concatenateGradient(_, _)(TF[T]))
           .build().output
     }
   }
 
-  protected def concatenateGradient[T](
+  protected def concatenateGradient[T: TF](
       op: Op[(Seq[Output[T]], Output[Int]), Output[T]],
       outputGradient: OutputLike[T]
   ): (Seq[OutputLike[T]], Output[Int]) = {
@@ -712,7 +836,7 @@ trait Basic {
           // concatenate op implementation to be within the allowed '[-rank, rank)' range.
           val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
           // Get the inputs' tensor shapes.
-          val shapes = shapeN(inputValues.map(_.toOutput), INT32)
+          val shapes = shapeN(inputValues.map(_.toOutput)).map(_.castTo[Int])
           // The magic number of '16' was found through benchmarking a range of sizes on CPUs and a Maxwell Titan X
           // GPU. A speedup was seen in a large majority of cases when switching implementations at N = 16, but it is
           // possible that there will be a small number of performance regressions.
@@ -751,7 +875,7 @@ trait Basic {
           // concatenate op implementation to be within the allowed '[-rank, rank)' range.
           val nonNegativeConcatenationAxis = concatenationAxis % rank(inputValues(0))
           // Get the input tensor shapes.
-          val shapes = inputValues.map(shape(_, INT64))
+          val shapes = inputValues.map(shape(_))
           if (staticConcatenationAxis > 0) {
             // 'nonNegativeConcatenationAxis' > 0. Each input gets OutputIndexedSlices gradients with all the indices,
             // but with the values sliced accordingly. This is like the Output case, except that shape(g.values)(0) is
@@ -759,15 +883,15 @@ trait Basic {
 
             // The following creates variables for iteratively slicing a dense gradients tensor.
             // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
-            val shapeOfShape = shape(shapes(0), INT64)
+            val shapeOfShape = shape(shapes(0))
             // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
-            val zero = constant(Tensor(0))
+            val zero = zeros[Long](Shape())
             val mask = concatenate(Seq(
-              fill(INT64, expandDims(nonNegativeConcatenationAxis, 0))(zero),
+              fill[Long, Int](expandDims(nonNegativeConcatenationAxis, 0))(zero),
               constant(Tensor(1L)),
-              fill(INT64, shapeOfShape - nonNegativeConcatenationAxis.castTo[Long] - ones(INT64, Shape()))(zero)
-            ), zero)
-            var begin = fill(INT64, shapeOfShape)(zero)
+              fill[Long, Long](shapeOfShape - nonNegativeConcatenationAxis.castTo[Long] - ones[Long](Shape()))(zero)
+            ), axis = 0)
+            var begin = fill[Long, Long](shapeOfShape)(zero)
             shapes.map(shape => {
               val newValues = slice(g.values, begin, concatenate[Long](
                 Seq(Tensor(-1L), slice(shape, 1, -1)), 0))
@@ -777,7 +901,7 @@ trait Basic {
           } else {
             // 'nonNegativeConcatenationAxis' == 0. Each input gets OutputIndexedSlices gradients but only for the
             // relevant indices.
-            var start = zeros(INT64, Shape())
+            var start = zeros[Long](Shape())
             var end = start
             shapes.map(shape => {
               val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis, axis = 0).castTo[Long]
@@ -828,7 +952,7 @@ trait Basic {
     * @param  name      Name for the created op.
     * @return Created op outputs.
     */
-  def splitEvenly[T](
+  def splitEvenly[T: TF](
       input: Output[T],
       numSplits: Int,
       axis: Output[Int] = 0,
@@ -839,11 +963,11 @@ trait Basic {
       name = name,
       input = (axis, input)
     ).setAttribute("num_split", numSplits)
-        .setGradientFn(splitEvenlyGradient)
+        .setGradientFn(splitEvenlyGradient(_, _)(TF[T]))
         .build().output
   }
 
-  protected def splitEvenlyGradient[T](
+  protected def splitEvenlyGradient[T: TF](
       op: Op[(Output[Int], Output[T]), Seq[Output[T]]],
       outputGradient: Seq[Output[T]]
   ): (Output[Int], Output[T]) = {
@@ -859,7 +983,7 @@ trait Basic {
     * @param  name       Name for the created op.
     * @return Created op outputs.
     */
-  def split[T, I: IsInt32OrInt64](
+  def split[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       splitSizes: Output[I],
       axis: Output[Int] = 0,
@@ -873,11 +997,11 @@ trait Basic {
       name = name,
       input = (input, splitSizes, axis)
     ).setAttribute("num_split", splitSizesShape(0))
-        .setGradientFn(splitGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(splitGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def splitGradient[T, I: IsInt32OrInt64](
+  protected def splitGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I], Output[Int]), Seq[Output[T]]],
       outputGradient: Seq[Output[T]]
   ): (Output[T], Output[I], Output[Int]) = {
@@ -893,7 +1017,7 @@ trait Basic {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def tile[T, I: IsInt32OrInt64](
+  def tile[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       multiples: Output[I],
       name: String = "Tile"
@@ -902,15 +1026,15 @@ trait Basic {
       opType = "Tile",
       name = name,
       input = (input, multiples)
-    ).setGradientFn(tileGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(tileGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def tileGradient[T, I: IsInt32OrInt64](
+  protected def tileGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: OutputLike[T]
   ): (Output[T], Output[I]) = {
-    val inputShape = shape(op.input._1, op.input._2.dataType)
+    val inputShape = shape(op.input._1).castTo[I]
     // We interleave 'multiples' and 'inputShape' to get 'splitShape', reshape the output gradient to 'splitShape',
     // and reduce along all even dimensions (the tiled dimensions) to get the result with shape 'inputShape'.
     // For example:
@@ -919,7 +1043,7 @@ trait Basic {
     //   splitShape = [2, 20, 3, 30, 4, 40]
     //   axes = [0, 2, 4]
     val splitShape = reshape(transpose(stack(Seq(op.input._2, inputShape))), Shape(-1))
-    val axes = Math.range(0, size(splitShape, INT32), 2)
+    val axes = Math.range(0, size(splitShape).castTo[Int], 2)
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
@@ -929,9 +1053,9 @@ trait Basic {
       case g: OutputIndexedSlices[T] =>
         val gradient = Math.unsortedSegmentSum(
           g.values,
-          Math.mod(g.indices.castTo(inputShape.dataType), inputShape(0)),
+          Math.mod(g.indices.castTo[I], inputShape(0)),
           inputShape(0))
-        (gradient, concatenate(Seq(ones(splitShape.dataType, Shape()), splitShape(1 ::)), axis = 0))
+        (gradient, concatenate(Seq(ones[I](Shape()), splitShape(1 ::)), axis = 0))
       case g => (g, splitShape)
     }
     val inputGradient = Math.sum(reshape(gradient, processedSplitShape), axes)
@@ -958,7 +1082,7 @@ trait Basic {
       * @param  name     Name for the created op.
       * @return Created op output.
       */
-    private[ops] def pad[T, I: IsInt32OrInt64](
+    private[ops] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Output[T],
         paddings: Output[I],
         name: String
@@ -979,7 +1103,7 @@ trait Basic {
       * @param  paddings Paddings tensor.
       * @return Result as a new tensor.
       */
-    private[api] def pad[T, I: IsInt32OrInt64](
+    private[api] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Tensor[T],
         paddings: Tensor[I]
     ): Tensor[T]
@@ -1017,8 +1141,8 @@ trait Basic {
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  case class ConstantPadding(value: Option[Tensor[_]] = None) extends PaddingMode {
-    override private[ops] def pad[T, I: IsInt32OrInt64](
+  case class ConstantPadding[V](value: Option[Tensor[V]] = None) extends PaddingMode {
+    override private[ops] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Output[T],
         paddings: Output[I],
         name: String
@@ -1029,17 +1153,17 @@ trait Basic {
         opType = "PadV2",
         name = name,
         input = (input, paddings, constantValues)
-      ).setGradientFn(padGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+      ).setGradientFn(padGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
 
-    override private[api] def pad[T, I: IsInt32OrInt64](
+    override private[api] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Tensor[T],
         paddings: Tensor[I]
     ): Tensor[T] = {
       Tensor.fromNativeHandle[T](NativeTensorOpsBasic.padV2(
         executionContext.value.nativeHandle, input.nativeHandle, paddings.nativeHandle,
-        value.map(_.castTo(input.dataType)).getOrElse(Tensor.zeros(input.dataType, Shape())).nativeHandle))
+        value.map(_.castTo[T]).getOrElse(Tensor.zeros[T](Shape())).nativeHandle))
     }
   }
 
@@ -1066,7 +1190,7 @@ trait Basic {
     * }}}
     */
   object ReflectivePadding extends PaddingMode {
-    override private[ops] def pad[T, I: IsInt32OrInt64](
+    override private[ops] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Output[T],
         paddings: Output[I],
         name: String
@@ -1076,11 +1200,11 @@ trait Basic {
         name = name,
         input = (input, paddings)
       ).setAttribute("mode", "REFLECT")
-          .setGradientFn(mirrorPadGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+          .setGradientFn(mirrorPadGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
 
-    override private[api] def pad[T, I: IsInt32OrInt64](
+    override private[api] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Tensor[T],
         paddings: Tensor[I]
     ): Tensor[T] = {
@@ -1113,7 +1237,7 @@ trait Basic {
     * }}}
     */
   object SymmetricPadding extends PaddingMode {
-    override private[ops] def pad[T, I: IsInt32OrInt64](
+    override private[ops] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Output[T],
         paddings: Output[I],
         name: String
@@ -1123,11 +1247,11 @@ trait Basic {
         name = name,
         input = (input, paddings)
       ).setAttribute("mode", "SYMMETRIC")
-          .setGradientFn(mirrorPadGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+          .setGradientFn(mirrorPadGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
           .build().output
     }
 
-    override private[api] def pad[T, I: IsInt32OrInt64](
+    override private[api] def pad[T: TF, I: IsInt32OrInt64 : TF](
         input: Tensor[T],
         paddings: Tensor[I]
     ): Tensor[T] = {
@@ -1146,7 +1270,7 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def pad[T, I: IsInt32OrInt64](
+  def pad[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       paddings: Output[I],
       mode: PaddingMode = ConstantPadding(Some(Tensor(0).reshape(Shape()))),
@@ -1155,7 +1279,7 @@ trait Basic {
     mode.pad(input, paddings, name)
   }
 
-  protected def padGradient[T, I: IsInt32OrInt64](
+  protected def padGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I], Output[T]) = {
@@ -1166,11 +1290,11 @@ trait Basic {
     // Take a slice of 'a' (the 1st column: [rank(x), 1]).
     val padBefore = slice(a, Tensor(0, 0), stack[Int](Seq(rank(x), 1)))
     // Make it a one-dimensional tensor and return it.
-    val xGradient = slice(outputGradient, reshape(padBefore, Shape(-1)), shape(x, a.dataType))
+    val xGradient = slice(outputGradient, reshape(padBefore, Shape(-1)), shape(x).castTo[I])
     (xGradient, null, null)
   }
 
-  protected def mirrorPadGradient[T, I: IsInt32OrInt64](
+  protected def mirrorPadGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -1179,12 +1303,12 @@ trait Basic {
       name = "MirrorPadGradient",
       input = (outputGradient, op.input._2)
     ).setAttribute("mode", op.stringAttribute("mode"))
-        .setGradientFn(mirrorPadHessian(_, _)(implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(mirrorPadHessian(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
     (gradient, null)
   }
 
-  protected def mirrorPadHessian[T, I: IsInt32OrInt64](
+  protected def mirrorPadHessian[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -1200,7 +1324,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def reshape[T, I: IsInt32OrInt64](
+  def reshape[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       shape: Output[I],
       name: String = "Reshape"
@@ -1209,15 +1333,15 @@ trait Basic {
       opType = "Reshape",
       name = name,
       input = (input, shape)
-    ).setGradientFn(reshapeGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(reshapeGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def reshapeGradient[T, I: IsInt32OrInt64](
+  protected def reshapeGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
-    (reshape(outputGradient, shape(op.input._1, INT64)), null)
+    (reshape(outputGradient, shape(op.input._1)), null)
   }
 
   /** $OpDocBasicTranspose
@@ -1229,7 +1353,7 @@ trait Basic {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def transpose[T, I: IsInt32OrInt64](
+  def transpose[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       permutation: Output[I] = null,
       conjugate: Boolean = false,
@@ -1246,9 +1370,9 @@ trait Basic {
           input = (input, reversePermutation)
         ).setGradientFn[(Output[T], Output[Int]), Output[T]]({
           if (opType == "Transpose")
-            transposeGradient(_, _)(implicitly[IsInt32OrInt64[Int]])
+            transposeGradient(_, _)(TF[T], IsInt32OrInt64[Int], TF[Int])
           else
-            conjugateTransposeGradient(_, _)(implicitly[IsInt32OrInt64[Int]])
+            conjugateTransposeGradient(_, _)(TF[T], IsInt32OrInt64[Int], TF[Int])
         }).build()
         // Setting the shape explicitly because transpose is not handled by the shape function.
         val inputShape = transposed.input._1.shape
@@ -1263,21 +1387,21 @@ trait Basic {
         input = (input, permutation)
       ).setGradientFn[(Output[T], Output[I]), Output[T]]({
         if (opType == "Transpose")
-          transposeGradient(_, _)(implicitly[IsInt32OrInt64[I]])
+          transposeGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I])
         else
-          conjugateTransposeGradient(_, _)(implicitly[IsInt32OrInt64[I]])
+          conjugateTransposeGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I])
       }).build().output
     }
   }
 
-  protected def transposeGradient[T, I: IsInt32OrInt64](
+  protected def transposeGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
     (transpose(outputGradient, invertPermutation(op.input._2)), null)
   }
 
-  protected def conjugateTransposeGradient[T, I: IsInt32OrInt64](
+  protected def conjugateTransposeGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -1294,7 +1418,7 @@ trait Basic {
     * @throws InvalidShapeException If the input tensor has rank <= 2.
     */
   @throws[InvalidShapeException]
-  def matrixTranspose[T](
+  def matrixTranspose[T: TF](
       input: Output[T],
       conjugate: Boolean = false,
       name: String = "MatrixTranspose"
@@ -1333,7 +1457,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def invertPermutation[I: IsInt32OrInt64](
+  def invertPermutation[I: IsInt32OrInt64 : TF](
       input: Output[I],
       name: String = "InvertPermutation"
   ): Output[I] = {
@@ -1352,7 +1476,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output which has the same shape as `input`.
     */
-  def reverse[T, I: IsInt32OrInt64](
+  def reverse[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       axes: Output[I],
       name: String = "Reverse"
@@ -1361,11 +1485,11 @@ trait Basic {
       opType = "ReverseV2",
       name = name,
       input = (input, if (axes.rank < 1) axes else axes(NewAxis))
-    ).setGradientFn(reverseGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(reverseGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def reverseGradient[T, I: IsInt32OrInt64](
+  protected def reverseGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -1383,7 +1507,7 @@ trait Basic {
     * @param  name            Created op name.
     * @return Created op output which has the same shape as `input`.
     */
-  def reverseSequence[T, I: IsInt32OrInt64](
+  def reverseSequence[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       sequenceLengths: Output[I],
       sequenceAxis: Int,
@@ -1396,11 +1520,11 @@ trait Basic {
       input = (input, sequenceLengths)
     ).setAttribute("seq_dim", sequenceAxis)
         .setAttribute("batch_dim", batchAxis)
-        .setGradientFn(reverseSequenceGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(reverseSequenceGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def reverseSequenceGradient[T, I: IsInt32OrInt64](
+  protected def reverseSequenceGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -1420,7 +1544,7 @@ trait Basic {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def spaceToBatch[T, I: IsInt32OrInt64](
+  def spaceToBatch[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       blockSize: Int,
       paddings: Output[I],
@@ -1444,7 +1568,7 @@ trait Basic {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def spaceToBatchND[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def spaceToBatchND[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       input: Output[T],
       blockShape: Output[I1],
       paddings: Output[I2],
@@ -1454,11 +1578,11 @@ trait Basic {
       opType = "SpaceToBatchND",
       name = name,
       input = (input, blockShape, paddings)
-    ).setGradientFn(spaceToBatchNDGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+    ).setGradientFn(spaceToBatchNDGradient(_, _)(TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
         .build().output
   }
 
-  protected def spaceToBatchNDGradient[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def spaceToBatchNDGradient[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
@@ -1474,7 +1598,7 @@ trait Basic {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def batchToSpace[T, I: IsInt32OrInt64](
+  def batchToSpace[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       blockSize: Int,
       crops: Output[I],
@@ -1498,7 +1622,7 @@ trait Basic {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def batchToSpaceND[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def batchToSpaceND[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       input: Output[T],
       blockShape: Output[I1],
       crops: Output[I2],
@@ -1508,11 +1632,11 @@ trait Basic {
       opType = "BatchToSpaceND",
       name = name,
       input = (input, blockShape, crops)
-    ).setGradientFn(batchToSpaceNDGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]]))
+    ).setGradientFn(batchToSpaceNDGradient(_, _)(TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2]))
         .build().output
   }
 
-  protected def batchToSpaceNDGradient[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def batchToSpaceNDGradient[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
@@ -1540,7 +1664,7 @@ trait Basic {
       blockShape.shape.assertHasRank(1)
       val numBlockDims = blockShape.shape(0)
       if (numBlockDims == 0) {
-        (zeros(INT32, Shape(0, 2)), zeros(INT32, Shape(0, 2)))
+        (zeros[Int](Shape(0, 2)), zeros[Int](Shape(0, 2)))
       } else {
         inputShape.shape.assertIsCompatibleWith(Shape(numBlockDims))
         val actualBasePaddings = {
@@ -1548,7 +1672,7 @@ trait Basic {
             basePaddings.shape.assertIsCompatibleWith(Shape(numBlockDims, 2))
             basePaddings
           } else {
-            zeros(INT32, Shape(numBlockDims, 2))
+            zeros[Int](Shape(numBlockDims, 2))
           }
         }
         val cInputShape = Output.constantValue(inputShape)
@@ -1579,7 +1703,7 @@ trait Basic {
           val padEnd = originalPadEnd + extraPadEnd
           val resultPaddings = stack(
             (0 until numBlockDims).map(i => concatenate(Seq(padStart(i), padEnd(i))).toOutput), name = "Paddings")
-          val zero = zeros(padStart.dataType, Shape())
+          val zero = zeros[Int](Shape())
           val resultCrops = stack(
             (0 until numBlockDims).map(i => concatenate(Seq(zero, extraPadEnd(i))).toOutput), name = "Crops")
           (resultPaddings, resultCrops)
@@ -1597,7 +1721,7 @@ trait Basic {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def spaceToDepth[T](
+  def spaceToDepth[T: TF](
       input: Output[T],
       blockSize: Int,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
@@ -1609,12 +1733,12 @@ trait Basic {
       input = input
     ).setAttribute("block_size", blockSize.toLong)
         .setAttribute("data_format", dataFormat.name)
-        .setGradientFn(spaceToDepthGradient)
+        .setGradientFn(spaceToDepthGradient(_, _)(TF[T]))
         .build().output
   }
 
   @throws[InvalidArgumentException]
-  protected def spaceToDepthGradient[T](
+  protected def spaceToDepthGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1634,7 +1758,7 @@ trait Basic {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def depthToSpace[T](
+  def depthToSpace[T: TF](
       input: Output[T],
       blockSize: Int,
       dataFormat: CNNDataFormat = CNNDataFormat.default,
@@ -1646,12 +1770,12 @@ trait Basic {
       input = input
     ).setAttribute("block_size", blockSize.toLong)
         .setAttribute("data_format", dataFormat.name)
-        .setGradientFn(depthToSpaceGradient)
+        .setGradientFn(depthToSpaceGradient(_, _)(TF[T]))
         .build().output
   }
 
   @throws[InvalidArgumentException]
-  protected def depthToSpaceGradient[T](
+  protected def depthToSpaceGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1673,7 +1797,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def where[T: IsBooleanOrNumeric](
+  def where[T: IsBooleanOrNumeric : TF](
       input: Output[T],
       name: String = "Where"
   ): Output[Long] = {
@@ -1692,7 +1816,7 @@ trait Basic {
     * @param  name  Name for the created op output.
     * @return Created op output.
     */
-  def booleanMask[T](
+  def booleanMask[T: TF](
       input: Output[T],
       mask: Output[Boolean],
       name: String = "BooleanMask"
@@ -1706,7 +1830,7 @@ trait Basic {
           "The rank of the boolean mask must be known, even if some dimension sizes are unknown. For example, " +
               "'Shape(-1)' is fine, but 'Shape.unknown()' is not.")
       inputShape(0 :: maskRank).assertIsCompatibleWith(maskShape)
-      val dynamicInputShape = shape(input, INT64)
+      val dynamicInputShape = shape(input)
       val leadingSize = Math.prod(dynamicInputShape(0 :: maskRank), Seq(0)).reshape(Shape(1))
       val reshapedInput = reshape(input, concatenate(Seq(leadingSize, dynamicInputShape(maskRank ::)), 0))
       val firstDimension = inputShape(0 :: maskRank).numElements.toInt
@@ -1730,7 +1854,7 @@ trait Basic {
     * @throws IllegalArgumentException If `maxLength` is not a scalar.
     */
   @throws[IllegalArgumentException]
-  def sequenceMask[T: IsIntOrUInt](
+  def sequenceMask[T: IsIntOrUInt : TF](
       lengths: Output[T],
       maxLength: Output[T] = null,
       name: String = "SequenceMask"
@@ -1745,7 +1869,7 @@ trait Basic {
       val rowVector = Math.range(Basic.zerosLike(maxLen), maxLen, Basic.onesLike(maxLen))
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
       // into INT32, then so do the elements of 'lengths'.
-      val matrix = expandDims(lengths, -1).castTo(maxLen.dataType)
+      val matrix = expandDims(lengths, -1).castTo[T]
       Math.less(rowVector, matrix)
     }
   }
@@ -1758,7 +1882,7 @@ trait Basic {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def indexedSlicesMask[T](
+  def indexedSlicesMask[T: TF](
       input: OutputIndexedSlices[T],
       maskIndices: Output[Long],
       name: String = "IndexedSlicesMask"
@@ -1783,7 +1907,7 @@ trait Basic {
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`.
     */
-  def unique[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def unique[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       input: Output[T],
       axis: Output[I1],
       indicesDataType: DataType[I2],
@@ -1806,7 +1930,7 @@ trait Basic {
     * @param  name            Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
-  def uniqueWithCounts[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def uniqueWithCounts[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       input: Output[T],
       axis: Output[I1],
       indicesDataType: DataType[I2],
@@ -1829,7 +1953,7 @@ trait Basic {
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
     */
-  def listDiff[T, I: IsInt32OrInt64](
+  def listDiff[T: TF, I: IsInt32OrInt64 : TF](
       x: Output[T],
       y: Output[T],
       indicesDataType: DataType[I],
@@ -1856,7 +1980,7 @@ trait Basic {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def gather[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  def gather[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       input: Output[T],
       indices: Output[I1],
       axis: Output[I2] = null,
@@ -1868,7 +1992,7 @@ trait Basic {
         name = name,
         input = (input, indices, axis)
       ).setGradientFn[(OutputLike[T], Output[I1], Output[I2]), Output[T]]({
-        gatherGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[I2]])
+        gatherGradient(_, _)(TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[I2], TF[I2])
       }).build().output
     } else {
       Op.Builder[(Output[T], Output[I1], Output[Int]), Output[T]](
@@ -1876,12 +2000,12 @@ trait Basic {
         name = name,
         input = (input, indices, Tensor.zeros[Int](Shape()))
       ).setGradientFn[(OutputLike[T], Output[I1], Output[Int]), Output[T]]({
-        gatherGradient(_, _)(implicitly[IsInt32OrInt64[I1]], implicitly[IsInt32OrInt64[Int]])
+        gatherGradient(_, _)(TF[T], IsInt32OrInt64[I1], TF[I1], IsInt32OrInt64[Int], TF[Int])
       }).build().output
     }
   }
 
-  protected def gatherGradient[T, I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+  protected def gatherGradient[T: TF, I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (OutputLike[T], Output[I1], Output[I2]) = {
@@ -1889,13 +2013,13 @@ trait Basic {
     // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
     // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
     // and so it's fine to convert it back to INT32 regardless of the truncation.
-    val zero = zeros(INT32, Shape())
+    val zero = zeros[Int](Shape())
     val input = op.input._1
     val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
-      shape(input, INT64)
+      shape(input)
     }
     val indices = op.input._2.castTo[Long]
-    val indicesSize = expandDims(size(indices, INT64), zero)
+    val indicesSize = expandDims(size(indices), zero)
     val axis = op.input._3
     val axisStatic = Output.constantValue(axis)
     // For axis 0 gathers, we build appropriately shaped indexed slices.
@@ -1910,10 +2034,10 @@ trait Basic {
       val intIndicesSize = indicesSize.castTo[Int]
       val expandedAxis = axis.castTo[Int].expandDims(zero)
       val outerShape = slice(intInputShape, zero, expandedAxis)
-      val outerSize = size(outerShape, INT32)
-      val computedShape = slice(intInputShape, expandedAxis, size(inputShape, INT32).expandDims(zero))
+      val outerSize = size(outerShape).castTo[Int]
+      val computedShape = slice(intInputShape, expandedAxis, size(inputShape).castTo[Int].expandDims(zero))
       val innerShape = computedShape.slice(1 ::)
-      val innerSize = size(innerShape, INT32)
+      val innerSize = size(innerShape).castTo[Int]
       val outerAxesIndices = Math.range(zero, outerSize)
       val innerAxesIndices = Math.range(outerSize + 1, outerSize + 1 + innerSize)
       val valuesShape = concatenate(Seq(outerShape, intIndicesSize, innerShape), zero)
@@ -1948,7 +2072,7 @@ trait Basic {
     * @return Created op output that contains the values from `input` gathered from indices given by `indices`, with
     *         shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
     */
-  def gatherND[T, I: IsInt32OrInt64](
+  def gatherND[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       indices: Output[I],
       name: String = "GatherND"
@@ -1958,16 +2082,16 @@ trait Basic {
       name = name,
       input = (input, indices)
     ).setGradientFn[(OutputLike[T], Output[I]), Output[T]]({
-      gatherNDGradient(_, _)(implicitly[IsInt32OrInt64[I]])
+      gatherNDGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I])
     }).build().output
   }
 
-  protected def gatherNDGradient[T, I: IsInt32OrInt64](
+  protected def gatherNDGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (OutputLike[T], Output[I]) = {
     val indices = op.input._2
-    val inputShape = shape(op.input._1, indices.dataType)
+    val inputShape = shape(op.input._1).castTo[I]
     if (indices.rank == 2 && indices.shape(-1) == 1) {
       (OutputIndexedSlices(
         indices = Basic.squeeze(indices, axes = Seq(-1)).castTo[Long],
@@ -1987,7 +2111,7 @@ trait Basic {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def scatterND[T, I: IsInt32OrInt64](
+  def scatterND[T: TF, I: IsInt32OrInt64 : TF](
       indices: Output[I],
       updates: Output[T],
       shape: Output[I],
@@ -1997,11 +2121,11 @@ trait Basic {
       opType = "ScatterNd",
       name = name,
       input = (indices, updates, shape)
-    ).setGradientFn(scatterNDGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(scatterNDGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def scatterNDGradient[T, I: IsInt32OrInt64](
+  protected def scatterNDGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[I], Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[I], Output[T], Output[I]) = {
@@ -2020,7 +2144,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  private[ops] def slice[T, I: IsInt32OrInt64](
+  private[ops] def slice[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       begin: Output[I],
       size: Output[I],
@@ -2030,11 +2154,11 @@ trait Basic {
       opType = "Slice",
       name = name,
       input = (input, begin, size)
-    ).setGradientFn(sliceGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+    ).setGradientFn(sliceGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def sliceGradient[T, I: IsInt32OrInt64](
+  protected def sliceGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I], Output[I]) = {
@@ -2044,11 +2168,10 @@ trait Basic {
     // more reshaping is needed to assemble this tensor with the right dimensions.
     val inputVector = op.input._1
     val beginVector = op.input._2
-    val dataType = beginVector.dataType
     val inputRank = rank(inputVector)
     val padShape = stack[Int](Seq(inputRank, 1))
     val beforePad = reshape(beginVector, padShape)
-    val afterPad = reshape(shape(inputVector, dataType) - shape(op.output, dataType) - beginVector, padShape)
+    val afterPad = reshape(shape(inputVector).castTo[I] - shape(op.output).castTo[I] - beginVector, padShape)
     val paddings = concatenate(Seq(beforePad, afterPad), axis = 1)
     (pad(outputGradient, paddings), null, null)
   }
@@ -2090,7 +2213,7 @@ trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def stridedSlice[T, I: IsInt32OrInt64](
+  def stridedSlice[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[T],
       begin: Output[I],
       end: Output[I],
@@ -2112,15 +2235,15 @@ trait Basic {
         .setAttribute("ellipsis_mask", ellipsisMask)
         .setAttribute("new_axis_mask", newAxisMask)
         .setAttribute("shrink_axis_mask", shrinkAxisMask)
-        .setGradientFn(stridedSliceGradient(_, _)(implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(stridedSliceGradient(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
   }
 
-  protected def stridedSliceGradient[T, I: IsInt32OrInt64](
+  protected def stridedSliceGradient[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[T], Output[I], Output[I], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I], Output[I], Output[I]) = {
-    val inputShape = shape(op.input._1, op.input._2.dataType)
+    val inputShape = shape(op.input._1).castTo[I]
     val gradient = Op.Builder[(Output[I], Output[I], Output[I], Output[I], Output[T]), Output[T]](
       opType = "StridedSliceGrad",
       name = "StridedSliceGradient",
@@ -2130,12 +2253,12 @@ trait Basic {
         .setAttribute("ellipsis_mask", op.longAttribute("ellipsis_mask"))
         .setAttribute("new_axis_mask", op.longAttribute("new_axis_mask"))
         .setAttribute("shrink_axis_mask", op.longAttribute("shrink_axis_mask"))
-        .setGradientFn(stridedSliceHessian(_, _)(implicitly[IsInt32OrInt64[I]]))
+        .setGradientFn(stridedSliceHessian(_, _)(TF[T], IsInt32OrInt64[I], TF[I]))
         .build().output
     (gradient, null, null, null)
   }
 
-  protected def stridedSliceHessian[T, I: IsInt32OrInt64](
+  protected def stridedSliceHessian[T: TF, I: IsInt32OrInt64 : TF](
       op: Op[(Output[I], Output[I], Output[I], Output[I], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[I], Output[I], Output[I], Output[I], Output[T]) = {
@@ -2192,7 +2315,7 @@ trait Basic {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  private[api] def stridedSliceAssign[T, I: IsInt32OrInt64](
+  private[api] def stridedSliceAssign[T: TF, I: IsInt32OrInt64 : TF](
       input: Output[Long],
       value: Output[T],
       begin: Output[I],
@@ -2230,7 +2353,7 @@ trait Basic {
     * @param  name    Name for the created op.
     * @return Created op output, which has the same value as the input tensor.
     */
-  def checkNumerics[T: IsDecimal](
+  def checkNumerics[T: IsDecimal : TF](
       input: Output[T],
       message: String = "",
       name: String = "CheckNumerics"
@@ -2240,11 +2363,11 @@ trait Basic {
       name = name,
       input = input
     ).setAttribute("message", message)
-        .setGradientFn(checkNumericsGradient(_, _)(implicitly[IsDecimal[T]]))
+        .setGradientFn(checkNumericsGradient(_, _)(IsDecimal[T], TF[T]))
         .build().output
   }
 
-  protected def checkNumericsGradient[T: IsDecimal](
+  protected def checkNumericsGradient[T: IsDecimal : TF](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -2261,7 +2384,7 @@ trait Basic {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def editDistance[T](
+  def editDistance[T: TF](
       hypothesis: SparseOutput[T],
       truth: SparseOutput[T],
       normalize: Boolean = true,
@@ -2291,7 +2414,7 @@ trait Basic {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def oneHot[T, I: IsInt32OrInt64OrUInt8](
+  def oneHot[T: TF, I: IsInt32OrInt64OrUInt8 : TF](
       indices: Output[I],
       depth: Output[Int],
       dataType: DataType[T],
@@ -2301,8 +2424,8 @@ trait Basic {
       name: String = "OneHot"
   ): Output[T] = {
     Op.nameScope(name) {
-      val actualOnValue = if (onValue != null) onValue.castTo(dataType) else ones(dataType, Shape())
-      val actualOffValue = if (offValue != null) offValue.castTo(dataType) else zeros(dataType, Shape())
+      val actualOnValue = if (onValue != null) onValue.castTo[T] else ones[T](Shape())
+      val actualOffValue = if (offValue != null) offValue.castTo[T] else zeros[T](Shape())
       Op.Builder[(Output[I], Output[Int], Output[T], Output[T]), Output[T]](
         opType = "OneHot",
         name = name,
@@ -2326,7 +2449,7 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
     */
-  def broadcastGradientArguments[I: IsInt32OrInt64](
+  def broadcastGradientArguments[I: IsInt32OrInt64 : TF](
       shape1: Output[I],
       shape2: Output[I],
       name: String = "BroadcastGradientArguments"
@@ -2346,7 +2469,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def broadcastTo[T, I: IsInt32OrInt64](
+  def broadcastTo[T: TF, I: IsInt32OrInt64 : TF](
       value: Output[T],
       shape: Output[I],
       name: String = "BroadcastTo"
@@ -2368,7 +2491,7 @@ trait Basic {
     * @param  name   Name for the created op.
     * @return Created op output, which is a one-dimensional integer tensor representing the broadcasted shape.
     */
-  def broadcastShapeDynamic[I: IsInt32OrInt64](
+  def broadcastShapeDynamic[I: IsInt32OrInt64 : TF](
       shape1: Output[I],
       shape2: Output[I],
       name: String = "BroadcastShape"
@@ -2389,7 +2512,7 @@ trait Basic {
     * @param  name                 Name for the created op.
     * @return Created op outputs, each with rank `N`.
     */
-  def meshGrid[T: IsNotQuantized](
+  def meshGrid[T: IsNotQuantized : TF](
       inputs: Seq[Output[T]],
       useCartesianIndexing: Boolean = true,
       name: String = "MeshGrid"
@@ -2403,7 +2526,7 @@ trait Basic {
           reshape(i._1, shape)
         })
         // Create parameters for broadcasting each tensor to the full size.
-        val shapes = inputs.map(size(_, INT64))
+        val shapes = inputs.map(size(_))
         if (useCartesianIndexing) {
           outputs.zip(shapes).zipWithIndex.map(o => o._2 match {
             case 0 =>
@@ -2419,7 +2542,7 @@ trait Basic {
         }
       }
       // TODO: [OPS] Improve performance with a broadcast.
-      val multiplicativeFactor = fill(inputs.head.dataType, stack(shapes))(1)
+      val multiplicativeFactor = fill[T, Long](stack(shapes))(Tensor.ones[T](Shape()))
       outputs.map(Math.multiply(_, multiplicativeFactor))
     }
   }
@@ -2435,7 +2558,7 @@ trait Basic {
     * @param  name  Name for the created op.
     * @return Created op output, which has the same value as the input tensor.
     */
-  def stopGradient[T](
+  def stopGradient[T: TF](
       input: Output[T],
       name: String = "StopGradient"
   ): Output[T] = {
@@ -2454,7 +2577,7 @@ trait Basic {
     * @param  name    Name for the created op.
     * @return Created op output, which has the same value as the input tensor.
     */
-  def preventGradient[T](
+  def preventGradient[T: TF](
       input: Output[T],
       message: String = "",
       name: String = "PreventGradient"
@@ -2464,12 +2587,12 @@ trait Basic {
       name = name,
       input = input
     ).setAttribute("message", message)
-        .setGradientFn(preventGradientGradient)
+        .setGradientFn(preventGradientGradient(_, _)(TF[T]))
         .build().output
   }
 
   @throws[IllegalArgumentException]
-  protected def preventGradientGradient[T](
+  protected def preventGradientGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradients: Output[T]
   ): Output[T] = {
@@ -2482,13 +2605,13 @@ trait Basic {
 
 object Basic extends Basic {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToBasicOps[OC, T](
+    implicit def outputConvertibleToBasicOps[OC, T: TF](
         value: OC
     )(implicit f: OC => Output[T]): BasicOps[T] = {
       new BasicOps(f(value))
     }
 
-    implicit class BasicOps[T](val output: Output[T]) {
+    implicit class BasicOps[T: TF](val output: Output[T]) {
       //region Tensor Manipulation Ops
 
       /** $OpDocBasicIdentity
@@ -2553,7 +2676,7 @@ object Basic extends Basic {
         * @param  axis       Dimension along which to split the input tensor.
         * @return Result as a new tensor.
         */
-      def split[I: IsInt32OrInt64](
+      def split[I: IsInt32OrInt64 : TF](
           splitSizes: Output[I],
           axis: Output[Int] = 0
       ): Seq[Output[T]] = {
@@ -2567,7 +2690,7 @@ object Basic extends Basic {
         *                   rank of `input`.
         * @return Result as a new tensor.
         */
-      def tile[I: IsInt32OrInt64](multiples: Output[I]): Output[T] = {
+      def tile[I: IsInt32OrInt64 : TF](multiples: Output[I]): Output[T] = {
         Basic.tile(output, multiples)
       }
 
@@ -2578,7 +2701,7 @@ object Basic extends Basic {
         * @param  mode     Padding mode to use.
         * @return Result as a new tensor.
         */
-      def pad[I: IsInt32OrInt64](
+      def pad[I: IsInt32OrInt64 : TF](
           paddings: Output[I],
           mode: PaddingMode = ConstantPadding(Some(Tensor(0)))
       ): Output[T] = {
@@ -2591,7 +2714,7 @@ object Basic extends Basic {
         * @param  shape Shape of the output tensor.
         * @return Result as a new tensor.
         */
-      def reshape[I: IsInt32OrInt64](shape: Output[I]): Output[T] = {
+      def reshape[I: IsInt32OrInt64 : TF](shape: Output[I]): Output[T] = {
         Basic.reshape(output, shape)
       }
 
@@ -2602,7 +2725,7 @@ object Basic extends Basic {
         * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
         * @return Result as a new tensor.
         */
-      def transpose[I: IsInt32OrInt64](
+      def transpose[I: IsInt32OrInt64 : TF](
           permutation: Output[I] = null,
           conjugate: Boolean = false
       ): Output[T] = {
@@ -2634,7 +2757,7 @@ object Basic extends Basic {
         * @param  axes Dimensions of the input tensor to reverse.
         * @return Result as a new tensor which has the same shape as `input`.
         */
-      def reverse[I: IsInt32OrInt64](axes: Output[I]): Output[T] = {
+      def reverse[I: IsInt32OrInt64 : TF](axes: Output[I]): Output[T] = {
         Basic.reverse(output, axes)
       }
 
@@ -2647,7 +2770,7 @@ object Basic extends Basic {
         * @param  batchAxis       Tensor dimension along which the reversal is performed.
         * @return Result as a new tensor which has the same shape as `input`.
         */
-      def reverseSequence[I: IsInt32OrInt64](
+      def reverseSequence[I: IsInt32OrInt64 : TF](
           sequenceLengths: Output[I],
           sequenceAxis: Int,
           batchAxis: Int = 0
@@ -2662,7 +2785,7 @@ object Basic extends Basic {
         * @param  paddings  `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def spaceToBatch[I: IsInt32OrInt64](
+      def spaceToBatch[I: IsInt32OrInt64 : TF](
           blockSize: Int,
           paddings: Output[I]
       ): Output[T] = {
@@ -2679,7 +2802,7 @@ object Basic extends Basic {
         *                    `inputShape(i + 1) + padStart + padEnd`.
         * @return Result as a new tensor.
         */
-      def spaceToBatchND[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def spaceToBatchND[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           blockShape: Output[I1],
           paddings: Output[I2]
       ): Output[T] = {
@@ -2693,7 +2816,7 @@ object Basic extends Basic {
         * @param  crops     `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def batchToSpace[I: IsInt32OrInt64](
+      def batchToSpace[I: IsInt32OrInt64 : TF](
           blockSize: Int,
           crops: Output[I]
       ): Output[T] = {
@@ -2710,7 +2833,7 @@ object Basic extends Basic {
         *                    `cropStart(i) + cropEnd(i) <= blockShape(i) * inputShape(i + 1)`.
         * @return Result as a new tensor.
         */
-      def batchToSpaceND[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def batchToSpaceND[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           blockShape: Output[I1],
           crops: Output[I2]
       ): Output[T] = {
@@ -2790,7 +2913,7 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Tuple containing `output` and `indices`.
         */
-      def unique[I1: IsInt32OrInt64](
+      def unique[I1: IsInt32OrInt64 : TF](
           axis: Output[I1]
       ): (Output[T], Output[Int]) = {
         Basic.unique(output, axis, indicesDataType = INT32)
@@ -2802,7 +2925,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type of the returned indices.
         * @return Tuple containing `output` and `indices`.
         */
-      def unique[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def unique[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           axis: Output[I1],
           indicesDataType: DataType[I2]
       ): (Output[T], Output[I2]) = {
@@ -2814,7 +2937,7 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Tuple containing `output`, `indices`, and `counts`.
         */
-      def uniqueWithCounts[I1: IsInt32OrInt64](
+      def uniqueWithCounts[I1: IsInt32OrInt64 : TF](
           axis: Output[I1]
       ): (Output[T], Output[Int], Output[Int]) = {
         Basic.uniqueWithCounts(output, axis, indicesDataType = INT32)
@@ -2826,7 +2949,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type of the returned indices.
         * @return Tuple containing `output`, `indices`, and `counts`.
         */
-      def uniqueWithCounts[I1: IsInt32OrInt64, I2: IsInt32OrInt64](
+      def uniqueWithCounts[I1: IsInt32OrInt64 : TF, I2: IsInt32OrInt64 : TF](
           axis: Output[I1],
           indicesDataType: DataType[I2]
       ): (Output[T], Output[I2], Output[I2]) = {
@@ -2850,7 +2973,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type to use for the output indices of this op.
         * @return Tuple containing `output` and `indices`, from the method description.
         */
-      def listDiff[I: IsInt32OrInt64](
+      def listDiff[I: IsInt32OrInt64 : TF](
           other: Output[T],
           indicesDataType: DataType[I]
       ): (Output[T], Output[I]) = {
@@ -2868,7 +2991,7 @@ object Basic extends Basic {
         * @param  axis    Tensor containing the axis along which to gather.
         * @return Result as a new tensor.
         */
-      def gather[I: IsInt32OrInt64](
+      def gather[I: IsInt32OrInt64 : TF](
           indices: Output[I],
           axis: Output[I] = null
       ): Output[T] = {
@@ -2882,7 +3005,7 @@ object Basic extends Basic {
         * @return Result as a new tensor which contains the values from `input` gathered from indices given by `indices`,
         *         with shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
         */
-      def gatherND[I: IsInt32OrInt64](indices: Output[I]): Output[T] = {
+      def gatherND[I: IsInt32OrInt64 : TF](indices: Output[I]): Output[T] = {
         Basic.gatherND(output, indices)
       }
 
@@ -2916,7 +3039,7 @@ object Basic extends Basic {
         *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
         * @return Created op output.
         */
-      def oneHot[R](
+      def oneHot[R : TF](
           depth: Output[Int],
           dataType: DataType[R],
           onValue: Output[R] = null,
@@ -2936,7 +3059,7 @@ object Basic extends Basic {
         * @param  shape Shape to broadcast the provided tensor to.
         * @return Created op output.
         */
-      def broadcastTo[I: IsInt32OrInt64](
+      def broadcastTo[I: IsInt32OrInt64 : TF](
           shape: Output[I]
       ): Output[T] = {
         Basic.broadcastTo(output, shape)

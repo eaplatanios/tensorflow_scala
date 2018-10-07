@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVari
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.types.TF
 
 import scala.language.postfixOps
 
@@ -130,12 +130,17 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
       val zeroOutput = this.zeroOutput()
       val zeroOutputs = evDO.outputs(zeroOutput)
       val initialOutputTensorArrays = zeroOutputs.map(output => {
-        TensorArray.create(0, output.dataType, dynamicSize = true, elementShape = output.shape)
+        TensorArray.create(
+          size = 0,
+          dataType = output.dataType,
+          dynamicSize = true,
+          elementShape = output.shape
+        )(TF.fromDataType(output.dataType))
       })
       if (maximumIterations != null)
         initialFinished = Math.logicalOr(initialFinished, Math.greaterEqual(0, maximumIterations))
       val initialSequenceLengths = Basic.zerosLike(initialFinished).castTo[Int]
-      val initialTime = Basic.zeros(INT32, Shape.scalar())
+      val initialTime = Basic.zeros[Int](Shape.scalar())
 
       type LoopVariables = (
           Output[Int],
@@ -167,29 +172,36 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
           nextFinished = Math.logicalOr(nextFinished, Math.greaterEqual(time + 1, maximumIterations))
         val nextSequenceLengths = Math.select(
           Math.logicalAnd(Math.logicalNot(finished), nextFinished),
-          Basic.fill(sequenceLengths.dataType, Basic.shape(sequenceLengths, INT32))(time + 1),
+          Basic.fill[Int, Long](Basic.shape(sequenceLengths))(time + 1),
           sequenceLengths)
 
         // Zero out output values past finish and pass through state when appropriate
         val (nextOutputs, nextStates) = {
           if (imputeFinished) {
-            val nextOutputs = decoderOutputs.zip(zeroOutputs).map(o => Math.select(finished, o._2, o._1))
+            val nextOutputs = decoderOutputs.zip(zeroOutputs).map(o => {
+              Math.select(finished, o._2, o._1)(TF.fromDataType(o._2.dataType))
+            })
             // Passes `decoderStates` through as the next state depending on their corresponding value in `finished` and
             // on their type and shape. Tensor arrays and scalar states are always passed through.
             val nextStates = decoderStates.zip(states).map(s => {
               s._1.setShape(s._2.shape)
-              if (s._1.rank == 0)
+              if (s._1.rank == 0) {
                 s._1
-              else
-                Math.select(finished, s._2, s._1)
+              } else {
+                Math.select(finished, s._2, s._1)(TF.fromDataType(s._2.dataType))
+              }
             })
             (nextOutputs, nextStates)
           } else
             (decoderOutputs, decoderStates)
         }
-        val nextOutputTensorArrays = outputTensorArrays.zip(nextOutputs).map(t => t._1.write(time, t._2))
+        val nextOutputTensorArrays = outputTensorArrays.zip(nextOutputs).map(t => {
+          t._1.write(time, t._2)(TF.fromDataType(t._2.dataType))
+        })
         (time + 1, nextOutputTensorArrays, nextStates, nextInputs, nextFinished, nextSequenceLengths)
       }
+
+      implicit val evTF: TF[Any] = TF.fromDataType(initialStates.head.dataType)
 
       val (_, finalOutputTensorArrays, finalStates, _, _, preFinalSequenceLengths): LoopVariables =
         ControlFlow.whileLoop(
@@ -205,8 +217,13 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
         evDS.fromOutputs(initialState, finalStates),
         preFinalSequenceLengths)
 
-      if (!outputTimeMajor)
-        finalOutput = evDFO.fromOutputs(finalOutput, evDFO.outputs(finalOutput).map(RNN.transposeBatchTime))
+      if (!outputTimeMajor) {
+        finalOutput = evDFO.fromOutputs(
+          finalOutput,
+          evDFO.outputs(finalOutput).map(o => {
+            RNN.transposeBatchTime(o)(TF.fromDataType(o.dataType))
+          }))
+      }
       (finalOutput, finalState, finalSequenceLengths)
     }
   }

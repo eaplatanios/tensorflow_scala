@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.ops._
+
 import shapeless._
 
 import scala.collection.TraversableLike

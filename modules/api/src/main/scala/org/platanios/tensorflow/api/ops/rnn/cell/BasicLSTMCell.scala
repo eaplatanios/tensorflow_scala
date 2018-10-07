@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.IsNotQuantized
+import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** A basic Long-Short Term Memory (LSTM) cell.
   *
@@ -41,7 +41,7 @@ import org.platanios.tensorflow.api.types.IsNotQuantized
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicLSTMCell[T: IsNotQuantized] protected (
+class BasicLSTMCell[T: IsNotQuantized : TF] protected (
     val kernel: Output[T],
     val bias: Output[T],
     val activation: Output[T] => Output[T],
@@ -67,7 +67,7 @@ class BasicLSTMCell[T: IsNotQuantized] protected (
       // i = input gate, j = new input, f = forget gate, o = output gate
       val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
       val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
-      val forgetBiasTensor = Basic.constant(forgetBias).castTo(f.dataType)
+      val forgetBiasTensor = Basic.constant(forgetBias).castTo[T]
       val c = Math.add(
         Math.multiply(input.state.c, Math.sigmoid(f + forgetBiasTensor)),
         Math.multiply(Math.sigmoid(i), activation(j)))
@@ -78,7 +78,7 @@ class BasicLSTMCell[T: IsNotQuantized] protected (
 }
 
 object BasicLSTMCell {
-  def apply[T: IsNotQuantized](
+  def apply[T: IsNotQuantized : TF](
       kernel: Output[T],
       bias: Output[T],
       activation: Output[T] => Output[T],

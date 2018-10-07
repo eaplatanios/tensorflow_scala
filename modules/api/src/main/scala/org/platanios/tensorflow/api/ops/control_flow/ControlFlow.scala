@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT32, RESOURCE}
+import org.platanios.tensorflow.api.types.{RESOURCE, TF}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
@@ -43,7 +43,7 @@ private[api] trait ControlFlow {
     * @param  name         Name for the created op (used mainly as a name scope).
     * @return Created op output.
     */
-  private[api] def withControlDependencies[T, OL[A] <: OutputLike[A]](
+  private[api] def withControlDependencies[T: TF, OL[A] <: OutputLike[A]](
       dependencies: Set[UntypedOp],
       input: OL[T],
       name: String = "WithControlDependencies"
@@ -105,7 +105,7 @@ private[api] trait ControlFlow {
     * @param  name          Name for the created ops (used mainly as a name scope).
     * @return Created op outputs, which in this case are the values of `inputs`.
     */
-  def tuple[T, OL[A] <: OutputLike[A]](
+  def tuple[T: TF, OL[A] <: OutputLike[A]](
       inputs: Seq[OL[T]],
       controlInputs: Set[UntypedOp] = Set.empty,
       name: String = "Tuple"
@@ -224,7 +224,9 @@ private[api] trait ControlFlow {
           Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
 
           // Add the final merge to the graph.
-          val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
+          val merges = resultFalse.zip(resultTrue).map(p => {
+            ControlFlow.merge(Seq(p._1, p._2))(TF.fromDataType(p._1.dataType))._1
+          })
           ev.unflatten(originalResultTrue, merges)
       }
     }
@@ -311,8 +313,8 @@ private[api] trait ControlFlow {
       } else {
         require(maximumIterations.rank == 0 || maximumIterations.rank == -1,
           s"'maximumIterations' must be a scalar, but has shape ${maximumIterations.shape}.")
-        val zero = Basic.zeros(INT32, Shape(), name = "Zero")
-        val one = Basic.ones(INT32, Shape(), name = "One")
+        val zero = Basic.zeros[Int](Shape())
+        val one = Basic.ones[Int](Shape())
         // Building a loop involves mutating ops and thus we need to lock on the graph.
         Op.currentGraph.synchronized {
           loopContext.buildLoop[(Output[Int], T), (Shape, TS)](
@@ -594,7 +596,7 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name      Name for the created op.
     * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
     */
-  private[control_flow] def colocatedSwitch[T, OL[A] <: OutputLike[A]](
+  private[control_flow] def colocatedSwitch[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       predicate: Output[Boolean],
       name: String = "Switch"
@@ -678,7 +680,7 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name  Name for the created op.
     * @return Created op output, which is the same as `input`.
     */
-  private[control_flow] def nextIteration[T, OL[A] <: OutputLike[A]](
+  private[control_flow] def nextIteration[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "NextIteration"
   ): OL[T] = {
@@ -689,7 +691,7 @@ private[api] object ControlFlow extends ControlFlow {
             opType = "NextIteration",
             name = name,
             input = o
-          ).setGradientFn(nextIterationGradient)
+          ).setGradientFn(nextIterationGradient(_, _)(TF[T]))
               .build().output
         case o: OutputIndexedSlices[T] => Op.nameScope(name) {
           val values = nextIteration(o.values, "Values")
@@ -715,7 +717,7 @@ private[api] object ControlFlow extends ControlFlow {
 
   /** A forward next-iteration op is translated into a back-propagation identity op. Note that the back-propagation
     * next-iteration op is added in switch op gradient. */
-  protected def nextIterationGradient[T](
+  protected def nextIterationGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: OutputLike[T]
   ): OutputLike[T] = {
@@ -736,7 +738,7 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name               Name for the created op.
     * @return Created op output, which is the same as `input`.
     */
-  private[control_flow] def enter[T, OL[A] <: OutputLike[A]](
+  private[control_flow] def enter[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       frameName: String,
       isConstant: Boolean = false,
@@ -754,7 +756,7 @@ private[api] object ControlFlow extends ControlFlow {
           ).setAttribute("frame_name", frameName)
               .setAttribute("is_constant", isConstant)
               .setAttribute("parallel_iterations", parallelIterations)
-              .setGradientFn(enterGradient)
+              .setGradientFn(enterGradient(_, _)(TF[T]))
               .build().output.toOutput
           if (useInputShape)
             result.setShape(o.shape)
@@ -784,7 +786,7 @@ private[api] object ControlFlow extends ControlFlow {
 
   /** Gradients for an enter op are calculated using an exit op. For loop variables, `outputGradients` is the gradient
     * and so we just add an exit op. For loop invariants, we need to add an accumulator loop. */
-  protected def enterGradient[T](
+  protected def enterGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: OutputLike[T]
   ): OutputLike[T] = {
@@ -829,7 +831,7 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name  Name for the created op.
     * @return Created op output, which is the same as `input`.
     */
-  private[control_flow] def exit[T, OL[A] <: OutputLike[A]](
+  private[control_flow] def exit[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       name: String = "Exit"
   ): OL[T] = {
@@ -840,7 +842,7 @@ private[api] object ControlFlow extends ControlFlow {
             opType = "Exit",
             name = name,
             input = o
-          ).setGradientFn(exitGradient)
+          ).setGradientFn(exitGradient(_, _)(TF[T]))
               .build().output
         case o: OutputIndexedSlices[T] => Op.nameScope(name) {
           val values = exit(o.values, "Values")
@@ -871,7 +873,7 @@ private[api] object ControlFlow extends ControlFlow {
 
   /** Gradients for an exit op are calculated using an enter op. */
   @throws[UnimplementedException]
-  protected def exitGradient[T](
+  protected def exitGradient[T: TF](
       op: Op[Output[T], Output[T]],
       outputGradient: OutputLike[T]
   ): OutputLike[T] = {
@@ -933,7 +935,7 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name      Name for the created op.
     * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
     */
-  private[control_flow] def switch[T, OL[A] <: OutputLike[A]](
+  private[control_flow] def switch[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       predicate: Output[Boolean],
       name: String = "Switch"
@@ -945,7 +947,7 @@ private[api] object ControlFlow extends ControlFlow {
             opType = "Switch",
             name = name,
             input = (o, predicate)
-          ).setGradientFn(switchGradient)
+          ).setGradientFn[(OutputLike[T], Output[Boolean]), (OutputLike[T], OutputLike[T])](switchGradient(_, _)(TF[T]))
               .build().output
         case o: OutputIndexedSlices[T] =>
           Op.nameScope(name) {
@@ -981,7 +983,7 @@ private[api] object ControlFlow extends ControlFlow {
   /** Gradients for a switch op are calculated using a merge op. If the switch is a loop switch, it will be visited
     * twice. We create the merge op on the first visit, and we update the second input of the merge on the second
     * visit. A next-iteration op is also added in the second visit. */
-  protected def switchGradient[T](
+  protected def switchGradient[T: TF](
       op: Op[(Output[T], Output[Boolean]), (Output[T], Output[T])],
       outputGradient: (OutputLike[T], OutputLike[T])
   ): (OutputLike[T], Output[Boolean]) = {
@@ -1001,24 +1003,31 @@ private[api] object ControlFlow extends ControlFlow {
           // within only one branch.
           // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
           val zeros = gradientTakenBranch match {
-            case o: Output[T] => Basic.zerosLike(o)
-            case o: OutputIndexedSlices[T] =>
+            case o: Output[_] => Basic.zerosLike(o)(TF.fromDataType(o.dataType))
+            case o: OutputIndexedSlices[_] =>
               OutputIndexedSlices(
-                Basic.zeros(o.indices.dataType, Shape(1)),
+                Basic.zeros[Long](Shape(1)),
                 Basic.zeros(o.values.dataType, Shape(1, o.values.shape(1))),
                 o.denseShape)
-            case o: SparseOutput[T] =>
+            case o: SparseOutput[_] =>
               SparseOutput(
-                Basic.zeros(o.indices.dataType, Shape(1, o.indices.shape(1))),
+                Basic.zeros[Long](Shape(1, o.indices.shape(1))),
                 Basic.zeros(o.values.dataType, Shape(1)),
                 o.denseShape)
           }
           val zeroGradient = opContext.branch.other.selectSwitchResult(
-            ControlFlow.colocatedSwitch(zeros, opContext.predicate))
-          if (opContext.branch.value == 0)
-            (merge(Seq(gradientTakenBranch, zeroGradient), name = "CondGradient")._1, null)
-          else
-            (merge(Seq(zeroGradient, gradientTakenBranch), name = "CondGradient")._1, null)
+            ControlFlow.colocatedSwitch(zeros, opContext.predicate)(TF.fromDataType(zeros.dataType)))
+          if (opContext.branch.value == 0) {
+            (merge(Seq(
+              gradientTakenBranch,
+              zeroGradient.asInstanceOf[OutputLike[T]]
+            ), name = "CondGradient")(TF.fromDataType(gradientTakenBranch.dataType))._1, null)
+          } else {
+            (merge(Seq(
+              zeroGradient.asInstanceOf[OutputLike[T]],
+              gradientTakenBranch
+            ), name = "CondGradient")(TF.fromDataType(gradientTakenBranch.dataType))._1, null)
+          }
         } else {
           (null, null)
         }
@@ -1076,7 +1085,7 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Tuple containing `output` and `outputIndex`, in that order.
     */
   @throws[IllegalArgumentException]
-  private[control_flow] def merge[T, OL[A] <: OutputLike[A]](
+  private[control_flow] def merge[T: TF, OL[A] <: OutputLike[A]](
       inputs: Seq[OL[T]],
       name: String = "Merge"
   ): (OL[T], Output[Int]) = {
@@ -1087,7 +1096,7 @@ private[api] object ControlFlow extends ControlFlow {
             opType = "Merge",
             name = name,
             input = o.map(_.asInstanceOf[Output[T]])
-          ).setGradientFn(mergeGradient)
+          ).setGradientFn(mergeGradient(_, _)(TF[T]))
               .build().output
         case o if o.forall(_.isInstanceOf[SparseOutput[T]]) =>
           Op.nameScope(name) {
@@ -1125,7 +1134,7 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Gradients for a merge op are calculated using a switch op. */
-  protected def mergeGradient[T](
+  protected def mergeGradient[T: TF](
       op: Op[Seq[Output[T]], (Output[T], Output[Int])],
       outputGradient: (Output[T], Output[Int])
   ): Seq[Output[T]] = {

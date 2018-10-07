@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.types.TF
+
 /** Contains functions for constructing ops related to logging.
   *
   * @author Emmanouil Antonios Platanios
@@ -32,7 +34,7 @@ trait Logging {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def print[T, OL[A] <: OutputLike[A]](
+  def print[T: TF, OL[A] <: OutputLike[A]](
       input: OL[T],
       data: Seq[Output[Any]],
       message: String = "",
@@ -50,11 +52,11 @@ trait Logging {
       ).setAttribute("message", message)
           .setAttribute("first_n", firstN)
           .setAttribute("summarize", summarize)
-          .setGradientFn(printGradient)
+          .setGradientFn(printGradient(_, _)(TF[T]))
           .build().output)
   }
 
-  protected def printGradient[T](
+  protected def printGradient[T: TF](
       op: Op[(Output[T], Seq[Output[Any]]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Seq[Output[Any]]) = {

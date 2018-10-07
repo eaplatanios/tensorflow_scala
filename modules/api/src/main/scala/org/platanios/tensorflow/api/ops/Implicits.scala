@@ -39,13 +39,11 @@ private[api] trait Implicits
         with Sparse.Implicits
         with Statistics.Implicits
         with Text.Implicits {
-  implicit def opFromOutputLike[T](value: OutputLike[T]): UntypedOp = {
+  implicit def opFromOutputLike[T: TF](value: OutputLike[T]): UntypedOp = {
     value.op
   }
 
-  implicit def outputFromSupportedType[T](value: T)(implicit
-      evSupported: SupportedType[T]
-  ): Output[T] = {
+  implicit def outputFromSupportedType[T: TF](value: T): Output[T] = {
     Basic.constant(Tensor.fill[T](Shape())(value))
   }
 
@@ -54,7 +52,7 @@ private[api] trait Implicits
   }
 
   implicit def outputFromShape(shape: Shape): Output[Long] = {
-    Basic.constant(shape.toTensor[Long])
+    Basic.constant(shape.toTensor)
   }
 
   implicit def outputFromRange(range: Range): Output[Int] = {
@@ -73,30 +71,37 @@ private[api] trait Implicits
     value.toOutput
   }
 
-  implicit def outputFromArray[T](value: Array[Output[T]]): Output[T] = {
+  implicit def outputFromArray[T: TF](
+      value: Array[Output[T]]
+  ): Output[T] = {
     Basic.stack(value.toSeq)
   }
 
-  implicit def outputFromTraversable[T, CC[A] <: TraversableLike[A, CC[A]]](value: CC[Output[T]]): Output[T] = {
+  implicit def outputFromTraversable[T: TF, CC[A] <: TraversableLike[A, CC[A]]](
+      value: CC[Output[T]]
+  ): Output[T] = {
     Basic.stack(value.toSeq)
   }
 }
 
 private[ops] trait Priority3Implicits extends Priority2Implicits {
   implicit def outputFromTensorConvertible[T, TC](value: TC)(implicit
-      f: TC => Tensor[T]
+      f: TC => Tensor[T],
+      evTF: TF[T]
   ): Output[T] = {
     Basic.constant(f(value))
   }
 
   implicit def outputFromConvertibleArray[T, V](value: Array[V])(implicit
-      f: V => Output[T]
+      f: V => Output[T],
+      evTF: TF[T]
   ): Output[T] = {
     Basic.stack(value.toSeq.map(f))
   }
 
   implicit def outputFromConvertibleTraversable[T, V, CC[A] <: TraversableLike[A, CC[A]]](value: CC[V])(implicit
-      f: V => Output[T]
+      f: V => Output[T],
+      evTF: TF[T]
   ): Output[T] = {
     Basic.stack(value.map(f)(breakOut))
   }

@@ -200,7 +200,7 @@ object Callback extends Callback {
         override def decodeSymbolic(outputs: Seq[Output[Any]]): OutputIndexedSlices[T] = {
           OutputIndexedSlices(
             outputs(0).asInstanceOf[Tensor[Long]],
-            outputs(1).asInstanceOf[Tensor[T]],
+            outputs(1).asInstanceOf[Tensor[T]].toOutput,
             outputs(2).asInstanceOf[Tensor[Long]])
         }
       }
@@ -233,7 +233,7 @@ object Callback extends Callback {
         override def decodeSymbolic(outputs: Seq[Output[Any]]): SparseOutput[T] = {
           SparseOutput(
             outputs(0).asInstanceOf[Tensor[Long]],
-            outputs(1).asInstanceOf[Tensor[T]],
+            outputs(1).asInstanceOf[Tensor[T]].toOutput,
             outputs(2).asInstanceOf[Tensor[Long]])
         }
       }
@@ -293,7 +293,7 @@ object Callback extends Callback {
         override def decodeSymbolic(outputs: Seq[Output[Any]]): Array[OutputIndexedSlices[T]] = {
           outputs.grouped(3).map(o => OutputIndexedSlices(
             o(0).asInstanceOf[Tensor[Long]],
-            o(1).asInstanceOf[Tensor[T]],
+            o(1).asInstanceOf[Tensor[T]].toOutput,
             o(2).asInstanceOf[Tensor[Long]])).toArray
         }
       }
@@ -326,7 +326,7 @@ object Callback extends Callback {
         override def decodeSymbolic(outputs: Seq[Output[Any]]): Array[SparseOutput[T]] = {
           outputs.grouped(3).map(o => SparseOutput(
             o(0).asInstanceOf[Tensor[Long]],
-            o(1).asInstanceOf[Tensor[T]],
+            o(1).asInstanceOf[Tensor[T]].toOutput,
             o(2).asInstanceOf[Tensor[Long]])).toArray
         }
       }
@@ -392,7 +392,7 @@ object Callback extends Callback {
         override def decodeSymbolic(outputs: Seq[Output[Any]]): CC[OutputIndexedSlices[T]] = {
           outputs.grouped(3).map(o => OutputIndexedSlices(
             o(0).asInstanceOf[Tensor[Long]],
-            o(1).asInstanceOf[Tensor[T]],
+            o(1).asInstanceOf[Tensor[T]].toOutput,
             o(2).asInstanceOf[Tensor[Long]])).to[CC](cbfOutput)
         }
       }
@@ -428,7 +428,7 @@ object Callback extends Callback {
         override def decodeSymbolic(outputs: Seq[Output[Any]]): CC[SparseOutput[T]] = {
           outputs.grouped(3).map(o => SparseOutput(
             o(0).asInstanceOf[Tensor[Long]],
-            o(1).asInstanceOf[Tensor[T]],
+            o(1).asInstanceOf[Tensor[T]].toOutput,
             o(2).asInstanceOf[Tensor[Long]])).to[CC](cbfOutput)
         }
       }

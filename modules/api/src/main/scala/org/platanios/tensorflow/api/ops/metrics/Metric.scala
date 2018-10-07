@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets, 
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT64, IsNotQuantized, SupportedType}
+import org.platanios.tensorflow.api.types.{INT64, IsNotQuantized, TF}
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.
@@ -104,7 +104,7 @@ object Metric {
   }
 
   /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
-  def variable[T: SupportedType](
+  def variable[T: TF](
       name: String,
       shape: Shape = null,
       initializer: Initializer = ZerosInitializer,
@@ -117,12 +117,12 @@ object Metric {
   }
 
   /** Divides two values, returning 0 if the denominator is <= 0. */
-  def safeDiv[T: IsNotQuantized](
+  def safeDiv[T: IsNotQuantized : TF](
       numerator: Output[T],
       denominator: Output[T],
       name: String = "SafeDiv"
   ): Output[T] = {
-    val zero = Basic.zeros(numerator.dataType, Shape())
+    val zero = Basic.zeros[T](Shape())
     Math.select(
       condition = Math.greater(denominator, zero),
       x = Math.divide(numerator, denominator),
@@ -131,7 +131,7 @@ object Metric {
   }
 
   /** Divides two scalar values, returning 0 if the denominator is 0. */
-  def safeScalarDiv[T: IsNotQuantized](
+  def safeScalarDiv[T: IsNotQuantized : TF](
       numerator: Output[T],
       denominator: Output[T],
       name: String = "SafeScalarDiv"
@@ -155,14 +155,17 @@ object Metric {
     * @param  name    Name prefix for the created ops.
     * @return Broadcasted weights.
     */
-  private[metrics] def weightsBroadcast(
-      values: Output[_],
+  private[metrics] def weightsBroadcast[T: TF](
+      values: Output[T],
       weights: Output[Float],
       name: String = "BroadcastWeights"
   ): Output[Float] = {
     Op.nameScope(name) {
       // Try static check for exact match.
-      if (values.shape.isFullyDefined && weights.shape.isFullyDefined && values.shape.isCompatibleWith(weights.shape)) {
+      if (values.shape.isFullyDefined &&
+          weights.shape.isFullyDefined &&
+          values.shape.isCompatibleWith(weights.shape)
+      ) {
         weights
       } else {
         Op.createWith(controlDependencies = Set(weightsAssertBroadcastable(values, weights))) {
@@ -183,18 +186,18 @@ object Metric {
     * @param  name    Name prefix for the created ops.
     * @return Assertion op for the assertion that `weights` can be broadcast to the same shape as `values`.
     */
-  private[metrics] def weightsAssertBroadcastable(
-      values: Output[_],
-      weights: Output[_],
+  private[metrics] def weightsAssertBroadcastable[T: TF](
+      values: Output[T],
+      weights: Output[Float],
       name: String = "AssertBroadcastable"
   ): UntypedOp = {
     Op.nameScope(name) {
       val valuesRank = Basic.rank(values, name = "Values/Rank")
-      val valuesShape = Basic.shape(values, INT64, name = "Values/Shape")
+      val valuesShape = Basic.shape(values, name = "Values/Shape")
       val valuesRankStatic = Output.constantValue(valuesRank)
       val valuesShapeStatic = Output.constantValueAsShape(valuesShape)
       val weightsRank = Basic.rank(weights, name = "Weights/Rank")
-      val weightsShape = Basic.shape(weights, INT64, name = "Weights/Shape")
+      val weightsShape = Basic.shape(weights, name = "Weights/Shape")
       val weightsRankStatic = Output.constantValue(weightsRank)
       val weightsShapeStatic = Output.constantValueAsShape(weightsShape)
       // Try static checks.
@@ -262,7 +265,7 @@ object Metric {
       val reshapedWeightsShape = Basic.expandDims(weightsShape, -1)
       val validDimensions = Basic.concatenate(Seq(reshapedValuesShape, Basic.onesLike(reshapedValuesShape)), 1)
       val invalidDimensions = Sets.setDifference(reshapedWeightsShape, validDimensions)
-      val numInvalidDimensions = Basic.size(invalidDimensions.values, INT64, name = "NumInvalidDimensions")
+      val numInvalidDimensions = Basic.size(invalidDimensions.values, name = "NumInvalidDimensions")
       Math.equal(0L, numInvalidDimensions)
     }
   }
@@ -288,7 +291,7 @@ object Metric {
     * @param  expectedRankDiff Expected rank difference.
     * @return Tuple containing the processed `predictions`, `targets`, and `weights`.
     */
-  def matchAxes[P, T](
+  def matchAxes[P: TF, T: TF](
       predictions: Output[P],
       targets: Option[Output[T]] = None,
       weights: Option[Output[Float]] = None,
@@ -374,8 +377,8 @@ object Metric {
     *                                `[D1, ..., DN]`.
     */
   @throws[ShapeMismatchException]
-  def maybeExpandTargets[T](
-      predictions: Output[_],
+  def maybeExpandTargets[P: TF, T: TF](
+      predictions: Output[P],
       targets: Output[T]
   ): Output[T] = {
     // TODO: [SPARSE] Support sparse `targets`.

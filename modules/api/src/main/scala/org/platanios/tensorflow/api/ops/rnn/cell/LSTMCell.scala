@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.IsNotQuantized
+import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** The Long-Short Term Memory (LSTM) cell.
   *
@@ -52,7 +52,7 @@ import org.platanios.tensorflow.api.types.IsNotQuantized
   *
   * @author Emmanouil Antonios Platanios
   */
-class LSTMCell[T: IsNotQuantized] protected (
+class LSTMCell[T: IsNotQuantized : TF] protected (
     val kernel: Output[T],
     val bias: Output[T],
     val activation: Output[T] => Output[T],
@@ -96,7 +96,7 @@ class LSTMCell[T: IsNotQuantized] protected (
       val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
       val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
       // Diagonal connections
-      val forgetBiasTensor = Basic.constant(forgetBias).castTo(f.dataType)
+      val forgetBiasTensor = Basic.constant(forgetBias).castTo[T]
       var firstTerm = f + forgetBiasTensor
       if (wfDiag != null)
         firstTerm = firstTerm + Math.multiply(wfDiag, input.state.c)
@@ -107,7 +107,7 @@ class LSTMCell[T: IsNotQuantized] protected (
         Math.multiply(input.state.c, Math.sigmoid(firstTerm)),
         Math.multiply(Math.sigmoid(secondTerm), activation(j)))
       if (cellClip != -1) {
-        val cellClipTensor = Basic.constant(cellClip).castTo(c.dataType)
+        val cellClipTensor = Basic.constant(cellClip).castTo[T]
         c = c.clipByValue(-cellClipTensor, cellClipTensor)
       }
       var m = {
@@ -120,7 +120,7 @@ class LSTMCell[T: IsNotQuantized] protected (
       if (projectionKernel != null) {
         m = Math.matmul(m, projectionKernel)
         if (projectionClip != -1) {
-          val projectionClipTensor = Basic.constant(projectionClip).castTo(m.dataType)
+          val projectionClipTensor = Basic.constant(projectionClip).castTo[T]
           m = m.clipByValue(-projectionClipTensor, projectionClipTensor)
         }
       }
@@ -130,7 +130,7 @@ class LSTMCell[T: IsNotQuantized] protected (
 }
 
 object LSTMCell {
-  def apply[T: IsNotQuantized](
+  def apply[T: IsNotQuantized : TF](
       kernel: Output[T],
       bias: Output[T],
       activation: Output[T] => Output[T],

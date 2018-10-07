@@ -74,7 +74,7 @@ trait Optimizer {
     * @param  name                       Name for the created op.
     * @return Created op.
     */
-  final def minimize[T: IsFloat32OrFloat64, I: IsInt32OrInt64](
+  final def minimize[T: IsFloat32OrFloat64 : TF, I: IsInt32OrInt64 : TF](
       loss: Output[T],
       lossGradients: Seq[OutputLike[Any]] = null,
       variables: Set[Variable[Any]] = null,
@@ -105,7 +105,7 @@ trait Optimizer {
     * @throws IllegalArgumentException If there are no variables to optimize.
     */
   @throws[IllegalArgumentException]
-  def computeGradients[T: IsFloat32OrFloat64](
+  def computeGradients[T: IsFloat32OrFloat64 : TF](
       loss: Output[T],
       lossGradients: Seq[OutputLike[Any]] = null,
       variables: Set[Variable[Any]] = null,
@@ -128,18 +128,22 @@ trait Optimizer {
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
 
-    val variableProcessors = collectedVariables.map(getVariableProcessor(_)(ev))
+    val variableProcessors = collectedVariables.map(v => {
+      getVariableProcessor(v)(ev, TF.fromDataType(v.dataType))
+    })
     val variableTargets = variableProcessors.map(_.target)
     val gradients = {
+      // TODO: [TYPES] !!! What if the variable targets have different data types?
       val gradients = Gradients.gradients(
         ys = Seq(loss),
         xs = variableTargets,
         dys = lossGradients,
         gateGradients = gradientsGatingMethod == Gradients.OpGating,
         aggregationMethod = gradientsAggregationMethod,
-        colocateGradientsWithOps = colocateGradientsWithOps)
+        colocateGradientsWithOps = colocateGradientsWithOps
+      )(TF.fromDataType(variableTargets.head.dataType))
       if (gradientsGatingMethod == Gradients.GraphGating) {
-        ControlFlow.tuple(gradients)
+        ControlFlow.tuple(gradients)(TF.fromDataType(variableTargets.head.dataType))
       } else {
         gradients
       }
@@ -154,7 +158,7 @@ trait Optimizer {
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  def applyGradients[I: IsInt32OrInt64](
+  def applyGradients[I: IsInt32OrInt64 : TF](
       gradientsAndVariables: Seq[(OutputLike[Any], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
@@ -184,7 +188,7 @@ trait Optimizer {
         // TODO: [TYPES] !!! Super hacky. Remove in the future.
         implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
 
-        val p = getVariableProcessor(v)
+        val p = getVariableProcessor(v)(ev, TF.fromDataType(v.dataType))
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"Update/${v.op.name}") {
           Op.colocateWith(Set(v.op), ignoreExisting = true) {
@@ -201,7 +205,7 @@ trait Optimizer {
             Op.createWith(controlDependencies = Set(finishOp)) {
               Op.colocateWith(Set(i.op), ignoreExisting = true) {
                 // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
-                Variable.assignAdd(i.handle, Basic.ones(i.dataType, Shape()), name).asUntyped
+                Variable.assignAdd(i.handle, Basic.ones[I](Shape()), name).asUntyped
               }
             }
           case None =>
@@ -223,7 +227,7 @@ trait Optimizer {
 
   /** Creates all necessary tensors before applying the gradients. This function is called from within an op creation
     * context that uses as its name scope the name that users have chosen for the application of gradients. */
-  def prepare[I: IsInt32OrInt64](iteration: Option[Variable[I]]): Unit = {
+  def prepare[I: IsInt32OrInt64 : TF](iteration: Option[Variable[I]]): Unit = {
     // No preparation is done by default.
   }
 
@@ -248,7 +252,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applyDense[T: IsNotQuantized, I: IsInt32OrInt64](
+  def applyDense[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -266,7 +270,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparse[T: IsNotQuantized, I: IsInt32OrInt64](
+  def applySparse[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -292,7 +296,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparseDuplicateIndices[T: IsNotQuantized, I: IsInt32OrInt64](
+  def applySparseDuplicateIndices[T: IsNotQuantized : TF, I: IsInt32OrInt64 : TF](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -323,7 +327,7 @@ trait Optimizer {
     * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
     * @return Requested slot variable.
     */
-  protected final def getSlot[T, R](
+  protected final def getSlot[T: TF, R: TF](
       name: String,
       variable: Variable[T],
       dataType: DataType[R],
@@ -344,7 +348,7 @@ trait Optimizer {
     * @param  variable Slot primary variable.
     * @return Requested slot variable, or `null` if it cannot be found.
     */
-  protected final def getSlot[T, R](
+  protected final def getSlot[T: TF, R: TF](
       name: String,
       variable: Variable[T]
   ): Variable[R] = {
@@ -360,7 +364,7 @@ trait Optimizer {
     * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
     * @return Requested slot variable.
     */
-  protected final def zerosSlot[T](
+  protected final def zerosSlot[T: TF](
       name: String,
       variable: Variable[T],
       variableScope: String
@@ -379,7 +383,7 @@ trait Optimizer {
     * @param  colocationOps Set of colocation ops for the non-slot variable.
     * @return Created non-slot variable.
     */
-  protected final def getOrCreateNonSlotVariable[T: SupportedType](
+  protected final def getOrCreateNonSlotVariable[T: TF](
       name: String,
       initialValue: Tensor[T],
       colocationOps: Set[UntypedOp] = Set.empty,
@@ -400,7 +404,7 @@ trait Optimizer {
     * @param  graph Graph in which the variable is defined.
     * @return Obtained non-slot variable.
     */
-  protected final def getNonSlotVariable[T](
+  protected final def getNonSlotVariable[T: TF](
       name: String,
       graph: Graph = null
   ): Variable[T] = {
@@ -422,7 +426,7 @@ trait Optimizer {
 
 private[optimizers] object Optimizer {
   /** Gets the appropriate variable processor to use for `variable`. */
-  private[optimizers] def getVariableProcessor[T: IsFloat32OrFloat64](
+  private[optimizers] def getVariableProcessor[T: IsFloat32OrFloat64 : TF](
       variable: Variable[T]
   ): VariableProcessor[T] = {
     variable match {
@@ -442,7 +446,7 @@ private[optimizers] object Optimizer {
     def target: Output[Resource]
 
     /** Returns the update ops for updating this variable using the gradient provided by `gradient`. */
-    def updateOp[I: IsInt32OrInt64](
+    def updateOp[I: IsInt32OrInt64 : TF](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -450,14 +454,14 @@ private[optimizers] object Optimizer {
   }
 
   /** Variable processor for resource-based variables. */
-  private[Optimizer] case class ResourceVariableProcessor[T: IsFloat32OrFloat64](
+  private[Optimizer] case class ResourceVariableProcessor[T: IsFloat32OrFloat64 : TF](
       variable: Variable[T]
   ) extends VariableProcessor[T] {
     override def target: Output[Resource] = {
       variable.handle
     }
 
-    override def updateOp[I: IsInt32OrInt64](
+    override def updateOp[I: IsInt32OrInt64 : TF](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -472,7 +476,7 @@ private[optimizers] object Optimizer {
   }
 
   /** Variable processor for streaming model ports. */
-  private[Optimizer] case class StreamingModelPortProcessor[T](
+  private[Optimizer] case class StreamingModelPortProcessor[T: TF](
       variable: Variable[T]
   ) extends VariableProcessor[T] {
     // TODO: [VARIABLES] This is probably wrong.
@@ -480,7 +484,7 @@ private[optimizers] object Optimizer {
       variable.handle
     }
 
-    override def updateOp[I: IsInt32OrInt64](
+    override def updateOp[I: IsInt32OrInt64 : TF](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -495,14 +499,17 @@ private[optimizers] object Optimizer {
     * @param  input Indexed slices with potentially duplicate indices.
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
-  private[Optimizer] def deDuplicateOutputIndexedSlices[T: IsNumeric](
+  private[Optimizer] def deDuplicateOutputIndexedSlices[T: IsNumeric : TF](
       input: OutputIndexedSlices[T]
   ): OutputIndexedSlices[T] = {
     val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0), INT32)
     val summedValues = Math.unsortedSegmentSum(
       data = input.values,
       segmentIndices = newIndexPositions,
-      segmentsNumber = Basic.shape(uniqueIndices, INT32).slice(0))
-    OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
+      segmentsNumber = Basic.shape(uniqueIndices).castTo[Int].slice(0))
+    OutputIndexedSlices(
+      indices = uniqueIndices,
+      values = summedValues,
+      denseShape = input.denseShape)
   }
 }
