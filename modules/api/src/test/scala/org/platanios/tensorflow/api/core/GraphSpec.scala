@@ -17,12 +17,12 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
+import org.platanios.tensorflow.api.core.types.FLOAT32
 import org.platanios.tensorflow.api.ops.{Op, UntypedOp}
 import org.platanios.tensorflow.api.ops.Op.createWith
 import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
 import org.platanios.tensorflow.api.ops.Math.add
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 import org.scalatest._
 

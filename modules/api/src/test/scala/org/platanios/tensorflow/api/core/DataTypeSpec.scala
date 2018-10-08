@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.core.types.DataType
 
 import org.scalatest._
 

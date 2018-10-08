@@ -17,9 +17,9 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.tensors.ops.{Math => TensorMath}
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.using
 
 import org.junit.Test
