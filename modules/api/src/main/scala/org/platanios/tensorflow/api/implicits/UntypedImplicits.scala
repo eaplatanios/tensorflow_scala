@@ -13,19 +13,28 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.utilities
+package org.platanios.tensorflow.api.implicits
 
-/**
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.types.DataType
+
+/** 
   * @author Emmanouil Antonios Platanios
   */
-trait DefaultsTo[Type, Default]
+trait UntypedImplicits {
+  implicit def dataTypeAsUntyped[T](dataType: DataType[T]): DataType[Any] = {
+    dataType.asInstanceOf[DataType[Any]]
+  }
 
-object DefaultsTo {
-  implicit def defaultDefaultsTo[T]: DefaultsTo[T, T] = null
-  implicit def fallback[T, D]: DefaultsTo[T, D] = null
+  implicit def dataTypeArrayAsUntyped(
+      dataTypes: Array[DataType[_]]
+  ): Array[DataType[Any]] = {
+    dataTypes.map(_.asInstanceOf[DataType[Any]])
+  }
 
-  type AnyDefault[T] = DefaultsTo[T, Any]
-  type IntDefault[T] = DefaultsTo[T, Int]
-  type LongDefault[T] = DefaultsTo[T, Long]
-  type FloatDefault[T] = DefaultsTo[T, Float]
+  implicit def dataTypeSeqAsUntyped(
+      dataTypes: Seq[DataType[_]]
+  ): Seq[DataType[Any]] = {
+    dataTypes.map(_.asInstanceOf[DataType[Any]])
+  }
 }

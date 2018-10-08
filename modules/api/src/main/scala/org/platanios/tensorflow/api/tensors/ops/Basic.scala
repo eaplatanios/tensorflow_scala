@@ -617,7 +617,7 @@ trait Basic {
       limit = maxLen,
       delta = Tensor.ones(lengths.dataType, Shape()))
     // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
-    // into INT32, then so do the elements of 'lengths'.
+    // into Int, then so do the elements of 'lengths'.
     val matrix = expandDims(lengths, axis = 1).castTo(lengths.dataType)
     Math.less(rowVector, matrix)
   }
@@ -634,7 +634,7 @@ trait Basic {
       input: TensorIndexedSlices[T],
       maskIndices: Tensor[Int]
   ): TensorIndexedSlices[T] = {
-    val (outputIndices, toGather) = listDiff(input.indices, maskIndices.toLong, INT32)
+    val (outputIndices, toGather) = listDiff(input.indices, maskIndices.toLong, Int)
     val outputValues = gather(input.values, toGather)
     TensorIndexedSlices(
       indices = outputIndices.toLong,
@@ -1223,7 +1223,7 @@ object Basic extends Basic {
         * @return Tuple containing `output` and `indices`.
         */
       def unique: (Tensor[T], Tensor[Int]) = {
-        Basic.unique(tensor, INT32)
+        Basic.unique(tensor, indicesDataType = Int)
       }
 
       /** $OpDocBasicUnique
@@ -1244,7 +1244,7 @@ object Basic extends Basic {
         * @return Tuple containing `output`, `indices`, and `counts`.
         */
       def uniqueWithCounts: (Tensor[T], Tensor[Int], Tensor[Int]) = {
-        Basic.uniqueWithCounts(tensor, INT32)
+        Basic.uniqueWithCounts(tensor, indicesDataType = Int)
       }
 
       /** $OpDocBasicUniqueWithCounts
@@ -1266,7 +1266,7 @@ object Basic extends Basic {
         * @return Tuple containing `output` and `indices`, from the method description.
         */
       def listDiff(other: Tensor[T]): (Tensor[T], Tensor[Int]) = {
-        Basic.listDiff(tensor, other, INT32)
+        Basic.listDiff(tensor, other, indicesDataType = Int)
       }
 
       /** $OpDocBasicListDiff

@@ -80,7 +80,7 @@ class CheckpointReader private[CheckpointReader] (
   /** Returns a map from variable name to data type, for all variables containing in this checkpoint. */
   def variableDataTypes: Map[String, DataType[_]] = {
     val types = NativeCheckpointReader.variableDataTypes(nativeHandle)
-    types.variables.zip(types.dataTypes.map(DataType.fromCValue[DataType[_]])).toMap
+    types.variables.zip(types.dataTypes.map(DataType.fromCValue)).toMap
   }
 }
 

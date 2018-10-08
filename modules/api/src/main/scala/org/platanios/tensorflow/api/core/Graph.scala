@@ -207,7 +207,7 @@ class Graph private[api](
     * @param  value Value to add to the collection.
     * @param  key   Collection name.
     */
-  def addToCollection[K](value: K, key: Graph.Key[K]): Unit = {
+  def addToCollection[K](key: Graph.Key[K])(value: K): Unit = {
     assertNotFrozen()
     collections.getOrElseUpdate(key, mutable.Set.empty[K]).asInstanceOf[mutable.Set[K]].add(value)
   }
@@ -349,7 +349,7 @@ class Graph private[api](
     * @return Created op.
     */
   def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): UntypedOp = {
-    ControlFlow.group(globalVariables.map(_.initializer)).asUntyped
+    ControlFlow.group(globalVariables.map(_.initializer))
   }
 
   /** Returns an op that initializes all local variables of this graph.
@@ -363,7 +363,7 @@ class Graph private[api](
     * @return Created op.
     */
   def localVariablesInitializer(name: String = "LocalVariablesInitializer"): UntypedOp = {
-    ControlFlow.group(localVariables.map(_.initializer)).asUntyped
+    ControlFlow.group(localVariables.map(_.initializer))
   }
 
   /** Returns an op that initializes all model variables of this graph.
@@ -377,7 +377,7 @@ class Graph private[api](
     * @return Created op.
     */
   def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): UntypedOp = {
-    ControlFlow.group(modelVariables.map(_.initializer)).asUntyped
+    ControlFlow.group(modelVariables.map(_.initializer))
   }
 
   /** Returns an op that initializes all metric variables of this graph.
@@ -391,7 +391,7 @@ class Graph private[api](
     * @return Created op.
     */
   def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): UntypedOp = {
-    ControlFlow.group(metricVariables.map(_.initializer)).asUntyped
+    ControlFlow.group(metricVariables.map(_.initializer))
   }
 
   /** Returns an op that initializes all trainable variables of this graph.
@@ -405,7 +405,7 @@ class Graph private[api](
     * @return Created op.
     */
   def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): UntypedOp = {
-    ControlFlow.group(trainableVariables.map(_.initializer)).asUntyped
+    ControlFlow.group(trainableVariables.map(_.initializer))
   }
 
   /** Prevents the feeding of values to the provided op output, while running in a session.
@@ -786,7 +786,7 @@ class Graph private[api](
       // It's possible that not all the inputs are in the export scope. If we would like such information included in
       // the exported graph meta-information, we add them to a special collection.
       clearCollection(unboundInputsCollectionKey)
-      unboundInputs.foreach(addToCollection(_, unboundInputsCollectionKey))
+      unboundInputs.foreach(addToCollection(unboundInputsCollectionKey)(_))
     }
 
     // Create the 'MetaGraphDef' object.
@@ -1233,7 +1233,7 @@ object Graph {
         val kind = collectionDef.getKindCase
         if (kind != CollectionDef.KindCase.BYTES_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
-        collectionDef.getBytesList.getValueList.asScala.foreach(s => graph.addToCollection(s.toStringUtf8, this))
+        collectionDef.getBytesList.getValueList.asScala.foreach(s => graph.addToCollection(this)(s.toStringUtf8))
       }
     }
 
@@ -1249,7 +1249,7 @@ object Graph {
         val kind = collectionDef.getKindCase
         if (kind != CollectionDef.KindCase.INT64_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as an INT64 list.")
-        collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(v.toInt, this))
+        collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(this)(v.toInt))
       }
     }
 
@@ -1270,7 +1270,7 @@ object Graph {
         if (kind != CollectionDef.KindCase.NODE_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
         collectionDef.getNodeList.getValueList.asScala
-            .foreach(o => graph.addToCollection(graph.getOpByName(Op.prependNameScope(importScope, o)), this))
+            .foreach(o => graph.addToCollection(this)(graph.getOpByName(Op.prependNameScope(importScope, o))))
       }
     }
 
@@ -1291,7 +1291,7 @@ object Graph {
         if (kind != CollectionDef.KindCase.NODE_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
         collectionDef.getNodeList.getValueList.asScala
-            .foreach(o => graph.addToCollection(graph.getOutputByName(Op.prependNameScope(importScope, o)), this))
+            .foreach(o => graph.addToCollection(this)(graph.getOutputByName(Op.prependNameScope(importScope, o))))
       }
     }
 
@@ -1311,7 +1311,7 @@ object Graph {
         if (kind != CollectionDef.KindCase.BYTES_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
         collectionDef.getBytesList.getValueList.asScala.foreach(v => {
-          graph.addToCollection(Variable.fromProto(VariableDef.parseFrom(v), importScope), this)
+          graph.addToCollection(this)(Variable.fromProto(VariableDef.parseFrom(v), importScope))
         })
       }
     }
@@ -1332,7 +1332,7 @@ object Graph {
         if (kind != CollectionDef.KindCase.BYTES_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
         collectionDef.getBytesList.getValueList.asScala
-            .foreach(s => graph.addToCollection(Saver.fromProto(SaverDef.parseFrom(s), importScope), this))
+            .foreach(s => graph.addToCollection(this)(Saver.fromProto(SaverDef.parseFrom(s), importScope)))
       }
     }
 
@@ -1362,12 +1362,11 @@ object Graph {
           throw new IllegalArgumentException(s"The '$name' collection should be stored as a node list.")
         collectionDef.getNodeList.getValueList.asScala.grouped(3)
             .foreach(r => {
-              graph.addToCollection(
+              graph.addToCollection(this)(
                 ResourceWrapper(
                   graph.getOutputByName(Op.prependNameScope(importScope, r(0))).asInstanceOf[Output[Resource]],
                   graph.getOpByName(Op.prependNameScope(importScope, r(1))),
-                  graph.getOutputByName(Op.prependNameScope(importScope, r(2))).asInstanceOf[Output[Boolean]]),
-                key = this)
+                  graph.getOutputByName(Op.prependNameScope(importScope, r(2))).asInstanceOf[Output[Boolean]]))
             })
       }
     }

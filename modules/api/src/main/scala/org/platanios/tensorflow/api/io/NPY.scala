@@ -18,7 +18,8 @@ package org.platanios.tensorflow.api.io
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.types.{DataType, TF}
+import org.platanios.tensorflow.api.types.DataType._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
 import java.nio.{ByteBuffer, ByteOrder}
@@ -160,7 +161,7 @@ object NPY {
       // case "f16" => ??? // FLOAT128
       case "i1" => INT8
       case "i2" => INT16
-      case "i4" => INT32
+      case "i4" => Int
       case "i8" => INT64
       case "u1" => UINT8
       case "u2" => UINT16

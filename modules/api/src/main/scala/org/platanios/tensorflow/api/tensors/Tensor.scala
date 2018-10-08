@@ -46,7 +46,7 @@ import scala.language.{higherKinds, postfixOps}
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorLike[+T] {
+sealed trait TensorLike[T] {
   /** Data type of this tensor. */
   val dataType: DataType[T]
 
@@ -90,7 +90,7 @@ sealed trait TensorLike[+T] {
   *
   * @author Emmanouil Antonios Platanios
   */
-class Tensor[+T] protected (
+class Tensor[T] protected (
     private[api] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
 ) extends TensorLike[T]
@@ -108,7 +108,13 @@ class Tensor[+T] protected (
 
   /** Data type of this tensor. */
   override val dataType: DataType[T] = {
-    DataType.fromCValue(NativeTensor.eagerDataType(nativeHandle))
+    DataType.fromCValue(
+      NativeTensor.eagerDataType(nativeHandle)
+    ).asInstanceOf[DataType[T]]
+  }
+
+  protected implicit val evTTF: TF[T] = {
+    TF.fromDataType(dataType)
   }
 
   /** Shape of this tensor. */
@@ -191,8 +197,6 @@ class Tensor[+T] protected (
   }
 
   def entriesIterator: Iterator[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(dataType)
-
     object resolved extends (() => Unit) {
       private[Tensor] val lock   = Tensor.this.NativeHandleLock
       private[Tensor] var handle = resolve()
@@ -316,7 +320,6 @@ class Tensor[+T] protected (
         case _ =>
           val innerSummary = {
             def summarizeSlice(index: Int) = {
-              implicit val evTF: TF[T] = TF.fromDataType(dataType)
               summarize(tensor(index).reshape(tensor.shape(1 ::)), maxEntries)
             }
 
@@ -535,7 +538,7 @@ object Tensor {
     *
     * For example:
     * {{{
-    *   Tensor.fill(INT32, Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
+    *   Tensor.fill[Int](Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
     * }}}
     *
     * @param  shape Tensor shape.
@@ -586,7 +589,7 @@ object Tensor {
     *
     * For example:
     * {{{
-    *   Tensor.fill(INT32, Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
+    *   Tensor.fill[Int](Shape(3, 4))(4) == Tensor(Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4), Tensor(4, 4, 4, 4))
     * }}}
     *
     * @param  dataType Tensor data type.
@@ -860,11 +863,15 @@ object Tensor {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class TensorIndexedSlices[+T](
+final case class TensorIndexedSlices[T](
     indices: Tensor[Long],
     values: Tensor[T],
     denseShape: Tensor[Long] = null
 ) extends TensorLike[T] {
+  protected implicit val evTTF: TF[T] = {
+    TF.fromDataType(values.dataType)
+  }
+
   /** Data type of these tensor indexed slices. */
   override val dataType: DataType[T] = {
     values.dataType
@@ -895,7 +902,6 @@ final case class TensorIndexedSlices[+T](
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
 
-    implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Math.unsortedSegmentSum(
       data = values,
       segmentIndices = indices,
@@ -962,13 +968,17 @@ final case class TensorIndexedSlices[+T](
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseTensor[+T](
+final case class SparseTensor[T](
     indices: Tensor[Long],
     values: Tensor[T],
     denseShape: Tensor[Long]
 ) extends TensorLike[T] {
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
+
+  protected implicit val evTTF: TF[T] = {
+    TF.fromDataType(values.dataType)
+  }
 
   /** Data type of this sparse op output. */
   override val dataType: DataType[T] = {
@@ -987,7 +997,6 @@ final case class SparseTensor[+T](
 
   /** Returns the tensor that this [[TensorLike]] object represents. */
   override def toTensor: Tensor[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(dataType)
     toTensor()
   }
 
@@ -1017,14 +1026,14 @@ final case class SparseTensor[+T](
     *                         lexicographic order and that there are no repeats.
     * @return Result as a new tensor, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toTensor[V >: T : TF](
-      defaultValue: Tensor[V] = null,
+  def toTensor(
+      defaultValue: Tensor[T] = null,
       validateIndices: Boolean = true
   ): Tensor[T] = {
-    val defaultValueWithDefault = if (defaultValue == null) Tensor.zeros[V](Shape()) else defaultValue
+    val default = if (defaultValue == null) Tensor.zeros(dataType, Shape()) else defaultValue
     Tensor.fromNativeHandle[T](NativeTensorOpsSparse.sparseToDense(
       executionContext.value.nativeHandle, indices.nativeHandle, denseShape.nativeHandle, values.nativeHandle,
-      defaultValueWithDefault.nativeHandle, validateIndices))
+      default.nativeHandle, validateIndices))
   }
 
   /** Returns an [[TensorIndexedSlices]] that has the same value as this [[TensorLike]].

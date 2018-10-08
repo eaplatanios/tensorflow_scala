@@ -47,7 +47,7 @@ package object types {
   type COMPLEX128 = types.DataType[ComplexDouble]
   type INT8 = types.DataType[Byte]
   type INT16 = types.DataType[Short]
-  type INT32 = types.DataType[Int]
+  // type INT32 = types.DataType[Int]
   type INT64 = types.DataType[Long]
   type UINT8 = types.DataType[UByte]
   type UINT16 = types.DataType[UShort]
@@ -71,7 +71,7 @@ package object types {
   val COMPLEX128: COMPLEX128 = types.DataType.COMPLEX128
   val INT8      : INT8       = types.DataType.INT8
   val INT16     : INT16      = types.DataType.INT16
-  val INT32     : INT32      = types.DataType.INT32
+  // val INT32     : INT32      = types.DataType.INT32
   val INT64     : INT64      = types.DataType.INT64
   val UINT8     : UINT8      = types.DataType.UINT8
   val UINT16    : UINT16     = types.DataType.UINT16
@@ -115,7 +115,7 @@ package object types {
     implicit val complexDoubleEvTF: TF[ComplexDouble] = fromDataType(COMPLEX128)
     implicit val byteEvTF         : TF[Byte]          = fromDataType(INT8)
     implicit val shortEvTF        : TF[Short]         = fromDataType(INT16)
-    implicit val intEvTF          : TF[Int]           = fromDataType(INT32)
+    implicit val intEvTF          : TF[Int]           = fromDataType(types.DataType.INT32)
     implicit val longEvTF         : TF[Long]          = fromDataType(INT64)
     implicit val uByteEvTF        : TF[UByte]         = fromDataType(UINT8)
     implicit val uShortEvTF       : TF[UShort]        = fromDataType(UINT16)

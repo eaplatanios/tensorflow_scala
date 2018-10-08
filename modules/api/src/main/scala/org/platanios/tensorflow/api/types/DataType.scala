@@ -34,7 +34,7 @@ import java.nio.charset.StandardCharsets
   *
   * @author Emmanouil Antonios Platanios
   */
-case class DataType[+T](
+case class DataType[T](
     name: String,
     private[api] val cValue: Int,
     byteSize: Option[Int],
@@ -59,25 +59,44 @@ case class DataType[+T](
   //region Data Type Set Helper Methods
 
   /** Returns `true` if this data type represents a non-quantized floating-point data type. */
-  def isFloatingPoint: Boolean = !isQuantized && DataType.floatingPointDataTypes.contains(this)
+  def isFloatingPoint: Boolean = {
+    Set[DataType[Any]](FLOAT16, FLOAT32, FLOAT64)
+        .contains(this.asInstanceOf[DataType[Any]])
+  }
 
   /** Returns `true` if this data type represents a complex data types. */
-  def isComplex: Boolean = DataType.complexDataTypes.contains(this)
+  def isComplex: Boolean = {
+    Set[DataType[Any]](COMPLEX64, COMPLEX128)
+        .contains(this.asInstanceOf[DataType[Any]])
+  }
 
   /** Returns `true` if this data type represents a non-quantized integer data type. */
-  def isInteger: Boolean = !isQuantized && DataType.integerDataTypes.contains(this)
+  def isInteger: Boolean = {
+    Set[DataType[Any]](INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64)
+        .contains(this.asInstanceOf[DataType[Any]])
+  }
 
   /** Returns `true` if this data type represents a quantized data type. */
-  def isQuantized: Boolean = DataType.quantizedDataTypes.contains(this)
+  def isQuantized: Boolean = {
+    Set[DataType[Any]](BFLOAT16, QINT8, QINT16, QINT32, QUINT8, QUINT16)
+        .contains(this.asInstanceOf[DataType[Any]])
+  }
 
   /** Returns `true` if this data type represents a non-quantized unsigned data type. */
-  def isUnsigned: Boolean = !isQuantized && DataType.unsignedDataTypes.contains(this)
+  def isUnsigned: Boolean = {
+    Set[DataType[Any]](UINT8, UINT16, UINT32, UINT64, QUINT8, QUINT16)
+        .contains(this.asInstanceOf[DataType[Any]])
+  }
 
   /** Returns `true` if this data type represents a numeric data type. */
-  def isNumeric: Boolean = DataType.numericDataTypes.contains(this)
+  def isNumeric: Boolean = {
+    isFloatingPoint || isComplex || isInteger || isQuantized || isUnsigned
+  }
 
   /** Returns `true` if this data type represents a boolean data type. */
-  def isBoolean: Boolean = this == DataType.BOOLEAN
+  def isBoolean: Boolean = {
+    this == DataType.BOOLEAN
+  }
 
   //endregion Data Type Set Helper Methods
 
@@ -123,42 +142,6 @@ object DataType {
   val RESOURCE  : DataType[Resource]      = DataType[Resource]("Resource", cValue = 20, byteSize = Some(1), DT_RESOURCE)
   val VARIANT   : DataType[Variant]       = DataType[Variant]("Variant", cValue = 21, byteSize = Some(1), DT_VARIANT)
 
-  // TODO: [TYPES] !!! Remove the following.
-
-  @inline private def erasedValue[T]: T = {
-    null.asInstanceOf[T]
-  }
-
-  @inline implicit def apply[T]: DataType[T] = {
-    val dataType = erasedValue[T] match {
-      case _: String => STRING
-      case _: Boolean => BOOLEAN
-      case _: Half => FLOAT16
-      case _: Float => FLOAT32
-      case _: Double => FLOAT64
-      case _: TruncatedHalf => BFLOAT16
-      case _: ComplexFloat => COMPLEX64
-      case _: ComplexDouble => COMPLEX128
-      case _: Byte => INT8
-      case _: Short => INT16
-      case _: Int => INT32
-      case _: Long => INT64
-      case _: UByte => UINT8
-      case _: UShort => UINT16
-      case _: UInt => UINT32
-      case _: ULong => UINT64
-      case _: QByte => QINT8
-      case _: QShort => QINT16
-      case _: QInt => QINT32
-      case _: QUByte => QUINT8
-      case _: QUShort => QUINT16
-      case _: Resource => RESOURCE
-      case _: Variant => VARIANT
-      case _ => ???
-    }
-    dataType.asInstanceOf[DataType[T]]
-  }
-
   //endregion Data Type Instances
 
   //region Helper Methods
@@ -173,7 +156,7 @@ object DataType {
     * @throws IllegalArgumentException If an invalid C value is provided.
     */
   @throws[IllegalArgumentException]
-  private[api] def fromCValue[T](cValue: Int): DataType[T] = {
+  private[api] def fromCValue(cValue: Int): DataType[Any] = {
     val dataType = cValue match {
       case BOOLEAN.cValue => BOOLEAN
       case STRING.cValue => STRING
@@ -202,10 +185,8 @@ object DataType {
         s"Data type C value '$value' is not recognized in Scala " +
             s"(TensorFlow version ${NativeLibrary.version}).")
     }
-    dataType.asInstanceOf[DataType[T]]
+    dataType.asInstanceOf[DataType[Any]]
   }
-
-  //endregion Helper Methods
 
   /** "Zero" value for the provided data type.
     *
@@ -290,7 +271,7 @@ object DataType {
     * @param  buffer Byte buffer in which to put the element.
     * @param  index  Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
     * @param  value  Element to put into the provided byte buffer.
-    * @tparam T      Data type of the elements stored in the buffer.
+    * @tparam T Data type of the elements stored in the buffer.
     * @return Number of bytes written. For all data types with a known byte size (i.e., not equal to `-1`), the return
     *         value is equal to the byte size.
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
@@ -372,7 +353,7 @@ object DataType {
     *
     * @param  buffer Byte buffer from which to get an element.
     * @param  index  Index of the element in the byte buffer (i.e., byte index where the element's bytes start).
-    * @tparam T      Data type of the elements stored in the buffer.
+    * @tparam T Data type of the elements stored in the buffer.
     * @return Obtained element.
     * @throws UnsupportedOperationException For unsupported data types on the Scala side.
     */
@@ -447,37 +428,5 @@ object DataType {
     }
   }
 
-  //region Data Type Sets
-
-  /** Set of all floating-point data types. */
-  val floatingPointDataTypes: Set[DataType[Any]] = {
-    Set(FLOAT16, FLOAT32, FLOAT64, BFLOAT16)
-  }
-
-  /** Set of all complex data types. */
-  val complexDataTypes: Set[DataType[Any]] = {
-    Set(COMPLEX64, COMPLEX128)
-  }
-
-  /** Set of all integer data types. */
-  val integerDataTypes: Set[DataType[Any]] = {
-    Set(INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64, QINT8, QINT16, QINT32, QUINT8, QUINT16)
-  }
-
-  /** Set of all quantized data types. */
-  val quantizedDataTypes: Set[DataType[Any]] = {
-    Set(BFLOAT16, QINT8, QINT16, QINT32, QUINT8, QUINT16)
-  }
-
-  /** Set of all unsigned data types. */
-  val unsignedDataTypes: Set[DataType[Any]] = {
-    Set(UINT8, UINT16, UINT32, UINT64, QUINT8, QUINT16)
-  }
-
-  /** Set of all numeric data types. */
-  val numericDataTypes: Set[DataType[Any]] = {
-    floatingPointDataTypes ++ complexDataTypes ++ integerDataTypes ++ quantizedDataTypes
-  }
-
-  //endregion Data Type Sets
+  //endregion Helper Methods
 }

@@ -1838,7 +1838,7 @@ trait Math {
       val shapeA = Basic.shape(a)
       val rankA = Basic.rank(a)
       val mappedAxes = ((axes >= 0).toInt * axes) + ((axes < 0).toInt * (axes + rankA.toInt))
-      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
+      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, indicesDataType = Int)
       val freeAxes = Basic.gather(shapeA, free)
       val axesAxes = Basic.gather(shapeA, mappedAxes)
       val prodFree = freeAxes.prod()

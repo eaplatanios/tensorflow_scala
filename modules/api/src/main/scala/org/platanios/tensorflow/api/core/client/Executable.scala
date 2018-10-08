@@ -52,7 +52,7 @@ object Executable {
   implicit def opExecutable[I, O]: Executable[Op[I, O]] = {
     new Executable[Op[I, O]] {
       override def ops(executable: Op[I, O]): Set[UntypedOp] = {
-        Set(executable.asUntyped)
+        Set(executable)
       }
     }
   }

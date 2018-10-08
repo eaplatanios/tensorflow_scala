@@ -15,8 +15,14 @@
 
 package org.platanios.tensorflow.api.core
 
+import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.DataType._
+
 /**
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits
-    extends client.Implicits
+    extends client.Implicits {
+  implicit def scalaIntToTFInt32(x: Int.type): DataType[Int] = INT32
+  implicit def scalaLongToTFInt64(x: Long.type): DataType[Long] = INT64
+}
