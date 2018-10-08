@@ -109,8 +109,8 @@ class YellowFin protected (
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  override def applyGradients[I: LongDefault : TF : IsInt32OrInt64](
-      gradientsAndVariables: Seq[(OutputLike[Any], Variable[Any])],
+  override def applyGradients[T: TF, I: LongDefault : TF : IsInt32OrInt64](
+      gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
   ): UntypedOp = {
@@ -188,13 +188,16 @@ class YellowFin protected (
         .build()
   }
 
-  protected def yellowFinUpdate(
-      gradientsAndVariables: Seq[(OutputLike[Any], Variable[Any])]
+  protected def yellowFinUpdate[T: TF](
+      gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])]
   ): UntypedOp = {
-    val gradSquared = gradientsAndVariables.map(gv => {
+    val castedGradientsAndVariables = gradientsAndVariables.map(gv => {
+      (gv._1.castTo[Float], gv._2)
+    })
+
+    val gradSquared = castedGradientsAndVariables.map(gv => {
       Op.colocateWith(Set(gv._2.op), ignoreExisting = true) {
-        implicit val evTF: TF[Any] = TF.fromDataType(gv._1.dataType)
-        Math.square(gv._1.castTo[Float]).toOutput
+        Math.square(gv._1).toOutput
       }
     })
 
@@ -205,10 +208,7 @@ class YellowFin protected (
       val avg = Math.addN(gradNormSquared.map(movingAverage.average(_).get.read()))
       (sum, avg)
     }
-    val gradients = gradientsAndVariables.map(gv => {
-      implicit val evTF: TF[Any] = TF.fromDataType(gv._1.dataType)
-      gv._1.castTo[Float].toOutput
-    })
+    val gradients = castedGradientsAndVariables.map(_._1.toOutput)
     val sparsityAvg = gradientsSparsity(gradients)
     val (hMin, hMax) = curvatureRange(gradNormSquaredSum, sparsityAvg)
     val gradVar = gradientsVariance(gradients, gradNormSquaredAvg, sparsityAvg)

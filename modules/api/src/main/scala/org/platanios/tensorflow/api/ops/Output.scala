@@ -307,8 +307,10 @@ object Output {
                     .map(delta => TensorMath.range(start, limit, delta))))
       case "Cast" =>
         constantValue(output.op.inputsSeq(0)).map(preCast => {
-          implicit val evTF: TF[Any] = TF.fromDataType(preCast.dataType)
-          preCast.castTo(output.op.dataTypeAttribute("DstT"))
+          Cast.cast[Any, Any, Output](preCast)(
+            TF.fromDataType(preCast.dataType),
+            TF.fromDataType(output.op.dataTypeAttribute("DstT")),
+            implicitly[OutputOps.Aux[Output, Any]])
         })
       case "Concat" =>
         constantValue(output.op.inputsSeq(0)).flatMap(axis => {

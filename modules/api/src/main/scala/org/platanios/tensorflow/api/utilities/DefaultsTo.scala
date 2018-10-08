@@ -50,4 +50,100 @@ object DefaultsTo {
   type QUShortDefault[T] = DefaultsTo[T, QUShort]
   type ResourceDefault[T] = DefaultsTo[T, Resource]
   type VariantDefault[T] = DefaultsTo[T, Variant]
+
+  object AnyDefault {
+    def apply[T: AnyDefault]: AnyDefault[T] = implicitly[AnyDefault[T]]
+  }
+
+  object StringDefault {
+    def apply[T: StringDefault]: StringDefault[T] = implicitly[StringDefault[T]]
+  }
+
+  object BooleanDefault {
+    def apply[T: BooleanDefault]: BooleanDefault[T] = implicitly[BooleanDefault[T]]
+  }
+
+  object HalfDefault {
+    def apply[T: HalfDefault]: HalfDefault[T] = implicitly[HalfDefault[T]]
+  }
+
+  object FloatDefault {
+    def apply[T: FloatDefault]: FloatDefault[T] = implicitly[FloatDefault[T]]
+  }
+
+  object DoubleDefault {
+    def apply[T: DoubleDefault]: DoubleDefault[T] = implicitly[DoubleDefault[T]]
+  }
+
+  object TruncatedHalfDefault {
+    def apply[T: TruncatedHalfDefault]: TruncatedHalfDefault[T] = implicitly[TruncatedHalfDefault[T]]
+  }
+
+  object ComplexFloatDefault {
+    def apply[T: ComplexFloatDefault]: ComplexFloatDefault[T] = implicitly[ComplexFloatDefault[T]]
+  }
+
+  object ComplexDoubleDefault {
+    def apply[T: ComplexDoubleDefault]: ComplexDoubleDefault[T] = implicitly[ComplexDoubleDefault[T]]
+  }
+
+  object ByteDefault {
+    def apply[T: ByteDefault]: ByteDefault[T] = implicitly[ByteDefault[T]]
+  }
+
+  object ShortDefault {
+    def apply[T: ShortDefault]: ShortDefault[T] = implicitly[ShortDefault[T]]
+  }
+
+  object IntDefault {
+    def apply[T: IntDefault]: IntDefault[T] = implicitly[IntDefault[T]]
+  }
+
+  object LongDefault {
+    def apply[T: LongDefault]: LongDefault[T] = implicitly[LongDefault[T]]
+  }
+
+  object UByteDefault {
+    def apply[T: UByteDefault]: UByteDefault[T] = implicitly[UByteDefault[T]]
+  }
+
+  object UShortDefault {
+    def apply[T: UShortDefault]: UShortDefault[T] = implicitly[UShortDefault[T]]
+  }
+
+  object UIntDefault {
+    def apply[T: UIntDefault]: UIntDefault[T] = implicitly[UIntDefault[T]]
+  }
+
+  object ULongDefault {
+    def apply[T: ULongDefault]: ULongDefault[T] = implicitly[ULongDefault[T]]
+  }
+
+  object QByteDefault {
+    def apply[T: QByteDefault]: QByteDefault[T] = implicitly[QByteDefault[T]]
+  }
+
+  object QShortDefault {
+    def apply[T: QShortDefault]: QShortDefault[T] = implicitly[QShortDefault[T]]
+  }
+
+  object QIntDefault {
+    def apply[T: QIntDefault]: QIntDefault[T] = implicitly[QIntDefault[T]]
+  }
+
+  object QUByteDefault {
+    def apply[T: QUByteDefault]: QUByteDefault[T] = implicitly[QUByteDefault[T]]
+  }
+
+  object QUShortDefault {
+    def apply[T: QUShortDefault]: QUShortDefault[T] = implicitly[QUShortDefault[T]]
+  }
+
+  object ResourceDefault {
+    def apply[T: ResourceDefault]: ResourceDefault[T] = implicitly[ResourceDefault[T]]
+  }
+
+  object VariantDefault {
+    def apply[T: VariantDefault]: VariantDefault[T] = implicitly[VariantDefault[T]]
+  }
 }

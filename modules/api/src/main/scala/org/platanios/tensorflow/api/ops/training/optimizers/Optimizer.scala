@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Initializer, Variable, VariableScope}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
+import org.platanios.tensorflow.api.utilities.DefaultsTo.{AnyDefault, LongDefault}
 
 import scala.collection.mutable
 
@@ -75,9 +75,10 @@ trait Optimizer {
     * @param  name                       Name for the created op.
     * @return Created op.
     */
-  final def minimize[T: TF : IsFloat32OrFloat64, I: LongDefault : TF : IsInt32OrInt64](
+  @throws[IllegalArgumentException]
+  def minimize[T: TF : IsFloat32OrFloat64, I: LongDefault : TF : IsInt32OrInt64](
       loss: Output[T],
-      lossGradients: Seq[OutputLike[Any]] = null,
+      lossGradients: Seq[OutputLike[T]] = null,
       variables: Set[Variable[Any]] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
@@ -108,12 +109,12 @@ trait Optimizer {
   @throws[IllegalArgumentException]
   def computeGradients[T: TF : IsFloat32OrFloat64](
       loss: Output[T],
-      lossGradients: Seq[OutputLike[Any]] = null,
+      lossGradients: Seq[OutputLike[T]] = null,
       variables: Set[Variable[Any]] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
       colocateGradientsWithOps: Boolean = false
-  ): Seq[(OutputLike[Any], Variable[Any])] = {
+  ): Seq[(OutputLike[T], Variable[Any])] = {
     // TODO: [VARIABLES] Settle on what keys to use for variables.
     val collectedVariables: Seq[Variable[Any]] = {
       {
@@ -138,13 +139,13 @@ trait Optimizer {
       val gradients = Gradients.gradients(
         ys = Seq(loss),
         xs = variableTargets,
+        dataType = TF[T].dataType,
         dys = lossGradients,
         gateGradients = gradientsGatingMethod == Gradients.OpGating,
         aggregationMethod = gradientsAggregationMethod,
-        colocateGradientsWithOps = colocateGradientsWithOps
-      )(TF.fromDataType(variableTargets.head.dataType))
+        colocateGradientsWithOps = colocateGradientsWithOps)
       if (gradientsGatingMethod == Gradients.GraphGating) {
-        ControlFlow.tuple(gradients)(TF.fromDataType(variableTargets.head.dataType))
+        ControlFlow.tuple(gradients)
       } else {
         gradients
       }
@@ -159,18 +160,20 @@ trait Optimizer {
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  def applyGradients[I: LongDefault : TF : IsInt32OrInt64](
-      gradientsAndVariables: Seq[(OutputLike[Any], Variable[Any])],
+  @throws[IllegalArgumentException]
+  def applyGradients[T: TF, I: LongDefault : TF : IsInt32OrInt64](
+      gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
   ): UntypedOp = {
     // This is a default implementation of `applyGradients` that is shared by most optimizers. It relies on the subclass
     // implementing the following methods: `createSlots`, `prepare`, `finish`, `applyDense`, and `applySparse`.
     val variables: Seq[Variable[Any]] = gradientsAndVariables.filter(_._1 != null).map(_._2)
-    if (variables.isEmpty)
+    if (variables.isEmpty) {
       throw new IllegalArgumentException(
         "No gradients were provided for any of the variables: " +
             s"${gradientsAndVariables.map(_._2).mkString(", ")}.")
+    }
 
     Op.nameScope(name) {
       // Create the slots needed by the variables.
@@ -193,7 +196,7 @@ trait Optimizer {
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"Update/${v.op.name}") {
           Op.colocateWith(Set(v.op), ignoreExisting = true) {
-            updateOps.add(p.updateOp(this, g, iteration))
+            updateOps.add(p.updateOp(this, g.castTo(v.dataType), iteration))
           }
         }
       }

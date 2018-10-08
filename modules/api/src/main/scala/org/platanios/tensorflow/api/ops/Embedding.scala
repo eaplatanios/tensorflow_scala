@@ -512,7 +512,7 @@ object Embedding extends Embedding {
   private[ops] trait Documentation
 }
 
-case class EmbeddingMap[T](partitionParameters: Seq[EmbeddingParameters[T]]) {
+case class EmbeddingMap[T: TF](partitionParameters: Seq[EmbeddingParameters[T]]) {
   val numPartitions: Int = partitionParameters.size
 }
 

@@ -30,7 +30,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Created op output.
     */
-  private[Cast] def cast[T: TF, R: TF, OL[TT] <: OutputLike[TT]](
+  private[ops] def cast[T: TF, R: TF, OL[TT] <: OutputLike[TT]](
       input: OL[T],
       truncate: Boolean = false
   )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
@@ -77,7 +77,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Created op output.
     */
-  private[Cast] def bitcast[T: IsNumeric, R: TF, OL[TT] <: OutputLike[TT]](
+  private[ops] def bitcast[T: IsNumeric, R: TF, OL[TT] <: OutputLike[TT]](
       input: OL[T]
   )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
     val dataType = TF[R].dataType

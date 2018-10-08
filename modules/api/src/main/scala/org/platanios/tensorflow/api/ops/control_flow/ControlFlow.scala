@@ -96,6 +96,8 @@ private[api] trait ControlFlow {
     }
   }
 
+  // TODO: [TYPES] Make `tuple` generic so that it works over arbitrary tuples of tensors.
+
   /** $OpDocControlFlowTuple
     *
     * @group ControlFlowOps

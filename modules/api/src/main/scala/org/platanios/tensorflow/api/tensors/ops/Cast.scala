@@ -32,7 +32,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Result as a new tensor.
     */
-  private[Cast] def cast[T: TF, R: TF, TL[TT] <: TensorLike[TT]](
+  private[ops] def cast[T: TF, R: TF, TL[TT] <: TensorLike[TT]](
       input: TL[T],
       truncate: Boolean = false
   )(implicit ev: TensorOps.Aux[TL, T]): TL[R] = {
@@ -57,7 +57,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Result as a new tensor.
     */
-  private[Cast] def bitcast[T: IsNumeric, R: TF, TL[TT] <: TensorLike[TT]](
+  private[ops] def bitcast[T: IsNumeric, R: TF, TL[TT] <: TensorLike[TT]](
       input: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[R] = {
     val dataType = implicitly[TF[R]].dataType

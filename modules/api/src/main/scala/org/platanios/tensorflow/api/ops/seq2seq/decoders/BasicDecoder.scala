@@ -24,6 +24,7 @@ import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVari
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 import scala.language.postfixOps
 
@@ -273,7 +274,12 @@ object BasicDecoder {
       Op.nameScope(name) {
         inputs.map(input => {
           implicit val evTF: TF[Any] = TF.fromDataType(input.dataType)
-          Basic.zerosLike(input.gather(0))
+          Basic.zerosLike(
+            Basic.gather(
+              input = input,
+              indices = 0
+            )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int], IntDefault[Int], TF[Int], IsInt32OrInt64[Int])
+          )(TF.fromDataType(input.dataType))
         })
       }
     }

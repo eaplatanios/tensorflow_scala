@@ -1474,7 +1474,7 @@ trait Math {
     val x = op.input._1
     val y = op.input._2
     if (shapeFullySpecifiedAndEqual(x, y, outputGradient) &&
-        (outputGradient.dataType == Int || outputGradient.dataType == FLOAT32)) {
+        (outputGradient.dataType == INT32 || outputGradient.dataType == FLOAT32)) {
       (outputGradient * y, outputGradient * x)
     } else {
       val xShape = Basic.shape(x)

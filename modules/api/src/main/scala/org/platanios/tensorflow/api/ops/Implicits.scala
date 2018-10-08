@@ -152,6 +152,12 @@ private[ops] trait UntypedPriority1Implicits extends UntypedPriority0Implicits {
     op.asInstanceOf[Op[Seq[OutputLike[Any]], Seq[OutputLike[Any]]]]
   }
 
+  implicit def variableArrayAsUntyped(
+      variables: Array[Variable[_]]
+  ): Array[Variable[Any]] = {
+    variables.asInstanceOf[Array[Variable[Any]]]
+  }
+
   implicit def outputArrayAsUntyped(
       outputs: Array[Output[_]]
   ): Array[Output[Any]] = {
@@ -182,6 +188,12 @@ private[ops] trait UntypedPriority1Implicits extends UntypedPriority0Implicits {
     ops.asInstanceOf[Array[Op[Seq[Output[Any]], Seq[Output[Any]]]]]
   }
 
+  implicit def variableSeqAsUntyped(
+      variables: Seq[Variable[_]]
+  ): Seq[Variable[Any]] = {
+    variables.asInstanceOf[Seq[Variable[Any]]]
+  }
+
   implicit def outputSeqAsUntyped(
       outputs: Seq[Output[_]]
   ): Seq[Output[Any]] = {
@@ -210,6 +222,12 @@ private[ops] trait UntypedPriority1Implicits extends UntypedPriority0Implicits {
       ops: Seq[Op[_, _]]
   ): Seq[Op[Seq[Output[Any]], Seq[Output[Any]]]] = {
     ops.asInstanceOf[Seq[Op[Seq[Output[Any]], Seq[Output[Any]]]]]
+  }
+
+  implicit def variableSetAsUntyped(
+      variables: Set[Variable[_]]
+  ): Set[Variable[Any]] = {
+    variables.asInstanceOf[Set[Variable[Any]]]
   }
 
   implicit def outputSetAsUntyped(

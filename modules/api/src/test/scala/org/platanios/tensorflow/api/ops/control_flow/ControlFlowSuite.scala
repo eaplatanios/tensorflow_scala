@@ -188,8 +188,8 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val p = Basic.constant(true)
     val x = Basic.constant(2.0)
     val (xFalse, xTrue) = ControlFlow.switch(x, p)
-    val xFalseGradient = Gradients.gradients(Seq(xFalse), Seq(x)).head.toOutput
-    val xTrueGradient = Gradients.gradients(Seq(xTrue), Seq(x)).head.toOutput
+    val xFalseGradient = Gradients.gradients(Seq(xFalse), Seq(x), FLOAT64).head.toOutput
+    val xTrueGradient = Gradients.gradients(Seq(xTrue), Seq(x), FLOAT64).head.toOutput
     val session = Session()
     val (xFG, xTG) = session.run(fetches = (xFalseGradient, xTrueGradient))
     session.close()
@@ -419,11 +419,11 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
       }
     }
     val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0), Basic.constant(0.0)))
-    val dynamicGradients = Gradients.gradients(Seq(loss), Seq(embeddingMatrix.handle)).head.toOutput
+    val dynamicGradients = Gradients.gradients(Seq(loss), Seq(embeddingMatrix.handle), FLOAT64).head.toOutput
     val embedding = Embedding.embeddingLookup(embeddingMatrix, 0)
     val embeddingSum = embedding.sum()
     val staticLoss = (3.0 * embeddingSum).square + embeddingSum
-    val staticGradients = Gradients.gradients(Seq(staticLoss), Seq(embeddingMatrix.handle)).head.toOutput
+    val staticGradients = Gradients.gradients(Seq(staticLoss), Seq(embeddingMatrix.handle), FLOAT64).head.toOutput
     val session = Session()
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
     val dG = session.run(fetches = dynamicGradients)
@@ -445,7 +445,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
       }
       val (_, outputs) = ControlFlow.whileLoop(p, b, (initialI, initialOutputs))
       val outputsSum = outputs.stack().sum()
-      val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs)).head.toOutput
+      val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs), FLOAT32).head.toOutput
       val session = Session()
       val (os, g) = session.run(
         feeds = inputs -> Tensor[Int](4, 6, 0, 7, 0, 0, 1, 2, 0).castTo[Float],
@@ -467,7 +467,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
       }
       val (_, outputs) = ControlFlow.whileLoop(p, b, (initialI, initialOutputs))
       val outputsSum = outputs.stack().sum()
-      val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs)).head.toOutput
+      val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs), FLOAT32).head.toOutput
       val session = Session()
       val (os, g) = session.run(
         feeds = inputs -> Tensor[Int](1, 2, 3).castTo[Float],
@@ -515,7 +515,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
               Math.less(v._2, 1.0f),
               () => 2.0f * v._2,
               () => v._2)
-            (v._1 + 1, Gradients.gradients(Seq(y), Seq(v._2)).head.toOutput)
+            (v._1 + 1, Gradients.gradients(Seq(y), Seq(v._2), FLOAT32).head.toOutput)
           },
           (Basic.constant(0), Basic.constant(0.0f)))
         (outerV._1 + 1, x)

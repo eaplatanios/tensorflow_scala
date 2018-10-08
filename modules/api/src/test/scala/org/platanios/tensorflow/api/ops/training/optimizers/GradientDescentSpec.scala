@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.ops.variables.Variable
 
 import org.scalatest._
 
@@ -34,7 +35,9 @@ class GradientDescentSpec extends FlatSpec with Matchers {
         val variable1 = tf.variable[Double]("v1", Shape(2), tf.ConstantInitializer(Tensor(3, 4)))
         val gradient0 = tf.constant(Tensor[Double](0.1, 0.1))
         val gradient1 = tf.constant(Tensor[Double](0.01, 0.01))
-        val gdOp = GradientDescent(3.0f).applyGradients(Seq((gradient0, variable0), (gradient1, variable1)))
+        val gdOp = GradientDescent(3.0f).applyGradients(Seq(
+          (gradient0, variable0.asInstanceOf[Variable[Any]]),
+          (gradient1, variable1.asInstanceOf[Variable[Any]])))
         (variable0, variable1, gdOp)
       }
       val session = Session(graph)

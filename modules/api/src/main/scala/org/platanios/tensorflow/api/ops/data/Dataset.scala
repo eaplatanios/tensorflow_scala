@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.core.types.{DataType, Variant, INT64, VARIANT}
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.TensorToOutput
 import org.platanios.tensorflow.api.ops._
@@ -745,7 +745,9 @@ trait Dataset[T] { outer =>
 
       private def flatPaddingValues: Seq[Output[Any]] = {
         if (paddingValues != null) {
-          evTensorToOutput.tensors(paddingValues).map(Basic.constant(_))
+          evTensorToOutput.tensors(paddingValues).map(v => {
+            Basic.constant(v)(TF.fromDataType(v.dataType))
+          })
         } else {
           flatOutputDataTypes.map(Basic.zeros(_, Shape()))
         }

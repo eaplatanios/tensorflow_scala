@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.core.types.INT32
+import org.platanios.tensorflow.api.core.types.{INT32, FLOAT64}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
@@ -87,7 +87,7 @@ class GradientsSuite extends JUnitSuite {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
-    val gradients = Op.createWith(graph)(Gradients.gradients(Seq(output), inputs))
+    val gradients = Op.createWith(graph)(Gradients.gradients(Seq(output), inputs, FLOAT64))
     val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
@@ -114,7 +114,7 @@ class GradientsSuite extends JUnitSuite {
       val b = Basic.constant(1.0, Shape(10), name = "b")
       val xw = Math.matmul(input, w, name = "xW")
       val h = NN.addBias(xw, b, name = "h")
-      val gradient = Gradients.gradients(Seq(h), Seq(w)).head
+      val gradient = Gradients.gradients(Seq(h), Seq(w), FLOAT64).head
       assert(gradient.op.opType === "MatMul")
       assert(gradient.op.booleanAttribute("transpose_a"))
       assert(!gradient.op.booleanAttribute("transpose_b"))
@@ -128,7 +128,7 @@ class GradientsSuite extends JUnitSuite {
       val wx = Math.matmul(w, x)
       val wxSplit = Basic.splitEvenly(wx, 2, axis = 0)
       val c = Math.sum(wxSplit(1))
-      val gradient = Gradients.gradients(Seq(c), Seq(w)).head
+      val gradient = Gradients.gradients(Seq(c), Seq(w), FLOAT64).head
       assert(gradient.op.opType === "MatMul")
     }
   }
@@ -141,7 +141,7 @@ class GradientsSuite extends JUnitSuite {
       val x = Basic.identity(c)
       val y = Math.add(x, 1.0)
       val z = Math.add(y, 1.0)
-      val gradients = Gradients.gradients(Seq(z), Seq(x))
+      val gradients = Gradients.gradients(Seq(z), Seq(x), FLOAT64)
       assert(!gradients.contains(null))
     }
   }
@@ -152,7 +152,7 @@ class GradientsSuite extends JUnitSuite {
       val x = Basic.constant(1.0)
       val y = Math.multiply(x, 2.0)
       val z = Math.multiply(y, 3.0)
-      val gradients = Gradients.gradients(Seq(z), Seq(x, y))
+      val gradients = Gradients.gradients(Seq(z), Seq(x, y), FLOAT64)
       assert(!gradients.contains(null))
       val session = Session()
       assert(session.run(fetches = gradients.head.toOutput).scalar.asInstanceOf[Double] === 6.0)
@@ -170,7 +170,7 @@ class GradientsSuite extends JUnitSuite {
         },
         (Basic.constant(0), Basic.constant(0), TensorArray.create(4, INT32)))
       val target = lv._3.read(lv._1 - 1)
-      val gradient = Gradients.gradients(Seq(target), Seq(v)).head
+      val gradient = Gradients.gradients(Seq(target), Seq(v), INT32).head
       assert(gradient === null)
     }
   }

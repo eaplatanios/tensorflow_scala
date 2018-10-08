@@ -50,7 +50,7 @@ trait Basic {
     *                               the provided `shape`.
     */
   @throws[InvalidShapeException]
-  def constant[T](
+  def constant[T: TF](
       tensor: Tensor[T],
       shape: Shape = null,
       name: String = "Constant"
