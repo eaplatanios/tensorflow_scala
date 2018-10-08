@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.tensors.ops
 
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.tensors._
-import org.platanios.tensorflow.api.types.TF
 import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOpsRandom}
 
 /** Contains functions for executing ops related to random numbers and tensors.

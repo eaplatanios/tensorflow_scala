@@ -17,9 +17,8 @@ package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, TF}
-import org.platanios.tensorflow.api.types.DataType._
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
 import java.nio.{ByteBuffer, ByteOrder}

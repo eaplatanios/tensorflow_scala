@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.types.{Resource, TF}
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
-import org.platanios.tensorflow.api.types.{Resource, TF}
 
 /** Lookup table initializer that uses the provided tensors (containing keys and corresponding values) for initializing
   * a lookup table.

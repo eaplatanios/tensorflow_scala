@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.tensors.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.NN.{CNNDataFormat, ConvPaddingMode, NCWFormat, NWCFormat}
 import org.platanios.tensorflow.api.tensors._
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 import org.platanios.tensorflow.jni.generated.tensors.{NN => NativeTensorOpsNN}
 
@@ -841,17 +841,13 @@ trait NN {
 
 object NN extends NN {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToNNOps[TC, T](
+    implicit def tensorConvertibleToNNOps[TC, T: TF](
         value: TC
     )(implicit f: TC => Tensor[T]): NNOps[T] = {
       new NNOps(f(value))
     }
 
-    implicit class NNOps[T](val tensor: Tensor[T]) {
-      private implicit val evTF: TF[T] = {
-        TF.fromDataType(tensor.dataType)
-      }
-
+    implicit class NNOps[T: TF](val tensor: Tensor[T]) {
       //region Core Ops
 
       /** $OpDocNNAddBias

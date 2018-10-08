@@ -17,13 +17,13 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputLikeOrTensorArray, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, TF}
 
 import scala.language.postfixOps
 

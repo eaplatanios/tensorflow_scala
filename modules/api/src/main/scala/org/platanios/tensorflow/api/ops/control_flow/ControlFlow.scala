@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types.{RESOURCE, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{RESOURCE, TF}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 

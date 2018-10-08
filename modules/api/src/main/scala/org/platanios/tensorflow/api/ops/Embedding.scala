@@ -18,9 +18,9 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
 

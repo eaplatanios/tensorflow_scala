@@ -16,12 +16,12 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Initializer, Variable, VariableScope}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
 
 import scala.collection.mutable

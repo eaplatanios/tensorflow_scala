@@ -16,10 +16,10 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 
 import scala.collection.{TraversableLike, breakOut}
 
@@ -48,11 +48,11 @@ private[api] trait Implicits
   }
 
   implicit def outputFromTensor[T](value: Tensor[T]): Output[T] = {
-    Basic.constant(value)
+    value.toOutput
   }
 
   implicit def outputFromShape(shape: Shape): Output[Long] = {
-    Basic.constant(shape.toTensor)
+    shape.toOutput
   }
 
   implicit def outputFromRange(range: Range): Output[Int] = {

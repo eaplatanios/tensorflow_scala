@@ -13,7 +13,9 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api
+package org.platanios.tensorflow.api.core
+
+import org.tensorflow.framework.DataType._
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -37,58 +39,38 @@ package object types {
   case class Resource(private[types] val data: Long) extends AnyVal
   case class Variant(private[types] val data: Long) extends AnyVal
 
-  type STRING = types.DataType[String]
-  type BOOLEAN = types.DataType[Boolean]
-  type FLOAT16 = types.DataType[Half]
-  type FLOAT32 = types.DataType[Float]
-  type FLOAT64 = types.DataType[Double]
-  type BFLOAT16 = types.DataType[TruncatedHalf]
-  type COMPLEX64 = types.DataType[ComplexFloat]
-  type COMPLEX128 = types.DataType[ComplexDouble]
-  type INT8 = types.DataType[Byte]
-  type INT16 = types.DataType[Short]
-  // type INT32 = types.DataType[Int]
-  type INT64 = types.DataType[Long]
-  type UINT8 = types.DataType[UByte]
-  type UINT16 = types.DataType[UShort]
-  type UINT32 = types.DataType[UInt]
-  type UINT64 = types.DataType[ULong]
-  type QINT8 = types.DataType[QByte]
-  type QINT16 = types.DataType[QShort]
-  type QINT32 = types.DataType[QInt]
-  type QUINT8 = types.DataType[QUByte]
-  type QUINT16 = types.DataType[QUShort]
-  type RESOURCE = types.DataType[Resource]
-  type VARIANT = types.DataType[Variant]
+  //region Data Type Instances
 
-  val STRING    : STRING     = types.DataType.STRING
-  val BOOLEAN   : BOOLEAN    = types.DataType.BOOLEAN
-  val FLOAT16   : FLOAT16    = types.DataType.FLOAT16
-  val FLOAT32   : FLOAT32    = types.DataType.FLOAT32
-  val FLOAT64   : FLOAT64    = types.DataType.FLOAT64
-  val BFLOAT16  : BFLOAT16   = types.DataType.BFLOAT16
-  val COMPLEX64 : COMPLEX64  = types.DataType.COMPLEX64
-  val COMPLEX128: COMPLEX128 = types.DataType.COMPLEX128
-  val INT8      : INT8       = types.DataType.INT8
-  val INT16     : INT16      = types.DataType.INT16
-  // val INT32     : INT32      = types.DataType.INT32
-  val INT64     : INT64      = types.DataType.INT64
-  val UINT8     : UINT8      = types.DataType.UINT8
-  val UINT16    : UINT16     = types.DataType.UINT16
-  val UINT32    : UINT32     = types.DataType.UINT32
-  val UINT64    : UINT64     = types.DataType.UINT64
-  val QINT8     : QINT8      = types.DataType.QINT8
-  val QINT16    : QINT16     = types.DataType.QINT16
-  val QINT32    : QINT32     = types.DataType.QINT32
-  val QUINT8    : QUINT8     = types.DataType.QUINT8
-  val QUINT16   : QUINT16    = types.DataType.QUINT16
-  val RESOURCE  : RESOURCE   = types.DataType.RESOURCE
-  val VARIANT   : VARIANT    = types.DataType.VARIANT
+  val STRING    : DataType[String]        = DataType[String]("String", 7, None, DT_STRING)
+  val BOOLEAN   : DataType[Boolean]       = DataType[Boolean]("Boolean", 10, Some(1), DT_BOOL)
+  val FLOAT16   : DataType[Half]          = DataType[Half]("Half", 19, Some(2), DT_HALF)
+  val FLOAT32   : DataType[Float]         = DataType[Float]("Float", 1, Some(4), DT_FLOAT)
+  val FLOAT64   : DataType[Double]        = DataType[Double]("Double", 2, Some(8), DT_DOUBLE)
+  val BFLOAT16  : DataType[TruncatedHalf] = DataType[TruncatedHalf]("TruncatedFloat", 14, Some(2), DT_BFLOAT16)
+  val COMPLEX64 : DataType[ComplexFloat]  = DataType[ComplexFloat]("ComplexFloat", 8, Some(8), DT_COMPLEX64)
+  val COMPLEX128: DataType[ComplexDouble] = DataType[ComplexDouble]("ComplexDouble", 18, Some(16), DT_COMPLEX128)
+  val INT8      : DataType[Byte]          = DataType[Byte]("Byte", 6, Some(1), DT_INT8)
+  val INT16     : DataType[Short]         = DataType[Short]("Short", 5, Some(2), DT_INT16)
+  val INT32     : DataType[Int]           = DataType[Int]("Int", 3, Some(4), DT_INT32)
+  val INT64     : DataType[Long]          = DataType[Long]("Long", 9, Some(8), DT_INT64)
+  val UINT8     : DataType[UByte]         = DataType[UByte]("UByte", 4, Some(1), DT_UINT8)
+  val UINT16    : DataType[UShort]        = DataType[UShort]("UShort", 17, Some(2), DT_UINT16)
+  val UINT32    : DataType[UInt]          = DataType[UInt]("UInt", 22, Some(4), DT_UINT32)
+  val UINT64    : DataType[ULong]         = DataType[ULong]("ULong", 23, Some(8), DT_UINT64)
+  val QINT8     : DataType[QByte]         = DataType[QByte]("QByte", 11, Some(1), DT_QINT8)
+  val QINT16    : DataType[QShort]        = DataType[QShort]("QShort", 15, Some(2), DT_QINT16)
+  val QINT32    : DataType[QInt]          = DataType[QInt]("QInt", 13, Some(4), DT_QINT32)
+  val QUINT8    : DataType[QUByte]        = DataType[QUByte]("QUByte", 12, Some(1), DT_QUINT8)
+  val QUINT16   : DataType[QUShort]       = DataType[QUShort]("QUShort", 16, Some(2), DT_QUINT16)
+  val RESOURCE  : DataType[Resource]      = DataType[Resource]("Resource", 20, Some(1), DT_RESOURCE)
+  val VARIANT   : DataType[Variant]       = DataType[Variant]("Variant", 21, Some(1), DT_VARIANT)
+
+  //endregion Data Type Instances
 
   //region Type Traits
 
   trait TF[T] {
-    @inline def dataType: types.DataType[T]
+    @inline def dataType: org.platanios.tensorflow.api.core.types.DataType[T]
   }
 
   object TF {
@@ -96,10 +78,10 @@ package object types {
       implicitly[TF[T]]
     }
 
-    def fromDataType[T](dataType: types.DataType[T]): TF[T] = {
+    def fromDataType[T](dataType: org.platanios.tensorflow.api.core.types.DataType[T]): TF[T] = {
       val providedDataType = dataType
       new TF[T] {
-        override def dataType: types.DataType[T] = {
+        override def dataType: org.platanios.tensorflow.api.core.types.DataType[T] = {
           providedDataType
         }
       }
@@ -115,7 +97,7 @@ package object types {
     implicit val complexDoubleEvTF: TF[ComplexDouble] = fromDataType(COMPLEX128)
     implicit val byteEvTF         : TF[Byte]          = fromDataType(INT8)
     implicit val shortEvTF        : TF[Short]         = fromDataType(INT16)
-    implicit val intEvTF          : TF[Int]           = fromDataType(types.DataType.INT32)
+    implicit val intEvTF          : TF[Int]           = fromDataType(INT32)
     implicit val longEvTF         : TF[Long]          = fromDataType(INT64)
     implicit val uByteEvTF        : TF[UByte]         = fromDataType(UINT8)
     implicit val uShortEvTF       : TF[UShort]        = fromDataType(UINT16)

@@ -16,10 +16,10 @@
 package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.core.types.{DataType, INT64, TF, IsStringOrIntOrUInt}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types.{DataType, TF, INT64, IsStringOrIntOrUInt}
 
 /** String to ID lookup table wrapper that assigns out-of-vocabulary keys to buckets.
   *

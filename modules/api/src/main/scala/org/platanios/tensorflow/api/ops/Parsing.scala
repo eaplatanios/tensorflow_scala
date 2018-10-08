@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
-import org.platanios.tensorflow.api.types._
 
 import scala.collection.immutable.ListMap
 

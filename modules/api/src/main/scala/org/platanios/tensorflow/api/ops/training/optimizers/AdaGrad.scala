@@ -15,11 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
+import org.platanios.tensorflow.api.core.types.{Resource, TF, IsInt32OrInt64, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Variable}
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, Resource, TF}
 
 /** Optimizer that implements the AdaGrad optimization algorithm.
   *

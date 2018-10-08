@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.{IsNumeric, IsReal, TF}
+import org.platanios.tensorflow.api.core.types.{TF, IsNumeric, IsReal}
 
 /** Contains functions for constructing ops related to sparse tensors.
   *

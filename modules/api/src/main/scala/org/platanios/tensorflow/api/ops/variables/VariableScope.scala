@@ -17,9 +17,9 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
-import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Variable scope that carries default settings to provide to `getVariable`.
   *

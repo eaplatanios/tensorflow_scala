@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.{DataType, INT64, TF}
+import org.platanios.tensorflow.api.core.types.TF
 
 import scala.collection.mutable
 

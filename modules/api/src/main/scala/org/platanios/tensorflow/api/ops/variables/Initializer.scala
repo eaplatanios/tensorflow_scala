@@ -17,12 +17,12 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
+import org.platanios.tensorflow.api.core.types.{TF, IsFloat16OrFloat32OrFloat64}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
 import org.platanios.tensorflow.api.ops.variables.VarianceScalingInitializer.FanInScalingMode
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, IsFloat16OrFloat32OrFloat64, TF}
 
 // TODO: [TYPES] Make initializers type safe.
 
@@ -42,7 +42,6 @@ trait Initializer {
 
   /** Generates an initial value op.
     *
-    * @param  dataType      Data type for the output tensor.
     * @param  shape         Shape for the output tensor.
     * @param  partitionInfo [[PartitionInformation]] object holding additional information about how the variable is
     *                       partitioned. May be `null` if the variable is not partitioned.

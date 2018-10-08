@@ -18,11 +18,11 @@ package org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
 import org.platanios.tensorflow.api.ops.{Op, Output, Basic => OutputBasic}
-import org.platanios.tensorflow.api.tensors.ops.{Basic, Math, Random}
-import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.tensors.ops.{Basic, Math}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}

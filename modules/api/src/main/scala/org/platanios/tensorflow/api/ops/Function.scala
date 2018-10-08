@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.types.{DataType, Variant, VARIANT, TF}
 import org.platanios.tensorflow.api.ops.data.{Dataset, SupportedData}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, TF, Variant, VARIANT}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 

@@ -17,12 +17,12 @@ package org.platanios.tensorflow.api.ops.rnn
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 import scala.language.postfixOps
 

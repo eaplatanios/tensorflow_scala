@@ -16,12 +16,12 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, TF}
 
 /** Optimizer that implements the AMSGrad optimization algorithm, presented in
   * [On the Convergence of Adam and Beyond](https://openreview.net/pdf?id=ryQu7f-RZ).

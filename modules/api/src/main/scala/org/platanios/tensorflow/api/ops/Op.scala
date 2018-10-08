@@ -18,9 +18,9 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types.DataType
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, TF}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
@@ -33,7 +33,6 @@ import java.nio.charset.{Charset, StandardCharsets}
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
-import scala.reflect.runtime.universe._
 import scala.util.Try
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.

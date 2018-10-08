@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 import scala.language.postfixOps

@@ -16,12 +16,12 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, OutputIndexedSlices, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, TF}
 
 /** Optimizer that implements a variant of the AMSGrad optimization algorithm that handles sparse updates more
   * efficiently.

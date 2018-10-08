@@ -16,12 +16,12 @@
 package org.platanios.tensorflow.api.ops.rnn.attention
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** RNN cell that wraps another RNN cell and adds support for attention to it.
   *

@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.TF
 import org.platanios.tensorflow.api.utilities.Collections
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.core.types._
 
 /** Contains functions for constructing general cast-related ops.
   *
@@ -96,7 +96,7 @@ trait Cast {
 
 object Cast extends Cast {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToCastOps[T, OC, OL[TT] <: OutputLike[TT]](
+    implicit def outputConvertibleToCastOps[T: TF, OC, OL[TT] <: OutputLike[TT]](
         value: OC
     )(implicit
         f: OC => OL[T],
@@ -105,13 +105,9 @@ object Cast extends Cast {
       new CastOps(f(value))
     }
 
-    implicit class CastOps[T, OL[TT] <: OutputLike[TT]](
+    implicit class CastOps[T: TF, OL[TT] <: OutputLike[TT]](
         val output: OL[T]
     )(implicit evOps: OutputOps.Aux[OL, T]) {
-      private implicit val evTF: TF[T] = {
-        TF.fromDataType(output.dataType)
-      }
-
       /** $OpDocCastCast
         *
         * @group CastOps
@@ -177,29 +173,29 @@ object Cast extends Cast {
         Cast.bitcast[T, R, OL](output)
       }
 
-      def toStringTensor: Output[String] = output.castTo[String]
-      def toBoolean: Output[Boolean] = output.castTo[Boolean]
-      def toHalf: Output[Half] = output.castTo[Half]
-      def toFloat: Output[Float] = output.castTo[Float]
-      def toDouble: Output[Double] = output.castTo[Double]
-      def toTruncatedHalf: Output[TruncatedHalf] = output.castTo[TruncatedHalf]
-      def toComplexFloat: Output[ComplexFloat] = output.castTo[ComplexFloat]
-      def toComplexDouble: Output[ComplexDouble] = output.castTo[ComplexDouble]
-      def toByte: Output[Byte] = output.castTo[Byte]
-      def toShort: Output[Short] = output.castTo[Short]
-      def toInt: Output[Int] = output.castTo[Int]
-      def toLong: Output[Long] = output.castTo[Long]
-      def toUByte: Output[UByte] = output.castTo[UByte]
-      def toUShort: Output[UShort] = output.castTo[UShort]
-      def toUInt: Output[UInt] = output.castTo[UInt]
-      def toULong: Output[ULong] = output.castTo[ULong]
-      def toQByte: Output[QByte] = output.castTo[QByte]
-      def toQShort: Output[QShort] = output.castTo[QShort]
-      def toQInt: Output[QInt] = output.castTo[QInt]
-      def toQUByte: Output[QUByte] = output.castTo[QUByte]
-      def toQUShort: Output[QUShort] = output.castTo[QUShort]
-      def toResource: Output[Resource] = output.castTo[Resource]
-      def toVariant: Output[Variant] = output.castTo[Variant]
+      def toStringTensor: OL[String] = output.castTo[String]
+      def toBoolean: OL[Boolean] = output.castTo[Boolean]
+      def toHalf: OL[Half] = output.castTo[Half]
+      def toFloat: OL[Float] = output.castTo[Float]
+      def toDouble: OL[Double] = output.castTo[Double]
+      def toTruncatedHalf: OL[TruncatedHalf] = output.castTo[TruncatedHalf]
+      def toComplexFloat: OL[ComplexFloat] = output.castTo[ComplexFloat]
+      def toComplexDouble: OL[ComplexDouble] = output.castTo[ComplexDouble]
+      def toByte: OL[Byte] = output.castTo[Byte]
+      def toShort: OL[Short] = output.castTo[Short]
+      def toInt: OL[Int] = output.castTo[Int]
+      def toLong: OL[Long] = output.castTo[Long]
+      def toUByte: OL[UByte] = output.castTo[UByte]
+      def toUShort: OL[UShort] = output.castTo[UShort]
+      def toUInt: OL[UInt] = output.castTo[UInt]
+      def toULong: OL[ULong] = output.castTo[ULong]
+      def toQByte: OL[QByte] = output.castTo[QByte]
+      def toQShort: OL[QShort] = output.castTo[QShort]
+      def toQInt: OL[QInt] = output.castTo[QInt]
+      def toQUByte: OL[QUByte] = output.castTo[QUByte]
+      def toQUShort: OL[QUShort] = output.castTo[QUShort]
+      def toResource: OL[Resource] = output.castTo[Resource]
+      def toVariant: OL[Variant] = output.castTo[Variant]
     }
   }
 

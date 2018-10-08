@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
-import org.platanios.tensorflow.api.types.{DataType, INT64}
+import org.platanios.tensorflow.api.core.types.{DataType, INT64}
 import org.platanios.tensorflow.jni.{ScalaCallbacksRegistry => NativeCallbacksRegistry, TensorFlow => NativeLibrary}
 
 import scala.collection.SeqLike

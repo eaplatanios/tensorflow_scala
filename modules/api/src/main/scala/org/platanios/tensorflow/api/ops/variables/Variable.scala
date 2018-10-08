@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
 import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
@@ -61,7 +61,7 @@ case class Variable[T] private (
     private val cachedValue: Output[T],
     private[variables] val graphElement: Output[T]
 ) extends ProtoSerializable with VariableLike[T] {
-
+  // TODO: [TYPES] !!! Maybe move this to the constructor.
   private implicit val evTTF: TF[T] = {
     TF.fromDataType(dataType)
   }

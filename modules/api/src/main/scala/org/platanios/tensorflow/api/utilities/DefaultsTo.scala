@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.utilities
 
+import org.platanios.tensorflow.api.core.types._
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -25,7 +27,27 @@ object DefaultsTo {
   implicit def fallback[T, D]: DefaultsTo[T, D] = null
 
   type AnyDefault[T] = DefaultsTo[T, Any]
+  type StringDefault[T] = DefaultsTo[T, String]
+  type BooleanDefault[T] = DefaultsTo[T, Boolean]
+  type HalfDefault[T] = DefaultsTo[T, Half]
+  type FloatDefault[T] = DefaultsTo[T, Float]
+  type DoubleDefault[T] = DefaultsTo[T, Double]
+  type TruncatedHalfDefault[T] = DefaultsTo[T, TruncatedHalf]
+  type ComplexFloatDefault[T] = DefaultsTo[T, ComplexFloat]
+  type ComplexDoubleDefault[T] = DefaultsTo[T, ComplexDouble]
+  type ByteDefault[T] = DefaultsTo[T, Byte]
+  type ShortDefault[T] = DefaultsTo[T, Short]
   type IntDefault[T] = DefaultsTo[T, Int]
   type LongDefault[T] = DefaultsTo[T, Long]
-  type FloatDefault[T] = DefaultsTo[T, Float]
+  type UByteDefault[T] = DefaultsTo[T, UByte]
+  type UShortDefault[T] = DefaultsTo[T, UShort]
+  type UIntDefault[T] = DefaultsTo[T, UInt]
+  type ULongDefault[T] = DefaultsTo[T, ULong]
+  type QByteDefault[T] = DefaultsTo[T, QByte]
+  type QShortDefault[T] = DefaultsTo[T, QShort]
+  type QIntDefault[T] = DefaultsTo[T, QInt]
+  type QUByteDefault[T] = DefaultsTo[T, QUByte]
+  type QUShortDefault[T] = DefaultsTo[T, QUShort]
+  type ResourceDefault[T] = DefaultsTo[T, Resource]
+  type VariantDefault[T] = DefaultsTo[T, Variant]
 }

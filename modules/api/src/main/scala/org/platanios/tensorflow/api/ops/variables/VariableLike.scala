@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.types.{DataType, TF, IsInt32OrInt64, IsNumeric}
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
-import org.platanios.tensorflow.api.types.{DataType, IsInt32OrInt64, IsNumeric, TF}
 
 /** Represents objects that can be used as variables (e.g., variables and partitioned variables).
   *

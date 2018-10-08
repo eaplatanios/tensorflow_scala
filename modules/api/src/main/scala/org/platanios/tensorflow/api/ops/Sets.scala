@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.core.types._
 
 /** Contains functions for constructing ops related to sets.
   *

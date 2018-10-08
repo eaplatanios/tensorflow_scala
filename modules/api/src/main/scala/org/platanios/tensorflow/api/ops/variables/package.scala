@@ -16,10 +16,10 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.ops.variables.Saver.{V2, WriterVersion}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, TF}
 
 // TODO: [VARIABLES/DOC] Create a documentation page for the Scala API (https://www.tensorflow.org/programmers_guide/variables).
 // TODO: [VARIABLES/DOC/EXAMPLES] Examples.

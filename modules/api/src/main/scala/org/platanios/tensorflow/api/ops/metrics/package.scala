@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.types.{FLOAT32, INT64}
 
 /**
   * @author Emmanouil Antonios Platanios

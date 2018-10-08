@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.ops.variables._
-import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Contains helper functions for creating slots.
   *

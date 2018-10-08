@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{NewAxis, Shape}
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -23,7 +24,6 @@ import org.platanios.tensorflow.api.ops.training.ExponentialMovingAverage
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
 
 /** Optimizer that implements the YellowFin algorithm.
@@ -193,6 +193,7 @@ class YellowFin protected (
   ): UntypedOp = {
     val gradSquared = gradientsAndVariables.map(gv => {
       Op.colocateWith(Set(gv._2.op), ignoreExisting = true) {
+        implicit val evTF: TF[Any] = TF.fromDataType(gv._1.dataType)
         Math.square(gv._1.castTo[Float]).toOutput
       }
     })
@@ -205,6 +206,7 @@ class YellowFin protected (
       (sum, avg)
     }
     val gradients = gradientsAndVariables.map(gv => {
+      implicit val evTF: TF[Any] = TF.fromDataType(gv._1.dataType)
       gv._1.castTo[Float].toOutput
     })
     val sparsityAvg = gradientsSparsity(gradients)

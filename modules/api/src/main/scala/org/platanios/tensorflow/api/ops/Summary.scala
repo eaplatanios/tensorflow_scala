@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory

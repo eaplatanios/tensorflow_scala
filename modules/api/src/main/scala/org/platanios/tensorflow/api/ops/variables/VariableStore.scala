@@ -17,8 +17,8 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
-import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Variable store that carries a number of named variables.
   *

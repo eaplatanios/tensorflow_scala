@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 /** Trait for implementing optimization learning rate scheduling methods.
   *

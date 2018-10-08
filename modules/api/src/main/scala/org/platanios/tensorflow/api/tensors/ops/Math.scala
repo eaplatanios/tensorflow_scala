@@ -17,9 +17,9 @@ package org.platanios.tensorflow.api.tensors.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors._
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 import org.platanios.tensorflow.jni.generated.tensors.{Math => NativeTensorOpsMath}
 
@@ -2101,7 +2101,7 @@ trait Math {
 
 object Math extends Math {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToMathOps[TC, T](value: TC)(implicit
+    implicit def tensorConvertibleToMathOps[TC, T: TF](value: TC)(implicit
         f: TC => Tensor[T]
     ): MathOps[T] = {
       new MathOps(f(value))
@@ -2131,11 +2131,7 @@ object Math extends Math {
       new ComplexDoubleMathOps(f(value))
     }
 
-    implicit class MathOps[T](val tensor: Tensor[T]) {
-      private implicit val evTF: TF[T] = {
-        TF.fromDataType(tensor.dataType)
-      }
-
+    implicit class MathOps[T: TF](val tensor: Tensor[T]) {
       /** $OpDocMathSelect
         *
         * @group MathOps

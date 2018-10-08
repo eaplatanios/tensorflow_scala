@@ -17,8 +17,8 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
+import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, Resource, TF}
 
 /** Class wrapping dynamic-sized, per-time-step, write-once tensor arrays.
   *

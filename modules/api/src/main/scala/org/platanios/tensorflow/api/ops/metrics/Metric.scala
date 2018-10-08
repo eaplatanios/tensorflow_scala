@@ -16,14 +16,14 @@
 package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.core.exception.{InvalidShapeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.core.Graph.Keys.{OpCollectionKey, OutputCollectionKey, VariableCollectionKey}
+import org.platanios.tensorflow.api.core.exception.{InvalidShapeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT64, IsNotQuantized, TF}
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.

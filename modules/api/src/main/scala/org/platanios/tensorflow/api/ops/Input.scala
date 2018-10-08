@@ -16,8 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.types.DataType
-import org.platanios.tensorflow.api.utilities.DefaultsTo.AnyDefault
+import org.platanios.tensorflow.api.core.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 

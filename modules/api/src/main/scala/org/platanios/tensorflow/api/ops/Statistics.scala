@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.types.{INT64, IsInt32OrInt64, IsNotQuantized, TF}
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
 
 /** Contains functions for constructing ops related to statistics.
   *

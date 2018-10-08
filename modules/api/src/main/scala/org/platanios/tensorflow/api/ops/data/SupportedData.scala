@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{DataType, INT64}
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT64}
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
@@ -146,16 +146,16 @@ object SupportedData {
     }
   }
 
-  implicit def outputIndexedSlicesEvidence[T]: Aux[OutputIndexedSlices[T], (INT64, DataType[T], INT64), (Shape, Shape, Shape)] = {
+  implicit def outputIndexedSlicesEvidence[T]: Aux[OutputIndexedSlices[T], (DataType[Long], DataType[T], DataType[Long]), (Shape, Shape, Shape)] = {
     new SupportedData[OutputIndexedSlices[T]] {
-      override type D = (INT64, DataType[T], INT64)
+      override type D = (DataType[Long], DataType[T], DataType[Long])
       override type S = (Shape, Shape, Shape)
 
-      override def size(dataType: (INT64, DataType[T], INT64)): Int = {
+      override def size(dataType: (DataType[Long], DataType[T], DataType[Long])): Int = {
         3
       }
 
-      override def dataType(output: OutputIndexedSlices[T]): (INT64, DataType[T], INT64) = {
+      override def dataType(output: OutputIndexedSlices[T]): (DataType[Long], DataType[T], DataType[Long]) = {
         (INT64, output.dataType, INT64)
       }
 
@@ -170,7 +170,7 @@ object SupportedData {
         Seq(output.indices, output.values, output.denseShape)
       }
 
-      override def dataTypes(dataType: (INT64, DataType[T], INT64)): Seq[DataType[Any]] = {
+      override def dataTypes(dataType: (DataType[Long], DataType[T], DataType[Long])): Seq[DataType[Any]] = {
         Seq(dataType._1, dataType._2, dataType._3)
       }
 
@@ -179,7 +179,7 @@ object SupportedData {
       }
 
       override def decodeOutput(
-          dataType: (INT64, DataType[T], INT64),
+          dataType: (DataType[Long], DataType[T], DataType[Long]),
           outputs: Seq[Output[Any]]
       ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
         (OutputIndexedSlices(
@@ -189,22 +189,22 @@ object SupportedData {
       }
 
       override def decodeDataType(
-          dataType: (INT64, DataType[T], INT64),
+          dataType: (DataType[Long], DataType[T], DataType[Long]),
           dataTypes: Seq[DataType[Any]]
-      ): ((INT64, DataType[T], INT64), Seq[DataType[Any]]) = {
+      ): ((DataType[Long], DataType[T], DataType[Long]), Seq[DataType[Any]]) = {
         ((dataTypes(0).asInstanceOf[DataType[Long]],
             dataTypes(1).asInstanceOf[DataType[T]],
             dataTypes(2).asInstanceOf[DataType[Long]]), dataTypes.drop(3))
       }
 
       override def decodeShape(
-          dataType: (INT64, DataType[T], INT64),
+          dataType: (DataType[Long], DataType[T], DataType[Long]),
           shapes: Seq[Shape]
       ): ((Shape, Shape, Shape), Seq[Shape]) = {
         ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
       }
 
-      override def dataTypeToString(dataType: (INT64, DataType[T], INT64)): String = {
+      override def dataTypeToString(dataType: (DataType[Long], DataType[T], DataType[Long])): String = {
         s"${dataType._1}:${dataType._2}:${dataType._3}"
       }
 
@@ -214,16 +214,16 @@ object SupportedData {
     }
   }
 
-  implicit def sparseOutputEvidence[T]: Aux[SparseOutput[T], (INT64, DataType[T], INT64), (Shape, Shape, Shape)] = {
+  implicit def sparseOutputEvidence[T]: Aux[SparseOutput[T], (DataType[Long], DataType[T], DataType[Long]), (Shape, Shape, Shape)] = {
     new SupportedData[SparseOutput[T]] {
-      override type D = (INT64, DataType[T], INT64)
+      override type D = (DataType[Long], DataType[T], DataType[Long])
       override type S = (Shape, Shape, Shape)
 
-      override def size(dataType: (INT64, DataType[T], INT64)): Int = {
+      override def size(dataType: (DataType[Long], DataType[T], DataType[Long])): Int = {
         3
       }
 
-      override def dataType(output: SparseOutput[T]): (INT64, DataType[T], INT64) = {
+      override def dataType(output: SparseOutput[T]): (DataType[Long], DataType[T], DataType[Long]) = {
         (INT64, output.dataType, INT64)
       }
 
@@ -238,7 +238,7 @@ object SupportedData {
         Seq(output.indices, output.values, output.denseShape)
       }
 
-      override def dataTypes(dataType: (INT64, DataType[T], INT64)): Seq[DataType[Any]] = {
+      override def dataTypes(dataType: (DataType[Long], DataType[T], DataType[Long])): Seq[DataType[Any]] = {
         Seq(dataType._1, dataType._2, dataType._3)
       }
 
@@ -247,7 +247,7 @@ object SupportedData {
       }
 
       override def decodeOutput(
-          dataType: (INT64, DataType[T], INT64),
+          dataType: (DataType[Long], DataType[T], DataType[Long]),
           outputs: Seq[Output[Any]]
       ): (SparseOutput[T], Seq[Output[Any]]) = {
         (SparseOutput(
@@ -257,22 +257,22 @@ object SupportedData {
       }
 
       override def decodeDataType(
-          dataType: (INT64, DataType[T], INT64),
+          dataType: (DataType[Long], DataType[T], DataType[Long]),
           dataTypes: Seq[DataType[Any]]
-      ): ((INT64, DataType[T], INT64), Seq[DataType[Any]]) = {
+      ): ((DataType[Long], DataType[T], DataType[Long]), Seq[DataType[Any]]) = {
         ((dataTypes(0).asInstanceOf[DataType[Long]],
             dataTypes(1).asInstanceOf[DataType[T]],
             dataTypes(2).asInstanceOf[DataType[Long]]), dataTypes.drop(3))
       }
 
       override def decodeShape(
-          dataType: (INT64, DataType[T], INT64),
+          dataType: (DataType[Long], DataType[T], DataType[Long]),
           shapes: Seq[Shape]
       ): ((Shape, Shape, Shape), Seq[Shape]) = {
         ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
       }
 
-      override def dataTypeToString(dataType: (INT64, DataType[T], INT64)): String = {
+      override def dataTypeToString(dataType: (DataType[Long], DataType[T], DataType[Long])): String = {
         s"${dataType._1}:${dataType._2}:${dataType._3}"
       }
 

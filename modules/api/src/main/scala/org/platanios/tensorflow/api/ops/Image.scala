@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.ops.Image._
-import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to processing image data.
   *

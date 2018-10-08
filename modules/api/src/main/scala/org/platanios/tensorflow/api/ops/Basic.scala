@@ -18,14 +18,15 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.{Tensor, executionContext}
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.{IntDefault, LongDefault}
 import org.platanios.tensorflow.jni.InvalidArgumentException
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
+
 import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
@@ -478,7 +479,7 @@ trait Basic {
             opType = "Size",
             name = name,
             input = o
-          ).setAttribute("out_type", INT64)
+          ).setAttribute("out_type", Long)
               .build().output
         }
       case o: OutputIndexedSlices[T] =>
@@ -516,7 +517,7 @@ trait Basic {
             opType = "Shape",
             name = name,
             input = o
-          ).setAttribute("out_type", INT64)
+          ).setAttribute("out_type", Long)
               .build().output
         }
       case o: OutputIndexedSlices[T] => o.denseShape
@@ -1141,7 +1142,7 @@ trait Basic {
     *      [0, 0, 0, 0, 0, 0, 0]]
     * }}}
     */
-  case class ConstantPadding[V](value: Option[Tensor[V]] = None) extends PaddingMode {
+  case class ConstantPadding[V: TF](value: Option[Tensor[V]] = None) extends PaddingMode {
     override private[ops] def pad[T: TF, I: TF : IsInt32OrInt64](
         input: Output[T],
         paddings: Output[I],
@@ -1888,7 +1889,7 @@ trait Basic {
       name: String = "IndexedSlicesMask"
   ): OutputIndexedSlices[T] = {
     Op.nameScope(name) {
-      val (outputIndices, toGather) = listDiff(input.indices, maskIndices, INT64)
+      val (outputIndices, toGather) = listDiff(input.indices, maskIndices, indicesDataType = Long)
       val outputValues = gather(input.values, toGather, axis = 0)
       OutputIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
     }

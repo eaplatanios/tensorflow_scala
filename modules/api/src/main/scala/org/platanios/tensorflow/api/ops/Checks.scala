@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types._
 
 /** Contains functions for constructing ops related to checks and assertions.
   *
@@ -40,7 +40,7 @@ trait Checks {
       summarize: Int = 3,
       name: String = "Assert"
   ): Op[Seq[Output[Any]], Unit] = {
-    if (data.forall(d => d.dataType == STRING || d.dataType == Int)) {
+    if (data.forall(d => d.dataType == STRING || d.dataType == INT32)) {
       // As a simple heuristic, we assume that STRING and Int tensors are on host memory to avoid the need to use
       // `cond`. If that is not case, we will pay the price copying the tensor to host memory.
       Op.Builder[(Output[Boolean], Seq[Output[Any]]), Unit](

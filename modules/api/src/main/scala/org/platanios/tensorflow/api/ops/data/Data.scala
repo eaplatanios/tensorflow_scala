@@ -17,12 +17,12 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types.{Variant, INT64, STRING}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.TensorToOutput
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{Variant, INT64, STRING}
 
 import java.util.concurrent.atomic.AtomicLong
 

@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
+import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
-import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** Length penalty function to be used while decoding. */
 trait LengthPenalty {

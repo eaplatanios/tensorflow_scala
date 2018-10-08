@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.Collections
 

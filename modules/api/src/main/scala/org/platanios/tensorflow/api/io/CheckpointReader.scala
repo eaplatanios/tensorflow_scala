@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.io
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.UnavailableException
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, TF}
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{CheckpointReader => NativeCheckpointReader}
 

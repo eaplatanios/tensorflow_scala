@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.TF
+import org.platanios.tensorflow.api.core.types.TF
 
 /** Contains functions for constructing ops related to logging.
   *

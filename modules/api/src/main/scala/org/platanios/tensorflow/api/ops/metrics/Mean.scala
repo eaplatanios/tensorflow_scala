@@ -21,7 +21,6 @@ import org.platanios.tensorflow.api.ops.metrics.Metric._
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope, ZerosInitializer}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, INT64}
 
 /** Mean metric.
   *

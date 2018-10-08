@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.{IsNotQuantized, TF}
 
 /** The most basic RNN cell.
   *

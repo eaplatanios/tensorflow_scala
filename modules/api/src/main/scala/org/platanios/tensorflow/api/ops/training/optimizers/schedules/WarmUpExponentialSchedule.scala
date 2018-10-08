@@ -15,11 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 /** Learning rate schedule that implements a warm-up scheme, similar to the one proposed in
   * [Attention is All You Need (Section 5.3)](https://arxiv.org/pdf/1706.03762.pdf).

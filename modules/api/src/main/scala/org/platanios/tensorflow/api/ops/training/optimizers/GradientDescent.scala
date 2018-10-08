@@ -15,11 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types._
 
 /** Optimizer that implements the gradient descent algorithm and includes support for learning rate decay, momentum, and
   * Nesterov acceleration.

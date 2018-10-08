@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.DataType
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
-import org.platanios.tensorflow.api.types.{DataType, INT64}
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -32,7 +32,7 @@ import scala.collection.{MapLike, SeqLike}
 trait StructureFromDataType[D]
 
 object StructureFromDataType {
-  private type SparseDataType[D] = (INT64, D, INT64)
+  private type SparseDataType[D] = (DataType[Long], D, DataType[Long])
   private type SparseShape = (Shape, Shape, Shape)
 
   type Aux[T, O, D, S] = StructureFromDataType[D]

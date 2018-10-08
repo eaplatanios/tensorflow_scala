@@ -13,12 +13,11 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.types
+package org.platanios.tensorflow.api.core.types
 
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
 import com.google.protobuf.ByteString
-import org.tensorflow.framework.DataType._
 import org.tensorflow.framework.TensorProto
 
 import java.nio.ByteBuffer
@@ -34,7 +33,7 @@ import java.nio.charset.StandardCharsets
   *
   * @author Emmanouil Antonios Platanios
   */
-case class DataType[T](
+case class DataType[T] private[types](
     name: String,
     private[api] val cValue: Int,
     byteSize: Option[Int],
@@ -95,7 +94,7 @@ case class DataType[T](
 
   /** Returns `true` if this data type represents a boolean data type. */
   def isBoolean: Boolean = {
-    this == DataType.BOOLEAN
+    this == BOOLEAN
   }
 
   //endregion Data Type Set Helper Methods
@@ -116,34 +115,6 @@ case class DataType[T](
 
 /** Contains all supported data types along with some helper functions for dealing with them. */
 object DataType {
-  //region Data Type Instances
-
-  val STRING    : DataType[String]        = DataType[String]("String", cValue = 7, byteSize = None, DT_STRING)
-  val BOOLEAN   : DataType[Boolean]       = DataType[Boolean]("Boolean", cValue = 10, byteSize = Some(1), DT_BOOL)
-  val FLOAT16   : DataType[Half]          = DataType[Half]("Half", cValue = 19, byteSize = Some(2), DT_HALF)
-  val FLOAT32   : DataType[Float]         = DataType[Float]("Float", cValue = 1, byteSize = Some(4), DT_FLOAT)
-  val FLOAT64   : DataType[Double]        = DataType[Double]("Double", cValue = 2, byteSize = Some(8), DT_DOUBLE)
-  val BFLOAT16  : DataType[TruncatedHalf] = DataType[TruncatedHalf]("TruncatedFloat", cValue = 14, byteSize = Some(2), DT_BFLOAT16)
-  val COMPLEX64 : DataType[ComplexFloat]  = DataType[ComplexFloat]("ComplexFloat", cValue = 8, byteSize = Some(8), DT_COMPLEX64)
-  val COMPLEX128: DataType[ComplexDouble] = DataType[ComplexDouble]("ComplexDouble", cValue = 18, byteSize = Some(16), DT_COMPLEX128)
-  val INT8      : DataType[Byte]          = DataType[Byte]("Byte", cValue = 6, byteSize = Some(1), DT_INT8)
-  val INT16     : DataType[Short]         = DataType[Short]("Short", cValue = 5, byteSize = Some(2), DT_INT16)
-  val INT32     : DataType[Int]           = DataType[Int]("Int", cValue = 3, byteSize = Some(4), DT_INT32)
-  val INT64     : DataType[Long]          = DataType[Long]("Long", cValue = 9, byteSize = Some(8), DT_INT64)
-  val UINT8     : DataType[UByte]         = DataType[UByte]("UByte", cValue = 4, byteSize = Some(1), DT_UINT8)
-  val UINT16    : DataType[UShort]        = DataType[UShort]("UShort", cValue = 17, byteSize = Some(2), DT_UINT16)
-  val UINT32    : DataType[UInt]          = DataType[UInt]("UInt", cValue = 22, byteSize = Some(4), DT_UINT32)
-  val UINT64    : DataType[ULong]         = DataType[ULong]("ULong", cValue = 23, byteSize = Some(8), DT_UINT64)
-  val QINT8     : DataType[QByte]         = DataType[QByte]("QByte", cValue = 11, byteSize = Some(1), DT_QINT8)
-  val QINT16    : DataType[QShort]        = DataType[QShort]("QShort", cValue = 15, byteSize = Some(2), DT_QINT16)
-  val QINT32    : DataType[QInt]          = DataType[QInt]("QInt", cValue = 13, byteSize = Some(4), DT_QINT32)
-  val QUINT8    : DataType[QUByte]        = DataType[QUByte]("QUByte", cValue = 12, byteSize = Some(1), DT_QUINT8)
-  val QUINT16   : DataType[QUShort]       = DataType[QUShort]("QUShort", cValue = 16, byteSize = Some(2), DT_QUINT16)
-  val RESOURCE  : DataType[Resource]      = DataType[Resource]("Resource", cValue = 20, byteSize = Some(1), DT_RESOURCE)
-  val VARIANT   : DataType[Variant]       = DataType[Variant]("Variant", cValue = 21, byteSize = Some(1), DT_VARIANT)
-
-  //endregion Data Type Instances
-
   //region Helper Methods
 
   /** Returns the data type that corresponds to the provided C value.

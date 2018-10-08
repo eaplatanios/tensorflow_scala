@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops.rnn.attention
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.types._
 
 import scala.language.postfixOps
 

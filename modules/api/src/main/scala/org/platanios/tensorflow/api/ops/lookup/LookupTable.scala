@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF}
 import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike, OutputOps, UntypedOp}
-import org.platanios.tensorflow.api.types.{DataType, Resource, TF}
 
 /** Lookup table that persists across different session runs.
   *

@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.types.Resource
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.Resource
 
 /** Represents a TensorFlow resource.
   *

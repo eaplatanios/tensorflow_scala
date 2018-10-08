@@ -17,13 +17,13 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.types.{DataType, TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.FileIO
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.utilities.Proto
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 

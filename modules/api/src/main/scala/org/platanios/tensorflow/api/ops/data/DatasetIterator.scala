@@ -16,8 +16,8 @@
 package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{DataType, Resource, Variant}
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.{DataType, Resource, Variant}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory

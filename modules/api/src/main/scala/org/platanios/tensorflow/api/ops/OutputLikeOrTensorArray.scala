@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.{DataType, TF}
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
 
 /** Helper trait for implementing some functionality related to beam search decoding.
   *

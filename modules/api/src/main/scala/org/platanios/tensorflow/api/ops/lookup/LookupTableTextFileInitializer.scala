@@ -17,8 +17,8 @@ package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF, IsStringOrIntOrUInt}
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
-import org.platanios.tensorflow.api.types.{DataType, IsStringOrIntOrUInt, Resource, TF}
 
 /** Lookup table initializer that uses a text file.
   *

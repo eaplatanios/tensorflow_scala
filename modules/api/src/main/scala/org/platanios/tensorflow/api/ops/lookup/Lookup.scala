@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.lookup
 
+import org.platanios.tensorflow.api.core.types.{DataType, INT64, TF, IsStringOrIntOrUInt}
 import org.platanios.tensorflow.api.ops.Op
-import org.platanios.tensorflow.api.types.{DataType, INT64, IsStringOrIntOrUInt, TF}
 
 /** Contains functions for constructing ops related to lookup tables.
   *

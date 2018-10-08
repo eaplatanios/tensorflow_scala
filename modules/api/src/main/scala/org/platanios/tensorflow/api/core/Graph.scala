@@ -16,11 +16,11 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
+import org.platanios.tensorflow.api.core.types.Resource
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableScopeStore, VariableStore}
-import org.platanios.tensorflow.api.types.Resource
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}

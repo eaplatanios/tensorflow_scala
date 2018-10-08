@@ -17,12 +17,12 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.{NewAxis, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types._
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory

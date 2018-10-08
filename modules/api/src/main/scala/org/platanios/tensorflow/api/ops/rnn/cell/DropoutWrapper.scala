@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
+import org.platanios.tensorflow.api.core.types.{TF, IsFloat16OrFloat32OrFloat64}
 import org.platanios.tensorflow.api.ops.{NN, Op, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.types.{IsFloat16OrFloat32OrFloat64, TF}
 
 import shapeless._
 import shapeless.ops.hlist.Tupler

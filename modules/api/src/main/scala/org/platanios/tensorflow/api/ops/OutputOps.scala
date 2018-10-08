@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.TF
-
 /** Type trait for defining functions operating on and returning op outputs.
   *
   * @author Emmanouil Antonios Platanios
@@ -30,7 +28,7 @@ trait OutputOps[OL[A] <: OutputLike[A]] {
     * @param  fn    Unary function to apply.
     * @return Resulting output-like object that matches the type of `outputLike`.
     */
-  @inline def applyUnary[R: TF](
+  @inline def applyUnary[R](
       value: OL[T],
       fn: Output[T] => Output[R]
   ): OL[R]
@@ -46,7 +44,7 @@ object OutputOps {
     new OutputOps[Output] {
       override type T = TT
 
-      @inline override def applyUnary[R: TF](
+      @inline override def applyUnary[R](
           value: Output[T],
           fn: Output[T] => Output[R]
       ): Output[R] = {
@@ -59,7 +57,7 @@ object OutputOps {
     new OutputOps[OutputIndexedSlices] {
       override type T = TT
 
-      @inline override def applyUnary[R: TF](
+      @inline override def applyUnary[R](
           value: OutputIndexedSlices[T],
           fn: Output[T] => Output[R]
       ): OutputIndexedSlices[R] = {
@@ -72,7 +70,7 @@ object OutputOps {
     new OutputOps[SparseOutput] {
       override type T = TT
 
-      @inline override def applyUnary[R: TF](
+      @inline override def applyUnary[R](
           value: SparseOutput[T],
           fn: Output[T] => Output[R]
       ): SparseOutput[R] = {
@@ -85,7 +83,7 @@ object OutputOps {
     new OutputOps[OutputLike] {
       override type T = TT
 
-      @inline override def applyUnary[R: TF](
+      @inline override def applyUnary[R](
           value: OutputLike[T],
           fn: Output[T] => Output[R]
       ): OutputLike[R] = {

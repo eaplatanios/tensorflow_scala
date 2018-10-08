@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types.{DataType, Variant, INT64, VARIANT}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.TensorToOutput
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.types.{DataType, Variant, INT64, VARIANT}
 
 import scala.language.postfixOps
 

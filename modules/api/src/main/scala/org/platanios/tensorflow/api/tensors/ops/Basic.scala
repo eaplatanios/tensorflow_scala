@@ -18,15 +18,15 @@ package org.platanios.tensorflow.api.tensors.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.Basic.{ConstantPadding, PaddingMode}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.tensors._
-import org.platanios.tensorflow.api.types._
-import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
-import java.nio.charset.StandardCharsets
-
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
+import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
+
+import java.nio.charset.StandardCharsets
 
 import scala.language.postfixOps
 
@@ -919,17 +919,13 @@ trait Basic {
 
 object Basic extends Basic {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToBasicOps[TC, T](
+    implicit def tensorConvertibleToBasicOps[TC, T: TF](
         value: TC
     )(implicit f: TC => Tensor[T]): BasicOps[T] = {
       new BasicOps(f(value))
     }
 
-    implicit class BasicOps[T](tensor: Tensor[T]) {
-      private implicit val evTF: TF[T] = {
-        TF.fromDataType(tensor.dataType)
-      }
-
+    implicit class BasicOps[T: TF](tensor: Tensor[T]) {
       //region Tensor Manipulation Ops
 
       /** $OpDocBasicExpandDims
