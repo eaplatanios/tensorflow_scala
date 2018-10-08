@@ -306,14 +306,14 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
 
   @Test def testCondWithOutputSequence(): Unit = withNewGraph {
     val p = Basic.constant(0) < 10
-    val t = () => Seq(Basic.constant(true), Basic.constant(1))
-    val f = () => Seq(Basic.constant(false), Basic.constant(0))
+    val t = () => (Basic.constant(true), Basic.constant(1))
+    val f = () => (Basic.constant(false), Basic.constant(0))
     val r = ControlFlow.cond(p, t, f)
     val session = Session()
     val result = session.run(fetches = r)
     session.close()
-    assert(result(0).scalar == true)
-    assert(result(1).scalar == 1)
+    assert(result._1.scalar == true)
+    assert(result._2.scalar == 1)
   }
 
   @Test def testCondGradientWithSingleOutput(): Unit = withNewGraph {

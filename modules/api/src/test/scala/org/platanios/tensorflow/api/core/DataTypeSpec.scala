@@ -222,8 +222,8 @@ class DataTypeSpec extends FlatSpec with Matchers {
     assert(QINT8.isUnsigned === false)
     assert(QINT16.isUnsigned === false)
     assert(QINT32.isUnsigned === false)
-    assert(QUINT8.isUnsigned === false)
-    assert(QUINT16.isUnsigned === false)
+    assert(QUINT8.isUnsigned === true)
+    assert(QUINT16.isUnsigned === true)
     assert(RESOURCE.isUnsigned === false)
     assert(VARIANT.isUnsigned === false)
   }

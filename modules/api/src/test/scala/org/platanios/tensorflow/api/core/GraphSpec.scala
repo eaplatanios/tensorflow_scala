@@ -203,8 +203,8 @@ class GraphSpec extends FlatSpec with Matchers {
       val output = add(input, offset, name = "AddOffset")
 
       // Add input and output tensors to graph collections.
-      graph.addToCollection(input, INPUTS)
-      graph.addToCollection(output, OUTPUTS)
+      graph.addToCollection(INPUTS)(input)
+      graph.addToCollection(OUTPUTS)(output)
 
       val outputValue = session.run(Map(input -> Tensor(-10f)), output)
       assert(outputValue.scalar == 32)
@@ -230,12 +230,12 @@ class GraphSpec extends FlatSpec with Matchers {
     // assert(newMetaGraphDef.equals(metaGraphDef))
 
     // Ensure that we can still get a reference to our graph collections.
-    val newInput = newGraph.getCollection(INPUTS).head
-    val newOutput = newGraph.getCollection(OUTPUTS).head
+    val newInput = newGraph.getCollection(INPUTS).head.asInstanceOf[Output[Float]]
+    val newOutput = newGraph.getCollection(OUTPUTS).head.asInstanceOf[Output[Float]]
 
     // Verify that the new graph computes the same result as the original.
     val newOutputValue = newSession.run(Map(newInput -> Tensor(-10f)), newOutput)
-    assert(newOutputValue.scalar == 32)
+    assert(newOutputValue.scalar == 32.0f)
 
     newSession.close()
   }

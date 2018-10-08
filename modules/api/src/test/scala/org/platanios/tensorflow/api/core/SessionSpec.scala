@@ -31,8 +31,8 @@ class SessionSpec extends FlatSpec with Matchers {
       tf.subtract(tf.constant(1), tf.matmul(a = a, b = x, transposeB = true), name = "Y")
     }
     val session = Session(graph = graph)
-    val feeds = Map(graph.getOutputByName("X:0") -> Tensor(Tensor(5, 7)))
-    val fetches = graph.getOutputByName("Y:0")
+    val feeds = Map(graph.getOutputByName("X:0").asInstanceOf[Output[Int]] -> Tensor(Tensor(5, 7)))
+    val fetches = graph.getOutputByName("Y:0").asInstanceOf[Output[Int]]
     val output = session.run(feeds, fetches)
     val expectedResult = Tensor(Tensor(-30))
     assert(output.scalar == expectedResult.scalar)

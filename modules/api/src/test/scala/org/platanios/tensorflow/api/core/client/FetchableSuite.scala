@@ -259,7 +259,7 @@ class FetchableSuite extends JUnitSuite {
       assert(processedTuple._1(1).name === "Constant_1:0")
       assert(processedTuple._1(2).name === "Constant_2:0")
       val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor[Any], Array[Tensor[Any]])])
+      assert(results.isInstanceOf[(Tensor[_], Array[_])])
     }
   }
 
@@ -272,7 +272,7 @@ class FetchableSuite extends JUnitSuite {
       assert(processedTuple._1(1).name === "Constant_1:0")
       assert(processedTuple._1(2).name === "Constant_2:0")
       val results = processedTuple._2(Seq.fill(3)(Tensor(0)))
-      assert(results.isInstanceOf[(Tensor[Any], Map[String, Tensor[Any]])])
+      assert(results.isInstanceOf[(Tensor[_], Map[String, Tensor[_]])])
     }
   }
 }
