@@ -126,7 +126,7 @@ object Gradients {
     // gradients for each endpoint are initially collected as a sequence. When it is time to call the op's gradient
     // function, for each endpoint we aggregate the list of received gradients into a "add" operation, if there is more
     // than one.
-    val accumulatedGradients = mutable.Map.empty[UntypedOp, mutable.Seq[Seq[OutputLike[T]]]]
+    val accumulatedGradients = mutable.Map.empty[UntypedOp, mutable.Seq[Seq[OutputLike[Any]]]]
 
     Op.nameScope(name) {
       // Get a UID for this call to gradients that can be used to help cluster ops for compilation.
@@ -197,42 +197,31 @@ object Gradients {
                   controlFlowGradientState
                       .map(_.zerosLike(op, outputIndex))
                       .getOrElse(Some(Context.zerosLikeOutsideLoop(op, outputIndex)))
-                      .map(zeros => {
-                        Cast.cast[Any, T, Output](zeros)(
-                          TF.fromDataType(zeros.dataType),
-                          TF[T],
-                          implicitly[OutputOps.Aux[Output, Any]])
-                      }).orNull)
+                      .orNull)
             }
 
             // Compute the actual op gradients.
             Op.createWith(nameScope = s"${op.name}Gradient") {
               // TODO: [CONTEXT] Add support for original op context.
               val outputGradients = opGradients.map(_.headOption.orNull)
-              val inputGradients = maybeCompile(name, op, () => op.gradientFn.get(op, outputGradients))
-              var castedInputGradients = inputGradients.map(g => {
-                Cast.cast[Any, T, OutputLike](g)(
-                  TF.fromDataType(g.dataType),
-                  TF[T],
-                  implicitly[OutputOps.Aux[OutputLike, Any]])
-              })
-              if (gateGradients && castedInputGradients.count(_ != null) > 1) {
+              var inputGradients = maybeCompile(name, op, () => op.gradientFn.get(op, outputGradients))
+              if (gateGradients && inputGradients.count(_ != null) > 1) {
                 Op.createWith(device = null) {
                   Op.colocateWithForGradient(
                     Set.empty,
                     Some(gradientUID),
                     ignoreExisting = true
                   ) {
-                    castedInputGradients = ControlFlow.tuple(castedInputGradients)
+                    inputGradients = ControlFlow.tuple(inputGradients)(TF.fromDataType(inputGradients.head.dataType))
                   }
                 }
               }
               val nInp = op.inputsSeq.length
-              val nGrd = castedInputGradients.length
+              val nGrd = inputGradients.length
               assert(nInp == nGrd, s"Gradients size ($nGrd) for op '$op' does not match inputs size ($nInp).")
-              logGradients(op, outputGradients, castedInputGradients)
+              logGradients(op, outputGradients, inputGradients)
               // TODO: [GRADIENTS] !!! Report somehow the non-differentiable ops in the graph. This is currently hard to debug.
-              op.inputsSeq.zip(castedInputGradients).filter(_._2 != null).foreach(i => {
+              op.inputsSeq.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
                   case gradient: Output[_] if i._1.dataType != RESOURCE =>
                     gradient.setShape(i._1.shape)
@@ -543,10 +532,10 @@ object Gradients {
     * @param  output    Op output whose gradient is provided.
     * @param  gradient  Gradient of `output` to add to the collected gradients.
     */
-  private def setGradient[T: TF](
-      gradients: mutable.Map[UntypedOp, mutable.Seq[Seq[OutputLike[T]]]],
+  private def setGradient(
+      gradients: mutable.Map[UntypedOp, mutable.Seq[Seq[OutputLike[Any]]]],
       output: Output[Any],
-      gradient: OutputLike[T]
+      gradient: OutputLike[Any]
   ): Unit = {
     val opGradients = gradients.getOrElseUpdate(
       output.op, mutable.Seq(output.op.outputsSeq.map(_ => Seq.empty): _*))
@@ -592,12 +581,12 @@ object Gradients {
       * @param  gradientUID Unique identifier within the graph indicating which invocation of gradients is being
       *                     executed. Used to cluster ops for compilation.
       */
-    private[Gradients] def aggregateGradients[T: TF](
-        gradients: mutable.Map[UntypedOp, mutable.Seq[Seq[OutputLike[T]]]],
+    private[Gradients] def aggregateGradients(
+        gradients: mutable.Map[UntypedOp, mutable.Seq[Seq[OutputLike[Any]]]],
         op: UntypedOp,
         gradientUID: String
-    ): mutable.Seq[Seq[OutputLike[T]]] = {
-      val opGradients = gradients.getOrElse(op, mutable.Seq.empty[Seq[OutputLike[T]]])
+    ): mutable.Seq[Seq[OutputLike[Any]]] = {
+      val opGradients = gradients.getOrElse(op, mutable.Seq.empty[Seq[OutputLike[Any]]])
       if (ControlFlow.isLoopSwitch(op)) {
         opGradients
       } else {
@@ -606,8 +595,9 @@ object Gradients {
             if (grads.length < 2) {
               grads
             } else {
+              val gs = grads.filter(_ != null)
               opGradients(index) = Seq(
-                aggregate(grads.filter(_ != null), Some(gradientUID)))
+                aggregate(gs, Some(gradientUID))(TF.fromDataType(gs.head.dataType)))
             }
         }
         opGradients
