@@ -15,6 +15,8 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.tensors.Tensor
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -197,7 +199,7 @@ package org.platanios.tensorflow.api.ops
       name = name,
       input = input
     ).setAttribute("num_buckets", numBuckets)
-        .setAttribute("key", Seq(key1, key2))
+        .setAttribute("key", Tensor(key1, key2))
         .build().output
   }
 }

@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.utilities.DefaultsTo.AnyDefault
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
@@ -29,7 +30,7 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Input[+T] private[ops](
+final case class Input[T] private[ops](
     op: UntypedOp,
     index: Int
 ) {
@@ -41,7 +42,9 @@ final case class Input[+T] private[ops](
   /** Data type of this op input. */
   lazy val dataType: DataType[T] = {
     using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, op.nativeHandle, index))
+      DataType.fromCValue(
+        NativeOp.inputDataType(r.nativeHandle, op.nativeHandle, index)
+      ).asInstanceOf[DataType[T]]
     }
   }
 

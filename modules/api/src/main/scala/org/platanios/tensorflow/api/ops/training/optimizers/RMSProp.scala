@@ -157,7 +157,7 @@ class RMSProp protected (
             getEpsilon(variable),
             gradient)
       ).setAttribute("use_locking", useLocking)
-          .build().asUntyped
+          .build()
     } else {
       Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
         opType = "ResourceApplyRMSProp",
@@ -171,7 +171,7 @@ class RMSProp protected (
             getEpsilon(variable),
             gradient)
       ).setAttribute("use_locking", useLocking)
-          .build().asUntyped
+          .build()
     }
   }
 
@@ -198,7 +198,7 @@ class RMSProp protected (
             gradient.values,
             gradient.indices)
       ).setAttribute("use_locking", useLocking)
-          .build().asUntyped
+          .build()
     } else {
       Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
         opType = "ResourceSparseApplyRMSProp",
@@ -213,7 +213,7 @@ class RMSProp protected (
             gradient.values,
             gradient.indices)
       ).setAttribute("use_locking", useLocking)
-          .build().asUntyped
+          .build()
     }
   }
 }

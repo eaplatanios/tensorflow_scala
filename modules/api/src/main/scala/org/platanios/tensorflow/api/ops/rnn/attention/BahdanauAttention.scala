@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.NewAxis
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
-import org.platanios.tensorflow.api.types.{INT32, IsDecimal, TF}
+import org.platanios.tensorflow.api.types.{IsDecimal, TF}
 
 /** Bahdanau-style (multiplicative) attention scoring.
   *

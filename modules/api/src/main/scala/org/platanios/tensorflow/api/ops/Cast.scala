@@ -77,30 +77,37 @@ trait Cast {
     * @tparam R Target data type.
     * @return Created op output.
     */
-  private[Cast] def bitcast[T: IsNumeric, R: TF](
-      input: Output[T]
-  ): Output[R] = {
+  private[Cast] def bitcast[T: IsNumeric, R: TF, OL[TT] <: OutputLike[TT]](
+      input: OL[T]
+  )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
     val dataType = TF[R].dataType
     Op.nameScope(s"${input.name}/BitcastTo$dataType") {
-      Op.Builder[Output[T], Output[R]](
-        opType = "Bitcast",
-        name = "Bitcast",
-        input = input
-      ).setAttribute("type", dataType)
-          .build().output
+      ev.applyUnary(input, o => {
+        Op.Builder[Output[T], Output[R]](
+          opType = "Bitcast",
+          name = "Bitcast",
+          input = o
+        ).setAttribute("type", dataType)
+            .build().output
+      })
     }
   }
 }
 
 object Cast extends Cast {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToCastOps[T, OC](
+    implicit def outputConvertibleToCastOps[T, OC, OL[TT] <: OutputLike[TT]](
         value: OC
-    )(implicit f: OC => Output[T]): CastOps[T] = {
+    )(implicit
+        f: OC => OL[T],
+        ev: OutputOps.Aux[OL, T]
+    ): CastOps[T, OL] = {
       new CastOps(f(value))
     }
 
-    implicit class CastOps[T](val output: Output[T]) {
+    implicit class CastOps[T, OL[TT] <: OutputLike[TT]](
+        val output: OL[T]
+    )(implicit evOps: OutputOps.Aux[OL, T]) {
       private implicit val evTF: TF[T] = {
         TF.fromDataType(output.dataType)
       }
@@ -111,8 +118,8 @@ object Cast extends Cast {
         * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def castTo[R: TF]: Output[R] = {
-        Cast.cast[T, R, Output](output)
+      def castTo[R: TF]: OL[R] = {
+        Cast.cast[T, R, OL](output)
       }
 
       /** $OpDocCastCast
@@ -121,9 +128,9 @@ object Cast extends Cast {
         * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
-      def castTo[R](dataType: DataType[R]): Output[R] = {
+      def castTo[R](dataType: DataType[R]): OL[R] = {
         implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.cast[T, R, Output](output)
+        Cast.cast[T, R, OL](output)
       }
 
       /** $OpDocCastCast
@@ -132,8 +139,8 @@ object Cast extends Cast {
         * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def castTo[R: TF](truncate: Boolean): Output[R] = {
-        Cast.cast[T, R, Output](output, truncate)
+      def castTo[R: TF](truncate: Boolean): OL[R] = {
+        Cast.cast[T, R, OL](output, truncate)
       }
 
       /** $OpDocCastCast
@@ -142,9 +149,9 @@ object Cast extends Cast {
         * @param  dataType Target data type.
         * @return Result as a new tensor.
         */
-      def castTo[R](dataType: DataType[R], truncate: Boolean): Output[R] = {
+      def castTo[R](dataType: DataType[R], truncate: Boolean): OL[R] = {
         implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.cast[T, R, Output](output, truncate)
+        Cast.cast[T, R, OL](output, truncate)
       }
 
       /** $OpDocCastBitcast
@@ -154,8 +161,8 @@ object Cast extends Cast {
         * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def bitcastTo[R: TF](implicit ev: IsNumeric[T]): Output[R] = {
-        Cast.bitcast[T, R](output)
+      def bitcastTo[R: TF](implicit ev: IsNumeric[T]): OL[R] = {
+        Cast.bitcast[T, R, OL](output)
       }
 
       /** $OpDocCastBitcast
@@ -165,9 +172,9 @@ object Cast extends Cast {
         * @tparam R Target data type.
         * @return Result as a new tensor.
         */
-      def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): Output[R] = {
+      def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): OL[R] = {
         implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.bitcast[T, R](output)
+        Cast.bitcast[T, R, OL](output)
       }
 
       def toStringTensor: Output[String] = output.castTo[String]
@@ -204,7 +211,7 @@ object Cast extends Cast {
     *   For example:
     *   {{{
     *     // `a` is a tensor with values [1.8, 2.2], and data type FLOAT32
-    *     cast(a, INT32) ==> [1, 2] // with data type INT32
+    *     a.castTo[Int] ==> [1, 2] // with data type Int
     *   }}}
     *
     *   **NOTE**: Only a smaller number of types are supported by the `cast` op. The exact casting rule is TBD. The

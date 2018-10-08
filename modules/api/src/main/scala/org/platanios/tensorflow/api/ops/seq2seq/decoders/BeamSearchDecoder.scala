@@ -218,7 +218,7 @@ class BeamSearchDecoder[T, State, StateShape](
       var lengthsToAdd = Basic.oneHot(
         indices = Basic.fill[Int, Int](Basic.stack[Int](Seq(batchSize, beamWidth)))(endToken),
         depth = vocabSize,
-        dataType = INT32,
+        dataType = Int,
         onValue = 0,
         offValue = 1)
       val addMask = Math.logicalNot(previouslyFinished).castTo[Int]
@@ -1003,8 +1003,7 @@ object BeamSearchDecoder {
       },
       data = Seq("Tensor array reordering expects elements to be reshapable to '[batchSize, beamSize, -1]' which is " +
           s"incompatible with the dynamic shape of '${tensor.name}' elements. Consider setting `reorderTensorArrays` " +
-          "to `false` to disable tensor array reordering during the beam search.")
-    ).asUntyped
+          "to `false` to disable tensor array reordering during the beam search."))
   }
 
   /** Maybe sorts the search states within a tensor array.

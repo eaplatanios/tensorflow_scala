@@ -47,10 +47,10 @@ class WarmUpLinearSchedule protected (
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: Float : TF, I: TF : IsInt32OrInt64](
-      value: Output[V],
+  override def apply[I: TF : IsInt32OrInt64](
+      value: Output[Float],
       step: Option[Variable[I]]
-  ): Output[V] = {
+  ): Output[Float] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for warm-up schedule.")
     Op.nameScope(name) {
@@ -60,8 +60,7 @@ class WarmUpLinearSchedule protected (
       ControlFlow.cond(
         stepValue < warmUpStepsValue,
         () => value.castTo[Float] * schedule(stepValue, warmUpStepsValue, warmUpOffsetValue),
-        () => value
-      ).castTo[V]
+        () => value)
     }
   }
 

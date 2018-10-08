@@ -54,13 +54,18 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Variable[+T: TF] private (
+case class Variable[T] private (
     override val dataType: DataType[T],
     private val variableHandle: Output[Resource],
     private val initializeOp: UntypedOp,
     private val cachedValue: Output[T],
     private[variables] val graphElement: Output[T]
 ) extends ProtoSerializable with VariableLike[T] {
+
+  private implicit val evTTF: TF[T] = {
+    TF.fromDataType(dataType)
+  }
+
   // TODO: _assign_dependencies.
 
   /** Graph where this variable is defined. */
@@ -207,16 +212,16 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the assignment.
     */
   @throws[UnsupportedOperationException]
-  override def assign[V >: T : TF](
-      value: Output[V],
+  override def assign(
+      value: Output[T],
       name: String = "Assign"
-  ): Output[V] = {
+  ): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.assign(handle, value, name).asUntyped
+        Variable.assign(handle, value, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -227,16 +232,16 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignAdd[V >: T : TF](
-      value: Output[V],
+  override def assignAdd(
+      value: Output[T],
       name: String = "AssignAdd"
-  ): Output[V] = {
+  ): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.assignAdd(handle, value, name).asUntyped
+        Variable.assignAdd(handle, value, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -247,16 +252,16 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignSub[V >: T : TF](
-      value: Output[V],
+  override def assignSub(
+      value: Output[T],
       name: String = "AssignSub"
-  ): Output[V] = {
+  ): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.assignSub(handle, value, name).asUntyped
+        Variable.assignSub(handle, value, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -268,17 +273,17 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatter[V >: T : TF, I: TF : IsInt32OrInt64](
+  override def assignScatter[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatter"
-  ): Output[V] = {
+  ): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.scatterUpdate(handle, indices, values, name).asUntyped
+        Variable.scatterUpdate(handle, indices, values, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -290,17 +295,17 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterAdd[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  override def assignScatterAdd[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterAdd"
-  ): Output[V] = {
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.scatterAdd(handle, indices, values, name).asUntyped
+        Variable.scatterAdd(handle, indices, values, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -313,17 +318,17 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterSub[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  override def assignScatterSub[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterSub"
-  ): Output[V] = {
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.scatterSub(handle, indices, values, name).asUntyped
+        Variable.scatterSub(handle, indices, values, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -336,17 +341,17 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMul[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  override def assignScatterMul[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterMul"
-  ): Output[V] = {
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.scatterMul(handle, indices, values, name).asUntyped
+        Variable.scatterMul(handle, indices, values, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -359,17 +364,17 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterDiv[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  override def assignScatterDiv[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterDiv"
-  ): Output[V] = {
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.scatterDiv(handle, indices, values, name).asUntyped
+        Variable.scatterDiv(handle, indices, values, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -382,17 +387,17 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMin[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  override def assignScatterMin[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterMin"
-  ): Output[V] = {
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.scatterMin(handle, indices, values, name).asUntyped
+        Variable.scatterMin(handle, indices, values, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -405,17 +410,17 @@ case class Variable[+T: TF] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMax[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  override def assignScatterMax[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterMax"
-  ): Output[V] = {
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
       graph = graph,
       controlDependencies = Set(
-        Variable.scatterMax(handle, indices, values, name).asUntyped
+        Variable.scatterMax(handle, indices, values, name)
       )) {
-      Variable.readVariable(handle, dataType, name).asInstanceOf[Output[V]]
+      Variable.readVariable(handle, dataType, name)
     }
   }
 
@@ -593,7 +598,7 @@ private[api] object Variable {
         val initializeOp = assign(
           variableHandle,
           tryGuardAgainstUninitializedDependencies(name, initialValue),
-          name = "InitializationAssign").asUntyped
+          name = "InitializationAssign")
         val (graphElement, cachedValue) = Op.createWith(nameScope = "Read") {
           Op.colocateWith(Set(variableHandle.op), ignoreExisting = true) {
             // Manually assign reads to the handle's device to avoid log messages
@@ -624,7 +629,7 @@ private[api] object Variable {
           effectiveCollections += Graph.Keys.GLOBAL_VARIABLES
         if (trainable)
           effectiveCollections += Graph.Keys.TRAINABLE_VARIABLES
-        effectiveCollections.foreach(key => createdVariable.graph.addToCollection(createdVariable, key))
+        effectiveCollections.foreach(key => createdVariable.graph.addToCollection(key)(createdVariable))
         createdVariable
       }
     }
@@ -684,9 +689,7 @@ private[api] object Variable {
       else
         null
     }
-    val createdVariable = Variable(
-      dataType, handle, initializeOp, cachedValue, graphElement
-    )(TF.fromDataType(dataType))
+    val createdVariable = Variable(dataType, handle, initializeOp, cachedValue, graphElement)
     createdVariable.partitionInformation = saveSliceInformation
     createdVariable
   }

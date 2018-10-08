@@ -196,7 +196,7 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
             (decoderOutputs, decoderStates)
         }
         val nextOutputTensorArrays = outputTensorArrays.zip(nextOutputs).map(t => {
-          t._1.write(time, t._2)(TF.fromDataType(t._2.dataType))
+          t._1.write(time, t._2)
         })
         (time + 1, nextOutputTensorArrays, nextStates, nextInputs, nextFinished, nextSequenceLengths)
       }

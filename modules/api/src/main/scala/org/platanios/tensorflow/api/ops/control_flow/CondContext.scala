@@ -233,8 +233,8 @@ object CondContext {
       if (kind != CollectionDef.KindCase.BYTES_LIST)
         throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
       collectionDef.getBytesList.getValueList.asScala
-          .foreach(s => graph.addToCollection(
-            CondContext.fromCondContextDef(CondContextDef.parseFrom(s), importScope), this))
+          .foreach(s => graph.addToCollection(this)(
+            CondContext.fromCondContextDef(CondContextDef.parseFrom(s), importScope)))
     }
   }
 
@@ -304,7 +304,7 @@ object CondOutput {
           output: Op[I, O],
           context: CondContext
       ): Output[Any] = {
-        context.processOp(output.asUntyped)
+        context.processOp(output)
       }
 
       override def flatten(

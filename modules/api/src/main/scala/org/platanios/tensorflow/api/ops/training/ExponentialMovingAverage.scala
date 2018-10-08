@@ -150,7 +150,7 @@ class ExponentialMovingAverage protected (
         val average = Slot.create(
           v, v.dataType, DynamicConstantInitializer(v.initializedValue)(evTF),
           name, colocateWithPrimary = true)(evTF, evTF)
-        Op.currentGraph.addToCollection(average, Graph.Keys.MOVING_AVERAGE_VARIABLES)
+        Op.currentGraph.addToCollection(Graph.Keys.MOVING_AVERAGE_VARIABLES)(average)
         variableAverages.update(v, average)
       }
     })
@@ -164,7 +164,7 @@ class ExponentialMovingAverage protected (
           variableAverages(v), v.value, decayTensor, zeroDebias = false
         )(TF.fromDataType(v.dataType), ev).op
       })
-      ControlFlow.group(updates).asUntyped
+      ControlFlow.group(updates)
     }
   }
 
@@ -193,7 +193,7 @@ class ExponentialMovingAverage protected (
         val evTF = TF.fromDataType(v.dataType)
         val average = Slot.zerosForOutput(
           v, v.dataType, name, colocateWithPrimary = colocateWithPrimary)(evTF, evTF)
-        Op.currentGraph.addToCollection(average, Graph.Keys.MOVING_AVERAGE_VARIABLES)
+        Op.currentGraph.addToCollection(Graph.Keys.MOVING_AVERAGE_VARIABLES)(average)
         if (zeroDebias)
           zeroDebiasVariables += average
         valueAverages.update(v, average)
@@ -211,7 +211,7 @@ class ExponentialMovingAverage protected (
           average, v, decayTensor, zeroDebias = zeroDebias
         )(TF.fromDataType(v.dataType), ev).op
       })
-      ControlFlow.group(updates).asUntyped
+      ControlFlow.group(updates)
     }
   }
 

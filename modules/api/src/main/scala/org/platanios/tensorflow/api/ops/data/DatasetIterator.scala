@@ -252,7 +252,7 @@ object DatasetIterator {
       (handle, initializer)
     }
     new InitializableDatasetIterator[T](handle, dataset.evData)(
-      initializer = initializer.asUntyped,
+      initializer = initializer,
       _outputDataTypes = dataset.outputDataTypes,
       _outputShapes = dataset.outputShapes,
       name = name)

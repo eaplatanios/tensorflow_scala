@@ -42,7 +42,7 @@ object OutputOps {
     type T = TT
   }
 
-  implicit def outputOps[TT: TF]: OutputOps.Aux[Output, TT] = {
+  implicit def outputOps[TT]: OutputOps.Aux[Output, TT] = {
     new OutputOps[Output] {
       override type T = TT
 
@@ -55,7 +55,7 @@ object OutputOps {
     }
   }
 
-  implicit def outputIndexedSlicesOps[TT: TF]: OutputOps.Aux[OutputIndexedSlices, TT] = {
+  implicit def outputIndexedSlicesOps[TT]: OutputOps.Aux[OutputIndexedSlices, TT] = {
     new OutputOps[OutputIndexedSlices] {
       override type T = TT
 
@@ -68,7 +68,7 @@ object OutputOps {
     }
   }
 
-  implicit def sparseOutputOps[TT: TF]: OutputOps.Aux[SparseOutput, TT] = {
+  implicit def sparseOutputOps[TT]: OutputOps.Aux[SparseOutput, TT] = {
     new OutputOps[SparseOutput] {
       override type T = TT
 
@@ -81,7 +81,7 @@ object OutputOps {
     }
   }
 
-  implicit def outputLikeOps[TT: TF]: OutputOps.Aux[OutputLike, TT] = {
+  implicit def outputLikeOps[TT]: OutputOps.Aux[OutputLike, TT] = {
     new OutputOps[OutputLike] {
       override type T = TT
 

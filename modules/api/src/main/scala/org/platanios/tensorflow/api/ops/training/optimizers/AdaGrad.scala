@@ -98,7 +98,7 @@ class AdaGrad protected (
           getLearningRate(variable, iteration),
           gradient)
     ).setAttribute("use_locking", useLocking)
-        .build().asUntyped
+        .build()
   }
 
   override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
@@ -116,7 +116,7 @@ class AdaGrad protected (
           gradient.values,
           gradient.indices)
     ).setAttribute("use_locking", useLocking)
-        .build().asUntyped
+        .build()
   }
 }
 

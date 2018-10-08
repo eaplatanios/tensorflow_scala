@@ -18,12 +18,11 @@ package org.platanios.tensorflow.api.ops.rnn
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, OpSpecification, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT32, IsInt32OrInt64, TF}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
 
 import scala.language.postfixOps
 
@@ -290,7 +289,7 @@ object RNN extends RNN {
         dataType = in.dataType,
         elementShape = in.shape(1 ::),
         name = s"Input_$index"
-      )(TF.fromDataType(in.dataType)).unstack(in)(TF.fromDataType(in.dataType))
+      )(TF.fromDataType(in.dataType)).unstack(in)
     })
 
     type LoopVariables = (Output[Int], Seq[TensorArray[Any]], Seq[Output[Any]])
@@ -319,7 +318,7 @@ object RNN extends RNN {
       }
       val nextOutputTensorArrays = loopVariables._2.zip(nextOutputs).map({
         case (tensorArray, output) =>
-          tensorArray.write(time, output)(TF.fromDataType(output.dataType))
+          tensorArray.write(time, output)
       })
       (time + 1, nextOutputTensorArrays, nextStates)
     }

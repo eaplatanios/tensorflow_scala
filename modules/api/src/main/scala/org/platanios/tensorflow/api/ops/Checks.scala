@@ -40,8 +40,8 @@ trait Checks {
       summarize: Int = 3,
       name: String = "Assert"
   ): Op[Seq[Output[Any]], Unit] = {
-    if (data.forall(d => d.dataType == STRING || d.dataType == INT32)) {
-      // As a simple heuristic, we assume that STRING and INT32 tensors are on host memory to avoid the need to use
+    if (data.forall(d => d.dataType == STRING || d.dataType == Int)) {
+      // As a simple heuristic, we assume that STRING and Int tensors are on host memory to avoid the need to use
       // `cond`. If that is not case, we will pay the price copying the tensor to host memory.
       Op.Builder[(Output[Boolean], Seq[Output[Any]]), Unit](
         opType = "Assert",

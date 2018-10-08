@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.types.{Resource, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTensorInitializer[K: TF, +V: TF] protected (
+class LookupTableTensorInitializer[K: TF, V: TF] protected (
     val keys: Output[K],
     val values: Output[V]
 ) extends LookupTableInitializer(keys.dataType, values.dataType) {
@@ -36,18 +36,18 @@ class LookupTableTensorInitializer[K: TF, +V: TF] protected (
     * @param  table Table to initialize.
     * @return Created initialization op for `table`.
     */
-  override def initialize[VV >: V : TF](
-      table: InitializableLookupTable[K, VV],
+  override def initialize(
+      table: InitializableLookupTable[K, V],
       name: String = "Initialize"
-  ): UntypedOp = {
+  )(implicit evVTF: TF[V]): UntypedOp = {
     Op.nameScope(name) {
       val initializationOp = Op.Builder[(Output[Resource], Output[K], Output[V]), Unit](
         opType = "InitializeTableV2",
         name = name,
         input = (table.handle, keys, values)
       ).build()
-      Op.currentGraph.addToCollection(initializationOp.asUntyped, Graph.Keys.TABLE_INITIALIZERS)
-      initializationOp.asUntyped
+      Op.currentGraph.addToCollection(Graph.Keys.TABLE_INITIALIZERS)(initializationOp)
+      initializationOp
     }
   }
 }

@@ -51,7 +51,7 @@ trait Summary {
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.tensorSummary(tensor, tag, Tensor.empty[String], scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
       summary
     }, name, family)
   }
@@ -74,7 +74,7 @@ trait Summary {
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.scalarSummary(value, tag, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
       summary
     }, name, family)
   }
@@ -97,7 +97,7 @@ trait Summary {
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.histogramSummary(values, tag, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
       summary
     }, name, family)
   }
@@ -125,7 +125,7 @@ trait Summary {
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.imageSummary(tensor, badColor, tag, maxOutputs, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
       summary
     }, name, family)
   }
@@ -153,7 +153,7 @@ trait Summary {
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
       val summary = Summary.audioSummary(tensor, samplingRate, tag, maxOutputs, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(summary, key))
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
       summary
     }, name, family)
   }
@@ -177,7 +177,7 @@ trait Summary {
     val cleanedName = Summary.sanitizeName(name)
     Op.nameScope(cleanedName) {
       val merged = Summary.mergeSummaries(summaries.toSeq, cleanedName)
-      collections.foreach(k => Op.currentGraph.addToCollection(merged, k))
+      collections.foreach(k => Op.currentGraph.addToCollection(k)(merged))
       merged
     }
   }

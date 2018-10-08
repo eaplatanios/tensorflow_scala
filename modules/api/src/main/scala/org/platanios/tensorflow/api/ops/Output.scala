@@ -27,7 +27,7 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputLike[+T] extends OutputLikeOrTensorArray[T] {
+sealed trait OutputLike[T] extends OutputLikeOrTensorArray[T] {
   /** Graph where the op belongs. */
   def graph: Graph
 
@@ -86,7 +86,7 @@ sealed trait OutputLike[+T] extends OutputLikeOrTensorArray[T] {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Output[+T] private(
+final case class Output[T] private(
     op: Op[Seq[Output[Any]], Seq[Output[Any]]],
     index: Int
 ) extends OutputLike[T] {
@@ -103,7 +103,9 @@ final case class Output[+T] private(
   /** Data type of this op output. */
   override def dataType: DataType[T] = {
     using(graph.reference) { r =>
-      DataType.fromCValue(NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index))
+      DataType.fromCValue(
+        NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index)
+      ).asInstanceOf[DataType[T]]
     }
   }
 
@@ -126,7 +128,7 @@ final case class Output[+T] private(
               graph = graph,
               originalInput = None,
               nativeHandle = jniOutput.opHandle))
-          Input(op = op, index = index)
+          Input[Any](op = op, index = index)
         })
       }
     }
@@ -184,11 +186,11 @@ final case class Output[+T] private(
     * @param  otherIndexers Rest of the indexers to use.
     * @return Created op.
     */
-  def apply[V >: T : TF](
+  def apply(
       firstIndexer: Indexer,
       otherIndexers: Indexer*
-  ): Output[V] = {
-    this.slice[V](firstIndexer, otherIndexers: _*)
+  ): Output[T] = {
+    this.slice(firstIndexer, otherIndexers: _*)
   }
 
   /** Creates an op that slices this op according to the provided indexers.
@@ -199,10 +201,10 @@ final case class Output[+T] private(
     * @param  otherIndexers Rest of the indexers to use.
     * @return Created op.
     */
-  def slice[V >: T : TF](
+  def slice(
       firstIndexer: Indexer,
       otherIndexers: Indexer*
-  ): Output[V] = {
+  ): Output[T] = {
     val stridedSlice = Indexer.toStridedSlice(firstIndexer, otherIndexers: _*)
     val beginTensor: Output[Int] = stridedSlice._1
     val endTensor: Output[Int] = stridedSlice._2
@@ -489,7 +491,7 @@ object Output {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class OutputIndexedSlices[+T](
+final case class OutputIndexedSlices[T](
     indices: Output[Long],
     values: Output[T],
     denseShape: Output[Long] = null
@@ -555,7 +557,6 @@ final case class OutputIndexedSlices[+T](
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
     implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
 
-    implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Op.nameScope(s"${values.op.name}/ToOutput") {
       Math.unsortedSegmentSum(
         data = values,
@@ -633,7 +634,7 @@ final case class OutputIndexedSlices[+T](
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput[+T](
+final case class SparseOutput[T](
     indices: Output[Long],
     values: Output[T],
     denseShape: Output[Long] = null
@@ -682,7 +683,6 @@ final case class SparseOutput[+T](
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
   override def toOutput: Output[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(dataType)
     toOutput()
   }
 
@@ -713,17 +713,16 @@ final case class SparseOutput[+T](
     * @param  name            Name for the created op.
     * @return Created op output, with the same data type as `input.values` and shape `input.denseShape`.
     */
-  def toOutput[V >: T: TF](
-      defaultValue: Output[V] = null,
+  def toOutput(
+      defaultValue: Output[T] = null,
       validateIndices: Boolean = true,
       name: String = s"${values.op.name}/ToOutput"
   ): Output[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(dataType)
-    val default = if (defaultValue == null) Basic.zeros[V](Shape()) else defaultValue
+    val default = if (defaultValue == null) Basic.zeros(dataType, Shape()) else defaultValue
     Op.Builder[(Output[Long], Output[Long], Output[T], Output[T]), Output[T]](
       opType = "SparseToDense",
       name = name,
-      input = (indices, denseShape, values, defaultValue.castTo[T])
+      input = (indices, denseShape, values, default)
     ).setAttribute("validate_indices", validateIndices)
         .build().output
   }

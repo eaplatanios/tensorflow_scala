@@ -1868,7 +1868,7 @@ trait Basic {
       // matrix of size [lengths.shape(0), maxLen].
       val rowVector = Math.range(Basic.zerosLike(maxLen), maxLen, Basic.onesLike(maxLen))
       // Since 'maxLen' >= max(lengths), it is safe to use 'maxLen' as a cast authoritative type. Whenever 'maxLen' fits
-      // into INT32, then so do the elements of 'lengths'.
+      // into Int, then so do the elements of 'lengths'.
       val matrix = expandDims(lengths, -1).castTo[T]
       Math.less(rowVector, matrix)
     }
@@ -2011,8 +2011,8 @@ trait Basic {
   ): (OutputLike[T], Output[I1], Output[I2]) = {
     // The input can be large, so we colocate the shape calculation with it.
     // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
-    // any dimension is larger than INT32. 'inputShape' is not used in the optimizer 'applySparse' gradients method
-    // and so it's fine to convert it back to INT32 regardless of the truncation.
+    // any dimension is larger than Int. 'inputShape' is not used in the optimizer 'applySparse' gradients method
+    // and so it's fine to convert it back to Int regardless of the truncation.
     val zero = zeros[Int](Shape())
     val input = op.input._1
     val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
@@ -2916,7 +2916,7 @@ object Basic extends Basic {
       def unique[I1: TF : IsInt32OrInt64](
           axis: Output[I1]
       ): (Output[T], Output[Int]) = {
-        Basic.unique(output, axis, indicesDataType = INT32)
+        Basic.unique(output, axis, indicesDataType = Int)
       }
 
       /** $OpDocBasicUnique
@@ -2940,7 +2940,7 @@ object Basic extends Basic {
       def uniqueWithCounts[I1: TF : IsInt32OrInt64](
           axis: Output[I1]
       ): (Output[T], Output[Int], Output[Int]) = {
-        Basic.uniqueWithCounts(output, axis, indicesDataType = INT32)
+        Basic.uniqueWithCounts(output, axis, indicesDataType = Int)
       }
 
       /** $OpDocBasicUniqueWithCounts
@@ -2963,7 +2963,7 @@ object Basic extends Basic {
         * @return Tuple containing `output` and `indices`, from the method description.
         */
       def listDiff(other: Output[T]): (Output[T], Output[Int]) = {
-        Basic.listDiff(output, other, INT32)
+        Basic.listDiff(output, other, Int)
       }
 
       /** $OpDocBasicListDiff
@@ -3121,7 +3121,7 @@ object Basic extends Basic {
     *
     *   For example:
     *   {{{
-    *      zeros(INT32, Shape(3, 4)) ==> [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    *      zeros[Int](Shape(3, 4)) ==> [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     *   }}}
     *
     * @define OpDocBasicZerosLike
@@ -3140,7 +3140,7 @@ object Basic extends Basic {
     *
     *   For example:
     *   {{{
-    *      ones(INT32, Shape(3, 4)) ==> [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
+    *      ones[Int](Shape(3, 4)) ==> [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]
     *   }}}
     *
     * @define OpDocBasicOnesLike

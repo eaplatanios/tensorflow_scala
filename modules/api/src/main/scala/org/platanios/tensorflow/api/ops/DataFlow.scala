@@ -128,9 +128,9 @@ trait DataFlow {
     *   // (x_i != -1, in this example).
     *   var x = tf.constant(Tensor(0.1, -1., 5.2, 4.3, -1., 7.4))
     *   val conditionMask = tf.notEqual(x, tf.constant(-1.0))
-    *   val partitionedData = tf.dynamicPartition(x, tf.cast(conditionMask, tf.INT32), 2)
+    *   val partitionedData = tf.dynamicPartition(x, conditionMask.toInt, 2)
     *   partitionedData(1) = partitioned_data(1) + 1.0
-    *   val conditionIndices = tf.dynamicPartition(tf.range(tf.shape(x)(0)), tf.cast(conditionMask, tf.INT32), 2)
+    *   val conditionIndices = tf.dynamicPartition(tf.range(tf.shape(x)(0)), conditionMask.toInt, 2)
     *   x = tf.dynamicStitch(conditionIndices, partitionedData)
     *   // Here x = [1.1, -1., 6.2, 5.3, -1, 8.4] (i.e., the -1 values remained unchanged).
     * }}}

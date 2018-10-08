@@ -56,7 +56,7 @@ trait Callback {
       evOutput: Callback.ArgType.Aux[OT, OO, OD]
   ): OO = {
     val id = NativeCallbacksRegistry.register(inputs => {
-      val inputTensors = inputs.map(Tensor.fromNativeHandle).toSeq
+      val inputTensors = inputs.map(Tensor.fromNativeHandle[Any]).toSeq
       val outputs = function(evInput.decode(inputTensors))
       val outputTensors = evOutput.tensors(outputs)
       outputTensors.map(_.nativeHandle).toArray

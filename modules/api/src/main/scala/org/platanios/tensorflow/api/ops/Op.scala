@@ -53,13 +53,13 @@ import scala.util.Try
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Op[+I: Op.OpInput, +O: Op.OpOutput] private (
+final case class Op[I: Op.OpInput, O: Op.OpOutput] private (
     graph: Graph,
     private[ops] val originalInput: Option[I],
     private[api] val nativeHandle: Long
 ) {
   // Update the ops cache of the graph with the current op.
-  graph.opsCache.update(nativeHandle, this.asUntyped)
+  graph.opsCache.update(nativeHandle, this)
 
   /** Name of the op. */
   lazy val name: String = {
@@ -182,7 +182,7 @@ final case class Op[+I: Op.OpInput, +O: Op.OpOutput] private (
 
   private[Op] def _outputs: Array[Output[Any]] = {
     (0 until numOutputs).map(i => {
-      Output[Any](op = this.asUntyped, index = i)
+      Output[Any](op = this, index = i)
     }).toArray
   }
 
@@ -413,10 +413,10 @@ final case class Op[+I: Op.OpInput, +O: Op.OpOutput] private (
     * @throws IllegalArgumentException If no data type attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def dataTypeAttribute[T](name: String): DataType[T] = {
+  def dataTypeAttribute(name: String): DataType[Any] = {
     using(graph.reference) { _ =>
       try {
-        DataType.fromCValue[T](NativeOp.getAttrType(nativeHandle, name))
+        DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
       } catch {
         case e: Exception => throw new IllegalArgumentException(
           s"Op has no data type attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
@@ -493,10 +493,6 @@ final case class Op[+I: Op.OpInput, +O: Op.OpOutput] private (
   }
 
   //endregion Serialization
-
-  def asUntyped: UntypedOp = {
-    this.asInstanceOf[Op[Seq[Output[Any]], Seq[Output[Any]]]]
-  }
 
   override def toString: String = {
     name
@@ -1166,14 +1162,14 @@ object Op {
 
         @inline override def toBuilderInputs(value: OutputLike[T]): Seq[Builder.Input] = {
           value match {
-            case o: Output[Any] =>
+            case o: Output[_] =>
               Seq(Builder.InputTensor(o))
-            case o: OutputIndexedSlices[Any] =>
+            case o: OutputIndexedSlices[_] =>
               Seq(
                 Builder.InputTensor(o.indices),
                 Builder.InputTensor(o.values),
                 Builder.InputTensor(o.denseShape))
-            case o: SparseOutput[Any] =>
+            case o: SparseOutput[_] =>
               Seq(
                 Builder.InputTensor(o.indices),
                 Builder.InputTensor(o.values),
@@ -1183,9 +1179,9 @@ object Op {
 
         @inline override def toOutputs(value: OutputLike[T]): Seq[Output[Any]] = {
           value match {
-            case o: Output[Any] => Seq(o)
-            case o: OutputIndexedSlices[Any] => Seq(o.indices, o.values, o.denseShape)
-            case o: SparseOutput[Any] => Seq(o.indices, o.values, o.denseShape)
+            case o: Output[_] => Seq(o)
+            case o: OutputIndexedSlices[_] => Seq(o.indices, o.values, o.denseShape)
+            case o: SparseOutput[_] => Seq(o.indices, o.values, o.denseShape)
           }
         }
 
@@ -2643,7 +2639,7 @@ object Op {
         NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = scope.controlFlowContext
         op._inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
-        op.controlFlowContext.foreach(_.add(op.asUntyped))
+        op.controlFlowContext.foreach(_.add(op))
         built = true
         op
       }
@@ -2754,22 +2750,22 @@ object Op {
       this
     }
 
-    def setAttribute(name: String, value: DataType[_]): Builder[I, O] = {
+    def setAttribute[T](name: String, value: DataType[T]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[DataType[_]]): Builder[I, O] = {
+    def setAttribute[T](name: String, value: Array[DataType[T]]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Tensor[_]): Builder[I, O] = {
+    def setAttribute[T](name: String, value: Tensor[T]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor[_]]): Builder[I, O] = {
+    def setAttribute[T](name: String, value: Array[Tensor[T]]): Builder[I, O] = {
       attributes += name -> value
       this
     }

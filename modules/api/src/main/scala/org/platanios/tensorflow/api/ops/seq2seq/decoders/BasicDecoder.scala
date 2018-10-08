@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVari
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT32, IsInt32OrInt64, IsNotQuantized, TF}
+import org.platanios.tensorflow.api.types.{IsInt32OrInt64, IsNotQuantized, TF}
 
 import scala.language.postfixOps
 
@@ -264,7 +264,7 @@ object BasicDecoder {
             size = Basic.shape(input)(TF.fromDataType(input.dataType)).castTo[Int].slice(0),
             dataType = input.dataType,
             elementShape = input.shape(1 ::)
-          )(TF.fromDataType(input.dataType)).unstack(input)(TF.fromDataType(input.dataType))
+          )(TF.fromDataType(input.dataType)).unstack(input)
         })
       }
     }
@@ -322,7 +322,7 @@ object BasicDecoder {
           Math.argmax(
             output,
             axes = -1,
-            outputDataType = INT32
+            outputDataType = Int
           )(TF.fromDataType(output.dataType), ev, TF[Int], IsInt32OrInt64[Int], TF[Int])
         }))
       }

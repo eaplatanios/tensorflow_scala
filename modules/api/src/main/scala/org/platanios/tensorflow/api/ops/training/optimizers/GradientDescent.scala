@@ -104,7 +104,7 @@ class GradientDescent protected (
             getMomentum(variable))
       ).setAttribute("use_locking", useLocking)
           .setAttribute("use_nesterov", useNesterov)
-          .build().asUntyped
+          .build()
     } else {
       Op.Builder[(Output[Resource], Output[T], Output[T]), Unit](
         opType = "ResourceApplyGradientDescent",
@@ -113,7 +113,7 @@ class GradientDescent protected (
             getLearningRate(variable, iteration),
             gradient)
       ).setAttribute("use_locking", useLocking)
-          .build().asUntyped
+          .build()
     }
   }
 
@@ -134,7 +134,7 @@ class GradientDescent protected (
             getMomentum(variable))
       ).setAttribute("use_locking", useLocking)
           .setAttribute("use_nesterov", useNesterov)
-          .build().asUntyped
+          .build()
     } else {
       variable.assignScatterSub(
         gradient.indices,

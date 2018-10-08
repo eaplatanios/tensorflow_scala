@@ -83,9 +83,9 @@ object Resources extends Resources {
       graph: Graph = Op.currentGraph
   ): Unit = {
     if (isShared)
-      graph.addToCollection(resource, Graph.Keys.SHARED_RESOURCES)
+      graph.addToCollection(Graph.Keys.SHARED_RESOURCES)(resource)
     else
-      graph.addToCollection(resource, Graph.Keys.LOCAL_RESOURCES)
+      graph.addToCollection(Graph.Keys.LOCAL_RESOURCES)(resource)
   }
 
   /** Creates an op that initializes the provided resources.

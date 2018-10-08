@@ -38,7 +38,7 @@ object Gradients {
 
   // TODO: [GRADIENTS] !!! Figure out what the right signature for the gradient functions should be.
 
-  type GradientFn[-I, -O, GI >: I, GO >: O] = ( /* Op */ Op[I, O], /* Output Gradients */ GO) => GI
+  type GradientFn[I, O, GI >: I, GO >: O] = ( /* Op */ Op[I, O], /* Output Gradients */ GO) => GI
   type UntypedGradientFn = GradientFn[Seq[OutputLike[Any]], Seq[OutputLike[Any]], Seq[OutputLike[Any]], Seq[OutputLike[Any]]]
 
   private[ops] def convertGradientFn[I, O, GI >: I, GO >: O](
@@ -759,7 +759,7 @@ object Gradients {
       val op = graph.opsCache.getOrElseUpdate(o.opHandle, {
         Op[Seq[Output[Any]], Seq[Output[Any]]](graph, None, o.opHandle)
       })
-      Output(op, o.outputIndex)
+      Output[T](op, o.outputIndex)
     })
   }
 }

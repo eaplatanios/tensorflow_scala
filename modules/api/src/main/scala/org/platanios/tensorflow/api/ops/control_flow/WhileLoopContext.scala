@@ -38,7 +38,7 @@ import scala.reflect.ClassTag
 
 /** Control flow context for the while-loop construct.
   *
-  * @param  maximumIterations     Optional `INT32` scalar specifying the maximum number of iterations to loop for. If
+  * @param  maximumIterations     Optional scalar specifying the maximum number of iterations to loop for. If
   *                               `null` (the default), no iteration limit is enforced.
   * @param  parallelIterations    Number of iterations allowed to run in parallel.
   * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
@@ -570,7 +570,8 @@ private[api] case class WhileLoopContext private[control_flow] (
         values += indicesAcc.name
         values += valuesAcc.name
         denseShapeAcc.foreach(values += _.name)
-        val initAcc = Seq(indicesAcc, valuesAcc) ++ denseShapeAcc.map(Seq(_)).getOrElse(Seq.empty)
+        val initAcc = Seq[Output[Any]](indicesAcc, valuesAcc) ++
+            denseShapeAcc.map(Seq[Output[Any]](_)).getOrElse(Seq.empty)
         // Set `useInputShape` to `false` since the accumulator tensors will grow in size. If `useInputShape` is `true`,
         // the `updateInput` call below will result in incompatible shapes.
         val enterAcc = initAcc.map(a => {
@@ -597,7 +598,7 @@ private[api] case class WhileLoopContext private[control_flow] (
         })
 
         // The actual accumulation.
-        var addAcc = mutable.ListBuffer(
+        var addAcc = mutable.ListBuffer[Output[Any]](
           Basic.concatenate[Long](Seq(switchAcc(0)._2.asInstanceOf[Output[Long]], g.indices), 0),
           Basic.concatenate[T](Seq(switchAcc(1)._2.asInstanceOf[Output[T]], g.values), 0))
         denseShapeAcc.foreach(_ => {
@@ -915,8 +916,8 @@ object WhileLoopContext {
       if (kind != CollectionDef.KindCase.BYTES_LIST)
         throw new IllegalArgumentException(s"The '$name' collection should be stored as a byte list.")
       collectionDef.getBytesList.getValueList.asScala
-          .foreach(s => graph.addToCollection(
-            WhileLoopContext.fromWhileContextDef(WhileContextDef.parseFrom(s), importScope), this))
+          .foreach(s => graph.addToCollection(this)(
+            WhileLoopContext.fromWhileContextDef(WhileContextDef.parseFrom(s), importScope)))
     }
   }
 

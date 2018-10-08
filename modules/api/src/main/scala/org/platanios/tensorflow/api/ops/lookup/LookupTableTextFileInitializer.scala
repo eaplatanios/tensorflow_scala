@@ -62,7 +62,7 @@ import org.platanios.tensorflow.api.types.{DataType, IsStringOrIntOrUInt, Resour
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTextFileInitializer[K: TF, +V: TF] protected (
+class LookupTableTextFileInitializer[K: TF, V: TF] protected (
     val filename: Output[String],
     override val keysDataType: DataType[K],
     override val valuesDataType: DataType[V],
@@ -74,10 +74,10 @@ class LookupTableTextFileInitializer[K: TF, +V: TF] protected (
   if (vocabularySize != -1 && vocabularySize <= 0)
     throw InvalidArgumentException("The vocabulary size must be positive, if provided.")
 
-  override def initialize[VV >: V : TF](
-      table: InitializableLookupTable[K, VV],
+  override def initialize(
+      table: InitializableLookupTable[K, V],
       name: String = "LookupTableTextFileInitialize"
-  ): UntypedOp = {
+  )(implicit evVTF: TF[V]): UntypedOp = {
     Op.nameScope(name) {
       val initializationOp = Op.Builder[(Output[Resource], Output[String]), Unit](
         opType = "InitializeTableFromTextFileV2",
@@ -88,13 +88,13 @@ class LookupTableTextFileInitializer[K: TF, +V: TF] protected (
           .setAttribute("vocab_size", vocabularySize)
           .setAttribute("delimiter", delimiter)
           .build()
-      Op.currentGraph.addToCollection(initializationOp.asUntyped, Graph.Keys.TABLE_INITIALIZERS)
+      Op.currentGraph.addToCollection(Graph.Keys.TABLE_INITIALIZERS)(initializationOp)
       // If the filename asset tensor is anything other than a string constant
       // (e.g., if it is a placeholder), then it does not make sense to track
       // it as an asset.
       if (filename.op.opType == "Const")
-        Op.currentGraph.addToCollection(filename, Graph.Keys.ASSET_FILEPATHS)
-      initializationOp.asUntyped
+        Op.currentGraph.addToCollection(Graph.Keys.ASSET_FILEPATHS)(filename)
+      initializationOp
     }
   }
 }

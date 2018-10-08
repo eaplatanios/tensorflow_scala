@@ -175,7 +175,7 @@ class Adam protected (
           gradient)
     ).setAttribute("use_locking", useLocking)
         .setAttribute("use_nesterov", useNesterov)
-        .build().asUntyped
+        .build()
   }
 
   override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
@@ -211,7 +211,7 @@ class Adam protected (
 
       val vTSqrt = Math.sqrt(vT)
       val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
-      ControlFlow.group(Set(update.op, mT.op, vT.op)).asUntyped
+      ControlFlow.group(Set(update.op, mT.op, vT.op))
     }
   }
 
@@ -228,7 +228,7 @@ class Adam protected (
         Set(updateBeta1Power.op, updateBeta2Power.op)
       }
     }
-    ControlFlow.group(updateOps ++ updateBetaPowerOps, nameScope).asUntyped
+    ControlFlow.group(updateOps ++ updateBetaPowerOps, nameScope)
   }
 }
 

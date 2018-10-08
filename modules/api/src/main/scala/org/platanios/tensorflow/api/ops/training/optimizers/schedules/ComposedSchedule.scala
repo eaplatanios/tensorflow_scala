@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-class ComposedSchedule[-T: TF] protected (
+class ComposedSchedule[T] protected (
     val schedule1: Schedule[T],
     val schedule2: Schedule[T]
 ) extends Schedule[T] {
@@ -43,16 +43,16 @@ class ComposedSchedule[-T: TF] protected (
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: T : TF, I: TF : IsInt32OrInt64](
-      value: Output[V],
+  override def apply[I: TF : IsInt32OrInt64](
+      value: Output[T],
       step: Option[Variable[I]]
-  ): Output[V] = {
+  ): Output[T] = {
     schedule1(schedule2(value, step), step)
   }
 }
 
 object ComposedSchedule {
-  def apply[T: TF](
+  def apply[T](
       schedule1: Schedule[T],
       schedule2: Schedule[T]
   ): ComposedSchedule[T] = {

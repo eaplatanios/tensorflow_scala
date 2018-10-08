@@ -1474,7 +1474,7 @@ trait Math {
     val x = op.input._1
     val y = op.input._2
     if (shapeFullySpecifiedAndEqual(x, y, outputGradient) &&
-        (outputGradient.dataType == INT32 || outputGradient.dataType == FLOAT32)) {
+        (outputGradient.dataType == Int || outputGradient.dataType == FLOAT32)) {
       (outputGradient * y, outputGradient * x)
     } else {
       val xShape = Basic.shape(x)
@@ -2457,7 +2457,7 @@ trait Math {
       val reductionIndices = floorMod(add(Basic.reshape(op.input._2.castTo[Int], Shape(-1)), rank), rank)
       val reduced = reductionIndices.castTo[Int]
       val indices = range(Basic.constant(0), rank)
-      val (other, _) = Basic.listDiff(indices, reduced, INT32)
+      val (other, _) = Basic.listDiff(indices, reduced, indicesDataType = Int)
       (Basic.concatenate(Seq(reduced, other), 0),
           prod(Basic.gather(inputShape, reduced, axis = 0)),
           prod(Basic.gather(inputShape, other, axis = 0)))
@@ -2765,7 +2765,7 @@ trait Math {
     *
     * @group MathOps
     * @param  input     Input tensor.
-    * @param  axis      `INT32` tensor containing the axis along which to perform the cumulative product.
+    * @param  axis      Tensor containing the axis along which to perform the cumulative product.
     * @param  exclusive Boolean value indicating whether to perform an exclusive cumulative product.
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
     * @param  name      Name for the created op.
@@ -4013,7 +4013,7 @@ trait Math {
         val rankA = Basic.rank(a)
         var axesO = Basic.constant(mappedAxes, name = "Axes")
         axesO = ((axesO >= 0).castTo[Int] * axesO) + ((axesO < 0).castTo[Int] * (axesO + rankA))
-        val (free, _) = Basic.listDiff(Math.range(0, rankA), axesO, INT32)
+        val (free, _) = Basic.listDiff(Math.range(0, rankA), axesO, indicesDataType = Int)
         val freeAxes = Basic.gather(shapeA, free, axis = 0)
         val axesAxes = Basic.gather(shapeA, axesO, axis = 0)
         val prodFree = freeAxes.prod()
@@ -4157,7 +4157,7 @@ trait Math {
       val shapeA = Basic.shape(a).castTo[Int]
       val rankA = Basic.rank(a)
       val mappedAxes = ((axes >= 0).castTo[Int] * axes) + ((axes < 0).castTo[Int] * (axes + rankA))
-      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, INT32)
+      val (free, _) = Basic.listDiff(Math.range(0, rankA), mappedAxes, indicesDataType = Int)
       val freeAxes = Basic.gather(shapeA, free, axis = 0)
       val axesAxes = Basic.gather(shapeA, mappedAxes, axis = 0)
       val prodFree = freeAxes.prod()
@@ -7244,9 +7244,6 @@ object Math extends Math {
     *
     *   Note that this op corresponds to a matrix product and not an element-wise product. For example:
     *   `output[..., i, j] = sum_k (a[..., i, k] * b[..., k, j])`, for all indices `i` and `j`.
-    *
-    *   Both matrices must be of the same data type. The supported types are: `BFLOAT16`, `FLOAT16`, `FLOAT32`,
-    *   `FLOAT64`, `INT32`, `COMPLEX64`, and `COMPLEX128`.
     *
     *   Either matrix can be transposed and/or conjugated on the fly by setting one of the corresponding flags to
     *   `true`. These are set to `false` by default.

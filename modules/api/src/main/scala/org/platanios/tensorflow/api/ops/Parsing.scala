@@ -117,7 +117,7 @@ trait Parsing {
       opType = "DecodeCSV",
       name = name,
       input = (records, recordDefaults)
-    ).setAttribute("OUT_TYPE", dataTypes.toArray[DataType[_]])
+    ).setAttribute("OUT_TYPE", dataTypes.map(_.asInstanceOf[DataType[Any]]).toArray[DataType[Any]])
         .setAttribute("field_delim", delimiter)
         .setAttribute("use_quote_delim", useQuoteDelimiters)
         .build().output
@@ -559,7 +559,7 @@ object Parsing extends Parsing {
     * @define OpDocParsingStringToNumber
     *   The `stringToNumber` op converts each string in the input tensor to the specified numeric type,
     *
-    *   '''NOTE:''' [[INT32]] overflow results in an error while [[FLOAT32]] overflow results in a rounded value.
+    *   '''NOTE:''' Int overflow results in an error while [[FLOAT32]] overflow results in a rounded value.
     *
     * @define OpDocParsingDecodeJSONExample
     *   The `decodeJSONExample` op converts JSON-encoded `Example` records to binary protocol buffer strings.

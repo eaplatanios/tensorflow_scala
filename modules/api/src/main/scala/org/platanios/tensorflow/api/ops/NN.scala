@@ -2232,9 +2232,6 @@ object NN extends NN {
     *   A common use case if to have `logits` of shape `[batchSize, numClasses]` and `labels` of shape `[batchSize]`,
     *   but higher dimensions are also supported.
     *
-    *   `logits` must have data type [[FLOAT16]], [[FLOAT32]], or [[FLOAT64]], and `labels` must have data type
-    *   [[INT32]] or [[INT64]].
-    *
     * @define OpDocNNSigmoidCrossEntropy
     *   The `sigmoidCrossEntropy` op computes the sigmoid cross entropy between `logits` and `labels`.
     *

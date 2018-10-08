@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.types.{DataType, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class LookupTableInitializer[K: TF, +V: TF](
+abstract class LookupTableInitializer[K: TF, V: TF](
     val keysDataType: DataType[K],
     val valuesDataType: DataType[V]
 ) {
@@ -34,8 +34,8 @@ abstract class LookupTableInitializer[K: TF, +V: TF](
     * @param  table Table to initialize.
     * @return Created initialization op for `table`.
     */
-  def initialize[VV >: V : TF](
-      table: InitializableLookupTable[K, VV],
+  def initialize(
+      table: InitializableLookupTable[K, V],
       name: String = "Initialize"
-  ): UntypedOp
+  )(implicit evVTF: TF[V]): UntypedOp
 }

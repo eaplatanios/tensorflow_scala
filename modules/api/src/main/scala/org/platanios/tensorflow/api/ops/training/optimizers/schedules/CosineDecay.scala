@@ -54,28 +54,25 @@ class CosineDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: Float : TF, I: TF : IsInt32OrInt64](
-      value: Output[V],
+  override def apply[I: TF : IsInt32OrInt64](
+      value: Output[Float],
       step: Option[Variable[I]]
-  ): Output[V] = {
+  ): Output[Float] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for cosine decay.")
     Op.nameScope(name) {
       val stepValue = step.get.value.castTo[Float]
       val cycleStepsValue = Basic.constant(cycleSteps).castTo[Float]
       val alphaValue = Basic.constant(alpha).castTo[Float]
-      val result = {
-        if (startStep == 0L) {
-          decay(value, stepValue, cycleStepsValue, alphaValue)
-        } else {
-          val startStepValue = Basic.constant(startStep).castTo[Float]
-          ControlFlow.cond(
-            stepValue < startStepValue,
-            () => value,
-            () => decay(value, stepValue - startStepValue, cycleStepsValue, alphaValue))
-        }
+      if (startStep == 0L) {
+        decay(value, stepValue, cycleStepsValue, alphaValue)
+      } else {
+        val startStepValue = Basic.constant(startStep).castTo[Float]
+        ControlFlow.cond(
+          stepValue < startStepValue,
+          () => value,
+          () => decay(value, stepValue - startStepValue, cycleStepsValue, alphaValue))
       }
-      result.castTo[V]
     }
   }
 

@@ -123,7 +123,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     }
     syncOp.controlFlowContext = Some(forwardContext)
     ControlFlow.addControlInput(forwardIndex.op, syncOp)
-    syncOp.asUntyped
+    syncOp
   }
 
   /** Control trigger node for synchronization in the backward loop. One main use is to keep the pop ops of a stack
@@ -134,7 +134,7 @@ private[control_flow] case class GradientLoopState private[control_flow] (
     }
     syncOp.controlFlowContext = Some(backwardContext)
     ControlFlow.addControlInput(backwardIndex.op, syncOp)
-    syncOp.asUntyped
+    syncOp
   }
 
   /** Gets the real value of `value`.

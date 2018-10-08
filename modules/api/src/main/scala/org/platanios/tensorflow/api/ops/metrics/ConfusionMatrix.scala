@@ -106,12 +106,12 @@ class ConfusionMatrix[T: TF : IsNumeric](
       matchedPredictions = ControlFlow.withControlDependencies(
         Set(Checks.assertNonNegative(
           matchedPredictions,
-          message = "'predictions' contains negative values").asUntyped),
+          message = "'predictions' contains negative values")),
         matchedPredictions)
       matchedTargets = ControlFlow.withControlDependencies(
         Set(Checks.assertNonNegative(
           matchedTargets,
-          message = "'targets' contains negative values").asUntyped),
+          message = "'targets' contains negative values")),
         matchedTargets)
       val inferredNumClasses = {
         if (numClassesOutput == null) {
@@ -121,12 +121,12 @@ class ConfusionMatrix[T: TF : IsNumeric](
           matchedTargets = ControlFlow.withControlDependencies(
             Set(Checks.assertLess(
               matchedTargets, castedNumClasses,
-              message = "Some 'targets' are out of bounds.").asUntyped),
+              message = "Some 'targets' are out of bounds.")),
             matchedTargets)
           matchedPredictions = ControlFlow.withControlDependencies(
             Set(Checks.assertLess(
               matchedPredictions, castedNumClasses,
-              message = "Some 'predictions' are out of bounds.").asUntyped),
+              message = "Some 'predictions' are out of bounds.")),
             matchedPredictions)
           castedNumClasses
         }
@@ -138,7 +138,7 @@ class ConfusionMatrix[T: TF : IsNumeric](
       val confusionMatrix = SparseOutput(indices, computedWeights, denseShape)
       val zeros = Basic.fill[T, Long](denseShape)(Tensor.zeros[T](Shape()))
       val value = confusionMatrix.addDense(zeros)
-      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+      valuesCollections.foreach(Op.currentGraph.addToCollection(_)(value))
       value
     }
   }
@@ -165,9 +165,9 @@ class ConfusionMatrix[T: TF : IsNumeric](
         val value = compute(values, weights, name = "Value")
         val update = accumulator.assignAdd(value, name = "Update")
         val reset = accumulator.initializer
-        valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
-        updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-        resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+        valuesCollections.foreach(Op.currentGraph.addToCollection(_)(value))
+        updatesCollections.foreach(Op.currentGraph.addToCollection(_)(update))
+        resetsCollections.foreach(Op.currentGraph.addToCollection(_)(reset))
         Metric.StreamingInstance(accumulator.value, update, reset, Set(accumulator))
       }
     }

@@ -83,12 +83,12 @@ private[api] trait ControlFlow {
         } else {
           // 2-level tree. The root node is the returned no-op node.
           // `dependencies` contains 1 NoOp node for each device.
-          val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
+          val dependencies: Seq[UntypedOp] = inputsByDevice.toSeq.sortBy(_._1).map {
             case (device, ops) =>
               if (device != null)
-                Op.createWith(device = device, controlDependencies = ops)(noOp(name).asUntyped)
+                Op.createWith(device = device, controlDependencies = ops)(noOp(name))
               else
-                Op.createWith(controlDependencies = ops)(noOp(name).asUntyped)
+                Op.createWith(controlDependencies = ops)(noOp(name))
           }
           Op.createWith(controlDependencies = dependencies.toSet)(noOp(name))
         }
@@ -115,7 +115,7 @@ private[api] trait ControlFlow {
       inputs
     } else {
       Op.nameScope(name) {
-        val gate = group(gatingOps ++ controlInputs).asUntyped
+        val gate = group(gatingOps ++ controlInputs)
         inputs.map(input => {
           if (input == null)
             input
@@ -220,8 +220,8 @@ private[api] trait ControlFlow {
           })
 
           // Add to collections.
-          Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
-          Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
+          Op.currentGraph.addToCollection(CondContext.COND_CONTEXTS)(contextTrue)
+          Op.currentGraph.addToCollection(CondContext.COND_CONTEXTS)(contextFalse)
 
           // Add the final merge to the graph.
           val merges = resultFalse.zip(resultTrue).map(p => {
@@ -265,7 +265,7 @@ private[api] trait ControlFlow {
         Op.createWith(controlDependencies = Set(Checks.assertAtMostNTrue(
           predicateFnPairs.map(_._1),
           n = 1,
-          message = "'cases' was created with 'exclusive = true'.").asUntyped)
+          message = "'cases' was created with 'exclusive = true'."))
         ) {
           fn()
         }
@@ -286,7 +286,7 @@ private[api] trait ControlFlow {
     * @param  parallelIterations    Number of iterations allowed to run in parallel.
     * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
     * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
-    * @param  maximumIterations     Optional `INT32` scalar specifying the maximum number of iterations to loop for. If
+    * @param  maximumIterations     Optional `Int` scalar specifying the maximum number of iterations to loop for. If
     *                               `null` (the default), no iteration limit is enforced.
     * @param  name                  Name prefix for the created ops.
     * @return Created op output structure containing the loop variables values after the loop finishes, mirroring the
@@ -307,7 +307,7 @@ private[api] trait ControlFlow {
     Op.nameScope(name) {
       val loopContext = WhileLoopContext(
         Option(maximumIterations), parallelIterations, enableBackPropagation, swapMemory)
-      Op.currentGraph.addToCollection(loopContext, WhileLoopContext.WHILE_LOOP_CONTEXTS)
+      Op.currentGraph.addToCollection(WhileLoopContext.WHILE_LOOP_CONTEXTS)(loopContext)
       if (maximumIterations == null) {
         loopContext.buildLoop(predicateFn, bodyFn, loopVariables, shapeInvariants)
       } else {
@@ -1032,7 +1032,7 @@ private[api] object ControlFlow extends ControlFlow {
           (null, null)
         }
       case Some(_: WhileLoopContext) =>
-        gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op.asUntyped)) match {
+        gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
           case Some(mergeGradient) =>
             // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
             // and so we update the second input to the merge node.
@@ -1052,7 +1052,7 @@ private[api] object ControlFlow extends ControlFlow {
             gradientContext
                 .flatMap(_.gradientLoopState)
                 .map(_.switchMap)
-                .foreach(_ += op.asUntyped -> mergeGradient)
+                .foreach(_ += (op: UntypedOp) -> mergeGradient)
             (mergeGradient, null)
           case _ =>
             // This is the first time this switch node is visited. It comes from the identity branch. Such a switch
@@ -1373,7 +1373,7 @@ private[api] object ControlFlow extends ControlFlow {
     *   never get ahead of the counter thread because the thread incrementing `x` depends on the value of the counter.
     *   {{{
     *     val n = 10000
-    *     val x = tf.constant(Tensor.zeros(INT32, Shape(n)))
+    *     val x = tf.constant(Tensor.zeros[Int](Shape(n)))
     *     val p = (i: Output, x: Output) => i < n
     *     val b = (i: Output, x: Output) => (tf.print(i + 1, Seq(i)), tf.print(x + 1, Seq(x), "x: "))
     *     val r = tf.whileLoop(p, b, (0, x))

@@ -44,7 +44,7 @@ import org.platanios.tensorflow.api.types.{DataType, Resource, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class TensorArray[+T] private (
+case class TensorArray[T] private (
     handle: Output[Resource],
     flow: Output[Float],
     _dataType: DataType[T],
@@ -53,7 +53,9 @@ case class TensorArray[+T] private (
     colocateWithFirstWrite: Boolean = true,
     private var colocationOps: Seq[UntypedOp] = null
 ) extends OutputLikeOrTensorArray[T] {
-  override def dataType: DataType[T] = _dataType
+  override def dataType: DataType[T] = {
+    _dataType
+  }
 
   /** Changes the element shape of the array given a shape to merge with.
     *
@@ -106,11 +108,11 @@ case class TensorArray[+T] private (
     * @param  name  Name for the created op.
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
-  def write[V >: T : TF](
+  def write(
       index: Output[Int],
-      value: Output[V],
+      value: Output[T],
       name: String = "TensorArrayWrite"
-  ): TensorArray[V] = {
+  ): TensorArray[T] = {
     val writeFlow = maybeColocateWith(value.op) {
       TensorArray.writeOp(handle, index, value, flow, name)
     }
@@ -155,11 +157,11 @@ case class TensorArray[+T] private (
     * @param  name    Name for the created op.
     * @return Output flow of the tensor array, used to enforce proper chaining of operations.
     */
-  def scatter[V >: T : TF](
+  def scatter(
       indices: Output[Int],
-      value: Output[V],
+      value: Output[T],
       name: String = "TensorArrayScatter"
-  ): TensorArray[V] = {
+  ): TensorArray[T] = {
     val scatterFlow = maybeColocateWith(value.op) {
       TensorArray.scatterOp(handle, indices, value, flow, name)
     }
@@ -206,10 +208,10 @@ case class TensorArray[+T] private (
     * @return New tensor array object with flow that ensures the unstack occurs. Use this object for all subsequent
     *         operations.
     */
-  def unstack[V >: T : TF](
-      value: Output[V],
+  def unstack(
+      value: Output[T],
       name: String = "TensorArrayUnstack"
-  ): TensorArray[V] = {
+  ): TensorArray[T] = {
     scatter(
       indices = Math.range(
         Basic.constant(0),
@@ -245,11 +247,11 @@ case class TensorArray[+T] private (
     * @param  name    Name for the created op.
     * @return Tensor array with flow that ensures the split occurs. Use this object for all subsequent operations.
     */
-  def split[V >: T : TF](
-      input: Output[V],
+  def split(
+      input: Output[T],
       lengths: Output[Long],
       name: String = "TensorArraySplit"
-  ): TensorArray[V] = {
+  ): TensorArray[T] = {
     Op.nameScope(name) {
       val splitFlow = maybeColocateWith(input.op) {
         TensorArray.splitOp(handle, input, lengths.castTo[Long], flow, name)
@@ -540,7 +542,7 @@ object TensorArray {
     // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
     // known. For this we need to wait until it has been created by depending on the input flow of the original op.
     val flowGradient = TensorArray.createFromHandle[T](
-      op.input._1, op.input._3, op.dataTypeAttribute("dtype"),
+      op.input._1, op.input._3, op.dataTypeAttribute("dtype").asInstanceOf[DataType[T]],
       colocateWithFirstWrite = false)
         .gradient(getGradientSource(outputGradient.name), op.input._3)
         .write(op.input._2, outputGradient).flow
@@ -577,7 +579,7 @@ object TensorArray {
   ): (Output[Resource], Output[Int], Output[T], Output[Float]) = {
     val flowGradient = outputGradient
     val valueGradient = TensorArray.createFromHandle[T](
-      op.input._1, flowGradient, op.dataTypeAttribute("T"),
+      op.input._1, flowGradient, op.dataTypeAttribute("T").asInstanceOf[DataType[T]],
       colocateWithFirstWrite = false)
         .gradient(getGradientSource(flowGradient.name), flowGradient)
         .read(op.input._2)
@@ -623,7 +625,7 @@ object TensorArray {
     // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
     // known. For this we need to wait until it has been created by depending on the input flow of the original op.
     val flowGradient = TensorArray.createFromHandle[T](
-      op.input._1, op.input._3, op.dataTypeAttribute("dtype"),
+      op.input._1, op.input._3, op.dataTypeAttribute("dtype").asInstanceOf[DataType[T]],
       colocateWithFirstWrite = false)
         .gradient(getGradientSource(outputGradient.name), op.input._3)
         .scatter(op.input._2, outputGradient).flow
@@ -662,7 +664,7 @@ object TensorArray {
   ): (Output[Resource], Output[Int], Output[T], Output[Float]) = {
     val flowGradient = outputGradient
     val valueGradient = TensorArray.createFromHandle[T](
-      op.input._1, flowGradient, op.dataTypeAttribute("T"),
+      op.input._1, flowGradient, op.dataTypeAttribute("T").asInstanceOf[DataType[T]],
       colocateWithFirstWrite = false)
         .gradient(getGradientSource(flowGradient.name), flowGradient)
         .gather(op.input._2)
@@ -712,7 +714,7 @@ object TensorArray {
     // sized tensor arrays. When creating the gradient tensor array, the final size of the forward array must be
     // known. For this we need to wait until it has been created by depending on the input flow of the original op.
     val flowGradient = TensorArray.createFromHandle[T](
-      op.input._1, op.input._2, op.dataTypeAttribute("dtype"),
+      op.input._1, op.input._2, op.dataTypeAttribute("dtype").asInstanceOf[DataType[T]],
       colocateWithFirstWrite = false)
         .gradient(getGradientSource(outputGradient._1.name), op.input._2)
         .split(outputGradient._1, op.output._2).flow
@@ -755,7 +757,7 @@ object TensorArray {
   ): (Output[Resource], Output[T], Output[Long], Output[Float]) = {
     val flow = outputGradient
     val valueGradient = TensorArray.createFromHandle[T](
-      op.input._1, flow, op.dataTypeAttribute("T"),
+      op.input._1, flow, op.dataTypeAttribute("T").asInstanceOf[DataType[T]],
       colocateWithFirstWrite = false)
         .gradient(getGradientSource(flow.name), flow)
         .concatenate()

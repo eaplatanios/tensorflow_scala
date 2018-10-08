@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.types.{DataType, IsInt32OrInt64, IsNumeric, 
   *
   * @author Emmanouil Antonios Platanios
   */
-trait VariableLike[+T] {
+trait VariableLike[T] {
   /** Graph where this variable is defined. */
   val graph: Graph
 
@@ -98,7 +98,7 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the assignment.
     */
   @throws[UnsupportedOperationException]
-  def assign[V >: T : TF](value: Output[V], name: String = "Assign"): Output[V]
+  def assign(value: Output[T], name: String = "Assign"): Output[T]
 
   /** Creates an op that adds the provided value to the current value of the variable and returns its value.
     *
@@ -107,7 +107,7 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  def assignAdd[V >: T : TF](value: Output[V], name: String = "AssignAdd"): Output[V]
+  def assignAdd(value: Output[T], name: String = "AssignAdd"): Output[T]
 
   /** Creates an op that subtracts the provided value from the current value of the variable and returns its value.
     *
@@ -116,7 +116,7 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignSub[V >: T : TF](value: Output[V], name: String = "AssignAdd"): Output[V]
+  def assignSub(value: Output[T], name: String = "AssignAdd"): Output[T]
 
   /** Creates an op that applies updates the provided sparse value updates to this variable and returns its value.
     *
@@ -126,11 +126,11 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  def assignScatter[V >: T : TF, I: TF : IsInt32OrInt64](
+  def assignScatter[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatter"
-  ): Output[V]
+  ): Output[T]
 
   /** Creates an op that adds the provided sparse value to the current value of the variable and returns its value.
     *
@@ -140,11 +140,11 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterAdd[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def assignScatterAdd[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterAdd"
-  ): Output[V]
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Creates an op that subtracts the provided sparse value from the current value of the variable and returns its
     * value.
@@ -155,11 +155,11 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterSub[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def assignScatterSub[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterSub"
-  ): Output[V]
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Creates an op that multiplies the provided sparse value from the current value of the variable and returns its
     * value.
@@ -170,11 +170,11 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterMul[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def assignScatterMul[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterMul"
-  ): Output[V]
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Creates an op that divides the current value of the variable by the provided sparse value and returns its
     * value.
@@ -185,11 +185,11 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterDiv[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def assignScatterDiv[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterDiv"
-  ): Output[V]
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Creates an op that computes the element-wise minimum between the current value of the variable and the provided
     * sparse value, and returns its value.
@@ -200,11 +200,11 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterMin[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def assignScatterMin[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterMin"
-  ): Output[V]
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Creates an op that computes the element-wise maximum between the current value of the variable and the provided
     * sparse value, and returns its value.
@@ -215,11 +215,11 @@ trait VariableLike[+T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterMax[V >: T : TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def assignScatterMax[I: TF : IsInt32OrInt64](
       indices: Output[I],
-      values: Output[V],
+      values: Output[T],
       name: String = "AssignScatterMax"
-  ): Output[V]
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
   def toOutput: Output[T] = {

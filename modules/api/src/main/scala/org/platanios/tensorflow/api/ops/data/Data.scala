@@ -347,7 +347,7 @@ trait Data {
     * {{{
     *   // TODO: [DATA] !!! Improve this example with variable shapes -- like in the Python API.
     *   val generator = () => Range(0, 10).map(Tensor(_))
-    *   val dataset = Dataset.fromGenerator(generator, INT32, Shape.scalar())
+    *   val dataset = Dataset.fromGenerator(generator, outputDataType = Int, outputShape = Shape.scalar())
     *   val value = dataset.createOneShotIterator().next()
     *   session.run(value) ==> 0
     *   session.run(value) ==> 1

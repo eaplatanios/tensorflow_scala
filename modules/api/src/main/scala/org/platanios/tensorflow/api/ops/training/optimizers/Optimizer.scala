@@ -206,16 +206,16 @@ trait Optimizer {
             Op.createWith(controlDependencies = Set(finishOp)) {
               Op.colocateWith(Set(i.op), ignoreExisting = true) {
                 // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
-                Variable.assignAdd(i.handle, Basic.ones[I](Shape()), name).asUntyped
+                Variable.assignAdd(i.handle, Basic.ones[I](Shape()), name)
               }
             }
           case None =>
-            finish(updateOps.toSet, "Finish").asUntyped
+            finish(updateOps.toSet, "Finish")
         }
       }
 
       // Add the created op to the graph train ops collection.
-      updateOps.head.graph.addToCollection(applyUpdates, Graph.Keys.TRAIN_OP)
+      updateOps.head.graph.addToCollection(Graph.Keys.TRAIN_OP)(applyUpdates)
 
       applyUpdates
     }
@@ -243,7 +243,7 @@ trait Optimizer {
       updateOps: Set[UntypedOp],
       nameScope: String
   ): UntypedOp = {
-    ControlFlow.group(updateOps, nameScope).asUntyped
+    ControlFlow.group(updateOps, nameScope)
   }
 
   /** Applies the updates corresponding to the provided gradient, to the provided variable.
@@ -503,7 +503,7 @@ private[optimizers] object Optimizer {
   private[Optimizer] def deDuplicateOutputIndexedSlices[T: TF : IsNumeric](
       input: OutputIndexedSlices[T]
   ): OutputIndexedSlices[T] = {
-    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0), INT32)
+    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0), indicesDataType = Int)
     val summedValues = Math.unsortedSegmentSum(
       data = input.values,
       segmentIndices = newIndexPositions,

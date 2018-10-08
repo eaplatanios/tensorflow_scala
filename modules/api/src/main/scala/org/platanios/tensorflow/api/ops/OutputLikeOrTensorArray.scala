@@ -15,12 +15,16 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.types.{DataType, TF}
 
 /** Helper trait for implementing some functionality related to beam search decoding.
   *
   * @author Emmanouil Antonios Platanios
   */
-trait OutputLikeOrTensorArray[+T] {
+trait OutputLikeOrTensorArray[T] {
+  protected implicit val evTTF: TF[T] = {
+    TF.fromDataType(dataType)
+  }
+
   def dataType: DataType[T]
 }

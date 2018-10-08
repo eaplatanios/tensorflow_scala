@@ -116,7 +116,7 @@ case class VariableStore private[variables]() {
         Op.colocateWith(Set(variable.op), ignoreExisting = true) {
           val loss = Op.nameScope(s"$name/Regularizer")(regularizer(variable.value))
           if (loss != null)
-            Op.currentGraph.addToCollection(loss, Graph.Keys.REGULARIZATION_LOSSES)
+            Op.currentGraph.addToCollection(Graph.Keys.REGULARIZATION_LOSSES)(loss)
         }
       }
       variable

@@ -24,7 +24,7 @@ import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-case class FixedSchedule[-T: TF]() extends Schedule[T] {
+case class FixedSchedule[T]() extends Schedule[T] {
   /** Applies the scheduling method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -35,10 +35,10 @@ case class FixedSchedule[-T: TF]() extends Schedule[T] {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[V <: T : TF, I: TF : IsInt32OrInt64](
-      value: Output[V],
+  override def apply[I: TF : IsInt32OrInt64](
+      value: Output[T],
       step: Option[Variable[I]]
-  ): Output[V] = {
+  ): Output[T] = {
     value
   }
 }

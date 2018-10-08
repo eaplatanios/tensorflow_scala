@@ -128,7 +128,7 @@ class LazyAMSGrad protected (
     val denominatorSlice = vHatTSliceSqrt + epsilon
     val update = variable.assignScatterSub(gradient.indices, learningRate * mTSlice / denominatorSlice)
 
-    ControlFlow.group(Set(update.op, mT.op, vT.op, vHatT.op)).asUntyped
+    ControlFlow.group(Set(update.op, mT.op, vT.op, vHatT.op))
   }
 }
 

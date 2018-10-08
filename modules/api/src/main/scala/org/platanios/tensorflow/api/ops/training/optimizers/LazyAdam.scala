@@ -132,7 +132,7 @@ class LazyAdam protected (
     val denominatorSlice = Math.sqrt(vTDenominatorSlice) + epsilon
     val update = variable.assignScatterSub(gradient.indices, learningRate * mTDenominatorSlice / denominatorSlice)
 
-    ControlFlow.group(Set(update.op, mT.op, vT.op)).asUntyped
+    ControlFlow.group(Set(update.op, mT.op, vT.op))
   }
 }
 

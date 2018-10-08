@@ -196,7 +196,7 @@ trait Embedding {
     }
     Op.nameScope(name) {
       val segmentIds = sparseIds.indices(::, 0).castTo[Int]
-      val (ids, idx) = Basic.unique(sparseIds.values, 0, INT32)
+      val (ids, idx) = Basic.unique(sparseIds.values, 0, indicesDataType = Int)
       var embeddings = embeddingLookup(parameters, ids, partitionStrategy, maxNorm = maxNorm)
       if (ignoreWeights) {
         combiner.combine(embeddings, idx, segmentIds)

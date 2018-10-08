@@ -82,7 +82,7 @@ class GroupedPrecision(
         reshapedTargets, predictions, labelID.map(_.toTensor.toOutput), computedWeights))
       // TODO: [DISTRIBUTE] Add support for aggregation across towers.
       val value = safeDiv(truePositives, truePositives + falsePositives, name = "Value")
-      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+      valuesCollections.foreach(Op.currentGraph.addToCollection(_)(value))
       value
     }
   }
@@ -121,10 +121,10 @@ class GroupedPrecision(
         // TODO: [DISTRIBUTE] Add support for aggregation across towers.
         val value = safeDiv(tp, tp + fp, name = "Value")
         val update = safeDiv(tpUpdate, tpUpdate + fpUpdate, name = "Update")
-        val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset").asUntyped
-        valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
-        updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-        resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+        val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset")
+        valuesCollections.foreach(Op.currentGraph.addToCollection(_)(value))
+        updatesCollections.foreach(Op.currentGraph.addToCollection(_)(update))
+        resetsCollections.foreach(Op.currentGraph.addToCollection(_)(reset))
         Metric.StreamingInstance(value, update, reset, tpVariables ++ fpVariables)
       }
     }

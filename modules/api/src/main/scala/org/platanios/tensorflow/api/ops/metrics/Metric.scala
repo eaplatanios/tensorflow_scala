@@ -203,7 +203,7 @@ object Metric {
       // Try static checks.
       (valuesRankStatic, valuesShapeStatic, weightsRankStatic, weightsShapeStatic) match {
         case (Some(_), _, Some(wR), _) if wR.scalar == 0 =>
-          ControlFlow.noOp("StaticScalarCheckSuccess").asUntyped
+          ControlFlow.noOp("StaticScalarCheckSuccess")
         case (Some(vR), _, Some(wR), _) if vR != wR => throw InvalidShapeException(
           "'weights' can not be broadcasted to 'values'. " +
               s"values.rank = ${vR.scalar}, " +
@@ -217,7 +217,7 @@ object Metric {
                 s"'weights' can not be broadcasted to 'values'. Mismatch at axis ${s._2}. " +
                     s"values.shape = $vS, " +
                     s"weights.shape = $wS."))
-          ControlFlow.noOp("StaticShapeCheckSuccess").asUntyped
+          ControlFlow.noOp("StaticShapeCheckSuccess")
         case _ =>
           // Dynamic checks.
           val isScalar = Math.equal(0, weightsRank, name = "IsScalar")
@@ -230,7 +230,7 @@ object Metric {
             "'weights' can not be broadcasted to 'values'. ",
             "values.shape = ", values.name, valuesShape,
             "weights.shape = ", weights.name, weightsShape,
-            "isScalar = ", isScalar), name = "IsValidShapeAssertion").asUntyped
+            "isScalar = ", isScalar), name = "IsValidShapeAssertion")
       }
     }
   }

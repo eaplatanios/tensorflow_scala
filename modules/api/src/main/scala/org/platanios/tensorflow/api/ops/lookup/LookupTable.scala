@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.types.{DataType, Resource, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class LookupTable[K: TF, +V: TF](
+abstract class LookupTable[K: TF, V: TF](
     val keysDataType: DataType[K],
     val valuesDataType: DataType[V],
     val name: String
@@ -52,7 +52,7 @@ abstract class LookupTable[K: TF, +V: TF](
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def lookup[OL[+A] <: OutputLike[A]](
+  def lookup[OL[A] <: OutputLike[A]](
       keys: OL[K],
       name: String = "Lookup"
   )(implicit ev: OutputOps.Aux[OL, K]): OL[V]
@@ -67,7 +67,7 @@ abstract class LookupTable[K: TF, +V: TF](
   * @param  initializer  Lookup table initializer to use.
   * @param  defaultValue Default value to use if a key is missing from the table.
   */
-abstract class InitializableLookupTable[K: TF, +V: TF] private[lookup](
+abstract class InitializableLookupTable[K: TF, V: TF] private[lookup](
     val handle: Output[Resource],
     protected val initializer: LookupTableInitializer[K, V],
     val defaultValue: Output[V]
@@ -108,7 +108,7 @@ abstract class InitializableLookupTable[K: TF, +V: TF] private[lookup](
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  override def lookup[OL[+A] <: OutputLike[A]](
+  override def lookup[OL[A] <: OutputLike[A]](
       keys: OL[K],
       name: String = "Lookup"
   )(implicit ev: OutputOps.Aux[OL, K]): OL[V] = {
@@ -147,7 +147,7 @@ abstract class InitializableLookupTable[K: TF, +V: TF] private[lookup](
   * @param  useNodeNameSharing If set to `true` and `sharedName` is empty, the table is shared using the node name.
   * @param  name               Name for the created table.
   */
-case class HashTable[K: TF, +V: TF](
+case class HashTable[K: TF, V: TF](
     override protected val initializer: LookupTableInitializer[K, V],
     override val defaultValue: Output[V],
     container: String = "",

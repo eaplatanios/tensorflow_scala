@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.types.{IsInt32OrInt64, TF}
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Schedule[-T] {
+trait Schedule[T] {
   /** Applies the scheduling method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -38,18 +38,18 @@ trait Schedule[-T] {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  def apply[V <: T : TF, I: TF : IsInt32OrInt64](
-      value: Output[V],
+  def apply[I: TF : IsInt32OrInt64](
+      value: Output[T],
       step: Option[Variable[I]]
-  ): Output[V]
+  ): Output[T]
 
   /** Composes the provided `other` schedule with this schedule and returns the resulting schedule. */
-  def >>[V <: T : TF](other: Schedule[V]): ComposedSchedule[V] = {
+  def >>(other: Schedule[T]): ComposedSchedule[T] = {
     ComposedSchedule(other, this)
   }
 
   /** Composes this schedule with the provided, `other` schedule and returns the resulting schedule. */
-  def compose[V <: T : TF](other: Schedule[V]): ComposedSchedule[V] = {
+  def compose(other: Schedule[T]): ComposedSchedule[T] = {
     ComposedSchedule(this, other)
   }
 }

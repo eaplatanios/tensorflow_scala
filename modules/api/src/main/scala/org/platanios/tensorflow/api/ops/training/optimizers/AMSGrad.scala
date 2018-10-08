@@ -184,7 +184,7 @@ class AMSGrad protected (
       val vHatTSqrt = Math.sqrt(vHatT)
       val denominator = vHatTSqrt + epsilon
       val update = variable.assignSub(learningRate * mT / denominator)
-      ControlFlow.group(Set(update.op, mT.op, vT.op)).asUntyped
+      ControlFlow.group(Set(update.op, mT.op, vT.op))
     }
   }
 
@@ -224,7 +224,7 @@ class AMSGrad protected (
       val vHatTSqrt = Math.sqrt(vHatT)
       val denominator = vHatTSqrt + epsilon
       val update = variable.assignSub(learningRate * mT / denominator)
-      ControlFlow.group(Set(update.op, mT.op, vT.op)).asUntyped
+      ControlFlow.group(Set(update.op, mT.op, vT.op))
     }
   }
 
@@ -241,7 +241,7 @@ class AMSGrad protected (
         Set(updateBeta1Power.op, updateBeta2Power.op)
       }
     }
-    ControlFlow.group(updateOps ++ updateBetaPowerOps, nameScope).asUntyped
+    ControlFlow.group(updateOps ++ updateBetaPowerOps, nameScope)
   }
 }
 

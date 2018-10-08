@@ -71,7 +71,7 @@ class IDLookupTableWithHashBuckets[K: TF : IsStringOrIntOrUInt] private[IDLookup
     * @return Created op.
     */
   override def initialize(name: String): UntypedOp = {
-    table.map(_.initialize(name)).getOrElse(ControlFlow.noOp(name)).asUntyped
+    table.map(_.initialize(name)).getOrElse(ControlFlow.noOp(name))
   }
 
   /** Creates an op that computes the number of elements in this table.
@@ -93,7 +93,7 @@ class IDLookupTableWithHashBuckets[K: TF : IsStringOrIntOrUInt] private[IDLookup
     * @return Created op output.
     * @throws InvalidDataTypeException If the provided keys data types does not match the keys data type of this table.
     */
-  override def lookup[OL[+A] <: OutputLike[A]](
+  override def lookup[OL[A] <: OutputLike[A]](
       keys: OL[K],
       name: String = "Lookup"
   )(implicit ev: OutputOps.Aux[OL, K]): OL[Long] = {

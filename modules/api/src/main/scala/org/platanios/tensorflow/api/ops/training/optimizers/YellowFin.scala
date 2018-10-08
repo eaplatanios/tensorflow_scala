@@ -123,7 +123,7 @@ class YellowFin protected (
         yellowFinUpdate(gradientsAndVariables)
       }
 
-      ControlFlow.group(Set(applyGradientsOp, yellowFinUpdateOp, incrementStepOp)).asUntyped
+      ControlFlow.group(Set(applyGradientsOp, yellowFinUpdateOp, incrementStepOp))
     }
   }
 
@@ -166,7 +166,7 @@ class YellowFin protected (
           getMomentum(variable))
     ).setAttribute("use_locking", useLocking)
         .setAttribute("use_nesterov", useNesterov)
-        .build().asUntyped
+        .build()
   }
 
   override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
@@ -185,7 +185,7 @@ class YellowFin protected (
           getMomentum(variable))
     ).setAttribute("use_locking", useLocking)
         .setAttribute("use_nesterov", useNesterov)
-        .build().asUntyped
+        .build()
   }
 
   protected def yellowFinUpdate(
@@ -193,19 +193,19 @@ class YellowFin protected (
   ): UntypedOp = {
     val gradSquared = gradientsAndVariables.map(gv => {
       Op.colocateWith(Set(gv._2.op), ignoreExisting = true) {
-        Math.square(gv._1.castTo[Float])
+        Math.square(gv._1.castTo[Float]).toOutput
       }
     })
 
     val gradNormSquared = gradSquared.map(Math.sum(_))
-    val gradNormSquaredAvgOp = movingAverage.computeForValues(gradNormSquared.toSet)
+    val gradNormSquaredAvgOp = movingAverage.computeForValues(gradNormSquared.map(_.asInstanceOf[Output[Any]]).toSet)
     val (gradNormSquaredSum, gradNormSquaredAvg) = Op.createWith(controlDependencies = Set(gradNormSquaredAvgOp)) {
       val sum = Math.addN(gradNormSquared)
       val avg = Math.addN(gradNormSquared.map(movingAverage.average(_).get.read()))
       (sum, avg)
     }
     val gradients = gradientsAndVariables.map(gv => {
-      gv._1.castTo[Float]
+      gv._1.castTo[Float].toOutput
     })
     val sparsityAvg = gradientsSparsity(gradients)
     val (hMin, hMax) = curvatureRange(gradNormSquaredSum, sparsityAvg)
@@ -254,10 +254,10 @@ class YellowFin protected (
       Set(momentumUpdate.op, learningRateUpdate.op)
     }
 
-    ControlFlow.group(updateOps).asUntyped
+    ControlFlow.group(updateOps)
   }
 
-  protected def gradientsSparsity(gradients: Seq[OutputLike[Float]]): Option[Output[Float]] = {
+  protected def gradientsSparsity(gradients: Seq[Output[Float]]): Option[Output[Float]] = {
     if (sparsityDebias) {
       Op.nameScope("GradientsSparsity") {
         // If the sparse mini-batch gradient has 10 percent of its entries non-zero, its sparsity is 0.1. The norms of
@@ -313,7 +313,7 @@ class YellowFin protected (
   ): Output[Float] = {
     Op.nameScope("GradientsVariance") {
       val grads = gradients.map(_.toOutput)
-      val gradAvgOp = movingAverage.computeForValues(grads.toSet)
+      val gradAvgOp = movingAverage.computeForValues(grads.map(_.asInstanceOf[Output[Any]]).toSet)
       val gradAvgSquared = Op.createWith(controlDependencies = Set(gradAvgOp)) {
         grads.map(g => Math.square(movingAverage.average(g).get.read()))
       }
