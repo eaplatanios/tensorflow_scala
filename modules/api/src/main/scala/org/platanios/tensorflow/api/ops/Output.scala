@@ -28,6 +28,10 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
   * @author Emmanouil Antonios Platanios
   */
 sealed trait OutputLike[T] extends OutputLikeOrTensorArray[T] {
+  protected implicit val evTTF: TF[T] = {
+    TF.fromDataType(dataType)
+  }
+
   /** Graph where the op belongs. */
   def graph: Graph
 
@@ -35,7 +39,7 @@ sealed trait OutputLike[T] extends OutputLikeOrTensorArray[T] {
   def name: String
 
   /** Data type of this op output. */
-  override def dataType: DataType[T]
+  def dataType: DataType[T]
 
   /** Device on which this op output will be placed. */
   def device: String

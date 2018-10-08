@@ -31,7 +31,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @param  handle                 Tensor handle to the tensor array.
   * @param  flow                   Float scalar tensor for the tensor array, used to control gradient flow.
-  * @param  _dataType              Data type of the tensor array elements.
+  * @param  dataType               Data type of the tensor array elements.
   * @param  inferShape             Boolean value indicating whether shape inference is enabled. If `true`, all elements
   *                                must have the same shape.
   * @param  elementShape           A [[Shape]] object specifying the shape constraints of each of the elements of the
@@ -47,14 +47,14 @@ import org.platanios.tensorflow.api.tensors.Tensor
 case class TensorArray[T] private (
     handle: Output[Resource],
     flow: Output[Float],
-    _dataType: DataType[T],
+    dataType: DataType[T],
     inferShape: Boolean,
     private[ops] var elementShape: Option[Shape],
     colocateWithFirstWrite: Boolean = true,
     private var colocationOps: Seq[UntypedOp] = null
 ) extends OutputLikeOrTensorArray[T] {
-  override def dataType: DataType[T] = {
-    _dataType
+  protected implicit val evTTF: TF[T] = {
+    TF.fromDataType(dataType)
   }
 
   /** Changes the element shape of the array given a shape to merge with.
@@ -463,7 +463,7 @@ object TensorArray {
     TensorArray(
       handle = handle,
       flow = flow,
-      _dataType = dataType,
+      dataType = dataType,
       inferShape = inferShape,
       elementShape = if (elementShape.rank == -1) None else Some(elementShape),
       colocateWithFirstWrite = colocateWithFirstWrite)

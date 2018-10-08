@@ -666,9 +666,9 @@ object BeamSearchDecoder {
       value: OL[T],
       multiplier: Int
   ): OL[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     value match {
       case output: Output[T] =>
+        implicit val evTF: TF[T] = TF.fromDataType(output.dataType)
         if (output.rank == -1) {
           throw InvalidArgumentException("The provided tensor must have statically known rank.")
         } else if (output.rank == 0) {
@@ -761,9 +761,9 @@ object BeamSearchDecoder {
       batchSize: Output[Int],
       beamWidth: Int
   ): OL[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     (value, shape) match {
       case (output: Output[T], s: Shape) =>
+        implicit val evTTF: TF[T] = TF.fromDataType(output.dataType)
         val valueShape = Basic.shape(output).castTo[Int]
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
           batchSize(NewAxis), Tensor(beamWidth).toOutput,
@@ -807,9 +807,9 @@ object BeamSearchDecoder {
       batchSize: Output[Int],
       beamWidth: Int
   ): OL[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     value match {
       case output: Output[T] =>
+        implicit val evTTF: TF[T] = TF.fromDataType(output.dataType)
         if (output.rank == -1)
           throw InvalidArgumentException(s"Expected tensor ($output) to have known rank, but it was unknown.")
         else if (output.rank == 0)
@@ -845,9 +845,9 @@ object BeamSearchDecoder {
       batchSize: Output[Int],
       beamWidth: Int
   ): OL[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     (value, shape) match {
       case (output: Output[T], s: Shape) =>
+        implicit val evTTF: TF[T] = TF.fromDataType(output.dataType)
         val valueShape = Basic.shape(output).castTo[Int]
         val reshapedValue = Basic.reshape(output, Basic.concatenate(Seq(
           batchSize(NewAxis) * Tensor(beamWidth).toOutput,
@@ -897,9 +897,9 @@ object BeamSearchDecoder {
       gatherShape: Seq[Output[Int]],
       name: String = "GatherTensorHelper"
   ): OL[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(gatherFrom.dataType)
     gatherFrom match {
       case gatherFromOutput: Output[T] =>
+        implicit val evTTF: TF[T] = TF.fromDataType(gatherFromOutput.dataType)
         if (gatherFromOutput.rank == -1)
           throw InvalidArgumentException(s"Expected tensor ($gatherFromOutput) to have known rank, but it was unknown.")
         else if (gatherFromOutput.rank < gatherShape.size)
@@ -938,9 +938,9 @@ object BeamSearchDecoder {
       gatherShape: Seq[Output[Int]],
       name: String = "GatherTensorHelper"
   ): OL[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(gatherFrom.dataType)
     gatherFrom match {
       case gatherFromOutput: Output[T] =>
+        implicit val evTTF: TF[T] = TF.fromDataType(gatherFromOutput.dataType)
         Op.nameScope(name) {
           val range = (Math.range(0, batchSize) * rangeSize).expandDims(1)
           val reshapedGatherIndices = (gatherIndices + range).reshape(Shape(-1))
@@ -1025,11 +1025,11 @@ object BeamSearchDecoder {
       batchSize: Output[Int],
       beamWidth: Int
   ): OL[T] = {
-    implicit val evTF: TF[T] = TF.fromDataType(value.dataType)
     value match {
       case ta: TensorArray[T] if (!ta.inferShape || ta.elementShape.isEmpty) ||
           ta.elementShape.get(0) == -1 ||
           ta.elementShape.get(1) < 1 =>
+        implicit val evTTF: TF[T] = TF.fromDataType(ta.dataType)
         val shape = ta.elementShape match {
           case Some(s) if ta.inferShape => Shape(s(0))
           case _ => Shape(-1)
@@ -1045,6 +1045,7 @@ object BeamSearchDecoder {
         beamWidth = beamWidth) =>
         ta.asInstanceOf[OL[T]]
       case ta: TensorArray[T] =>
+        implicit val evTTF: TF[T] = TF.fromDataType(ta.dataType)
         val stackedTensorArray = ta.stack()
         Op.createWith(controlDependencies = Set(checkBatchBeam(stackedTensorArray, batchSize, beamWidth))) {
           val maxTime = Basic.shape(parentIDs).castTo[Int].slice(0)
