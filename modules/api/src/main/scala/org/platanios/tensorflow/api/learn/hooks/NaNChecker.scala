@@ -45,9 +45,11 @@ class NaNChecker protected (
     outputs = tensorNames.map(Op.currentGraph.getOutputByName).toSeq
   }
 
-  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  override protected def beforeSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R]
+  )(implicit
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Unit, Seq[Tensor[Any]]]] = {
     Some(Hook.SessionRunArgs(fetches = outputs))
   }
@@ -57,10 +59,10 @@ class NaNChecker protected (
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Unit = {
-    // TODO: !!! [TYPES] Remove the cast once we start using static types everywhere.
+    // TODO: [TYPES] !!! Remove the cast once we start using static types everywhere.
     runResult.result.filter(_.toFloat.isNaN.any().scalar).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {

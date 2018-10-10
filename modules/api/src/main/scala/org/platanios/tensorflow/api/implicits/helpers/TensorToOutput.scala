@@ -40,6 +40,20 @@ object TensorToOutput {
     type O = OO
   }
 
+  implicit val fromUnit: Aux[Unit, Unit] = {
+    new TensorToOutput[Unit] {
+      override type O = Unit
+
+      override def tensors(tensor: Unit): Seq[Tensor[Any]] = {
+        Seq.empty
+      }
+
+      override def toOutput(tensor: Unit): Unit = {
+        ()
+      }
+    }
+  }
+
   implicit def fromTensor[T: TF]: Aux[Tensor[T], Output[T]] = {
     new TensorToOutput[Tensor[T]] {
       override type O = Output[T]
@@ -84,6 +98,20 @@ object TensorToOutput {
           indices = tensor.indices,
           values = tensor.values.toOutput,
           denseShape = tensor.denseShape)
+      }
+    }
+  }
+
+  implicit def fromOption[T, OO](implicit ev: Aux[T, OO]): Aux[Option[T], Option[OO]] = {
+    new TensorToOutput[Option[T]] {
+      override type O = Option[OO]
+
+      override def tensors(tensor: Option[T]): Seq[Tensor[Any]] = {
+        tensor.toSeq.flatMap(ev.tensors)
+      }
+
+      override def toOutput(tensor: Option[T]): Option[OO] = {
+        tensor.map(ev.toOutput)
       }
     }
   }

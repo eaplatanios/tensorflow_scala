@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.client.{Session, SessionConfig}
 import org.platanios.tensorflow.api.learn.hooks.Hook
-import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.{Op, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 
 import java.nio.file.Path
@@ -29,17 +29,17 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 trait SessionCreator {
-  protected var extraInitOps: mutable.Set[Op] = mutable.Set.empty[Op]
-  protected var extraLocalInitOps: mutable.Set[Op] = mutable.Set.empty[Op]
+  protected var extraInitOps: mutable.Set[UntypedOp] = mutable.Set.empty[UntypedOp]
+  protected var extraLocalInitOps: mutable.Set[UntypedOp]   = mutable.Set.empty[UntypedOp]
 
-  def addInitOp(op: Op): Unit = extraInitOps += op
-  def addLocalInitOp(op: Op): Unit = extraLocalInitOps += op
+  def addInitOp(op: UntypedOp): Unit = extraInitOps += op
+  def addLocalInitOp(op: UntypedOp): Unit = extraLocalInitOps += op
 
-  def removeInitOp(op: Op): Unit = extraInitOps -= op
-  def removeLocalInitOp(op: Op): Unit = extraLocalInitOps -= op
+  def removeInitOp(op: UntypedOp): Unit = extraInitOps -= op
+  def removeLocalInitOp(op: UntypedOp): Unit = extraLocalInitOps -= op
 
-  protected lazy val initOp: Op = ControlFlow.noOp("InitOp")
-  protected lazy val localInitOp: Op = ControlFlow.noOp("LocalInitOp")
+  protected lazy val initOp: UntypedOp = ControlFlow.noOp("InitOp")
+  protected lazy val localInitOp: UntypedOp = ControlFlow.noOp("LocalInitOp")
 
   /** Creates a new [[Session]]. */
   def createSession(): Session
@@ -66,14 +66,14 @@ case class ChiefSessionCreator(
   private[this] var builtSessionScaffold: BuiltSessionScaffold = _
   private[this] var sessionManager      : SessionManager       = _
 
-  override protected lazy val initOp: Op = {
+  override protected lazy val initOp: UntypedOp = {
     if (extraInitOps.isEmpty)
       builtSessionScaffold.initOp
     else
       ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init")
   }
 
-  override protected lazy val localInitOp: Op = {
+  override protected lazy val localInitOp: UntypedOp = {
     if (extraLocalInitOps.isEmpty)
       builtSessionScaffold.localInitOp
     else
@@ -121,14 +121,14 @@ case class WorkerSessionCreator(
   private[this] var builtSessionScaffold: BuiltSessionScaffold = _
   private[this] var sessionManager      : SessionManager       = _
 
-  override protected lazy val initOp: Op = {
+  override protected lazy val initOp: UntypedOp = {
     if (extraInitOps.isEmpty)
       builtSessionScaffold.initOp
     else
       ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init")
   }
 
-  override protected lazy val localInitOp: Op = {
+  override protected lazy val localInitOp: UntypedOp = {
     if (extraLocalInitOps.isEmpty)
       builtSessionScaffold.localInitOp
     else

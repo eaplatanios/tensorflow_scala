@@ -37,17 +37,17 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
   override type StateF = (Option[Output[Long]], Option[Output[Long]], Option[Output[Float]])
   override type StateR = (Option[Tensor[Long]], Option[Tensor[Long]], Option[Tensor[Float]])
 
-  private[this] var epoch: Variable[Long] = _
-  private[this] var step : Variable[Long] = _
-  private[this] var loss : Output[Float]  = _
+  private var epoch: Variable[Long] = _
+  private var step : Variable[Long] = _
+  private var loss : Output[Float]  = _
 
-  private[this] var startTime       : Long         = 0L
-  private[this] var lastEpoch       : Option[Long] = None
-  private[this] var lastStep        : Option[Long] = None
-  private[this] var lastLoss        : Float        = Float.MaxValue
-  private[this] var numStepsBelowTol: Int          = 0
+  private var startTime       : Long         = 0L
+  private var lastEpoch       : Option[Long] = None
+  private var lastStep        : Option[Long] = None
+  private var lastLoss        : Float        = Float.MaxValue
+  private var numStepsBelowTol: Int          = 0
 
-  private[this] var fetches: StateF = _
+  private var sessionFetches: StateF = _
 
   /** Updates the stop criteria used by this stop hook. This method is used by in-memory estimators. */
   def updateCriteria(criteria: StopCriteria): Unit = {
@@ -100,24 +100,26 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
     val loss = {
       if (criteria.needLoss) {
         this.loss = Math.addN(Op.currentGraph.getCollection(Graph.Keys.LOSSES).toSeq.map(_.toFloat))
-        Some(loss)
+        Some(this.loss)
       } else {
         None
       }
     }
 
-    fetches = (epoch, step, loss)
+    sessionFetches = (epoch, step, loss)
   }
 
   override protected def afterSessionCreation(session: Session): Unit = {
     reset(session)
   }
 
-  override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  override protected def beforeSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R]
+  )(implicit
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = {
-    Some(Hook.SessionRunArgs(fetches = fetches))
+    Some(Hook.SessionRunArgs(fetches = sessionFetches))
   }
 
   @throws[IllegalStateException]
@@ -125,8 +127,8 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[StateR]
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Unit = {
     var converged = false
     runResult.result match {

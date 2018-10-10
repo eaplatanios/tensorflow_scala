@@ -58,15 +58,6 @@ object Executable {
     }
   }
 
-  implicit val fromNothing: Executable[Nothing] = {
-    new Executable[Nothing] {
-      /** Target ops to execute. */
-      override def ops(executable: Nothing): Set[UntypedOp] = {
-        Set.empty
-      }
-    }
-  }
-
   implicit def fromOp[I, O]: Executable[Op[I, O]] = {
     new Executable[Op[I, O]] {
       override def ops(executable: Op[I, O]): Set[UntypedOp] = {
@@ -79,6 +70,14 @@ object Executable {
     new Executable[Output[T]] {
       override def ops(executable: Output[T]): Set[UntypedOp] = {
         Set(executable.op)
+      }
+    }
+  }
+
+  implicit def fromOption[T: Executable]: Executable[Option[T]] = {
+    new Executable[Option[T]] {
+      override def ops(executable: Option[T]): Set[UntypedOp] = {
+        executable.map(e => Executable[T].ops(e)).getOrElse(Set.empty)
       }
     }
   }

@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionWrapper}
-
+import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 /** Hook to extend calls to `MonitoredSession.run()`.
@@ -156,15 +156,23 @@ abstract class Hook {
     * @param  runContext Provides information about the upcoming run call (i.e., the originally requested ops/tensors,
     *                    the session, etc.).
     */
-  protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = None
+  protected def beforeSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R]
+  )(implicit
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
+  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = {
+    None
+  }
 
-  private[learn] def internalBeforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = beforeSessionRun(runContext)
+  private[learn] def internalBeforeSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R]
+  )(implicit
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
+  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = {
+    beforeSessionRun(runContext)
+  }
 
   /** Called after each call to `Session.run()`.
     *
@@ -186,17 +194,21 @@ abstract class Hook {
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[StateR]
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Unit = ()
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
+  ): Unit = {
+    ()
+  }
 
   private[learn] def internalAfterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[StateR]
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Unit = afterSessionRun(runContext, runResult)(executableEv, fetchableEv)
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
+  ): Unit = {
+    afterSessionRun(runContext, runResult)
+  }
 
   /** Called at the end of the session usage (i.e., `Session.run()` will not be invoked again after this call).
     *
@@ -223,11 +235,11 @@ object Hook {
     * @param  args    Arguments to the original request to `Session.run()`.
     * @param  session Session that will execute the run request.
     */
-  case class SessionRunContext[F, E, R](args: SessionRunArgs[F, E, R], session: SessionWrapper)(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  case class SessionRunContext[F, E, R](
+      args: SessionRunArgs[F, E, R],
+      session: SessionWrapper
   ) {
-    private[this] var _stopRequested: Boolean = false
+    private var _stopRequested: Boolean = false
 
     /** Returns a boolean value representing whether a stop has been requested or not. */
     def stopRequested: Boolean = _stopRequested
@@ -245,8 +257,17 @@ object Hook {
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R])
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
+  ) {
+    private[learn] def flatFetches: Seq[Output[Any]] = {
+      evFetchable.fetches(fetches)
+    }
+
+    private[learn] def flatTargets: Set[UntypedOp] = {
+      evExecutable.ops(targets)
+    }
+  }
 
   /** Represents the results of a call to `Session.run()`. */
   case class SessionRunResult[R](

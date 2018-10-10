@@ -82,6 +82,77 @@ object OutputStructure {
     type S = SS
   }
 
+  implicit val fromUnit: Aux[Unit, Unit, Unit] = {
+    new OutputStructure[Unit] {
+      override type D = Unit
+      override type S = Unit
+
+      override def sizeFromOutput(output: Unit): Int = {
+        0
+      }
+
+      override def sizeFromDataType(dataType: Unit): Int = {
+        0
+      }
+
+      override def dataType(output: Unit): Unit = {
+        ()
+      }
+
+      override def shape(output: Unit): Unit = {
+        ()
+      }
+
+      override def outputs(output: Unit): Seq[Output[Any]] = {
+        Seq.empty
+      }
+
+      override def dataTypes(dataType: Unit): Seq[DataType[Any]] = {
+        Seq.empty
+      }
+
+      override def shapes(shape: Unit): Seq[Shape] = {
+        Seq.empty
+      }
+
+      override def decodeOutputFromOutput(
+          output: Unit,
+          outputs: Seq[Output[Any]]
+      ): (Unit, Seq[Output[Any]]) = {
+        ((), outputs)
+      }
+
+      override def decodeOutputFromDataType(
+          dataType: Unit,
+          outputs: Seq[Output[Any]]
+      ): (Unit, Seq[Output[Any]]) = {
+        ((), outputs)
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: Unit,
+          dataTypes: Seq[DataType[Any]]
+      ): (Unit, Seq[DataType[Any]]) = {
+        ((), dataTypes)
+      }
+
+      override def decodeShapeFromDataType(
+          dataType: Unit,
+          shapes: Seq[Shape]
+      ): (Unit, Seq[Shape]) = {
+        ((), shapes)
+      }
+
+      override def dataTypeToString(dataType: Unit): String = {
+        ""
+      }
+
+      override def shapeToString(shape: Unit): String = {
+        ""
+      }
+    }
+  }
+
   implicit def fromOutput[T: TF]: Aux[Output[T], DataType[T], Shape] = {
     new OutputStructure[Output[T]] {
       override type D = DataType[T]
@@ -250,6 +321,99 @@ object OutputStructure {
 
       override def shapeToString(shape: Shape): String = {
         shape.toString
+      }
+    }
+  }
+
+  implicit def fromOption[T, DD, SS](implicit
+      ev: Aux[T, DD, SS]
+  ): Aux[Option[T], Option[DD], Option[SS]] = {
+    new OutputStructure[Option[T]] {
+      override type D = Option[DD]
+      override type S = Option[SS]
+
+      override def sizeFromOutput(output: Option[T]): Int = {
+        output.map(ev.sizeFromOutput).sum
+      }
+
+      override def sizeFromDataType(dataType: Option[DD]): Int = {
+        dataType.map(ev.sizeFromDataType).sum
+      }
+
+      override def dataType(output: Option[T]): Option[DD] = {
+        output.map(ev.dataType)
+      }
+
+      override def shape(output: Option[T]): Option[SS] = {
+        output.map(ev.shape)
+      }
+
+      override def outputs(output: Option[T]): Seq[Output[Any]] = {
+        output.toSeq.flatMap(ev.outputs)
+      }
+
+      override def dataTypes(dataType: Option[DD]): Seq[DataType[Any]] = {
+        dataType.toSeq.flatMap(ev.dataTypes)
+      }
+
+      override def shapes(shape: Option[SS]): Seq[Shape] = {
+        shape.toSeq.flatMap(ev.shapes)
+      }
+
+      override def decodeOutputFromOutput(
+          output: Option[T],
+          outputs: Seq[Output[Any]]
+      ): (Option[T], Seq[Output[Any]]) = {
+        output match {
+          case Some(o) =>
+            val (result, remaining) = ev.decodeOutputFromOutput(o, outputs)
+            (Some(result), remaining)
+          case None => (None, outputs)
+        }
+      }
+
+      override def decodeOutputFromDataType(
+          dataType: Option[DD],
+          outputs: Seq[Output[Any]]
+      ): (Option[T], Seq[Output[Any]]) = {
+        dataType match {
+          case Some(d) =>
+            val (result, remaining) = ev.decodeOutputFromDataType(d, outputs)
+            (Some(result), remaining)
+          case None => (None, outputs)
+        }
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: Option[DD],
+          dataTypes: Seq[DataType[Any]]
+      ): (Option[DD], Seq[DataType[Any]]) = {
+        dataType match {
+          case Some(d) =>
+            val (result, remaining) = ev.decodeDataTypeFromDataType(d, dataTypes)
+            (Some(result), remaining)
+          case None => (None, dataTypes)
+        }
+      }
+
+      override def decodeShapeFromDataType(
+          dataType: Option[DD],
+          shapes: Seq[Shape]
+      ): (Option[SS], Seq[Shape]) = {
+        dataType match {
+          case Some(d) =>
+            val (result, remaining) = ev.decodeShapeFromDataType(d, shapes)
+            (Some(result), remaining)
+          case None => (None, shapes)
+        }
+      }
+
+      override def dataTypeToString(dataType: Option[DD]): String = {
+        s"{${dataType.map(ev.dataTypeToString).mkString(", ")}}"
+      }
+
+      override def shapeToString(shape: Option[SS]): String = {
+        s"{${shape.map(ev.shapeToString).mkString(", ")}}"
       }
     }
   }

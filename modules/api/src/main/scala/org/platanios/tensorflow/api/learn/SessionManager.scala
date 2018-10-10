@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session, SessionConfig}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.variables.Saver
 
 import com.typesafe.scalalogging.Logger
@@ -91,9 +91,9 @@ import scala.util.Try
 @throws[InvalidArgumentException]
 private[learn] case class SessionManager(
     graph: Graph = Op.currentGraph,
-    readyOp: Option[Output] = None,
-    readyForLocalInitOp: Option[Output] = None,
-    localInitOp: Option[Op] = None,
+    readyOp: Option[Output[String]] = None,
+    readyForLocalInitOp: Option[Output[String]] = None,
+    localInitOp: Option[UntypedOp] = None,
     recoveryWaitNumSeconds: Int = 30
 ) {
   if (readyForLocalInitOp.isDefined && localInitOp.isEmpty)
@@ -140,7 +140,7 @@ private[learn] case class SessionManager(
       waitForCheckpoint: Boolean = false,
       maxWaitSeconds: Int = 7200,
       sessionConfig: Option[SessionConfig] = None,
-      initOp: Option[Op] = None,
+      initOp: Option[UntypedOp] = None,
       initFeedMap: FeedMap = FeedMap.empty,
       initFunction: Option[Session => Unit] = None,
       localInitFunction: Option[Session => Unit] = None
@@ -380,7 +380,11 @@ object SessionManager {
     * @param  message Message to log as a warning if the model is not ready.
     * @return Option that is `None` if the model is ready, and that contains an informative message, if not.
     */
-  private[SessionManager] def isReady(readyOp: Option[Output], session: Session, message: String): Option[String] = {
+  private[SessionManager] def isReady(
+      readyOp: Option[Output[String]],
+      session: Session,
+      message: String
+  ): Option[String] = {
     readyOp.flatMap(op => {
       try {
         val readyValue = session.run(fetches = op)

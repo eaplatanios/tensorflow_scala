@@ -68,9 +68,11 @@ class CheckpointSaver protected (
     summaryWriter.foreach(_.flush())
   }
 
-  override protected def onFirstTrigger[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  override protected def onFirstTrigger[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R]
+  )(implicit
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Unit = {
     // We save the graph and the saver at the first call of `beforeSessionRun`. We cannot do this in `begin()` because
     // we let other hooks change the graph and add variables in their `begin()` methods. The graph is finalized after

@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.lookup.Lookup
@@ -54,39 +55,44 @@ import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
   * @author Emmanouil Antonios Platanios
   */
 case class SessionScaffold(
-    readyOp: Option[Output] = None,
-    readyForLocalInitOp: Option[Output] = None,
-    initOp: Option[Op] = None,
+    readyOp: Option[Output[String]] = None,
+    readyForLocalInitOp: Option[Output[String]] = None,
+    initOp: Option[UntypedOp] = None,
     initFeedMap: FeedMap = FeedMap.empty,
     initFunction: Option[(Session, BuiltSessionScaffold) => Unit] = None,
-    localInitOp: Option[Op] = None,
+    localInitOp: Option[UntypedOp] = None,
     localInitFunction: Option[(Session, BuiltSessionScaffold) => Unit] = None,
-    summaryOp: Option[Output] = None,
+    summaryOp: Option[Output[String]] = None,
     saver: Option[Saver] = None) {
   /** Creates any necessary operations, freezes the graph, and returns a new session scaffold that is built. */
   def build(): BuiltSessionScaffold = {
     val _readyOp = readyOp.getOrElse(getItemOrElse("ready_op", Graph.Keys.READY_OP, () => {
       Basic.concatenate(Seq(
         Variable.uninitializedVariables(),
-        Resources.uninitializedResources()))
-    }))
+        Resources.uninitializedResources())
+      ).asInstanceOf[Output[Any]]
+    }).asInstanceOf[Output[String]])
     val _readyForLocalInitOp = readyForLocalInitOp.getOrElse(getItemOrElse(
       "ready_for_local_init_op", Graph.Keys.READY_FOR_LOCAL_INIT_OP, () => {
-        Variable.uninitializedVariables(Variable.globalVariables)
-      }))
+        Variable.uninitializedVariables(Variable.globalVariables).asInstanceOf[Output[Any]]
+      }).asInstanceOf[Output[String]])
     val _initOp = initOp.getOrElse(getItemOrElse("init_op", Graph.Keys.INIT_OP, () => {
       ControlFlow.group(Set(
-        Variable.initializer(Variable.globalVariables),
-        Resources.initializer(Resources.sharedResources)))
+        ControlFlow.group(Variable.globalVariables.map(_.initializer), name = "Initializers/Variables/Global"),
+        ControlFlow.group(Resources.sharedResources.map(_.initializeOp), name = "Initializers/Resources/Shared"))
+      ).asInstanceOf[UntypedOp]
     }))
     val _localInitOp = localInitOp.getOrElse(getItemOrElse("local_init_op", Graph.Keys.LOCAL_INIT_OP, () => {
       ControlFlow.group(Set(
-        Variable.initializer(Variable.localVariables),
-        Lookup.lookupsInitializer(),
-        Resources.initializer(Resources.localResources)))
+        ControlFlow.group(Variable.localVariables.map(_.initializer), name = "Initializers/Variables/Local"),
+        ControlFlow.group(Resources.localResources.map(_.initializeOp), name = "Initializers/Resources/Local"),
+        ControlFlow.group(Lookup.tableInitializers, name = "Initializers/Lookup/Tables"))
+      ).asInstanceOf[UntypedOp]
     }))
     val _summaryOp = summaryOp.getOrElse(getItemOrElse(
-      "summary_op", Graph.Keys.SUMMARY_OP, () => Summary.mergeAll().orNull))
+      "summary_op", Graph.Keys.SUMMARY_OP, () => {
+        Summary.mergeAll().orNull.asInstanceOf[Output[Any]]
+      }).asInstanceOf[Output[String]])
     val _saver = saver.getOrElse(getItemOrElse(
       "saver", Graph.Keys.SAVERS, () => Saver(sharded = true, allowEmpty = true)))
     BuiltSessionScaffold(
@@ -102,7 +108,7 @@ case class SessionScaffold(
     * @param  default       Function providing a default value for the item (potentially constructing that value).
     * @return Obtained or created item value.
     */
-  private[this] def getItemOrElse[K](name: String, collectionKey: Graph.Key[K], default: () => K): K = {
+  private def getItemOrElse[K](name: String, collectionKey: Graph.Key[K], default: () => K): K = {
     val collection = Op.currentGraph.getCollection(collectionKey)
     if (collection.size > 1) {
       throw new IllegalStateException(
@@ -113,7 +119,7 @@ case class SessionScaffold(
     } else {
       val op = default()
       if (op != null)
-        Op.currentGraph.addToCollection(op, collectionKey)
+        Op.currentGraph.addToCollection(collectionKey)(op)
       op
     }
   }
@@ -121,20 +127,20 @@ case class SessionScaffold(
 
 /** Built session scaffold. */
 case class BuiltSessionScaffold private[learn](
-    readyOp: Output,
-    readyForLocalInitOp: Output,
-    initOp: Op,
+    readyOp: Output[String],
+    readyForLocalInitOp: Output[String],
+    initOp: UntypedOp,
     initFeedMap: FeedMap,
     initFunction: Option[(Session, BuiltSessionScaffold) => Unit],
-    localInitOp: Op,
+    localInitOp: UntypedOp,
     localInitFunction: Option[(Session, BuiltSessionScaffold) => Unit],
-    summaryOp: Option[Output],
+    summaryOp: Option[Output[String]],
     saver: Option[Saver] = None) {
-  private[learn] val internalInitFunction: Option[(Session) => Unit] = {
+  private[learn] val internalInitFunction: Option[Session => Unit] = {
     initFunction.map(f => (session: Session) => f(session, this))
   }
 
-  private[learn] val internalLocalInitFunction: Option[(Session) => Unit] = {
+  private[learn] val internalLocalInitFunction: Option[Session => Unit] = {
     localInitFunction.map(f => (session: Session) => f(session, this))
   }
 }

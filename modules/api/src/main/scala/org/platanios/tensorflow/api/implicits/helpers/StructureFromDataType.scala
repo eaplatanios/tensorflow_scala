@@ -37,8 +37,18 @@ object StructureFromDataType {
 
   type Aux[T, O, D, S] = StructureFromDataType[D]
 
+  implicit val fromUnit: Aux[Unit, Unit, Unit, Unit] = {
+    new StructureFromDataType[Unit] {}
+  }
+
   implicit def fromOutput[T: TF]: Aux[Tensor[T], Output[T], DataType[T], Shape] = {
     new StructureFromDataType[DataType[T]] {}
+  }
+
+  implicit def fromOption[T, O, D, S](implicit
+      ev: Aux[T, O, D, S]
+  ): Aux[Option[T], Option[O], Option[D], Option[S]] = {
+    new StructureFromDataType[Option[D]] {}
   }
 
   implicit def fromArray[T, O, D, S](implicit

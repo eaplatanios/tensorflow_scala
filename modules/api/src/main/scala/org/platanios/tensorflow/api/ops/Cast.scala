@@ -96,7 +96,7 @@ trait Cast {
 
 object Cast extends Cast {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToCastOps[T, OC, OL[TT] <: OutputLike[TT]](
+    implicit def outputConvertibleToCastOps[T: TF, OC, OL[TT] <: OutputLike[TT]](
         value: OC
     )(implicit
         f: OC => OL[T],

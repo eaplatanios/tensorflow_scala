@@ -72,12 +72,12 @@ class Session private[api](
   @throws[IllegalStateException]
   def run[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = (),
-      targets: E = (),
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
   )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): R = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
@@ -112,12 +112,12 @@ class Session private[api](
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = (),
-      targets: E = (),
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
   )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): (R, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
@@ -126,13 +126,13 @@ class Session private[api](
   @throws[IllegalStateException]
   private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = (),
-      targets: E = (),
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
   )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): (R, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
@@ -141,11 +141,11 @@ class Session private[api](
     val inputTensorHandles: Array[Long] = inputTensors.map(_.resolve()).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
     val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
-    val (uniqueFetches, resultsBuilder) = Fetchable.process(fetches)(fetchable)
+    val (uniqueFetches, resultsBuilder) = Fetchable.process(fetches)(evFetchable)
     val outputOpHandles: Array[Long] = uniqueFetches.map(_.op.nativeHandle).toArray
     val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
-    val targetOpHandles: Array[Long] = executable.ops(targets).map(_.nativeHandle).toArray
+    val targetOpHandles: Array[Long] = evExecutable.ops(targets).map(_.nativeHandle).toArray
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the session.")
@@ -164,7 +164,7 @@ class Session private[api](
         wantRunMetadata = wantMetadata,
         outputTensorHandles = outputTensorHandles)
       val outputs: R = resultsBuilder(outputTensorHandles.map(handle => {
-        val tensor = Tensor.fromHostNativeHandle(handle)
+        val tensor = Tensor.fromHostNativeHandle[Any](handle)
         NativeTensor.delete(handle)
         tensor
       }))

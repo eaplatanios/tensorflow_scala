@@ -961,6 +961,61 @@ object WhileLoopVariable {
     type S = TS
   }
 
+  implicit val fromUnit: Aux[Unit, Unit] = {
+    new WhileLoopVariable[Unit] {
+      override type S = Unit
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: Unit,
+          name: String = "Zero"
+      ): Unit = {
+        ()
+      }
+
+      override def size(output: Unit): Int = {
+        0
+      }
+
+      override def outputs(output: Unit): Seq[Output[Any]] = {
+        Seq.empty
+      }
+
+      override def shapes(shape: Unit): Seq[Shape] = {
+        Seq.empty
+      }
+
+      override def segmentOutputs(
+          output: Unit,
+          values: Seq[Output[Any]]
+      ): (Unit, Seq[Output[Any]]) = {
+        ((), values)
+      }
+
+      override def segmentShapes(
+          output: Unit,
+          values: Seq[Shape]
+      ): (Unit, Seq[Shape]) = {
+        ((), values)
+      }
+
+      override def map(
+          value: Unit,
+          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+      ): Unit = {
+        ()
+      }
+
+      override def mapWithShape(
+          value: Unit,
+          shape: Unit,
+          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+      ): Unit = {
+        ()
+      }
+    }
+  }
+
   implicit def fromOutput[T: TF]: Aux[Output[T], Shape] = {
     new WhileLoopVariable[Output[T]] {
       override type S = Shape
@@ -1080,6 +1135,78 @@ object WhileLoopVariable {
           mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
       ): TensorArray[T] = {
         mapFn(value.asInstanceOf[TensorArray[Any]], shape).asInstanceOf[TensorArray[T]]
+      }
+    }
+  }
+
+  implicit def fromOption[T, TS](implicit
+      ev: Aux[T, TS]
+  ): Aux[Option[T], Option[TS]] = {
+    new WhileLoopVariable[Option[T]] {
+      override type S = Option[TS]
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: Option[TS],
+          name: String
+      ): Option[T] = {
+        Op.nameScope(name) {
+          shape.map(ev.zero(batchSize, _))
+        }
+      }
+
+      override def size(output: Option[T]): Int = {
+        output.map(ev.size).sum
+      }
+
+      override def outputs(output: Option[T]): Seq[Output[Any]] = {
+        output.toSeq.flatMap(ev.outputs)
+      }
+
+      override def shapes(shape: Option[TS]): Seq[Shape] = {
+        shape.toSeq.flatMap(ev.shapes)
+      }
+
+      override def segmentOutputs(
+          output: Option[T],
+          values: Seq[Output[Any]]
+      ): (Option[T], Seq[Output[Any]]) = {
+        output match {
+          case Some(o) =>
+            val (result, remaining) = ev.segmentOutputs(o, values)
+            (Some(result), remaining)
+          case None => (None, values)
+        }
+      }
+
+      override def segmentShapes(
+          output: Option[T],
+          values: Seq[Shape]
+      ): (Option[TS], Seq[Shape]) = {
+        output match {
+          case Some(o) =>
+            val (result, remaining) = ev.segmentShapes(o, values)
+            (Some(result), remaining)
+          case None => (None, values)
+        }
+      }
+
+      override def map(
+          value: Option[T],
+          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+      ): Option[T] = {
+        value.map(ev.map(_, mapFn))
+      }
+
+      override def mapWithShape(
+          value: Option[T],
+          shape: Option[TS],
+          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+      ): Option[T] = {
+        (value, shape) match {
+          case (Some(v), Some(s)) => Some(ev.mapWithShape(v, s, mapFn))
+          case _ => None
+        }
       }
     }
   }

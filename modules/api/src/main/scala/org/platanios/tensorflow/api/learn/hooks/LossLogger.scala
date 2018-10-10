@@ -49,14 +49,14 @@ class LossLogger protected (
     val triggerAtEnd: Boolean = true,
     val formatter: (Option[Double], Long, Float) => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]
+    with ModelDependentHook[Any, Any, Any, Any]
     with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
   override type InnerStateF = Output[Float]
   override type InnerStateR = Tensor[Float]
 
-  private[this] var loss: Output[Float] = _
+  protected var loss: Output[Float] = _
 
   override protected def begin(): Unit = {
     loss = modelInstance.loss.map(_.castTo[Float]).orNull

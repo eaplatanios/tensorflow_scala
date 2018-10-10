@@ -114,6 +114,20 @@ object DropoutWrapper {
   }
 
   object Supported {
+    implicit val fromUnit: Supported[Unit] = {
+      new Supported[Unit] {
+        override def dropout(
+            value: Unit,
+            keepProbability: Output[Float],
+            saltPrefix: String,
+            seed: Option[Int],
+            index: Int = 0
+        ): (Unit, Int) = {
+          ((), index)
+        }
+      }
+    }
+
     implicit def fromOutput[T: TF : IsFloat16OrFloat32OrFloat64]: Supported[Output[T]] = {
       new Supported[Output[T]] {
         override def dropout(
@@ -142,6 +156,27 @@ object DropoutWrapper {
             index: Int = 0
         ): (TensorArray[T], Int) = {
           (value, index)
+        }
+      }
+    }
+
+    implicit def fromOption[T](implicit ev: Supported[T]): Supported[Option[T]] = {
+      new Supported[Option[T]] {
+        override def dropout(
+            value: Option[T],
+            keepProbability: Output[Float],
+            saltPrefix: String,
+            seed: Option[Int],
+            index: Int = 0
+        ): (Option[T], Int) = {
+          // TODO: Make this atomic for parallel sequences.
+          var currentIndex = index
+          (value.map({ v =>
+            val (dropoutV, dropoutIndex) = ev.dropout(
+              v, keepProbability, saltPrefix, seed, currentIndex)
+            currentIndex = dropoutIndex
+            dropoutV
+          }), currentIndex)
         }
       }
     }

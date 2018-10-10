@@ -70,7 +70,7 @@ trait Cast {
 
 object Cast extends Cast {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToCastOps[T, TC, TL[TT] <: TensorLike[TT]](
+    implicit def tensorConvertibleToCastOps[T: TF, TC, TL[TT] <: TensorLike[TT]](
         value: TC
     )(implicit
         f: TC => TL[T],

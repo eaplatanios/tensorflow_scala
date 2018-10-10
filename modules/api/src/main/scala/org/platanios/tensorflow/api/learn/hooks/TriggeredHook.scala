@@ -66,21 +66,23 @@ abstract class TriggeredHook(
     super.internalAfterSessionCreation(session)
   }
 
-  override final protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  override final protected def beforeSessionRun[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R]
+  )(implicit
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = {
     shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
       if (internalTrigger.lastTriggerStep().isEmpty)
-        onFirstTrigger(runContext)(executableEv, fetchableEv)
-      Some(Hook.SessionRunArgs(
+        onFirstTrigger(runContext)
+      Some(Hook.SessionRunArgs[StateF, StateE, StateR](
         fetches = (step.value, Some(fetches)),
         targets = Some(targets),
         options = runOptions,
         wantMetadata = wantMetadata))
     } else {
-      Some(Hook.SessionRunArgs(
+      Some(Hook.SessionRunArgs[StateF, StateE, StateR](
         fetches = (step.value, None),
         targets = None))
     }
@@ -90,8 +92,8 @@ abstract class TriggeredHook(
       runContext: Hook.SessionRunContext[F, E, R],
       runResult: Hook.SessionRunResult[StateR]
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Unit = {
     lastStep = runResult.result._1.scalar
     if (shouldTrigger) {
@@ -103,7 +105,7 @@ abstract class TriggeredHook(
 
   override private[learn] def internalEnd(session: Session): Unit = {
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1)) {
-      val lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
+      val lastStep = session.run(fetches = step.value).scalar
       val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)
       onTrigger(lastStep, elapsed, Hook.SessionRunResult(session.run(fetches = fetches), None), session)
     }
@@ -116,9 +118,11 @@ abstract class TriggeredHook(
   protected def runOptions: Option[RunOptions] = None
   protected def wantMetadata: Boolean = false
 
-  protected def onFirstTrigger[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  protected def onFirstTrigger[F, E, R](
+      runContext: Hook.SessionRunContext[F, E, R]
+  )(implicit
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): Unit = ()
 
   protected def onTrigger(

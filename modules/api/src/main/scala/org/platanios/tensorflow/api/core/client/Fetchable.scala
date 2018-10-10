@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{Tensor, TensorIndexedSlices, SparseTensor}
 import org.platanios.tensorflow.api.utilities.Collections
@@ -58,27 +57,27 @@ trait Fetchable[T] {
   type ResultType
 
   def numberOfFetches(fetchable: T): Int
-  def fetches(fetchable: T): Seq[Output[_]]
-  def resultsBuilder(fetchable: T, values: Seq[Tensor[_]]): ResultType = segment(fetchable, values)._1
-  def segment(fetchable: T, values: Seq[Tensor[_]]): (ResultType, Seq[Tensor[_]])
+  def fetches(fetchable: T): Seq[Output[Any]]
+  def resultsBuilder(fetchable: T, values: Seq[Tensor[Any]]): ResultType = segment(fetchable, values)._1
+  def segment(fetchable: T, values: Seq[Tensor[Any]]): (ResultType, Seq[Tensor[Any]])
 }
 
 object Fetchable {
   private[client] def process[F, R](
       fetchable: F
-  )(implicit ev: Aux[F, R]): (Seq[Output[_]], Seq[Tensor[_]] => R) = {
+  )(implicit ev: Aux[F, R]): (Seq[Output[Any]], Seq[Tensor[Any]] => R) = {
     val fetches = ev.fetches(fetchable)
     val (uniqueFetches, indices) = Fetchable.uniquifyFetches(fetches)
-    val resultsBuilder = (values: Seq[Tensor[_]]) => {
+    val resultsBuilder = (values: Seq[Tensor[Any]]) => {
       ev.resultsBuilder(fetchable, indices.map(values(_)))
     }
     (uniqueFetches, resultsBuilder)
   }
 
   private[Fetchable] def uniquifyFetches(
-      fetches: Seq[Output[_]]
-  ): (Seq[Output[_]], Seq[Int]) = {
-    val uniqueFetches = mutable.ArrayBuffer.empty[Output[_]]
+      fetches: Seq[Output[Any]]
+  ): (Seq[Output[Any]], Seq[Int]) = {
+    val uniqueFetches = mutable.ArrayBuffer.empty[Output[Any]]
     val seenFetches = mutable.Map.empty[Output[_], Int]
     val indices = fetches.map(f => seenFetches.getOrElseUpdate(f, {
       uniqueFetches += f
@@ -99,36 +98,15 @@ object Fetchable {
         0
       }
 
-      override def fetches(fetchable: Unit): Seq[Output[_]] = {
+      override def fetches(fetchable: Unit): Seq[Output[Any]] = {
         Seq.empty
       }
 
       override def segment(
           fetchable: Unit,
-          values: Seq[Tensor[_]]
-      ): (Unit, Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (Unit, Seq[Tensor[Any]]) = {
         ((), values)
-      }
-    }
-  }
-
-  implicit val fromNothing: Aux[Nothing, Nothing] = {
-    new Fetchable[Nothing] {
-      override type ResultType = Nothing
-
-      override def numberOfFetches(fetchable: Nothing): Int = {
-        0
-      }
-
-      override def fetches(fetchable: Nothing): Seq[Output[_]] = {
-        Seq.empty
-      }
-
-      override def segment(
-          fetchable: Nothing,
-          values: Seq[Tensor[_]]
-      ): (Nothing, Seq[Tensor[_]]) = {
-        (null.asInstanceOf[Nothing], values)
       }
     }
   }
@@ -141,14 +119,14 @@ object Fetchable {
         1
       }
 
-      override def fetches(fetchable: Output[T]): Seq[Output[_]] = {
+      override def fetches(fetchable: Output[T]): Seq[Output[Any]] = {
         Seq(fetchable)
       }
 
       override def segment(
           fetchable: Output[T],
-          values: Seq[Tensor[_]]
-      ): (Tensor[T], Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (Tensor[T], Seq[Tensor[Any]]) = {
         (values.head.asInstanceOf[Tensor[T]], values.tail)
       }
     }
@@ -162,14 +140,14 @@ object Fetchable {
         3
       }
 
-      override def fetches(fetchable: OutputIndexedSlices[T]): Seq[Output[_]] = {
+      override def fetches(fetchable: OutputIndexedSlices[T]): Seq[Output[Any]] = {
         Seq(fetchable.indices, fetchable.values, fetchable.denseShape)
       }
 
       override def segment(
           fetchable: OutputIndexedSlices[T],
-          values: Seq[Tensor[_]]
-      ): (TensorIndexedSlices[T], Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (TensorIndexedSlices[T], Seq[Tensor[Any]]) = {
         (TensorIndexedSlices(
           indices = values(0).asInstanceOf[Tensor[Long]],
           values = values(1).asInstanceOf[Tensor[T]],
@@ -187,19 +165,45 @@ object Fetchable {
         3
       }
 
-      override def fetches(fetchable: SparseOutput[T]): Seq[Output[_]] = {
+      override def fetches(fetchable: SparseOutput[T]): Seq[Output[Any]] = {
         Seq(fetchable.indices, fetchable.values, fetchable.denseShape)
       }
 
       override def segment(
           fetchable: SparseOutput[T],
-          values: Seq[Tensor[_]]
-      ): (SparseTensor[T], Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (SparseTensor[T], Seq[Tensor[Any]]) = {
         (SparseTensor(
           indices = values(0).asInstanceOf[Tensor[Long]],
           values = values(1).asInstanceOf[Tensor[T]],
           denseShape = values(2).asInstanceOf[Tensor[Long]]),
             values.drop(3))
+      }
+    }
+  }
+
+  implicit def fromOption[T, R](implicit ev: Aux[T, R]): Aux[Option[T], Option[R]] = {
+    new Fetchable[Option[T]] {
+      override type ResultType = Option[R]
+
+      override def numberOfFetches(fetchable: Option[T]): Int = {
+        fetchable.map(ev.numberOfFetches).getOrElse(0)
+      }
+
+      override def fetches(fetchable: Option[T]): Seq[Output[Any]] = {
+        fetchable.map(ev.fetches).getOrElse(Seq.empty)
+      }
+
+      override def segment(
+          fetchable: Option[T],
+          values: Seq[Tensor[Any]]
+      ): (Option[R], Seq[Tensor[Any]]) = {
+        fetchable match {
+          case Some(f) =>
+            val (result, remaining) = ev.segment(f, values)
+            (Some(result), remaining)
+          case None => (None, values)
+        }
       }
     }
   }
@@ -212,14 +216,14 @@ object Fetchable {
         fetchable.map(ev.numberOfFetches).sum
       }
 
-      override def fetches(fetchable: Array[T]): Seq[Output[_]] = {
+      override def fetches(fetchable: Array[T]): Seq[Output[Any]] = {
         fetchable.flatMap(ev.fetches).toSeq
       }
 
       override def segment(
           fetchable: Array[T],
-          values: Seq[Tensor[_]]
-      ): (Array[R], Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (Array[R], Seq[Tensor[Any]]) = {
         val n = numberOfFetches(fetchable)
         val segmented = Collections.segment(
           values.take(n), fetchable.map(ev.numberOfFetches).toSeq)
@@ -237,14 +241,14 @@ object Fetchable {
         fetchable.map(ev.numberOfFetches).sum
       }
 
-      override def fetches(fetchable: Seq[T]): Seq[Output[_]] = {
+      override def fetches(fetchable: Seq[T]): Seq[Output[Any]] = {
         fetchable.flatMap(ev.fetches).toSeq
       }
 
       override def segment(
           fetchable: Seq[T],
-          values: Seq[Tensor[_]]
-      ): (Seq[R], Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (Seq[R], Seq[Tensor[Any]]) = {
         val n = numberOfFetches(fetchable)
         val segmented = Collections.segment(
           values.take(n), fetchable.map(ev.numberOfFetches).toSeq)
@@ -263,14 +267,14 @@ object Fetchable {
         fetchable.values.map(ev.numberOfFetches).sum
       }
 
-      override def fetches(fetchable: Map[MK, T]): Seq[Output[_]] = {
+      override def fetches(fetchable: Map[MK, T]): Seq[Output[Any]] = {
         fetchable.values.flatMap(ev.fetches).toSeq
       }
 
       override def segment(
           fetchable: Map[MK, T],
-          values: Seq[Tensor[_]]
-      ): (Map[MK, R], Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (Map[MK, R], Seq[Tensor[Any]]) = {
         val n = numberOfFetches(fetchable)
         val segmented = Collections.segment(
           values.take(n), fetchable.values.map(ev.numberOfFetches).toSeq)
@@ -289,14 +293,14 @@ object Fetchable {
         0
       }
 
-      override def fetches(fetchable: HNil): Seq[Output[_]] = {
+      override def fetches(fetchable: HNil): Seq[Output[Any]] = {
         Seq.empty
       }
 
       override def segment(
           fetchable: HNil,
-          values: Seq[Tensor[_]]
-      ): (HNil, Seq[Tensor[_]]) = {
+          values: Seq[Tensor[Any]]
+      ): (HNil, Seq[Tensor[Any]]) = {
         (HNil, values)
       }
     }
@@ -314,15 +318,15 @@ object Fetchable {
             evT.numberOfFetches(fetchable.tail)
       }
 
-      override def fetches(fetchable: H :: T): Seq[Output[_]] = {
+      override def fetches(fetchable: H :: T): Seq[Output[Any]] = {
         evH.value.fetches(fetchable.head) ++
             evT.fetches(fetchable.tail)
       }
 
       override def segment(
           fetchable: H :: T,
-          tensors: Seq[Tensor[_]]
-      ): (HO :: TO, Seq[Tensor[_]]) = {
+          tensors: Seq[Tensor[Any]]
+      ): (HO :: TO, Seq[Tensor[Any]]) = {
         val (headOut, headRemaining) = evH.value.segment(fetchable.head, tensors)
         val (tailOut, tailRemaining) = evT.segment(fetchable.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
@@ -344,14 +348,14 @@ object Fetchable {
         }
       }
 
-      override def fetches(fetchable: H :+: T): Seq[Output[_]] = {
+      override def fetches(fetchable: H :+: T): Seq[Output[Any]] = {
         fetchable match {
           case Inl(h) => evH.value.fetches(h)
           case Inr(t) => evT.fetches(t)
         }
       }
 
-      override def segment(fetchable: H :+: T, values: Seq[Tensor[_]]): (HO :+: TO, Seq[Tensor[_]]) = {
+      override def segment(fetchable: H :+: T, values: Seq[Tensor[Any]]): (HO :+: TO, Seq[Tensor[Any]]) = {
         fetchable match {
           case Inl(h) =>
             val (result, remaining) = evH.value.segment(h, values)
@@ -376,11 +380,14 @@ object Fetchable {
         evL.value.numberOfFetches(gen.to(fetchable))
       }
 
-      override def fetches(fetchable: P): Seq[Output[_]] = {
+      override def fetches(fetchable: P): Seq[Output[Any]] = {
         evL.value.fetches(gen.to(fetchable))
       }
 
-      override def segment(p: P, tensors: Seq[Tensor[_]]): (R, Seq[Tensor[_]]) = {
+      override def segment(
+          p: P,
+          tensors: Seq[Tensor[Any]]
+      ): (R, Seq[Tensor[Any]]) = {
         val (out, remaining) = evL.value.segment(gen.to(p), tensors)
         (tupler(out), remaining)
       }

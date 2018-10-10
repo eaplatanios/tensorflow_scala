@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
 import org.platanios.tensorflow.api.learn.hooks.Hook
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -93,11 +93,14 @@ class SessionWrapper private[learn](
 
   @throws[RuntimeException]
   override private[api] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: Option[RunOptions] = None, wantMetadata: Boolean = false
+      feeds: FeedMap = FeedMap.empty,
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Set.empty[UntypedOp],
+      options: Option[RunOptions] = None,
+      wantMetadata: Boolean = false
   )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): (R, Option[RunMetadata]) = {
     if (!_hooksEnabled || activeHooks.isEmpty) {
       super.runHelper(feeds, fetches, targets, options, wantMetadata)
@@ -109,9 +112,13 @@ class SessionWrapper private[learn](
       val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), this)
       val combinedArgs = invokeHooksBeforeSessionRun(runContext, options, wantMetadata, currentHooks)
 
+      // The following helps the compiler derive some implicits for which resolution currently diverges.
+      implicit val evESetExecutable: Executable[(E, Set[UntypedOp])] = implicitly[Executable[(E, Set[UntypedOp])]]
+
       // Do session run.
       val result = super.runHelper(
-        combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, combinedArgs.wantMetadata)
+        combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets,
+        combinedArgs.options, combinedArgs.wantMetadata)
 
       // Invoke the hooks' `afterSessionRun` callbacks.
       currentHooks.zipWithIndex.foreach(hook => {
@@ -132,12 +139,12 @@ class SessionWrapper private[learn](
       wantMetadata: Boolean,
       hooks: Seq[Hook]
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Hook.SessionRunArgs[(F, Seq[Seq[Output]]), (E, Seq[Op]), (R, Seq[Seq[Tensor[_]]])] = {
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
+  ): Hook.SessionRunArgs[(F, Seq[Seq[Output[Any]]]), (E, Set[UntypedOp]), (R, Seq[Seq[Tensor[Any]]])] = {
     var hooksFeedMap = FeedMap.empty
-    val hooksFetchesList = mutable.ListBuffer.empty[Seq[Output]]
-    val hooksTargetsList = mutable.ListBuffer.empty[Op]
+    val hooksFetches = mutable.ListBuffer.empty[Seq[Output[Any]]]
+    val hooksTargets = mutable.Set.empty[UntypedOp]
     var hooksRunOptions = runOptions.getOrElse(RunOptions.getDefaultInstance)
     var hooksWantMetadata = wantMetadata
     hooks.foreach(hook => hook.internalBeforeSessionRun(runContext) match {
@@ -147,24 +154,27 @@ class SessionWrapper private[learn](
             throw new RuntimeException("The same tensor is fed by two hooks.")
           hooksFeedMap = hooksFeedMap ++ runArgs.feeds
         }
-        if (runArgs.fetches.nonEmpty)
-          hooksFetchesList.append(runArgs.fetches)
-        else
-          hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
-        if (runArgs.targets.nonEmpty)
-          hooksTargetsList.appendAll(runArgs.targets)
+        hooksFetches += runArgs.flatFetches
+        hooksTargets ++= runArgs.flatTargets
         runArgs.options.foreach(options => hooksRunOptions = mergeRunOptions(hooksRunOptions, options))
         hooksWantMetadata ||= runArgs.wantMetadata
       case None =>
-        hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
+        hooksFetches.append(Seq.empty)
     })
     val feeds = runContext.args.feeds
     if (feeds.nonEmpty && hooksFeedMap.nonEmpty && feeds.intersects(hooksFeedMap))
       throw new RuntimeException("The same tensor is fed by the user and by a hook.")
     val combinedFeeds = feeds ++ hooksFeedMap
-    val combinedFetches = (runContext.args.fetches, hooksFetchesList)
-    val combinedTargets = (runContext.args.targets, hooksTargetsList)
-    Hook.SessionRunArgs(combinedFeeds, combinedFetches, combinedTargets, Some(hooksRunOptions), hooksWantMetadata)
+    val combinedFetches = (runContext.args.fetches, hooksFetches.toSeq)
+    val combinedTargets = (runContext.args.targets, hooksTargets.toSet)
+
+    // The following helps the compiler derive some implicits for which resolution currently diverges.
+    implicit val evESetExecutable: Executable[(E, Set[UntypedOp])] = implicitly[Executable[(E, Set[UntypedOp])]]
+
+
+    Hook.SessionRunArgs(
+      combinedFeeds, combinedFetches, combinedTargets,
+      Some(hooksRunOptions), hooksWantMetadata)
   }
 
   /** Merges an instance of [[RunOptions]] into another one, returning a new instance of [[RunOptions]].
@@ -269,11 +279,14 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
   }
 
   override private[api] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: Option[RunOptions] = None, wantMetadata: Boolean = false
+      feeds: FeedMap = FeedMap.empty,
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Set.empty[UntypedOp],
+      options: Option[RunOptions] = None,
+      wantMetadata: Boolean = false
   )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
+      evFetchable: Fetchable.Aux[F, R],
+      evExecutable: Executable[E]
   ): (R, Option[RunMetadata]) = {
     var result: (R, Option[RunMetadata]) = null
     while (result == null) {

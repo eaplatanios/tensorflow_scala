@@ -161,10 +161,7 @@ object Gradients {
             .filter(isTrainable)
             .foreach(loopExit => {
               val zeros = state.zerosLikeForExit(loopExit)(TF.fromDataType(loopExit.dataType))
-              val castedZeros = Cast.cast[Any, T, Output](zeros)(
-                TF.fromDataType(loopExit.dataType),
-                TF[T],
-                implicitly[OutputOps.Aux[Output, Any]])
+              val castedZeros = zeros.castTo[T]
               setGradient(accumulatedGradients, loopExit, castedZeros)
               readyOps.enqueue(loopExit.op)
             })
@@ -266,10 +263,7 @@ object Gradients {
                       if (isTrainable(exit)) {
                         val zeros = controlFlowGradientState.get
                             .zerosLikeForExit(exit)(TF.fromDataType(exit.dataType))
-                        val castedZeros = Cast.cast[Any, T, Output](zeros)(
-                          TF.fromDataType(zeros.dataType),
-                          TF[T],
-                          implicitly[OutputOps.Aux[Output, Any]])
+                        val castedZeros = zeros.castTo[T]
                         setGradient(accumulatedGradients, exit, castedZeros)
                       }
                       readyOps.enqueue(exit.op)

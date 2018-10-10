@@ -308,7 +308,6 @@ object Output {
       case "Cast" =>
         constantValue(output.op.inputsSeq(0)).map(preCast => {
           TensorCast.cast[Any, Any, Tensor](preCast)(
-            TF.fromDataType(preCast.dataType),
             TF.fromDataType(output.op.dataTypeAttribute("DstT")),
             implicitly[TensorOps.Aux[Tensor, Any]])
         })

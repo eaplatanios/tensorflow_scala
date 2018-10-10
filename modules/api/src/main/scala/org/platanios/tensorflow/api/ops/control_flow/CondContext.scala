@@ -290,6 +290,36 @@ trait CondOutput[T] {
 object CondOutput {
   type Aux[T, R] = CondOutput[T] {type ResultType = R}
 
+  implicit val fromUnit: Aux[Unit, Unit] = {
+    new CondOutput[Unit] {
+      override type ResultType = Unit
+
+      override def size(output: Unit): Int = {
+        0
+      }
+
+      override def processOutput(
+          output: Unit,
+          context: CondContext
+      ): Unit = {
+        ()
+      }
+
+      override def flatten(
+          processedOutput: Unit
+      ): Seq[OutputLike[Any]] = {
+        Seq.empty[OutputLike[Any]]
+      }
+
+      override def segment(
+          output: Unit,
+          values: Seq[OutputLike[Any]]
+      ): (Unit, Seq[OutputLike[Any]]) = {
+        ((), values)
+      }
+    }
+  }
+
   implicit def fromOp[I, O]: Aux[Op[I, O], Output[Any]] = {
     new CondOutput[Op[I, O]] {
       override type ResultType = Output[Any]
@@ -378,6 +408,41 @@ object CondOutput {
           flow = values.head.asInstanceOf[Output[Float]])
         // TODO: !!! [TENSOR_ARRAY] What about colocate with?
         (newTensorArray, values.tail)
+      }
+    }
+  }
+
+  implicit def fromOption[T, R](implicit ev: Aux[T, R]): Aux[Option[T], Option[R]] = {
+    new CondOutput[Option[T]] {
+      override type ResultType = Option[R]
+
+      override def size(output: Option[T]): Int = {
+        output.map(ev.size).sum
+      }
+
+      override def processOutput(
+          output: Option[T],
+          context: CondContext
+      ): Option[R] = {
+        output.map(ev.processOutput(_, context))
+      }
+
+      override def flatten(
+          processedOutput: Option[R]
+      ): Seq[OutputLike[Any]] = {
+        processedOutput.toSeq.flatMap(ev.flatten)
+      }
+
+      override def segment(
+          output: Option[T],
+          values: Seq[OutputLike[Any]]
+      ): (Option[T], Seq[OutputLike[Any]]) = {
+        output match {
+          case Some(o) =>
+            val (result, remaining) = ev.segment(o, values)
+            (Some(result), remaining)
+          case None => (None, values)
+        }
       }
     }
   }
