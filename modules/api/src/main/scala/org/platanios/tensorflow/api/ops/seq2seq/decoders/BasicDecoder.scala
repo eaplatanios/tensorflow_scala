@@ -51,14 +51,14 @@ class BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape](
     evState: WhileLoopVariable.Aux[State, StateShape]
 ) extends Decoder[
     Out, OutShape, State, StateShape,
-    BasicDecoder.DecoderOutput[Out, OutShape, Sample, SampleShape], (OutShape, SampleShape), State, StateShape,
-    BasicDecoder.DecoderOutput[Out, OutShape, Sample, SampleShape], State](cell, name) {
+    BasicDecoder.DecoderOutput[Out, Sample], (OutShape, SampleShape), State, StateShape,
+    BasicDecoder.DecoderOutput[Out, Sample], State](cell, name) {
   /** Scalar tensor representing the batch size of the input values. */
   override val batchSize: Output[Int] = {
     helper.batchSize
   }
 
-  override def zeroOutput(): BasicDecoder.DecoderOutput[Out, OutShape, Sample, SampleShape] = {
+  override def zeroOutput(): BasicDecoder.DecoderOutput[Out, Sample] = {
     val zOutput = evO.zero(batchSize, cell.outputShape, "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
     BasicDecoder.DecoderOutput(
@@ -87,7 +87,7 @@ class BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape](
       time: Output[Int],
       input: Out,
       state: State
-  ): (BasicDecoder.DecoderOutput[Out, OutShape, Sample, SampleShape], State, Out, Output[Boolean]) = {
+  ): (BasicDecoder.DecoderOutput[Out, Sample], State, Out, Output[Boolean]) = {
     Op.nameScope(s"$name/Next") {
       val nextTuple = cell(Tuple(input, state))
       val nextTupleOutput = outputLayer(nextTuple.output)
@@ -104,10 +104,10 @@ class BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape](
     * @return Finalized output and state to return from the decoding process.
     */
   override def finalize(
-      output: BasicDecoder.DecoderOutput[Out, OutShape, Sample, SampleShape],
+      output: BasicDecoder.DecoderOutput[Out, Sample],
       state: State,
       sequenceLengths: Output[Int]
-  ): (BasicDecoder.DecoderOutput[Out, OutShape, Sample, SampleShape], State, Output[Int]) = {
+  ): (BasicDecoder.DecoderOutput[Out, Sample], State, Output[Int]) = {
     (output, state, sequenceLengths)
   }
 }
@@ -127,82 +127,7 @@ object BasicDecoder {
     new BasicDecoder(cell, initialCellState, helper, outputLayer, name)
   }
 
-  case class DecoderOutput[Out, OutShape, Sample, SampleShape](
-      modelOutput: Out,
-      sample: Sample
-  )(implicit
-      whileLoopEvO: WhileLoopVariable.Aux[Out, OutShape],
-      whileLoopEvS: WhileLoopVariable.Aux[Sample, SampleShape])
-
-  object DecoderOutput {
-    implicit def outputWhileLoopVariable[Out, OutShape, Sample, SampleShape](implicit
-        whileLoopEvO: WhileLoopVariable.Aux[Out, OutShape],
-        whileLoopEvS: WhileLoopVariable.Aux[Sample, SampleShape]
-    ): WhileLoopVariable.Aux[DecoderOutput[Out, OutShape, Sample, SampleShape], (OutShape, SampleShape)] = {
-      new WhileLoopVariable[DecoderOutput[Out, OutShape, Sample, SampleShape]] {
-        override type ShapeType = (OutShape, SampleShape)
-
-        override def zero(
-            batchSize: Output[Int],
-            shape: (OutShape, SampleShape),
-            name: String
-        ): DecoderOutput[Out, OutShape, Sample, SampleShape] = {
-          DecoderOutput(
-            modelOutput = whileLoopEvO.zero(batchSize, shape._1),
-            sample = whileLoopEvS.zero(batchSize, shape._2))
-        }
-
-        override def size(output: DecoderOutput[Out, OutShape, Sample, SampleShape]): Int = {
-          whileLoopEvO.size(output.modelOutput) + whileLoopEvS.size(output.sample)
-        }
-
-        override def outputs(output: DecoderOutput[Out, OutShape, Sample, SampleShape]): Seq[Output[Any]] = {
-          whileLoopEvO.outputs(output.modelOutput) ++ whileLoopEvS.outputs(output.sample)
-        }
-
-        override def shapes(shape: (OutShape, SampleShape)): Seq[Shape] = {
-          whileLoopEvO.shapes(shape._1) ++ whileLoopEvS.shapes(shape._2)
-        }
-
-        override def segmentOutputs(
-            output: DecoderOutput[Out, OutShape, Sample, SampleShape],
-            values: Seq[Output[Any]]
-        ): (DecoderOutput[Out, OutShape, Sample, SampleShape], Seq[Output[Any]]) = {
-          val (modelOutput, sampleAndTail) = whileLoopEvO.segmentOutputs(output.modelOutput, values)
-          val (sample, tail) = whileLoopEvS.segmentOutputs(output.sample, sampleAndTail)
-          (DecoderOutput(modelOutput, sample), tail)
-        }
-
-        override def segmentShapes(
-            output: DecoderOutput[Out, OutShape, Sample, SampleShape],
-            values: Seq[Shape]
-        ): ((OutShape, SampleShape), Seq[Shape]) = {
-          val (modelOutput, sampleAndTail) = whileLoopEvO.segmentShapes(output.modelOutput, values)
-          val (sample, tail) = whileLoopEvS.segmentShapes(output.sample, sampleAndTail)
-          ((modelOutput, sample), tail)
-        }
-
-        override def map(
-            value: DecoderOutput[Out, OutShape, Sample, SampleShape],
-            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-        ): DecoderOutput[Out, OutShape, Sample, SampleShape] = {
-          DecoderOutput(
-            modelOutput = whileLoopEvO.map(value.modelOutput, mapFn),
-            sample = whileLoopEvS.map(value.sample, mapFn))
-        }
-
-        override def mapWithShape(
-            value: DecoderOutput[Out, OutShape, Sample, SampleShape],
-            shape: (OutShape, SampleShape),
-            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-        ): DecoderOutput[Out, OutShape, Sample, SampleShape] = {
-          DecoderOutput(
-            modelOutput = whileLoopEvO.mapWithShape(value.modelOutput, shape._1, mapFn),
-            sample = whileLoopEvS.mapWithShape(value.sample, shape._2, mapFn))
-        }
-      }
-    }
-  }
+  case class DecoderOutput[Out, Sample](modelOutput: Out, sample: Sample)
 
   /** Interface for implementing sampling helpers in sequence-to-sequence decoders. */
   trait Helper[Out, Sample, State] {

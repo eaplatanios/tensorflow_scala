@@ -18,8 +18,8 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
+import org.platanios.tensorflow.api.tensors.{Tensor, TensorOps}
+import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Cast => TensorCast, Math => TensorMath}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
@@ -307,10 +307,10 @@ object Output {
                     .map(delta => TensorMath.range(start, limit, delta))))
       case "Cast" =>
         constantValue(output.op.inputsSeq(0)).map(preCast => {
-          Cast.cast[Any, Any, Output](preCast)(
+          TensorCast.cast[Any, Any, Tensor](preCast)(
             TF.fromDataType(preCast.dataType),
             TF.fromDataType(output.op.dataTypeAttribute("DstT")),
-            implicitly[OutputOps.Aux[Output, Any]])
+            implicitly[TensorOps.Aux[Tensor, Any]])
         })
       case "Concat" =>
         constantValue(output.op.inputsSeq(0)).flatMap(axis => {

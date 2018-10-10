@@ -93,8 +93,8 @@ private[control_flow] case class GradientLoopState private[control_flow] (
           forwardContext.parallelIterations,
           forwardContext.enableBackPropagation,
           forwardContext.swapMemory,
-          _gradientLoopState = Some(this),
-          _name = forwardContext.name)
+          gradientLoopState = Some(this),
+          requestedName = forwardContext.name)
         val realCount = state.addBackwardAccumulatedValue(historyCount, count)
         val backwardIndex = backwardContext.addBackwardLoopCounter(realCount, outerGradientLoopState)
         state.backwardContext.exit()
@@ -106,8 +106,8 @@ private[control_flow] case class GradientLoopState private[control_flow] (
           forwardContext.parallelIterations,
           forwardContext.enableBackPropagation,
           forwardContext.swapMemory,
-          _gradientLoopState = Some(this),
-          _name = forwardContext.name)
+          gradientLoopState = Some(this),
+          requestedName = forwardContext.name)
         val backwardIndex = backwardContext.addBackwardLoopCounter(count, outerGradientLoopState)
         outerForwardContext.foreach(_.exit())
         (backwardIndex, backwardContext)

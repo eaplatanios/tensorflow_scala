@@ -15,9 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.rnn
 
-import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Op, Output, OutputLikeOrTensorArray}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
+import org.platanios.tensorflow.api.ops.Output
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -37,75 +35,6 @@ package object cell {
     * @param  m State tensor.
     */
   case class LSTMState[T](c: Output[T], m: Output[T])
-
-  object LSTMState {
-    implicit def lstmStateWhileLoopVariable[T](implicit
-        evT: WhileLoopVariable.Aux[Output[T], Shape]
-    ): WhileLoopVariable.Aux[LSTMState[T], (Shape, Shape)] = {
-      new WhileLoopVariable[LSTMState[T]] {
-        override type ShapeType = (Shape, Shape)
-
-        override def zero(
-            batchSize: Output[Int],
-            shape: (Shape, Shape),
-            name: String = "Zero"
-        ): LSTMState[T] = {
-          Op.nameScope(name) {
-            LSTMState(
-              evT.zero(batchSize, shape._1, "Output"),
-              evT.zero(batchSize, shape._2, "State"))
-          }
-        }
-
-        override def size(value: LSTMState[T]): Int = {
-          evT.size(value.c) + evT.size(value.m)
-        }
-
-        override def outputs(value: LSTMState[T]): Seq[Output[Any]] = {
-          evT.outputs(value.c) ++ evT.outputs(value.m)
-        }
-
-        override def shapes(shape: (Shape, Shape)): Seq[Shape] = {
-          evT.shapes(shape._1) ++ evT.shapes(shape._2)
-        }
-
-        override def segmentOutputs(
-            value: LSTMState[T],
-            values: Seq[Output[Any]]
-        ): (LSTMState[T], Seq[Output[Any]]) = {
-          (LSTMState(
-            c = values(0).asInstanceOf[Output[T]],
-            m = values(1).asInstanceOf[Output[T]]), values.drop(2))
-        }
-
-        override def segmentShapes(
-            value: LSTMState[T],
-            shapes: Seq[Shape]
-        ): ((Shape, Shape), Seq[Shape]) = {
-          ((shapes(0), shapes(1)), shapes.drop(2))
-        }
-
-        override def map(
-            value: LSTMState[T],
-            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-        ): LSTMState[T] = {
-          LSTMState(
-            c = evT.map(value.c, mapFn),
-            m = evT.map(value.m, mapFn))
-        }
-
-        override def mapWithShape(
-            value: LSTMState[T],
-            shape: (Shape, Shape),
-            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-        ): LSTMState[T] = {
-          LSTMState(
-            evT.mapWithShape(value.c, shape._1, mapFn),
-            evT.mapWithShape(value.m, shape._2, mapFn))
-        }
-      }
-    }
-  }
 
   type LSTMTuple[T] = Tuple[Output[T], LSTMState[T]]
 

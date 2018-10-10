@@ -27,8 +27,6 @@ import org.tensorflow.framework.CollectionDef.BytesList
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.collection.{MapLike, SeqLike}
-import scala.collection.generic.CanBuildFrom
 import scala.collection.JavaConverters._
 import scala.language.higherKinds
 import scala.reflect.ClassTag
@@ -292,7 +290,7 @@ trait CondOutput[T] {
 object CondOutput {
   type Aux[T, R] = CondOutput[T] {type ResultType = R}
 
-  implicit def opCondOutput[I, O]: Aux[Op[I, O], Output[Any]] = {
+  implicit def fromOp[I, O]: Aux[Op[I, O], Output[Any]] = {
     new CondOutput[Op[I, O]] {
       override type ResultType = Output[Any]
 
@@ -322,7 +320,7 @@ object CondOutput {
     }
   }
 
-  implicit def outputCondOutput[T]: Aux[Output[T], Output[T]] = {
+  implicit def fromOutput[T]: Aux[Output[T], Output[T]] = {
     new CondOutput[Output[T]] {
       override type ResultType = Output[T]
 
@@ -351,89 +349,7 @@ object CondOutput {
     }
   }
 
-  implicit def outputIndexedSlicesCondOutput[T]: Aux[OutputIndexedSlices[T], OutputIndexedSlices[T]] = {
-    new CondOutput[OutputIndexedSlices[T]] {
-      override type ResultType = OutputIndexedSlices[T]
-
-      override def size(output: OutputIndexedSlices[T]): Int = {
-        1
-      }
-
-      override def processOutput(
-          output: OutputIndexedSlices[T],
-          context: CondContext
-      ): OutputIndexedSlices[T] = {
-        val indices = context.processOutput(output.indices)
-        val values = context.processOutput(output.values)(TF.fromDataType(output.values.dataType))
-        val denseShape = {
-          if (output.denseShape != null)
-            context.processOutput(output.denseShape)
-          else
-            null
-        }
-        OutputIndexedSlices(
-          indices = indices,
-          values = values,
-          denseShape = denseShape)
-      }
-
-      override def flatten(
-          processedOutput: OutputIndexedSlices[T]
-      ): Seq[OutputLike[Any]] = {
-        Seq(processedOutput)
-      }
-
-      override def segment(
-          output: OutputIndexedSlices[T],
-          values: Seq[OutputLike[Any]]
-      ): (OutputIndexedSlices[T], Seq[OutputLike[Any]]) = {
-        (values.head.asInstanceOf[OutputIndexedSlices[T]], values.tail)
-      }
-    }
-  }
-
-  implicit def sparseOutputCondOutput[T]: Aux[SparseOutput[T], SparseOutput[T]] = {
-    new CondOutput[SparseOutput[T]] {
-      override type ResultType = SparseOutput[T]
-
-      override def size(output: SparseOutput[T]): Int = {
-        1
-      }
-
-      override def processOutput(
-          output: SparseOutput[T],
-          context: CondContext
-      ): SparseOutput[T] = {
-        val indices = context.processOutput(output.indices)
-        val values = context.processOutput(output.values)(TF.fromDataType(output.values.dataType))
-        val denseShape = {
-          if (output.denseShape != null)
-            context.processOutput(output.denseShape)
-          else
-            null
-        }
-        SparseOutput(
-          indices = indices,
-          values = values,
-          denseShape = denseShape)
-      }
-
-      override def flatten(
-          processedOutput: SparseOutput[T]
-      ): Seq[OutputLike[Any]] = {
-        Seq(processedOutput)
-      }
-
-      override def segment(
-          output: SparseOutput[T],
-          values: Seq[OutputLike[Any]]
-      ): (SparseOutput[T], Seq[OutputLike[Any]]) = {
-        (values.head.asInstanceOf[SparseOutput[T]], values.tail)
-      }
-    }
-  }
-
-  implicit def tensorArrayCondOutput[T]: Aux[TensorArray[T], Output[Float]] = {
+  implicit def fromTensorArray[T]: Aux[TensorArray[T], Output[Float]] = {
     new CondOutput[TensorArray[T]] {
       override type ResultType = Output[Float]
 
@@ -466,7 +382,7 @@ object CondOutput {
     }
   }
 
-  implicit def condOutputArray[T: ClassTag, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
+  implicit def fromArray[T: ClassTag, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
     new CondOutput[Array[T]] {
       override type ResultType = Array[R]
 
@@ -498,45 +414,39 @@ object CondOutput {
     }
   }
 
-  implicit def condOutputSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](implicit
-      ev: Aux[T, R],
-      cbfTT: CanBuildFrom[CC[T], T, CC[T]],
-      cbfTR: CanBuildFrom[CC[T], R, CC[R]]
-  ): Aux[CC[T], CC[R]] = {
-    new CondOutput[CC[T]] {
-      override type ResultType = CC[R]
+  implicit def fromSeq[T, R](implicit ev: Aux[T, R]): Aux[Seq[T], Seq[R]] = {
+    new CondOutput[Seq[T]] {
+      override type ResultType = Seq[R]
 
-      override def size(output: CC[T]): Int = {
+      override def size(output: Seq[T]): Int = {
         output.map(ev.size).sum
       }
 
       override def processOutput(
-          output: CC[T],
+          output: Seq[T],
           context: CondContext
-      ): CC[R] = {
-        output.map(ev.processOutput(_, context))(cbfTR)
+      ): Seq[R] = {
+        output.map(ev.processOutput(_, context))
       }
 
       override def flatten(
-          processedOutput: CC[R]
+          processedOutput: Seq[R]
       ): Seq[OutputLike[Any]] = {
-        processedOutput.flatMap(ev.flatten).toSeq
+        processedOutput.flatMap(ev.flatten)
       }
 
       override def segment(
-          output: CC[T],
+          output: Seq[T],
           values: Seq[OutputLike[Any]]
-      ): (CC[T], Seq[OutputLike[Any]]) = {
+      ): (Seq[T], Seq[OutputLike[Any]]) = {
         val n = size(output)
-        (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
-            .map(f => ev.unflatten(f._1, f._2)).to[CC](cbfTT), values.drop(n))
+        (output.zip(Collections.segment(values.take(n), output.map(ev.size)))
+            .map(f => ev.unflatten(f._1, f._2)), values.drop(n))
       }
     }
   }
 
-  implicit def condOutputMap[T, R, MK, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]](implicit
-      ev: Aux[T, R]
-  ): Aux[Map[MK, T], Map[MK, R]] = {
+  implicit def fromMap[T, R, MK](implicit ev: Aux[T, R]): Aux[Map[MK, T], Map[MK, R]] = {
     new CondOutput[Map[MK, T]] {
       override type ResultType = Map[MK, R]
 
@@ -570,101 +480,150 @@ object CondOutput {
     }
   }
 
-  implicit val hnil: Aux[HNil, HNil] = new CondOutput[HNil] {
-    override type ResultType = HNil
+  implicit val fromHNil: Aux[HNil, HNil] = {
+    new CondOutput[HNil] {
+      override type ResultType = HNil
 
-    override def size(output: HNil): Int = {
-      0
-    }
+      override def size(output: HNil): Int = {
+        0
+      }
 
-    override def processOutput(
-        output: HNil,
-        context: CondContext
-    ): HNil = {
-      HNil
-    }
+      override def processOutput(
+          output: HNil,
+          context: CondContext
+      ): HNil = {
+        HNil
+      }
 
-    override def flatten(
-        processedOutput: HNil
-    ): Seq[OutputLike[Any]] = {
-      Seq.empty[OutputLike[Any]]
-    }
+      override def flatten(
+          processedOutput: HNil
+      ): Seq[OutputLike[Any]] = {
+        Seq.empty[OutputLike[Any]]
+      }
 
-    override def segment(
-        output: HNil,
-        values: Seq[OutputLike[Any]]
-    ): (HNil, Seq[OutputLike[Any]]) = {
-      (HNil, values)
-    }
-  }
-
-  implicit def recursiveConstructor[H, HR, T <: HList, TR <: HList](implicit
-      evHead: Lazy[Aux[H, HR]],
-      evTail: Aux[T, TR]
-  ): Aux[H :: T, HR :: TR] = new CondOutput[H :: T] {
-    override type ResultType = HR :: TR
-
-    override def size(output: H :: T): Int = {
-      evHead.value.size(output.head) + evTail.size(output.tail)
-    }
-
-    override def processOutput(
-        output: H :: T,
-        context: CondContext
-    ): HR :: TR = {
-      evHead.value.processOutput(output.head, context) ::
-          evTail.processOutput(output.tail, context)
-    }
-
-    override def flatten(
-        processedOutput: HR :: TR
-    ): Seq[OutputLike[Any]] = {
-      evHead.value.flatten(processedOutput.head) ++
-          evTail.flatten(processedOutput.tail)
-    }
-
-    override def segment(
-        output: H :: T,
-        values: Seq[OutputLike[Any]]
-    ): (H :: T, Seq[OutputLike[Any]]) = {
-      val (headOut, headRemaining) = evHead.value.segment(output.head, values)
-      val (tailOut, tailRemaining) = evTail.segment(output.tail, headRemaining)
-      (headOut :: tailOut, tailRemaining)
+      override def segment(
+          output: HNil,
+          values: Seq[OutputLike[Any]]
+      ): (HNil, Seq[OutputLike[Any]]) = {
+        (HNil, values)
+      }
     }
   }
 
-  implicit def productConstructor[P, R, L <: HList, LR <: HList](implicit
+  implicit def fromHList[H, HR, T <: HList, TR <: HList](implicit
+      evH: Strict[Aux[H, HR]],
+      evT: Aux[T, TR]
+  ): Aux[H :: T, HR :: TR] = {
+    new CondOutput[H :: T] {
+      override type ResultType = HR :: TR
+
+      override def size(output: H :: T): Int = {
+        evH.value.size(output.head) + evT.size(output.tail)
+      }
+
+      override def processOutput(
+          output: H :: T,
+          context: CondContext
+      ): HR :: TR = {
+        evH.value.processOutput(output.head, context) ::
+            evT.processOutput(output.tail, context)
+      }
+
+      override def flatten(
+          processedOutput: HR :: TR
+      ): Seq[OutputLike[Any]] = {
+        evH.value.flatten(processedOutput.head) ++
+            evT.flatten(processedOutput.tail)
+      }
+
+      override def segment(
+          output: H :: T,
+          values: Seq[OutputLike[Any]]
+      ): (H :: T, Seq[OutputLike[Any]]) = {
+        val (headOut, headRemaining) = evH.value.segment(output.head, values)
+        val (tailOut, tailRemaining) = evT.segment(output.tail, headRemaining)
+        (headOut :: tailOut, tailRemaining)
+      }
+    }
+  }
+
+  implicit def fromCoproduct[H, HR, T <: Coproduct, TR <: Coproduct](implicit
+      evH: Strict[Aux[H, HR]],
+      evT: Aux[T, TR]
+  ): Aux[H :+: T, HR :+: TR] = {
+    new CondOutput[H :+: T] {
+      override type ResultType = HR :+: TR
+
+      override def size(output: H :+: T): Int = {
+        output match {
+          case Inl(h) => evH.value.size(h)
+          case Inr(t) => evT.size(t)
+        }
+      }
+
+      override def processOutput(output: H :+: T, context: CondContext): HR :+: TR = {
+        output match {
+          case Inl(h) => Inl(evH.value.processOutput(h, context))
+          case Inr(t) => Inr(evT.processOutput(t, context))
+        }
+      }
+
+      override def flatten(processedOutput: HR :+: TR): Seq[OutputLike[Any]] = {
+        processedOutput match {
+          case Inl(h) => evH.value.flatten(h)
+          case Inr(t) => evT.flatten(t)
+        }
+      }
+
+      override def segment(
+          output: H :+: T,
+          values: Seq[OutputLike[Any]]
+      ): (H :+: T, Seq[OutputLike[Any]]) = {
+        output match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.segment(h, values)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.segment(t, values)
+            (Inr(result), remaining)
+        }
+      }
+    }
+  }
+
+  implicit def fromProduct[P, R, L <: HList, LR <: HList](implicit
       genP: Generic.Aux[P, L],
-      evL: Aux[L, LR],
+      evL: Strict[Aux[L, LR]],
       tuplerR: Tupler.Aux[LR, R],
-      tuplerP: Tupler.Aux[L, P],
       genR: Generic.Aux[R, LR]
-  ): Aux[P, R] = new CondOutput[P] {
-    override type ResultType = R
+  ): Aux[P, R] = {
+    new CondOutput[P] {
+      override type ResultType = R
 
-    override def size(output: P): Int = {
-      evL.size(genP.to(output))
-    }
+      override def size(output: P): Int = {
+        evL.value.size(genP.to(output))
+      }
 
-    override def processOutput(
-        output: P,
-        context: CondContext
-    ): R = {
-      tuplerR(evL.processOutput(genP.to(output), context))
-    }
+      override def processOutput(
+          output: P,
+          context: CondContext
+      ): R = {
+        tuplerR(evL.value.processOutput(genP.to(output), context))
+      }
 
-    override def flatten(
-        processedOutput: R
-    ): Seq[OutputLike[Any]] = {
-      evL.flatten(genR.to(processedOutput))
-    }
+      override def flatten(
+          processedOutput: R
+      ): Seq[OutputLike[Any]] = {
+        evL.value.flatten(genR.to(processedOutput))
+      }
 
-    override def segment(
-        output: P,
-        values: Seq[OutputLike[Any]]
-    ): (P, Seq[OutputLike[Any]]) = {
-      val (out, remaining) = evL.segment(genP.to(output), values)
-      (tuplerP(out), remaining)
+      override def segment(
+          output: P,
+          values: Seq[OutputLike[Any]]
+      ): (P, Seq[OutputLike[Any]]) = {
+        val (out, remaining) = evL.value.segment(genP.to(output), values)
+        (genP.from(out), remaining)
+      }
     }
   }
 }

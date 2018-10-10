@@ -16,25 +16,18 @@
 package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{DataType, INT64}
-import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
+import org.platanios.tensorflow.api.core.types.{DataType, TF, Variant, VARIANT}
+import org.platanios.tensorflow.api.ops.{Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.collection.generic.CanBuildFrom
-import scala.collection.{MapLike, SeqLike, breakOut, mutable}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-// TODO: [DATA] Separate into readers and transformations.
-// TODO: [DATA] paddedBatchAndDropRemainder
-// TODO: [DATA] denseToSparseBatch
-// TODO: [DATA] listFiles
-
-/** Data can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[SupportedData]]).
+/** Data that can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[SupportedData]]).
   *
   * Currently supported data types are:
   *   - Single [[Tensor]].
@@ -58,40 +51,47 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-trait SupportedData[O] {
+trait SupportedData[T] {
   type D
   type S
 
-  def size(dataType: D): Int
+  def sizeFromOutput(output: T): Int
+  def sizeFromDataType(dataType: D): Int
 
-  def dataType(output: O): D
-  def shape(output: O): S
+  def dataType(output: T): D
+  def shape(output: T): S
 
-  def outputs(output: O): Seq[Output[Any]]
+  def outputs(output: T): Seq[Output[Any]]
 
   def dataTypes(dataType: D): Seq[DataType[Any]]
   def shapes(shape: S): Seq[Shape]
 
-  def decodeOutput(dataType: D, outputs: Seq[Output[Any]]): (O, Seq[Output[Any]])
-  def decodeDataType(dataType: D, dataTypes: Seq[DataType[Any]]): (D, Seq[DataType[Any]])
-  def decodeShape(dataType: D, shapes: Seq[Shape]): (S, Seq[Shape])
+  def decodeOutputFromOutput(output: T, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
+
+  def decodeOutputFromDataType(dataType: D, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
+  def decodeDataTypeFromDataType(dataType: D, dataTypes: Seq[DataType[Any]]): (D, Seq[DataType[Any]])
+  def decodeShapeFromDataType(dataType: D, shapes: Seq[Shape]): (S, Seq[Shape])
 
   def dataTypeToString(dataType: D): String
   def shapeToString(shape: S): String
 }
 
 object SupportedData {
-  type Aux[O, DD, SS] = SupportedData[O] {
+  type Aux[T, DD, SS] = SupportedData[T] {
     type D = DD
     type S = SS
   }
 
-  implicit def outputEvidence[T]: Aux[Output[T], DataType[T], Shape] = {
+  implicit def fromOutput[T: TF]: Aux[Output[T], DataType[T], Shape] = {
     new SupportedData[Output[T]] {
       override type D = DataType[T]
       override type S = Shape
 
-      override def size(dataType: DataType[T]): Int = {
+      override def sizeFromOutput(output: Output[T]): Int = {
+        1
+      }
+
+      override def sizeFromDataType(dataType: DataType[T]): Int = {
         1
       }
 
@@ -115,21 +115,28 @@ object SupportedData {
         Seq(shape)
       }
 
-      override def decodeOutput(
+      override def decodeOutputFromOutput(
+          output: Output[T],
+          outputs: Seq[Output[Any]]
+      ): (Output[T], Seq[Output[Any]]) = {
+        (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+      }
+
+      override def decodeOutputFromDataType(
           dataType: DataType[T],
           outputs: Seq[Output[Any]]
       ): (Output[T], Seq[Output[Any]]) = {
         (outputs.head.asInstanceOf[Output[T]], outputs.tail)
       }
 
-      override def decodeDataType(
+      override def decodeDataTypeFromDataType(
           dataType: DataType[T],
           dataTypes: Seq[DataType[Any]]
       ): (DataType[T], Seq[DataType[Any]]) = {
         (dataTypes.head.asInstanceOf[DataType[T]], dataTypes.tail)
       }
 
-      override def decodeShape(
+      override def decodeShapeFromDataType(
           dataType: DataType[T],
           shapes: Seq[Shape]
       ): (Shape, Seq[Shape]) = {
@@ -146,151 +153,120 @@ object SupportedData {
     }
   }
 
-  implicit def outputIndexedSlicesEvidence[T]: Aux[OutputIndexedSlices[T], (DataType[Long], DataType[T], DataType[Long]), (Shape, Shape, Shape)] = {
-    new SupportedData[OutputIndexedSlices[T]] {
-      override type D = (DataType[Long], DataType[T], DataType[Long])
-      override type S = (Shape, Shape, Shape)
+  // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".
 
-      override def size(dataType: (DataType[Long], DataType[T], DataType[Long])): Int = {
-        3
+  case class VariantDataset[T] protected(
+      handle: Output[Variant],
+      private val _outputDataTypes: Any = null,
+      private val _outputShapes: Any = null
+  ) extends Dataset[T] {
+    override val name: String = "VariantDataset"
+
+    override def createHandle[D, S]()(implicit
+        evT: Aux[T, D, S]
+    ): Output[Variant] = {
+      handle
+    }
+
+    override def outputDataTypes[D, S](implicit evT: Aux[T, D, S]): D = {
+      _outputDataTypes.asInstanceOf[D]
+    }
+
+    override def outputShapes[D, S](implicit evT: Aux[T, D, S]): S = {
+      _outputShapes.asInstanceOf[S]
+    }
+  }
+
+  implicit def fromDataset[T, D, S](implicit
+      evT: Aux[T, D, S]
+  ): Aux[Dataset[T], DataType[Variant], Shape] = {
+    new SupportedData[Dataset[T]] {
+      override type D = DataType[Variant]
+      override type S = Shape
+
+      override def sizeFromOutput(output: Dataset[T]): Int = {
+        1
       }
 
-      override def dataType(output: OutputIndexedSlices[T]): (DataType[Long], DataType[T], DataType[Long]) = {
-        (INT64, output.dataType, INT64)
+      override def sizeFromDataType(dataType: DataType[Variant]): Int = {
+        1
       }
 
-      override def shape(output: OutputIndexedSlices[T]): (Shape, Shape, Shape) = {
-        val indicesShape = output.indices.shape
-        val denseShapeShape = output.denseShape.shape
-        val rank = Shape(indicesShape(1) - 1).mergeWith(Shape(denseShapeShape(0) - 1))(0)
-        (Shape(-1, rank), Shape(-1), Shape(rank))
+      override def dataType(arg: Dataset[T]): DataType[Variant] = {
+        VARIANT
       }
 
-      override def outputs(output: OutputIndexedSlices[T]): Seq[Output[Any]] = {
-        Seq(output.indices, output.values, output.denseShape)
+      override def shape(arg: Dataset[T]): Shape = {
+        Shape()
       }
 
-      override def dataTypes(dataType: (DataType[Long], DataType[T], DataType[Long])): Seq[DataType[Any]] = {
-        Seq(dataType._1, dataType._2, dataType._3)
+      override def outputs(arg: Dataset[T]): Seq[Output[Any]] = {
+        Seq(arg.createHandle()(evT))
       }
 
-      override def shapes(shape: (Shape, Shape, Shape)): Seq[Shape] = {
-        Seq(shape._1, shape._2, shape._3)
+      override def dataTypes(dataType: DataType[Variant]): Seq[DataType[Any]] = {
+        Seq(VARIANT)
       }
 
-      override def decodeOutput(
-          dataType: (DataType[Long], DataType[T], DataType[Long]),
+      override def shapes(shape: Shape): Seq[Shape] = {
+        Seq(shape)
+      }
+
+      override def decodeOutputFromOutput(
+          output: Dataset[T],
           outputs: Seq[Output[Any]]
-      ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
-        (OutputIndexedSlices(
-          indices = outputs(0).asInstanceOf[Output[Long]],
-          values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]]), outputs.drop(3))
+      ): (Dataset[T], Seq[Output[Any]]) = {
+        (VariantDataset[T](
+          handle = outputs.head.asInstanceOf[Output[Variant]],
+          _outputDataTypes = output.outputDataTypes,
+          _outputShapes = output.outputShapes
+        ), outputs.drop(1))
       }
 
-      override def decodeDataType(
-          dataType: (DataType[Long], DataType[T], DataType[Long]),
+      override def decodeOutputFromDataType(
+          dataType: DataType[Variant],
+          outputs: Seq[Output[Any]]
+      ): (Dataset[T], Seq[Output[Any]]) = {
+        (VariantDataset[T](outputs.head.asInstanceOf[Output[Variant]]), outputs.drop(1))
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: DataType[Variant],
           dataTypes: Seq[DataType[Any]]
-      ): ((DataType[Long], DataType[T], DataType[Long]), Seq[DataType[Any]]) = {
-        ((dataTypes(0).asInstanceOf[DataType[Long]],
-            dataTypes(1).asInstanceOf[DataType[T]],
-            dataTypes(2).asInstanceOf[DataType[Long]]), dataTypes.drop(3))
+      ): (DataType[Variant], Seq[DataType[Any]]) = {
+        (dataTypes.head.asInstanceOf[DataType[Variant]], dataTypes.tail)
       }
 
-      override def decodeShape(
-          dataType: (DataType[Long], DataType[T], DataType[Long]),
+      override def decodeShapeFromDataType(
+          dataType: DataType[Variant],
           shapes: Seq[Shape]
-      ): ((Shape, Shape, Shape), Seq[Shape]) = {
-        ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
+      ): (Shape, Seq[Shape]) = {
+        (shapes.head, shapes.tail)
       }
 
-      override def dataTypeToString(dataType: (DataType[Long], DataType[T], DataType[Long])): String = {
-        s"${dataType._1}:${dataType._2}:${dataType._3}"
+      override def dataTypeToString(dataType: DataType[Variant]): String = {
+        dataType.toString
       }
 
-      override def shapeToString(shape: (Shape, Shape, Shape)): String = {
-        s"${shape._1}:${shape._2}:${shape._3}"
+      override def shapeToString(shape: Shape): String = {
+        shape.toString
       }
     }
   }
 
-  implicit def sparseOutputEvidence[T]: Aux[SparseOutput[T], (DataType[Long], DataType[T], DataType[Long]), (Shape, Shape, Shape)] = {
-    new SupportedData[SparseOutput[T]] {
-      override type D = (DataType[Long], DataType[T], DataType[Long])
-      override type S = (Shape, Shape, Shape)
-
-      override def size(dataType: (DataType[Long], DataType[T], DataType[Long])): Int = {
-        3
-      }
-
-      override def dataType(output: SparseOutput[T]): (DataType[Long], DataType[T], DataType[Long]) = {
-        (INT64, output.dataType, INT64)
-      }
-
-      override def shape(output: SparseOutput[T]): (Shape, Shape, Shape) = {
-        val indicesShape = output.indices.shape
-        val denseShapeShape = output.denseShape.shape
-        val rank = Shape(indicesShape(1) - 1).mergeWith(Shape(denseShapeShape(0) - 1))(0)
-        (Shape(-1, rank), Shape(-1), Shape(rank))
-      }
-
-      override def outputs(output: SparseOutput[T]): Seq[Output[Any]] = {
-        Seq(output.indices, output.values, output.denseShape)
-      }
-
-      override def dataTypes(dataType: (DataType[Long], DataType[T], DataType[Long])): Seq[DataType[Any]] = {
-        Seq(dataType._1, dataType._2, dataType._3)
-      }
-
-      override def shapes(shape: (Shape, Shape, Shape)): Seq[Shape] = {
-        Seq(shape._1, shape._2, shape._3)
-      }
-
-      override def decodeOutput(
-          dataType: (DataType[Long], DataType[T], DataType[Long]),
-          outputs: Seq[Output[Any]]
-      ): (SparseOutput[T], Seq[Output[Any]]) = {
-        (SparseOutput(
-          indices = outputs(0).asInstanceOf[Output[Long]],
-          values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]]), outputs.drop(3))
-      }
-
-      override def decodeDataType(
-          dataType: (DataType[Long], DataType[T], DataType[Long]),
-          dataTypes: Seq[DataType[Any]]
-      ): ((DataType[Long], DataType[T], DataType[Long]), Seq[DataType[Any]]) = {
-        ((dataTypes(0).asInstanceOf[DataType[Long]],
-            dataTypes(1).asInstanceOf[DataType[T]],
-            dataTypes(2).asInstanceOf[DataType[Long]]), dataTypes.drop(3))
-      }
-
-      override def decodeShape(
-          dataType: (DataType[Long], DataType[T], DataType[Long]),
-          shapes: Seq[Shape]
-      ): ((Shape, Shape, Shape), Seq[Shape]) = {
-        ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
-      }
-
-      override def dataTypeToString(dataType: (DataType[Long], DataType[T], DataType[Long])): String = {
-        s"${dataType._1}:${dataType._2}:${dataType._3}"
-      }
-
-      override def shapeToString(shape: (Shape, Shape, Shape)): String = {
-        s"${shape._1}:${shape._2}:${shape._3}"
-      }
-    }
-  }
-
-  implicit def arrayEvidence[T: ClassTag, DD: ClassTag, SS: ClassTag](implicit
+  implicit def fromArray[T: ClassTag, DD: ClassTag, SS: ClassTag](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Array[T], Array[DD], Array[SS]] = {
     new SupportedData[Array[T]] {
       override type D = Array[DD]
       override type S = Array[SS]
 
-      override def size(dataType: Array[DD]): Int = {
-        dataType.map(ev.size).sum
+      override def sizeFromOutput(output: Array[T]): Int = {
+        output.map(ev.sizeFromOutput).sum
+      }
+
+      override def sizeFromDataType(dataType: Array[DD]): Int = {
+        dataType.map(ev.sizeFromDataType).sum
       }
 
       override def dataType(output: Array[T]): Array[DD] = {
@@ -313,31 +289,40 @@ object SupportedData {
         shape.flatMap(ev.shapes).toSeq
       }
 
-      override def decodeOutput(
+      override def decodeOutputFromOutput(
+          output: Array[T],
+          outputs: Seq[Output[Any]]
+      ): (Array[T], Seq[Output[Any]]) = {
+        val n = sizeFromOutput(output)
+        (output.zip(Collections.segment(outputs.take(n), output.map(ev.sizeFromOutput).toSeq))
+            .map(f => ev.decodeOutputFromOutput(f._1, f._2)._1), outputs.drop(n))
+      }
+
+      override def decodeOutputFromDataType(
           dataType: Array[DD],
           outputs: Seq[Output[Any]]
       ): (Array[T], Seq[Output[Any]]) = {
-        val n = size(dataType)
-        (dataType.zip(Collections.segment(outputs.take(n), dataType.map(ev.size).toSeq))
-            .map(f => ev.decodeOutput(f._1, f._2)._1), outputs.drop(n))
+        val n = sizeFromDataType(dataType)
+        (dataType.zip(Collections.segment(outputs.take(n), dataType.map(ev.sizeFromDataType).toSeq))
+            .map(f => ev.decodeOutputFromDataType(f._1, f._2)._1), outputs.drop(n))
       }
 
-      override def decodeDataType(
+      override def decodeDataTypeFromDataType(
           dataType: Array[DD],
           dataTypes: Seq[DataType[Any]]
       ): (Array[DD], Seq[DataType[Any]]) = {
-        val n = size(dataType)
-        (dataType.zip(Collections.segment(dataTypes.take(n), dataType.map(ev.size).toSeq))
-            .map(f => ev.decodeDataType(f._1, f._2)._1), dataTypes.drop(n))
+        val n = sizeFromDataType(dataType)
+        (dataType.zip(Collections.segment(dataTypes.take(n), dataType.map(ev.sizeFromDataType).toSeq))
+            .map(f => ev.decodeDataTypeFromDataType(f._1, f._2)._1), dataTypes.drop(n))
       }
 
-      override def decodeShape(
+      override def decodeShapeFromDataType(
           dataType: Array[DD],
           shapes: Seq[Shape]
       ): (Array[SS], Seq[Shape]) = {
-        val n = size(dataType)
-        (dataType.zip(Collections.segment(shapes.take(n), dataType.map(ev.size).toSeq))
-            .map(f => ev.decodeShape(f._1, f._2)._1), shapes.drop(n))
+        val n = sizeFromDataType(dataType)
+        (dataType.zip(Collections.segment(shapes.take(n), dataType.map(ev.sizeFromDataType).toSeq))
+            .map(f => ev.decodeShapeFromDataType(f._1, f._2)._1), shapes.drop(n))
       }
 
       override def dataTypeToString(dataType: Array[DD]): String = {
@@ -350,103 +335,115 @@ object SupportedData {
     }
   }
 
-  implicit def seqEvidence[T, DD, SS, CC[A] <: SeqLike[A, CC[A]]](implicit
-      ev: Aux[T, DD, SS],
-      cbfTD: CanBuildFrom[CC[T], DD, CC[DD]],
-      cbfTS: CanBuildFrom[CC[T], SS, CC[SS]],
-      cbfT: CanBuildFrom[Nothing, T, CC[T]],
-      cbfD: CanBuildFrom[Nothing, DD, CC[DD]],
-      cbfS: CanBuildFrom[Nothing, SS, CC[SS]]
-  ): Aux[CC[T], CC[DD], CC[SS]] = {
-    new SupportedData[CC[T]] {
-      override type D = CC[DD]
-      override type S = CC[SS]
+  implicit def fromSeq[T, DD, SS](implicit
+      ev: Aux[T, DD, SS]
+  ): Aux[Seq[T], Seq[DD], Seq[SS]] = {
+    new SupportedData[Seq[T]] {
+      override type D = Seq[DD]
+      override type S = Seq[SS]
 
-      override def size(dataType: CC[DD]): Int = {
-        dataType.map(ev.size)(breakOut).sum
+      override def sizeFromOutput(output: Seq[T]): Int = {
+        output.map(ev.sizeFromOutput).sum
       }
 
-      override def dataType(output: CC[T]): CC[DD] = {
+      override def sizeFromDataType(dataType: Seq[DD]): Int = {
+        dataType.map(ev.sizeFromDataType).sum
+      }
+
+      override def dataType(output: Seq[T]): Seq[DD] = {
         output.map(ev.dataType)
       }
 
-      override def shape(output: CC[T]): CC[SS] = {
+      override def shape(output: Seq[T]): Seq[SS] = {
         output.map(ev.shape)
       }
 
-      override def outputs(output: CC[T]): Seq[Output[Any]] = {
-        output.flatMap(ev.outputs)(breakOut)
+      override def outputs(output: Seq[T]): Seq[Output[Any]] = {
+        output.flatMap(ev.outputs)
       }
 
-      override def dataTypes(dataType: CC[DD]): Seq[DataType[Any]] = {
-        dataType.flatMap(ev.dataTypes)(breakOut)
+      override def dataTypes(dataType: Seq[DD]): Seq[DataType[Any]] = {
+        dataType.flatMap(ev.dataTypes)
       }
 
-      override def shapes(shape: CC[SS]): Seq[Shape] = {
-        shape.flatMap(ev.shapes)(breakOut)
+      override def shapes(shape: Seq[SS]): Seq[Shape] = {
+        shape.flatMap(ev.shapes)
       }
 
-      override def decodeOutput(
-          dataType: CC[DD],
+      override def decodeOutputFromOutput(
+          output: Seq[T],
           outputs: Seq[Output[Any]]
-      ): (CC[T], Seq[Output[Any]]) = {
-        val n = size(dataType)
-        (dataType
-            .zip(Collections.segment(outputs.take(n), dataType.map(ev.size)(breakOut)))(breakOut)
-            .map(f => ev.decodeOutput(f._1, f._2)._1).to[CC](cbfT), outputs.drop(n))
+      ): (Seq[T], Seq[Output[Any]]) = {
+        val n = sizeFromOutput(output)
+        (output
+            .zip(Collections.segment(outputs.take(n), output.map(ev.sizeFromOutput)))
+            .map(f => ev.decodeOutputFromOutput(f._1, f._2)._1), outputs.drop(n))
       }
 
-      override def decodeDataType(
-          dataType: CC[DD],
+      override def decodeOutputFromDataType(
+          dataType: Seq[DD],
+          outputs: Seq[Output[Any]]
+      ): (Seq[T], Seq[Output[Any]]) = {
+        val n = sizeFromDataType(dataType)
+        (dataType
+            .zip(Collections.segment(outputs.take(n), dataType.map(ev.sizeFromDataType)))
+            .map(f => ev.decodeOutputFromDataType(f._1, f._2)._1), outputs.drop(n))
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: Seq[DD],
           dataTypes: Seq[DataType[Any]]
-      ): (CC[DD], Seq[DataType[Any]]) = {
-        val n = size(dataType)
+      ): (Seq[DD], Seq[DataType[Any]]) = {
+        val n = sizeFromDataType(dataType)
         (dataType
-            .zip(Collections.segment(dataTypes.take(n), dataType.map(ev.size)(breakOut)))(breakOut)
-            .map(f => ev.decodeDataType(f._1, f._2)._1).to[CC](cbfD), dataTypes.drop(n))
+            .zip(Collections.segment(dataTypes.take(n), dataType.map(ev.sizeFromDataType)))
+            .map(f => ev.decodeDataTypeFromDataType(f._1, f._2)._1), dataTypes.drop(n))
       }
 
-      override def decodeShape(
-          dataType: CC[DD],
+      override def decodeShapeFromDataType(
+          dataType: Seq[DD],
           shapes: Seq[Shape]
-      ): (CC[SS], Seq[Shape]) = {
-        val n = size(dataType)
+      ): (Seq[SS], Seq[Shape]) = {
+        val n = sizeFromDataType(dataType)
         (dataType
-            .zip(Collections.segment(shapes.take(n), dataType.map(ev.size)(breakOut)))(breakOut)
-            .map(f => ev.decodeShape(f._1, f._2)._1).to[CC](cbfS), shapes.drop(n))
+            .zip(Collections.segment(shapes.take(n), dataType.map(ev.sizeFromDataType)))
+            .map(f => ev.decodeShapeFromDataType(f._1, f._2)._1), shapes.drop(n))
       }
 
-      override def dataTypeToString(dataType: CC[DD]): String = {
-        s"{${dataType.map(ev.dataTypeToString)(breakOut).mkString(", ")}}"
+      override def dataTypeToString(dataType: Seq[DD]): String = {
+        s"{${dataType.map(ev.dataTypeToString).mkString(", ")}}"
       }
 
-      override def shapeToString(shape: CC[SS]): String = {
-        s"{${shape.map(ev.shapeToString)(breakOut).mkString(", ")}}"
+      override def shapeToString(shape: Seq[SS]): String = {
+        s"{${shape.map(ev.shapeToString).mkString(", ")}}"
       }
     }
   }
 
-
-  implicit def mapEvidence[K, T, DD, SS, CC[CK, CV] <: MapLike[CK, CV, CC[CK, CV]] with Map[CK, CV]](implicit
+  implicit def fromMap[K, T, DD, SS](implicit
       ev: Aux[T, DD, SS]
-  ): Aux[CC[K, T], Map[K, DD], Map[K, SS]] = {
-    new SupportedData[CC[K, T]] {
+  ): Aux[Map[K, T], Map[K, DD], Map[K, SS]] = {
+    new SupportedData[Map[K, T]] {
       override type D = Map[K, DD]
       override type S = Map[K, SS]
 
-      override def size(dataType: Map[K, DD]): Int = {
-        dataType.values.map(ev.size).sum
+      override def sizeFromOutput(output: Map[K, T]): Int = {
+        output.values.map(ev.sizeFromOutput).sum
       }
 
-      override def dataType(output: CC[K, T]): Map[K, DD] = {
+      override def sizeFromDataType(dataType: Map[K, DD]): Int = {
+        dataType.values.map(ev.sizeFromDataType).sum
+      }
+
+      override def dataType(output: Map[K, T]): Map[K, DD] = {
         output.mapValues(ev.dataType)
       }
 
-      override def shape(output: CC[K, T]): Map[K, SS] = {
+      override def shape(output: Map[K, T]): Map[K, SS] = {
         output.mapValues(ev.shape)
       }
 
-      override def outputs(output: CC[K, T]): Seq[Output[Any]] = {
+      override def outputs(output: Map[K, T]): Seq[Output[Any]] = {
         output.values.flatMap(ev.outputs).toSeq
       }
 
@@ -458,38 +455,48 @@ object SupportedData {
         shape.values.flatMap(ev.shapes).toSeq
       }
 
-      override def decodeOutput(
-          dataType: Map[K, DD],
+      override def decodeOutputFromOutput(
+          output: Map[K, T],
           outputs: Seq[Output[Any]]
-      ): (CC[K, T], Seq[Output[Any]]) = {
-        val n = size(dataType)
-        // TODO: [DATASETS] !!! Fix this hacky solution for the return type.
-        (dataType.keys.zip(
-          dataType.values
-              .zip(Collections.segment(outputs.take(n), dataType.values.map(ev.size).toSeq))
-              .map(f => ev.decodeOutput(f._1, f._2)._1)).toMap.asInstanceOf[CC[K, T]], outputs.drop(n))
+      ): (Map[K, T], Seq[Output[Any]]) = {
+        val n = sizeFromOutput(output)
+        (output.keys.zip(
+          output.values
+              .zip(Collections.segment(outputs.take(n), output.values.map(ev.sizeFromOutput).toSeq))
+              .map(f => ev.decodeOutputFromOutput(f._1, f._2)._1)).toMap, outputs.drop(n))
       }
 
-      override def decodeDataType(
+      override def decodeOutputFromDataType(
+          dataType: Map[K, DD],
+          outputs: Seq[Output[Any]]
+      ): (Map[K, T], Seq[Output[Any]]) = {
+        val n = sizeFromDataType(dataType)
+        (dataType.keys.zip(
+          dataType.values
+              .zip(Collections.segment(outputs.take(n), dataType.values.map(ev.sizeFromDataType).toSeq))
+              .map(f => ev.decodeOutputFromDataType(f._1, f._2)._1)).toMap, outputs.drop(n))
+      }
+
+      override def decodeDataTypeFromDataType(
           dataType: Map[K, DD],
           dataTypes: Seq[DataType[Any]]
       ): (Map[K, DD], Seq[DataType[Any]]) = {
-        val n = size(dataType)
+        val n = sizeFromDataType(dataType)
         (dataType.keys.zip(
           dataType.values
-              .zip(Collections.segment(dataTypes.take(n), dataType.values.map(ev.size).toSeq))
-              .map(f => ev.decodeDataType(f._1, f._2)._1)).toMap.asInstanceOf[Map[K, DD]], dataTypes.drop(n))
+              .zip(Collections.segment(dataTypes.take(n), dataType.values.map(ev.sizeFromDataType).toSeq))
+              .map(f => ev.decodeDataTypeFromDataType(f._1, f._2)._1)).toMap, dataTypes.drop(n))
       }
 
-      override def decodeShape(
+      override def decodeShapeFromDataType(
           dataType: Map[K, DD],
           shapes: Seq[Shape]
       ): (Map[K, SS], Seq[Shape]) = {
-        val n = size(dataType)
+        val n = sizeFromDataType(dataType)
         (dataType.keys.zip(
           dataType.values
-              .zip(Collections.segment(shapes.take(n), dataType.values.map(ev.size).toSeq))
-              .map(f => ev.decodeShape(f._1, f._2)._1)).toMap.asInstanceOf[Map[K, SS]], shapes.drop(n))
+              .zip(Collections.segment(shapes.take(n), dataType.values.map(ev.sizeFromDataType).toSeq))
+              .map(f => ev.decodeShapeFromDataType(f._1, f._2)._1)).toMap, shapes.drop(n))
       }
 
       override def dataTypeToString(dataType: Map[K, DD]): String = {
@@ -502,12 +509,16 @@ object SupportedData {
     }
   }
 
-  implicit val hnilEvidence: Aux[HNil, HNil, HNil] = {
+  implicit val fromHNil: Aux[HNil, HNil, HNil] = {
     new SupportedData[HNil] {
       override type D = HNil
       override type S = HNil
 
-      override def size(dataType: HNil): Int = {
+      override def sizeFromOutput(output: HNil): Int = {
+        0
+      }
+
+      override def sizeFromDataType(dataType: HNil): Int = {
         0
       }
 
@@ -531,21 +542,28 @@ object SupportedData {
         Seq.empty
       }
 
-      override def decodeOutput(
+      override def decodeOutputFromOutput(
+          output: HNil,
+          outputs: Seq[Output[Any]]
+      ): (HNil, Seq[Output[Any]]) = {
+        (HNil, outputs)
+      }
+
+      override def decodeOutputFromDataType(
           dataType: HNil,
           outputs: Seq[Output[Any]]
       ): (HNil, Seq[Output[Any]]) = {
         (HNil, outputs)
       }
 
-      override def decodeDataType(
+      override def decodeDataTypeFromDataType(
           dataType: HNil,
           dataTypes: Seq[DataType[Any]]
       ): (HNil, Seq[DataType[Any]]) = {
         (HNil, dataTypes)
       }
 
-      override def decodeShape(
+      override def decodeShapeFromDataType(
           dataType: HNil,
           shapes: Seq[Shape]
       ): (HNil, Seq[Shape]) = {
@@ -562,74 +580,88 @@ object SupportedData {
     }
   }
 
-  implicit def recursiveEvidence[HT, HD, HS, TT <: HList, TD <: HList, TS <: HList](implicit
-      dataHead: Lazy[Aux[HT, HD, HS]],
-      dataTail: Aux[TT, TD, TS]
+  implicit def fromHList[HT, HD, HS, TT <: HList, TD <: HList, TS <: HList](implicit
+      evH: Strict[Aux[HT, HD, HS]],
+      evT: Aux[TT, TD, TS]
   ): Aux[HT :: TT, HD :: TD, HS :: TS] = {
     new SupportedData[HT :: TT] {
       override type D = HD :: TD
       override type S = HS :: TS
 
-      override def size(dataType: HD :: TD): Int = {
-        dataHead.value.size(dataType.head) +
-            dataTail.size(dataType.tail)
+      override def sizeFromOutput(output: HT :: TT): Int = {
+        evH.value.sizeFromOutput(output.head) +
+            evT.sizeFromOutput(output.tail)
+      }
+
+      override def sizeFromDataType(dataType: HD :: TD): Int = {
+        evH.value.sizeFromDataType(dataType.head) +
+            evT.sizeFromDataType(dataType.tail)
       }
 
       override def dataType(output: HT :: TT): HD :: TD = {
-        dataHead.value.dataType(output.head) ::
-            dataTail.dataType(output.tail)
+        evH.value.dataType(output.head) ::
+            evT.dataType(output.tail)
       }
 
       override def shape(output: HT :: TT): HS :: TS = {
-        dataHead.value.shape(output.head) ::
-            dataTail.shape(output.tail)
+        evH.value.shape(output.head) ::
+            evT.shape(output.tail)
       }
 
       override def outputs(output: HT :: TT): Seq[Output[Any]] = {
-        dataHead.value.outputs(output.head) ++
-            dataTail.outputs(output.tail)
+        evH.value.outputs(output.head) ++
+            evT.outputs(output.tail)
       }
 
       override def dataTypes(dataType: HD :: TD): Seq[DataType[Any]] = {
-        dataHead.value.dataTypes(dataType.head) ++
-            dataTail.dataTypes(dataType.tail)
+        evH.value.dataTypes(dataType.head) ++
+            evT.dataTypes(dataType.tail)
       }
 
       override def shapes(shape: HS :: TS): Seq[Shape] = {
-        dataHead.value.shapes(shape.head) ++
-            dataTail.shapes(shape.tail)
+        evH.value.shapes(shape.head) ++
+            evT.shapes(shape.tail)
       }
 
-      override def decodeOutput(
+      override def decodeOutputFromOutput(
+          output: HT :: TT,
+          outputs: Seq[Output[Any]]
+      ): (HT :: TT, Seq[Output[Any]]) = {
+        val (headOut, headRemaining) = evH.value.decodeOutputFromOutput(output.head, outputs)
+        val (tailOut, tailRemaining) = evT.decodeOutputFromOutput(output.tail, headRemaining)
+        (headOut :: tailOut, tailRemaining)
+      }
+
+      override def decodeOutputFromDataType(
           dataType: HD :: TD,
           outputs: Seq[Output[Any]]
       ): (HT :: TT, Seq[Output[Any]]) = {
-        val (headOut, headRemaining) = dataHead.value.decodeOutput(dataType.head, outputs)
-        val (tailOut, tailRemaining) = dataTail.decodeOutput(dataType.tail, headRemaining)
+        val (headOut, headRemaining) = evH.value.decodeOutputFromDataType(dataType.head, outputs)
+        val (tailOut, tailRemaining) = evT.decodeOutputFromDataType(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
-      override def decodeDataType(
+      override def decodeDataTypeFromDataType(
           dataType: HD :: TD,
           dataTypes: Seq[DataType[Any]]
       ): (HD :: TD, Seq[DataType[Any]]) = {
-        val (headOut, headRemaining) = dataHead.value.decodeDataType(dataType.head, dataTypes)
-        val (tailOut, tailRemaining) = dataTail.decodeDataType(dataType.tail, headRemaining)
+        val (headOut, headRemaining) = evH.value.decodeDataTypeFromDataType(dataType.head, dataTypes)
+        val (tailOut, tailRemaining) = evT.decodeDataTypeFromDataType(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
-      override def decodeShape(
+      override def decodeShapeFromDataType(
           dataType: HD :: TD,
           shapes: Seq[Shape]
       ): (HS :: TS, Seq[Shape]) = {
-        val (headOut, headRemaining) = dataHead.value.decodeShape(dataType.head, shapes)
-        val (tailOut, tailRemaining) = dataTail.decodeShape(dataType.tail, headRemaining)
+        val (headOut, headRemaining) = evH.value.decodeShapeFromDataType(dataType.head, shapes)
+        val (tailOut, tailRemaining) = evT.decodeShapeFromDataType(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
       override def dataTypeToString(dataType: HD :: TD): String = {
-        val headPart = dataHead.value.dataTypeToString(dataType.head)
-        val tailPart = dataTail.dataTypeToString(dataType.tail)
+        val headPart = evH.value.dataTypeToString(dataType.head)
+        val tailPart = evT.dataTypeToString(dataType.tail)
         if (headPart == "")
           tailPart
         else if (tailPart == "")
@@ -639,8 +671,8 @@ object SupportedData {
       }
 
       override def shapeToString(shape: HS :: TS): String = {
-        val headPart = dataHead.value.shapeToString(shape.head)
-        val tailPart = dataTail.shapeToString(shape.tail)
+        val headPart = evH.value.shapeToString(shape.head)
+        val tailPart = evT.shapeToString(shape.tail)
         if (headPart == "")
           tailPart
         else if (tailPart == "")
@@ -651,10 +683,138 @@ object SupportedData {
     }
   }
 
-  implicit def productEvidence[PT, PD, PS, HT <: HList, HD <: HList, HS <: HList](implicit
+  implicit def fromCoproduct[HT, HD, HS, TT <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
+      evH: Strict[Aux[HT, HD, HS]],
+      evT: Aux[TT, TD, TS]
+  ): Aux[HT :+: TT, HD :+: TD, HS :+: TS] = {
+    new SupportedData[HT :+: TT] {
+      override type D = HD :+: TD
+      override type S = HS :+: TS
+
+      override def sizeFromOutput(output: HT :+: TT): Int = {
+        output match {
+          case Inl(h) => evH.value.sizeFromOutput(h)
+          case Inr(t) => evT.sizeFromOutput(t)
+        }
+      }
+
+      override def sizeFromDataType(dataType: HD :+: TD): Int = {
+        dataType match {
+          case Inl(h) => evH.value.sizeFromDataType(h)
+          case Inr(t) => evT.sizeFromDataType(t)
+        }
+      }
+
+      override def dataType(output: HT :+: TT): HD :+: TD = {
+        output match {
+          case Inl(h) => Inl(evH.value.dataType(h))
+          case Inr(t) => Inr(evT.dataType(t))
+        }
+      }
+
+      override def shape(output: HT :+: TT): HS :+: TS = {
+        output match {
+          case Inl(h) => Inl(evH.value.shape(h))
+          case Inr(t) => Inr(evT.shape(t))
+        }
+      }
+
+      override def outputs(output: HT :+: TT): Seq[Output[Any]] = {
+        output match {
+          case Inl(h) => evH.value.outputs(h)
+          case Inr(t) => evT.outputs(t)
+        }
+      }
+
+      override def dataTypes(dataType: HD :+: TD): Seq[DataType[Any]] = {
+        dataType match {
+          case Inl(h) => evH.value.dataTypes(h)
+          case Inr(t) => evT.dataTypes(t)
+        }
+      }
+
+      override def shapes(shape: HS :+: TS): Seq[Shape] = {
+        shape match {
+          case Inl(h) => evH.value.shapes(h)
+          case Inr(t) => evT.shapes(t)
+        }
+      }
+
+      override def decodeOutputFromOutput(
+          output: HT :+: TT,
+          outputs: Seq[Output[Any]]
+      ): (HT :+: TT, Seq[Output[Any]]) = {
+        output match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.decodeOutputFromOutput(h, outputs)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.decodeOutputFromOutput(t, outputs)
+            (Inr(result), remaining)
+        }
+      }
+
+      override def decodeOutputFromDataType(
+          dataType: HD :+: TD,
+          outputs: Seq[Output[Any]]
+      ): (HT :+: TT, Seq[Output[Any]]) = {
+        dataType match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.decodeOutputFromDataType(h, outputs)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.decodeOutputFromDataType(t, outputs)
+            (Inr(result), remaining)
+        }
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: HD :+: TD,
+          dataTypes: Seq[DataType[Any]]
+      ): (HD :+: TD, Seq[DataType[Any]]) = {
+        dataType match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.decodeDataTypeFromDataType(h, dataTypes)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.decodeDataTypeFromDataType(t, dataTypes)
+            (Inr(result), remaining)
+        }
+      }
+
+      override def decodeShapeFromDataType(
+          dataType: HD :+: TD,
+          shapes: Seq[Shape]
+      ): (HS :+: TS, Seq[Shape]) = {
+        dataType match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.decodeShapeFromDataType(h, shapes)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.decodeShapeFromDataType(t, shapes)
+            (Inr(result), remaining)
+        }
+      }
+
+      override def dataTypeToString(dataType: HD :+: TD): String = {
+        dataType match {
+          case Inl(h) => evH.value.dataTypeToString(h)
+          case Inr(t) => evT.dataTypeToString(t)
+        }
+      }
+
+      override def shapeToString(shape: HS :+: TS): String = {
+        shape match {
+          case Inl(h) => evH.value.shapeToString(h)
+          case Inr(t) => evT.shapeToString(t)
+        }
+      }
+    }
+  }
+
+  implicit def fromProduct[PT <: Product, PD <: Product, PS <: Product, HT <: HList, HD <: HList, HS <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: Aux[HT, HD, HS],
-      tuplerT: Tupler.Aux[HT, PT],
+      evT: Strict[Aux[HT, HD, HS]],
       tuplerD: Tupler.Aux[HD, PD],
       tuplerS: Tupler.Aux[HS, PS],
       genD: Generic.Aux[PD, HD],
@@ -664,60 +824,72 @@ object SupportedData {
       override type D = PD
       override type S = PS
 
-      override def size(dataType: PD): Int = {
-        evT.size(genD.to(dataType))
+      override def sizeFromOutput(output: PT): Int = {
+        evT.value.sizeFromOutput(genT.to(output))
+      }
+
+      override def sizeFromDataType(dataType: PD): Int = {
+        evT.value.sizeFromDataType(genD.to(dataType))
       }
 
       override def dataType(output: PT): PD = {
-        tuplerD(evT.dataType(genT.to(output)))
+        tuplerD(evT.value.dataType(genT.to(output)))
       }
 
       override def shape(output: PT): PS = {
-        tuplerS(evT.shape(genT.to(output)))
+        tuplerS(evT.value.shape(genT.to(output)))
       }
 
       override def outputs(output: PT): Seq[Output[Any]] = {
-        evT.outputs(genT.to(output))
+        evT.value.outputs(genT.to(output))
       }
 
       override def dataTypes(dataType: PD): Seq[DataType[Any]] = {
-        evT.dataTypes(genD.to(dataType))
+        evT.value.dataTypes(genD.to(dataType))
       }
 
       override def shapes(shape: PS): Seq[Shape] = {
-        evT.shapes(genS.to(shape))
+        evT.value.shapes(genS.to(shape))
       }
 
-      override def decodeOutput(
+      override def decodeOutputFromOutput(
+          output: PT,
+          outputs: Seq[Output[Any]]
+      ): (PT, Seq[Output[Any]]) = {
+        val (out, remaining) = evT.value.decodeOutputFromOutput(genT.to(output), outputs)
+        (genT.from(out), remaining)
+      }
+
+      override def decodeOutputFromDataType(
           dataType: PD,
           outputs: Seq[Output[Any]]
       ): (PT, Seq[Output[Any]]) = {
-        val (out, remaining) = evT.decodeOutput(genD.to(dataType), outputs)
-        (tuplerT(out), remaining)
+        val (out, remaining) = evT.value.decodeOutputFromDataType(genD.to(dataType), outputs)
+        (genT.from(out), remaining)
       }
 
-      override def decodeDataType(
+      override def decodeDataTypeFromDataType(
           dataType: PD,
           dataTypes: Seq[DataType[Any]]
       ): (PD, Seq[DataType[Any]]) = {
-        val (out, remaining) = evT.decodeDataType(genD.to(dataType), dataTypes)
+        val (out, remaining) = evT.value.decodeDataTypeFromDataType(genD.to(dataType), dataTypes)
         (tuplerD(out), remaining)
       }
 
-      override def decodeShape(
+      override def decodeShapeFromDataType(
           dataType: PD,
           shapes: Seq[Shape]
       ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evT.decodeShape(genD.to(dataType), shapes)
+        val (out, remaining) = evT.value.decodeShapeFromDataType(genD.to(dataType), shapes)
         (tuplerS(out), remaining)
       }
 
       override def dataTypeToString(dataType: PD): String = {
-        evT.dataTypeToString(genD.to(dataType))
+        evT.value.dataTypeToString(genD.to(dataType))
       }
 
       override def shapeToString(shape: PS): String = {
-        evT.shapeToString(genS.to(shape))
+        evT.value.shapeToString(genS.to(shape))
       }
     }
   }

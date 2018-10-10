@@ -49,7 +49,7 @@ sealed trait Executable[T] {
 object Executable {
   def apply[T: Executable]: Executable[T] = implicitly[Executable[T]]
 
-  implicit def opExecutable[I, O]: Executable[Op[I, O]] = {
+  implicit def fromOp[I, O]: Executable[Op[I, O]] = {
     new Executable[Op[I, O]] {
       override def ops(executable: Op[I, O]): Set[UntypedOp] = {
         Set(executable)
@@ -57,7 +57,7 @@ object Executable {
     }
   }
 
-  implicit def outputExecutable[T]: Executable[Output[T]] = {
+  implicit def fromOutput[T]: Executable[Output[T]] = {
     new Executable[Output[T]] {
       override def ops(executable: Output[T]): Set[UntypedOp] = {
         Set(executable.op)
@@ -65,31 +65,7 @@ object Executable {
     }
   }
 
-  implicit def outputIndexedSlicesExecutable[T]: Executable[OutputIndexedSlices[T]] = {
-    new Executable[OutputIndexedSlices[T]] {
-      override def ops(executable: OutputIndexedSlices[T]): Set[UntypedOp] = {
-        Set(executable.op)
-      }
-    }
-  }
-
-  implicit def sparseOutputExecutable[T]: Executable[SparseOutput[T]] = {
-    new Executable[SparseOutput[T]] {
-      override def ops(executable: SparseOutput[T]): Set[UntypedOp] = {
-        Set(executable.op)
-      }
-    }
-  }
-
-  implicit def outputLikeExecutable[T]: Executable[OutputLike[T]] = {
-    new Executable[OutputLike[T]] {
-      override def ops(executable: OutputLike[T]): Set[UntypedOp] = {
-        Set(executable.op)
-      }
-    }
-  }
-
-  implicit def arrayExecutable[T: Executable]: Executable[Array[T]] = {
+  implicit def fromArray[T: Executable]: Executable[Array[T]] = {
     new Executable[Array[T]] {
       override def ops(executable: Array[T]): Set[UntypedOp] = {
         executable.flatMap(e => Executable[T].ops(e)).toSet
@@ -97,7 +73,7 @@ object Executable {
     }
   }
 
-  implicit def traversableExecutable[T: Executable, CC[A] <: TraversableLike[A, CC[A]]]: Executable[CC[T]] = {
+  implicit def fromTraversable[T: Executable, CC[A] <: TraversableLike[A, CC[A]]]: Executable[CC[T]] = {
     new Executable[CC[T]] {
       override def ops(executable: CC[T]): Set[UntypedOp] = {
         executable.flatMap(e => Executable[T].ops(e)).toSet
@@ -105,7 +81,7 @@ object Executable {
     }
   }
 
-  implicit val hnil: Executable[HNil] = {
+  implicit val fromHNil: Executable[HNil] = {
     new Executable[HNil] {
       override def ops(executable: HNil): Set[UntypedOp] = {
         Set.empty
@@ -113,25 +89,39 @@ object Executable {
     }
   }
 
-  implicit def recursiveConstructor[H, T <: HList](implicit
-      executableHead: Lazy[Executable[H]],
-      executableTail: Executable[T]
+  implicit def fromHList[H, T <: HList](implicit
+      evH: Strict[Executable[H]],
+      evT: Executable[T]
   ): Executable[H :: T] = {
     new Executable[H :: T] {
       override def ops(executable: H :: T): Set[UntypedOp] = {
-        executableHead.value.ops(executable.head) ++
-            executableTail.ops(executable.tail)
+        evH.value.ops(executable.head) ++
+            evT.ops(executable.tail)
       }
     }
   }
 
-  implicit def productConstructor[P <: Product, L <: HList](implicit
+  implicit def fromCoproduct[H, T <: Coproduct](implicit
+      evH: Strict[Executable[H]],
+      evT: Executable[T]
+  ): Executable[H :+: T] = {
+    new Executable[H :+: T] {
+      override def ops(executable: H :+: T): Set[UntypedOp] = {
+        executable match {
+          case Inl(h) => evH.value.ops(h)
+          case Inr(t) => evT.ops(t)
+        }
+      }
+    }
+  }
+
+  implicit def fromProduct[P <: Product, L <: HList](implicit
       gen: Generic.Aux[P, L],
-      executableL: Executable[L]
+      executableL: Strict[Executable[L]]
   ): Executable[P] = {
     new Executable[P] {
       override def ops(executable: P): Set[UntypedOp] = {
-        executableL.ops(gen.to(executable))
+        executableL.value.ops(gen.to(executable))
       }
     }
   }

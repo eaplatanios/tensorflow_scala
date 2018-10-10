@@ -115,7 +115,7 @@ class RMSProp protected (
         if (v.shape.isFullyDefined)
           OnesInitializer
         else
-          DynamicConstantInitializer(Basic.onesLike(v)(evTF))(evTF)
+          DynamicConstantInitializer(Basic.onesLike(v.value)(evTF))(evTF)
       }
       getSlot("AccumulatorRMS", v, v.dataType, rmsInit, v.shape, name)(evTF, evTF)
       if (centered)

@@ -15,23 +15,15 @@
 
 package org.platanios.tensorflow.api.core.client
 
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 
-import shapeless._
-import shapeless.ops.hlist.Tupler
-
-import scala.collection.SeqLike
 import scala.language.higherKinds
 
 /** Feedables can be fed into a TensorFlow session to fix the values of certain tensors to the provided values.
   *
   * For example, values for placeholder ops can be fed into TensorFlow sessions.
-  *
-  * Currently supported feedable types are:
-  *   - [[Output]] whose fed value should be a single [[Tensor]].
-  *   - [[OutputIndexedSlices]] whose fed value should be tuple [[(Tensor, Tensor, Tensor)]].
-  *   - [[SparseOutput]] whose fed value should be tuple [[(Tensor, Tensor, Tensor)]].
   *
   * Feedables are fed into TensorFlow sessions through the use of [[FeedMap]]s. Any [[Map]] that uses a feedable type as
   * the keys type and its corresponding value type as its values type is a valid feed map.
@@ -49,7 +41,7 @@ object Feedable {
 
   def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
 
-  implicit def outputFeedable[T]: Aux[Output[T], Tensor[T]] = {
+  implicit def fromOutput[T: TF]: Aux[Output[T], Tensor[T]] = {
     new Feedable[Output[T]] {
       override type ValueType = Tensor[T]
 
@@ -62,7 +54,7 @@ object Feedable {
     }
   }
 
-  implicit def outputIndexedSlicesFeedable[T]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
+  implicit def fromOutputIndexedSlices[T: TF]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
     new Feedable[OutputIndexedSlices[T]] {
       override type ValueType = TensorIndexedSlices[T]
 
@@ -78,7 +70,7 @@ object Feedable {
     }
   }
 
-  implicit def sparseOutputFeedable[T]: Aux[SparseOutput[T], SparseTensor[T]] = {
+  implicit def fromSparseOutput[T: TF]: Aux[SparseOutput[T], SparseTensor[T]] = {
     new Feedable[SparseOutput[T]] {
       override type ValueType = SparseTensor[T]
 
@@ -91,79 +83,6 @@ object Feedable {
           feedable.values -> value.values,
           feedable.denseShape -> value.denseShape)
       }
-    }
-  }
-
-  implicit def feedableArray[T, V](implicit ev: Aux[T, V]): Aux[Array[T], Array[V]] = {
-    new Feedable[Array[T]] {
-      override type ValueType = Array[V]
-
-      override def feed(
-          feedable: Array[T],
-          value: Array[V]
-      ): Map[Output[_], Tensor[_]] = {
-        feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output[_], Tensor[_]])({
-          case (feedMap, pair) => feedMap ++ ev.feed(pair._1, pair._2)
-        })
-      }
-    }
-  }
-
-  implicit def feedableSeq[T, V, CC[A] <: SeqLike[A, CC[A]]](implicit ev: Aux[T, V]): Aux[CC[T], CC[V]] = {
-    new Feedable[CC[T]] {
-      override type ValueType = CC[V]
-
-      override def feed(
-          feedable: CC[T],
-          value: CC[V]
-      ): Map[Output[_], Tensor[_]] = {
-        feedable.toSeq.zip(value.toSeq).foldLeft(Map.empty[Output[_], Tensor[_]])({
-          case (feedMap, pair) => feedMap ++ ev.feed(pair._1, pair._2)
-        })
-      }
-    }
-  }
-
-  // Feedable maps are intentionally not allowed because they would be inefficient without any real good use cases.
-
-  implicit val hnil: Aux[HNil, HNil] = new Feedable[HNil] {
-    override type ValueType = HNil
-
-    override def feed(
-        feedable: HNil,
-        value: HNil
-    ): Map[Output[_], Tensor[_]] = {
-      Map.empty[Output[_], Tensor[_]]
-    }
-  }
-
-  implicit def recursiveConstructor[H, R, T <: HList, TO <: HList](implicit
-      feedableHead: Lazy[Aux[H, R]],
-      feedableTail: Aux[T, TO]
-  ): Aux[H :: T, R :: TO] = new Feedable[H :: T] {
-    override type ValueType = R :: TO
-
-    override def feed(
-        feedable: H :: T,
-        value: R :: TO
-    ): Map[Output[_], Tensor[_]] = {
-      feedableHead.value.feed(feedable.head, value.head) ++
-          feedableTail.feed(feedable.tail, value.tail)
-    }
-  }
-
-  implicit def productConstructor[P, R, L <: HList, LO <: HList](implicit
-      genP: Generic.Aux[P, L],
-      feedableL: Aux[L, LO],
-      tuplerR: Tupler.Aux[LO, R],
-      genR: Generic.Aux[R, LO]
-  ): Aux[P, R] = new Feedable[P] {
-    override type ValueType = R
-    override def feed(
-        feedable: P,
-        value: R
-    ): Map[Output[_], Tensor[_]] = {
-      feedableL.feed(genP.to(feedable), genR.to(value))
     }
   }
 }

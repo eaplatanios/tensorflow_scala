@@ -15,16 +15,16 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, OutputLike, SparseOutput}
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices, TensorLike}
+import org.platanios.tensorflow.api.core.types.TF
+import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
+import org.platanios.tensorflow.api.tensors.{Tensor, TensorIndexedSlices, SparseTensor}
 import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
 import scala.collection.breakOut
-import scala.collection.generic.CanBuildFrom
-import scala.collection.{MapLike, SeqLike, mutable}
+import scala.collection.mutable
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
@@ -91,7 +91,7 @@ object Fetchable {
     type ResultType = R
   }
 
-  implicit def outputFetchable[T]: Aux[Output[T], Tensor[T]] = {
+  implicit def fromOutput[T: TF]: Aux[Output[T], Tensor[T]] = {
     new Fetchable[Output[T]] {
       override type ResultType = Tensor[T]
 
@@ -112,7 +112,7 @@ object Fetchable {
     }
   }
 
-  implicit def outputIndexedSlicesFetchable[T]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
+  implicit def fromOutputIndexedSlices[T: TF]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
     new Fetchable[OutputIndexedSlices[T]] {
       override type ResultType = TensorIndexedSlices[T]
 
@@ -137,7 +137,7 @@ object Fetchable {
     }
   }
 
-  implicit def sparseOutputFetchable[T]: Aux[SparseOutput[T], SparseTensor[T]] = {
+  implicit def fromSparseOutput[T: TF]: Aux[SparseOutput[T], SparseTensor[T]] = {
     new Fetchable[SparseOutput[T]] {
       override type ResultType = SparseTensor[T]
 
@@ -162,52 +162,7 @@ object Fetchable {
     }
   }
 
-  // TODO: [TYPES] Make this more elegant.
-
-  implicit def outputLikeFetchable[T]: Aux[OutputLike[T], TensorLike[T]] = {
-    new Fetchable[OutputLike[T]] {
-      override type ResultType = TensorLike[T]
-
-      override def numberOfFetches(fetchable: OutputLike[T]): Int = {
-        fetchable match {
-          case _: Output[T] => 1
-          case _: OutputIndexedSlices[T] => 3
-          case _: SparseOutput[T] => 3
-        }
-      }
-
-      override def fetches(fetchable: OutputLike[T]): Seq[Output[_]] = {
-        fetchable match {
-          case o: Output[T] => Seq(o)
-          case o: OutputIndexedSlices[T] => Seq(o.indices, o.values, o.denseShape)
-          case o: SparseOutput[T] => Seq(o.indices, o.values, o.denseShape)
-        }
-      }
-
-      override def segment(
-          fetchable: OutputLike[T],
-          values: Seq[Tensor[_]]
-      ): (TensorLike[T], Seq[Tensor[_]]) = {
-        fetchable match {
-          case _: Output[T] => (values.head.asInstanceOf[Tensor[T]], values.tail)
-          case _: OutputIndexedSlices[T] =>
-            (TensorIndexedSlices(
-              indices = values(0).asInstanceOf[Tensor[Long]],
-              values = values(1).asInstanceOf[Tensor[T]],
-              denseShape = values(2).asInstanceOf[Tensor[Long]]),
-                values.drop(3))
-          case _: SparseOutput[T] =>
-            (SparseTensor(
-              indices = values(0).asInstanceOf[Tensor[Long]],
-              values = values(1).asInstanceOf[Tensor[T]],
-              denseShape = values(2).asInstanceOf[Tensor[Long]]),
-                values.drop(3))
-        }
-      }
-    }
-  }
-
-  implicit def fetchableArray[T, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
+  implicit def fromArray[T, R: ClassTag](implicit ev: Aux[T, R]): Aux[Array[T], Array[R]] = {
     new Fetchable[Array[T]] {
       override type ResultType = Array[R]
 
@@ -232,52 +187,46 @@ object Fetchable {
     }
   }
 
-  implicit def fetchableSeq[T, R, CC[A] <: SeqLike[A, CC[A]]](implicit
-      ev: Aux[T, R],
-      cbf: CanBuildFrom[CC[T], R, CC[R]]
-  ): Aux[CC[T], CC[R]] = {
-    new Fetchable[CC[T]] {
-      override type ResultType = CC[R]
+  implicit def fromSeq[T, R](implicit ev: Aux[T, R]): Aux[Seq[T], Seq[R]] = {
+    new Fetchable[Seq[T]] {
+      override type ResultType = Seq[R]
 
-      override def numberOfFetches(fetchable: CC[T]): Int = {
+      override def numberOfFetches(fetchable: Seq[T]): Int = {
         fetchable.map(ev.numberOfFetches).sum
       }
 
-      override def fetches(fetchable: CC[T]): Seq[Output[_]] = {
+      override def fetches(fetchable: Seq[T]): Seq[Output[_]] = {
         fetchable.flatMap(ev.fetches).toSeq
       }
 
       override def segment(
-          fetchable: CC[T],
+          fetchable: Seq[T],
           values: Seq[Tensor[_]]
-      ): (CC[R], Seq[Tensor[_]]) = {
+      ): (Seq[R], Seq[Tensor[_]]) = {
         val n = numberOfFetches(fetchable)
         val segmented = Collections.segment(
           values.take(n), fetchable.map(ev.numberOfFetches).toSeq)
         (fetchable.zip(segmented)(breakOut)
-            .map(f => ev.resultsBuilder(f._1, f._2)).to[CC](cbf), values.drop(n))
+            .map(f => ev.resultsBuilder(f._1, f._2)), values.drop(n))
       }
     }
   }
 
-  implicit def fetchableMap[T, R, MK, CC[K, V] <: MapLike[K, V, CC[K, V]] with Map[K, V]](implicit
-      ev: Aux[T, R]
-  ): Aux[CC[MK, T], Map[MK, R]] = {
-    new Fetchable[CC[MK, T]] {
-      // TODO: [CLIENT] Return CC type instead of Map.
+  implicit def fromMap[T, R, MK](implicit ev: Aux[T, R]): Aux[Map[MK, T], Map[MK, R]] = {
+    new Fetchable[Map[MK, T]] {
       // TODO: [CLIENT] Make sure key-value pairs order is handled correctly here.
       override type ResultType = Map[MK, R]
 
-      override def numberOfFetches(fetchable: CC[MK, T]): Int = {
+      override def numberOfFetches(fetchable: Map[MK, T]): Int = {
         fetchable.values.map(ev.numberOfFetches).sum
       }
 
-      override def fetches(fetchable: CC[MK, T]): Seq[Output[_]] = {
+      override def fetches(fetchable: Map[MK, T]): Seq[Output[_]] = {
         fetchable.values.flatMap(ev.fetches).toSeq
       }
 
       override def segment(
-          fetchable: CC[MK, T],
+          fetchable: Map[MK, T],
           values: Seq[Tensor[_]]
       ): (Map[MK, R], Seq[Tensor[_]]) = {
         val n = numberOfFetches(fetchable)
@@ -290,7 +239,7 @@ object Fetchable {
     }
   }
 
-  implicit val hnil: Aux[HNil, HNil] = {
+  implicit val fromHNil: Aux[HNil, HNil] = {
     new Fetchable[HNil] {
       override type ResultType = HNil
 
@@ -311,53 +260,86 @@ object Fetchable {
     }
   }
 
-  implicit def recursiveConstructor[H, R, T <: HList, TO <: HList](implicit
-      fetchableHead: Lazy[Aux[H, R]],
-      fetchableTail: Aux[T, TO]
-  ): Aux[H :: T, R :: TO] = {
+  implicit def fromHList[H, HO, T <: HList, TO <: HList](implicit
+      evH: Strict[Aux[H, HO]],
+      evT: Aux[T, TO]
+  ): Aux[H :: T, HO :: TO] = {
     new Fetchable[H :: T] {
-      override type ResultType = R :: TO
+      override type ResultType = HO :: TO
 
       override def numberOfFetches(fetchable: H :: T): Int = {
-        fetchableHead.value.numberOfFetches(fetchable.head) +
-            fetchableTail.numberOfFetches(fetchable.tail)
+        evH.value.numberOfFetches(fetchable.head) +
+            evT.numberOfFetches(fetchable.tail)
       }
 
       override def fetches(fetchable: H :: T): Seq[Output[_]] = {
-        fetchableHead.value.fetches(fetchable.head) ++
-            fetchableTail.fetches(fetchable.tail)
+        evH.value.fetches(fetchable.head) ++
+            evT.fetches(fetchable.tail)
       }
 
       override def segment(
           fetchable: H :: T,
           tensors: Seq[Tensor[_]]
-      ): (R :: TO, Seq[Tensor[_]]) = {
-        val (headOut, headRemaining) = fetchableHead.value.segment(fetchable.head, tensors)
-        val (tailOut, tailRemaining) = fetchableTail.segment(fetchable.tail, headRemaining)
+      ): (HO :: TO, Seq[Tensor[_]]) = {
+        val (headOut, headRemaining) = evH.value.segment(fetchable.head, tensors)
+        val (tailOut, tailRemaining) = evT.segment(fetchable.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }
   }
 
-  // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-  implicit def productConstructor[P, R, L <: HList, LO <: HList](implicit
+  implicit def fromCoproduct[H, HO, T <: Coproduct, TO <: Coproduct](implicit
+      evH: Strict[Aux[H, HO]],
+      evT: Aux[T, TO]
+  ): Aux[H :+: T, HO :+: TO] = {
+    new Fetchable[H :+: T] {
+      override type ResultType = HO :+: TO
+
+      override def numberOfFetches(fetchable: H :+: T): Int = {
+        fetchable match {
+          case Inl(h) => evH.value.numberOfFetches(h)
+          case Inr(t) => evT.numberOfFetches(t)
+        }
+      }
+
+      override def fetches(fetchable: H :+: T): Seq[Output[_]] = {
+        fetchable match {
+          case Inl(h) => evH.value.fetches(h)
+          case Inr(t) => evT.fetches(t)
+        }
+      }
+
+      override def segment(fetchable: H :+: T, values: Seq[Tensor[_]]): (HO :+: TO, Seq[Tensor[_]]) = {
+        fetchable match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.segment(h, values)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.segment(t, values)
+            (Inr(result), remaining)
+        }
+      }
+    }
+  }
+
+  implicit def fromProduct[P <: Product, R <: Product, L <: HList, LO <: HList](implicit
       gen: Generic.Aux[P, L],
-      fetchableL: Aux[L, LO],
+      evL: Strict[Aux[L, LO]],
       tupler: Tupler.Aux[LO, R]
   ): Aux[P, R] = {
     new Fetchable[P] {
       override type ResultType = R
 
       override def numberOfFetches(fetchable: P): Int = {
-        fetchableL.numberOfFetches(gen.to(fetchable))
+        evL.value.numberOfFetches(gen.to(fetchable))
       }
 
       override def fetches(fetchable: P): Seq[Output[_]] = {
-        fetchableL.fetches(gen.to(fetchable))
+        evL.value.fetches(gen.to(fetchable))
       }
 
       override def segment(p: P, tensors: Seq[Tensor[_]]): (R, Seq[Tensor[_]]) = {
-        val (out, remaining) = fetchableL.segment(gen.to(p), tensors)
+        val (out, remaining) = evL.value.segment(gen.to(p), tensors)
         (tupler(out), remaining)
       }
     }

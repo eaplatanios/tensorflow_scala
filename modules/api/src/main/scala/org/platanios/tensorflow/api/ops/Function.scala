@@ -17,16 +17,14 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.core.types.{DataType, Variant, VARIANT, TF}
-import org.platanios.tensorflow.api.ops.data.{Dataset, SupportedData}
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
+import org.platanios.tensorflow.api.ops.data.SupportedData
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
 
 import org.tensorflow.framework.FunctionDef
-import shapeless._
-import shapeless.ops.hlist.Tupler
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
@@ -40,335 +38,57 @@ case class Function[I, O](
     name: String,
     function: I => O
 )(implicit
-    evInput: Function.ArgType[I],
-    evOutput: Function.ArgType[O]
+    evInput: SupportedData[I],
+    evOutput: SupportedData[O]
 ) {
   def apply(
       arg: I,
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   ): O = {
-    val dataTypes = evInput.dataTypes(arg)
+    val dataTypes = evInput.outputs(arg).map(_.dataType)
     val key = dataTypes.map(_.toString).mkString(":")
     InstantiatedFunction(
       name = s"${name}_$key",
       function = function,
-      inputDataTypes = dataTypes,
+      inputDataType = evInput.dataType(arg),
       input = Some(arg),
       captureByValue = captureByValue, appendHashToName = appendHashToName
-    )(evInput, evOutput)(arg)
+    )(evInput.asInstanceOf[SupportedData.Aux[I, evInput.D, evInput.S]], evOutput).apply(arg)
   }
 
-  def instantiate(
-      inputDataTypes: Seq[DataType[Any]],
-      inputShapes: Seq[Shape] = null,
+  def instantiate[ID, IS](
+      inputDataType: ID,
+      inputShape: Option[IS] = None,
       input: Option[I] = None,
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
+  )(implicit
+      evInputSpecific: SupportedData.Aux[I, ID, IS]
   ): InstantiatedFunction[I, O] = {
+    val inputDataTypes = evInputSpecific.dataTypes(inputDataType)
+    val inputShapes = inputShape.map(evInputSpecific.shapes)
     val key = (inputDataTypes.map(_.toString) ++
-        Option(inputShapes).getOrElse(Seq.empty).map(_.toString)).mkString(":")
+        inputShapes.getOrElse(Seq.empty).map(_.toString)).mkString(":")
     InstantiatedFunction(
       name = s"${name}_$key",
       function = function,
-      inputDataTypes = inputDataTypes,
-      inputShapes = Option(inputShapes),
+      inputDataType = inputDataType,
+      inputShape = inputShape,
       input = input,
       captureByValue = captureByValue,
       appendHashToName = appendHashToName
-    )(evInput, evOutput)
-  }
-}
-
-object Function {
-  trait ArgType[O] {
-    def numOutputs: Int
-    def outputs(arg: O): Seq[Output[Any]]
-    def dataTypes(arg: O): Seq[DataType[Any]]
-    def outputsDecoder(outputs: Seq[Output[Any]]): (O, Seq[Output[Any]])
-    def outputsDecoderWithKnownArg(arg: O, outputs: Seq[Output[Any]]): (O, Seq[Output[Any]])
-  }
-
-  object ArgType {
-    implicit def outputArgType[T]: ArgType[Output[T]] = {
-      new ArgType[Output[T]] {
-        override def numOutputs: Int = {
-          1
-        }
-
-        override def outputs(arg: Output[T]): Seq[Output[Any]] = {
-          Seq(arg)
-        }
-
-        override def dataTypes(arg: Output[T]): Seq[DataType[Any]] = {
-          Seq(arg.dataType)
-        }
-
-        override def outputsDecoder(
-            outputs: Seq[Output[Any]]
-        ): (Output[T], Seq[Output[Any]]) = {
-          (outputs.head.asInstanceOf[Output[T]], outputs.tail)
-        }
-
-        override def outputsDecoderWithKnownArg(
-            arg: Output[T],
-            outputs: Seq[Output[Any]]
-        ): (Output[T], Seq[Output[Any]]) = {
-          (outputs.head.asInstanceOf[Output[T]], outputs.tail)
-        }
-      }
-    }
-
-    implicit def outputIndexedSlicesArgType[T]: ArgType[OutputIndexedSlices[T]] = {
-      new ArgType[OutputIndexedSlices[T]] {
-        override def numOutputs: Int = {
-          3
-        }
-
-        override def outputs(
-            arg: OutputIndexedSlices[T]
-        ): Seq[Output[Any]] = {
-          Seq(arg.indices, arg.values, arg.denseShape)
-        }
-
-        override def dataTypes(
-            arg: OutputIndexedSlices[T]
-        ): Seq[DataType[Any]] = {
-          Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
-        }
-
-        override def outputsDecoder(
-            outputs: Seq[Output[Any]]
-        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
-          (OutputIndexedSlices(
-            indices = outputs(0).asInstanceOf[Output[Long]],
-            values = outputs(1).asInstanceOf[Output[T]],
-            denseShape = outputs(2).asInstanceOf[Output[Long]]),
-              outputs.drop(3))
-        }
-
-        override def outputsDecoderWithKnownArg(
-            arg: OutputIndexedSlices[T],
-            outputs: Seq[Output[Any]]
-        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
-          (OutputIndexedSlices(
-            indices = outputs(0).asInstanceOf[Output[Long]],
-            values = outputs(1).asInstanceOf[Output[T]],
-            denseShape = outputs(2).asInstanceOf[Output[Long]]),
-              outputs.drop(3))
-        }
-      }
-    }
-
-    implicit def sparseOutputArgType[T]: ArgType[SparseOutput[T]] = {
-      new ArgType[SparseOutput[T]] {
-        override def numOutputs: Int = {
-          3
-        }
-
-        override def outputs(
-            arg: SparseOutput[T]
-        ): Seq[Output[Any]] = {
-          Seq(arg.indices, arg.values, arg.denseShape)
-        }
-
-        override def dataTypes(
-            arg: SparseOutput[T]
-        ): Seq[DataType[Any]] = {
-          Seq(arg.indices.dataType, arg.values.dataType, arg.denseShape.dataType)
-        }
-
-        override def outputsDecoder(
-            outputs: Seq[Output[Any]]
-        ): (SparseOutput[T], Seq[Output[Any]]) = {
-          (SparseOutput(
-            indices = outputs(0).asInstanceOf[Output[Long]],
-            values = outputs(1).asInstanceOf[Output[T]],
-            denseShape = outputs(2).asInstanceOf[Output[Long]]),
-              outputs.drop(3))
-        }
-
-        override def outputsDecoderWithKnownArg(
-            arg: SparseOutput[T],
-            outputs: Seq[Output[Any]]
-        ): (SparseOutput[T], Seq[Output[Any]]) = {
-          (SparseOutput(
-            indices = outputs(0).asInstanceOf[Output[Long]],
-            values = outputs(1).asInstanceOf[Output[T]],
-            denseShape = outputs(2).asInstanceOf[Output[Long]]),
-              outputs.drop(3))
-        }
-      }
-    }
-
-    // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".
-
-    case class VariantDataset[T] protected(
-        handle: Output[Variant],
-        override val evData: SupportedData[T],
-        private val dataType: Any = null,
-        private val shape: Any = null
-    ) extends Dataset[T] {
-      override val name: String = "VariantDataset"
-
-      override def createHandle(): Output[Variant] = handle
-      override def outputDataTypes: evData.D = dataType.asInstanceOf[evData.D]
-      override def outputShapes: evData.S = shape.asInstanceOf[evData.S]
-    }
-
-    implicit def datasetArgType[T](implicit
-        evData: SupportedData[T]
-    ): ArgType[Dataset[T]] = {
-      new ArgType[Dataset[T]] {
-        override def numOutputs: Int = {
-          1
-        }
-
-        override def outputs(arg: Dataset[T]): Seq[Output[Any]] = {
-          Seq(arg.createHandle())
-        }
-
-        override def dataTypes(arg: Dataset[T]): Seq[DataType[Any]] = {
-          Seq(VARIANT)
-        }
-
-        override def outputsDecoder(
-            outputs: Seq[Output[Any]]
-        ): (Dataset[T], Seq[Output[Any]]) = {
-          (VariantDataset[T](
-            handle = outputs.head.asInstanceOf[Output[Variant]],
-            evData = evData),
-              outputs.drop(1))
-        }
-
-        override def outputsDecoderWithKnownArg(
-            arg: Dataset[T],
-            outputs: Seq[Output[Any]]
-        ): (Dataset[T], Seq[Output[Any]]) = {
-          (VariantDataset[T](
-            handle = outputs.head.asInstanceOf[Output[Variant]],
-            evData = evData,
-            dataType = arg.outputDataTypes.asInstanceOf[evData.D],
-            shape = arg.outputShapes.asInstanceOf[evData.S]
-          ), outputs.drop(1))
-        }
-      }
-    }
-
-    implicit val hnil: ArgType[HNil] = {
-      new ArgType[HNil] {
-        override def numOutputs: Int = {
-          0
-        }
-
-        override def outputs(arg: HNil): Seq[Output[Any]] = {
-          Seq.empty
-        }
-
-        override def dataTypes(arg: HNil): Seq[DataType[Any]] = {
-          Seq.empty
-        }
-
-        override def outputsDecoder(
-            outputs: Seq[Output[Any]]
-        ): (HNil, Seq[Output[Any]]) = {
-          (HNil, outputs)
-        }
-
-        override def outputsDecoderWithKnownArg(
-            arg: HNil,
-            outputs: Seq[Output[Any]]
-        ): (HNil, Seq[Output[Any]]) = {
-          (HNil, outputs)
-        }
-      }
-    }
-
-    implicit def recursiveConstructor[H, T <: HList](implicit
-        argTypeHead: Lazy[ArgType[H]],
-        argTypeTail: ArgType[T]
-    ): ArgType[H :: T] = {
-      new ArgType[H :: T] {
-        override def numOutputs: Int = {
-          argTypeHead.value.numOutputs + argTypeTail.numOutputs
-        }
-
-        override def outputs(arg: H :: T): Seq[Output[Any]] = {
-          argTypeHead.value.outputs(arg.head) ++
-              argTypeTail.outputs(arg.tail)
-        }
-
-        override def dataTypes(arg: H :: T): Seq[DataType[Any]] = {
-          argTypeHead.value.dataTypes(arg.head) ++
-              argTypeTail.dataTypes(arg.tail)
-        }
-
-        override def outputsDecoder(
-            outputs: Seq[Output[Any]]
-        ): (H :: T, Seq[Output[Any]]) = {
-          val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoder(outputs)
-          val (decodedTail, tail) = argTypeTail.outputsDecoder(outputsTail)
-          (decodedHead :: decodedTail, tail)
-        }
-
-        override def outputsDecoderWithKnownArg(
-            arg: H :: T,
-            outputs: Seq[Output[Any]]
-        ): (H :: T, Seq[Output[Any]]) = {
-          val (decodedHead, outputsTail) = argTypeHead.value.outputsDecoderWithKnownArg(arg.head, outputs)
-          val (decodedTail, tail) = argTypeTail.outputsDecoderWithKnownArg(arg.tail, outputsTail)
-          (decodedHead :: decodedTail, tail)
-        }
-      }
-    }
-
-    // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-    implicit def productConstructor[P, L <: HList](implicit
-        gen: Generic.Aux[P, L],
-        argTypeL: ArgType[L],
-        tupler: Tupler.Aux[L, P]
-    ): ArgType[P] = {
-      new ArgType[P] {
-        override def numOutputs: Int = {
-          argTypeL.numOutputs
-        }
-
-        override def outputs(arg: P): Seq[Output[Any]] = {
-          argTypeL.outputs(gen.to(arg))
-        }
-
-        override def dataTypes(arg: P): Seq[DataType[Any]] = {
-          argTypeL.dataTypes(gen.to(arg))
-        }
-
-        override def outputsDecoder(
-            outputs: Seq[Output[Any]]
-        ): (P, Seq[Output[Any]]) = {
-          val (decoded, tail) = argTypeL.outputsDecoder(outputs)
-          (tupler(decoded), tail)
-        }
-
-        override def outputsDecoderWithKnownArg(
-            arg: P,
-            outputs: Seq[Output[Any]]
-        ): (P, Seq[Output[Any]]) = {
-          val (decoded, tail) = argTypeL.outputsDecoderWithKnownArg(gen.to(arg), outputs)
-          (tupler(decoded), tail)
-        }
-      }
-    }
+    )(evInputSpecific, evOutput)
   }
 }
 
 // TODO: [TYPES] !!! What about type variance here?
 
-private[api] class InstantiatedFunction[I, O] protected (
+private[api] class InstantiatedFunction[I, O] protected(
     val hashedName: String,
     val inputNames: Seq[String],
     val outputNames: Seq[String],
-    private[ops] val dummyOutputs: O,
-    val outputDataTypes: Seq[DataType[Any]],
-    val outputShapes: Seq[Shape],
+    private[ops] val _dummyOutput: O,
     val subFunctions: Set[InstantiatedFunction[_, _]],
     val extraInputs: Seq[Output[Any]],
     val functionDef: FunctionDef,
@@ -376,9 +96,17 @@ private[api] class InstantiatedFunction[I, O] protected (
     private[this] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
 )(implicit
-    evInput: Function.ArgType[I],
-    evOutput: Function.ArgType[O]
+    evInput: SupportedData[I],
+    evOutput: SupportedData[O]
 ) extends Closeable {
+  def outputDataTypes[D](implicit evOSpecific: SupportedData.Aux[O, D, _]): D = {
+    evOSpecific.dataType(_dummyOutput)
+  }
+
+  def outputShapes[S](implicit evOSpecific: SupportedData.Aux[O, _, S]): S = {
+    evOSpecific.shape(_dummyOutput)
+  }
+
   /** Lock for the native handle. */
   private[InstantiatedFunction] def NativeHandleLock = {
     nativeHandleWrapper.Lock
@@ -447,7 +175,7 @@ private[api] class InstantiatedFunction[I, O] protected (
       }
       builder.build().output
     }
-    evOutput.outputsDecoderWithKnownArg(dummyOutputs, outputs)._1
+    evOutput.decodeOutputFromOutput(_dummyOutput, outputs)._1
   }
 
   /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
@@ -457,81 +185,56 @@ private[api] class InstantiatedFunction[I, O] protected (
 }
 
 object InstantiatedFunction {
-  private[api] def apply[I, O](
+  private[api] def apply[I, ID, IS, O](
       name: String,
       function: I => O,
-      inputDataTypes: Seq[DataType[Any]],
-      inputShapes: Option[Seq[Shape]] = None,
+      inputDataType: ID,
+      inputShape: Option[IS] = None,
       input: Option[I] = None,
       captureByValue: Boolean = false,
-      appendHashToName: Boolean = false,
-      _inputNames: Seq[String] = null,
-      _outputNames: Seq[String] = null
+      appendHashToName: Boolean = false
   )(implicit
-      evInput: Function.ArgType[I],
-      evOutput: Function.ArgType[O]
+      evInput: SupportedData.Aux[I, ID, IS],
+      evOutput: SupportedData[O]
   ): InstantiatedFunction[I, O] = {
-    require(inputDataTypes.lengthCompare(evInput.numOutputs) == 0,
-      s"The number of 'inputDataTypes' provided (${inputDataTypes.length}) " +
-          s"does not match the number of inputs (${evInput.numOutputs}).")
-
-    // List of placeholders for the function definition
+    // List of placeholders for the function definition.
+    val inputDataTypes = evInput.dataTypes(inputDataType)
     val inputs = mutable.ListBuffer.empty[Output[Any]]
     val functionGraph = FunctionGraph(captureByValue)
-    val (inputNames, outputNames, outputs, flattenedOutputs) = Op.createWith(functionGraph) {
-      // Determine names for the function inputs
-      val inputNames = {
-        if (_inputNames != null) {
-          require(_inputNames.lengthCompare(inputDataTypes.length) == 0,
-            s"The number of 'inputNames' provided (${_inputNames.length}) " +
-                s"does not match the number of inputs (${inputDataTypes.length}).")
-          _inputNames
-        } else {
-          inputDataTypes.indices.map(i => s"input_$i")
-        }
-      }
-
-      inputShapes match {
+    val (inputNamesWithDefault, outputNamesWithDefault, outputs, flattenedOutputs) = Op.createWith(functionGraph) {
+      // Determine names for the function inputs.
+      val inputNamesWithDefault = inputDataTypes.indices.map(i => s"input_$i")
+      inputShape match {
         case None =>
-          inputs.appendAll((inputNames, inputDataTypes).zipped
+          inputs.appendAll((inputNamesWithDefault, inputDataTypes).zipped
               .map((name, dataType) => {
                 Basic.placeholder(name = name)(TF.fromDataType(dataType))
               }))
-        case Some(shapes) =>
-          inputs.appendAll((inputNames, inputDataTypes, shapes).zipped
+        case Some(shape) =>
+          inputs.appendAll((inputNamesWithDefault, inputDataTypes, evInput.shapes(shape)).zipped
               .map((name, dataType, shape) => {
                 Basic.placeholder(shape, name = name)(TF.fromDataType(dataType))
               }))
       }
 
-      // Call the Scala function and gather the output tensors
+      // Call the Scala function and gather the output tensors.
       val (outputs, flattenedOutputs) = {
         VariableScope.scope(
           name = "",
           underlyingGetter = functionGraph.customVariableGetter
         ) {
-          // Unflatten the inputs, pass them to the function, and then flatten the returned outputs
-          val outputs = function(
-            input.map(evInput.outputsDecoderWithKnownArg(_, inputs)._1)
-                .getOrElse(evInput.outputsDecoder(inputs)._1))
-          val flattenedOutputs = evOutput.outputs(outputs)
-              .map(functionGraph.capture)
-          (evOutput.outputsDecoderWithKnownArg(outputs, flattenedOutputs)._1, flattenedOutputs)
+          // Unflatten the inputs, pass them to the function, and then flatten the returned outputs.
+          val outputs = function(input.map(evInput.decodeOutputFromOutput(_, inputs)._1)
+              .getOrElse(evInput.decodeOutputFromDataType(inputDataType, inputs)._1))
+          val flattenedOutputs = evOutput.outputs(outputs).map(functionGraph.capture)
+          (evOutput.decodeOutputFromOutput(outputs, flattenedOutputs)._1, flattenedOutputs)
         }
       }
 
-      // Determine names for the function outputs
-      val outputNames = {
-        if (_outputNames != null) {
-          require(_outputNames.lengthCompare(evOutput.numOutputs) == 0,
-            s"The number of 'outputNames' provided (${_outputNames.length}) " +
-                s"does not match the number of outputs (${evOutput.numOutputs}).")
-          _outputNames
-        } else {
-          flattenedOutputs.indices.map(i => s"output_$i")
-        }
-      }
-      (inputNames, outputNames, outputs, flattenedOutputs)
+      // Determine names for the function outputs.
+      val outputNamesWithDefault = flattenedOutputs.indices.map(i => s"output_$i")
+
+      (inputNamesWithDefault, outputNamesWithDefault, outputs, flattenedOutputs)
     }
 
     val extraInputs = functionGraph.extraInputs
@@ -543,7 +246,7 @@ object InstantiatedFunction {
       functionGraph.nativeHandle, name, appendHashToFnName = appendHashToName, null,
       inputs.map(_.op.nativeHandle).toArray, inputs.map(_.index).toArray,
       flattenedOutputs.map(_.op.nativeHandle).toArray, flattenedOutputs.map(_.index).toArray,
-      outputNames.toArray)
+      outputNamesWithDefault.toArray)
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val functionDef = FunctionDef.parseFrom(nativeHandleWrapper.Lock.synchronized {
       NativeFunction.toFunctionDef(nativeHandle)
@@ -557,9 +260,9 @@ object InstantiatedFunction {
         }
       }
     }
-    val instantiatedFunction = new InstantiatedFunction(
-      functionName, inputNames, outputNames, outputs, flattenedOutputs.map(_.dataType), flattenedOutputs.map(_.shape),
-      subFunctions, extraInputs, functionDef, name, nativeHandleWrapper, closeFn)(evInput, evOutput)
+    val instantiatedFunction = new InstantiatedFunction[I, O](
+      functionName, inputNamesWithDefault, outputNamesWithDefault, outputs,
+      subFunctions, extraInputs, functionDef, name, nativeHandleWrapper, closeFn)
     // Keep track of references in the Scala side and notify the native library when the function is not referenced
     // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
     // potential memory leak.

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.core.types.{Variant, INT64, STRING}
+import org.platanios.tensorflow.api.core.types.{INT64, STRING, Variant}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.TensorToOutput
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
@@ -29,6 +29,11 @@ import java.util.concurrent.atomic.AtomicLong
 import scala.collection.mutable
 import scala.language.postfixOps
 
+// TODO: [DATA] Separate into readers and transformations.
+// TODO: [DATA] paddedBatchAndDropRemainder
+// TODO: [DATA] denseToSparseBatch
+// TODO: [DATA] listFiles
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -39,22 +44,19 @@ trait Data {
     *
     * @param  data   Data representing the single element.
     * @param  name   Name for this dataset.
-    * @param  evData Type class instance for the element type.
     * @tparam T Tensor type of the element.
     * @return Created dataset.
     */
   def datasetFromOutputs[T](
       data: T,
       name: String = "TensorDataset"
-  )(implicit evData: SupportedData[T]): Dataset[T] = {
+  ): Dataset[T] = {
     val datasetName = name
-    val ev = evData
     new Dataset[T] {
-      override val name  : String           = datasetName
-      override val evData: SupportedData[T] = ev
+      override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
-        val flatOutputs = evData.outputs(data)
+      override def createHandle[D, S]()(implicit evT: SupportedData.Aux[T, D, S]): Output[Variant] = {
+        val flatOutputs = evT.outputs(data)
         Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorDataset",
           name = name,
@@ -63,8 +65,13 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes: evData.D = evData.dataType(data)
-      override def outputShapes: evData.S = evData.shape(data)
+      override def outputDataTypes[D, S](implicit evT: SupportedData.Aux[T, D, S]): D = {
+        evT.dataType(data)
+      }
+
+      override def outputShapes[D, S](implicit evT: SupportedData.Aux[T, D, S]): S = {
+        evT.shape(data)
+      }
     }
   }
 
@@ -72,18 +79,14 @@ trait Data {
     *
     * @param  data   Data representing the single element.
     * @param  name   Name for this dataset.
-    * @param  evData Type class instance for the element type.
-    * @tparam T Tensor type of the element.
-    * @tparam O Tensor type of the element (symbolic equivalent of `T`).
+    * @tparam TT Tensor type of the element.
+    * @tparam T  Tensor type of the element (symbolic equivalent of `TT`).
     * @return Created dataset.
     */
-  def datasetFromTensors[T, O](
-      data: T,
+  def datasetFromTensors[TT, T](
+      data: TT,
       name: String = "TensorDataset"
-  )(implicit
-      evTensorToOutput: TensorToOutput.Aux[T, O],
-      evData: SupportedData[O]
-  ): Dataset[O] = {
+  )(implicit evTensorToOutput: TensorToOutput.Aux[TT, T]): Dataset[T] = {
     val outputData = Op.nameScope(s"$name/TensorToOutput") {
       evTensorToOutput.toOutput(data)
     }
@@ -95,22 +98,19 @@ trait Data {
     *
     * @param  data   Data representing the elements of this dataset.
     * @param  name   Name for this dataset.
-    * @param  evData Type class instance for the element type.
     * @tparam T Tensor type of the element.
     * @return Created dataset.
     */
   def datasetFromOutputSlices[T](
       data: T,
       name: String = "TensorSlicesDataset"
-  )(implicit evData: SupportedData[T]): Dataset[T] = {
+  ): Dataset[T] = {
     val datasetName = name
-    val ev = evData
     new Dataset[T] {
-      override val name  : String           = datasetName
-      override val evData: SupportedData[T] = ev
+      override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
-        val flatOutputs = evData.outputs(data)
+      override def createHandle[D, S]()(implicit evT: SupportedData.Aux[T, D, S]): Output[Variant] = {
+        val flatOutputs = evT.outputs(data)
         Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorSliceDataset",
           name = name,
@@ -119,13 +119,13 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes: evData.D = {
-        evData.dataType(data)
+      override def outputDataTypes[D, S](implicit evT: SupportedData.Aux[T, D, S]): D = {
+        evT.dataType(data)
       }
 
-      override def outputShapes: evData.S = {
-        val flatShapes = evData.shapes(evData.shape(data))
-        evData.decodeShape(
+      override def outputShapes[D, S](implicit evT: SupportedData.Aux[T, D, S]): S = {
+        val flatShapes = evT.shapes(evT.shape(data))
+        evT.decodeShapeFromDataType(
           outputDataTypes,
           flatShapes.map(s => if (s.rank > 1) s(1 ::) else Shape.scalar()))._1
       }
@@ -137,18 +137,14 @@ trait Data {
     *
     * @param  data   Data representing the elements of this dataset.
     * @param  name   Name for this dataset.
-    * @param  evData Type class instance for the element type.
-    * @tparam T Tensor type of the element.
-    * @tparam O Tensor type of the element (symbolic equivalent of `T`).
+    * @tparam TT Tensor type of the element.
+    * @tparam T  Tensor type of the element (symbolic equivalent of `TT`).
     * @return Created dataset.
     */
-  def datasetFromTensorSlices[T, O](
-      data: T,
+  def datasetFromTensorSlices[TT, T](
+      data: TT,
       name: String = "TensorSlicesDataset"
-  )(implicit
-      evTensorToOutput: TensorToOutput.Aux[T, O],
-      evData: SupportedData[O]
-  ): Dataset[O] = {
+  )(implicit evTensorToOutput: TensorToOutput.Aux[TT, T]): Dataset[T] = {
     val outputData = Op.nameScope(s"$name/TensorToOutput") {
       evTensorToOutput.toOutput(data)
     }
@@ -173,10 +169,9 @@ trait Data {
   ): Dataset[Output[Long]] = {
     val datasetName = name
     new Dataset[Output[Long]] {
-      override val name  : String                      = datasetName
-      override val evData: SupportedData[Output[Long]] = implicitly[SupportedData[Output[Long]]]
+      override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputLong: SupportedData.Aux[Output[Long], D, S]): Output[Variant] = {
         Op.Builder[(Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "RangeDataset",
           name = name,
@@ -189,8 +184,13 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes: evData.D = INT64.asInstanceOf[evData.D]
-      override def outputShapes: evData.S = Shape.scalar().asInstanceOf[evData.S]
+      override def outputDataTypes[D, S](implicit evOutputLong: SupportedData.Aux[Output[Long], D, S]): D = {
+        INT64.asInstanceOf[D]
+      }
+
+      override def outputShapes[D, S](implicit evOutputLong: SupportedData.Aux[Output[Long], D, S]): S = {
+        Shape().asInstanceOf[S]
+      }
     }
   }
 
@@ -214,10 +214,9 @@ trait Data {
   ): Dataset[Output[String]] = {
     val datasetName = name
     new Dataset[Output[String]] {
-      override val name  : String                        = datasetName
-      override val evData: SupportedData[Output[String]] = implicitly[SupportedData[Output[String]]]
+      override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputString: SupportedData.Aux[Output[String], D, S]): Output[Variant] = {
         Op.Builder[(Output[String], Output[Long], Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "FixedLengthRecordDataset",
           name = name,
@@ -232,8 +231,13 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes: evData.D = STRING.asInstanceOf[evData.D]
-      override def outputShapes: evData.S = Shape.scalar().asInstanceOf[evData.S]
+      override def outputDataTypes[D, S](implicit evOutputString: SupportedData.Aux[Output[String], D, S]): D = {
+        STRING.asInstanceOf[D]
+      }
+
+      override def outputShapes[D, S](implicit evOutputString: SupportedData.Aux[Output[String], D, S]): S = {
+        Shape().asInstanceOf[S]
+      }
     }
   }
 
@@ -255,10 +259,9 @@ trait Data {
   ): Dataset[Output[String]] = {
     val datasetName = name
     new Dataset[Output[String]] {
-      override val name  : String                        = datasetName
-      override val evData: SupportedData[Output[String]] = implicitly[SupportedData[Output[String]]]
+      override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputString: SupportedData.Aux[Output[String], D, S]): Output[Variant] = {
         Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TextLineDataset",
           name = name,
@@ -271,8 +274,13 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes: evData.D = STRING.asInstanceOf[evData.D]
-      override def outputShapes: evData.S = Shape.scalar().asInstanceOf[evData.S]
+      override def outputDataTypes[D, S](implicit evOutputString: SupportedData.Aux[Output[String], D, S]): D = {
+        STRING.asInstanceOf[D]
+      }
+
+      override def outputShapes[D, S](implicit evOutputString: SupportedData.Aux[Output[String], D, S]): S = {
+        Shape().asInstanceOf[S]
+      }
     }
   }
 
@@ -292,10 +300,9 @@ trait Data {
   ): Dataset[Output[String]] = {
     val datasetName = name
     new Dataset[Output[String]] {
-      override val name  : String                        = datasetName
-      override val evData: SupportedData[Output[String]] = implicitly[SupportedData[Output[String]]]
+      override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputString: SupportedData.Aux[Output[String], D, S]): Output[Variant] = {
         Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TFRecordDataset",
           name = name,
@@ -308,8 +315,13 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes: evData.D = STRING.asInstanceOf[evData.D]
-      override def outputShapes: evData.S = Shape.scalar().asInstanceOf[evData.S]
+      override def outputDataTypes[D, S](implicit evOutputString: SupportedData.Aux[Output[String], D, S]): D = {
+        STRING.asInstanceOf[D]
+      }
+
+      override def outputShapes[D, S](implicit evOutputString: SupportedData.Aux[Output[String], D, S]): S = {
+        Shape().asInstanceOf[S]
+      }
     }
   }
 
@@ -358,27 +370,26 @@ trait Data {
     * @param  outputShape    Output shape structure for the tensor structure of the generated [[Iterable]] elements.
     * @return Constructed dataset.
     */
-  def datasetFromGenerator[T, O, D, S](
-      generator: () => Iterable[T],
+  def datasetFromGenerator[TT, T, D, S](
+      generator: () => Iterable[TT],
       outputDataType: D,
       outputShape: S = null
   )(implicit
-      evTensorToOutput: TensorToOutput.Aux[T, O],
-      evData: SupportedData.Aux[O, D, S],
-      evFunctionOutput: Function.ArgType[O]
-  ): Dataset[O] = {
+      evTensorToOutput: TensorToOutput.Aux[TT, T],
+      evT: SupportedData.Aux[T, D, S]
+  ): Dataset[T] = {
     val outputShapeWithDefault: S = {
       if (outputShape != null) {
         outputShape
       } else {
-        evData.decodeShape(
+        evT.decodeShapeFromDataType(
           outputDataType,
-          Seq.fill(evData.size(outputDataType))(Shape.unknown()))._1
+          Seq.fill(evT.sizeFromDataType(outputDataType))(Shape.unknown()))._1
       }
     }
 
-    val flatDataTypes = evData.dataTypes(outputDataType)
-    val flatShapes = evData.shapes(outputShapeWithDefault)
+    val flatDataTypes = evT.dataTypes(outputDataType)
+    val flatShapes = evT.shapes(outputShapeWithDefault)
     val generatorState = GeneratorState(generator)
 
     /** Creates an op that generates the next element from iterator with ID, `iteratorId`.
@@ -390,7 +401,7 @@ trait Data {
       *                    generator state, from which to generate an element.
       * @return Created op outputs structured according to the output data type of this dataset.
       */
-    def generatorMapFn(iteratorId: Output[Long]): O = {
+    def generatorMapFn(iteratorId: Output[Long]): T = {
       /** Scala callback function that will be called to invoke the iterator. */
       @throws[OutOfRangeException]
       def generatorScalaCallback(iteratorId: Tensor[Long]): Seq[Tensor[Any]] = {
@@ -429,11 +440,11 @@ trait Data {
           }
         })
       }
-      evData.decodeOutput(outputDataType, flatValues)._1
+      evT.decodeOutputFromDataType(outputDataType, flatValues)._1
     }
 
     /** Associates each traversal of the provided `generator` with a unique iterator ID. */
-    def flatMapFn(iteratorId: Output[Long]): Dataset[O] = {
+    def flatMapFn(iteratorId: Output[Long]): Dataset[T] = {
       // First, generate an infinite dataset containing the iterator ID repeated forever. Then, map using the
       // `generatorMapFn`, which gets the next element from the iterator with the relevant ID, and throws an
       // IndexOutOfBoundsException when that iterator contains no more elements.

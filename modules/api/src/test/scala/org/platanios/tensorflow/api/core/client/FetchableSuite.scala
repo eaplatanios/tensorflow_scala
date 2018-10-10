@@ -23,8 +23,6 @@ import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexed
 import org.scalatest.junit.JUnitSuite
 import org.junit.Test
 
-import scala.collection.immutable.TreeMap
-
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -69,29 +67,14 @@ class FetchableSuite extends JUnitSuite {
     }
   }
 
-  @Test def testFetchableList(): Unit = using(Graph()) { graph =>
-    Op.createWith(graph) {
-      val processedList = Fetchable.process(List(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
-      assert(processedList._1.length === 3)
-      assert(processedList._1(0).name === "Constant:0")
-      assert(processedList._1(1).name === "Constant_1:0")
-      assert(processedList._1(2).name === "Constant_2:0")
-      val results = processedList._2(Seq.fill(3)(Tensor(0)))
-      assert(results.length === 3)
-      assert(results(0).isInstanceOf[Tensor[_]])
-      assert(results(1).isInstanceOf[Tensor[_]])
-      assert(results(2).isInstanceOf[Tensor[_]])
-    }
-  }
-
   @Test def testFetchableArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedList = Fetchable.process(Array(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
-      assert(processedList._1.length === 3)
-      assert(processedList._1(0).name === "Constant:0")
-      assert(processedList._1(1).name === "Constant_1:0")
-      assert(processedList._1(2).name === "Constant_2:0")
-      val results = processedList._2(Seq.fill(3)(Tensor(0)))
+      val processedArray = Fetchable.process(Array(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
+      assert(processedArray._1.length === 3)
+      assert(processedArray._1(0).name === "Constant:0")
+      assert(processedArray._1(1).name === "Constant_1:0")
+      assert(processedArray._1(2).name === "Constant_2:0")
+      val results = processedArray._2(Seq.fill(3)(Tensor(0)))
       assert(results.length === 3)
       assert(results(0).isInstanceOf[Tensor[_]])
       assert(results(1).isInstanceOf[Tensor[_]])
@@ -102,7 +85,7 @@ class FetchableSuite extends JUnitSuite {
   @Test def testFetchableMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val processedMap = Fetchable.process(
-        TreeMap("1" -> Basic.constant(1.0), "2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0)))
+        Map("1" -> Basic.constant(1.0), "2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0)))
       assert(processedMap._1.length === 3)
       assert(processedMap._1(0).name === "Constant:0")
       assert(processedMap._1(1).name === "Constant_1:0")
@@ -141,10 +124,10 @@ class FetchableSuite extends JUnitSuite {
       val fetchable2 = Basic.constant(2.0)
       val fetchable3 = Basic.constant(3.0)
       val processedMap = Fetchable.process(
-        TreeMap("1_1" -> fetchable1, "1_2" -> fetchable1, "2_1" -> fetchable2, "2_2" -> fetchable2, "3" -> fetchable3))
+        Map("1_1" -> fetchable1, "1_2" -> fetchable1, "2_1" -> fetchable2, "2_2" -> fetchable2, "3" -> fetchable3))
       assert(processedMap._1.length === 3)
-      assert(processedMap._1(0).name === "Constant:0")
-      assert(processedMap._1(1).name === "Constant_1:0")
+      assert(processedMap._1(0).name === "Constant_1:0")
+      assert(processedMap._1(1).name === "Constant:0")
       assert(processedMap._1(2).name === "Constant_2:0")
       val results = processedMap._2(Seq.fill(3)(Tensor(0)))
       assert(results.size === 5)
@@ -194,8 +177,8 @@ class FetchableSuite extends JUnitSuite {
   @Test def testFetchableNestedMapArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val processedMap = Fetchable.process(
-        TreeMap("1" -> TreeMap("1" -> Basic.constant(1.0)),
-          "2" -> TreeMap("2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0))))
+        Map("1" -> Map("1" -> Basic.constant(1.0)),
+          "2" -> Map("2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0))))
       assert(processedMap._1.length === 3)
       assert(processedMap._1(0).name === "Constant:0")
       assert(processedMap._1(1).name === "Constant_1:0")
@@ -213,7 +196,7 @@ class FetchableSuite extends JUnitSuite {
   @Test def testFetchableNestedMapSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val processedMap = Fetchable.process(
-        TreeMap("1" -> Seq(Basic.constant(1.0)), "2" -> Seq(Basic.constant(2.0), Basic.constant(3.0))))
+        Map("1" -> Seq(Basic.constant(1.0)), "2" -> Seq(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedMap._1.length === 3)
       assert(processedMap._1(0).name === "Constant:0")
       assert(processedMap._1(1).name === "Constant_1:0")

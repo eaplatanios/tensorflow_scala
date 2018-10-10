@@ -15,14 +15,13 @@
 
 package org.platanios.tensorflow.api.implicits.helpers
 
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.collection.generic.CanBuildFrom
-import scala.collection.{MapLike, SeqLike}
 import scala.reflect.ClassTag
 
 /** Type trait used to map structures of tensors to structures of symbolic tensors.
@@ -41,7 +40,7 @@ object TensorToOutput {
     type O = OO
   }
 
-  implicit def fromTensor[T]: Aux[Tensor[T], Output[T]] = {
+  implicit def fromTensor[T: TF]: Aux[Tensor[T], Output[T]] = {
     new TensorToOutput[Tensor[T]] {
       override type O = Output[T]
 
@@ -66,7 +65,7 @@ object TensorToOutput {
       override def toOutput(tensor: TensorIndexedSlices[T]): OutputIndexedSlices[T] = {
         OutputIndexedSlices(
           indices = tensor.indices,
-          values = tensor.values,
+          values = tensor.values.toOutput,
           denseShape = tensor.denseShape)
       }
     }
@@ -83,7 +82,7 @@ object TensorToOutput {
       override def toOutput(tensor: SparseTensor[T]): SparseOutput[T] = {
         SparseOutput(
           indices = tensor.indices,
-          values = tensor.values,
+          values = tensor.values.toOutput,
           denseShape = tensor.denseShape)
       }
     }
@@ -105,34 +104,29 @@ object TensorToOutput {
     }
   }
 
-  implicit def fromSeq[T, OO, CC[A] <: SeqLike[A, CC[A]]](implicit
-      ev: Aux[T, OO],
-      cbfTO: CanBuildFrom[CC[T], OO, CC[OO]]
-  ): Aux[CC[T], CC[OO]] = {
-    new TensorToOutput[CC[T]] {
-      override type O = CC[OO]
+  implicit def fromSeq[T, OO](implicit ev: Aux[T, OO]): Aux[Seq[T], Seq[OO]] = {
+    new TensorToOutput[Seq[T]] {
+      override type O = Seq[OO]
 
-      override def tensors(tensor: CC[T]): Seq[Tensor[Any]] = {
-        tensor.flatMap(ev.tensors).toSeq
+      override def tensors(tensor: Seq[T]): Seq[Tensor[Any]] = {
+        tensor.flatMap(ev.tensors)
       }
 
-      override def toOutput(tensor: CC[T]): CC[OO] = {
+      override def toOutput(tensor: Seq[T]): Seq[OO] = {
         tensor.map(ev.toOutput)
       }
     }
   }
 
-  implicit def fromMap[K, T, OO, CC[CK, CV] <: MapLike[CK, CV, CC[CK, CV]] with Map[CK, CV]](implicit
-      ev: Aux[T, OO]
-  ): Aux[CC[K, T], Map[K, OO]] = {
-    new TensorToOutput[CC[K, T]] {
+  implicit def fromMap[K, T, OO](implicit ev: Aux[T, OO]): Aux[Map[K, T], Map[K, OO]] = {
+    new TensorToOutput[Map[K, T]] {
       override type O = Map[K, OO]
 
-      override def tensors(tensor: CC[K, T]): Seq[Tensor[Any]] = {
+      override def tensors(tensor: Map[K, T]): Seq[Tensor[Any]] = {
         tensor.values.flatMap(ev.tensors).toSeq
       }
 
-      override def toOutput(tensor: CC[K, T]): Map[K, OO] = {
+      override def toOutput(tensor: Map[K, T]): Map[K, OO] = {
         tensor.mapValues(ev.toOutput)
       }
     }
@@ -153,38 +147,61 @@ object TensorToOutput {
   }
 
   implicit def fromHList[HT, HO, TT <: HList, TO <: HList](implicit
-      dataHead: Lazy[Aux[HT, HO]],
-      dataTail: Aux[TT, TO]
+      evH: Strict[Aux[HT, HO]],
+      evT: Aux[TT, TO]
   ): Aux[HT :: TT, HO :: TO] = {
     new TensorToOutput[HT :: TT] {
       override type O = HO :: TO
 
       override def tensors(tensor: HT :: TT): Seq[Tensor[Any]] = {
-        dataHead.value.tensors(tensor.head) ++
-            dataTail.tensors(tensor.tail)
+        evH.value.tensors(tensor.head) ++
+            evT.tensors(tensor.tail)
       }
 
       override def toOutput(tensor: HT :: TT): HO :: TO = {
-        dataHead.value.toOutput(tensor.head) ::
-            dataTail.toOutput(tensor.tail)
+        evH.value.toOutput(tensor.head) ::
+            evT.toOutput(tensor.tail)
       }
     }
   }
 
-  implicit def fromProduct[PT, PO, HT <: HList, HO <: HList](implicit
+  implicit def fromCoproduct[HT, HO, TT <: Coproduct, TO <: Coproduct](implicit
+      evH: Strict[Aux[HT, HO]],
+      evT: Aux[TT, TO]
+  ): Aux[HT :+: TT, HO :+: TO] = {
+    new TensorToOutput[HT :+: TT] {
+      override type O = HO :+: TO
+
+      override def tensors(tensor: HT :+: TT): Seq[Tensor[Any]] = {
+        tensor match {
+          case Inl(h) => evH.value.tensors(h)
+          case Inr(t) => evT.tensors(t)
+        }
+      }
+
+      override def toOutput(tensor: HT :+: TT): HO :+: TO = {
+        tensor match {
+          case Inl(h) => Inl(evH.value.toOutput(h))
+          case Inr(t) => Inr(evT.toOutput(t))
+        }
+      }
+    }
+  }
+
+  implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: Aux[HT, HO],
-      tuplerO: Tupler.Aux[HO, PO],
+      evT: Strict[Aux[HT, HO]],
+      tuplerO: Tupler.Aux[HO, PO]
   ): Aux[PT, PO] = {
     new TensorToOutput[PT] {
       override type O = PO
 
       override def tensors(tensor: PT): Seq[Tensor[Any]] = {
-        evT.tensors(genT.to(tensor))
+        evT.value.tensors(genT.to(tensor))
       }
 
       override def toOutput(tensor: PT): PO = {
-        tuplerO(evT.toOutput(genT.to(tensor)))
+        tuplerO(evT.value.toOutput(genT.to(tensor)))
       }
     }
   }

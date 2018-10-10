@@ -30,9 +30,8 @@ import org.tensorflow.framework.CollectionDef.BytesList
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.collection.{SeqLike, breakOut, mutable}
+import scala.collection.mutable
 import scala.collection.JavaConverters._
-import scala.collection.generic.CanBuildFrom
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 
@@ -43,14 +42,16 @@ import scala.reflect.ClassTag
   * @param  parallelIterations    Number of iterations allowed to run in parallel.
   * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
   * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
-  * @param  _gradientLoopState    Gradient loop state.
+  * @param  gradientLoopState     Gradient loop state.
   * @param  pivot                 Tensor used for the loop termination condition. Used in code generation for the
   *                               gradient computation.
   * @param  pivotForPredicate     We use this node to control constants created by the predicate function.
   * @param  pivotForBody          We use this node to control constants created by the body function.
   * @param  loopEnters            Enter tensors for loop variables.
   * @param  loopExits             Exit tensors for loop variables.
-  * @param  _name                 Name prefix for this while-loop context.
+  * @param  requestedName         Requested name prefix for this while-loop context. Note that this will be made unique
+  *                               and thus the actual name of the created while loop context may differ from the
+  *                               requested one.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -59,18 +60,18 @@ private[api] case class WhileLoopContext private[control_flow] (
     parallelIterations: Int = 10,
     enableBackPropagation: Boolean = true,
     swapMemory: Boolean = false,
-    private[control_flow] val _gradientLoopState: Option[GradientLoopState] = None,
+    gradientLoopState: Option[GradientLoopState] = None,
     private[ops] var pivot: Output[Boolean] = null,
     private var pivotForPredicate: UntypedOp = null,
     private var pivotForBody: UntypedOp = null,
     private[control_flow] val loopEnters: mutable.Set[Output[Any]] = mutable.Set.empty[Output[Any]],
     private[control_flow] val loopExits: mutable.Set[Output[Any]] = mutable.Set.empty[Output[Any]],
-    private val _name: String = "WhileLoopContext"
+    private val requestedName: String = "WhileLoopContext"
 ) extends Context() with ProtoSerializable {
   require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
 
   override val name: String = {
-    Op.currentGraph.uniqueName(_name)
+    Op.currentGraph.uniqueName(requestedName)
   }
 
   override def controlPivot: Option[UntypedOp] = {
@@ -189,10 +190,6 @@ private[api] case class WhileLoopContext private[control_flow] (
 
   def backPropagate: Boolean = {
     enableBackPropagation
-  }
-
-  def gradientLoopState: Option[GradientLoopState] = {
-    _gradientLoopState
   }
 
   private[this] def isInOuterContext(op: Op[_, _]): Boolean = {
@@ -931,8 +928,6 @@ object WhileLoopContext {
 trait WhileLoopVariable[T] {
   type ShapeType
 
-  // TODO: [TYPES] !!! The `dataType` argument here is not type safe.
-
   /** Helper used by the RNN construction code to create default states. */
   def zero(
       batchSize: Output[Int],
@@ -948,7 +943,7 @@ trait WhileLoopVariable[T] {
   def fromShapes(output: T, values: Seq[Shape]): ShapeType = segmentShapes(output, values)._1
   def segmentShapes(output: T, values: Seq[Shape]): (ShapeType, Seq[Shape])
 
-  // TODO: These "map" functions involve some runtime checking for the "Symbol" type that would be good to work around.
+  // TODO: [OPS] These "map" functions involve some runtime checking for the "Symbol" type that would be good to work around.
   def map(
       value: T,
       mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
@@ -966,7 +961,7 @@ object WhileLoopVariable {
     type ShapeType = TS
   }
 
-  implicit def outputWhileLoopVariable[T: TF]: Aux[Output[T], Shape] = {
+  implicit def fromOutput[T: TF]: Aux[Output[T], Shape] = {
     new WhileLoopVariable[Output[T]] {
       override type ShapeType = Shape
 
@@ -1030,143 +1025,7 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def outputIndexedSlicesWhileLoopVariable[T: TF]: Aux[OutputIndexedSlices[T], Shape] = {
-    new WhileLoopVariable[OutputIndexedSlices[T]] {
-      override type ShapeType = Shape
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: Shape,
-          name: String = "Zero"
-      ): OutputIndexedSlices[T] = {
-        Op.nameScope(name) {
-          val fullShape = Basic.concatenate(Seq(
-            batchSize.expandDims(0).castTo[Long],
-            shape.toOutput
-          ), axis = 0)
-          OutputIndexedSlices(
-            indices = Basic.zeros[Long](Shape(0)),
-            values = Basic.zeros[T](Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape)
-        }
-      }
-
-      override def size(output: OutputIndexedSlices[T]): Int = {
-        3
-      }
-
-      override def outputs(output: OutputIndexedSlices[T]): Seq[Output[Any]] = {
-        Seq(output.indices, output.values, output.denseShape)
-      }
-
-      override def shapes(shape: Shape): Seq[Shape] = {
-        Seq(shape)
-      }
-
-      override def segmentOutputs(
-          output: OutputIndexedSlices[T],
-          values: Seq[Output[Any]]
-      ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
-        (OutputIndexedSlices(
-          indices = values(0).asInstanceOf[Output[Long]],
-          values = values(1).asInstanceOf[Output[T]],
-          denseShape = values(2).asInstanceOf[Output[Long]]
-        ), values.drop(3))
-      }
-
-      override def segmentShapes(
-          output: OutputIndexedSlices[T],
-          values: Seq[Shape]
-      ): (Shape, Seq[Shape]) = {
-        (values.head, values.tail)
-      }
-
-      override def map(
-          value: OutputIndexedSlices[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-      ): OutputIndexedSlices[T] = {
-        mapFn(value).asInstanceOf[OutputIndexedSlices[T]]
-      }
-
-      override def mapWithShape(
-          value: OutputIndexedSlices[T],
-          shape: ShapeType,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): OutputIndexedSlices[T] = {
-        mapFn(value, shape).asInstanceOf[OutputIndexedSlices[T]]
-      }
-    }
-  }
-
-  implicit def sparseOutputWhileLoopVariable[T: TF]: Aux[SparseOutput[T], Shape] = {
-    new WhileLoopVariable[SparseOutput[T]] {
-      override type ShapeType = Shape
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: Shape,
-          name: String = "Zero"
-      ): SparseOutput[T] = {
-        Op.nameScope(name) {
-          val fullShape = Basic.concatenate(Seq(
-            batchSize.expandDims(0).castTo[Long],
-            shape.toOutput
-          ), axis = 0)
-          SparseOutput(
-            indices = Basic.zeros[Long](Shape(0)),
-            values = Basic.zeros[T](Shape.fromSeq(0 +: shape.asArray)),
-            denseShape = fullShape)
-        }
-      }
-
-      override def size(output: SparseOutput[T]): Int = {
-        3
-      }
-
-      override def outputs(output: SparseOutput[T]): Seq[Output[Any]] = {
-        Seq(output.indices, output.values, output.denseShape)
-      }
-
-      override def shapes(shape: Shape): Seq[Shape] = {
-        Seq(shape)
-      }
-
-      override def segmentOutputs(
-          output: SparseOutput[T],
-          values: Seq[Output[Any]]
-      ): (SparseOutput[T], Seq[Output[Any]]) = {
-        (SparseOutput(
-          indices = values(0).asInstanceOf[Output[Long]],
-          values = values(1).asInstanceOf[Output[T]],
-          denseShape = values(2).asInstanceOf[Output[Long]]
-        ), values.drop(3))
-      }
-
-      override def segmentShapes(
-          output: SparseOutput[T],
-          values: Seq[Shape]
-      ): (Shape, Seq[Shape]) = {
-        (values.head, values.tail)
-      }
-
-      override def map(
-          value: SparseOutput[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-      ): SparseOutput[T] = {
-        mapFn(value).asInstanceOf[SparseOutput[T]]
-      }
-
-      override def mapWithShape(
-          value: SparseOutput[T],
-          shape: ShapeType,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): SparseOutput[T] = {
-        mapFn(value, shape).asInstanceOf[SparseOutput[T]]
-      }
-    }
-  }
-
-  implicit def tensorArrayWhileLoopVariable[T: TF]: Aux[TensorArray[T], Shape] = {
+  implicit def fromTensorArray[T: TF]: Aux[TensorArray[T], Shape] = {
     new WhileLoopVariable[TensorArray[T]] {
       override type ShapeType = Shape
 
@@ -1223,7 +1082,9 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def whileLoopVariableArray[T: ClassTag, TS: ClassTag](implicit ev: Aux[T, TS]): Aux[Array[T], Array[TS]] = {
+  implicit def fromArray[T: ClassTag, TS: ClassTag](implicit
+      ev: Aux[T, TS]
+  ): Aux[Array[T], Array[TS]] = {
     new WhileLoopVariable[Array[T]] {
       override type ShapeType = Array[TS]
 
@@ -1284,7 +1145,7 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def whileLoopVariableSeq[T, TS](implicit
+  implicit def fromSeq[T, TS](implicit
       ev: Aux[T, TS]
   ): Aux[Seq[T], Seq[TS]] = {
     new WhileLoopVariable[Seq[T]] {
@@ -1347,75 +1208,7 @@ object WhileLoopVariable {
     }
   }
 
-  // TODO: [TYPES] !!! Enable the following.
-
-//  implicit def whileLoopVariableSeq[T, TS, CC[A] <: SeqLike[A, CC[A]]](implicit
-//      ev: Aux[T, TS],
-//      // cbfTST: CanBuildFrom[CC[TS], T, CC[T]],
-//      cbfT: CanBuildFrom[Nothing, T, CC[T]],
-//      cbfTS: CanBuildFrom[Nothing, TS, CC[TS]]
-//  ): Aux[CC[T], CC[TS]] = {
-//    new WhileLoopVariable[CC[T]] {
-//      override type ShapeType = CC[TS]
-//
-//      override def zero(
-//          batchSize: Output[Int],
-//          shape: CC[TS],
-//          name: String
-//      ): CC[T] = {
-//        Op.nameScope(name) {
-//          shape.map(ev.zero(batchSize, _))(breakOut)
-//        }
-//      }
-//
-//      override def size(output: CC[T]): Int = {
-//        output.map(ev.size).sum
-//      }
-//
-//      override def outputs(output: CC[T]): Seq[Output[Any]] = {
-//        output.flatMap(ev.outputs).toSeq
-//      }
-//
-//      override def shapes(shape: CC[TS]): Seq[Shape] = {
-//        shape.flatMap(ev.shapes).toSeq
-//      }
-//
-//      override def segmentOutputs(
-//          output: CC[T],
-//          values: Seq[Output[Any]]
-//      ): (CC[T], Seq[Output[Any]]) = {
-//        val n = size(output)
-//        (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
-//            .map(f => ev.fromOutputs(f._1, f._2)).to[CC](cbfT), values.drop(n))
-//      }
-//
-//      override def segmentShapes(
-//          output: CC[T],
-//          values: Seq[Shape]
-//      ): (CC[TS], Seq[Shape]) = {
-//        val n = size(output)
-//        (output.zip(Collections.segment(values.take(n), output.map(ev.size).toSeq))
-//            .map(f => ev.fromShapes(f._1, f._2)).to[CC](cbfTS), values.drop(n))
-//      }
-//
-//      override def map(
-//          value: CC[T],
-//          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-//      ): CC[T] = {
-//        value.map(ev.map(_, mapFn))(breakOut)
-//      }
-//
-//      override def mapWithShape(
-//          value: CC[T],
-//          shape: CC[TS],
-//          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-//      ): CC[T] = {
-//        value.zip(shape.toSeq).map(p => ev.mapWithShape(p._1, p._2, mapFn)).to[CC](cbfT)
-//      }
-//    }
-//  }
-
-  implicit def whileLoopVariableMap[T, TS, MK](implicit
+  implicit def fromMap[T, TS, MK](implicit
       ev: Aux[T, TS]
   ): Aux[Map[MK, T], Map[MK, TS]] = {
     new WhileLoopVariable[Map[MK, T]] {
@@ -1482,62 +1275,64 @@ object WhileLoopVariable {
     }
   }
 
-  implicit val hnil: Aux[HNil, HNil] = new WhileLoopVariable[HNil] {
-    override type ShapeType = HNil
+  implicit val fromHNil: Aux[HNil, HNil] = {
+    new WhileLoopVariable[HNil] {
+      override type ShapeType = HNil
 
-    override def zero(
-        batchSize: Output[Int],
-        shape: HNil,
-        name: String = "Zero"
-    ): HNil = {
-      HNil
-    }
+      override def zero(
+          batchSize: Output[Int],
+          shape: HNil,
+          name: String = "Zero"
+      ): HNil = {
+        HNil
+      }
 
-    override def size(output: HNil): Int = {
-      0
-    }
+      override def size(output: HNil): Int = {
+        0
+      }
 
-    override def outputs(output: HNil): Seq[Output[Any]] = {
-      Seq.empty
-    }
+      override def outputs(output: HNil): Seq[Output[Any]] = {
+        Seq.empty
+      }
 
-    override def shapes(shape: HNil): Seq[Shape] = {
-      Seq.empty
-    }
+      override def shapes(shape: HNil): Seq[Shape] = {
+        Seq.empty
+      }
 
-    override def segmentOutputs(
-        output: HNil,
-        values: Seq[Output[Any]]
-    ): (HNil, Seq[Output[Any]]) = {
-      (HNil, values)
-    }
+      override def segmentOutputs(
+          output: HNil,
+          values: Seq[Output[Any]]
+      ): (HNil, Seq[Output[Any]]) = {
+        (HNil, values)
+      }
 
-    override def segmentShapes(
-        output: HNil,
-        values: Seq[Shape]
-    ): (HNil, Seq[Shape]) = {
-      (HNil, values)
-    }
+      override def segmentShapes(
+          output: HNil,
+          values: Seq[Shape]
+      ): (HNil, Seq[Shape]) = {
+        (HNil, values)
+      }
 
-    override def map(
-        value: HNil,
-        mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-    ): HNil = {
-      HNil
-    }
+      override def map(
+          value: HNil,
+          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+      ): HNil = {
+        HNil
+      }
 
-    override def mapWithShape(
-        value: HNil,
-        shape: HNil,
-        mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-    ): HNil = {
-      HNil
+      override def mapWithShape(
+          value: HNil,
+          shape: HNil,
+          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+      ): HNil = {
+        HNil
+      }
     }
   }
 
-  implicit def recursiveConstructor[H, HS, T <: HList, TS <: HList](implicit
-      evHead: Lazy[Aux[H, HS]],
-      evTail: Aux[T, TS]
+  implicit def fromHList[H, HS, T <: HList, TS <: HList](implicit
+      evH: Strict[Aux[H, HS]],
+      evT: Aux[T, TS]
   ): Aux[H :: T, HS :: TS] = {
     new WhileLoopVariable[H :: T] {
       override type ShapeType = HS :: TS
@@ -1548,32 +1343,32 @@ object WhileLoopVariable {
           name: String = "Zero"
       ): H :: T = {
         Op.nameScope(name) {
-          evHead.value.zero(batchSize, shape.head) ::
-              evTail.zero(batchSize, shape.tail)
+          evH.value.zero(batchSize, shape.head) ::
+              evT.zero(batchSize, shape.tail)
         }
       }
 
       override def size(output: H :: T): Int = {
-        evHead.value.size(output.head) +
-            evTail.size(output.tail)
+        evH.value.size(output.head) +
+            evT.size(output.tail)
       }
 
       override def outputs(output: H :: T): Seq[Output[Any]] = {
-        evHead.value.outputs(output.head) ++
-            evTail.outputs(output.tail)
+        evH.value.outputs(output.head) ++
+            evT.outputs(output.tail)
       }
 
       override def shapes(shape: HS :: TS): Seq[Shape] = {
-        evHead.value.shapes(shape.head) ++
-            evTail.shapes(shape.tail)
+        evH.value.shapes(shape.head) ++
+            evT.shapes(shape.tail)
       }
 
       override def segmentOutputs(
           output: H :: T,
           values: Seq[Output[Any]]
       ): (H :: T, Seq[Output[Any]]) = {
-        val (headOut, headRemaining) = evHead.value.segmentOutputs(output.head, values)
-        val (tailOut, tailRemaining) = evTail.segmentOutputs(output.tail, headRemaining)
+        val (headOut, headRemaining) = evH.value.segmentOutputs(output.head, values)
+        val (tailOut, tailRemaining) = evT.segmentOutputs(output.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
@@ -1581,8 +1376,8 @@ object WhileLoopVariable {
           output: H :: T,
           values: Seq[Shape]
       ): (HS :: TS, Seq[Shape]) = {
-        val (headOut, headRemaining) = evHead.value.segmentShapes(output.head, values)
-        val (tailOut, tailRemaining) = evTail.segmentShapes(output.tail, headRemaining)
+        val (headOut, headRemaining) = evH.value.segmentShapes(output.head, values)
+        val (tailOut, tailRemaining) = evT.segmentShapes(output.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
@@ -1590,8 +1385,8 @@ object WhileLoopVariable {
           value: H :: T,
           mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
       ): H :: T = {
-        evHead.value.map(value.head, mapFn) ::
-            evTail.map(value.tail, mapFn)
+        evH.value.map(value.head, mapFn) ::
+            evT.map(value.tail, mapFn)
       }
 
       override def mapWithShape(
@@ -1599,17 +1394,107 @@ object WhileLoopVariable {
           shape: HS :: TS,
           mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
       ): H :: T = {
-        evHead.value.mapWithShape(value.head, shape.head, mapFn) ::
-            evTail.mapWithShape(value.tail, shape.tail, mapFn)
+        evH.value.mapWithShape(value.head, shape.head, mapFn) ::
+            evT.mapWithShape(value.tail, shape.tail, mapFn)
       }
     }
   }
 
-  implicit def productConstructor[P, PS, L <: HList, LS <: HList](implicit
+  implicit def fromCoproduct[H, HS, T <: Coproduct, TS <: Coproduct](implicit
+      evH: Strict[Aux[H, HS]],
+      evT: Aux[T, TS]
+  ): Aux[H :+: T, HS :+: TS] = {
+    new WhileLoopVariable[H :+: T] {
+      override type ShapeType = HS :+: TS
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: HS :+: TS,
+          name: String
+      ): H :+: T = {
+        shape match {
+          case Inl(h) => Inl(evH.value.zero(batchSize, h, name))
+          case Inr(t) => Inr(evT.zero(batchSize, t, name))
+        }
+      }
+
+      override def size(output: H :+: T): Int = {
+        output match {
+          case Inl(h) => evH.value.size(h)
+          case Inr(t) => evT.size(t)
+        }
+      }
+
+      override def outputs(output: H :+: T): Seq[Output[Any]] = {
+        output match {
+          case Inl(h) => evH.value.outputs(h)
+          case Inr(t) => evT.outputs(t)
+        }
+      }
+
+      override def shapes(shape: HS :+: TS): Seq[Shape] = {
+        shape match {
+          case Inl(h) => evH.value.shapes(h)
+          case Inr(t) => evT.shapes(t)
+        }
+      }
+
+      override def segmentOutputs(
+          output: H :+: T,
+          values: Seq[Output[Any]]
+      ): (H :+: T, Seq[Output[Any]]) = {
+        output match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.segmentOutputs(h, values)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.segmentOutputs(t, values)
+            (Inr(result), remaining)
+        }
+      }
+
+      override def segmentShapes(
+          output: H :+: T,
+          values: Seq[Shape]
+      ): (HS :+: TS, Seq[Shape]) = {
+        output match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.segmentShapes(h, values)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.segmentShapes(t, values)
+            (Inr(result), remaining)
+        }
+      }
+
+      override def map(
+          value: H :+: T,
+          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+      ): H :+: T = {
+        value match {
+          case Inl(h) => Inl(evH.value.map(h, mapFn))
+          case Inr(t) => Inr(evT.map(t, mapFn))
+        }
+      }
+
+      override def mapWithShape(
+          value: H :+: T,
+          shape: HS :+: TS,
+          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+      ): H :+: T = {
+        (value, shape) match {
+          case (Inl(hv), Inl(hs)) => Inl(evH.value.mapWithShape(hv, hs, mapFn))
+          case (Inr(tv), Inr(ts)) => Inr(evT.mapWithShape(tv, ts, mapFn))
+          case _ => throw new IllegalStateException("Something went wrong while deriving implicit evidence.")
+        }
+      }
+    }
+  }
+
+  implicit def fromProduct[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
       genP: Generic.Aux[P, L],
-      evL: Aux[L, LS],
+      evL: Strict[Aux[L, LS]],
       tuplerS: Tupler.Aux[LS, PS],
-      tuplerP: Tupler.Aux[L, P],
       genS: Generic.Aux[PS, LS]
   ): Aux[P, PS] = {
     new WhileLoopVariable[P] {
@@ -1620,34 +1505,34 @@ object WhileLoopVariable {
           shape: PS,
           name: String = "Zero"
       ): P = {
-        tuplerP(evL.zero(batchSize, genS.to(shape), name))
+        genP.from(evL.value.zero(batchSize, genS.to(shape), name))
       }
 
       override def size(output: P): Int = {
-        evL.size(genP.to(output))
+        evL.value.size(genP.to(output))
       }
 
       override def outputs(output: P): Seq[Output[Any]] = {
-        evL.outputs(genP.to(output))
+        evL.value.outputs(genP.to(output))
       }
 
       override def shapes(shape: PS): Seq[Shape] = {
-        evL.shapes(genS.to(shape))
+        evL.value.shapes(genS.to(shape))
       }
 
       override def segmentOutputs(
           output: P,
           values: Seq[Output[Any]]
       ): (P, Seq[Output[Any]]) = {
-        val (out, remaining) = evL.segmentOutputs(genP.to(output), values)
-        (tuplerP(out), remaining)
+        val (out, remaining) = evL.value.segmentOutputs(genP.to(output), values)
+        (genP.from(out), remaining)
       }
 
       override def segmentShapes(
           output: P,
           values: Seq[Shape]
       ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evL.segmentShapes(genP.to(output), values)
+        val (out, remaining) = evL.value.segmentShapes(genP.to(output), values)
         (tuplerS(out), remaining)
       }
 
@@ -1655,7 +1540,7 @@ object WhileLoopVariable {
           value: P,
           mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
       ): P = {
-        tuplerP(evL.map(genP.to(value), mapFn))
+        genP.from(evL.value.map(genP.to(value), mapFn))
       }
 
       override def mapWithShape(
@@ -1663,7 +1548,7 @@ object WhileLoopVariable {
           shape: PS,
           mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
       ): P = {
-        tuplerP(evL.mapWithShape(genP.to(value), genS.to(shape), mapFn))
+        genP.from(evL.value.mapWithShape(genP.to(value), genS.to(shape), mapFn))
       }
     }
   }

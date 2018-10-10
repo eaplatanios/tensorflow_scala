@@ -74,8 +74,9 @@ class BeamSearchDecoder[T, State, StateShape](
 ) extends Decoder[
     Output[T], Shape, State, StateShape,
     BeamSearchDecoder.DecoderOutput, (Shape, Shape, Shape),
-    BeamSearchDecoder.DecoderState[State, StateShape], (StateShape, Shape, Shape, Shape),
-    BeamSearchDecoder.FinalOutput, BeamSearchDecoder.DecoderState[State, StateShape]](cell, name) {
+    BeamSearchDecoder.DecoderState[State], (StateShape, Shape, Shape, Shape),
+    BeamSearchDecoder.FinalOutput,
+    BeamSearchDecoder.DecoderState[State]](cell, name) {
   // TODO: Handle the tiling inside the decoder itself.
   // evS.map(initialCellState, BeamSearchDecoder.tileBatch(_, beamWidth))
   private val tiledInitialCellState: State = initialCellState
@@ -147,7 +148,7 @@ class BeamSearchDecoder[T, State, StateShape](
     * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  override def initialize(): (Output[Boolean], Output[T], BeamSearchDecoder.DecoderState[State, StateShape]) = {
+  override def initialize(): (Output[Boolean], Output[T], BeamSearchDecoder.DecoderState[State]) = {
     Op.nameScope(s"$name/Initialize") {
       val finished = Basic.oneHot(
         indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
@@ -155,7 +156,7 @@ class BeamSearchDecoder[T, State, StateShape](
         dataType = BOOLEAN,
         onValue = false,
         offValue = true)
-      val initialState = BeamSearchDecoder.DecoderState[State, StateShape](
+      val initialState = BeamSearchDecoder.DecoderState[State](
         modelState = processedInitialCellState,
         logProbabilities = Basic.oneHot(
           indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
@@ -177,8 +178,8 @@ class BeamSearchDecoder[T, State, StateShape](
   override def next(
       time: Output[Int],
       input: Output[T],
-      state: BeamSearchDecoder.DecoderState[State, StateShape]
-  ): (BeamSearchDecoder.DecoderOutput, BeamSearchDecoder.DecoderState[State, StateShape], Output[T], Output[Boolean]) = {
+      state: BeamSearchDecoder.DecoderState[State]
+  ): (BeamSearchDecoder.DecoderOutput, BeamSearchDecoder.DecoderState[State], Output[T], Output[Boolean]) = {
     implicit val evTF: TF[T] = TF.fromDataType(input.dataType)
     Op.nameScope(s"$name/Next") {
       val mergedInput = evT.mapWithShape(
@@ -266,7 +267,7 @@ class BeamSearchDecoder[T, State, StateShape](
         nextParentIDs, _, batchSize, beamWidth, Seq(batchSize * beamWidth, -1),
         name = "NextBeamStateGather"))
 
-      val nextState = BeamSearchDecoder.DecoderState[State, StateShape](
+      val nextState = BeamSearchDecoder.DecoderState[State](
         gatheredNextTupleState, nextBeamLogProbabilities, nextPredictionLengths, nextFinished)
       val output = BeamSearchDecoder.DecoderOutput(nextBeamScores, nextPredictedIDs, nextParentIDs)
 
@@ -287,9 +288,9 @@ class BeamSearchDecoder[T, State, StateShape](
     */
   override def finalize(
       output: BeamSearchDecoder.DecoderOutput,
-      state: BeamSearchDecoder.DecoderState[State, StateShape],
+      state: BeamSearchDecoder.DecoderState[State],
       sequenceLengths: Output[Int]
-  ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.DecoderState[State, StateShape], Output[Int]) = {
+  ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.DecoderState[State], Output[Int]) = {
     // Get the maximum sequence length across all search states for each batch
     val maxSequenceLengths = state.sequenceLengths.max(Tensor(1)).castTo[Int]
     val predictedIDs = BeamSearchDecoder.gatherTree(
@@ -297,7 +298,7 @@ class BeamSearchDecoder[T, State, StateShape](
     val finalOutput = BeamSearchDecoder.FinalOutput(predictedIDs, output)
     var finalState = state
     if (reorderTensorArrays)
-      finalState = state.copy[State, StateShape](modelState = evState.map(
+      finalState = state.copy[State](modelState = evState.map(
         state.modelState, BeamSearchDecoder.maybeSortTensorArrayBeams(
           _, state.sequenceLengths, output.parentIDs, batchSize, beamWidth)))
     (finalOutput, finalState, finalState.sequenceLengths)
@@ -335,185 +336,11 @@ object BeamSearchDecoder {
       predictedIDs: Output[Int],
       parentIDs: Output[Int])
 
-  object DecoderOutput {
-    implicit def outputWhileLoopVariable(implicit
-        evFloatOutput: WhileLoopVariable.Aux[Output[Float], Shape],
-        evIntOutput: WhileLoopVariable.Aux[Output[Int], Shape]
-    ): WhileLoopVariable.Aux[DecoderOutput, (Shape, Shape, Shape)] = {
-      new WhileLoopVariable[DecoderOutput] {
-        override type ShapeType = (Shape, Shape, Shape)
-
-        override def zero(
-            batchSize: Output[Int],
-            shape: (Shape, Shape, Shape),
-            name: String = "Zero"
-        ): DecoderOutput = {
-          Op.nameScope(name) {
-            DecoderOutput(
-              scores = evFloatOutput.zero(batchSize, shape._1, "Scores"),
-              predictedIDs = evIntOutput.zero(batchSize, shape._2, "PredictedIDs"),
-              parentIDs = evIntOutput.zero(batchSize, shape._3, "ParentIDs"))
-          }
-        }
-
-        override def size(value: DecoderOutput): Int = {
-          evFloatOutput.size(value.scores) +
-              evIntOutput.size(value.predictedIDs) +
-              evIntOutput.size(value.parentIDs)
-        }
-
-        override def outputs(value: DecoderOutput): Seq[Output[Any]] = {
-          evFloatOutput.outputs(value.scores) ++
-              evIntOutput.outputs(value.predictedIDs) ++
-              evIntOutput.outputs(value.parentIDs)
-        }
-
-        override def shapes(shape: (Shape, Shape, Shape)): Seq[Shape] = {
-          evFloatOutput.shapes(shape._1) ++
-              evIntOutput.shapes(shape._2) ++
-              evIntOutput.shapes(shape._3)
-        }
-
-        override def segmentOutputs(
-            value: DecoderOutput,
-            values: Seq[Output[Any]]
-        ): (DecoderOutput, Seq[Output[Any]]) = {
-          (DecoderOutput(
-            scores = values(0).asInstanceOf[Output[Float]],
-            predictedIDs = values(1).asInstanceOf[Output[Int]],
-            parentIDs = values(2).asInstanceOf[Output[Int]]),
-              values.drop(3))
-        }
-
-        override def segmentShapes(
-            value: DecoderOutput,
-            shapes: Seq[Shape]
-        ): ((Shape, Shape, Shape), Seq[Shape]) = {
-          ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
-        }
-
-        override def map(
-            value: DecoderOutput,
-            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-        ): DecoderOutput = {
-          DecoderOutput(
-            scores = evFloatOutput.map(value.scores, mapFn),
-            predictedIDs = evIntOutput.map(value.predictedIDs, mapFn),
-            parentIDs = evIntOutput.map(value.parentIDs, mapFn))
-        }
-
-        override def mapWithShape(
-            value: DecoderOutput,
-            shape: (Shape, Shape, Shape),
-            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-        ): DecoderOutput = {
-          DecoderOutput(
-            scores = evFloatOutput.mapWithShape(value.scores, shape._1, mapFn),
-            predictedIDs = evIntOutput.mapWithShape(value.predictedIDs, shape._2, mapFn),
-            parentIDs = evIntOutput.mapWithShape(value.parentIDs, shape._2, mapFn))
-        }
-      }
-    }
-  }
-
-  case class DecoderState[State, StateShape](
+  case class DecoderState[State](
       modelState: State,
       logProbabilities: Output[Float],
       sequenceLengths: Output[Int],
-      finished: Output[Boolean]
-  )(implicit evS: WhileLoopVariable.Aux[State, StateShape])
-
-  object DecoderState {
-    implicit def stateWhileLoopVariable[S, SS](implicit
-        evState: WhileLoopVariable.Aux[S, SS],
-        evFloatOutput: WhileLoopVariable.Aux[Output[Float], Shape],
-        evIntOutput: WhileLoopVariable.Aux[Output[Int], Shape],
-        evBooleanOutput: WhileLoopVariable.Aux[Output[Boolean], Shape]
-    ): WhileLoopVariable.Aux[DecoderState[S, SS], (SS, Shape, Shape, Shape)] = {
-      new WhileLoopVariable[DecoderState[S, SS]] {
-        override type ShapeType = (SS, Shape, Shape, Shape)
-
-        override def zero(
-            batchSize: Output[Int],
-            shape: (SS, Shape, Shape, Shape),
-            name: String = "Zero"
-        ): DecoderState[S, SS] = {
-          Op.nameScope(name) {
-            DecoderState(
-              modelState = evState.zero(batchSize, shape._1, "RNNState"),
-              logProbabilities = evFloatOutput.zero(batchSize, shape._2, "LogProbabilities"),
-              sequenceLengths = evIntOutput.zero(batchSize, shape._3, "SequenceLengths"),
-              finished = evBooleanOutput.zero(batchSize, shape._4, "Finished"))
-          }
-        }
-
-        override def size(value: DecoderState[S, SS]): Int = {
-          evState.size(value.modelState) +
-              evFloatOutput.size(value.logProbabilities) +
-              evIntOutput.size(value.sequenceLengths) +
-              evBooleanOutput.size(value.finished)
-        }
-
-        override def outputs(value: DecoderState[S, SS]): Seq[Output[Any]] = {
-          evState.outputs(value.modelState) ++
-              evFloatOutput.outputs(value.logProbabilities) ++
-              evIntOutput.outputs(value.sequenceLengths) ++
-              evBooleanOutput.outputs(value.finished)
-        }
-
-        override def shapes(shape: (SS, Shape, Shape, Shape)): Seq[Shape] = {
-          evState.shapes(shape._1) ++
-              evFloatOutput.shapes(shape._2) ++
-              evIntOutput.shapes(shape._3) ++
-              evBooleanOutput.shapes(shape._4)
-        }
-
-        override def segmentOutputs(
-            value: DecoderState[S, SS],
-            values: Seq[Output[Any]]
-        ): (DecoderState[S, SS], Seq[Output[Any]]) = {
-          val (modelState, valuesTail) = evState.segmentOutputs(value.modelState, values)
-          (DecoderState(
-            modelState = modelState,
-            logProbabilities = valuesTail(0).asInstanceOf[Output[Float]],
-            sequenceLengths = valuesTail(1).asInstanceOf[Output[Int]],
-            finished = valuesTail(2).asInstanceOf[Output[Boolean]]),
-              valuesTail.drop(3))
-        }
-
-        override def segmentShapes(
-            value: DecoderState[S, SS],
-            shapes: Seq[Shape]
-        ): ((SS, Shape, Shape, Shape), Seq[Shape]) = {
-          val (modelStateShape, shapesTail) = evState.segmentShapes(value.modelState, shapes)
-          ((modelStateShape, shapesTail(0), shapesTail(1), shapesTail(2)), shapesTail.drop(3))
-        }
-
-        override def map(
-            value: DecoderState[S, SS],
-            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-        ): DecoderState[S, SS] = {
-          DecoderState(
-            modelState = evState.map(value.modelState, mapFn),
-            logProbabilities = evFloatOutput.map(value.logProbabilities, mapFn),
-            sequenceLengths = evIntOutput.map(value.sequenceLengths, mapFn),
-            finished = evBooleanOutput.map(value.finished, mapFn))
-        }
-
-        override def mapWithShape(
-            value: DecoderState[S, SS],
-            shape: (SS, Shape, Shape, Shape),
-            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-        ): DecoderState[S, SS] = {
-          DecoderState(
-            modelState = evState.mapWithShape(value.modelState, shape._1, mapFn),
-            logProbabilities = evFloatOutput.mapWithShape(value.logProbabilities, shape._2, mapFn),
-            sequenceLengths = evIntOutput.mapWithShape(value.sequenceLengths, shape._3, mapFn),
-            finished = evBooleanOutput.mapWithShape(value.finished, shape._4, mapFn))
-        }
-      }
-    }
-  }
+      finished: Output[Boolean])
 
   /** Final outputs returned by the beam search after all decoding is finished.
     *
@@ -524,80 +351,7 @@ object BeamSearchDecoder {
     */
   case class FinalOutput(
       predictedIDs: Output[Int],
-      output: BeamSearchDecoder.DecoderOutput)
-
-  object FinalOutput {
-    implicit def finalOutputWhileLoopVariable(implicit
-        evIntOutput: WhileLoopVariable.Aux[Output[Int], Shape],
-        evDecoderOutput: WhileLoopVariable.Aux[DecoderOutput, (Shape, Shape, Shape)]
-    ): WhileLoopVariable.Aux[FinalOutput, (Shape, (Shape, Shape, Shape))] = {
-      new WhileLoopVariable[FinalOutput] {
-        override type ShapeType = (Shape, (Shape, Shape, Shape))
-
-        override def zero(
-            batchSize: Output[Int],
-            shape: (Shape, (Shape, Shape, Shape)),
-            name: String = "Zero"
-        ): FinalOutput = {
-          Op.nameScope(name) {
-            FinalOutput(
-              evIntOutput.zero(batchSize, shape._1, "PredictedIDs"),
-              evDecoderOutput.zero(batchSize, shape._2, "BeamSearchOutput"))
-          }
-        }
-
-        override def size(value: FinalOutput): Int = {
-          evIntOutput.size(value.predictedIDs) +
-              evDecoderOutput.size(value.output)
-        }
-
-        override def outputs(value: FinalOutput): Seq[Output[Any]] = {
-          evIntOutput.outputs(value.predictedIDs) ++
-              evDecoderOutput.outputs(value.output)
-        }
-
-        override def shapes(shape: (Shape, (Shape, Shape, Shape))): Seq[Shape] = {
-          evIntOutput.shapes(shape._1) ++
-              evDecoderOutput.shapes(shape._2)
-        }
-
-        override def segmentOutputs(
-            value: FinalOutput,
-            values: Seq[Output[Any]]
-        ): (FinalOutput, Seq[Output[Any]]) = {
-          val (output, valuesTail) = evDecoderOutput.segmentOutputs(value.output, values.tail)
-          (FinalOutput(values(0).asInstanceOf[Output[Int]], output), valuesTail)
-        }
-
-        override def segmentShapes(
-            value: FinalOutput,
-            shapes: Seq[Shape]
-        ): ((Shape, (Shape, Shape, Shape)), Seq[Shape]) = {
-          val (outputShape, shapesTail) = evDecoderOutput.segmentShapes(value.output, shapes.tail)
-          ((shapes(0), outputShape), shapesTail)
-        }
-
-        override def map(
-            value: FinalOutput,
-            mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-        ): FinalOutput = {
-          FinalOutput(
-            evIntOutput.map(value.predictedIDs, mapFn),
-            evDecoderOutput.map(value.output, mapFn))
-        }
-
-        override def mapWithShape(
-            value: FinalOutput,
-            shape: (Shape, (Shape, Shape, Shape)),
-            mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-        ): FinalOutput = {
-          FinalOutput(
-            evIntOutput.mapWithShape(value.predictedIDs, shape._1, mapFn),
-            evDecoderOutput.mapWithShape(value.output, shape._2, mapFn))
-        }
-      }
-    }
-  }
+      output: DecoderOutput)
 
   /** Masks log probabilities. The result is that finished search states allocate all probability mass to `endToken` and
     * unfinished search states remain unchanged.

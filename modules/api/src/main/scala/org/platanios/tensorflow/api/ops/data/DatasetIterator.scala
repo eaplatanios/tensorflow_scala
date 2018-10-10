@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory
   * An iterator represents the state of iterating through a dataset.
   *
   * @param  handle           Handle of the iterator.
-  * @param  evData           Data type class instance for the type of the elements that this iterator outputs.
   * @param  _outputDataTypes Data types corresponding to each element of the iterator.
   * @param  _outputShapes    Shapes corresponding to each element of the iterator.
   * @param  name             Name for this iterator.
@@ -36,29 +35,38 @@ import org.slf4j.LoggerFactory
   * @author Emmanouil Antonios Platanios
   */
 class DatasetIterator[T] protected[data](
-    protected val handle: Output[Resource],
-    protected val evData: SupportedData[T]
+    protected val handle: Output[Resource]
 )(
     protected val _outputDataTypes: Any,
     protected val _outputShapes: Any,
     val name: String = "DatasetIterator"
 ) {
-  // TODO: [TYPES] !!! This is very hacky.
-  val outputDataTypes: evData.D = _outputDataTypes.asInstanceOf[evData.D]
-  val outputShapes   : evData.S = _outputShapes.asInstanceOf[evData.S]
+  /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
+  def outputDataTypes[D, S](implicit evT: SupportedData.Aux[T, D, S]): D = {
+    _outputDataTypes.asInstanceOf[D]
+  }
+
+  /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
+  def outputShapes[D, S](implicit evT: SupportedData.Aux[T, D, S]): S = {
+    _outputShapes.asInstanceOf[S]
+  }
 
   private var nextCallCount: Int = 0
 
   /** Returns a sequence of data types that correspond to the flattened data types of the nested outputs structure
     * of the elements of this iterator. */
-  private[data] def flatOutputDataTypes: Seq[DataType[Any]] = {
-    evData.dataTypes(outputDataTypes)
+  private[data] def flatOutputDataTypes[D, S](implicit
+      evT: SupportedData.Aux[T, D, S]
+  ): Seq[DataType[Any]] = {
+    evT.dataTypes(outputDataTypes)
   }
 
   /** Returns a sequence of shapes that correspond to the flattened shapes of the nested outputs structure of the
     * elements of this iterator. */
-  private[data] def flatOutputShapes: Seq[Shape] = {
-    evData.shapes(outputShapes)
+  private[data] def flatOutputShapes[D, S](implicit
+      evT: SupportedData.Aux[T, D, S]
+  ): Seq[Shape] = {
+    evT.shapes(outputShapes)
   }
 
   /** Returns an op that initializes this iterator using the provided dataset.
@@ -68,19 +76,14 @@ class DatasetIterator[T] protected[data](
     *                 of the dataset.
     * @param  name    Name for the created op.
     * @return Created op.
-    * @throws IllegalArgumentException If any of the output data types or shapes of this iterator is not compatible with
-    *                                  the corresponding output data type or shape of the provided dataset.
+    * @throws IllegalArgumentException If any of the output shapes of this iterator is not compatible with
+    *                                  the corresponding output shapes of the provided dataset.
     */
   @throws[IllegalArgumentException]
-  def createInitializer(
+  def createInitializer[D, S](
       dataset: Dataset[T],
       name: String = s"$name/Initializer"
-  ): Op[(Output[Variant], Output[Resource]), Unit] = {
-    if (flatOutputDataTypes.zip(dataset.flatOutputDataTypes).exists(t => t._1 != t._2)) {
-      throw new IllegalArgumentException(
-        s"Expected output data types '$outputDataTypes', " +
-            s"but got dataset with output data types '${dataset.outputDataTypes}'.")
-    }
+  )(implicit evT: SupportedData.Aux[T, D, S]): Op[(Output[Variant], Output[Resource]), Unit] = {
     if (flatOutputShapes.zip(dataset.flatOutputShapes).exists(s => !s._1.isCompatibleWith(s._2))) {
       throw new IllegalArgumentException(
         s"Expected output shapes compatible with '$outputShapes', " +
@@ -119,7 +122,9 @@ class DatasetIterator[T] protected[data](
     * @param  name Name for the created op.
     * @return Created op outputs in a nested structure according to the data type of this initializer.
     */
-  def next(name: String = s"$name/Next"): T = {
+  def next[D, S](name: String = s"$name/Next")(implicit
+      evT: SupportedData.Aux[T, D, S]
+  ): T = {
     nextCallCount += 1
     if (nextCallCount > DatasetIterator.NEXT_CALL_WARNING_THRESHOLD)
       DatasetIterator.logger.warn(DatasetIterator.NEXT_CALL_WARNING_MESSAGE)
@@ -128,7 +133,7 @@ class DatasetIterator[T] protected[data](
       outputDataTypes = flatOutputDataTypes,
       outputShapes = flatOutputShapes,
       name = name)
-    evData.decodeOutput(outputDataTypes, flattenedNext)._1
+    evT.decodeOutputFromDataType(outputDataTypes(evT), flattenedNext)._1
   }
 
   // TODO: [MEMORY] Add automatic disposal of iterators if necessary.
@@ -159,32 +164,30 @@ class DatasetIterator[T] protected[data](
   * An iterator represents the state of iterating through a dataset.
   *
   * @param  handle           Handle of the iterator.
-  * @param  evData           Data type class instance for the type of the elements that this iterator outputs.
   * @param  initializer      Iterator initializer op.
   * @param  _outputDataTypes Data types corresponding to each element of the iterator.
   * @param  _outputShapes    Shapes corresponding to each element of the iterator.
   * @param  name             Name for this iterator.
   */
 class InitializableDatasetIterator[T] private[data](
-    override protected val handle: Output[Resource],
-    override protected val evData: SupportedData[T]
+    override protected val handle: Output[Resource]
 )(
     val initializer: UntypedOp,
     override protected val _outputDataTypes: Any,
     override protected val _outputShapes: Any,
     override val name: String = "InitializableDatasetIterator"
-) extends DatasetIterator[T](handle, evData)(_outputDataTypes, _outputShapes, name)
+) extends DatasetIterator[T](handle)(_outputDataTypes, _outputShapes, name)
 
 /** Contains helper functions for creating iterator-related ops, as well as the iterator API trait. */
 object DatasetIterator {
   private[data] val logger = Logger(LoggerFactory.getLogger("Data / Iterator"))
 
   private[data] trait API {
-    def iteratorFromDataset[T: SupportedData](
+    def iteratorFromDataset[T, D, S](
         dataset: Dataset[T],
         sharedName: String = "",
         name: String = "InitializableIterator"
-    ): InitializableDatasetIterator[T] = {
+    )(implicit evT: SupportedData.Aux[T, D, S]): InitializableDatasetIterator[T] = {
       fromDataset(dataset, sharedName, name)
     }
 
@@ -193,7 +196,7 @@ object DatasetIterator {
         outputShapes: S,
         sharedName: String = "",
         name: String = "Iterator"
-    )(implicit evData: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
+    )(implicit evT: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
       fromStructure(outputDataTypes, outputShapes, sharedName, name)
     }
 
@@ -202,7 +205,7 @@ object DatasetIterator {
         outputDataTypes: D,
         outputShapes: S,
         name: String = "IteratorFromStringHandle"
-    )(implicit evData: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
+    )(implicit evT: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
       fromStringHandle(stringHandle, outputDataTypes, outputShapes, name)
     }
   }
@@ -236,11 +239,11 @@ object DatasetIterator {
     * @param  name       Name to use for the created ops.
     * @return Created iterator.
     */
-  private[api] def fromDataset[T: SupportedData](
+  private[api] def fromDataset[T, D, S](
       dataset: Dataset[T],
       sharedName: String = "",
       name: String = "InitializableIterator"
-  ): InitializableDatasetIterator[T] = {
+  )(implicit evT: SupportedData.Aux[T, D, S]): InitializableDatasetIterator[T] = {
     val (handle, initializer) = Op.nameScope(name) {
       val handle = createIterator(
         sharedName = sharedName,
@@ -251,7 +254,7 @@ object DatasetIterator {
         iteratorHandle = handle)
       (handle, initializer)
     }
-    new InitializableDatasetIterator[T](handle, dataset.evData)(
+    new InitializableDatasetIterator[T](handle)(
       initializer = initializer,
       _outputDataTypes = dataset.outputDataTypes,
       _outputShapes = dataset.outputShapes,
@@ -317,15 +320,15 @@ object DatasetIterator {
       outputShapes: S,
       sharedName: String = "",
       name: String = "Iterator"
-  )(implicit evData: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
+  )(implicit evT: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
     // TODO: [DATASETS] Allow for shapes to not be provided.
-    val flatOutputDataTypes = evData.dataTypes(outputDataTypes)
-    val flatOutputShapes = evData.shapes(outputShapes)
+    val flatOutputDataTypes = evT.dataTypes(outputDataTypes)
+    val flatOutputShapes = evT.shapes(outputShapes)
     val handle = createIterator(
       sharedName = sharedName,
       outputDataTypes = flatOutputDataTypes,
       outputShapes = flatOutputShapes)
-    new DatasetIterator[T](handle, evData)(outputDataTypes, outputShapes, name)
+    new DatasetIterator[T](handle)(outputDataTypes, outputShapes, name)
   }
 
   /** Creates a new, uninitialized iterator from the provided `STRING` scalar tensor representing a handle of an
@@ -366,16 +369,16 @@ object DatasetIterator {
       outputDataTypes: D,
       outputShapes: S,
       name: String = "IteratorFromStringHandle"
-  )(implicit evData: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
+  )(implicit evT: SupportedData.Aux[T, D, S]): DatasetIterator[T] = {
     // TODO: [DATASETS] Allow for shapes to not be provided.
-    val flatOutputDataTypes = evData.dataTypes(outputDataTypes)
-    val flatOutputShapes = evData.shapes(outputShapes)
+    val flatOutputDataTypes = evT.dataTypes(outputDataTypes)
+    val flatOutputShapes = evT.shapes(outputShapes)
     val handle = iteratorFromStringHandle(
       stringHandle = stringHandle,
       outputDataTypes = flatOutputDataTypes,
       outputShapes = flatOutputShapes,
       name = name)
-    new DatasetIterator[T](handle, evData)(outputDataTypes, outputShapes, name)
+    new DatasetIterator[T](handle)(outputDataTypes, outputShapes, name)
   }
 
   //region Low Level Ops

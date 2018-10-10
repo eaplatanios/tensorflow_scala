@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.DataType
-import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
+import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -37,16 +37,8 @@ object StructureFromDataType {
 
   type Aux[T, O, D, S] = StructureFromDataType[D]
 
-  implicit def fromOutput[T]: Aux[Tensor[T], Output[T], DataType[T], Shape] = {
+  implicit def fromOutput[T: TF]: Aux[Tensor[T], Output[T], DataType[T], Shape] = {
     new StructureFromDataType[DataType[T]] {}
-  }
-
-  implicit def fromOutputIndexedSlices[T]: Aux[TensorIndexedSlices[T], OutputIndexedSlices[T], SparseDataType[DataType[T]], SparseShape] = {
-    new StructureFromDataType[SparseDataType[DataType[T]]] {}
-  }
-
-  implicit def fromSparseOutput[T]: Aux[SparseTensor[T], SparseOutput[T], SparseDataType[DataType[T]], SparseShape] = {
-    new StructureFromDataType[SparseDataType[DataType[T]]] {}
   }
 
   implicit def fromArray[T, O, D, S](implicit
@@ -71,16 +63,23 @@ object StructureFromDataType {
     new StructureFromDataType[HNil] {}
   }
 
-  implicit def fromRecursiveStructure[HT, HO, HD, HS, TT <: HList, TO <: HList, TD <: HList, TS <: HList](implicit
-      evHead: Lazy[Aux[HT, HO, HD, HS]],
+  implicit def fromHList[HT, HO, HD, HS, TT <: HList, TO <: HList, TD <: HList, TS <: HList](implicit
+      evHead: Strict[Aux[HT, HO, HD, HS]],
       evTail: Aux[TT, TO, TD, TS]
   ): Aux[HT :: TT, HO :: TO, HD :: TD, HS :: TS] = {
     new StructureFromDataType[HD :: TD] {}
   }
 
-  implicit def fromProduct[PT, PO, PD, PS, HT <: HList, HO <: HList, HD <: HList, HS <: HList](implicit
+  implicit def fromCoproduct[HT, HO, HD, HS, TT <: Coproduct, TO <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
+      evHead: Strict[Aux[HT, HO, HD, HS]],
+      evTail: Aux[TT, TO, TD, TS]
+  ): Aux[HT :+: TT, HO :+: TO, HD :+: TD, HS :+: TS] = {
+    new StructureFromDataType[HD :+: TD] {}
+  }
+
+  implicit def fromProduct[PT <: Product, PO <: Product, PD <: Product, PS <: Product, HT <: HList, HO <: HList, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
-      evH: Aux[HT, HO, HD, HS],
+      evH: Strict[Aux[HT, HO, HD, HS]],
       tuplerT: Tupler.Aux[HT, PT],
       tuplerO: Tupler.Aux[HO, PO],
       tuplerS: Tupler.Aux[HS, PS]

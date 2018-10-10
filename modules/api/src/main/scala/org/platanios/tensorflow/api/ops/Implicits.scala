@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.collection.{TraversableLike, breakOut}
@@ -47,27 +46,19 @@ private[api] trait Implicits
     Basic.constant(Tensor.fill[T](Shape())(value))
   }
 
-  implicit def outputFromTensor[T](value: Tensor[T]): Output[T] = {
+  implicit def outputFromTensor[T: TF](value: Tensor[T]): Output[T] = {
     value.toOutput
   }
 
-  implicit def outputFromShape(shape: Shape): Output[Long] = {
-    shape.toOutput
-  }
-
-  implicit def outputFromRange(range: Range): Output[Int] = {
-    Basic.constant(tensors.ops.Basic.stack(range.map(Tensor.fill[Int](Shape()))))
-  }
-
-  implicit def outputFromOutputLike[T](value: OutputLike[T]): Output[T] = {
+  implicit def outputFromOutputLike[T: TF](value: OutputLike[T]): Output[T] = {
     value.toOutput
   }
 
-  implicit def outputFromTensorArray[T](value: TensorArray[T]): Output[T] = {
+  implicit def outputFromTensorArray[T: TF](value: TensorArray[T]): Output[T] = {
     value.toOutput
   }
 
-  implicit def outputFromVariable[T](value: Variable[T]): Output[T] = {
+  implicit def outputFromVariable[T: TF](value: Variable[T]): Output[T] = {
     value.toOutput
   }
 

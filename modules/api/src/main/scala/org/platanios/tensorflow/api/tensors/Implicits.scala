@@ -35,7 +35,7 @@ private[api] trait Implicits
     Tensor.fill[T](Shape())(value)
   }
 
-  implicit def tensorFromTensorLike[T](
+  implicit def tensorFromTensorLike[T: TF](
       value: TensorLike[T]
   ): Tensor[T] = {
     value.toTensor

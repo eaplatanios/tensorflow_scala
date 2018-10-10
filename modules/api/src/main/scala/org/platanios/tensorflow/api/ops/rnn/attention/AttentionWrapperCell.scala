@@ -44,9 +44,9 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-class AttentionWrapperCell[T: TF : IsNotQuantized, S, SS, AS, ASS] private[attention] (
-    val cell: RNNCell[Output[T], Shape, S, SS],
-    val attentions: Seq[Attention[T, AS, ASS]], // TODO: Allow for varying supported types in the sequence.
+class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, CellStateShape, AttentionState, AttentionStateShape] private[attention] (
+    val cell: RNNCell[Output[T], Shape, CellState, CellStateShape],
+    val attentions: Seq[Attention[T, AttentionState, AttentionStateShape]], // TODO: [TYPES] Allow for varying supported types in the sequence.
     val attentionLayerWeights: Seq[Output[T]] = null,
     val cellInputFn: (Output[T], Output[T]) => Output[T] = {
       (input: Output[T], attention: Output[T]) =>
@@ -56,9 +56,9 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, S, SS, AS, ASS] private[atten
     val storeAlignmentsHistory: Boolean = false,
     val name: String = "AttentionWrapperCell"
 )(implicit
-    evS: WhileLoopVariable.Aux[S, SS],
-    evAS: WhileLoopVariable.Aux[AS, ASS]
-) extends RNNCell[Output[T], Shape, AttentionWrapperState[T, S, SS, Seq[AS], Seq[ASS]], (SS, Shape, Shape, Seq[Shape], Seq[Shape], Seq[ASS])] {
+    evS: WhileLoopVariable.Aux[CellState, CellStateShape],
+    evAS: WhileLoopVariable.Aux[AttentionState, AttentionStateShape]
+) extends RNNCell[Output[T], Shape, AttentionWrapperState[T, CellState, Seq[AttentionState]], (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[AttentionStateShape])] {
   private[this] val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
       require(attentionLayerWeights.lengthCompare(attentions.size) == 0,
@@ -78,8 +78,8 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, S, SS, AS, ASS] private[atten
     * @return Initial state for this attention cell wrapper.
     */
   def initialState(
-      initialCellState: S,
-  ): AttentionWrapperState[T, S, SS, Seq[AS], Seq[ASS]] = {
+      initialCellState: CellState,
+  ): AttentionWrapperState[T, CellState, Seq[AttentionState]] = {
     if (initialCellState == null) {
       null
     } else {
@@ -118,7 +118,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, S, SS, AS, ASS] private[atten
       cell.outputShape
   }
 
-  override def stateShape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], Seq[ASS]) = {
+  override def stateShape: (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[AttentionStateShape]) = {
     (cell.stateShape, Shape(1), Shape(attentionLayersSize),
         attentions.map(a => {
           Output.constantValueAsShape(a.alignmentSize.expandDims(0))
@@ -150,8 +150,8 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, S, SS, AS, ASS] private[atten
     * @return Next tuple.
     */
   override def forward(
-      input: Tuple[Output[T], AttentionWrapperState[T, S, SS, Seq[AS], Seq[ASS]]]
-  ): Tuple[Output[T], AttentionWrapperState[T, S, SS, Seq[AS], Seq[ASS]]] = {
+      input: Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]]
+  ): Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] = {
     // Step 1: Calculate the true inputs to the cell based on the previous attention value.
     val cellInput = cellInputFn(input.output, input.state.attention)
     val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
@@ -194,9 +194,9 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, S, SS, AS, ASS] private[atten
 }
 
 object AttentionWrapperCell {
-  def apply[T: TF : IsNotQuantized, S, SS, AS, ASS](
-      cell: RNNCell[Output[T], Shape, S, SS],
-      attentions: Seq[Attention[T, AS, ASS]],
+  def apply[T: TF : IsNotQuantized, CellState, CellStateShape, AttentionState, AttentionStateShape](
+      cell: RNNCell[Output[T], Shape, CellState, CellStateShape],
+      attentions: Seq[Attention[T, AttentionState, AttentionStateShape]],
       attentionLayerWeights: Seq[Output[T]] = null,
       cellInputFn: (Output[T], Output[T]) => Output[T] = {
         (input: Output[T], attention: Output[T]) =>
@@ -206,10 +206,10 @@ object AttentionWrapperCell {
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"
   )(implicit
-      evS: WhileLoopVariable.Aux[S, SS],
-      evAS: WhileLoopVariable.Aux[AS, ASS]
-  ): AttentionWrapperCell[T, S, SS, AS, ASS] = {
-    new AttentionWrapperCell[T, S, SS, AS, ASS](
+      evS: WhileLoopVariable.Aux[CellState, CellStateShape],
+      evAS: WhileLoopVariable.Aux[AttentionState, AttentionStateShape]
+  ): AttentionWrapperCell[T, CellState, CellStateShape, AttentionState, AttentionStateShape] = {
+    new AttentionWrapperCell[T, CellState, CellStateShape, AttentionState, AttentionStateShape](
       cell, attentions, attentionLayerWeights, cellInputFn,
       outputAttention, storeAlignmentsHistory, name)
   }
