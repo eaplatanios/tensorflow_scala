@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputLikeOrTensorArray, TensorArray}
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
@@ -195,10 +195,9 @@ object BasicDecoder {
       }
     }
 
-    private[this] val zeroInputs: Seq[Output[Any]] = {
+    private val zeroInputs: Seq[Output[Any]] = {
       Op.nameScope(name) {
         inputs.map(input => {
-          implicit val evTF: TF[Any] = TF.fromDataType(input.dataType)
           Basic.zerosLike(
             Basic.gather(
               input = input,

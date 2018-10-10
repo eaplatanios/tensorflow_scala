@@ -125,8 +125,6 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
     }
     VariableScope.updatedScope(currentVariableScope, cachingDevice = cachingDevice) {
       var (initialFinished, initialInput, initialState) = initialize()
-      val initialInputs = evO.outputs(initialInput)
-      val initialStates = evDS.outputs(initialState)
       val zeroOutput = this.zeroOutput()
       val zeroOutputs = evDO.outputs(zeroOutput)
       val initialOutputTensorArrays = zeroOutputs.map(output => {
@@ -145,8 +143,8 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
       type LoopVariables = (
           Output[Int],
               Seq[TensorArray[Any]],
-              Seq[Output[Any]],
-              Seq[Output[Any]],
+              DecState,
+              Out,
               Output[Boolean],
               Output[Int])
 
@@ -155,13 +153,10 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
       }
 
       def body(loopVariables: LoopVariables): LoopVariables = {
-        val (time, outputTensorArrays, states, inputs, finished, sequenceLengths) = loopVariables
-        val state = evDS.fromOutputs(initialState, states)
-        val input = evO.fromOutputs(initialInput, inputs)
+        val (time, outputTensorArrays, state, input, finished, sequenceLengths) = loopVariables
         val (decoderOutput, decoderState, nextInput, decoderFinished) = next(time, input, state)
         val decoderOutputs = evDO.outputs(decoderOutput)
         val decoderStates = evDS.outputs(decoderState)
-        val nextInputs = evO.outputs(nextInput)
         var nextFinished = {
           if (tracksOwnFinished)
             decoderFinished
@@ -183,6 +178,7 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
             })
             // Passes `decoderStates` through as the next state depending on their corresponding value in `finished` and
             // on their type and shape. Tensor arrays and scalar states are always passed through.
+            val states = evDS.outputs(state)
             val nextStates = decoderStates.zip(states).map(s => {
               s._1.setShape(s._2.shape)
               if (s._1.rank == 0) {
@@ -195,27 +191,25 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
           } else
             (decoderOutputs, decoderStates)
         }
+        val nextState = evDS.fromOutputs(state, nextStates)
         val nextOutputTensorArrays = outputTensorArrays.zip(nextOutputs).map(t => {
           t._1.write(time, t._2)
         })
-        (time + 1, nextOutputTensorArrays, nextStates, nextInputs, nextFinished, nextSequenceLengths)
+        (time + 1, nextOutputTensorArrays, nextState, nextInput, nextFinished, nextSequenceLengths)
       }
 
-      implicit val evTF: TF[Any] = TF.fromDataType(initialStates.head.dataType)
-
-      val (_, finalOutputTensorArrays, finalStates, _, _, preFinalSequenceLengths): LoopVariables =
+      val (_, finalOutputTensorArrays, preFinalState, _, _, preFinalSequenceLengths): LoopVariables =
         ControlFlow.whileLoop(
           (loopVariables: LoopVariables) => condition(loopVariables),
           (loopVariables: LoopVariables) => body(loopVariables),
-          (initialTime, initialOutputTensorArrays, initialStates,
-              initialInputs, initialFinished, initialSequenceLengths),
+          (initialTime, initialOutputTensorArrays, initialState,
+              initialInput, initialFinished, initialSequenceLengths),
           parallelIterations = parallelIterations,
           swapMemory = swapMemory)
 
       var (finalOutput, finalState, finalSequenceLengths) = finalize(
         evDO.fromOutputs(zeroOutput, finalOutputTensorArrays.map(_.stack())),
-        evDS.fromOutputs(initialState, finalStates),
-        preFinalSequenceLengths)
+        preFinalState, preFinalSequenceLengths)
 
       if (!outputTimeMajor) {
         finalOutput = evDFO.fromOutputs(

@@ -926,22 +926,22 @@ object WhileLoopContext {
 
 /** Type trait used for representing supported while-loop construct loop variable types. */
 trait WhileLoopVariable[T] {
-  type ShapeType
+  type S
 
   /** Helper used by the RNN construction code to create default states. */
   def zero(
       batchSize: Output[Int],
-      shape: ShapeType,
+      shape: S,
       name: String = "Zero"
   ): T
 
   def size(output: T): Int
   def outputs(output: T): Seq[Output[Any]]
-  def shapes(shape: ShapeType): Seq[Shape]
+  def shapes(shape: S): Seq[Shape]
   def fromOutputs(output: T, values: Seq[Output[Any]]): T = segmentOutputs(output, values)._1
   def segmentOutputs(output: T, values: Seq[Output[Any]]): (T, Seq[Output[Any]])
-  def fromShapes(output: T, values: Seq[Shape]): ShapeType = segmentShapes(output, values)._1
-  def segmentShapes(output: T, values: Seq[Shape]): (ShapeType, Seq[Shape])
+  def fromShapes(output: T, values: Seq[Shape]): S = segmentShapes(output, values)._1
+  def segmentShapes(output: T, values: Seq[Shape]): (S, Seq[Shape])
 
   // TODO: [OPS] These "map" functions involve some runtime checking for the "Symbol" type that would be good to work around.
   def map(
@@ -951,19 +951,21 @@ trait WhileLoopVariable[T] {
 
   def mapWithShape(
       value: T,
-      shape: ShapeType,
+      shape: S,
       mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
   ): T
 }
 
 object WhileLoopVariable {
   type Aux[T, TS] = WhileLoopVariable[T] {
-    type ShapeType = TS
+    type S = TS
   }
 
   implicit def fromOutput[T: TF]: Aux[Output[T], Shape] = {
     new WhileLoopVariable[Output[T]] {
-      override type ShapeType = Shape
+      override type S = Shape
+
+      // TODO: [TYPES] !!! The following is quite hacky.
 
       override def zero(
           batchSize: Output[Int],
@@ -1017,7 +1019,7 @@ object WhileLoopVariable {
 
       override def mapWithShape(
           value: Output[T],
-          shape: ShapeType,
+          shape: S,
           mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
       ): Output[T] = {
         mapFn(value, shape).asInstanceOf[Output[T]]
@@ -1025,9 +1027,9 @@ object WhileLoopVariable {
     }
   }
 
-  implicit def fromTensorArray[T: TF]: Aux[TensorArray[T], Shape] = {
+  implicit def fromTensorArray[T]: Aux[TensorArray[T], Shape] = {
     new WhileLoopVariable[TensorArray[T]] {
-      override type ShapeType = Shape
+      override type S = Shape
 
       override def zero(
           batchSize: Output[Int],
@@ -1069,15 +1071,15 @@ object WhileLoopVariable {
           value: TensorArray[T],
           mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
       ): TensorArray[T] = {
-        mapFn(value).asInstanceOf[TensorArray[T]]
+        mapFn(value.asInstanceOf[TensorArray[Any]]).asInstanceOf[TensorArray[T]]
       }
 
       override def mapWithShape(
           value: TensorArray[T],
-          shape: ShapeType,
+          shape: S,
           mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
       ): TensorArray[T] = {
-        mapFn(value, shape).asInstanceOf[TensorArray[T]]
+        mapFn(value.asInstanceOf[TensorArray[Any]], shape).asInstanceOf[TensorArray[T]]
       }
     }
   }
@@ -1086,7 +1088,7 @@ object WhileLoopVariable {
       ev: Aux[T, TS]
   ): Aux[Array[T], Array[TS]] = {
     new WhileLoopVariable[Array[T]] {
-      override type ShapeType = Array[TS]
+      override type S = Array[TS]
 
       override def zero(
           batchSize: Output[Int],
@@ -1149,7 +1151,7 @@ object WhileLoopVariable {
       ev: Aux[T, TS]
   ): Aux[Seq[T], Seq[TS]] = {
     new WhileLoopVariable[Seq[T]] {
-      override type ShapeType = Seq[TS]
+      override type S = Seq[TS]
 
       override def zero(
           batchSize: Output[Int],
@@ -1212,7 +1214,7 @@ object WhileLoopVariable {
       ev: Aux[T, TS]
   ): Aux[Map[MK, T], Map[MK, TS]] = {
     new WhileLoopVariable[Map[MK, T]] {
-      override type ShapeType = Map[MK, TS]
+      override type S = Map[MK, TS]
 
       override def zero(
           batchSize: Output[Int],
@@ -1277,7 +1279,7 @@ object WhileLoopVariable {
 
   implicit val fromHNil: Aux[HNil, HNil] = {
     new WhileLoopVariable[HNil] {
-      override type ShapeType = HNil
+      override type S = HNil
 
       override def zero(
           batchSize: Output[Int],
@@ -1335,7 +1337,7 @@ object WhileLoopVariable {
       evT: Aux[T, TS]
   ): Aux[H :: T, HS :: TS] = {
     new WhileLoopVariable[H :: T] {
-      override type ShapeType = HS :: TS
+      override type S = HS :: TS
 
       override def zero(
           batchSize: Output[Int],
@@ -1405,7 +1407,7 @@ object WhileLoopVariable {
       evT: Aux[T, TS]
   ): Aux[H :+: T, HS :+: TS] = {
     new WhileLoopVariable[H :+: T] {
-      override type ShapeType = HS :+: TS
+      override type S = HS :+: TS
 
       override def zero(
           batchSize: Output[Int],
@@ -1498,7 +1500,7 @@ object WhileLoopVariable {
       genS: Generic.Aux[PS, LS]
   ): Aux[P, PS] = {
     new WhileLoopVariable[P] {
-      override type ShapeType = PS
+      override type S = PS
 
       override def zero(
           batchSize: Output[Int],

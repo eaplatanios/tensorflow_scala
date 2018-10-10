@@ -264,8 +264,6 @@ object RNN extends RNN {
       if (constantBatchSize != shape(1))
         throw InvalidShapeException("The batch size is not the same for all inputs.")
     })
-    val initialStates = evS.outputs(initialState)
-    val inferredDataType = initialStates.head.dataType
     val zeroOutput = evO.zero(batchSize, cell.outputShape, "ZeroOutput")
     val zeroOutputs = evO.outputs(zeroOutput)
     val (minSequenceLength, maxSequenceLength) = {
@@ -275,13 +273,15 @@ object RNN extends RNN {
         (null, timeSteps)
     }
     val time = Op.nameScope("Time")(Basic.zeros[Int](Shape()))
-    val outputTensorArrays = evO.shapes(cell.outputShape).zipWithIndex.map({
-      case (shape, index) =>
+    val outputDataTypes = evO.outputs(input).map(_.dataType)
+    val outputShapes = evO.shapes(cell.outputShape)
+    val outputTensorArrays = outputDataTypes.zip(outputShapes).zipWithIndex.map({
+      case ((dataType, shape), index) =>
         TensorArray.create(
           size = timeSteps,
-          dataType = inferredDataType,
+          dataType = dataType,
           elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
-          name = s"Output_$index")(TF.fromDataType(inferredDataType))
+          name = s"Output_$index")(TF.fromDataType(dataType))
     })
     val inputTensorArrays = inputs.zipWithIndex.map({
       case (in, index) => TensorArray.create(
@@ -292,21 +292,22 @@ object RNN extends RNN {
       )(TF.fromDataType(in.dataType)).unstack(in)
     })
 
-    type LoopVariables = (Output[Int], Seq[TensorArray[Any]], Seq[Output[Any]])
+    type LoopVariables = (Output[Int], Seq[TensorArray[Any]], S)
 
     /** Takes a time step for the dynamic RNN. */
     def timeStep(loopVariables: LoopVariables): LoopVariables = {
       val time = loopVariables._1
-      val states = loopVariables._3
+      val state = loopVariables._3
       val inputs = inputTensorArrays.map(_.read(time))
       // Restore some shape information.
       inputs.zip(inputsGotShape).foreach(i => i._1.setShape(i._2(1 ::)))
       val callCell: () => (Seq[Output[Any]], Seq[Output[Any]]) = () => {
         val newTuple = cell(Tuple(
           output = evO.fromOutputs(input, inputs),
-          state = evS.fromOutputs(initialState, states)))
+          state = state))
         (evO.outputs(newTuple.output), evS.outputs(newTuple.state))
       }
+      val states = evS.outputs(state)
       val (nextOutputs, nextStates) = {
         if (sequenceLengths != null) {
           RNN.rnnStep(
@@ -316,21 +317,20 @@ object RNN extends RNN {
           callCell()
         }
       }
+      val nextState = evS.fromOutputs(state, nextStates)
       val nextOutputTensorArrays = loopVariables._2.zip(nextOutputs).map({
         case (tensorArray, output) =>
           tensorArray.write(time, output)
       })
-      (time + 1, nextOutputTensorArrays, nextStates)
+      (time + 1, nextOutputTensorArrays, nextState)
     }
-
-    implicit val evTF: TF[Any] = TF.fromDataType(initialStates.head.dataType)
 
     // Make sure that we run at least 1 step, if necessary, to ensure that the tensor arrays pick up the dynamic shape.
     val loopBound = Math.minimum(timeSteps, Math.maximum(1, maxSequenceLength))
-    val (_, finalOutputTensorArrays, finalStates) = ControlFlow.whileLoop(
+    val (_, finalOutputTensorArrays, finalState) = ControlFlow.whileLoop(
       (loopVariables: LoopVariables) => Math.less(loopVariables._1, loopBound),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
-      (time, outputTensorArrays, initialStates),
+      (time, outputTensorArrays, initialState),
       parallelIterations = parallelIterations,
       swapMemory = swapMemory,
       maximumIterations = timeSteps)
@@ -341,7 +341,7 @@ object RNN extends RNN {
     finalOutputs
         .zip(evO.shapes(cell.outputShape))
         .foreach(o => o._1.setShape(Shape(constantTimeSteps, constantBatchSize) ++ o._2))
-    Tuple(evO.fromOutputs(input, finalOutputs), evS.fromOutputs(initialState, finalStates))
+    Tuple(evO.fromOutputs(input, finalOutputs), finalState)
   }
 
   /** Calculates one step of a dynamic RNN mini-batch.
