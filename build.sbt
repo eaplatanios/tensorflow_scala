@@ -19,8 +19,8 @@ import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.4"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
+scalaVersion in ThisBuild := "2.12.7"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.7")
 
 organization in ThisBuild := "org.platanios"
 
@@ -354,7 +354,7 @@ lazy val publishSettings = Seq(
   publishMavenStyle := true,
   // publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
-  publishTo := Some(
+  publishTo in ThisBuild := Some(
     if (isSnapshot.value)
       Opts.resolver.sonatypeSnapshots
     else

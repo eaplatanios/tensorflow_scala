@@ -33,8 +33,8 @@ addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.1")
 addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.18")
 
 // Packaging and publishing related plugins
-addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.8")
-addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "1.1.1")
+addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.9")
+addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "2.0.0-M2")
 addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.0")
 
 // Generally useful plugins
