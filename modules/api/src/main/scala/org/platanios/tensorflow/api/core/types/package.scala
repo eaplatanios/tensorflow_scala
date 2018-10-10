@@ -185,7 +185,7 @@ package object types {
 
   trait IsDecimal[T]
 
-  object IsDecimal {
+  object IsDecimal extends IsDecimalPriority0 {
     def apply[T: IsDecimal]: IsDecimal[T] = implicitly[IsDecimal[T]]
 
     implicit val halfEvidence         : IsDecimal[Half]          = new IsDecimal[Half] {}
@@ -194,6 +194,9 @@ package object types {
     implicit val truncatedHalfEvidence: IsDecimal[TruncatedHalf] = new IsDecimal[TruncatedHalf] {}
 
     implicit def float32OrFloat64Evidence[T: IsFloat32OrFloat64]: IsDecimal[T] = new IsDecimal[T] {}
+  }
+
+  trait IsDecimalPriority0 {
     implicit def float16OrFloat32OrFloat64Evidence[T: IsFloat16OrFloat32OrFloat64]: IsDecimal[T] = new IsDecimal[T] {}
     implicit def bFloat16OrFloat32OrFloat64Evidence[T: IsBFloat16OrFloat32OrFloat64]: IsDecimal[T] = new IsDecimal[T] {}
     implicit def bFloat16OrFloat16OrFloat32Evidence[T: IsBFloat16OrFloat16OrFloat32]: IsDecimal[T] = new IsDecimal[T] {}

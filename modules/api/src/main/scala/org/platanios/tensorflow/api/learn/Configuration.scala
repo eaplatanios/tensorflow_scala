@@ -152,7 +152,7 @@ case class Configuration(
     val tfConfigJsonParsed = parse(tfConfigJson)
 
     // Parse the cluster configuration.
-    val tfClusterConfig: Either[Exception, ClusterConfig] = tfConfigJsonParsed.right.flatMap(parsed => {
+    val tfClusterConfig = tfConfigJsonParsed.right.flatMap(parsed => {
       val clusterConfigJson = parsed.findAllByKey(CLUSTER_KEY)
       if (clusterConfigJson.isEmpty) {
         Left(null)
@@ -174,7 +174,7 @@ case class Configuration(
     })
 
     // Parse the task configuration.
-    val tfTaskConfig: Either[Exception, (String, Int)] = tfConfigJsonParsed.right.flatMap(parsed => {
+    val tfTaskConfig = tfConfigJsonParsed.right.flatMap(parsed => {
       val cursor = parsed.hcursor
       val taskType = cursor.downField(TASK_ENV_KEY).get[String](TASK_TYPE_KEY)
       val taskIndex = cursor.downField(TASK_ENV_KEY).get[Int](TASK_ID_KEY)

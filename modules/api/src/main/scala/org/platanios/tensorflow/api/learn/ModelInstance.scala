@@ -15,23 +15,24 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.ops.{Op, Output, OutputLike}
-import org.platanios.tensorflow.api.ops.io.data.Iterator
+import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.ops.{Output, OutputLike, UntypedOp}
+import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.variables.Variable
 
-// TODO: What about "trainOutput"?
+// TODO: [LEARN] What about "trainOutput"?
 
 /** Represents an instance of a constructed model. Such instances are constructed by estimators and passed on to
   * model-dependent hooks.
   *
   * @author Emmanouil Antonios Platanios
   */
-case class ModelInstance[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
-    model: TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
+case class ModelInstance[In, Out, Loss: TF, Grad: TF : IsFloat32OrFloat64, InEval](
+    model: TrainableModel[In, Out, Loss, Grad, InEval],
     configuration: Configuration,
-    trainInputIterator: Option[Iterator[TT, TO, TD, TS]] = None,
-    trainInput: Option[TO] = None,
-    output: Option[I] = None,
-    loss: Option[Output] = None,
-    gradientsAndVariables: Option[Seq[(OutputLike, Variable)]] = None,
-    trainOp: Option[Op] = None)
+    trainInputIterator: Option[DatasetIterator[In]] = None,
+    trainInput: Option[Int] = None,
+    output: Option[Out] = None,
+    loss: Option[Output[Loss]] = None,
+    gradientsAndVariables: Option[Seq[(OutputLike[Grad], Variable[Any])]] = None,
+    trainOp: Option[UntypedOp] = None)
