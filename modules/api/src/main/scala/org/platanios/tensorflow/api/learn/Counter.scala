@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.learn
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.variables.{Variable, ZerosInitializer}
-import org.platanios.tensorflow.api.types.INT64
 
 /** Contains helper methods for creating and obtaining counter variables (e.g., epoch or global iteration).
   *
@@ -35,13 +34,16 @@ object Counter {
     *                               provided key.
     */
   @throws[IllegalStateException]
-  def create(key: Graph.Key[Variable], local: Boolean = false, graph: Graph = Op.currentGraph): Variable = {
+  def create(
+      key: Graph.Key[Variable[Any]],
+      local: Boolean = false,
+      graph: Graph = Op.currentGraph
+  ): Variable[Long] = {
     get(key, local, graph) match {
       case Some(_) => throw new IllegalStateException(s"A ${key.name} variable already exists in this graph.")
       case None => Op.createWith(graph, nameScope = "") {
-        Variable.getVariable(
+        Variable.getVariable[Long](
           name = key.name,
-          dataType = INT64,
           shape = Shape.scalar(),
           initializer = ZerosInitializer,
           trainable = false,
@@ -63,7 +65,11 @@ object Counter {
     *                               provided key, or if the obtained global step is not an integer scalar.
     */
   @throws[IllegalStateException]
-  def get(key: Graph.Key[Variable], local: Boolean = false, graph: Graph = Op.currentGraph): Option[Variable] = {
+  def get(
+      key: Graph.Key[Variable[Any]],
+      local: Boolean = false,
+      graph: Graph = Op.currentGraph
+  ): Option[Variable[Long]] = {
     val counterVariables = graph.getCollection(key)
     if (counterVariables.size > 1)
       throw new IllegalStateException(s"There should only exist one ${key.name} variable in the graph.")
@@ -77,7 +83,7 @@ object Counter {
       if (counter.shape.rank != 0 && counter.shape.isFullyDefined)
         throw new IllegalStateException(
           s"Existing ${key.name} is not a scalar: ${counter.shape}.")
-      Some(counter)
+      Some(counter.asInstanceOf[Variable[Long]])
     }
   }
 
@@ -88,7 +94,11 @@ object Counter {
     * @param  graph Graph to find/create the counter in. If missing, the current graph is used.
     * @return Counter variable.
     */
-  def getOrCreate(key: Graph.Key[Variable], local: Boolean = false, graph: Graph = Op.currentGraph): Variable = {
+  def getOrCreate(
+      key: Graph.Key[Variable[Any]],
+      local: Boolean = false,
+      graph: Graph = Op.currentGraph
+  ): Variable[Long] = {
     get(key, local, graph).getOrElse(create(key, local, graph))
   }
 }
