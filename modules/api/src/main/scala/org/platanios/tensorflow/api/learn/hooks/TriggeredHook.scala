@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.learn.Counter
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -39,10 +39,18 @@ abstract class TriggeredHook(
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true
 ) extends Hook {
-  protected     val internalTrigger: HookTrigger = trigger.copy()
-  private[this] var step           : Variable    = _
-  private[this] var lastStep       : Long        = 0L
-  private[this] var shouldTrigger  : Boolean     = false
+  type InnerStateF = Unit
+  type InnerStateE = Unit
+  type InnerStateR = Unit
+
+  final override type StateF = (Output[Long], Option[InnerStateF])
+  final override type StateE = Option[InnerStateE]
+  final override type StateR = (Tensor[Long], Option[InnerStateR])
+
+  protected     val internalTrigger: HookTrigger    = trigger.copy()
+  private[this] var step           : Variable[Long] = _
+  private[this] var lastStep       : Long           = 0L
+  private[this] var shouldTrigger  : Boolean        = false
 
   override private[learn] def internalBegin(): Unit = {
     internalTrigger.reset()
@@ -61,28 +69,35 @@ abstract class TriggeredHook(
   override final protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[_]]]] = {
+  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = {
     shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
       if (internalTrigger.lastTriggerStep().isEmpty)
         onFirstTrigger(runContext)(executableEv, fetchableEv)
-      Some(Hook.SessionRunArgs(fetches = step.value +: fetches, options = runOptions, wantMetadata = wantMetadata))
+      Some(Hook.SessionRunArgs(
+        fetches = (step.value, Some(fetches)),
+        targets = Some(targets),
+        options = runOptions,
+        wantMetadata = wantMetadata))
     } else {
-      Some(Hook.SessionRunArgs(fetches = Seq(step.value)))
+      Some(Hook.SessionRunArgs(
+        fetches = (step.value, None),
+        targets = None))
     }
   }
 
   override final protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]]
+      runResult: Hook.SessionRunResult[StateR]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
-    lastStep = runResult.values(0).scalar.asInstanceOf[Long]
+    lastStep = runResult.result._1.scalar
     if (shouldTrigger) {
       val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)
-      onTrigger(lastStep, elapsed, runResult.copy(values = runResult.values.tail), runContext.session)
+      val result = Hook.SessionRunResult(runResult.result._2.get, runResult.runMetadata)
+      onTrigger(lastStep, elapsed, result, runContext.session)
     }
   }
 
@@ -95,7 +110,9 @@ abstract class TriggeredHook(
     super.internalEnd(session)
   }
 
-  protected def fetches: Seq[Output] = Seq.empty[Output]
+  protected def fetches: InnerStateF = ()
+  protected def targets: InnerStateE = ()
+
   protected def runOptions: Option[RunOptions] = None
   protected def wantMetadata: Boolean = false
 
@@ -107,7 +124,7 @@ abstract class TriggeredHook(
   protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]],
+      runResult: Hook.SessionRunResult[InnerStateR],
       session: Session
   ): Unit = ()
 }

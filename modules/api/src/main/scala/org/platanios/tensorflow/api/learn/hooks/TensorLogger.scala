@@ -48,24 +48,27 @@ class TensorLogger protected (
     val triggerAtEnd: Boolean = true,
     val formatter: Map[String, Tensor[_]] => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd) {
-  private[this] val tensorTags : Seq[String] = tensors.keys.toSeq
-  private[this] val tensorNames: Seq[String] = tensors.values.toSeq
-  private[this] var outputs    : Seq[Output] = _
+  override type InnerStateF = Seq[Output[Any]]
+  override type InnerStateR = Seq[Tensor[Any]]
+
+  protected val tensorTags : Seq[String]      = tensors.keys.toSeq
+  protected val tensorNames: Seq[String]      = tensors.values.toSeq
+  protected var outputs    : Seq[Output[Any]] = _
 
   override protected def begin(): Unit = {
     // Convert tensor names to op outputs.
     outputs = tensorNames.map(t => Op.currentGraph.getOutputByName(t))
   }
 
-  override protected def fetches: Seq[Output] = outputs
+  override protected def fetches: Seq[Output[Any]] = outputs
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
-    val tensors = tensorTags.zip(runResult.values.tail)
+    val tensors = tensorTags.zip(runResult.result.tail)
     if (formatter != null) {
       TensorLogger.logger.info(formatter(tensors.toMap))
     } else {

@@ -61,7 +61,7 @@ class NaNChecker protected (
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
     // TODO: !!! [TYPES] Remove the cast once we start using static types everywhere.
-    runResult.result.filter(_.castTo[Float].isNaN.any().scalar).foreach(value => {
+    runResult.result.filter(_.toFloat.isNaN.any().scalar).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {
         NaNChecker.logger.error(message)

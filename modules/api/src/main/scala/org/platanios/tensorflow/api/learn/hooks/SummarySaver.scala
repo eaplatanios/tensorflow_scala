@@ -42,10 +42,13 @@ class SummarySaver protected (
     val directory: Path,
     val trigger: HookTrigger = StepHookTrigger(10),
     val triggerAtEnd: Boolean = true,
-    val collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
+    val collection: Graph.Key[Output[Any]] = Graph.Keys.SUMMARIES
 ) extends TriggeredHook(trigger, triggerAtEnd) {
-  private[this] var summary      : Option[Output]            = None
-  private[this] var summaryWriter: Option[SummaryFileWriter] = None
+  override type InnerStateF = Option[Output[String]]
+  override type InnerStateR = Option[Tensor[String]]
+
+  protected var summary      : Option[Output[String]]    = None
+  protected var summaryWriter: Option[SummaryFileWriter] = None
 
   override protected def begin(): Unit = {
     summary = Summary.mergeAll(collection)
@@ -55,20 +58,24 @@ class SummarySaver protected (
 
   override protected def end(session: Session): Unit = summaryWriter.foreach(_.flush())
 
-  override protected def fetches: Seq[Output] = summary.map(Seq(_)).getOrElse(Seq.empty)
+  override protected def fetches: InnerStateF = summary
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]],
+      runResult: Hook.SessionRunResult[InnerStateR],
       session: Session
   ): Unit = {
-    summaryWriter.foreach(writer => {
-      if (step == 0L)
-        writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), step)
-      writer.writeSummaryString(runResult.values(0).scalar.asInstanceOf[String], step)
-      writer.flush()
-    })
+    runResult.result match {
+      case Some(s) =>
+        summaryWriter.foreach(writer => {
+          if (step == 0L)
+            writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), step)
+          writer.writeSummaryString(s.scalar, step)
+          writer.flush()
+        })
+      case None => ()
+    }
   }
 }
 
@@ -77,7 +84,7 @@ object SummarySaver {
       directory: Path,
       trigger: HookTrigger = StepHookTrigger(10),
       triggerAtEnd: Boolean = true,
-      collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
+      collection: Graph.Key[Output[Any]] = Graph.Keys.SUMMARIES
   ): SummarySaver = {
     new SummarySaver(directory, trigger, triggerAtEnd, collection)
   }
