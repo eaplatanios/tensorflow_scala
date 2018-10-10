@@ -15,14 +15,19 @@
 
 package org.platanios.tensorflow.api.ops.lookup
 
-import org.platanios.tensorflow.api.core.types.{DataType, INT64, TF, IsStringOrIntOrUInt}
-import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.core.types.{DataType, INT64, IsStringOrIntOrUInt, TF}
+import org.platanios.tensorflow.api.ops.{Op, UntypedOp}
 
 /** Contains functions for constructing ops related to lookup tables.
   *
   * @author Emmanouil Antonios Platanios
   */
 trait Lookup {
+  /** Returns the set of all lookup table initializers that have been created in the current graph. */
+  def tableInitializers: Set[UntypedOp] = {
+    Op.currentGraph.tableInitializers
+  }
+
   /** Creates a lookup table that converts string tensors into integer IDs.
     *
     * This operation constructs a lookup table to convert tensors of strings into tensors of `INT64` IDs. The mapping

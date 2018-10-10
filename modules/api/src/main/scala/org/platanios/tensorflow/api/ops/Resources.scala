@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.types.Resource
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Represents a TensorFlow resource.
@@ -43,28 +42,6 @@ trait Resources {
   def localResources: Set[ResourceWrapper] = {
     Op.currentGraph.localResources
   }
-
-  /** Returns an initializer op for all provided resources. */
-  def resourcesInitializer(
-      resources: Set[ResourceWrapper],
-      name: String = "ResourcesInitializer"
-  ): Op[Unit, Unit] = {
-    Resources.initializer(resources, name)
-  }
-
-  /** Returns an initializer op for all shared resources that have been created in the current graph. */
-  def sharedResourcesInitializer(
-      name: String = "SharedResourcesInitializer"
-  ): Op[Unit, Unit] = {
-    Resources.initializer(sharedResources, name)
-  }
-
-  /** Returns an initializer op for all local resources that have been created in the current graph. */
-  def localResourcesInitializer(
-      name: String = "LocalResourcesInitializer"
-  ): Op[Unit, Unit] = {
-    Resources.initializer(localResources, name)
-  }
 }
 
 object Resources extends Resources {
@@ -86,22 +63,6 @@ object Resources extends Resources {
       graph.addToCollection(Graph.Keys.SHARED_RESOURCES)(resource)
     else
       graph.addToCollection(Graph.Keys.LOCAL_RESOURCES)(resource)
-  }
-
-  /** Creates an op that initializes the provided resources.
-    *
-    * @param  resources Resources to initialize.
-    * @param  name      Name for the created op.
-    * @return Created op.
-    */
-  def initializer(
-      resources: Set[ResourceWrapper],
-      name: String = "ResourcesInitializer"
-  ): Op[Unit, Unit] = {
-    if (resources.isEmpty)
-      ControlFlow.noOp(name)
-    else
-      ControlFlow.group(resources.map(_.initializeOp), name)
   }
 
   /** Creates an op that returns a tensor containing the names of all uninitialized resources in `resources`.
