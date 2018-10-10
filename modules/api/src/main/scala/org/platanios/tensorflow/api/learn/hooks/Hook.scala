@@ -18,8 +18,6 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionWrapper}
-import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
@@ -118,6 +116,10 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   * @author Emmanouil Antonios Platanios
   */
 abstract class Hook {
+  type StateF = Unit
+  type StateE = Unit
+  type StateR = Unit
+
   private[learn] val priority: Int = 0
 
   /** Called once before creating the session. When called, the default graph is the one that will be launched in the
@@ -157,12 +159,12 @@ abstract class Hook {
   protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[_]]]] = None
+  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = None
 
   private[learn] def internalBeforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[_]]]] = beforeSessionRun(runContext)
+  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = beforeSessionRun(runContext)
 
   /** Called after each call to `Session.run()`.
     *
@@ -182,7 +184,7 @@ abstract class Hook {
     */
   protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]]
+      runResult: Hook.SessionRunResult[StateR]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
@@ -190,7 +192,7 @@ abstract class Hook {
 
   private[learn] def internalAfterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]]
+      runResult: Hook.SessionRunResult[StateR]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
@@ -238,17 +240,16 @@ object Hook {
   /** Represents a complete set of arguments passed to `Session.run()`. */
   case class SessionRunArgs[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output],
-      targets: E = Traversable.empty[Op],
+      fetches: F = (),
+      targets: E = (),
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
   )(implicit
       executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  )
+      fetchableEv: Fetchable.Aux[F, R])
 
   /** Represents the results of a call to `Session.run()`. */
-  case class SessionRunResult[F, R](values: R, runMetadata: Option[RunMetadata])(implicit
-      fetchableEv: Fetchable.Aux[F, R]
-  )
+  case class SessionRunResult[R](
+      result: R,
+      runMetadata: Option[RunMetadata])
 }

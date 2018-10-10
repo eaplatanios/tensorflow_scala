@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Executable, Fetchable}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -36,7 +35,10 @@ class NaNChecker protected (
     val tensorNames: Set[String],
     val failOnNaN: Boolean = true
 ) extends Hook {
-  private[this] var outputs: Seq[Output] = _
+  override type StateF = Seq[Output[Any]]
+  override type StateR = Seq[Tensor[Any]]
+
+  private[this] var outputs: Seq[Output[Any]] = _
 
   override protected def begin(): Unit = {
     // Convert tensor names to op outputs.
@@ -46,20 +48,20 @@ class NaNChecker protected (
   override protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[_]]]] = {
+  ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Unit, Seq[Tensor[Any]]]] = {
     Some(Hook.SessionRunArgs(fetches = outputs))
   }
 
   @throws[IllegalStateException]
   override protected def afterSessionRun[F, E, R](
       runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]]
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
   )(implicit
       executableEv: Executable[E],
       fetchableEv: Fetchable.Aux[F, R]
   ): Unit = {
     // TODO: !!! [TYPES] Remove the cast once we start using static types everywhere.
-    runResult.values.filter(_.cast(FLOAT32).isNaN.any().scalar).foreach(value => {
+    runResult.result.filter(_.castTo[Float].isNaN.any().scalar).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {
         NaNChecker.logger.error(message)

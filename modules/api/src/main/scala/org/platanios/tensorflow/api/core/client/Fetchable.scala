@@ -91,7 +91,49 @@ object Fetchable {
     type ResultType = R
   }
 
-  implicit def fromOutput[T: TF]: Aux[Output[T], Tensor[T]] = {
+  implicit val fromUnit: Aux[Unit, Unit] = {
+    new Fetchable[Unit] {
+      override type ResultType = Unit
+
+      override def numberOfFetches(fetchable: Unit): Int = {
+        0
+      }
+
+      override def fetches(fetchable: Unit): Seq[Output[_]] = {
+        Seq.empty
+      }
+
+      override def segment(
+          fetchable: Unit,
+          values: Seq[Tensor[_]]
+      ): (Unit, Seq[Tensor[_]]) = {
+        ((), values)
+      }
+    }
+  }
+
+  implicit val fromNothing: Aux[Nothing, Nothing] = {
+    new Fetchable[Nothing] {
+      override type ResultType = Nothing
+
+      override def numberOfFetches(fetchable: Nothing): Int = {
+        0
+      }
+
+      override def fetches(fetchable: Nothing): Seq[Output[_]] = {
+        Seq.empty
+      }
+
+      override def segment(
+          fetchable: Nothing,
+          values: Seq[Tensor[_]]
+      ): (Nothing, Seq[Tensor[_]]) = {
+        (null.asInstanceOf[Nothing], values)
+      }
+    }
+  }
+
+  implicit def fromOutput[T]: Aux[Output[T], Tensor[T]] = {
     new Fetchable[Output[T]] {
       override type ResultType = Tensor[T]
 
@@ -112,7 +154,7 @@ object Fetchable {
     }
   }
 
-  implicit def fromOutputIndexedSlices[T: TF]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
+  implicit def fromOutputIndexedSlices[T]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
     new Fetchable[OutputIndexedSlices[T]] {
       override type ResultType = TensorIndexedSlices[T]
 
@@ -137,7 +179,7 @@ object Fetchable {
     }
   }
 
-  implicit def fromSparseOutput[T: TF]: Aux[SparseOutput[T], SparseTensor[T]] = {
+  implicit def fromSparseOutput[T]: Aux[SparseOutput[T], SparseTensor[T]] = {
     new Fetchable[SparseOutput[T]] {
       override type ResultType = SparseTensor[T]
 

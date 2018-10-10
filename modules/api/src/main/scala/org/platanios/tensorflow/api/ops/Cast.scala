@@ -30,7 +30,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Created op output.
     */
-  private[api] def cast[T: TF, R: TF, OL[TT] <: OutputLike[TT]](
+  private[api] def cast[T, R: TF, OL[TT] <: OutputLike[TT]](
       input: OL[T],
       truncate: Boolean = false
   )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
@@ -46,14 +46,14 @@ trait Cast {
             input = o
           ).setAttribute("DstT", dataType)
               .setAttribute("Truncate", truncate)
-              .setGradientFn(castGradient(_, _)(TF[T], TF[R]))
+              .setGradientFn(castGradient(_, _)(TF[R]))
               .build().output
         })
       }
     }
   }
 
-  protected def castGradient[T: TF, R: TF](
+  protected def castGradient[T, R: TF](
       op: Op[Output[T], Output[R]],
       outputGradient: Output[R]
   ): Output[T] = {
@@ -61,7 +61,7 @@ trait Cast {
     val sourceDataType = op.input.dataType
     val destinationDataType = outputGradient.dataType
     if (supportedDataTypes.contains(sourceDataType) && supportedDataTypes.contains(destinationDataType)) {
-      cast[R, T, Output](outputGradient)
+      cast[R, T, Output](outputGradient)(TF.fromDataType(sourceDataType), implicitly[OutputOps.Aux[Output, R]])
     } else {
       null
     }
@@ -96,7 +96,7 @@ trait Cast {
 
 object Cast extends Cast {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToCastOps[T: TF, OC, OL[TT] <: OutputLike[TT]](
+    implicit def outputConvertibleToCastOps[T, OC, OL[TT] <: OutputLike[TT]](
         value: OC
     )(implicit
         f: OC => OL[T],
@@ -105,7 +105,7 @@ object Cast extends Cast {
       new CastOps(f(value))
     }
 
-    implicit class CastOps[T: TF, OL[TT] <: OutputLike[TT]](
+    implicit class CastOps[T, OL[TT] <: OutputLike[TT]](
         val output: OL[T]
     )(implicit evOps: OutputOps.Aux[OL, T]) {
       /** $OpDocCastCast

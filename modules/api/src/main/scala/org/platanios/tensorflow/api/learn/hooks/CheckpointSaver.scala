@@ -20,9 +20,8 @@ import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.learn.SessionWrapper
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.variables.Saver
-import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -86,7 +85,7 @@ class CheckpointSaver protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]],
+      runResult: Hook.SessionRunResult[Unit],
       session: Session
   ): Unit = {
     CheckpointSaver.logger.info(s"Saving checkpoint for step $step.")

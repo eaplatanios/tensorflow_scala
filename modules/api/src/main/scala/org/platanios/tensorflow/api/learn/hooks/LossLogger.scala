@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -54,21 +53,24 @@ class LossLogger protected (
     with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
-  private[this] var loss: Output = _
+  override type InnerStateF = Output[Float]
+  override type InnerStateR = Tensor[Float]
+
+  private[this] var loss: Output[Float] = _
 
   override protected def begin(): Unit = {
-    loss = modelInstance.loss.map(_.cast(FLOAT32)).orNull
+    loss = modelInstance.loss.map(_.castTo[Float]).orNull
   }
 
-  override protected def fetches: Seq[Output] = Seq(loss)
+  override protected def fetches: Output[Float] = loss
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[_]]],
+      runResult: Hook.SessionRunResult[InnerStateR],
       session: Session
   ): Unit = {
-    val loss = runResult.values(0).scalar.asInstanceOf[Float]
+    val loss = runResult.result.scalar
     val log = {
       if (formatter != null) {
         formatter(elapsed.map(_._1), step, loss)

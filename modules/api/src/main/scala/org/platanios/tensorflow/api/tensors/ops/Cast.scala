@@ -32,7 +32,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Result as a new tensor.
     */
-  private[api] def cast[T: TF, R: TF, TL[TT] <: TensorLike[TT]](
+  private[api] def cast[T, R: TF, TL[TT] <: TensorLike[TT]](
       input: TL[T],
       truncate: Boolean = false
   )(implicit ev: TensorOps.Aux[TL, T]): TL[R] = {
@@ -70,7 +70,7 @@ trait Cast {
 
 object Cast extends Cast {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToCastOps[T: TF, TC, TL[TT] <: TensorLike[TT]](
+    implicit def tensorConvertibleToCastOps[T, TC, TL[TT] <: TensorLike[TT]](
         value: TC
     )(implicit
         f: TC => TL[T],
@@ -79,7 +79,7 @@ object Cast extends Cast {
       new CastOps(f(value))
     }
 
-    implicit class CastOps[T: TF, TL[TT] <: TensorLike[TT]](
+    implicit class CastOps[T, TL[TT] <: TensorLike[TT]](
         val tensor: TL[T]
     )(implicit evOps: TensorOps.Aux[TL, T]) {
       /** $OpDocCastCast

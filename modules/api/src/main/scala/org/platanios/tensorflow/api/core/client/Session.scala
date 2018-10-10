@@ -72,8 +72,8 @@ class Session private[api](
   @throws[IllegalStateException]
   def run[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output[Int]],
-      targets: E = Traversable.empty[UntypedOp],
+      fetches: F = (),
+      targets: E = (),
       options: Option[RunOptions] = None
   )(implicit
       executable: Executable[E],
@@ -112,8 +112,8 @@ class Session private[api](
   @throws[IllegalStateException]
   def runWithMetadata[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output[Int]],
-      targets: E = Traversable.empty[Any],
+      fetches: F = (),
+      targets: E = (),
       options: Option[RunOptions] = None
   )(implicit
       executable: Executable[E],
@@ -126,8 +126,8 @@ class Session private[api](
   @throws[IllegalStateException]
   private[api] def runHelper[F, E, R](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output[Int]],
-      targets: E = Traversable.empty[Any],
+      fetches: F = (),
+      targets: E = (),
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
   )(implicit

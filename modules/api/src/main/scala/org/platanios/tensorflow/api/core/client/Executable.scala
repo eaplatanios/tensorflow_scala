@@ -49,6 +49,24 @@ sealed trait Executable[T] {
 object Executable {
   def apply[T: Executable]: Executable[T] = implicitly[Executable[T]]
 
+  implicit val fromUnit: Executable[Unit] = {
+    new Executable[Unit] {
+      /** Target ops to execute. */
+      override def ops(executable: Unit): Set[UntypedOp] = {
+        Set.empty
+      }
+    }
+  }
+
+  implicit val fromNothing: Executable[Nothing] = {
+    new Executable[Nothing] {
+      /** Target ops to execute. */
+      override def ops(executable: Nothing): Set[UntypedOp] = {
+        Set.empty
+      }
+    }
+  }
+
   implicit def fromOp[I, O]: Executable[Op[I, O]] = {
     new Executable[Op[I, O]] {
       override def ops(executable: Op[I, O]): Set[UntypedOp] = {
