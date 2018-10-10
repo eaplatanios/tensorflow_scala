@@ -13,33 +13,33 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops.data
+package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{DataType, TF, Variant, VARIANT}
+import org.platanios.tensorflow.api.core.types.{DataType, TF, VARIANT, Variant}
+import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.{Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Collections
-
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-/** Data that can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[SupportedData]]).
+/** Data that can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[OutputStructure]]).
   *
   * Currently supported data types are:
   *   - Single [[Tensor]].
-  *   - Sequences of other [[SupportedData]] (e.g., `Seq`s, `List`s, etc.).
+  *   - Sequences of other [[OutputStructure]] (e.g., `Seq`s, `List`s, etc.).
   *     - Sequences that are not homogeneous are not supported (e.g., `Seq(data1, Seq(data1, data2))`).
   *     - Note that, for that reason, even though `Seq(List(data1), List(data1, data2))` is supported,
   *       `Seq(Seq(data1), List(data1, data2))` is not.
   *     - A sequence containing both [[Output]]s and [[SparseOutput]]s, for example, is considered heterogeneous.
   *       For such cases, it is advisable to use tuples.
-  *   - Arrays of other [[SupportedData]].
-  *   - Maps with arbitrary key types and [[SupportedData]] value types.
-  *   - Products of other [[SupportedData]] (e.g., tuples).
+  *   - Arrays of other [[OutputStructure]].
+  *   - Maps with arbitrary key types and [[OutputStructure]] value types.
+  *   - Products of other [[OutputStructure]] (e.g., tuples).
   *     - Note that with tuples, heterogeneous types are supported, due to the tuple type being a kind of heterogeneous
   *       collection.
   * Internally, the data emitted by a [[Dataset]] will be de-duplicated to prevent redundant computation.
@@ -51,7 +51,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-trait SupportedData[T] {
+trait OutputStructure[T] {
   type D
   type S
 
@@ -76,14 +76,14 @@ trait SupportedData[T] {
   def shapeToString(shape: S): String
 }
 
-object SupportedData {
-  type Aux[T, DD, SS] = SupportedData[T] {
+object OutputStructure {
+  type Aux[T, DD, SS] = OutputStructure[T] {
     type D = DD
     type S = SS
   }
 
   implicit def fromOutput[T: TF]: Aux[Output[T], DataType[T], Shape] = {
-    new SupportedData[Output[T]] {
+    new OutputStructure[Output[T]] {
       override type D = DataType[T]
       override type S = Shape
 
@@ -180,7 +180,7 @@ object SupportedData {
   implicit def fromDataset[T, D, S](implicit
       evT: Aux[T, D, S]
   ): Aux[Dataset[T], DataType[Variant], Shape] = {
-    new SupportedData[Dataset[T]] {
+    new OutputStructure[Dataset[T]] {
       override type D = DataType[Variant]
       override type S = Shape
 
@@ -257,7 +257,7 @@ object SupportedData {
   implicit def fromArray[T: ClassTag, DD: ClassTag, SS: ClassTag](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Array[T], Array[DD], Array[SS]] = {
-    new SupportedData[Array[T]] {
+    new OutputStructure[Array[T]] {
       override type D = Array[DD]
       override type S = Array[SS]
 
@@ -338,7 +338,7 @@ object SupportedData {
   implicit def fromSeq[T, DD, SS](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Seq[T], Seq[DD], Seq[SS]] = {
-    new SupportedData[Seq[T]] {
+    new OutputStructure[Seq[T]] {
       override type D = Seq[DD]
       override type S = Seq[SS]
 
@@ -423,7 +423,7 @@ object SupportedData {
   implicit def fromMap[K, T, DD, SS](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Map[K, T], Map[K, DD], Map[K, SS]] = {
-    new SupportedData[Map[K, T]] {
+    new OutputStructure[Map[K, T]] {
       override type D = Map[K, DD]
       override type S = Map[K, SS]
 
@@ -510,7 +510,7 @@ object SupportedData {
   }
 
   implicit val fromHNil: Aux[HNil, HNil, HNil] = {
-    new SupportedData[HNil] {
+    new OutputStructure[HNil] {
       override type D = HNil
       override type S = HNil
 
@@ -584,7 +584,7 @@ object SupportedData {
       evH: Strict[Aux[HT, HD, HS]],
       evT: Aux[TT, TD, TS]
   ): Aux[HT :: TT, HD :: TD, HS :: TS] = {
-    new SupportedData[HT :: TT] {
+    new OutputStructure[HT :: TT] {
       override type D = HD :: TD
       override type S = HS :: TS
 
@@ -687,7 +687,7 @@ object SupportedData {
       evH: Strict[Aux[HT, HD, HS]],
       evT: Aux[TT, TD, TS]
   ): Aux[HT :+: TT, HD :+: TD, HS :+: TS] = {
-    new SupportedData[HT :+: TT] {
+    new OutputStructure[HT :+: TT] {
       override type D = HD :+: TD
       override type S = HS :+: TS
 
@@ -820,7 +820,7 @@ object SupportedData {
       genD: Generic.Aux[PD, HD],
       genS: Generic.Aux[PS, HS]
   ): Aux[PT, PD, PS] = {
-    new SupportedData[PT] {
+    new OutputStructure[PT] {
       override type D = PD
       override type S = PS
 
