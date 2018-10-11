@@ -59,9 +59,9 @@ object PTBLoader extends Loader {
       batchSize: Int,
       numSteps: Int,
       name: String
-  ): tf.data.Dataset[(Tensor[Int], Tensor[Int]), (Output, Output), (INT32, INT32), (Shape, Shape)] = {
-    tf.createWithNameScope(name) {
-      tf.data.fromGenerator[(Tensor[Int], Tensor[Int]), (Output, Output), (INT32, INT32), (Shape, Shape)](
+  ): tf.data.Dataset[(Output[Int], Output[Int])] = {
+    tf.nameScope(name) {
+      tf.data.datasetFromGenerator(
         () => tokensToBatchIterable(tokens, batchSize, numSteps),
         (INT32, INT32),
         (Shape(batchSize, numSteps), Shape(batchSize, numSteps)))
@@ -75,7 +75,7 @@ object PTBLoader extends Loader {
   ): Iterable[(Tensor[Int], Tensor[Int])] = {
     new Iterable[(Tensor[Int], Tensor[Int])] {
       override def iterator: Iterator[(Tensor[Int], Tensor[Int])] = new Iterator[(Tensor[Int], Tensor[Int])] {
-        private val tokensTensor = Tensor(tokens.head, tokens.tail: _*)
+        private val tokensTensor = tokens: Tensor[Int]
         private val numTokens    = tokens.size
         private val batchLength  = numTokens / batchSize
         private val data         = tokensTensor(0 :: batchSize * batchLength).reshape(Shape(batchSize, batchLength))
@@ -99,7 +99,7 @@ object PTBLoader extends Loader {
     }
   }
 
-  private[this] def extractData(path: Path, bufferSize: Int = 8192): PTBDataset = {
+  private def extractData(path: Path, bufferSize: Int = 8192): PTBDataset = {
     logger.info(s"Extracting data from file '$path'.")
     val inputStream = new TarArchiveInputStream(new GZIPInputStream(Files.newInputStream(path)))
     var trainTokens: Seq[String] = null
@@ -123,7 +123,7 @@ object PTBLoader extends Loader {
     PTBDataset(trainIds, validIds, testIds, for ((k, v) <- vocabulary) yield (v, k))
   }
 
-  private[this] def readTokens(inputStream: InputStream): Seq[String] = {
+  private def readTokens(inputStream: InputStream): Seq[String] = {
     val reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
     val tokens = mutable.ListBuffer.empty[String]
     var line = reader.readLine()
@@ -134,7 +134,7 @@ object PTBLoader extends Loader {
     tokens
   }
 
-  private[this] def buildVocabulary(tokens: Seq[String]): Map[String, Int] = {
+  private def buildVocabulary(tokens: Seq[String]): Map[String, Int] = {
     val counts = tokens.groupBy(identity).mapValues(_.size)
     val sorted = counts.toSeq.sortBy(-_._2)
     sorted.map(_._1).zipWithIndex.toMap

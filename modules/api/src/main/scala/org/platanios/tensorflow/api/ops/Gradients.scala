@@ -209,7 +209,8 @@ object Gradients {
                     Some(gradientUID),
                     ignoreExisting = true
                   ) {
-                    inputGradients = ControlFlow.tuple(inputGradients)(TF.fromDataType(inputGradients.head.dataType))
+                    val dataType = inputGradients.find(_ != null).get.dataType
+                    inputGradients = ControlFlow.tuple(inputGradients)(TF.fromDataType(dataType))
                   }
                 }
               }

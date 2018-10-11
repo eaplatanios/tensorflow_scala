@@ -121,9 +121,6 @@ abstract class Hook {
   type StateE
   type StateR
 
-  protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR]
-  protected implicit val evExecutableState: Executable[StateE]
-
   private[learn] val priority: Int = 0
 
   /** Called once before creating the session. When called, the default graph is the one that will be launched in the

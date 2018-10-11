@@ -43,20 +43,12 @@ abstract class TriggeredHook(
   type InnerStateE
   type InnerStateR
 
-  protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR]
-  protected implicit val evExecutableInnerState: Executable[InnerStateE]
+  protected val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR]
+  protected val evExecutableInnerState: Executable[InnerStateE]
 
   final override type StateF = (Output[Long], Option[InnerStateF])
   final override type StateE = Option[InnerStateE]
   final override type StateR = (Tensor[Long], Option[InnerStateR])
-
-  protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
-    implicitly[Fetchable.Aux[StateF, StateR]]
-  }
-
-  protected implicit val evExecutableState: Executable[StateE] = {
-    implicitly[Executable[StateE]]
-  }
 
   protected val internalTrigger: HookTrigger    = trigger.copy()
   protected var step           : Variable[Long] = _
@@ -83,6 +75,9 @@ abstract class TriggeredHook(
       evFetchable: Fetchable.Aux[F, R],
       evExecutable: Executable[E]
   ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = {
+    implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = this.evFetchableInnerState
+    implicit val evExecutableInnerState: Executable[InnerStateE] = this.evExecutableInnerState
+
     shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
       if (internalTrigger.lastTriggerStep().isEmpty)
@@ -115,6 +110,9 @@ abstract class TriggeredHook(
   }
 
   override private[learn] def internalEnd(session: Session): Unit = {
+    implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = this.evFetchableInnerState
+    implicit val evExecutableInnerState: Executable[InnerStateE] = this.evExecutableInnerState
+
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1)) {
       val lastStep = session.run(fetches = step.value).scalar
       val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)

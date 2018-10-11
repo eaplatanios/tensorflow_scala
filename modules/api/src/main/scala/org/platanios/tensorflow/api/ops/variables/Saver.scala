@@ -1673,9 +1673,9 @@ private[ops] object Saveable {
         restoredShapes: Seq[Output[I]] = null
     ): UntypedOp = {
       val dataType = restoredTensors.head.dataType
-      val shapeDataType = restoredShapes.head.dataType
       var restoredTensor = restoredTensors.head
       if (restoredShapes != null) {
+        val shapeDataType = restoredShapes.head.dataType
         restoredTensor = Basic.reshape(
           restoredTensors.head,
           restoredShapes.head

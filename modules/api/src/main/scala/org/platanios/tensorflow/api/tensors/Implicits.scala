@@ -32,33 +32,33 @@ private[api] trait Implicits
         with Math.Implicits
         with NN.Implicits {
   implicit def tensorFromSupportedType[T: TF](value: T): Tensor[T] = {
-    Tensor.fill[T](Shape())(value)
+    if (value == null) null else Tensor.fill[T](Shape())(value)
   }
 
   implicit def tensorFromTensorLike[T: TF](
       value: TensorLike[T]
   ): Tensor[T] = {
-    value.toTensor
+    if (value == null) null else value.toTensor
   }
 
   implicit def tensorFromShape(shape: Shape): Tensor[Long] = {
-    shape.toTensor
+    if (shape == null) null else shape.toTensor
   }
 
   implicit def tensorFromRange(range: Range): Tensor[Int] = {
-    Basic.stack(range.map(Tensor.fill[Int](Shape())))
+    if (range == null) null else Basic.stack(range.map(Tensor.fill[Int](Shape())))
   }
 
   implicit def tensorFromArray[T: TF](
       value: Array[Tensor[T]]
   ): Tensor[T] = {
-    Basic.stack(value.toSeq)
+    if (value == null) null else Basic.stack(value.toSeq)
   }
 
   implicit def tensorFromTraversable[T: TF, CC[A] <: TraversableLike[A, CC[A]]](
       value: CC[Tensor[T]]
   ): Tensor[T] = {
-    Basic.stack(value.toSeq)
+    if (value == null) null else Basic.stack(value.toSeq)
   }
 }
 
@@ -69,7 +69,7 @@ private[tensors] trait Priority3Implicits extends Priority2Implicits {
       f: V => Tensor[T],
       evTF: TF[T]
   ): Tensor[T] = {
-    Basic.stack(value.toSeq.map(f))
+    if (value == null) null else Basic.stack(value.toSeq.map(f))
   }
 
   implicit def tensorFromConvertibleTraversable[T, V, CC[A] <: TraversableLike[A, CC[A]]](
@@ -78,7 +78,7 @@ private[tensors] trait Priority3Implicits extends Priority2Implicits {
       f: V => Tensor[T],
       evTF: TF[T]
   ): Tensor[T] = {
-    Basic.stack(value.map(f)(breakOut))
+    if (value == null) null else Basic.stack(value.map(f)(breakOut))
   }
 }
 

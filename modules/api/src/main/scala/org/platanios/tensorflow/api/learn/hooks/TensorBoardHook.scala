@@ -36,14 +36,6 @@ private[learn] class TensorBoardHook protected (val tensorBoardConfig: TensorBoa
   override type StateE = Unit
   override type StateR = Unit
 
-  override protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
-    implicitly[Fetchable.Aux[StateF, StateR]]
-  }
-
-  override protected implicit val evExecutableState: Executable[StateE] = {
-    implicitly[Executable[StateE]]
-  }
-
   private[this] var tensorBoardProcess: Option[Process] = None
 
   override protected def begin(): Unit = tensorBoardProcess = {

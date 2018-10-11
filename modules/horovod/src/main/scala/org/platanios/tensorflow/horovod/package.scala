@@ -178,11 +178,11 @@ package object horovod {
       override type StateE = Unit
       override type StateR = Unit
 
-      override protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
+      override protected def evFetchableState: Fetchable.Aux[StateF, StateR] = {
         implicitly[Fetchable.Aux[StateF, StateR]]
       }
 
-      override protected implicit val evExecutableState: Executable[StateE] = {
+      override protected def evExecutableState: Executable[StateE] = {
         implicitly[Executable[StateE]]
       }
 

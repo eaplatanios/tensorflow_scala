@@ -39,14 +39,6 @@ class NaNChecker protected (
   override type StateE = Unit
   override type StateR = Seq[Tensor[Any]]
 
-  override protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
-    implicitly[Fetchable.Aux[StateF, StateR]]
-  }
-
-  override protected implicit val evExecutableState: Executable[StateE] = {
-    implicitly[Executable[StateE]]
-  }
-
   private[this] var outputs: Seq[Output[Any]] = _
 
   override protected def begin(): Unit = {

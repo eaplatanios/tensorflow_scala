@@ -39,39 +39,39 @@ private[api] trait Implicits
         with Statistics.Implicits
         with Text.Implicits {
   implicit def opFromOutputLike[T: TF](value: OutputLike[T]): UntypedOp = {
-    value.op
+    if (value == null) null else value.op
   }
 
   implicit def outputFromSupportedType[T: TF](value: T): Output[T] = {
-    Basic.constant(Tensor.fill[T](Shape())(value))
+    if (value == null) null else Basic.constant(Tensor.fill[T](Shape())(value))
   }
 
   implicit def outputFromTensor[T: TF](value: Tensor[T]): Output[T] = {
-    value.toOutput
+    if (value == null) null else value.toOutput
   }
 
   implicit def outputFromOutputLike[T: TF](value: OutputLike[T]): Output[T] = {
-    value.toOutput
+    if (value == null) null else value.toOutput
   }
 
   implicit def outputFromTensorArray[T: TF](value: TensorArray[T]): Output[T] = {
-    value.toOutput
+    if (value == null) null else value.toOutput
   }
 
   implicit def outputFromVariable[T: TF](value: Variable[T]): Output[T] = {
-    value.toOutput
+    if (value == null) null else value.toOutput
   }
 
   implicit def outputFromArray[T: TF](
       value: Array[Output[T]]
   ): Output[T] = {
-    Basic.stack(value.toSeq)
+    if (value == null) null else Basic.stack(value.toSeq)
   }
 
   implicit def outputFromTraversable[T: TF, CC[A] <: TraversableLike[A, CC[A]]](
       value: CC[Output[T]]
   ): Output[T] = {
-    Basic.stack(value.toSeq)
+    if (value == null) null else Basic.stack(value.toSeq)
   }
 }
 
@@ -80,21 +80,21 @@ private[ops] trait Priority3Implicits extends Priority2Implicits {
       f: TC => Tensor[T],
       evTF: TF[T]
   ): Output[T] = {
-    Basic.constant(f(value))
+    if (value == null) null else Basic.constant(f(value))
   }
 
   implicit def outputFromConvertibleArray[T, V](value: Array[V])(implicit
       f: V => Output[T],
       evTF: TF[T]
   ): Output[T] = {
-    Basic.stack(value.toSeq.map(f))
+    if (value == null) null else Basic.stack(value.toSeq.map(f))
   }
 
   implicit def outputFromConvertibleTraversable[T, V, CC[A] <: TraversableLike[A, CC[A]]](value: CC[V])(implicit
       f: V => Output[T],
       evTF: TF[T]
   ): Output[T] = {
-    Basic.stack(value.map(f)(breakOut))
+    if (value == null) null else Basic.stack(value.map(f)(breakOut))
   }
 }
 

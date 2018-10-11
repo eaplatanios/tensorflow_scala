@@ -57,11 +57,11 @@ class LossLogger protected (
   override type InnerStateE = Unit
   override type InnerStateR = Tensor[Float]
 
-  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+  override protected val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
     implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
   }
 
-  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+  override protected val evExecutableInnerState: Executable[InnerStateE] = {
     implicitly[Executable[InnerStateE]]
   }
 

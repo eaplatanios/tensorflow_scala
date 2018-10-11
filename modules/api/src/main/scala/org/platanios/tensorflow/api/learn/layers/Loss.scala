@@ -112,7 +112,7 @@ case class LogPoissonLoss[Predictions: TF : IsDecimal, L: TF : IsFloat32OrFloat6
 
 case class SequenceLoss[Predictions: TF : IsDecimal, Labels: TF, L: TF : IsFloat32OrFloat64](
     override val name: String,
-    lossFn: (Output[Predictions], Output[Labels]) => Output[Predictions],
+    loss: (Output[Predictions], Output[Labels]) => Output[Predictions],
     averageAcrossTimeSteps: Boolean = true,
     averageAcrossBatch: Boolean = true,
     weights: Tensor[Predictions] = null,
@@ -124,7 +124,7 @@ case class SequenceLoss[Predictions: TF : IsDecimal, Labels: TF, L: TF : IsFloat
   )(implicit mode: Mode): Output[L] = {
     ops.NN.sequenceLoss(
       input._1, input._2,
-      lossFn = lossFn,
+      lossFn = loss,
       weights = if (weights == null) null else ops.Basic.constant(weights),
       averageAcrossTimeSteps = averageAcrossTimeSteps,
       averageAcrossBatch = averageAcrossBatch,

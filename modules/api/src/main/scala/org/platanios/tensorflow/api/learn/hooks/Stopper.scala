@@ -38,14 +38,6 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
   override type StateE = Unit
   override type StateR = (Option[Tensor[Long]], Option[Tensor[Long]], Option[Tensor[Float]])
 
-  override protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
-    implicitly[Fetchable.Aux[StateF, StateR]]
-  }
-
-  override protected implicit val evExecutableState: Executable[StateE] = {
-    implicitly[Executable[StateE]]
-  }
-
   private var epoch: Variable[Long] = _
   private var step : Variable[Long] = _
   private var loss : Output[Float]  = _
