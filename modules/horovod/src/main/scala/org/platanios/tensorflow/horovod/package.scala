@@ -178,14 +178,6 @@ package object horovod {
       override type StateE = Unit
       override type StateR = Unit
 
-      override protected def evFetchableState: Fetchable.Aux[StateF, StateR] = {
-        implicitly[Fetchable.Aux[StateF, StateR]]
-      }
-
-      override protected def evExecutableState: Executable[StateE] = {
-        implicitly[Executable[StateE]]
-      }
-
       protected var broadcastOp: Option[UntypedOp] = None
 
       override protected def begin(): Unit = {
