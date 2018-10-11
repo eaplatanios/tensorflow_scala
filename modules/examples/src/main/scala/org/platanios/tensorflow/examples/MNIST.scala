@@ -18,8 +18,6 @@ package org.platanios.tensorflow.examples
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.UByte
 import org.platanios.tensorflow.api.learn.ClipGradientsByGlobalNorm
-import org.platanios.tensorflow.api.ops.metrics.{Accuracy, Metric}
-import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
 import org.platanios.tensorflow.data.image.MNISTLoader
 
 import com.typesafe.scalalogging.Logger
