@@ -27,11 +27,11 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class ModelInstance[In, Out, Loss: TF : IsFloat32OrFloat64, InEval](
-    model: TrainableModel[In, Out, Loss, InEval],
+case class ModelInstance[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, InEval](
+    model: TrainableModel[In, TrainIn, Out, Loss, InEval],
     configuration: Configuration,
-    trainInputIterator: Option[DatasetIterator[In]] = None,
-    trainInput: Option[Int] = None,
+    trainInputIterator: Option[DatasetIterator[TrainIn]] = None,
+    trainInput: Option[TrainIn] = None,
     output: Option[Out] = None,
     loss: Option[Output[Loss]] = None,
     gradientsAndVariables: Option[Seq[(OutputLike[Loss], Variable[Any])]] = None,

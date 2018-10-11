@@ -60,10 +60,10 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class Evaluator[In, Out, Loss, InEval] protected (
+class Evaluator[In, TrainIn, Out, Loss, InEval] protected (
     val log: Boolean = true,
     val summaryDir: Path = null,
-    val datasets: Seq[(String, () => Dataset[In])],
+    val datasets: Seq[(String, () => Dataset[TrainIn])],
     val metrics: Seq[Metric[InEval, Output[Float]]],
     val trigger: HookTrigger = StepHookTrigger(100),
     val triggerAtEnd: Boolean = true,
@@ -71,18 +71,19 @@ class Evaluator[In, Out, Loss, InEval] protected (
     val randomSeed: Option[Int] = None,
     val name: String = "Evaluator"
 )(implicit
-  evIn: OutputStructure.Aux[In, _, _]
+  evIn: OutputStructure.Aux[In, _, _],
+  evTrainIn: OutputStructure.Aux[TrainIn, _, _]
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[In, Out, Loss, InEval] {
+    with ModelDependentHook[In, TrainIn, Out, Loss, InEval] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
   require(Op.checkNameScope(name), "Invalid evaluator name.")
 
   override private[learn] val priority: Int = -1000
 
-  private[this] var graph              : Graph                      = _
-  private[this] var sessionCreator     : SessionCreator             = _
-  private[this] var datasetInitializers: Seq[(String, UntypedOp)]   = _
-  private[this] var evaluateOps        : Model.EvaluateOps[In, Out] = _
+  protected var graph              : Graph                           = _
+  protected var sessionCreator     : SessionCreator                  = _
+  protected var datasetInitializers: Seq[(String, UntypedOp)]        = _
+  protected var evaluateOps        : Model.EvaluateOps[TrainIn, Out] = _
 
   override protected def begin(): Unit = {
     graph = Graph()
@@ -92,14 +93,7 @@ class Evaluator[In, Out, Loss, InEval] protected (
       datasetInitializers = datasets.map(d => (d._1, evaluateOps.inputIterator.createInitializer(d._2()): UntypedOp))
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
-        sessionScaffold = SessionScaffold(
-          initOp = Some(ControlFlow.group(Set(
-            ControlFlow.group(Variable.globalVariables.map(_.initializer), name = "Initializers/Variables/Global"),
-            ControlFlow.group(Resources.sharedResources.map(_.initializeOp), name = "Initializers/Resources/Shared")))),
-          localInitOp = Some(ControlFlow.group(Set(
-            ControlFlow.group(Variable.localVariables.map(_.initializer), name = "Initializers/Variables/Local"),
-            ControlFlow.group(Resources.localResources.map(_.initializeOp), name = "Initializers/Resources/Local"),
-            ControlFlow.group(Lookup.tableInitializers, name = "Initializers/Lookup/Tables"))))),
+        sessionScaffold = SessionScaffold(),
         sessionConfig = modelInstance.configuration.sessionConfig,
         checkpointPath = modelInstance.configuration.workingDir)
     }
@@ -201,10 +195,10 @@ class Evaluator[In, Out, Loss, InEval] protected (
 object Evaluator {
   private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
 
-  def apply[In, Out, Loss, InEval](
+  def apply[In, TrainIn, Out, Loss, InEval](
       log: Boolean = true,
       summaryDir: Path = null,
-      datasets: Seq[(String, () => Dataset[In])],
+      datasets: Seq[(String, () => Dataset[TrainIn])],
       metrics: Seq[Metric[InEval, Output[Float]]],
       trigger: HookTrigger = StepHookTrigger(100),
       triggerAtEnd: Boolean = true,
@@ -212,8 +206,9 @@ object Evaluator {
       randomSeed: Option[Int] = None,
       name: String = "Evaluator"
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _]
-  ): Evaluator[In, Out, Loss, InEval] = {
+      evIn: OutputStructure.Aux[In, _, _],
+      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+  ): Evaluator[In, TrainIn, Out, Loss, InEval] = {
     new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }
 }

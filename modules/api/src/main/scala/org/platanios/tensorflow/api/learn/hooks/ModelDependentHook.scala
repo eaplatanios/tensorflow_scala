@@ -28,13 +28,13 @@ import org.platanios.tensorflow.api.learn.ModelInstance
   *
   * @author Emmanouil Antonios Platanios
   */
-trait ModelDependentHook[In, Out, Loss, InEval] extends Hook {
-  protected var modelInstance: ModelInstance[In, Out, Loss, InEval] = _
+trait ModelDependentHook[In, TrainIn, Out, Loss, InEval] extends Hook {
+  protected var modelInstance: ModelInstance[In, TrainIn, Out, Loss, InEval] = _
 
   /** This method will be called by estimators at graph construction time, before `begin()`. It will **not** be called
     * again if a session fails and is recovered. */
   private[learn] final def setModelInstance(
-      modelInstance: ModelInstance[In, Out, Loss, InEval]
+      modelInstance: ModelInstance[In, TrainIn, Out, Loss, InEval]
   ): Unit = {
     this.modelInstance = modelInstance
   }

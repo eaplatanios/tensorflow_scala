@@ -20,11 +20,12 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.implicits.helpers.{StructureFromTensor, StructureFromOutput}
+import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, TensorToOutput}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.io.data.{Data, Dataset, TensorDataset}
-import org.platanios.tensorflow.api.ops.{Function, Op, OpSpecification, Output}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
+import org.platanios.tensorflow.api.ops.data.{Data, Dataset}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -73,8 +74,8 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimators] (
-    protected val modelFunction: Estimator.ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI],
+abstract class Estimator[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+    protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, Loss, EvalIn],
     protected val configurationBase: Configuration = null
 ) {
   /** Run configuration used for this estimator. */
@@ -114,7 +115,9 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
   }
 
   /** Device function used by this estimator for managing replica device placement when using distributed training. */
-  val deviceFunction: Option[OpSpecification => String] = Estimator.getReplicaDeviceSetter(configuration).map(_.apply)
+  val deviceFunction: Option[OpSpecification => String] = {
+    Estimator.getReplicaDeviceSetter(configuration).map(_.apply)
+  }
 
   /** Working directory used by this estimator, used to save model parameters, graph, etc. It can also be used to load
     * checkpoints for a previously saved model. */
@@ -139,7 +142,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
         maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
         keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
         saveRelativePaths = true)
-      graph.addToCollection(saver, Graph.Keys.SAVERS)
+      graph.addToCollection(Graph.Keys.SAVERS)(saver)
       Some(saver)
     } else {
       if (savers.size > 1)
@@ -155,7 +158,10 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  def train(data: () => Dataset[TT, TO, TD, TS], stopCriteria: StopCriteria = StopCriteria()): Unit
+  def train(
+      data: () => Dataset[TrainIn],
+      stopCriteria: StopCriteria = StopCriteria()
+  ): Unit
 
   /** Infers output (i.e., computes predictions) for `input` using the model managed by this estimator.
     *
@@ -173,14 +179,13 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     * @return Either an iterator over `(IT, ModelInferenceOutput)` tuples, or a single element of type `I`, depending on
     *         the type of `input`.
     */
-  def infer[InferInput, InferOutput, ModelInferenceOutput](
-      input: () => InferInput
+  def infer[InT, OutT, InferIn, InferOut](
+      input: () => InferIn
   )(implicit
-      evFetchableIO: Fetchable.Aux[IO, IT],
-      evFetchableI: Fetchable.Aux[I, ModelInferenceOutput],
-      evFetchableIIO: Fetchable.Aux[(IO, I), (IT, ModelInferenceOutput)],
-      ev: Estimator.SupportedInferInput[InferInput, InferOutput, IT, IO, ID, IS, ModelInferenceOutput]
-  ): InferOutput
+      evFetchableIn: Fetchable.Aux[In, InT],
+      evFetchableOut: Fetchable.Aux[Out, OutT],
+      ev: Estimator.SupportedInferInput[In, InT, OutT, InferIn, InferOut]
+  ): InferOut
 
   /** Evaluates the model managed by this estimator given the provided evaluation data, `data`.
     *
@@ -207,8 +212,8 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
     */
   @throws[InvalidArgumentException]
   def evaluate(
-      data: () => Dataset[TT, TO, TD, TS],
-      metrics: Seq[Metric[EI, Output]],
+      data: () => Dataset[TrainIn],
+      metrics: Seq[Metric[EvalIn, Output[Float]]],
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
       name: String = null
@@ -216,7 +221,7 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
 
   protected def saveEvaluationSummaries(
       step: Long,
-      metrics: Seq[Metric[EI, Output]],
+      metrics: Seq[Metric[EvalIn, Output[Float]]],
       metricValues: Seq[Tensor[Float]],
       name: String = null
   ): Unit = {
@@ -247,25 +252,25 @@ abstract class Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] private[estimato
 object Estimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / Estimator"))
 
-  class ModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
-    val function: Configuration => TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]) {
-    def apply(configuration: Configuration): TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
+  class ModelFunction[In, TrainIn, Out, Loss, EvalIn](
+      val function: Configuration => TrainableModel[In, TrainIn, Out, Loss, EvalIn]) {
+    def apply(configuration: Configuration): TrainableModel[In, TrainIn, Out, Loss, EvalIn] = {
       function(configuration)
     }
   }
 
-  case class UnsupervisedModelFunction[IT, IO, ID, IS, I](
-      override val function: Configuration => UnsupervisedTrainableModel[IT, IO, ID, IS, I]
-  ) extends ModelFunction[IT, IO, ID, IS, I, IT, IO, ID, IS, I](function) {
-    override def apply(configuration: Configuration): UnsupervisedTrainableModel[IT, IO, ID, IS, I] = {
+  case class UnsupervisedModelFunction[In, Out, Loss](
+      override val function: Configuration => UnsupervisedTrainableModel[In, Out, Loss]
+  ) extends ModelFunction[In, In, Out, Loss, Out](function) {
+    override def apply(configuration: Configuration): UnsupervisedTrainableModel[In, Out, Loss] = {
       function(configuration)
     }
   }
 
-  case class SupervisedModelFunction[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      override val function: Configuration => SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-  ) extends ModelFunction[IT, IO, ID, IS, I, (IT, TT), (IO, TO), (ID, TD), (IS, TS), (I, T)](function) {
-    override def apply(configuration: Configuration): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  case class SupervisedModelFunction[In, Out, TrainIn, TrainOut, Loss](
+      override val function: Configuration => SupervisedTrainableModel[In, Out, TrainIn, TrainOut, Loss]
+  ) extends ModelFunction[In, (In, TrainIn), Out, Loss, (Out, TrainOut)](function) {
+    override def apply(configuration: Configuration): SupervisedTrainableModel[In, Out, TrainIn, TrainOut, Loss] = {
       function(configuration)
     }
   }
@@ -337,30 +342,36 @@ object Estimator {
     }
   }
 
-  trait SupportedInferInput[InferInput, InferOutput, T, O, D, S, ModelInferenceOutput] {
-    def toDataset(value: InferInput): Dataset[T, O, D, S]
-    def convertFetched(iterator: Iterator[(T, ModelInferenceOutput)]): InferOutput
+  trait SupportedInferInput[In, InT, OutT, InferIn, InferOut] {
+    def toDataset(value: InferIn): Dataset[In]
+    def convertFetched(iterator: Iterator[(InT, OutT)]): InferOut
   }
 
   object SupportedInferInput {
-    implicit def datasetInferInput[T, O, D, S, I](implicit
-        evStructure: StructureFromOutput.Aux[T, O, D, S],
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] = {
-      new SupportedInferInput[Dataset[T, O, D, S], Iterator[(T, I)], T, O, D, S, I] {
-        override def toDataset(value: Dataset[T, O, D, S]): Dataset[T, O, D, S] = value
-        override def convertFetched(iterator: Iterator[(T, I)]): Iterator[(T, I)] = iterator
+    implicit def datasetInferInput[In, InT, OutT](implicit
+        evStructure: OutputStructure[In],
+        evTensorToOutput: TensorToOutput.Aux[InT, In]
+    ): SupportedInferInput[In, InT, OutT, Dataset[In], Iterator[(InT, OutT)]] = {
+      new SupportedInferInput[In, InT, OutT, Dataset[In], Iterator[(InT, OutT)]] {
+        override def toDataset(value: Dataset[In]): Dataset[In] = {
+          value
+        }
+
+        override def convertFetched(iterator: Iterator[(InT, OutT)]): Iterator[(InT, OutT)] = {
+          iterator
+        }
       }
     }
 
-    implicit def singleValueInferInput[T, O, D, S, I](implicit
-        evStructureFromTensor: StructureFromTensor.Aux[T, O, D, S],
-        ev: Data.Aux[T, O, D, S],
-        evFunctionInput: Function.ArgType[O]
-    ): SupportedInferInput[T, I, T, O, D, S, I] = new SupportedInferInput[T, I, T, O, D, S, I] {
-      override def toDataset(value: T): Dataset[T, O, D, S] = TensorDataset[T, O, D, S](value)
-      override def convertFetched(iterator: Iterator[(T, I)]): I = iterator.next()._2
+    implicit def singleValueInferInput[In, InT, OutT](implicit
+        evTensorToOutput: TensorToOutput.Aux[InT, In],
+        evStructure: OutputStructure[In]
+    ): SupportedInferInput[In, InT, OutT, InT, OutT] = new SupportedInferInput[In, InT, OutT, InT, OutT] {
+      override def toDataset(value: InT): Dataset[In] = {
+        Data.datasetFromTensors(value)
+      }
+
+      override def convertFetched(iterator: Iterator[(InT, OutT)]): OutT = iterator.next()._2
     }
   }
 }

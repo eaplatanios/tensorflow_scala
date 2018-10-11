@@ -20,9 +20,9 @@ package org.platanios.tensorflow.api.learn
   */
 package object estimators {
   private[api] trait API {
-    type Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = estimators.Estimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
-    type InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = estimators.InMemoryEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
-    type FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = estimators.FileBasedEstimator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
+    type Estimator[In, TrainIn, Out, Loss, EvalIn] = estimators.Estimator[In, TrainIn, Out, Loss, EvalIn]
+    type InMemoryEstimator[In, TrainIn, Out, Loss, EvalIn] = estimators.InMemoryEstimator[In, TrainIn, Out, Loss, EvalIn]
+    type FileBasedEstimator[In, TrainIn, Out, Loss, EvalIn] = estimators.FileBasedEstimator[In, TrainIn, Out, Loss, EvalIn]
 
     val Estimator         : estimators.Estimator.type          = estimators.Estimator
     val InMemoryEstimator : estimators.InMemoryEstimator.type  = estimators.InMemoryEstimator

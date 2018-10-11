@@ -16,13 +16,14 @@
 package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
 import org.platanios.tensorflow.api.learn.layers.{Input, Layer}
-import org.platanios.tensorflow.api.ops.{Cast, Op, Output, OutputLike}
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
-import org.platanios.tensorflow.api.ops.io.data.Iterator
+import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.FLOAT32
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -31,313 +32,339 @@ trait Model {
   protected val colocateGradientsWithOps: Boolean = false
 }
 
-trait InferenceModel[IT, IO, ID, IS, I] extends Model {
-  def buildInferOps(): Model.InferOps[IT, IO, ID, IS, I]
+trait InferenceModel[In, Out] extends Model {
+  def buildInferOps[InD, InS]()(implicit
+      evIn: OutputStructure.Aux[In, InD, InS]
+  ): Model.InferOps[In, Out]
 }
 
-trait TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] extends InferenceModel[IT, IO, ID, IS, I] {
-  def buildTrainOps(): Model.TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS]
-  def buildEvaluateOps(metrics: Seq[Metric[EI, Output]]): Model.EvaluateOps[TT, TO, TD, TS, I]
+trait TrainableModel[In, TrainIn, Out, Loss, EvalIn] extends InferenceModel[In, Out] {
+  def buildTrainOps[TrainInD, TrainInS]()(implicit
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.TrainOps[In, TrainIn, Out, Loss]
+
+  def buildEvaluateOps[TrainInD, TrainInS](metrics: Seq[Metric[EvalIn, Output[Float]]])(implicit
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.EvaluateOps[TrainIn, Out]
 }
 
-trait SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    extends TrainableModel[IT, IO, ID, IS, I, (IT, TT), (IO, TO), (ID, TD), (IS, TS), (I, T)] {
-  def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-  def buildEvaluateOps(
-      metrics: Seq[Metric[(I, T), Output]]
-  ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I]
+trait SupervisedTrainableModel[In, Out, TrainIn, TrainOut, Loss]
+    extends TrainableModel[In, (In, TrainIn), Out, Loss, (Out, TrainOut)] {
+  def buildTrainOps[InD, InS, TrainInD, TrainInS]()(implicit
+      evIn: OutputStructure.Aux[In, InD, InS],
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.SupervisedTrainOps[In, Out, TrainIn, TrainOut, Loss]
+
+  def buildEvaluateOps[InD, InS, TrainInD, TrainInS](metrics: Seq[Metric[(Out, TrainOut), Output[Float]]])(implicit
+      evIn: OutputStructure.Aux[In, InD, InS],
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.EvaluateOps[(In, TrainIn), Out]
 }
 
-trait UnsupervisedTrainableModel[IT, IO, ID, IS, I]
-    extends TrainableModel[IT, IO, ID, IS, I, IT, IO, ID, IS, I] {
-  def buildTrainOps(): Model.UnsupervisedTrainOps[IT, IO, ID, IS, I]
-  def buildEvaluateOps(metrics: Seq[Metric[I, Output]]): Model.EvaluateOps[IT, IO, ID, IS, I]
+trait UnsupervisedTrainableModel[In, Out, Loss]
+    extends TrainableModel[In, In, Out, Loss, Out] {
+  def buildTrainOps[InD, InS]()(implicit
+      evIn: OutputStructure.Aux[In, InD, InS]
+  ): Model.UnsupervisedTrainOps[In, Out, Loss]
+
+  def buildEvaluateOps[InD, InS](metrics: Seq[Metric[Out, Output[Float]]])(implicit
+      evIn: OutputStructure.Aux[In, InD, InS]
+  ): Model.EvaluateOps[In, Out]
 }
 
 object Model {
-  def unsupervised[IT, IO, ID, IS, I](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      loss: Layer[(IO, I), Output],
+  def unsupervised[In, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      loss: Layer[(In, Out), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients = NoClipGradients,
       colocateGradientsWithOps: Boolean = false
-  ): UnsupervisedTrainableModel[IT, IO, ID, IS, I] = {
+  ): UnsupervisedTrainableModel[In, Out, Loss] = {
     new SimpleUnsupervisedTrainableModel(input, layer, loss, optimizer, clipGradients, colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(input, layer, trainInput, trainInputLayer, loss, optimizer)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(input, layer, trainInput, trainInputLayer, loss, optimizer, clipGradients)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervised[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
-      input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer)
+      input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervised[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
-      input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer, clipGradients)
+      input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer, clipGradients)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer, clipGradients)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervised[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
-      input, layer, trainLayer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer)
+      input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervised[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
-      input, layer, trainLayer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer,
+      input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
       clipGradients)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, trainInputLayer, loss, optimizer, colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, trainInputLayer, loss, optimizer, clipGradients,
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervise[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
-      input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer,
+      input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervised[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
-  ): SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
-      input, layer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer, clipGradients,
+      input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer, clipGradients,
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer,
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      trainInputLayer: Layer[TO, T],
-      loss: Layer[(I, T), Output],
+  def supervised[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      trainInputLayer: Layer[TrainIn, TrainOut],
+      loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer, clipGradients,
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervised[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
-      input, layer, trainLayer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer,
+      input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
       colocateGradientsWithOps = colocateGradientsWithOps)
   }
 
-  def supervised[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      input: Input[IT, IO, ID, IS],
-      layer: Layer[IO, I],
-      trainLayer: Layer[(IO, TO), I],
-      trainInput: Input[TT, TO, TD, TS],
-      loss: Layer[(I, TO), Output],
+  def supervised[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      input: Input[In],
+      layer: Layer[In, Out],
+      trainLayer: Layer[(In, TrainIn), Out],
+      trainInput: Input[TrainIn],
+      loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer,
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
-  ): SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, TO] = {
+  ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
-      input, layer, trainLayer, trainInput, layers.Identity[TO]("TrainInputLayer"), loss, optimizer,
+      input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
       clipGradients, colocateGradientsWithOps)
   }
 
-  case class InferOps[IT, IO, ID, IS, I](inputIterator: Iterator[IT, IO, ID, IS], input: IO, output: I)
+  case class InferOps[In, Out](inputIterator: DatasetIterator[In], input: In, output: Out)
 
-  private[learn] class TrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS](
-      val inputIterator: Iterator[TT, TO, TD, TS],
-      val input: TO,
-      val output: I,
-      val loss: Output,
-      val gradientsAndVariables: Seq[(OutputLike, Variable)],
-      val trainOp: Op)
+  private[learn] class TrainOps[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64](
+      val inputIterator: DatasetIterator[TrainIn],
+      val input: TrainIn,
+      val output: Out,
+      val loss: Output[Loss],
+      val gradientsAndVariables: Seq[(OutputLike[Loss], Variable[Any])],
+      val trainOp: UntypedOp)
 
-  case class UnsupervisedTrainOps[IT, IO, ID, IS, I](
-      override val inputIterator: Iterator[IT, IO, ID, IS],
-      override val input: IO,
-      override val output: I,
-      override val loss: Output,
-      override val gradientsAndVariables: Seq[(OutputLike, Variable)],
-      override val trainOp: Op
-  ) extends TrainOps[IT, IO, ID, IS, I, IT, IO, ID, IS](
+  case class UnsupervisedTrainOps[In, Out, Loss: TF : IsFloat32OrFloat64](
+      override val inputIterator: DatasetIterator[In],
+      override val input: In,
+      override val output: Out,
+      override val loss: Output[Loss],
+      override val gradientsAndVariables: Seq[(OutputLike[Loss], Variable[Any])],
+      override val trainOp: UntypedOp
+  ) extends TrainOps[In, In, Out, Loss](
     inputIterator, input, output, loss, gradientsAndVariables, trainOp)
 
-  case class SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-      override val inputIterator: Iterator[(IT, TT), (IO, TO), (ID, TD), (IS, TS)],
-      override val input: (IO, TO),
-      override val output: I,
-      trainOutput: T,
-      override val loss: Output,
-      override val gradientsAndVariables: Seq[(OutputLike, Variable)],
-      override val trainOp: Op
-  ) extends TrainOps[IT, IO, ID, IS, I, (IT, TT), (IO, TO), (ID, TD), (IS, TS)](
+  case class SupervisedTrainOps[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+      override val inputIterator: DatasetIterator[(In, TrainIn)],
+      override val input: (In, TrainIn),
+      override val output: Out,
+      trainOutput: TrainOut,
+      override val loss: Output[Loss],
+      override val gradientsAndVariables: Seq[(OutputLike[Loss], Variable[Any])],
+      override val trainOp: UntypedOp
+  ) extends TrainOps[In, (In, TrainIn), Out, Loss](
     inputIterator, input, output, loss, gradientsAndVariables, trainOp)
 
   object SupervisedTrainOps {
-    def apply[IT, IO, ID, IS, I](
-        inputIterator: Iterator[(IT, IT), (IO, IO), (ID, ID), (IS, IS)],
-        input: (IO, IO),
-        output: I,
-        loss: Output,
-        gradientsAndVariables: Seq[(OutputLike, Variable)],
-        trainOp: Op
-    ): SupervisedTrainOps[IT, IO, ID, IS, I, IT, IO, ID, IS, I] = {
-      SupervisedTrainOps(inputIterator, input, output, output, loss, gradientsAndVariables, trainOp)
+    def apply[In, Out, Loss: TF : IsFloat32OrFloat64](
+        inputIterator: DatasetIterator[(In, In)],
+        input: (In, In),
+        output: Out,
+        loss: Output[Loss],
+        gradientsAndVariables: Seq[(OutputLike[Loss], Variable[Any])],
+        trainOp: UntypedOp
+    ): SupervisedTrainOps[In, In, Out, Out, Loss] = {
+      SupervisedTrainOps(
+        inputIterator = inputIterator,
+        input = input,
+        output = output,
+        trainOutput = output,
+        loss = loss,
+        gradientsAndVariables = gradientsAndVariables,
+        trainOp = trainOp)
     }
   }
 
-  case class EvaluateOps[IT, IO, ID, IS, I](
-      inputIterator: Iterator[IT, IO, ID, IS],
-      input: IO,
-      output: I,
-      metricValues: Seq[Output],
-      metricUpdates: Seq[Output],
-      metricResets: Seq[Op])
+  case class EvaluateOps[In, Out](
+      inputIterator: DatasetIterator[In],
+      input: In,
+      output: Out,
+      metricValues: Seq[Output[Float]],
+      metricUpdates: Seq[Output[Float]],
+      metricResets: Seq[UntypedOp])
 }
 
-private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I](
-    val input: Input[IT, IO, ID, IS],
-    val layer: Layer[IO, I]
-) extends InferenceModel[IT, IO, ID, IS, I] {
-  override def buildInferOps(): Model.InferOps[IT, IO, ID, IS, I] = {
+private[learn] class SimpleInferenceModel[In, Out](
+    val input: Input[In],
+    val layer: Layer[In, Out]
+) extends InferenceModel[In, Out] {
+  override def buildInferOps[InD, InS]()(implicit
+      evIn: OutputStructure.Aux[In, InD, InS]
+  ): Model.InferOps[In, Out] = {
     implicit val mode: Mode = INFERENCE
 
     val inputIterator = input()
@@ -347,25 +374,26 @@ private[learn] class SimpleInferenceModel[IT, IO, ID, IS, I](
   }
 }
 
-private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I](
-    override val input: Input[IT, IO, ID, IS],
-    override val layer: Layer[IO, I],
-    val loss: Layer[(IO, I), Output],
+private[learn] class SimpleUnsupervisedTrainableModel[In, Out, Loss: TF : IsFloat32OrFloat64](
+    override val input: Input[In],
+    override val layer: Layer[In, Out],
+    val loss: Layer[(In, Out), Output[Loss]],
     val optimizer: Optimizer,
     val clipGradients: ClipGradients = NoClipGradients,
     override protected val colocateGradientsWithOps: Boolean = false
-) extends SimpleInferenceModel[IT, IO, ID, IS, I](input, layer)
-    with UnsupervisedTrainableModel[IT, IO, ID, IS, I] {
+) extends SimpleInferenceModel[In, Out](input, layer)
+    with UnsupervisedTrainableModel[In, Out, Loss] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
-  override def buildTrainOps(): Model.UnsupervisedTrainOps[IT, IO, ID, IS, I] = {
+  override def buildTrainOps[InD, InS]()(implicit
+      evIn: OutputStructure.Aux[In, InD, InS]
+  ): Model.UnsupervisedTrainOps[In, Out, Loss] = {
     implicit val mode: Mode = TRAINING
 
     val inputIterator = input()
     val inputIteratorNext = inputIterator.next()
     val layerOutput = layer(inputIteratorNext)
-    // TODO: [LEARN] Remove this cast.
-    val lossOutput = Cast.cast(loss((inputIteratorNext, layerOutput)), FLOAT32, name = "LossCast")
+    val lossOutput = loss((inputIteratorNext, layerOutput))
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
       lossOutput, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -375,7 +403,9 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I](
       inputIterator, inputIteratorNext, layerOutput, lossOutput, gradientsAndVariables, trainOp)
   }
 
-  override def buildEvaluateOps(metrics: Seq[Metric[I, Output]]): Model.EvaluateOps[IT, IO, ID, IS, I] = {
+  override def buildEvaluateOps[InD, InS](metrics: Seq[Metric[Out, Output[Float]]])(implicit
+      evIn: OutputStructure.Aux[In, InD, InS]
+  ): Model.EvaluateOps[In, Out] = {
     implicit val mode: Mode = EVALUATION
 
     val inputIterator = input()
@@ -388,29 +418,30 @@ private[learn] class SimpleUnsupervisedTrainableModel[IT, IO, ID, IS, I](
   }
 }
 
-private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-    override val input: Input[IT, IO, ID, IS],
-    override val layer: Layer[IO, I],
-    val trainInput: Input[TT, TO, TD, TS],
-    val trainInputLayer: Layer[TO, T],
-    val loss: Layer[(I, T), Output],
+private[learn] class SimpleSupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+    override val input: Input[In],
+    override val layer: Layer[In, Out],
+    val trainInput: Input[TrainIn],
+    val trainInputLayer: Layer[TrainIn, TrainOut],
+    val loss: Layer[(Out, TrainOut), Output[Loss]],
     val optimizer: Optimizer,
     val clipGradients: ClipGradients = NoClipGradients,
     override protected val colocateGradientsWithOps: Boolean = false
-) extends SimpleInferenceModel[IT, IO, ID, IS, I](input, layer)
-    with SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] {
+) extends SimpleInferenceModel[In, Out](input, layer)
+    with SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
-  override def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  override def buildTrainOps[InD, InS, TrainInD, TrainInS]()(implicit
+      evIn: OutputStructure.Aux[In, InD, InS],
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.SupervisedTrainOps[In, TrainIn, TrainOut, Out, Loss] = {
     implicit val mode: Mode = TRAINING
 
     val inputIterator = input.zip(trainInput).apply()
     val inputIteratorNext = inputIterator.next()
     val layerOutput = layer(inputIteratorNext._1)
     val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
-    // TODO: [LEARN] Remove this cast.
-    val lossOutput = Cast.cast(
-      loss((layerOutput, trainLayerOutput)), FLOAT32, name = "LossCast")
+    val lossOutput = loss((layerOutput, trainLayerOutput))
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
       lossOutput, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -420,9 +451,10 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
       inputIterator, inputIteratorNext, layerOutput, trainLayerOutput, lossOutput, gradientsAndVariables, trainOp)
   }
 
-  override def buildEvaluateOps(
-      metrics: Seq[Metric[(I, T), Output]]
-  ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
+  override def buildEvaluateOps[InD, InS, TrainInD, TrainInS](metrics: Seq[Metric[(Out, TrainOut), Output[Float]]])(implicit
+      evIn: OutputStructure.Aux[In, InD, InS],
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.EvaluateOps[(In, TrainIn), Out] = {
     implicit val mode: Mode = EVALUATION
 
     val inputIterator = input.zip(trainInput).apply()
@@ -436,30 +468,31 @@ private[learn] class SimpleSupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, T
   }
 }
 
-private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T](
-    override val input: Input[IT, IO, ID, IS],
-    override val layer: Layer[IO, I],
-    val trainLayer: Layer[(IO, TO), I],
-    val trainInput: Input[TT, TO, TD, TS],
-    val trainInputLayer: Layer[TO, T],
-    val loss: Layer[(I, T), Output],
+private[learn] class SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64](
+    override val input: Input[In],
+    override val layer: Layer[In, Out],
+    val trainLayer: Layer[(In, TrainIn), Out],
+    val trainInput: Input[TrainIn],
+    val trainInputLayer: Layer[TrainIn, TrainOut],
+    val loss: Layer[(Out, TrainOut), Output[Loss]],
     val optimizer: Optimizer,
     val clipGradients: ClipGradients = NoClipGradients,
     override protected val colocateGradientsWithOps: Boolean = false
-) extends SimpleInferenceModel[IT, IO, ID, IS, I](input, layer)
-    with SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] {
+) extends SimpleInferenceModel[In, Out](input, layer)
+    with SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] {
   // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
-  override def buildTrainOps(): Model.SupervisedTrainOps[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = {
+  override def buildTrainOps[InD, InS, TrainInD, TrainInS]()(implicit
+      evIn: OutputStructure.Aux[In, InD, InS],
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.SupervisedTrainOps[In, TrainIn, TrainOut, Out, Loss] = {
     implicit val mode: Mode = TRAINING
 
     val inputIterator = input.zip(trainInput).apply()
     val inputIteratorNext = inputIterator.next()
     val layerOutput = trainLayer(inputIteratorNext)
     val trainLayerOutput = trainInputLayer(inputIteratorNext._2)
-    // TODO: [LEARN] Remove this cast.
-    val lossOutput = Cast.cast(
-      loss((layerOutput, trainLayerOutput)), FLOAT32, name = "LossCast")
+    val lossOutput = loss((layerOutput, trainLayerOutput))
     val iteration = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
     val gradientsAndVariables = optimizer.computeGradients(
       lossOutput, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -469,9 +502,10 @@ private[learn] class SupervisedConditionalTrainableModel[IT, IO, ID, IS, I, TT, 
       inputIterator, inputIteratorNext, layerOutput, trainLayerOutput, lossOutput, gradientsAndVariables, trainOp)
   }
 
-  override def buildEvaluateOps(
-      metrics: Seq[Metric[(I, T), Output]]
-  ): Model.EvaluateOps[(IT, TT), (IO, TO), (ID, TD), (IS, TS), I] = {
+  override def buildEvaluateOps[InD, InS, TrainInD, TrainInS](metrics: Seq[Metric[(Out, TrainOut), Output[Float]]])(implicit
+      evIn: OutputStructure.Aux[In, InD, InS],
+      evTrainIn: OutputStructure.Aux[TrainIn, TrainInD, TrainInS]
+  ): Model.EvaluateOps[(In, TrainIn), Out] = {
     implicit val mode: Mode = EVALUATION
 
     val inputIterator = input.zip(trainInput).apply()
