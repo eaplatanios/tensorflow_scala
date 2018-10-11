@@ -26,7 +26,7 @@ import org.platanios.tensorflow.api.ops.variables.{Initializer, RandomNormalInit
   */
 object Math {
   private[layers] trait API {
-    type Cast[T] = layers.Cast[T]
+    type Cast[From, To] = layers.Cast[From, To]
     type AddN[T] = layers.AddN[T]
     type Sum[T] = layers.Sum[T]
     type Mean[T] = layers.Mean[T]
@@ -44,16 +44,16 @@ object Math {
   object API extends API
 }
 
-case class Cast[T: TF](
+case class Cast[From, To: TF](
     override val name: String
-) extends Layer[Output[Any], Output[T]](name) {
-  override val layerType: String = s"Cast[${TF[T].dataType}]"
+) extends Layer[Output[From], Output[To]](name) {
+  override val layerType: String = s"Cast[${TF[To].dataType}]"
 
   override def forwardWithoutContext(
-      input: Output[Any]
-  )(implicit mode: Mode): Output[T] = {
+      input: Output[From]
+  )(implicit mode: Mode): Output[To] = {
     Op.nameScope(name) {
-      input.castTo[T]
+      input.castTo[To]
     }
   }
 }
