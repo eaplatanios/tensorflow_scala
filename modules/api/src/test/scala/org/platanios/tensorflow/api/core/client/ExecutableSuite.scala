@@ -74,7 +74,7 @@ class ExecutableSuite extends JUnitSuite {
       val op1 = ControlFlow.noOp(name = "NoOp_1")
       val op2 = ControlFlow.noOp(name = "NoOp_2")
       val op3 = ControlFlow.noOp(name = "NoOp_3")
-      executable(List(op1, op2, op3))
+      executable(Seq(op1, op2, op3))
       succeed
     }
   }
