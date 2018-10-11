@@ -13,9 +13,8 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.implicits
+package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.learn.{Configuration, Mode, SupervisedTrainableModel, UnsupervisedTrainableModel}
 import org.platanios.tensorflow.api.learn.estimators.Estimator.{SupervisedModelFunction, UnsupervisedModelFunction}
 import org.platanios.tensorflow.api.learn.layers.{Layer, MapSeq}
 
@@ -26,7 +25,7 @@ import scala.collection.generic.CanBuildFrom
   *
   * @author Emmanouil Antonios Platanios
   */
-private[implicits] trait LearnImplicits {
+private[api] trait Implicits {
   implicit class MappableLayer[T, R, CC[A] <: TraversableLike[A, CC[A]]](
       layer: Layer[CC[T], CC[R]]
   ) extends Layer[CC[T], CC[R]]("Mappable") {

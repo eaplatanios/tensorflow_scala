@@ -19,8 +19,8 @@ import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.4"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.4")
+scalaVersion in ThisBuild := "2.12.7"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.7")
 
 organization in ThisBuild := "org.platanios"
 
@@ -42,6 +42,7 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
   "-Yno-adapted-args",
+  "-Ypartial-unification",
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
@@ -65,7 +66,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.1" cross CrossVersion.patch)
+  addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
@@ -175,7 +176,6 @@ lazy val api = (project in file("./modules/api"))
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= Seq(
-        "org.typelevel" %% "spire" % "0.14.1",
         "org.tensorflow" % "proto" % tensorFlowVersion,
         "com.chuusai" %% "shapeless" % "2.3.3",
         compilerPlugin("com.github.ghik" %% "silencer-plugin" % "0.6"),
@@ -318,67 +318,63 @@ val deletedPublishedSnapshots = taskKey[Unit]("Delete published snapshots.")
 import sbtrelease.Utilities._
 
 lazy val publishSettings = Seq(
-  publishArtifact := true,
-  homepage := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
-  licenses := Seq("Apache License 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-  scmInfo := Some(ScmInfo(url("https://github.com/eaplatanios/tensorflow_scala"),
+  publishArtifact in ThisBuild := true,
+  homepage in ThisBuild := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
+  licenses in ThisBuild := Seq("Apache License 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+  scmInfo in ThisBuild := Some(ScmInfo(url("https://github.com/eaplatanios/tensorflow_scala"),
                           "scm:git:git@github.com:eaplatanios/tensorflow_scala.git")),
-  developers := List(
+  developers in ThisBuild := List(
     Developer(
       id="eaplatanios",
       name="Emmanouil Antonios Platanios",
       email="e.a.platanios@gmail.com",
       url=url("http://platanios.org/"))),
-  autoAPIMappings := true,
-  apiURL := Some(url("http://eaplatanios.github.io/tensorflow_scala/api/")),
-  releaseCrossBuild := true,
-  releaseTagName := {
+  autoAPIMappings in ThisBuild := true,
+  apiURL in ThisBuild := Some(url("http://eaplatanios.github.io/tensorflow_scala/api/")),
+  releaseCrossBuild in ThisBuild := true,
+  releaseTagName in ThisBuild := {
     val buildVersionValue = (version in ThisBuild).value
     val versionValue = version.value
     s"v${if (releaseUseGlobalVersion.value) buildVersionValue else versionValue}"
   },
-  releaseVersionBump := sbtrelease.Version.Bump.Next,
-  releaseVersionFile := baseDirectory.value / "version.sbt",
-  releaseUseGlobalVersion := true,
-  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  releaseVcs := Vcs.detect(baseDirectory.value),
-  releaseVcsSign := true,
-  releaseIgnoreUntrackedFiles := true,
-  useGpg := true,  // Bouncy Castle has bugs with sub-keys, so we use gpg instead
-  PgpKeys.pgpSigner := new CommandLineGpgSigner(
+  releaseVersionBump in ThisBuild := sbtrelease.Version.Bump.Next,
+  releaseVersionFile in ThisBuild := baseDirectory.value / "version.sbt",
+  releaseUseGlobalVersion in ThisBuild := true,
+  releasePublishArtifactsAction in ThisBuild := PgpKeys.publishSigned.value,
+  releaseVcs in ThisBuild := Vcs.detect(baseDirectory.value),
+  releaseVcsSign in ThisBuild := true,
+  releaseIgnoreUntrackedFiles in ThisBuild := true,
+  useGpg in ThisBuild := true,  // Bouncy Castle has bugs with sub-keys, so we use gpg instead
+  PgpKeys.pgpSigner in ThisBuild := new CommandLineGpgSigner(
     command = "gpg",
     agent = true,
     secRing = file("~/.gnupg/secring.gpg").getPath,
     optKey = pgpSigningKey.value,
     optPassphrase = sys.env.get("PGP_PASSWORD").map(_.toCharArray)),
-  publishMavenStyle := true,
+  publishMavenStyle in ThisBuild := true,
   // publishArtifact in Test := false,
-  pomIncludeRepository := Function.const(false),
-  publishTo := Some(
+  pomIncludeRepository in ThisBuild := Function.const(false),
+  publishTo in ThisBuild := Some(
     if (isSnapshot.value)
       Opts.resolver.sonatypeSnapshots
     else
       Opts.resolver.sonatypeStaging
   ),
-  releaseProcess := Seq[ReleaseStep](
+  releaseProcess in ThisBuild := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    // runClean,
+    runClean,
     runTest,
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    ReleaseStep({ st: State =>
-      val extracted = st.extract
-      val ref = extracted.get(thisProjectRef)
-      extracted.runAggregated(releasePublishArtifactsAction in JniCross in Global in ref, st)
-    }),
+    releaseStepCommandAndRemaining("+publishSigned"),
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
     pushChanges),
   // For Travis CI - see http://www.cakesolutions.net/teamblogs/publishing-artefacts-to-oss-sonatype-nexus-using-sbt-and-travis-ci
-  credentials ++= (for {
+  credentials in ThisBuild ++= (for {
     username <- Option(System.getenv().get("SONATYPE_USERNAME"))
     password <- Option(System.getenv().get("SONATYPE_PASSWORD"))
   } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)).toSeq,
