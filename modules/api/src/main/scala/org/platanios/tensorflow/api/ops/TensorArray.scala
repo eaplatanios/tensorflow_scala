@@ -31,7 +31,6 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @param  handle                 Tensor handle to the tensor array.
   * @param  flow                   Float scalar tensor for the tensor array, used to control gradient flow.
-  * @param  dataType               Data type of the tensor array elements.
   * @param  inferShape             Boolean value indicating whether shape inference is enabled. If `true`, all elements
   *                                must have the same shape.
   * @param  elementShape           A [[Shape]] object specifying the shape constraints of each of the elements of the
@@ -41,21 +40,21 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *                                `unstack`, and `split`). If `false`, the tensor array will be placed on the device
   *                                determined by the op creation context available during its initialization.
   * @param  colocationOps          Used to keep track of what ops the tensor array should be colocated with.
+  * @tparam T Data type of the tensor array elements.
   *
   * @author Emmanouil Antonios Platanios
   */
 case class TensorArray[T] private (
     handle: Output[Resource],
     flow: Output[Float],
-    dataType: DataType[T],
     inferShape: Boolean,
     private[ops] var elementShape: Option[Shape],
     colocateWithFirstWrite: Boolean = true,
     private var colocationOps: Seq[UntypedOp] = null
+)(implicit
+    val evTTF: TF[T]
 ) extends OutputLikeOrTensorArray[T] {
-  protected implicit val evTTF: TF[T] = {
-    TF.fromDataType(dataType)
-  }
+  val dataType: DataType[T] = TF[T].dataType
 
   /** Changes the element shape of the array given a shape to merge with.
     *
@@ -80,7 +79,7 @@ case class TensorArray[T] private (
     */
   def identity: TensorArray[T] = {
     TensorArray(
-      handle, Basic.identity(flow), dataType, inferShape,
+      handle, Basic.identity(flow), inferShape,
       elementShape, colocateWithFirstWrite, colocationOps)
   }
 
@@ -95,7 +94,7 @@ case class TensorArray[T] private (
       name: String = "TensorArrayRead"
   ): Output[T] = {
     Op.colocateWith(Set(handle.op), ignoreExisting = true) {
-      val value = TensorArray.readOp(handle, index, flow, dataType, name)(TF.fromDataType(dataType))
+      val value = TensorArray.readOp(handle, index, flow, name)(TF.fromDataType(dataType))
       elementShape.foreach(value.setShape)
       value
     }
@@ -116,8 +115,8 @@ case class TensorArray[T] private (
     val writeFlow = maybeColocateWith(value.op) {
       TensorArray.writeOp(handle, index, value, flow, name)
     }
-    val returnValue = TensorArray(
-      handle, writeFlow, dataType, inferShape, elementShape,
+    val returnValue = TensorArray[T](
+      handle, writeFlow, inferShape, elementShape,
       colocateWithFirstWrite, colocationOps)
     if (inferShape)
       returnValue.mergeElementShape(value.shape)
@@ -140,7 +139,7 @@ case class TensorArray[T] private (
     Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       val ind = if (indices.rank == 0) indices.expandDims(0) else indices
       val value = TensorArray.gatherOp(
-        handle, ind, flow, dataType, elementShape.getOrElse(Shape.unknown()), name)(TF.fromDataType(dataType))
+        handle, ind, flow, elementShape.getOrElse(Shape.unknown()), name)(TF.fromDataType(dataType))
       if (elementShape.isDefined)
         value.setShape(Shape(-1 +: elementShape.get.asArray: _*))
       value
@@ -165,8 +164,8 @@ case class TensorArray[T] private (
     val scatterFlow = maybeColocateWith(value.op) {
       TensorArray.scatterOp(handle, indices, value, flow, name)
     }
-    val returnValue = TensorArray(
-      handle, scatterFlow, dataType, inferShape, elementShape,
+    val returnValue = TensorArray[T](
+      handle, scatterFlow, inferShape, elementShape,
       colocateWithFirstWrite, colocationOps)
     if (inferShape) {
       val valueShape = scatterFlow.op.inputsSeq(2).shape
@@ -234,7 +233,7 @@ case class TensorArray[T] private (
     val shape = elementShape.map(s => {
       Shape.fromSeq(s.asArray.tail)
     }).getOrElse(Shape.unknown())
-    val (value, _) = TensorArray.concatenateOp(handle, flow, dataType, shape, name)(TF.fromDataType(dataType))
+    val (value, _) = TensorArray.concatenateOp(handle, flow, shape, name)(TF.fromDataType(dataType))
     if (elementShape.isDefined)
       value.setShape(Shape(-1 +: shape.asArray: _*))
     value
@@ -256,8 +255,8 @@ case class TensorArray[T] private (
       val splitFlow = maybeColocateWith(input.op) {
         TensorArray.splitOp(handle, input, lengths.castTo[Long], flow, name)
       }
-      val returnValue = TensorArray(
-        handle, splitFlow, dataType, inferShape, elementShape,
+      val returnValue = TensorArray[T](
+        handle, splitFlow, inferShape, elementShape,
         colocateWithFirstWrite, colocationOps)
       if (inferShape) {
         val valueShape = splitFlow.op.inputsSeq(1).shape
@@ -340,8 +339,8 @@ case class TensorArray[T] private (
         val gradientFlow = Op.createWith(controlDependencies = Set(gradientHandle.op)) {
           Basic.identity(flow, name = "GradientFlow")
         }
-        TensorArray(
-          gradientHandle, gradientFlow, dataType, inferShape,
+        TensorArray[T](
+          gradientHandle, gradientFlow, inferShape,
           elementShape, colocateWithFirstWrite = false)
       }
     }
@@ -382,7 +381,6 @@ object TensorArray {
   /** Creates a new tensor array.
     *
     * @param  size                   Size of the tensor array.
-    * @param  dataType               Data type of the elements in the tensor array.
     * @param  dynamicSize            Boolean value indicating whether writes to the tensor array are allowed to grow in
     *                                size. By default, this is not allowed.
     * @param  clearAfterRead         Boolean value indicating whether to clear the tensors in the array, after being
@@ -400,11 +398,11 @@ object TensorArray {
     *                                `unstack`, and `split`). If `false`, the tensor array will be placed on the device
     *                                determined by the op creation context available during its initialization.
     * @param  name                   Name for the created tensor array ops.
+    * @tparam T Data type of the elements in the tensor array.
     * @return Created tensor array.
     */
   def create[T: TF](
       size: Output[Int],
-      dataType: DataType[T],
       dynamicSize: Boolean = false,
       clearAfterRead: Boolean = true,
       tensorArrayName: String = "",
@@ -419,19 +417,19 @@ object TensorArray {
       if (colocateWithFirstWrite) {
         Op.createWith(device = null) {
           Op.colocateWith(Set.empty, ignoreExisting = true) {
-            TensorArray.createOp(
-              size, dataType, elementShape, dynamicSize, clearAfterRead,
+            TensorArray.createOp[T](
+              size, elementShape, dynamicSize, clearAfterRead,
               inferShape, tensorArrayName, name)
           }
         }
       } else {
-        TensorArray.createOp(
-          size, dataType, elementShape, dynamicSize, clearAfterRead,
+        TensorArray.createOp[T](
+          size, elementShape, dynamicSize, clearAfterRead,
           inferShape, tensorArrayName, name)
       }
     }
-    createFromHandle(
-      handle, flow, dataType, inferShape,
+    createFromHandle[T](
+      handle, flow, TF[T].dataType, inferShape,
       elementShape, colocateWithFirstWrite)
   }
 
@@ -460,19 +458,18 @@ object TensorArray {
   ): TensorArray[T] = {
     // Record the current static shape for the array elements. The element shape is defined either by `elementShape` or
     // the shape of the tensor of the first write. If `inferShape` is `true`, then all writes check for shape equality.
-    TensorArray(
+    TensorArray[T](
       handle = handle,
       flow = flow,
-      dataType = dataType,
       inferShape = inferShape,
       elementShape = if (elementShape.rank == -1) None else Some(elementShape),
-      colocateWithFirstWrite = colocateWithFirstWrite)
+      colocateWithFirstWrite = colocateWithFirstWrite
+    )(TF.fromDataType(dataType))
   }
 
   /** Creates an op that constructs a tensor array with the provided shape.
     *
     * @param  size            Size of the tensor array.
-    * @param  dataType        Data type of the elements in the tensor array.
     * @param  elementShape    Expected shape of the elements in the tensor array, if known. If this shape is not fully
     *                         defined, then gathering zero-sized tensor array elements will cause an error.
     * @param  dynamicSize     Boolean value indicating whether writes to the tensor array are allowed to grow in size.
@@ -485,11 +482,11 @@ object TensorArray {
     *                         empty string is provided, then the name of the created op is used, which is guaranteed to
     *                         be unique.
     * @param  name            Name for the created op.
+    * @tparam T Data type of the elements in the tensor array.
     * @return Tuple containing the resource handle to the tensor array and a scalar used to control gradient flow.
     */
   private[TensorArray] def createOp[T: TF](
       size: Output[Int],
-      dataType: DataType[T],
       elementShape: Shape = Shape.unknown(),
       dynamicSize: Boolean = false,
       clearAfterRead: Boolean = true,
@@ -501,7 +498,7 @@ object TensorArray {
       opType = "TensorArrayV3",
       name = name,
       input = size
-    ).setAttribute("dtype", dataType)
+    ).setAttribute("dtype", TF[T].dataType)
         .setAttribute("element_shape", elementShape)
         .setAttribute("dynamic_size", dynamicSize)
         .setAttribute("clear_after_read", clearAfterRead)
@@ -516,20 +513,20 @@ object TensorArray {
     * @param  index  Position to read from, inside the tensor array.
     * @param  flow   Input flow of the tensor array, used to enforce proper chaining of operations.
     * @param  name   Name for the created op.
+    * @tparam T Data type of the elements in the tensor array.
     * @return Tensor in the specified position of the tensor array.
     */
   private[TensorArray] def readOp[T: TF](
       handle: Output[Resource],
       index: Output[Int],
       flow: Output[Float],
-      dataType: DataType[T],
       name: String = "TensorArrayRead"
   ): Output[T] = {
     Op.Builder[(Output[Resource], Output[Int], Output[Float]), Output[T]](
       opType = "TensorArrayReadV3",
       name = name,
       input = (handle, index, flow)
-    ).setAttribute("dtype", dataType)
+    ).setAttribute("dtype", TF[T].dataType)
         .setGradientFn(readOpGradient(_, _)(TF[T]))
         .build().output
   }
@@ -593,17 +590,16 @@ object TensorArray {
     * @param  handle   Tensor array handle.
     * @param  indices  Positions in the tensor array from which to read tensor elements.
     * @param  flow     Input flow of the tensor array, used to enforce proper chaining of operations.
-    * @param  dataType Data type of the tensor that is returned.
     * @param  shape    Expected shape of the elements in the tensor array, if known. If this shape is not fully defined,
     *                  then gathering zero-sized tensor array elements will cause an error.
     * @param  name     Name for the created op.
+    * @tparam T Data type of the elements in the tensor array.
     * @return Tensor containing the gathered elements, concatenated along a new axis (the new dimension `0`).
     */
   private[TensorArray] def gatherOp[T: TF](
       handle: Output[Resource],
       indices: Output[Int],
       flow: Output[Float],
-      dataType: DataType[T],
       shape: Shape = Shape.unknown(),
       name: String = "TensorArrayGather"
   ): Output[T] = {
@@ -611,7 +607,7 @@ object TensorArray {
       opType = "TensorArrayGatherV3",
       name = name,
       input = (handle, indices, flow)
-    ).setAttribute("dtype", dataType)
+    ).setAttribute("dtype", TF[T].dataType)
         .setAttribute("element_shape", shape)
         .setGradientFn(gatherOpGradient(_, _)(TF[T]))
         .build().output
@@ -680,11 +676,11 @@ object TensorArray {
     *
     * @param  handle    Tensor array handle.
     * @param  flow      Input flow of the tensor array, used to enforce proper chaining of operations.
-    * @param  dataType  Data type of the tensor that is returned.
     * @param  shapeTail Expected shape of the elements in the tensor array, except for their first dimension, if known.
     *                   If this shape is not fully defined, then concatenating zero-sized tensor array elements will
     *                   cause an error.
     * @param  name      Name for the created op.
+    * @tparam T Data type of the elements in the tensor array.
     * @return Tuple containing a tensor with all of the elements in the tensor array, concatenated along the first axis,
     *         and a vector with the row sizes of the original `T` elements in the output tensor. In the example above,
     *         this would be the values `n1, n2, ..., n(T-1)`.
@@ -692,7 +688,6 @@ object TensorArray {
   private[TensorArray] def concatenateOp[T: TF](
       handle: Output[Resource],
       flow: Output[Float],
-      dataType: DataType[T],
       shapeTail: Shape = Shape.unknown(),
       name: String = "TensorArrayConcatenate"
   ): (Output[T], Output[Long]) = {
@@ -700,7 +695,7 @@ object TensorArray {
       opType = "TensorArrayConcatV3",
       name = name,
       input = (handle, flow)
-    ).setAttribute("dtype", dataType)
+    ).setAttribute("dtype", TF[T].dataType)
         .setAttribute("element_shape_except0", shapeTail)
         .setGradientFn(concatenateOpGradient(_, _)(TF[T]))
         .build().output

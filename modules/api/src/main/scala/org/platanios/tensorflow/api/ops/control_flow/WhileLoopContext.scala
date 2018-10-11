@@ -1110,7 +1110,9 @@ object WhileLoopVariable {
           output: TensorArray[T],
           values: Seq[Output[Any]]
       ): (TensorArray[T], Seq[Output[Any]]) = {
-        val newTensorArray = output.copy(flow = values.head.asInstanceOf[Output[Float]])
+        val newTensorArray = output.copy(
+          flow = values.head.asInstanceOf[Output[Float]]
+        )(output.evTTF)
         // TODO: !!! [TENSOR_ARRAY] What about colocate with?
         (newTensorArray, values.tail)
       }

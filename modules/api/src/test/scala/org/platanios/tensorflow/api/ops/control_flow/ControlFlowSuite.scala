@@ -434,11 +434,10 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
 
   @Test def testWhileLoopWithOutputIndexedSlicesWithStaticShapeGradient(): Unit = {
     val numIterations = 9
-    val dataType = FLOAT32
     withNewGraph {
       val inputs = Basic.placeholder[Float](Shape(numIterations))
       val initialI = Basic.constant(0)
-      val initialOutputs = TensorArray.create(numIterations, dataType)
+      val initialOutputs = TensorArray.create[Float](numIterations)
       val p = (v: (Output[Int], TensorArray[Float])) => v._1 < numIterations
       val b = (v: (Output[Int], TensorArray[Float])) => v match {
         case (i, o) => (i + 1, o.write(i, Basic.gather(inputs, i, axis = 0)))
@@ -456,11 +455,10 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testWhileLoopWithOutputIndexedSlicesWithDynamicShapeGradient(): Unit = {
-    val dataType = FLOAT32
     withNewGraph {
       val inputs = Basic.placeholder[Float]()
       val initialI = Basic.constant(0)
-      val initialOutputs = TensorArray.create(1, dataType, dynamicSize = true)
+      val initialOutputs = TensorArray.create[Float](1, dynamicSize = true)
       val p = (v: (Output[Int], TensorArray[Float])) => v._1 < Basic.size(inputs).castTo[Int]
       val b = (v: (Output[Int], TensorArray[Float])) => v match {
         case (i, o) => (i + 1, o.write(i, Basic.gather(inputs, i, axis = 0)))
