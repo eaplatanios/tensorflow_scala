@@ -27,10 +27,10 @@ import scala.util.Random
   * @author Emmanouil Antonios Platanios
   */
 object LinearRegression {
-  private[this] val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
-  private[this] val random = new Random()
+  private val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
+  private val random = new Random()
 
-  private[this] val weight = random.nextFloat()
+  private val weight = random.nextFloat()
 
   def main(args: Array[String]): Unit = {
     logger.info("Building linear regression model.")

@@ -16,69 +16,69 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.types.UByte
-import org.platanios.tensorflow.data.image.MNISTLoader
-import com.typesafe.scalalogging.Logger
-import org.slf4j.LoggerFactory
-import java.nio.file.Paths
-
+import org.platanios.tensorflow.api.core.types.UByte
 import org.platanios.tensorflow.api.learn.ClipGradientsByGlobalNorm
 import org.platanios.tensorflow.api.ops.metrics.{Accuracy, Metric}
 import org.platanios.tensorflow.api.ops.metrics.Metric.{METRIC_RESETS, METRIC_UPDATES, METRIC_VALUES, METRIC_VARIABLES}
+import org.platanios.tensorflow.data.image.MNISTLoader
+
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
+
+import java.nio.file.Paths
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 object MNIST {
-  private[this] val logger = Logger(LoggerFactory.getLogger("Examples / MNIST"))
-
-  //  def mlpPredictionModel(architecture: Seq[Int]): tf.learn.Layer[tf.Output, tf.Output] = {
-  //    architecture.zipWithIndex
-  //        .map(a => tf.learn.withVariableScope(s"Layer_${a._2}")(tf.learn.linear(a._1) >> tf.learn.ReLU(0.1f)))
-  //        .foldLeft(tf.learn.Flatten() >> tf.learn.cast(FLOAT32))(_ >> _) >>
-  //        tf.learn.withVariableScope("OutputLayer")(tf.learn.linear(10)) // >> tf.learn.logSoftmax())
-  //  }
+  private val logger = Logger(LoggerFactory.getLogger("Examples / MNIST"))
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))
-    val trainImages = tf.data.TensorSlicesDataset[Tensor[_], Output, DataType[_], Shape](dataSet.trainImages)
-    val trainLabels = tf.data.TensorSlicesDataset[Tensor[_], Output, DataType[_], Shape](dataSet.trainLabels)
-    val testImages = tf.data.TensorSlicesDataset[Tensor[_], Output, DataType[_], Shape](dataSet.testImages)
-    val testLabels = tf.data.TensorSlicesDataset[Tensor[_], Output, DataType[_], Shape](dataSet.testLabels)
-    val trainData =
-      trainImages.zip(trainLabels)
+    val trainImages = () => tf.data.datasetFromTensorSlices(dataSet.trainImages)
+    val trainLabels = () => tf.data.datasetFromTensorSlices(dataSet.trainLabels)
+    val testImages = () => tf.data.datasetFromTensorSlices(dataSet.testImages)
+    val testLabels = () => tf.data.datasetFromTensorSlices(dataSet.testLabels)
+    val trainData = () =>
+      trainImages().zip(trainLabels())
           .repeat()
           .shuffle(10000)
           .batch(256)
           .prefetch(10)
-    val evalTrainData = trainImages.zip(trainLabels).batch(1000).prefetch(10)
-    val evalTestData = testImages.zip(testLabels).batch(1000).prefetch(10)
+    val evalTrainData = () => trainImages().zip(trainLabels()).batch(1000).prefetch(10)
+    val evalTestData = () => testImages().zip(testLabels()).batch(1000).prefetch(10)
 
     logger.info("Building the logistic regression model.")
+
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
-        .asInstanceOf[tf.learn.Input[Tensor[_], Output, DataType[_], Shape]]
     val trainInput = tf.learn.Input(UINT8, Shape(-1))
-        .asInstanceOf[tf.learn.Input[Tensor[_], Output, DataType[_], Shape]]
-    //    val layer = tf.learn.flatten() >>
-    //        tf.learn.cast(FLOAT32) >>
-    //        tf.learn.linear(10) // >> tf.learn.logSoftmax()
-    val layer = tf.learn.Flatten("Input/Flatten") >>
-        tf.learn.Cast("Input/Cast", FLOAT32) >>
-        tf.learn.Linear("Layer_0/Linear", 128) >> tf.learn.ReLU("Layer_0/ReLU", 0.1f) >>
-        tf.learn.Linear("Layer_1/Linear", 64) >> tf.learn.ReLU("Layer_1/ReLU", 0.1f) >>
-        tf.learn.Linear("Layer_2/Linear", 32) >> tf.learn.ReLU("Layer_2/ReLU", 0.1f) >>
-        tf.learn.Linear("OutputLayer/Linear", 10)
-    val trainingInputLayer = tf.learn.Cast("TrainInput/Cast", INT64)
-    val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
-        tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
-    // val optimizer = tf.train.AdaGrad(0.1f)
+    val layer = tf.learn.Flatten[UByte]("Input/Flatten") >>
+        tf.learn.Cast[UByte, Float]("Input/Cast") >>
+        tf.learn.Linear[Float]("Layer_0/Linear", 128) >> tf.learn.ReLU[Float]("Layer_0/ReLU", 0.1f) >>
+        tf.learn.Linear[Float]("Layer_1/Linear", 64) >> tf.learn.ReLU[Float]("Layer_1/ReLU", 0.1f) >>
+        tf.learn.Linear[Float]("Layer_2/Linear", 32) >> tf.learn.ReLU[Float]("Layer_2/ReLU", 0.1f) >>
+        tf.learn.Linear[Float]("OutputLayer/Linear", 10)
+    val trainInputLayer = tf.learn.Cast[UByte, Int]("TrainInput/Cast")
+    val loss = tf.learn.SparseSoftmaxCrossEntropy[Float, Int, Float]("Loss/CrossEntropy") >>
+        tf.learn.Mean[Float]("Loss/Mean") >>
+        tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
     val optimizer = tf.train.YellowFin()
-    val model = tf.learn.Model.supervised(input, layer, trainInput, trainingInputLayer, loss, optimizer, clipGradients = ClipGradientsByGlobalNorm(5.0f))
+
+    val model = tf.learn.Model.supervised(
+      input = input,
+      layer = layer,
+      trainInput = trainInput,
+      trainInputLayer = trainInputLayer,
+      loss = loss,
+      optimizer = optimizer,
+      clipGradients = ClipGradientsByGlobalNorm(5.0f))
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
     val accMetric = tf.metrics.MapMetric(
-      (v: (Output, Output)) => (v._1.argmax(-1), v._2), tf.metrics.Accuracy("Accuracy"))
+      (v: (Output[Float], Output[Int])) => {
+        (v._1.argmax(-1).toFloat, v._2.toFloat)
+      }, tf.metrics.Accuracy("Accuracy"))
     val estimator = tf.learn.InMemoryEstimator(
       model,
       tf.learn.Configuration(Some(summariesDir)),
@@ -86,53 +86,23 @@ object MNIST {
       Set(
         tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.Evaluator(
-          log = true, datasets = Seq(("Train", () => evalTrainData), ("Test", () => evalTestData)),
+          log = true, datasets = Seq(("Train", evalTrainData), ("Test", evalTestData)),
           metrics = Seq(accMetric), trigger = tf.learn.StepHookTrigger(1000), name = "Evaluator"),
         tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(100)),
         tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
+    estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
-    def accuracy(images: Tensor[_], labels: Tensor[_]): Float = {
+    def accuracy(images: Tensor[UByte], labels: Tensor[UByte]): Float = {
       val predictions = estimator.infer(() => images)
-      predictions.asInstanceOf[Tensor[Float]]
-          .argmax(1).cast(UINT8)
-          .equal(labels.asInstanceOf[Tensor[UByte]]).cast(FLOAT32)
+      predictions
+          .argmax(1).toUByte
+          .equal(labels).toFloat
           .mean().scalar
     }
 
     logger.info(s"Train accuracy = ${accuracy(dataSet.trainImages, dataSet.trainLabels)}")
     logger.info(s"Test accuracy = ${accuracy(dataSet.testImages, dataSet.testLabels)}")
-    logger.info("haha Christoph")
-
-    // val inputs = tf.placeholder(tf.UINT8, tf.shape(-1, numberOfRows, numberOfColumns))
-    // val labels = tf.placeholder(tf.UINT8, tf.shape(-1))
-
-    // // val predictions = mlpPredictionModel(Seq(128))(inputs)
-    // val predictions = linearPredictionModel(inputs)
-    // val supervision = supervisionModel(labels)
-
-    // val loss = lossFunction(predictions, supervision)
-    // val trainOp = tfl.adaGrad().minimize(loss)
-
-    // val correctPredictions = tf.equal(tf.argmax(predictions, 1), supervision) // tf.argmax(supervision, 1))
-    // val accuracy = tf.mean(tf.cast(correctPredictions, tf.FLOAT32))
-
-    // logger.info("Training the linear regression model.")
-    // logger.info(f"${"Iteration"}%10s | ${"Train Loss"}%13s | ${"Test Accuracy"}%13s")
-    // val session = tf.session()
-    // session.run(targets = tf.globalVariablesInitializer())
-    // for (i <- 0 to 1000) {
-    //   val feeds = Map(inputs -> dataSet.trainImages, labels -> dataSet.trainLabels)
-    //   val trainLoss = session.run(feeds = feeds, fetches = loss, targets = trainOp)
-    //   if (i % 1 == 0) {
-    //     val testFeeds = Map(inputs -> dataSet.testImages, labels -> dataSet.testLabels)
-    //     val testAccuracy = session.run(feeds = testFeeds, fetches = accuracy)
-    //     logger.info(f"$i%10d | " +
-    //                     f"${trainLoss.scalar.asInstanceOf[Float]}%13.4e | " +
-    //                     f"${testAccuracy.scalar.asInstanceOf[Float]}%13.4e")
-    //   }
-    // }
   }
 }
