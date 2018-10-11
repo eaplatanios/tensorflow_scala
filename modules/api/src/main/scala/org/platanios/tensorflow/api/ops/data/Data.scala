@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{INT64, STRING, Variant}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, TensorToOutput}
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, TensorToOutput}
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -55,7 +55,7 @@ trait Data {
     new Dataset[T] {
       override val name: String = datasetName
 
-      override def createHandle[D, S]()(implicit evT: OutputStructure.Aux[T, D, S]): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evT: NestedStructure.Aux[T, D, S]): Output[Variant] = {
         val flatOutputs = evT.outputs(data)
         Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorDataset",
@@ -65,11 +65,11 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes[D, S](implicit evT: OutputStructure.Aux[T, D, S]): D = {
+      override def outputDataTypes[D, S](implicit evT: NestedStructure.Aux[T, D, S]): D = {
         evT.dataType(data)
       }
 
-      override def outputShapes[D, S](implicit evT: OutputStructure.Aux[T, D, S]): S = {
+      override def outputShapes[D, S](implicit evT: NestedStructure.Aux[T, D, S]): S = {
         evT.shape(data)
       }
     }
@@ -93,7 +93,7 @@ trait Data {
     datasetFromOutputs(outputData)
   }
 
-  /** Creates a dataset with slices from the nested structure of tensors (i.e., a [[OutputStructure]]-supported type).
+  /** Creates a dataset with slices from the nested structure of tensors (i.e., a [[NestedStructure]]-supported type).
     * The slices are taken along the first axis of each tensor in the nested structure.
     *
     * @param  data   Data representing the elements of this dataset.
@@ -109,7 +109,7 @@ trait Data {
     new Dataset[T] {
       override val name: String = datasetName
 
-      override def createHandle[D, S]()(implicit evT: OutputStructure.Aux[T, D, S]): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evT: NestedStructure.Aux[T, D, S]): Output[Variant] = {
         val flatOutputs = evT.outputs(data)
         Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorSliceDataset",
@@ -119,11 +119,11 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes[D, S](implicit evT: OutputStructure.Aux[T, D, S]): D = {
+      override def outputDataTypes[D, S](implicit evT: NestedStructure.Aux[T, D, S]): D = {
         evT.dataType(data)
       }
 
-      override def outputShapes[D, S](implicit evT: OutputStructure.Aux[T, D, S]): S = {
+      override def outputShapes[D, S](implicit evT: NestedStructure.Aux[T, D, S]): S = {
         val flatShapes = evT.shapes(evT.shape(data))
         evT.decodeShapeFromDataType(
           outputDataTypes,
@@ -132,7 +132,7 @@ trait Data {
     }
   }
 
-  /** Creates a dataset with slices from the nested structure of tensors (i.e., a [[OutputStructure]]-supported type).
+  /** Creates a dataset with slices from the nested structure of tensors (i.e., a [[NestedStructure]]-supported type).
     * The slices are taken along the first axis of each tensor in the nested structure.
     *
     * @param  data   Data representing the elements of this dataset.
@@ -171,7 +171,7 @@ trait Data {
     new Dataset[Output[Long]] {
       override val name: String = datasetName
 
-      override def createHandle[D, S]()(implicit evOutputLong: OutputStructure.Aux[Output[Long], D, S]): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputLong: NestedStructure.Aux[Output[Long], D, S]): Output[Variant] = {
         Op.Builder[(Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "RangeDataset",
           name = name,
@@ -184,11 +184,11 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes[D, S](implicit evOutputLong: OutputStructure.Aux[Output[Long], D, S]): D = {
+      override def outputDataTypes[D, S](implicit evOutputLong: NestedStructure.Aux[Output[Long], D, S]): D = {
         INT64.asInstanceOf[D]
       }
 
-      override def outputShapes[D, S](implicit evOutputLong: OutputStructure.Aux[Output[Long], D, S]): S = {
+      override def outputShapes[D, S](implicit evOutputLong: NestedStructure.Aux[Output[Long], D, S]): S = {
         Shape().asInstanceOf[S]
       }
     }
@@ -216,7 +216,7 @@ trait Data {
     new Dataset[Output[String]] {
       override val name: String = datasetName
 
-      override def createHandle[D, S]()(implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): Output[Variant] = {
         Op.Builder[(Output[String], Output[Long], Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "FixedLengthRecordDataset",
           name = name,
@@ -231,11 +231,11 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes[D, S](implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): D = {
+      override def outputDataTypes[D, S](implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): D = {
         STRING.asInstanceOf[D]
       }
 
-      override def outputShapes[D, S](implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): S = {
+      override def outputShapes[D, S](implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): S = {
         Shape().asInstanceOf[S]
       }
     }
@@ -261,7 +261,7 @@ trait Data {
     new Dataset[Output[String]] {
       override val name: String = datasetName
 
-      override def createHandle[D, S]()(implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): Output[Variant] = {
         Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TextLineDataset",
           name = name,
@@ -274,11 +274,11 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes[D, S](implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): D = {
+      override def outputDataTypes[D, S](implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): D = {
         STRING.asInstanceOf[D]
       }
 
-      override def outputShapes[D, S](implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): S = {
+      override def outputShapes[D, S](implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): S = {
         Shape().asInstanceOf[S]
       }
     }
@@ -302,7 +302,7 @@ trait Data {
     new Dataset[Output[String]] {
       override val name: String = datasetName
 
-      override def createHandle[D, S]()(implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): Output[Variant] = {
+      override def createHandle[D, S]()(implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): Output[Variant] = {
         Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TFRecordDataset",
           name = name,
@@ -315,11 +315,11 @@ trait Data {
             .build().output
       }
 
-      override def outputDataTypes[D, S](implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): D = {
+      override def outputDataTypes[D, S](implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): D = {
         STRING.asInstanceOf[D]
       }
 
-      override def outputShapes[D, S](implicit evOutputString: OutputStructure.Aux[Output[String], D, S]): S = {
+      override def outputShapes[D, S](implicit evOutputString: NestedStructure.Aux[Output[String], D, S]): S = {
         Shape().asInstanceOf[S]
       }
     }
@@ -376,7 +376,7 @@ trait Data {
       outputShape: S = null
   )(implicit
       evTensorToOutput: TensorToOutput.Aux[TT, T],
-      evT: OutputStructure.Aux[T, D, S]
+      evT: NestedStructure.Aux[T, D, S]
   ): Dataset[T] = {
     val outputShapeWithDefault: S = {
       if (outputShape != null) {

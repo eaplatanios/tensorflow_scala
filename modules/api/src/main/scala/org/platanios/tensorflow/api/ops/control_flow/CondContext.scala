@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.types.TF
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.utilities.Collections
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
@@ -153,12 +154,13 @@ private[api] case class CondContext private[control_flow] (
   /** Adds the sub-graph constructed by `function` to the current graph. */
   @throws[IllegalArgumentException]
   private[control_flow] def buildCondBranch[T, R](function: () => T)(implicit
-      ev: CondOutput.Aux[T, R]
+      ev: CondOutput.Aux[T, R],
+      evNestedStructureR: NestedStructure.Aux[R, _, _]
   ): (T, Seq[OutputLike[Any]]) = {
     val originalResult = function()
     if (originalResult == null)
       throw new IllegalArgumentException("The provide cond branch functions must have return values other than 'null'.")
-    (originalResult, ev.flatten(ev.processOutput(originalResult, this)))
+    (originalResult, evNestedStructureR.outputs(ev.processOutput(originalResult, this)))
   }
 
   override def toProto: GeneratedMessageV3 = {
@@ -282,7 +284,6 @@ trait CondOutput[T] {
   type ResultType
   def size(output: T): Int
   def processOutput(output: T, context: CondContext): ResultType
-  def flatten(processedOutput: ResultType): Seq[OutputLike[Any]]
   def unflatten(output: T, values: Seq[OutputLike[Any]]): T = segment(output, values)._1
   def segment(output: T, values: Seq[OutputLike[Any]]): (T, Seq[OutputLike[Any]])
 }
@@ -303,12 +304,6 @@ object CondOutput {
           context: CondContext
       ): Unit = {
         ()
-      }
-
-      override def flatten(
-          processedOutput: Unit
-      ): Seq[OutputLike[Any]] = {
-        Seq.empty[OutputLike[Any]]
       }
 
       override def segment(
@@ -335,12 +330,6 @@ object CondOutput {
         context.processOp(output)
       }
 
-      override def flatten(
-          processedOutput: Output[Any]
-      ): Seq[OutputLike[Any]] = {
-        Seq(processedOutput)
-      }
-
       override def segment(
           output: Op[I, O],
           values: Seq[OutputLike[Any]]
@@ -364,11 +353,6 @@ object CondOutput {
       ): Output[T] = {
         context.processOutput(output)(TF.fromDataType(output.dataType))
       }
-      override def flatten(
-          processedOutput: Output[T]
-      ): Seq[OutputLike[Any]] = {
-        Seq(processedOutput)
-      }
 
       override def segment(
           output: Output[T],
@@ -379,38 +363,32 @@ object CondOutput {
     }
   }
 
-  implicit def fromTensorArray[T]: Aux[TensorArray[T], Output[Float]] = {
-    new CondOutput[TensorArray[T]] {
-      override type ResultType = Output[Float]
-
-      override def size(output: TensorArray[T]): Int = {
-        1
-      }
-
-      override def processOutput(
-          output: TensorArray[T],
-          context: CondContext
-      ): Output[Float] = {
-        context.processOutput(output.flow)
-      }
-
-      override def flatten(
-          processedOutput: Output[Float]
-      ): Seq[OutputLike[Any]] = {
-        Seq(processedOutput)
-      }
-
-      override def segment(
-          output: TensorArray[T],
-          values: Seq[OutputLike[Any]]
-      ): (TensorArray[T], Seq[OutputLike[Any]]) = {
-        val newTensorArray = output.copy(
-          flow = values.head.asInstanceOf[Output[Float]])
-        // TODO: !!! [TENSOR_ARRAY] What about colocate with?
-        (newTensorArray, values.tail)
-      }
-    }
-  }
+//  implicit def fromTensorArray[T]: Aux[TensorArray[T], Output[Float]] = {
+//    new CondOutput[TensorArray[T]] {
+//      override type ResultType = Output[Float]
+//
+//      override def size(output: TensorArray[T]): Int = {
+//        1
+//      }
+//
+//      override def processOutput(
+//          output: TensorArray[T],
+//          context: CondContext
+//      ): Output[Float] = {
+//        context.processOutput(output.flow)
+//      }
+//
+//      override def segment(
+//          output: TensorArray[T],
+//          values: Seq[OutputLike[Any]]
+//      ): (TensorArray[T], Seq[OutputLike[Any]]) = {
+//        val newTensorArray = output.copy(
+//          flow = values.head.asInstanceOf[Output[Float]])
+//        // TODO: !!! [TENSOR_ARRAY] What about colocate with?
+//        (newTensorArray, values.tail)
+//      }
+//    }
+//  }
 
   implicit def fromOption[T, R](implicit ev: Aux[T, R]): Aux[Option[T], Option[R]] = {
     new CondOutput[Option[T]] {
@@ -425,12 +403,6 @@ object CondOutput {
           context: CondContext
       ): Option[R] = {
         output.map(ev.processOutput(_, context))
-      }
-
-      override def flatten(
-          processedOutput: Option[R]
-      ): Seq[OutputLike[Any]] = {
-        processedOutput.toSeq.flatMap(ev.flatten)
       }
 
       override def segment(
@@ -462,12 +434,6 @@ object CondOutput {
         output.map(ev.processOutput(_, context))
       }
 
-      override def flatten(
-          processedOutput: Array[R]
-      ): Seq[OutputLike[Any]] = {
-        processedOutput.toSeq.flatMap(ev.flatten)
-      }
-
       override def segment(
           output: Array[T],
           values: Seq[OutputLike[Any]]
@@ -494,12 +460,6 @@ object CondOutput {
         output.map(ev.processOutput(_, context))
       }
 
-      override def flatten(
-          processedOutput: Seq[R]
-      ): Seq[OutputLike[Any]] = {
-        processedOutput.flatMap(ev.flatten)
-      }
-
       override def segment(
           output: Seq[T],
           values: Seq[OutputLike[Any]]
@@ -524,12 +484,6 @@ object CondOutput {
           context: CondContext
       ): Map[MK, R] = {
         output.map({ case (k, v) => k -> ev.processOutput(v, context) })
-      }
-
-      override def flatten(
-          processedOutput: Map[MK, R]
-      ): Seq[OutputLike[Any]] = {
-        processedOutput.values.flatMap(ev.flatten).toSeq
       }
 
       override def segment(
@@ -560,12 +514,6 @@ object CondOutput {
         HNil
       }
 
-      override def flatten(
-          processedOutput: HNil
-      ): Seq[OutputLike[Any]] = {
-        Seq.empty[OutputLike[Any]]
-      }
-
       override def segment(
           output: HNil,
           values: Seq[OutputLike[Any]]
@@ -592,13 +540,6 @@ object CondOutput {
       ): HR :: TR = {
         evH.value.processOutput(output.head, context) ::
             evT.processOutput(output.tail, context)
-      }
-
-      override def flatten(
-          processedOutput: HR :: TR
-      ): Seq[OutputLike[Any]] = {
-        evH.value.flatten(processedOutput.head) ++
-            evT.flatten(processedOutput.tail)
       }
 
       override def segment(
@@ -630,13 +571,6 @@ object CondOutput {
         output match {
           case Inl(h) => Inl(evH.value.processOutput(h, context))
           case Inr(t) => Inr(evT.processOutput(t, context))
-        }
-      }
-
-      override def flatten(processedOutput: HR :+: TR): Seq[OutputLike[Any]] = {
-        processedOutput match {
-          case Inl(h) => evH.value.flatten(h)
-          case Inr(t) => evT.flatten(t)
         }
       }
 
@@ -674,12 +608,6 @@ object CondOutput {
           context: CondContext
       ): R = {
         tuplerR(evL.value.processOutput(genP.to(output), context))
-      }
-
-      override def flatten(
-          processedOutput: R
-      ): Seq[OutputLike[Any]] = {
-        evL.value.flatten(genR.to(processedOutput))
       }
 
       override def segment(

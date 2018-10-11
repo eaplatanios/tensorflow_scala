@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, TensorToOutput}
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, TensorToOutput}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
@@ -349,7 +349,7 @@ object Estimator {
 
   object SupportedInferInput {
     implicit def datasetInferInput[In, InT, OutT](implicit
-        evStructure: OutputStructure[In],
+        evStructure: NestedStructure[In],
         evTensorToOutput: TensorToOutput.Aux[InT, In]
     ): SupportedInferInput[In, InT, OutT, Dataset[In], Iterator[(InT, OutT)]] = {
       new SupportedInferInput[In, InT, OutT, Dataset[In], Iterator[(InT, OutT)]] {
@@ -365,7 +365,7 @@ object Estimator {
 
     implicit def singleValueInferInput[In, InT, OutT](implicit
         evTensorToOutput: TensorToOutput.Aux[InT, In],
-        evStructure: OutputStructure[In]
+        evStructure: NestedStructure[In]
     ): SupportedInferInput[In, InT, OutT, InT, OutT] = new SupportedInferInput[In, InT, OutT, InT, OutT] {
       override def toDataset(value: InT): Dataset[In] = {
         Data.datasetFromTensors(value)

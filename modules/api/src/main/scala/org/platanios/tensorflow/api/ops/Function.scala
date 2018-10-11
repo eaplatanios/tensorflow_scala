@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{DataType, TF}
-import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
@@ -38,8 +38,8 @@ case class Function[I, O](
     name: String,
     function: I => O
 )(implicit
-    evInput: OutputStructure[I],
-    evOutput: OutputStructure[O]
+    evInput: NestedStructure[I],
+    evOutput: NestedStructure[O]
 ) {
   def apply(
       arg: I,
@@ -54,7 +54,7 @@ case class Function[I, O](
       inputDataType = evInput.dataType(arg),
       input = Some(arg),
       captureByValue = captureByValue, appendHashToName = appendHashToName
-    )(evInput.asInstanceOf[OutputStructure.Aux[I, evInput.D, evInput.S]], evOutput).apply(arg)
+    )(evInput.asInstanceOf[NestedStructure.Aux[I, evInput.D, evInput.S]], evOutput).apply(arg)
   }
 
   def instantiate[ID, IS](
@@ -64,7 +64,7 @@ case class Function[I, O](
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   )(implicit
-      evInputSpecific: OutputStructure.Aux[I, ID, IS]
+      evInputSpecific: NestedStructure.Aux[I, ID, IS]
   ): InstantiatedFunction[I, O] = {
     val inputDataTypes = evInputSpecific.dataTypes(inputDataType)
     val inputShapes = inputShape.map(evInputSpecific.shapes)
@@ -96,14 +96,14 @@ private[api] class InstantiatedFunction[I, O] protected(
     private[this] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
 )(implicit
-    evInput: OutputStructure[I],
-    evOutput: OutputStructure[O]
+    evInput: NestedStructure[I],
+    evOutput: NestedStructure[O]
 ) extends Closeable {
-  def outputDataTypes[D](implicit evOSpecific: OutputStructure.Aux[O, D, _]): D = {
+  def outputDataTypes[D](implicit evOSpecific: NestedStructure.Aux[O, D, _]): D = {
     evOSpecific.dataType(_dummyOutput)
   }
 
-  def outputShapes[S](implicit evOSpecific: OutputStructure.Aux[O, _, S]): S = {
+  def outputShapes[S](implicit evOSpecific: NestedStructure.Aux[O, _, S]): S = {
     evOSpecific.shape(_dummyOutput)
   }
 
@@ -194,8 +194,8 @@ object InstantiatedFunction {
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   )(implicit
-      evInput: OutputStructure.Aux[I, ID, IS],
-      evOutput: OutputStructure[O]
+      evInput: NestedStructure.Aux[I, ID, IS],
+      evOutput: NestedStructure[O]
   ): InstantiatedFunction[I, O] = {
     // List of placeholders for the function definition.
     val inputDataTypes = evInput.dataTypes(inputDataType)

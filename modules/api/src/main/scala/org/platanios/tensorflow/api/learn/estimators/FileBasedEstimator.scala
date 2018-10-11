@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Fetchable
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
-import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.io.CheckpointReader
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
@@ -76,8 +76,8 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
 )(implicit
-    evIn: OutputStructure.Aux[In, _, _],
-    evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+    evIn: NestedStructure.Aux[In, _, _],
+    evTrainIn: NestedStructure.Aux[TrainIn, _, _]
 ) extends Estimator[In, TrainIn, TrainOut, Out, Loss, EvalIn](modelFunction, configurationBase) {
   /** Trains the model managed by this estimator.
     *
@@ -477,8 +477,8 @@ object FileBasedEstimator {
       tensorBoardConfig: TensorBoardConfig = null,
       evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss, EvalIn] = {
     new FileBasedEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,

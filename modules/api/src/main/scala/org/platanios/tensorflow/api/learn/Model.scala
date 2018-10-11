@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
-import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.layers.{Input, Layer}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
@@ -36,29 +36,29 @@ trait Model {
 }
 
 abstract class InferenceModel[In, Out](implicit
-    evIn: OutputStructure.Aux[In, _, _],
+    evIn: NestedStructure.Aux[In, _, _],
 ) extends Model {
   def buildInferOps(): Model.InferOps[In, Out]
 }
 
 abstract class TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn](implicit
-    evIn: OutputStructure.Aux[In, _, _],
-    evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+    evIn: NestedStructure.Aux[In, _, _],
+    evTrainIn: NestedStructure.Aux[TrainIn, _, _]
 ) extends InferenceModel[In, Out] {
   def buildTrainOps(): Model.TrainOps[In, TrainIn, TrainOut, Out, Loss]
   def buildEvaluateOps(metrics: Seq[Metric[EvalIn, Output[Float]]]): Model.EvaluateOps[TrainIn, Out]
 }
 
 abstract class SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss](implicit
-    evIn: OutputStructure.Aux[In, _, _],
-    evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+    evIn: NestedStructure.Aux[In, _, _],
+    evTrainIn: NestedStructure.Aux[TrainIn, _, _]
 ) extends TrainableModel[In, (In, TrainIn), TrainOut, Out, Loss, (Out, TrainOut)] {
   override def buildTrainOps(): Model.SupervisedTrainOps[In, TrainIn, TrainOut, Out, Loss]
   override def buildEvaluateOps(metrics: Seq[Metric[(Out, TrainOut), Output[Float]]]): Model.EvaluateOps[(In, TrainIn), Out]
 }
 
 abstract class UnsupervisedTrainableModel[In, Out, Loss](implicit
-    evIn: OutputStructure.Aux[In, _, _]
+    evIn: NestedStructure.Aux[In, _, _]
 ) extends TrainableModel[In, In, Unit, Out, Loss, Out] {
   override def buildTrainOps(): Model.UnsupervisedTrainOps[In, Out, Loss]
   override def buildEvaluateOps(metrics: Seq[Metric[Out, Output[Float]]]): Model.EvaluateOps[In, Out]
@@ -73,7 +73,7 @@ object Model {
       clipGradients: ClipGradients = NoClipGradients,
       colocateGradientsWithOps: Boolean = false
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _]
+      evIn: NestedStructure.Aux[In, _, _]
   ): UnsupervisedTrainableModel[In, Out, Loss] = {
     new SimpleUnsupervisedTrainableModel(input, layer, loss, optimizer, clipGradients, colocateGradientsWithOps)
   }
@@ -86,8 +86,8 @@ object Model {
       loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(input, layer, trainInput, trainInputLayer, loss, optimizer)
   }
@@ -101,8 +101,8 @@ object Model {
       optimizer: Optimizer,
       clipGradients: ClipGradients
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(input, layer, trainInput, trainInputLayer, loss, optimizer, clipGradients)
   }
@@ -114,8 +114,8 @@ object Model {
       loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer)
@@ -129,8 +129,8 @@ object Model {
       optimizer: Optimizer,
       clipGradients: ClipGradients
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer, clipGradients)
@@ -145,8 +145,8 @@ object Model {
       loss: Layer[(Out, TrainOut), Output[Loss]],
       optimizer: Optimizer
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer)
@@ -162,8 +162,8 @@ object Model {
       optimizer: Optimizer,
       clipGradients: ClipGradients
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer, clipGradients)
@@ -177,8 +177,8 @@ object Model {
       loss: Layer[(Out, TrainIn), Output[Loss]],
       optimizer: Optimizer
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer)
@@ -193,8 +193,8 @@ object Model {
       optimizer: Optimizer,
       clipGradients: ClipGradients
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
@@ -210,8 +210,8 @@ object Model {
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, trainInputLayer, loss, optimizer, colocateGradientsWithOps = colocateGradientsWithOps)
@@ -227,8 +227,8 @@ object Model {
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, trainInputLayer, loss, optimizer, clipGradients,
@@ -243,8 +243,8 @@ object Model {
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
@@ -260,8 +260,8 @@ object Model {
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SimpleSupervisedTrainableModel(
       input, layer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer, clipGradients,
@@ -278,8 +278,8 @@ object Model {
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer,
@@ -297,8 +297,8 @@ object Model {
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, trainInputLayer, loss, optimizer, clipGradients,
@@ -314,8 +314,8 @@ object Model {
       optimizer: Optimizer,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
@@ -332,8 +332,8 @@ object Model {
       clipGradients: ClipGradients,
       colocateGradientsWithOps: Boolean
   )(implicit
-      evIn: OutputStructure.Aux[In, _, _],
-      evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
   ): SupervisedConditionalTrainableModel[In, TrainIn, TrainIn, Out, Loss] = {
     new SupervisedConditionalTrainableModel(
       input, layer, trainLayer, trainInput, layers.Identity[TrainIn]("TrainInputLayer"), loss, optimizer,
@@ -405,7 +405,7 @@ private[learn] class SimpleInferenceModel[In, Out](
     val input: Input[In],
     val layer: Layer[In, Out]
 )(implicit
-    evIn: OutputStructure.Aux[In, _, _]
+    evIn: NestedStructure.Aux[In, _, _]
 ) extends InferenceModel[In, Out] {
   override def buildInferOps(): Model.InferOps[In, Out] = {
     implicit val mode: Mode = INFERENCE
@@ -425,7 +425,7 @@ private[learn] class SimpleUnsupervisedTrainableModel[In, Out, Loss: TF : IsFloa
     val clipGradients: ClipGradients = NoClipGradients,
     override protected val colocateGradientsWithOps: Boolean = false
 )(implicit
-    evIn: OutputStructure.Aux[In, _, _]
+    evIn: NestedStructure.Aux[In, _, _]
 ) extends UnsupervisedTrainableModel[In, Out, Loss] {
   override def buildInferOps(): Model.InferOps[In, Out] = {
     implicit val mode: Mode = INFERENCE
@@ -475,8 +475,8 @@ private[learn] class SimpleSupervisedTrainableModel[In, TrainIn, TrainOut, Out, 
     val clipGradients: ClipGradients = NoClipGradients,
     override protected val colocateGradientsWithOps: Boolean = false
 )(implicit
-    evIn: OutputStructure.Aux[In, _, _],
-    evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+    evIn: NestedStructure.Aux[In, _, _],
+    evTrainIn: NestedStructure.Aux[TrainIn, _, _]
 ) extends SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] {
   override def buildInferOps(): Model.InferOps[In, Out] = {
     implicit val mode: Mode = INFERENCE
@@ -529,8 +529,8 @@ private[learn] class SupervisedConditionalTrainableModel[In, TrainIn, TrainOut, 
     val clipGradients: ClipGradients = NoClipGradients,
     override protected val colocateGradientsWithOps: Boolean = false
 )(implicit
-    evIn: OutputStructure.Aux[In, _, _],
-    evTrainIn: OutputStructure.Aux[TrainIn, _, _]
+    evIn: NestedStructure.Aux[In, _, _],
+    evTrainIn: NestedStructure.Aux[TrainIn, _, _]
 ) extends SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] {
   override def buildInferOps(): Model.InferOps[In, Out] = {
     implicit val mode: Mode = INFERENCE

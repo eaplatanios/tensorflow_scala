@@ -130,7 +130,6 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
       val initialOutputTensorArrays = zeroOutputs.map(output => {
         TensorArray.create(
           size = 0,
-          dataType = output.dataType,
           dynamicSize = true,
           elementShape = output.shape
         )(TF.fromDataType(output.dataType))

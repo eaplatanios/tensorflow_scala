@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.data
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{DataType, Resource, Variant}
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -43,12 +43,12 @@ class DatasetIterator[T] protected[data](
     val name: String = "DatasetIterator"
 ) {
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
-  def outputDataTypes[D, S](implicit evT: OutputStructure.Aux[T, D, S]): D = {
+  def outputDataTypes[D, S](implicit evT: NestedStructure.Aux[T, D, S]): D = {
     _outputDataTypes.asInstanceOf[D]
   }
 
   /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
-  def outputShapes[D, S](implicit evT: OutputStructure.Aux[T, D, S]): S = {
+  def outputShapes[D, S](implicit evT: NestedStructure.Aux[T, D, S]): S = {
     _outputShapes.asInstanceOf[S]
   }
 
@@ -57,7 +57,7 @@ class DatasetIterator[T] protected[data](
   /** Returns a sequence of data types that correspond to the flattened data types of the nested outputs structure
     * of the elements of this iterator. */
   private[data] def flatOutputDataTypes[D, S](implicit
-      evT: OutputStructure.Aux[T, D, S]
+      evT: NestedStructure.Aux[T, D, S]
   ): Seq[DataType[Any]] = {
     evT.dataTypes(outputDataTypes)
   }
@@ -65,7 +65,7 @@ class DatasetIterator[T] protected[data](
   /** Returns a sequence of shapes that correspond to the flattened shapes of the nested outputs structure of the
     * elements of this iterator. */
   private[data] def flatOutputShapes[D, S](implicit
-      evT: OutputStructure.Aux[T, D, S]
+      evT: NestedStructure.Aux[T, D, S]
   ): Seq[Shape] = {
     evT.shapes(outputShapes)
   }
@@ -84,7 +84,7 @@ class DatasetIterator[T] protected[data](
   def createInitializer[D, S](
       dataset: Dataset[T],
       name: String = s"$name/Initializer"
-  )(implicit evT: OutputStructure.Aux[T, D, S]): Op[(Output[Variant], Output[Resource]), Unit] = {
+  )(implicit evT: NestedStructure.Aux[T, D, S]): Op[(Output[Variant], Output[Resource]), Unit] = {
     if (flatOutputShapes.zip(dataset.flatOutputShapes).exists(s => !s._1.isCompatibleWith(s._2))) {
       throw new IllegalArgumentException(
         s"Expected output shapes compatible with '$outputShapes', " +
@@ -124,7 +124,7 @@ class DatasetIterator[T] protected[data](
     * @return Created op outputs in a nested structure according to the data type of this initializer.
     */
   def next[D, S](name: String = s"$name/Next")(implicit
-      evT: OutputStructure.Aux[T, D, S]
+      evT: NestedStructure.Aux[T, D, S]
   ): T = {
     nextCallCount += 1
     if (nextCallCount > DatasetIterator.NEXT_CALL_WARNING_THRESHOLD)
@@ -188,7 +188,7 @@ object DatasetIterator {
         dataset: Dataset[T],
         sharedName: String = "",
         name: String = "InitializableIterator"
-    )(implicit evT: OutputStructure.Aux[T, D, S]): InitializableDatasetIterator[T] = {
+    )(implicit evT: NestedStructure.Aux[T, D, S]): InitializableDatasetIterator[T] = {
       fromDataset(dataset, sharedName, name)
     }
 
@@ -197,7 +197,7 @@ object DatasetIterator {
         outputShapes: S,
         sharedName: String = "",
         name: String = "Iterator"
-    )(implicit evT: OutputStructure.Aux[T, D, S]): DatasetIterator[T] = {
+    )(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
       fromStructure(outputDataTypes, outputShapes, sharedName, name)
     }
 
@@ -206,7 +206,7 @@ object DatasetIterator {
         outputDataTypes: D,
         outputShapes: S,
         name: String = "IteratorFromStringHandle"
-    )(implicit evT: OutputStructure.Aux[T, D, S]): DatasetIterator[T] = {
+    )(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
       fromStringHandle(stringHandle, outputDataTypes, outputShapes, name)
     }
   }
@@ -244,7 +244,7 @@ object DatasetIterator {
       dataset: Dataset[T],
       sharedName: String = "",
       name: String = "InitializableIterator"
-  )(implicit evT: OutputStructure.Aux[T, D, S]): InitializableDatasetIterator[T] = {
+  )(implicit evT: NestedStructure.Aux[T, D, S]): InitializableDatasetIterator[T] = {
     val (handle, initializer) = Op.nameScope(name) {
       val handle = createIterator(
         sharedName = sharedName,
@@ -321,7 +321,7 @@ object DatasetIterator {
       outputShapes: S,
       sharedName: String = "",
       name: String = "Iterator"
-  )(implicit evT: OutputStructure.Aux[T, D, S]): DatasetIterator[T] = {
+  )(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
     // TODO: [DATASETS] Allow for shapes to not be provided.
     val flatOutputDataTypes = evT.dataTypes(outputDataTypes)
     val flatOutputShapes = evT.shapes(outputShapes)
@@ -370,7 +370,7 @@ object DatasetIterator {
       outputDataTypes: D,
       outputShapes: S,
       name: String = "IteratorFromStringHandle"
-  )(implicit evT: OutputStructure.Aux[T, D, S]): DatasetIterator[T] = {
+  )(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
     // TODO: [DATASETS] Allow for shapes to not be provided.
     val flatOutputDataTypes = evT.dataTypes(outputDataTypes)
     val flatOutputShapes = evT.shapes(outputShapes)

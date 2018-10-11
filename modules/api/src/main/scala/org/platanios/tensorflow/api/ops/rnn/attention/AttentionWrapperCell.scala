@@ -102,7 +102,11 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, CellStateShape, At
           alignmentsHistory = {
             if (storeAlignmentsHistory)
               initialAlignments.map(a =>
-                TensorArray.create(0, state.dataType, dynamicSize = true, elementShape = a.shape))
+                TensorArray.create(
+                  size = 0,
+                  dynamicSize = true,
+                  elementShape = a.shape
+                )(TF.fromDataType(state.dataType)))
             else
               Seq.empty
           },

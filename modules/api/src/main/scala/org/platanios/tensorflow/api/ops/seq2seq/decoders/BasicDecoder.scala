@@ -188,7 +188,6 @@ object BasicDecoder {
         inputs.map(input => {
           TensorArray.create(
             size = Basic.shape(input)(TF.fromDataType(input.dataType)).castTo[Int].slice(0),
-            dataType = input.dataType,
             elementShape = input.shape(1 ::)
           )(TF.fromDataType(input.dataType)).unstack(input)
         })

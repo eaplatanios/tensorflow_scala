@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, StructureFromDataType}
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, StructureFromDataType}
 import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.Op
@@ -31,11 +31,11 @@ class Input[T] private(
     private val _shape: Any,
     private val name: String = "Input"
 ) {
-  def dataType[D, S](implicit evT: OutputStructure.Aux[T, D, S]): D = {
+  def dataType[D, S](implicit evT: NestedStructure.Aux[T, D, S]): D = {
     _dataType.asInstanceOf[D]
   }
 
-  def shape[D, S](implicit evT: OutputStructure.Aux[T, D, S]): S = {
+  def shape[D, S](implicit evT: NestedStructure.Aux[T, D, S]): S = {
     _shape.asInstanceOf[S]
   }
 
@@ -43,20 +43,20 @@ class Input[T] private(
     mutable.Map.empty
   }
 
-  protected def create[D, S]()(implicit evT: OutputStructure.Aux[T, D, S]): DatasetIterator[T] = {
+  protected def create[D, S]()(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
     DatasetIterator.fromStructure(
       outputDataTypes = dataType,
       outputShapes = shape,
       name = name)
   }
 
-  final def apply[D, S]()(implicit evT: OutputStructure.Aux[T, D, S]): DatasetIterator[T] = {
+  final def apply[D, S]()(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
     cache.getOrElse(Op.currentGraph, create())
   }
 
   def zip[D, S, T2, D2, S2](other: Input[T2])(implicit
-      evT: OutputStructure.Aux[T, D, S],
-      evT2: OutputStructure.Aux[T2, D2, S2]
+      evT: NestedStructure.Aux[T, D, S],
+      evT2: NestedStructure.Aux[T2, D2, S2]
   ): Input[(T, T2)] = {
     new Input[(T, T2)](
       _dataType = (dataType, other.dataType),
@@ -72,7 +72,7 @@ object Input {
       name: String = "Input"
   )(implicit
       evStructure: StructureFromDataType.Aux[_, T, D, S],
-      evT: OutputStructure.Aux[T, D, S]
+      evT: NestedStructure.Aux[T, D, S]
   ): Input[T] = {
     new Input[T](dataType, shape, name)
   }

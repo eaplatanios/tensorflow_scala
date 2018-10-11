@@ -279,14 +279,13 @@ object RNN extends RNN {
       case ((dataType, shape), index) =>
         TensorArray.create(
           size = timeSteps,
-          dataType = dataType,
           elementShape = Shape(constantBatchSize) ++ Output.constantValueAsShape(shape).get,
-          name = s"Output_$index")(TF.fromDataType(dataType))
+          name = s"Output_$index"
+        )(TF.fromDataType(dataType))
     })
     val inputTensorArrays = inputs.zipWithIndex.map({
       case (in, index) => TensorArray.create(
         size = timeSteps,
-        dataType = in.dataType,
         elementShape = in.shape(1 ::),
         name = s"Input_$index"
       )(TF.fromDataType(in.dataType)).unstack(in)

@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{RESOURCE, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
@@ -181,7 +182,10 @@ private[api] trait ControlFlow {
       trueFn: () => T,
       falseFn: () => T,
       name: String = "Cond"
-  )(implicit ev: CondOutput.Aux[T, R]): T = {
+  )(implicit
+      ev: CondOutput.Aux[T, R],
+      evNestedStructureR: NestedStructure.Aux[R, _, _]
+  ): T = {
     Op.nameScope(name) {
       Output.constantValue(predicate) match {
         case Some(predicateValue) if predicateValue.scalar => trueFn()
@@ -252,7 +256,8 @@ private[api] trait ControlFlow {
       exclusive: Boolean = false,
       name: String = "Cases"
   )(implicit
-      ev: CondOutput.Aux[T, R]
+      ev: CondOutput.Aux[T, R],
+      evNestedStructureR: NestedStructure.Aux[R, _, _]
   ): T = {
     Op.nameScope(name) {
       // To evaluate the conditions in the correct order, we create nested conditions in reverse.

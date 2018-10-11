@@ -28,19 +28,19 @@ import shapeless.ops.hlist.Tupler
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
-/** Data that can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[OutputStructure]]).
+/** Data that can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[NestedStructure]]).
   *
   * Currently supported data types are:
   *   - Single [[Tensor]].
-  *   - Sequences of other [[OutputStructure]] (e.g., `Seq`s, `List`s, etc.).
+  *   - Sequences of other [[NestedStructure]] (e.g., `Seq`s, `List`s, etc.).
   *     - Sequences that are not homogeneous are not supported (e.g., `Seq(data1, Seq(data1, data2))`).
   *     - Note that, for that reason, even though `Seq(List(data1), List(data1, data2))` is supported,
   *       `Seq(Seq(data1), List(data1, data2))` is not.
   *     - A sequence containing both [[Output]]s and [[SparseOutput]]s, for example, is considered heterogeneous.
   *       For such cases, it is advisable to use tuples.
-  *   - Arrays of other [[OutputStructure]].
-  *   - Maps with arbitrary key types and [[OutputStructure]] value types.
-  *   - Products of other [[OutputStructure]] (e.g., tuples).
+  *   - Arrays of other [[NestedStructure]].
+  *   - Maps with arbitrary key types and [[NestedStructure]] value types.
+  *   - Products of other [[NestedStructure]] (e.g., tuples).
   *     - Note that with tuples, heterogeneous types are supported, due to the tuple type being a kind of heterogeneous
   *       collection.
   * Internally, the data emitted by a [[Dataset]] will be de-duplicated to prevent redundant computation.
@@ -52,7 +52,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-trait OutputStructure[T] {
+trait NestedStructure[T] {
   type D
   type S
 
@@ -72,19 +72,16 @@ trait OutputStructure[T] {
   def decodeOutputFromDataType(dataType: D, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
   def decodeDataTypeFromDataType(dataType: D, dataTypes: Seq[DataType[Any]]): (D, Seq[DataType[Any]])
   def decodeShapeFromDataType(dataType: D, shapes: Seq[Shape]): (S, Seq[Shape])
-
-  def dataTypeToString(dataType: D): String
-  def shapeToString(shape: S): String
 }
 
-object OutputStructure {
-  type Aux[T, DD, SS] = OutputStructure[T] {
+object NestedStructure {
+  type Aux[T, DD, SS] = NestedStructure[T] {
     type D = DD
     type S = SS
   }
 
   implicit val fromUnit: Aux[Unit, Unit, Unit] = {
-    new OutputStructure[Unit] {
+    new NestedStructure[Unit] {
       override type D = Unit
       override type S = Unit
 
@@ -143,19 +140,11 @@ object OutputStructure {
       ): (Unit, Seq[Shape]) = {
         ((), shapes)
       }
-
-      override def dataTypeToString(dataType: Unit): String = {
-        ""
-      }
-
-      override def shapeToString(shape: Unit): String = {
-        ""
-      }
     }
   }
 
-  implicit def fromOutput[T: TF]: Aux[Output[T], DataType[T], Shape] = {
-    new OutputStructure[Output[T]] {
+  implicit def fromOutput[T]: Aux[Output[T], DataType[T], Shape] = {
+    new NestedStructure[Output[T]] {
       override type D = DataType[T]
       override type S = Shape
 
@@ -214,14 +203,6 @@ object OutputStructure {
       ): (Shape, Seq[Shape]) = {
         (shapes.head, shapes.tail)
       }
-
-      override def dataTypeToString(dataType: DataType[T]): String = {
-        dataType.toString
-      }
-
-      override def shapeToString(shape: Shape): String = {
-        shape.toString
-      }
     }
   }
 
@@ -252,7 +233,7 @@ object OutputStructure {
   implicit def fromDataset[T, D, S](implicit
       evT: Aux[T, D, S]
   ): Aux[Dataset[T], DataType[Variant], Shape] = {
-    new OutputStructure[Dataset[T]] {
+    new NestedStructure[Dataset[T]] {
       override type D = DataType[Variant]
       override type S = Shape
 
@@ -315,21 +296,13 @@ object OutputStructure {
       ): (Shape, Seq[Shape]) = {
         (shapes.head, shapes.tail)
       }
-
-      override def dataTypeToString(dataType: DataType[Variant]): String = {
-        dataType.toString
-      }
-
-      override def shapeToString(shape: Shape): String = {
-        shape.toString
-      }
     }
   }
 
   implicit def fromOption[T, DD, SS](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Option[T], Option[DD], Option[SS]] = {
-    new OutputStructure[Option[T]] {
+    new NestedStructure[Option[T]] {
       override type D = Option[DD]
       override type S = Option[SS]
 
@@ -408,21 +381,13 @@ object OutputStructure {
           case None => (None, shapes)
         }
       }
-
-      override def dataTypeToString(dataType: Option[DD]): String = {
-        s"{${dataType.map(ev.dataTypeToString).mkString(", ")}}"
-      }
-
-      override def shapeToString(shape: Option[SS]): String = {
-        s"{${shape.map(ev.shapeToString).mkString(", ")}}"
-      }
     }
   }
 
   implicit def fromArray[T: ClassTag, DD: ClassTag, SS: ClassTag](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Array[T], Array[DD], Array[SS]] = {
-    new OutputStructure[Array[T]] {
+    new NestedStructure[Array[T]] {
       override type D = Array[DD]
       override type S = Array[SS]
 
@@ -489,21 +454,13 @@ object OutputStructure {
         (dataType.zip(Collections.segment(shapes.take(n), dataType.map(ev.sizeFromDataType).toSeq))
             .map(f => ev.decodeShapeFromDataType(f._1, f._2)._1), shapes.drop(n))
       }
-
-      override def dataTypeToString(dataType: Array[DD]): String = {
-        s"{${dataType.map(ev.dataTypeToString).mkString(", ")}}"
-      }
-
-      override def shapeToString(shape: Array[SS]): String = {
-        s"{${shape.map(ev.shapeToString).mkString(", ")}}"
-      }
     }
   }
 
   implicit def fromSeq[T, DD, SS](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Seq[T], Seq[DD], Seq[SS]] = {
-    new OutputStructure[Seq[T]] {
+    new NestedStructure[Seq[T]] {
       override type D = Seq[DD]
       override type S = Seq[SS]
 
@@ -574,21 +531,13 @@ object OutputStructure {
             .zip(Collections.segment(shapes.take(n), dataType.map(ev.sizeFromDataType)))
             .map(f => ev.decodeShapeFromDataType(f._1, f._2)._1), shapes.drop(n))
       }
-
-      override def dataTypeToString(dataType: Seq[DD]): String = {
-        s"{${dataType.map(ev.dataTypeToString).mkString(", ")}}"
-      }
-
-      override def shapeToString(shape: Seq[SS]): String = {
-        s"{${shape.map(ev.shapeToString).mkString(", ")}}"
-      }
     }
   }
 
   implicit def fromMap[K, T, DD, SS](implicit
       ev: Aux[T, DD, SS]
   ): Aux[Map[K, T], Map[K, DD], Map[K, SS]] = {
-    new OutputStructure[Map[K, T]] {
+    new NestedStructure[Map[K, T]] {
       override type D = Map[K, DD]
       override type S = Map[K, SS]
 
@@ -663,19 +612,11 @@ object OutputStructure {
               .zip(Collections.segment(shapes.take(n), dataType.values.map(ev.sizeFromDataType).toSeq))
               .map(f => ev.decodeShapeFromDataType(f._1, f._2)._1)).toMap, shapes.drop(n))
       }
-
-      override def dataTypeToString(dataType: Map[K, DD]): String = {
-        s"{${dataType.map(d => s"${d._1.toString} -> ${ev.dataTypeToString(d._2)}").mkString(", ")}}"
-      }
-
-      override def shapeToString(shape: Map[K, SS]): String = {
-        s"{${shape.map(d => s"${d._1.toString} -> ${ev.shapeToString(d._2)}").mkString(", ")}}"
-      }
     }
   }
 
   implicit val fromHNil: Aux[HNil, HNil, HNil] = {
-    new OutputStructure[HNil] {
+    new NestedStructure[HNil] {
       override type D = HNil
       override type S = HNil
 
@@ -734,14 +675,6 @@ object OutputStructure {
       ): (HNil, Seq[Shape]) = {
         (HNil, shapes)
       }
-
-      override def dataTypeToString(dataType: HNil): String = {
-        ""
-      }
-
-      override def shapeToString(shape: HNil): String = {
-        ""
-      }
     }
   }
 
@@ -749,7 +682,7 @@ object OutputStructure {
       evH: Strict[Aux[HT, HD, HS]],
       evT: Aux[TT, TD, TS]
   ): Aux[HT :: TT, HD :: TD, HS :: TS] = {
-    new OutputStructure[HT :: TT] {
+    new NestedStructure[HT :: TT] {
       override type D = HD :: TD
       override type S = HS :: TS
 
@@ -823,28 +756,6 @@ object OutputStructure {
         val (tailOut, tailRemaining) = evT.decodeShapeFromDataType(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
-
-      override def dataTypeToString(dataType: HD :: TD): String = {
-        val headPart = evH.value.dataTypeToString(dataType.head)
-        val tailPart = evT.dataTypeToString(dataType.tail)
-        if (headPart == "")
-          tailPart
-        else if (tailPart == "")
-          headPart
-        else
-          s"$headPart, $tailPart"
-      }
-
-      override def shapeToString(shape: HS :: TS): String = {
-        val headPart = evH.value.shapeToString(shape.head)
-        val tailPart = evT.shapeToString(shape.tail)
-        if (headPart == "")
-          tailPart
-        else if (tailPart == "")
-          headPart
-        else
-          s"$headPart, $tailPart"
-      }
     }
   }
 
@@ -852,7 +763,7 @@ object OutputStructure {
       evH: Strict[Aux[HT, HD, HS]],
       evT: Aux[TT, TD, TS]
   ): Aux[HT :+: TT, HD :+: TD, HS :+: TS] = {
-    new OutputStructure[HT :+: TT] {
+    new NestedStructure[HT :+: TT] {
       override type D = HD :+: TD
       override type S = HS :+: TS
 
@@ -960,20 +871,6 @@ object OutputStructure {
             (Inr(result), remaining)
         }
       }
-
-      override def dataTypeToString(dataType: HD :+: TD): String = {
-        dataType match {
-          case Inl(h) => evH.value.dataTypeToString(h)
-          case Inr(t) => evT.dataTypeToString(t)
-        }
-      }
-
-      override def shapeToString(shape: HS :+: TS): String = {
-        shape match {
-          case Inl(h) => evH.value.shapeToString(h)
-          case Inr(t) => evT.shapeToString(t)
-        }
-      }
     }
   }
 
@@ -985,7 +882,7 @@ object OutputStructure {
       genD: Generic.Aux[PD, HD],
       genS: Generic.Aux[PS, HS]
   ): Aux[PT, PD, PS] = {
-    new OutputStructure[PT] {
+    new NestedStructure[PT] {
       override type D = PD
       override type S = PS
 
@@ -1047,14 +944,6 @@ object OutputStructure {
       ): (PS, Seq[Shape]) = {
         val (out, remaining) = evT.value.decodeShapeFromDataType(genD.to(dataType), shapes)
         (tuplerS(out), remaining)
-      }
-
-      override def dataTypeToString(dataType: PD): String = {
-        evT.value.dataTypeToString(genD.to(dataType))
-      }
-
-      override def shapeToString(shape: PS): String = {
-        evT.value.shapeToString(genS.to(shape))
       }
     }
   }
