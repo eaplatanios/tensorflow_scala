@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.types.UByte
+import org.platanios.tensorflow.api.core.types.UByte
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.UniformSplit
 
@@ -84,7 +84,7 @@ object MNISTLoader extends Loader {
     MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
 
-  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
+  private def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
     logger.info(s"Extracting images from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -100,13 +100,13 @@ object MNISTLoader extends Loader {
     val numberOfRows = (byteBuffer.getInt & 0xffffffffL).toInt
     val numberOfColumns = (byteBuffer.getInt & 0xffffffffL).toInt
     val numBytes = byteBuffer.limit() - 16
-    val tensor = Tensor.fromBuffer(UINT8, Shape(numberOfImages, numberOfRows, numberOfColumns), numBytes, byteBuffer)
+    val tensor = Tensor.fromBuffer[UByte](Shape(numberOfImages, numberOfRows, numberOfColumns), numBytes, byteBuffer)
     outputStream.close()
     inputStream.close()
     tensor
   }
 
-  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
+  private def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
     logger.info(s"Extracting labels from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -120,7 +120,7 @@ object MNISTLoader extends Loader {
       throw new IllegalStateException(s"Invalid magic number '$magicNumber' in MNIST labels file '$path'.")
     val numberOfLabels = (byteBuffer.getInt & 0xffffffffL).toInt
     val numBytes = byteBuffer.limit() - 8
-    val tensor = Tensor.fromBuffer(UINT8, Shape(numberOfLabels), numBytes, byteBuffer)
+    val tensor = Tensor.fromBuffer[UByte](Shape(numberOfLabels), numBytes, byteBuffer)
     outputStream.close()
     inputStream.close()
     tensor

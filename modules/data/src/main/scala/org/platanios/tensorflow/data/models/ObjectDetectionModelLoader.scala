@@ -16,16 +16,17 @@
 
 package org.platanios.tensorflow.data.models
 
-import java.io.{BufferedInputStream, FileInputStream}
-import java.nio.file.{Files, Path}
-
-import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api.{Graph, Output}
-import org.platanios.tensorflow.api.types.{FLOAT32, UINT8}
+import org.platanios.tensorflow.api.core.types.{FLOAT32, UINT8}
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.CompressedFiles
+
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.GraphDef
+
+import java.io.{BufferedInputStream, FileInputStream}
+import java.nio.file.{Files, Path}
 
 /** Loader for object detection models compatible with the TensorFlow object detection API.
   *
@@ -42,18 +43,17 @@ import org.tensorflow.framework.GraphDef
 class ObjectDetectionModelLoader(modelName: String) extends Loader {
   override protected val logger = Logger(LoggerFactory.getLogger("Object Detection Model Loader"))
 
-  protected val baseUrl: String            = "http://download.tensorflow.org/models/object_detection/"
+  protected val baseUrl           : String = "http://download.tensorflow.org/models/object_detection/"
   protected val compressedFilename: String = modelName + ".tar.gz"
-  protected val graphFilename: String      = "frozen_inference_graph.pb"
+  protected val graphFilename     : String = "frozen_inference_graph.pb"
 
   /** Loads a serialized object detection model. Tries to download the model if not found locally.
     *
-    * @param path       Path where the model is stored.
+    * @param path Path where the model is stored.
     * @param bufferSize
     * @return
     */
   def load(path: Path, bufferSize: Int = 8192): ObjectDetectionModel = {
-
     if (!Files.exists(path.resolve(modelName))) {
       // Download the data, if necessary.
       maybeDownload(path.resolve(compressedFilename), baseUrl + compressedFilename, bufferSize)
@@ -70,19 +70,18 @@ class ObjectDetectionModelLoader(modelName: String) extends Loader {
     val graph = Graph.fromGraphDef(graphDef)
     new ObjectDetectionModel(graph)
   }
-
 }
 
 /** Convenience access to object detection model input and output placeholders. */
 class ObjectDetectionModel(val graph: Graph) {
   /** Placeholder for the input image. dataType = [[UINT8]], shape = Shape(1, -1, -1, 3) */
-  val inputImage: Output = graph.getOutputByName("image_tensor:0")
+  val inputImage: Output[Any] = graph.getOutputByName("image_tensor:0")
   /** Placeholder for the detected boxes. dataType = [[FLOAT32]], shape = Shape(1, numDetections, 4) */
-  val detectionBoxes: Output = graph.getOutputByName("detection_boxes:0")
+  val detectionBoxes: Output[Any] = graph.getOutputByName("detection_boxes:0")
   /** Placeholder for the detected scores. dataType = [[FLOAT32]], shape = Shape(1, numDetections) */
-  val detectionScores: Output = graph.getOutputByName("detection_scores:0")
+  val detectionScores: Output[Any] = graph.getOutputByName("detection_scores:0")
   /** Placeholder for the detected labels. dataType = [[FLOAT32]], shape = Shape(1, numDetections) */
-  val detectionClasses: Output = graph.getOutputByName("detection_classes:0")
+  val detectionClasses: Output[Any] = graph.getOutputByName("detection_classes:0")
   /** Placeholder for the number of detected objects. [[FLOAT32]], shape = Shape(1) */
-  val numDetections: Output = graph.getOutputByName("num_detections:0")
+  val numDetections: Output[Any] = graph.getOutputByName("num_detections:0")
 }

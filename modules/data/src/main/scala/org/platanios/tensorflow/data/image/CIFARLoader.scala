@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.types.UByte
+import org.platanios.tensorflow.api.core.types.UByte
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.UniformSplit
 
@@ -80,7 +80,7 @@ object CIFARLoader extends Loader {
     dataset
   }
 
-  private[this] def extractFiles(
+  private def extractFiles(
       path: Path,
       datasetType: DatasetType = CIFAR_10,
       bufferSize: Int = 8192
@@ -115,7 +115,7 @@ object CIFARLoader extends Loader {
     dataset
   }
 
-  private[this] def readImagesAndLabels(
+  private def readImagesAndLabels(
       inputStream: TarArchiveInputStream,
       entry: TarArchiveEntry,
       datasetType: DatasetType = CIFAR_10,
@@ -128,7 +128,7 @@ object CIFARLoader extends Loader {
     outputStream.close()
     val numSamples = entry.getSize.toInt / datasetType.entryByteSize
     val combinedShape = Shape(numSamples, datasetType.entryByteSize)
-    val combined = Tensor.fromBuffer(UINT8, combinedShape, entry.getSize.toInt, byteBuffer)
+    val combined = Tensor.fromBuffer[UByte](combinedShape, entry.getSize.toInt, byteBuffer)
     datasetType match {
       case CIFAR_10 => (combined(::, 1 ::).reshape(Shape(-1, 32, 32, 3)), combined(::, 0))
       case CIFAR_100 => (combined(::, 2 ::).reshape(Shape(-1, 32, 32, 3)), combined(::, 0 :: 2))

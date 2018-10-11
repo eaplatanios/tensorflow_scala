@@ -226,7 +226,7 @@ object XCLoader extends Loader {
 
   def labelPropensityScores(dataset: SmallDataset[Tensor]): Tensor[Float] = {
     val numSamples = dataset.data.labels.shape(0)
-    val labelCounts = dataset.data.labels.toFloat32.sum(axes = Seq(0))
+    val labelCounts = dataset.data.labels.castTo[Float].sum(axes = Seq(0))
     val a = dataset.datasetType.labelsPropensityA
     val b = dataset.datasetType.labelsPropensityB
     val c = (math.log(numSamples) - 1) * math.pow(b + 1, a)
@@ -235,7 +235,7 @@ object XCLoader extends Loader {
 
   // TODO: [SPARSE] Add support for computing the propensity scores from sparse datasets.
 
-  private[this] def loadCommon(path: Path, datasetType: DatasetType, bufferSize: Int = 8192): Path = {
+  private def loadCommon(path: Path, datasetType: DatasetType, bufferSize: Int = 8192): Path = {
     val url = datasetType.url
     val compressedFilename = datasetType.compressedFilename
     val workingDir = path.resolve(datasetType.name.toLowerCase())
@@ -243,11 +243,11 @@ object XCLoader extends Loader {
     workingDir.resolve(datasetType.compressedFilename)
   }
 
-  private[this] def sparseDataToDense(data: Data[SparseTensor]): Data[Tensor] = {
+  private def sparseDataToDense(data: Data[SparseTensor]): Data[Tensor] = {
     Data(data.features.toTensor, data.labels.toTensor)
   }
 
-  private[this] def extractSmallScaleDataset[TL[A] <: TensorLike[A]](
+  private def extractSmallScaleDataset[TL[A] <: TensorLike[A]](
       path: Path,
       datasetType: SmallDatasetType,
       dataConverter: Data[SparseTensor] => Data[TL],
@@ -286,7 +286,7 @@ object XCLoader extends Loader {
     dataset
   }
 
-  private[this] def extractLargeScaleDataset[TL[A] <: TensorLike[A]](
+  private def extractLargeScaleDataset[TL[A] <: TensorLike[A]](
       path: Path,
       datasetType: LargeDatasetType,
       dataConverter: Data[SparseTensor] => Data[TL],
@@ -325,7 +325,7 @@ object XCLoader extends Loader {
   }
 
   @throws[IllegalArgumentException]
-  private[this] def readData(
+  private def readData(
       inputStream: ZipInputStream,
       datasetType: DatasetType,
       bufferSize: Int = 8192
@@ -366,19 +366,19 @@ object XCLoader extends Loader {
 
     val labelIndicesBuffer = ByteBuffer.wrap(labelIndicesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     labelIndicesStream.close()
-    val labelIndices = Tensor.fromBuffer(INT64, Shape(labelsCount, 2), labelsCount * 2 * 8, labelIndicesBuffer)
+    val labelIndices = Tensor.fromBuffer[Long](Shape(labelsCount, 2), labelsCount * 2 * 8, labelIndicesBuffer)
 
     val labelValuesBuffer = ByteBuffer.wrap(labelValuesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     labelValuesStream.close()
-    val labelValues = Tensor.fromBuffer(BOOLEAN, Shape(labelsCount), labelsCount, labelValuesBuffer)
+    val labelValues = Tensor.fromBuffer[Boolean](Shape(labelsCount), labelsCount, labelValuesBuffer)
 
     val featureIndicesBuffer = ByteBuffer.wrap(featureIndicesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     featureIndicesStream.close()
-    val featureIndices = Tensor.fromBuffer(INT64, Shape(featuresCount, 2), featuresCount * 2 * 8, featureIndicesBuffer)
+    val featureIndices = Tensor.fromBuffer[Long](Shape(featuresCount, 2), featuresCount * 2 * 8, featureIndicesBuffer)
 
     val featureValuesBuffer = ByteBuffer.wrap(featureValuesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     featureValuesStream.close()
-    val featureValues = Tensor.fromBuffer(FLOAT32, Shape(featuresCount), featuresCount * 4, featureValuesBuffer)
+    val featureValues = Tensor.fromBuffer[Float](Shape(featuresCount), featuresCount * 4, featureValuesBuffer)
 
     val features = SparseTensor(featureIndices, featureValues, Shape(numSamples, numFeatures))
     val labels = SparseTensor(labelIndices, labelValues, Shape(numSamples, numLabels))
@@ -386,7 +386,7 @@ object XCLoader extends Loader {
     Data(features, labels)
   }
 
-  private[this] def readSplits(
+  private def readSplits(
       inputStream: ZipInputStream,
       bufferSize: Int = 8192
   ): Array[Array[Int]] = {
