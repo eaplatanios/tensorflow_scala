@@ -16,9 +16,8 @@
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.{layerContext, Layer}
+import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Op
 import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 
@@ -33,23 +32,18 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
 ) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
   def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
-  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = Op.createWith(
-    nameScope = layerContext.value.nameScope,
-    device = layerContext.value.device,
-    deviceFunction = layerContext.value.deviceFunction
-  ) {
-    VariableScope.updatedScope(layerContext.value.variableScope, isPure = true) {
-      if (name != null) {
-        VariableScope.scope(name, isPure = true) {
-          createCellWithoutContext(mode, inputShape)
-        }
-      } else {
+  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+    if (name != null) {
+      VariableScope.scope(name, isPure = true) {
         createCellWithoutContext(mode, inputShape)
       }
+    } else {
+      createCellWithoutContext(mode, inputShape)
     }
   }
 
   override final def forwardWithoutContext(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
-    createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
+    createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape)))
+        .forward(input)
   }
 }

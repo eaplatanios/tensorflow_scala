@@ -953,7 +953,7 @@ trait NN {
     * @throws InvalidShapeException If any of `logits`, `labels`, or `weights` has invalid shape.
     */
   @throws[InvalidShapeException]
-  def sequenceLoss[T: TF : IsDecimal, L : TF](
+  def sequenceLoss[T: TF : IsDecimal, L: TF](
       logits: Output[T],
       labels: Output[L],
       lossFn: (Output[T], Output[L]) => Output[T],

@@ -26,10 +26,9 @@ import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.data.Dataset
-import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
-import org.platanios.tensorflow.api.ops.variables.{Saver, Variable}
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output, Resources}
+import org.platanios.tensorflow.api.ops.variables.Saver
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -66,8 +65,8 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class FileBasedEstimator[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
-    override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, Loss, EvalIn],
+class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+    override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
     val trainHooks: Set[Hook] = Set.empty,
@@ -79,7 +78,7 @@ class FileBasedEstimator[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn
 )(implicit
     evIn: OutputStructure.Aux[In, _, _],
     evTrainIn: OutputStructure.Aux[TrainIn, _, _]
-) extends Estimator[In, TrainIn, Out, Loss, EvalIn](modelFunction, configurationBase) {
+) extends Estimator[In, TrainIn, TrainOut, Out, Loss, EvalIn](modelFunction, configurationBase) {
   /** Trains the model managed by this estimator.
     *
     * @param  data         Training dataset. Each element is a tuple over input and training inputs (i.e.,
@@ -158,7 +157,8 @@ class FileBasedEstimator[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn
             model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
             Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
           allHooks.foreach {
-            case hook: ModelDependentHook[In, TrainIn, Out, Loss, EvalIn] => hook.setModelInstance(modelInstance)
+            case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+              hook.setModelInstance(modelInstance)
             case _ => ()
           }
           if (tensorBoardConfig != null)
@@ -272,7 +272,8 @@ class FileBasedEstimator[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn
         val inferOps = Op.nameScope("Model")(model.buildInferOps())
         val modelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None, None)
         hooks.foreach {
-          case hook: ModelDependentHook[In, TrainIn, Out, Loss, EvalIn] => hook.setModelInstance(modelInstance)
+          case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+            hook.setModelInstance(modelInstance)
           case _ => ()
         }
         val saver = getOrCreateSaver()
@@ -414,7 +415,8 @@ class FileBasedEstimator[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn
           model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
           None, None, None)
         allHooks.foreach {
-          case hook: ModelDependentHook[In, TrainIn, Out, Loss, EvalIn] => hook.setModelInstance(modelInstance)
+          case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+            hook.setModelInstance(modelInstance)
           case _ => ()
         }
         val saver = getOrCreateSaver()
@@ -464,8 +466,8 @@ class FileBasedEstimator[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn
 object FileBasedEstimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / File-based Estimator"))
 
-  def apply[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, EvalIn](
-      modelFunction: Estimator.ModelFunction[In, TrainIn, Out, Loss, EvalIn],
+  def apply[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, EvalIn](
+      modelFunction: Estimator.ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),
       trainHooks: Set[Hook] = Set.empty,
@@ -477,7 +479,7 @@ object FileBasedEstimator {
   )(implicit
       evIn: OutputStructure.Aux[In, _, _],
       evTrainIn: OutputStructure.Aux[TrainIn, _, _]
-  ): FileBasedEstimator[In, TrainIn, Out, Loss, EvalIn] = {
+  ): FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss, EvalIn] = {
     new FileBasedEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,
       tensorBoardConfig, evaluationMetrics)

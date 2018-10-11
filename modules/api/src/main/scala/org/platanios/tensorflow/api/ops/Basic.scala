@@ -2404,21 +2404,18 @@ trait Basic {
     * @group BasicOps
     * @param  indices  Tensor containing the indices for the "on" values.
     * @param  depth    Scalar tensor defining the depth of the one-hot dimension.
-    * @param  dataType Data type of the output tensor. If not provided, the function will attempt to assume the data
-    *                  type of `onValue` or `offValue`, if one or both are passed in. If none of `onValue`, `offValue`,
-    *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
     * @param  onValue  Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] = i`.
     *                  Defaults to the value `1` with type `dataType`.
     * @param  offValue Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] != i`.
     *                  Defaults to the value `0` with type `dataType`.
     * @param  axis     Axis to fill. Defaults to `-1`, representing the last axis.
     * @param  name     Name for the created op.
+    * @tparam T Data type of the output tensor.
     * @return Created op output.
     */
   def oneHot[T: TF, I: TF : IsInt32OrInt64OrUInt8](
       indices: Output[I],
       depth: Output[Int],
-      dataType: DataType[T],
       onValue: Output[T] = null,
       offValue: Output[T] = null,
       axis: Int = -1,
@@ -3035,19 +3032,18 @@ object Basic extends Basic {
         * @param  offValue Scalar tensor defining the value to fill in the output `i`th value, when `indices[j] != i`.
         *                  Defaults to the value `0` with type `dataType`.
         * @param  axis     Axis to fill. Defaults to `-1`, representing the last axis.
-        * @param  dataType Data type of the output tensor. If not provided, the function will attempt to assume the data
-        *                  type of `onValue` or `offValue`, if one or both are passed in. If none of `onValue`, `offValue`,
-        *                  or `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
+        * @tparam R Data type of the output tensor. If not provided, the function will attempt to assume the data type
+        *           of `onValue` or `offValue`, if one or both are passed in. If none of `onValue`, `offValue`, or
+        *           `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
         * @return Created op output.
         */
       def oneHot[R : TF](
           depth: Output[Int],
-          dataType: DataType[R],
           onValue: Output[R] = null,
           offValue: Output[R] = null,
           axis: Int = -1
       )(implicit ev: IsInt32OrInt64OrUInt8[T]): Output[R] = {
-        Basic.oneHot(output, depth, dataType, onValue, offValue, axis)
+        Basic.oneHot[R, T](output, depth, onValue, offValue, axis)
       }
 
       //endregion Tensor Ungrouped Ops

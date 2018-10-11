@@ -110,10 +110,8 @@ class SessionWrapper private[learn](
 
       // Invoke the hooks' `beforeSessionRun` callbacks.
       val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), this)
-      val combinedArgs = invokeHooksBeforeSessionRun(runContext, options, wantMetadata, currentHooks)
-
-      // The following helps the compiler derive some implicits for which resolution currently diverges.
-      implicit val evESetExecutable: Executable[(E, Set[UntypedOp])] = implicitly[Executable[(E, Set[UntypedOp])]]
+      val hookRunArgs = currentHooks.map(hook => hook.internalBeforeSessionRun(runContext))
+      val combinedArgs = invokeHooksBeforeSessionRun(runContext, options, wantMetadata, currentHooks, hookRunArgs)
 
       // Do session run.
       val result = super.runHelper(
@@ -121,9 +119,14 @@ class SessionWrapper private[learn](
         combinedArgs.options, combinedArgs.wantMetadata)
 
       // Invoke the hooks' `afterSessionRun` callbacks.
-      currentHooks.zipWithIndex.foreach(hook => {
-        hook._1.internalAfterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
-      })
+      currentHooks.zip(hookRunArgs).zipWithIndex.foreach {
+        case ((hook, runArgs), index) =>
+          val results = result._1._2(index)
+          val decodedResult = runArgs.get.decodeResults(results)
+          hook.internalAfterSessionRun(
+            runContext,
+            Hook.SessionRunResult(decodedResult.asInstanceOf[hook.StateR], result._2))
+      }
 
       // Update the `_shouldStop` flag and return.
       setShouldStop(_shouldStop || runContext.stopRequested)
@@ -137,7 +140,8 @@ class SessionWrapper private[learn](
       runContext: Hook.SessionRunContext[F, E, R],
       runOptions: Option[RunOptions],
       wantMetadata: Boolean,
-      hooks: Seq[Hook]
+      hooks: Seq[Hook],
+      hookRunArgs: Seq[Option[Hook.SessionRunArgs[_, _, _]]]
   )(implicit
       evFetchable: Fetchable.Aux[F, R],
       evExecutable: Executable[E]
@@ -147,7 +151,7 @@ class SessionWrapper private[learn](
     val hooksTargets = mutable.Set.empty[UntypedOp]
     var hooksRunOptions = runOptions.getOrElse(RunOptions.getDefaultInstance)
     var hooksWantMetadata = wantMetadata
-    hooks.foreach(hook => hook.internalBeforeSessionRun(runContext) match {
+    hookRunArgs.foreach {
       case Some(runArgs) =>
         if (runArgs.feeds.nonEmpty) {
           if (hooksFeedMap.nonEmpty && hooksFeedMap.intersects(runArgs.feeds))
@@ -160,18 +164,13 @@ class SessionWrapper private[learn](
         hooksWantMetadata ||= runArgs.wantMetadata
       case None =>
         hooksFetches.append(Seq.empty)
-    })
+    }
     val feeds = runContext.args.feeds
     if (feeds.nonEmpty && hooksFeedMap.nonEmpty && feeds.intersects(hooksFeedMap))
       throw new RuntimeException("The same tensor is fed by the user and by a hook.")
     val combinedFeeds = feeds ++ hooksFeedMap
     val combinedFetches = (runContext.args.fetches, hooksFetches.toSeq)
     val combinedTargets = (runContext.args.targets, hooksTargets.toSet)
-
-    // The following helps the compiler derive some implicits for which resolution currently diverges.
-    implicit val evESetExecutable: Executable[(E, Set[UntypedOp])] = implicitly[Executable[(E, Set[UntypedOp])]]
-
-
     Hook.SessionRunArgs(
       combinedFeeds, combinedFetches, combinedTargets,
       Some(hooksRunOptions), hooksWantMetadata)

@@ -16,49 +16,48 @@
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
-import org.platanios.tensorflow.api.types.DataType
 
 /** $OpDocRNNCellBasicRNNCell
   *
   * @param  name              Name scope (also acting as variable scope) for this layer.
   * @param  numUnits          Number of units in the RNN cell.
-  * @param  dataType          Data type for the parameters of this cell.
   * @param  activation        Activation function used by this RNN cell.
   * @param  kernelInitializer Variable initializer for kernel matrices.
   * @param  biasInitializer   Variable initializer for the bias vectors.
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicRNNCell(
+class BasicRNNCell[T: TF : IsNotQuantized](
     override val name: String,
     val numUnits: Int,
-    val dataType: DataType[_],
-    val activation: Output => Output = ops.Math.tanh(_),
+    val activation: Output[T] => Output[T],
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output, Shape, Output, Shape](name) {
+) extends RNNCell[Output[T], Shape, Output[T], Shape](name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def createCellWithoutContext(mode: Mode, inputShape: Shape): ops.rnn.cell.BasicRNNCell = {
-    val kernel = getParameter(
-      KERNEL_NAME, dataType, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
-    val bias = getParameter(BIAS_NAME, dataType, Shape(numUnits), biasInitializer)
+  override def createCellWithoutContext(
+      mode: Mode,
+      inputShape: Shape
+  ): ops.rnn.cell.BasicRNNCell[T] = {
+    val kernel = getParameter[T](KERNEL_NAME, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
+    val bias = getParameter[T](BIAS_NAME, Shape(numUnits), biasInitializer)
     ops.rnn.cell.BasicRNNCell(kernel, bias, activation, name)
   }
 }
 
 object BasicRNNCell {
-  def apply(
+  def apply[T: TF : IsNotQuantized](
       variableScope: String,
       numUnits: Int,
-      dataType: DataType[_],
-      activation: Output => Output = ops.Math.tanh(_),
+      activation: Output[T] => Output[T],
       kernelInitializer: Initializer = null,
       biasInitializer: Initializer = ZerosInitializer
-  ): BasicRNNCell = {
-    new BasicRNNCell(variableScope, numUnits, dataType, activation, kernelInitializer, biasInitializer)
+  ): BasicRNNCell[T] = {
+    new BasicRNNCell(variableScope, numUnits, activation, kernelInitializer, biasInitializer)
   }
 }

@@ -150,18 +150,16 @@ class BeamSearchDecoder[T, State, StateShape](
     */
   override def initialize(): (Output[Boolean], Output[T], BeamSearchDecoder.DecoderState[State]) = {
     Op.nameScope(s"$name/Initialize") {
-      val finished = Basic.oneHot(
+      val finished = Basic.oneHot[Boolean, Int](
         indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
         depth = beamWidth,
-        dataType = BOOLEAN,
         onValue = false,
         offValue = true)
       val initialState = BeamSearchDecoder.DecoderState[State](
         modelState = processedInitialCellState,
-        logProbabilities = Basic.oneHot(
+        logProbabilities = Basic.oneHot[Float, Int](
           indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
           depth = beamWidth,
-          dataType = FLOAT32,
           onValue = Basic.zeros[Float](Shape()),
           offValue = Basic.constant(Float.MinValue)),
         finished = finished,
@@ -216,10 +214,9 @@ class BeamSearchDecoder[T, State, StateShape](
           Basic.shape(nextTupleOutput).castTo[Int].slice(-1)
       }
 
-      var lengthsToAdd = Basic.oneHot(
+      var lengthsToAdd = Basic.oneHot[Int, Int](
         indices = Basic.fill[Int, Int](Basic.stack[Int](Seq(batchSize, beamWidth)))(endToken),
         depth = vocabSize,
-        dataType = Int,
         onValue = 0,
         offValue = 1)
       val addMask = Math.logicalNot(previouslyFinished).castTo[Int]
@@ -371,10 +368,9 @@ object BeamSearchDecoder {
   ): Output[Float] = {
     val vocabSize = Basic.shape(logProbabilities).castTo[Int].slice(2)
     // Finished examples are replaced with a vector that has all its probability mass on `endToken`
-    val finishedRow = Basic.oneHot(
+    val finishedRow = Basic.oneHot[Float, Int](
       indices = endToken,
       depth = vocabSize,
-      dataType = FLOAT32,
       onValue = Basic.zeros[Float](Shape()),
       offValue = Basic.constant(Float.MinValue))
     val finishedLogProbabilities = Basic.tile(

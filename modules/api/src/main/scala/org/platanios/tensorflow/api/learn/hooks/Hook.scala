@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable,
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionWrapper}
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
+import org.platanios.tensorflow.api.tensors.Tensor
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
 /** Hook to extend calls to `MonitoredSession.run()`.
@@ -116,9 +117,12 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   * @author Emmanouil Antonios Platanios
   */
 abstract class Hook {
-  type StateF = Unit
-  type StateE = Unit
-  type StateR = Unit
+  type StateF
+  type StateE
+  type StateR
+
+  protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR]
+  protected implicit val evExecutableState: Executable[StateE]
 
   private[learn] val priority: Int = 0
 
@@ -266,6 +270,10 @@ object Hook {
 
     private[learn] def flatTargets: Set[UntypedOp] = {
       evExecutable.ops(targets)
+    }
+
+    private[learn] def decodeResults(results: Seq[Tensor[Any]]): R = {
+      evFetchable.resultsBuilder(fetches, results)
     }
   }
 

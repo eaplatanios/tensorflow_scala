@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.config.TensorBoardConfig
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -32,6 +32,18 @@ import scala.util.Try
   * @author Emmanouil Antonios Platanios
   */
 private[learn] class TensorBoardHook protected (val tensorBoardConfig: TensorBoardConfig) extends Hook {
+  override type StateF = Unit
+  override type StateE = Unit
+  override type StateR = Unit
+
+  override protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
+    implicitly[Fetchable.Aux[StateF, StateR]]
+  }
+
+  override protected implicit val evExecutableState: Executable[StateE] = {
+    implicitly[Executable[StateE]]
+  }
+
   private[this] var tensorBoardProcess: Option[Process] = None
 
   override protected def begin(): Unit = tensorBoardProcess = {

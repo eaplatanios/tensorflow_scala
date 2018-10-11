@@ -16,34 +16,36 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 object Embedding {
   private[layers] trait API {
-    type Embedding = layers.Embedding
+    type Embedding[T] = layers.Embedding[T]
+
     val Embedding: layers.Embedding.type = layers.Embedding
   }
 
   object API extends API
 }
 
-case class Embedding(
+case class Embedding[T: TF : IsNotQuantized](
     override val name: String,
     vocabularySize: Int,
     embeddingSize: Int,
-    dataType: DataType[_],
     partitionStrategy: ops.Embedding.PartitionStrategy = ops.Embedding.ModStrategy,
-    transformFn: Output => Output = null,
-    maxNorm: Tensor[_] = null
-) extends Layer[Output, Output](name) {
+    transformFn: Output[T] => Output[T] = null,
+    maxNorm: Tensor[T] = null
+) extends Layer[Output[Int], Output[T]](name) {
   override val layerType: String = "Embedding"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    val embeddingMap = getParameter("EmbeddingMap", dataType, Shape(vocabularySize, embeddingSize))
+  override def forwardWithoutContext(
+      input: Output[Int]
+  )(implicit mode: Mode): Output[T] = {
+    val embeddingMap = getParameter[T]("EmbeddingMap", Shape(vocabularySize, embeddingSize))
     ops.Embedding.embeddingLookup(
       embeddingMap, input, partitionStrategy, transformFn,
       if (maxNorm == null) null else ops.Basic.constant(maxNorm),

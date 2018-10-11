@@ -27,8 +27,8 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class ModelInstance[In, TrainIn, Out, Loss: TF : IsFloat32OrFloat64, InEval](
-    model: TrainableModel[In, TrainIn, Out, Loss, InEval],
+case class ModelInstance[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, InEval](
+    model: TrainableModel[In, TrainIn, TrainOut, Out, Loss, InEval],
     configuration: Configuration,
     trainInputIterator: Option[DatasetIterator[TrainIn]] = None,
     trainInput: Option[TrainIn] = None,

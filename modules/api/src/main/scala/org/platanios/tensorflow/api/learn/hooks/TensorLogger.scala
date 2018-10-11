@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -49,7 +49,16 @@ class TensorLogger protected (
     val formatter: Map[String, Tensor[_]] => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd) {
   override type InnerStateF = Seq[Output[Any]]
+  override type InnerStateE = Unit
   override type InnerStateR = Seq[Tensor[Any]]
+
+  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
+  }
+
+  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+    implicitly[Executable[InnerStateE]]
+  }
 
   protected val tensorTags : Seq[String]      = tensors.keys.toSeq
   protected val tensorNames: Seq[String]      = tensors.values.toSeq
@@ -61,6 +70,7 @@ class TensorLogger protected (
   }
 
   override protected def fetches: Seq[Output[Any]] = outputs
+  override protected def targets: Unit = ()
 
   override protected def onTrigger(
       step: Long,

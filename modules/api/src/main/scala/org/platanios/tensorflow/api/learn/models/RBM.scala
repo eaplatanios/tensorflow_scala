@@ -17,19 +17,19 @@ package org.platanios.tensorflow.api.learn.models
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.Indexer.NewAxis
+import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64OrFloat16OrFloat32OrFloat64, IsNotQuantized, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Counter, Model, UnsupervisedTrainableModel}
 import org.platanios.tensorflow.api.learn.layers.Input
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
 import org.platanios.tensorflow.api.ops.variables.{RandomNormalInitializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output, Random}
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import scala.collection.mutable
 
-class RBM(
-    val input: Input[Tensor[_], Output, DataType[_], Shape],
+class RBM[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
+    val input: Input[Output[T]],
     val numHidden: Int,
     val meanField: Boolean = true,
     val numSamples: Int = 100,
@@ -37,21 +37,20 @@ class RBM(
     val cdSteps: Int = 1,
     val optimizer: Optimizer,
     val name: String = "RBM"
-) extends UnsupervisedTrainableModel[Tensor[_], Output, DataType[_], Shape, Output] {
-  type InferOps = Model.InferOps[Tensor[_], Output, DataType[_], Shape, Output]
-  type TrainOps = Model.UnsupervisedTrainOps[Tensor[_], Output, DataType[_], Shape, Output]
-  type EvalOps = Model.EvaluateOps[Tensor[_], Output, DataType[_], Shape, Output]
+) extends UnsupervisedTrainableModel[Output[T], Output[T], Float] {
+  type InferOps = Model.InferOps[Output[T], Output[T]]
+  type TrainOps = Model.UnsupervisedTrainOps[Output[T], Output[T], Float]
+  type EvalOps = Model.EvaluateOps[Output[T], Output[T]]
 
-  val dataType : DataType[_] = input.dataType
-  val numInputs: Int         = input.shape(1)
+  val numInputs: Int = input.shape.apply(1)
 
-  private[this] val nextInputCache: mutable.Map[Graph, Output]                         = mutable.Map.empty
-  private[this] val variablesCache: mutable.Map[Graph, (Variable, Variable, Variable)] = mutable.Map.empty
-  private[this] val inferOpsCache : mutable.Map[Graph, InferOps]                       = mutable.Map.empty
-  private[this] val trainOpsCache : mutable.Map[Graph, TrainOps]                       = mutable.Map.empty
-  private[this] val evalOpsCache  : mutable.Map[Graph, EvalOps]                        = mutable.Map.empty
+  protected val nextInputCache: mutable.Map[Graph, Output[T]]                               = mutable.Map.empty
+  protected val variablesCache: mutable.Map[Graph, (Variable[T], Variable[T], Variable[T])] = mutable.Map.empty
+  protected val inferOpsCache : mutable.Map[Graph, InferOps]                                = mutable.Map.empty
+  protected val trainOpsCache : mutable.Map[Graph, TrainOps]                                = mutable.Map.empty
+  protected val evalOpsCache  : mutable.Map[Graph, EvalOps]                                 = mutable.Map.empty
 
-  override def buildInferOps(): InferOps = {
+  override def buildInferOps(): Model.InferOps[Output[T], Output[T]] = {
     inferOpsCache.getOrElseUpdate(Op.currentGraph, {
       val inputIterator = input()
       val nextInput = nextInputCache.getOrElseUpdate(Op.currentGraph, inputIterator.next())
@@ -63,7 +62,7 @@ class RBM(
           hProb
         } else {
           var i = 0
-          var hSamples = List.empty[Output]
+          var hSamples = List.empty[Output[T]]
           while (i < numSamples) {
             val hSample = RBM.sampleBinary(hProb)
             val vProb = RBM.conditionalVGivenH(hSample, vb, w)
@@ -79,44 +78,54 @@ class RBM(
     })
   }
 
-  override def buildTrainOps(): TrainOps = {
+  override def buildTrainOps(): Model.UnsupervisedTrainOps[Output[T], Output[T], Float] = {
     trainOpsCache.getOrElseUpdate(Op.currentGraph, {
       val inferOps = buildInferOps()
       val (vb, hb, w) = variables()
       val vSample = contrastiveDivergence(inferOps.input, vb, hb, w)
       val vFreeEnergy = RBM.freeEnergy(inferOps.input, vb, hb, w)
       val vSampleFreeEnergy = RBM.freeEnergy(vSample, vb, hb, w)
-      val loss = Math.mean(vFreeEnergy - vSampleFreeEnergy)
+      val loss = Math.mean(vFreeEnergy - vSampleFreeEnergy).toFloat
       val step = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
-      val gradientsAndVariables = optimizer.computeGradients(loss, colocateGradientsWithOps = colocateGradientsWithOps)
+      val gradientsAndVariables = optimizer.computeGradients(
+        loss,
+        colocateGradientsWithOps = colocateGradientsWithOps)
       val trainOp = optimizer.applyGradients(gradientsAndVariables, Some(step))
       Model.UnsupervisedTrainOps(
-        inferOps.inputIterator, inferOps.input, inferOps.output, loss, gradientsAndVariables, trainOp)
+        inferOps.inputIterator, inferOps.input, inferOps.output,
+        loss, gradientsAndVariables, trainOp)
     })
   }
 
-  override def buildEvaluateOps(metrics: Seq[Metric[Output, Output]]): EvalOps = {
+  override def buildEvaluateOps(
+      metrics: Seq[Metric[Output[T], Output[Float]]]
+  ): Model.EvaluateOps[Output[T], Output[T]] = {
     evalOpsCache.getOrElseUpdate(Op.currentGraph, {
       val inferOps = buildInferOps()
       val streamingInstances = metrics.map(_.streaming(inferOps.output))
       Model.EvaluateOps(
         inferOps.inputIterator, inferOps.input, inferOps.output,
-        streamingInstances.map(_.value), streamingInstances.map(_.update), streamingInstances.map(_.reset))
+        streamingInstances.map(_.value), streamingInstances.map(_.update),
+        streamingInstances.map(_.reset).toSet)
     })
   }
 
-  private[this] def variables(): (Variable, Variable, Variable) = {
+  protected def variables(): (Variable[T], Variable[T], Variable[T]) = {
     variablesCache.getOrElseUpdate(Op.currentGraph, {
-      val vb = Variable.getVariable(s"$name/VisibleBias", dataType, Shape(numInputs), ZerosInitializer)
-      val hb = Variable.getVariable(s"$name/HiddenBias", dataType, Shape(numHidden), ZerosInitializer)
-      val w = Variable.getVariable(
-        s"$name/Weights", dataType, Shape(numInputs, numHidden), RandomNormalInitializer(0.0f, 0.01f))
+      val vb = Variable.getVariable[T](s"$name/VisibleBias", Shape(numInputs), ZerosInitializer)
+      val hb = Variable.getVariable[T](s"$name/HiddenBias", Shape(numHidden), ZerosInitializer)
+      val w = Variable.getVariable[T](s"$name/Weights", Shape(numInputs, numHidden), RandomNormalInitializer(0.0f, 0.01f))
       (vb, hb, w)
     })
   }
 
   /** Runs a `k`-step Gibbs sampling chain to sample from the probability distribution of an RBM. */
-  private[this] def contrastiveDivergence(initialV: Output, vb: Variable, hb: Variable, w: Variable): Output = {
+  protected def contrastiveDivergence(
+      initialV: Output[T],
+      vb: Variable[T],
+      hb: Variable[T],
+      w: Variable[T]
+  ): Output[T] = {
     var i = 0
     var v = initialV
     while (i < cdSteps) {
@@ -131,8 +140,8 @@ class RBM(
 }
 
 object RBM {
-  def apply(
-      input: Input[Tensor[_], Output, DataType[_], Shape],
+  def apply[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
+      input: Input[Output[T]],
       numHidden: Int,
       meanField: Boolean = true,
       numSamples: Int = 100,
@@ -140,24 +149,42 @@ object RBM {
       cdSteps: Int = 1,
       optimizer: Optimizer,
       name: String = "RBM"
-  ): RBM = {
-    new RBM(input, numHidden, meanField, numSamples, meanFieldCD, cdSteps, optimizer, name)
+  ): RBM[T] = {
+    new RBM[T](input, numHidden, meanField, numSamples, meanFieldCD, cdSteps, optimizer, name)
   }
 
-  private[RBM] def conditionalHGivenV(v: Output, hb: Variable, w: Variable): Output = {
+  private[RBM] def conditionalHGivenV[T: TF : IsNotQuantized](
+      v: Output[T],
+      hb: Variable[T],
+      w: Variable[T]
+  ): Output[T] = {
     Math.sigmoid(Math.add(hb.value, Math.matmul(v, w.value)))
   }
 
-  private[RBM] def conditionalVGivenH(h: Output, vb: Variable, w: Variable): Output = {
+  private[RBM] def conditionalVGivenH[T: TF : IsNotQuantized](
+      h: Output[T],
+      vb: Variable[T],
+      w: Variable[T]
+  ): Output[T] = {
     Math.sigmoid(Math.add(vb.value, Math.matmul(h, w.value, transposeB = true)))
   }
 
-  private[RBM] def sampleBinary(p: Output): Output = {
-    NN.relu(Math.sign(p - Random.randomUniform(p.dataType, p.shape, 0, 1)))
+  private[RBM] def sampleBinary[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
+      p: Output[T]
+  ): Output[T] = {
+    NN.relu(Math.sign(p - Random.randomUniform[T, Long](p.shape)))
   }
 
-  private[RBM] def freeEnergy(v: Output, vb: Variable, hb: Variable, w: Variable): Output = {
-    val condTerm = -Math.sum(Math.log(1 + Math.exp(Math.add(hb.value, Math.matmul(v, w.value)))), axes = 1, keepDims = true)
+  private[RBM] def freeEnergy[T: TF : IsNotQuantized](
+      v: Output[T],
+      vb: Variable[T],
+      hb: Variable[T],
+      w: Variable[T]
+  ): Output[T] = {
+    val condTerm = -Math.sum(
+      Math.log(Math.exp(hb.value + Math.matmul(v, w.value)) + Basic.ones[T](Shape())),
+      axes = 1,
+      keepDims = true)
     val biasTerm = -Math.matmul(v, Basic.transpose(vb.value(NewAxis)))
     Math.add(condTerm, biasTerm)
   }

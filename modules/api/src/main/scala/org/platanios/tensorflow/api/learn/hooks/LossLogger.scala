@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -49,12 +49,21 @@ class LossLogger protected (
     val triggerAtEnd: Boolean = true,
     val formatter: (Option[Double], Long, Float) => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[Any, Any, Any, Any, Any]
+    with ModelDependentHook[Any, Any, Any, Any, Any, Any]
     with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
   override type InnerStateF = Output[Float]
+  override type InnerStateE = Unit
   override type InnerStateR = Tensor[Float]
+
+  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
+  }
+
+  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+    implicitly[Executable[InnerStateE]]
+  }
 
   protected var loss: Output[Float] = _
 
@@ -63,6 +72,7 @@ class LossLogger protected (
   }
 
   override protected def fetches: Output[Float] = loss
+  override protected def targets: Unit = ()
 
   override protected def onTrigger(
       step: Long,

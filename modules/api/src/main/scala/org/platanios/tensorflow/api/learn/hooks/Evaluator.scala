@@ -16,18 +16,15 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.learn._
-import org.platanios.tensorflow.api.ops.{Op, Output, Resources, UntypedOp}
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.data.Dataset
-import org.platanios.tensorflow.api.ops.lookup.Lookup
 import org.platanios.tensorflow.api.ops.metrics.Metric
-import org.platanios.tensorflow.api.ops.variables.Variable
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -60,7 +57,7 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class Evaluator[In, TrainIn, Out, Loss, InEval] protected (
+class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
     val log: Boolean = true,
     val summaryDir: Path = null,
     val datasets: Seq[(String, () => Dataset[TrainIn])],
@@ -74,9 +71,21 @@ class Evaluator[In, TrainIn, Out, Loss, InEval] protected (
   evIn: OutputStructure.Aux[In, _, _],
   evTrainIn: OutputStructure.Aux[TrainIn, _, _]
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[In, TrainIn, Out, Loss, InEval] {
+    with ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, InEval] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
   require(Op.checkNameScope(name), "Invalid evaluator name.")
+
+  override type InnerStateF = Unit
+  override type InnerStateE = Unit
+  override type InnerStateR = Unit
+
+  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
+  }
+
+  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+    implicitly[Executable[InnerStateE]]
+  }
 
   override private[learn] val priority: Int = -1000
 
@@ -84,6 +93,9 @@ class Evaluator[In, TrainIn, Out, Loss, InEval] protected (
   protected var sessionCreator     : SessionCreator                  = _
   protected var datasetInitializers: Seq[(String, UntypedOp)]        = _
   protected var evaluateOps        : Model.EvaluateOps[TrainIn, Out] = _
+
+  override protected def fetches: Unit = ()
+  override protected def targets: Unit = ()
 
   override protected def begin(): Unit = {
     graph = Graph()
@@ -195,7 +207,7 @@ class Evaluator[In, TrainIn, Out, Loss, InEval] protected (
 object Evaluator {
   private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
 
-  def apply[In, TrainIn, Out, Loss, InEval](
+  def apply[In, TrainIn, TrainOut, Out, Loss, InEval](
       log: Boolean = true,
       summaryDir: Path = null,
       datasets: Seq[(String, () => Dataset[TrainIn])],
@@ -208,7 +220,7 @@ object Evaluator {
   )(implicit
       evIn: OutputStructure.Aux[In, _, _],
       evTrainIn: OutputStructure.Aux[TrainIn, _, _]
-  ): Evaluator[In, TrainIn, Out, Loss, InEval] = {
+  ): Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] = {
     new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }
 }

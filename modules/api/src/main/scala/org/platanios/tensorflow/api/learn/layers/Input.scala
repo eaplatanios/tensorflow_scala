@@ -26,10 +26,10 @@ import scala.collection.mutable
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Input[T] private(
+class Input[T] private(
     private val _dataType: Any,
     private val _shape: Any,
-    name: String = "Input"
+    private val name: String = "Input"
 ) {
   def dataType[D, S](implicit evT: OutputStructure.Aux[T, D, S]): D = {
     _dataType.asInstanceOf[D]

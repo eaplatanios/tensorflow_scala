@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.ops.{Output, Summary}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -45,7 +45,16 @@ class SummarySaver protected (
     val collection: Graph.Key[Output[Any]] = Graph.Keys.SUMMARIES
 ) extends TriggeredHook(trigger, triggerAtEnd) {
   override type InnerStateF = Option[Output[String]]
+  override type InnerStateE = Unit
   override type InnerStateR = Option[Tensor[String]]
+
+  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
+  }
+
+  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+    implicitly[Executable[InnerStateE]]
+  }
 
   protected var summary      : Option[Output[String]]    = None
   protected var summaryWriter: Option[SummaryFileWriter] = None
@@ -59,6 +68,7 @@ class SummarySaver protected (
   override protected def end(session: Session): Unit = summaryWriter.foreach(_.flush())
 
   override protected def fetches: InnerStateF = summary
+  override protected def targets: Unit = ()
 
   override protected def onTrigger(
       step: Long,

@@ -90,10 +90,18 @@ object Executable {
     }
   }
 
-  implicit def fromTraversable[T: Executable, CC[A] <: TraversableLike[A, CC[A]]]: Executable[CC[T]] = {
-    new Executable[CC[T]] {
-      override def ops(executable: CC[T]): Set[UntypedOp] = {
+  implicit def fromSeq[T: Executable]: Executable[Seq[T]] = {
+    new Executable[Seq[T]] {
+      override def ops(executable: Seq[T]): Set[UntypedOp] = {
         executable.flatMap(e => Executable[T].ops(e)).toSet
+      }
+    }
+  }
+
+  implicit def fromSet[T: Executable]: Executable[Set[T]] = {
+    new Executable[Set[T]] {
+      override def ops(executable: Set[T]): Set[UntypedOp] = {
+        executable.flatMap(e => Executable[T].ops(e))
       }
     }
   }

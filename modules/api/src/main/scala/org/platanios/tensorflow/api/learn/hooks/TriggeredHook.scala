@@ -39,18 +39,29 @@ abstract class TriggeredHook(
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true
 ) extends Hook {
-  type InnerStateF = Unit
-  type InnerStateE = Unit
-  type InnerStateR = Unit
+  type InnerStateF
+  type InnerStateE
+  type InnerStateR
+
+  protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR]
+  protected implicit val evExecutableInnerState: Executable[InnerStateE]
 
   final override type StateF = (Output[Long], Option[InnerStateF])
   final override type StateE = Option[InnerStateE]
   final override type StateR = (Tensor[Long], Option[InnerStateR])
 
-  protected     val internalTrigger: HookTrigger    = trigger.copy()
-  private[this] var step           : Variable[Long] = _
-  private[this] var lastStep       : Long           = 0L
-  private[this] var shouldTrigger  : Boolean        = false
+  protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
+    implicitly[Fetchable.Aux[StateF, StateR]]
+  }
+
+  protected implicit val evExecutableState: Executable[StateE] = {
+    implicitly[Executable[StateE]]
+  }
+
+  protected val internalTrigger: HookTrigger    = trigger.copy()
+  protected var step           : Variable[Long] = _
+  protected var lastStep       : Long           = 0L
+  protected var shouldTrigger  : Boolean        = false
 
   override private[learn] def internalBegin(): Unit = {
     internalTrigger.reset()
@@ -60,7 +71,7 @@ abstract class TriggeredHook(
   }
 
   override private[learn] def internalAfterSessionCreation(session: Session): Unit = {
-    lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
+    lastStep = session.run(fetches = step.value).scalar
     if (lastStep == 0L)
       lastStep = -1L
     super.internalAfterSessionCreation(session)
@@ -112,8 +123,8 @@ abstract class TriggeredHook(
     super.internalEnd(session)
   }
 
-  protected def fetches: InnerStateF = ()
-  protected def targets: InnerStateE = ()
+  protected def fetches: InnerStateF
+  protected def targets: InnerStateE
 
   protected def runOptions: Option[RunOptions] = None
   protected def wantMetadata: Boolean = false

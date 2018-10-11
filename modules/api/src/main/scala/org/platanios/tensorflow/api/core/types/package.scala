@@ -276,9 +276,13 @@ package object types {
 
   trait IsReal[T]
 
-  object IsReal {
+  object IsReal extends IsRealPriority0 {
     def apply[T: IsReal]: IsReal[T] = implicitly[IsReal[T]]
 
+    implicit def int32OrInt64OrFloat16OrFloat32OrFloat64Evidence[T: IsInt32OrInt64OrFloat16OrFloat32OrFloat64]: IsReal[T] = new IsReal[T] {}
+  }
+
+  trait IsRealPriority0 {
     implicit def decimalEvidence[T: IsDecimal]: IsReal[T] = new IsReal[T] {}
     implicit def intOrUIntEvidence[T: IsIntOrUInt]: IsReal[T] = new IsReal[T] {}
   }

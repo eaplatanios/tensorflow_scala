@@ -36,7 +36,16 @@ class NaNChecker protected (
     val failOnNaN: Boolean = true
 ) extends Hook {
   override type StateF = Seq[Output[Any]]
+  override type StateE = Unit
   override type StateR = Seq[Tensor[Any]]
+
+  override protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
+    implicitly[Fetchable.Aux[StateF, StateR]]
+  }
+
+  override protected implicit val evExecutableState: Executable[StateE] = {
+    implicitly[Executable[StateE]]
+  }
 
   private[this] var outputs: Seq[Output[Any]] = _
 

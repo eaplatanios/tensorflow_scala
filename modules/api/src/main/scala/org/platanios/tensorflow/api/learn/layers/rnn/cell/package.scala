@@ -26,24 +26,26 @@ package object cell {
   private[cell] val BIAS_NAME  : String = "Bias"
 
   type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
-  type BasicTuple = Tuple[Output, Output]
+  type BasicTuple[T] = ops.rnn.cell.BasicTuple[T]
 
   val Tuple: ops.rnn.cell.Tuple.type = ops.rnn.cell.Tuple
 
-  type LSTMState = ops.rnn.cell.LSTMState
+  type LSTMState[T] = ops.rnn.cell.LSTMState[T]
 
   val LSTMState: ops.rnn.cell.LSTMState.type = ops.rnn.cell.LSTMState
 
-  type LSTMTuple = ops.rnn.cell.LSTMTuple
+  type LSTMTuple[T] = ops.rnn.cell.LSTMTuple[T]
 
-  def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
+  def LSTMTuple[T](output: Output[T], state: LSTMState[T]): LSTMTuple[T] = {
+    ops.rnn.cell.LSTMTuple(output, state)
+  }
 
   private[rnn] trait API {
     type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
-    type BasicRNNCell = cell.BasicRNNCell
-    type GRUCell = cell.GRUCell
-    type BasicLSTMCell = cell.BasicLSTMCell
-    type LSTMCell = cell.LSTMCell
+    type BasicRNNCell[T] = cell.BasicRNNCell[T]
+    type GRUCell[T] = cell.GRUCell[T]
+    type BasicLSTMCell[T] = cell.BasicLSTMCell[T]
+    type LSTMCell[T] = cell.LSTMCell[T]
     type DeviceWrapper[O, OS, S, SS] = cell.DeviceWrapper[O, OS, S, SS]
     type DropoutWrapper[O, OS, S, SS] = cell.DropoutWrapper[O, OS, S, SS]
     type ResidualWrapper[O, OS, S, SS] = cell.ResidualWrapper[O, OS, S, SS]
@@ -59,16 +61,17 @@ package object cell {
     val MultiCell      : cell.MultiCell.type       = cell.MultiCell
 
     type RNNTuple[O, S] = cell.Tuple[O, S]
-    type BasicTuple = cell.Tuple[Output, Output]
+    type BasicTuple[T] = cell.BasicTuple[T]
+    type LSTMTuple[T] = cell.LSTMTuple[T]
 
-    type LSTMState = cell.LSTMState
+    type LSTMState[T] = cell.LSTMState[T]
 
     val LSTMState: cell.LSTMState.type = cell.LSTMState
 
-    type LSTMTuple = cell.Tuple[Output, LSTMState]
-
     val RNNTuple: cell.Tuple.type = cell.Tuple
 
-    def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = cell.Tuple(output, state)
+    def LSTMTuple[T](output: Output[T], state: LSTMState[T]): LSTMTuple[T] = {
+      cell.LSTMTuple(output, state)
+    }
   }
 }

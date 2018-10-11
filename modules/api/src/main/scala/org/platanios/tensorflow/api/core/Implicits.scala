@@ -20,4 +20,12 @@ package org.platanios.tensorflow.api.core
   */
 private[api] trait Implicits
     extends client.Implicits
-        with types.Implicits
+        with types.Implicits {
+  // TODO: [INDEXERS] Add begin mask support (not simple).
+
+  implicit def intToIndex(index: Int): Index = Index(index = index)
+
+  implicit def intToIndexerConstruction(n: Int): IndexerConstructionWithOneNumber = {
+    IndexerConstructionWithOneNumber(n)
+  }
+}

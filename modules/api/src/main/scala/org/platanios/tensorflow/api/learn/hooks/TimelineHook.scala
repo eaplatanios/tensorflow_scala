@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.{Session, Timeline}
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session, Timeline}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -47,6 +47,21 @@ class TimelineHook protected (
     val trigger: HookTrigger = StepHookTrigger(1000),
     val triggerAtEnd: Boolean = true
 ) extends TriggeredHook(trigger, triggerAtEnd) {
+  override type InnerStateF = Unit
+  override type InnerStateE = Unit
+  override type InnerStateR = Unit
+
+  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
+  }
+
+  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+    implicitly[Executable[InnerStateE]]
+  }
+
+  override protected def fetches: Unit = ()
+  override protected def targets: Unit = ()
+
   override protected def runOptions: Option[RunOptions] = {
     Some(RunOptions.newBuilder().setTraceLevel(RunOptions.TraceLevel.FULL_TRACE).build())
   }

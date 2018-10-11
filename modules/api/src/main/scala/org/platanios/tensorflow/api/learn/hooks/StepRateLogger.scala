@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -45,6 +45,21 @@ class StepRateLogger protected (
     val tag: String = "Steps/Sec"
 ) extends TriggeredHook(trigger, triggerAtEnd) with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
+
+  override type InnerStateF = Unit
+  override type InnerStateE = Unit
+  override type InnerStateR = Unit
+
+  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
+  }
+
+  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+    implicitly[Executable[InnerStateE]]
+  }
+
+  override protected def fetches: Unit = ()
+  override protected def targets: Unit = ()
 
   override protected def onTrigger(
       step: Long,

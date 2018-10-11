@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
@@ -77,10 +78,10 @@ class BidirectionalRNN[O, OS, S, SS](
       override val layerType: String = "BidirectionalRNNWithConcatenatedOutputs"
 
       override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, (S, S)] = {
-        val raw = BidirectionalRNN.this(input)
+        val raw = BidirectionalRNN.this (input)
         val output = evO.fromOutputs(
           raw._1.output, evO.outputs(raw._1.output).zip(evO.outputs(raw._2.output)).map(o => {
-            Basic.concatenate(Seq(o._1, o._2), -1)
+            Basic.concatenate(Seq(o._1, o._2), -1)(TF.fromDataType(o._1.dataType))
           }))
         Tuple(output, (raw._1.state, raw._2.state))
       }

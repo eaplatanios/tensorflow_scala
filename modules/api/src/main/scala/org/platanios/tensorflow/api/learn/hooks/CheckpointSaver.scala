@@ -49,12 +49,27 @@ class CheckpointSaver protected (
     val triggerAtEnd: Boolean = true,
     val checkpointBaseName: String = "model.ckpt"
 ) extends TriggeredHook(trigger, triggerAtEnd) {
+  override type InnerStateF = Unit
+  override type InnerStateE = Unit
+  override type InnerStateR = Unit
+
+  override protected implicit val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
+    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
+  }
+
+  override protected implicit val evExecutableInnerState: Executable[InnerStateE] = {
+    implicitly[Executable[InnerStateE]]
+  }
+
   override private[learn] val priority: Int = 1000
 
-  private[this] val savePath: Path = directory.resolve(checkpointBaseName)
+  protected val savePath: Path = directory.resolve(checkpointBaseName)
 
-  private[this] var saver        : Option[Saver]             = None
-  private[this] var summaryWriter: Option[SummaryFileWriter] = None
+  protected var saver        : Option[Saver]             = None
+  protected var summaryWriter: Option[SummaryFileWriter] = None
+
+  override protected def fetches: Unit = ()
+  override protected def targets: Unit = ()
 
   override protected def begin(): Unit = {
     val savers = Op.currentGraph.getCollection(Graph.Keys.SAVERS)

@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.{Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Collections
+
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
