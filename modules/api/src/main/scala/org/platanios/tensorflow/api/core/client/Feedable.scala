@@ -41,7 +41,7 @@ object Feedable {
 
   def apply[T, V](implicit ev: Aux[T, V]): Aux[T, V] = ev
 
-  implicit def fromOutput[T: TF]: Aux[Output[T], Tensor[T]] = {
+  implicit def fromOutput[T]: Aux[Output[T], Tensor[T]] = {
     new Feedable[Output[T]] {
       override type ValueType = Tensor[T]
 
@@ -54,7 +54,7 @@ object Feedable {
     }
   }
 
-  implicit def fromOutputIndexedSlices[T: TF]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
+  implicit def fromOutputIndexedSlices[T]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
     new Feedable[OutputIndexedSlices[T]] {
       override type ValueType = TensorIndexedSlices[T]
 
@@ -70,7 +70,7 @@ object Feedable {
     }
   }
 
-  implicit def fromSparseOutput[T: TF]: Aux[SparseOutput[T], SparseTensor[T]] = {
+  implicit def fromSparseOutput[T]: Aux[SparseOutput[T], SparseTensor[T]] = {
     new Feedable[SparseOutput[T]] {
       override type ValueType = SparseTensor[T]
 

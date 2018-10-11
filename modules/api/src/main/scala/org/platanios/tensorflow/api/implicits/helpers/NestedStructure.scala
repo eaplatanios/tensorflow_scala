@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.implicits.helpers
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{DataType, VARIANT, Variant}
 import org.platanios.tensorflow.api.ops.data.Dataset
-import org.platanios.tensorflow.api.ops.{Op, Output, SparseOutput}
+import org.platanios.tensorflow.api.ops.{Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Collections
 

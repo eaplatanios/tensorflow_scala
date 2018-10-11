@@ -16,8 +16,9 @@
 package org.platanios.tensorflow
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.client.{Executable, Fetchable}
 import org.platanios.tensorflow.api.core.types
-import org.platanios.tensorflow.api.core.types.TF
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.ops.{Gradients, UntypedOp}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
@@ -113,7 +114,7 @@ package object horovod {
       *                      with `HOROVOD_GPU_ALLGATHER`.
       * @return Reduced tensor value.
       */
-    def allReduce[T: TF, OL[A] <: OutputLike[A]](
+    def allReduce[T: TF : IsNotQuantized, OL[A] <: OutputLike[A]](
         value: OL[T],
         average: Boolean = true,
         deviceDense: String = "",
@@ -150,11 +151,14 @@ package object horovod {
       */
     def broadcastGlobalVariables(rootRank: Int): UntypedOp = {
       tf.group(tf.currentGraph.globalVariables.map(v => {
-        Op.Builder(opType = "AssignVariableOp", name = s"${v.name}/Broadcast/Assign")
-            .addInput(v.op.outputs.head)
-            .addInput(broadcastOp(v.value, rootRank, s"${v.name}/Broadcast"))
-            .setAttribute("dtype", v.dataType)
-            .build()
+        Op.Builder[(Output[Any], Output[Any]), Output[Any]](
+          opType = "AssignVariableOp",
+          name = s"${v.name}/Broadcast/Assign",
+          input = (
+              v.op.outputsSeq.head,
+              broadcastOp(v.value, rootRank, s"${v.name}/Broadcast")(TF.fromDataType(v.dataType)))
+        ).setAttribute("dtype", v.dataType)
+            .build(): UntypedOp
       }))
     }
 
@@ -170,7 +174,19 @@ package object horovod {
       */
     case class BroadcastGlobalVariablesHook(rootRank: Int, device: String = "")
         extends tf.learn.Hook {
-      protected var broadcastOp: Option[Op] = None
+      override type StateF = Unit
+      override type StateE = Unit
+      override type StateR = Unit
+
+      override protected implicit val evFetchableState: Fetchable.Aux[StateF, StateR] = {
+        implicitly[Fetchable.Aux[StateF, StateR]]
+      }
+
+      override protected implicit val evExecutableState: Executable[StateE] = {
+        implicitly[Executable[StateE]]
+      }
+
+      protected var broadcastOp: Option[UntypedOp] = None
 
       override protected def begin(): Unit = {
         if (broadcastOp.isEmpty || broadcastOp.get.graph != tf.currentGraph) {
