@@ -138,7 +138,7 @@ private[api] case class WhileLoopContext private[control_flow] (
   //    outerContext.foreach(_.addInnerOp(op))
   //  }
 
-  override def add[T: TF](output: Output[T]): Output[T] = {
+  override def add[T](output: Output[T]): Output[T] = {
     if (values.contains(output.name)) {
       // Use the real value if it comes from an outer context. This is needed in particular for nested conditionals.
       externalValues.getOrElse(output.name, output).asInstanceOf[Output[T]]
@@ -156,7 +156,7 @@ private[api] case class WhileLoopContext private[control_flow] (
               Some(forwardContext)
           }).foreach(forwardContext => {
             if (forwardContext == gradientLoopState.forwardContext) {
-              val realValue = gradientLoopState.getRealValue(output)
+              val realValue = gradientLoopState.getRealValue(output)(TF.fromDataType(output.dataType))
               externalValues += output.name -> realValue
               value = realValue.asInstanceOf[Output[T]]
             }
@@ -217,9 +217,7 @@ private[api] case class WhileLoopContext private[control_flow] (
       // Let the context know the loop variables so the loop variables would be added to the outer contexts properly.
       initializeValues(flattenedLoopVariables)
       val realVariables = outerContext.map(c => {
-        flattenedLoopVariables.map(v => {
-          c.add(v)(TF.fromDataType(v.dataType))
-        })
+        flattenedLoopVariables.map(v => c.add(v))
       }).getOrElse(flattenedLoopVariables)
       val enterVariables = Op.createWith(controlDependencies = Set.empty) {
         val enterVariables = realVariables.map(v => {
@@ -305,7 +303,7 @@ private[api] case class WhileLoopContext private[control_flow] (
     }
   }
 
-  private[this] def fixControlInputsAndContext(values: Seq[OutputLike[_]]): Unit = {
+  private def fixControlInputsAndContext(values: Seq[OutputLike[_]]): Unit = {
     values.foreach(value => {
       val outputs = value match {
         case o: Output[_] => Set(o)
@@ -330,7 +328,7 @@ private[api] case class WhileLoopContext private[control_flow] (
   }
 
   /** Makes the provided values known to this context. */
-  private[this] def initializeValues(providedValues: Seq[OutputLike[_]]): Unit = {
+  private def initializeValues(providedValues: Seq[OutputLike[_]]): Unit = {
     values.clear()
     providedValues.foreach {
       case v: Output[_] => values += v.name

@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{DataType, TF, VARIANT, Variant}
+import org.platanios.tensorflow.api.core.types.{DataType, VARIANT, Variant}
 import org.platanios.tensorflow.api.ops.data.Dataset
-import org.platanios.tensorflow.api.ops.{Output, SparseOutput}
+import org.platanios.tensorflow.api.ops.{Op, Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Collections
 
@@ -63,11 +63,12 @@ trait NestedStructure[T] {
   def shape(output: T): S
 
   def outputs(output: T): Seq[Output[Any]]
-
   def dataTypes(dataType: D): Seq[DataType[Any]]
   def shapes(shape: S): Seq[Shape]
 
   def decodeOutputFromOutput(output: T, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
+  def decodeDataTypeFromOutput(output: T, dataTypes: Seq[DataType[Any]]): (D, Seq[DataType[Any]])
+  def decodeShapeFromOutput(output: T, shapes: Seq[Shape]): (S, Seq[Shape])
 
   def decodeOutputFromDataType(dataType: D, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
   def decodeDataTypeFromDataType(dataType: D, dataTypes: Seq[DataType[Any]]): (D, Seq[DataType[Any]])
@@ -118,6 +119,20 @@ object NestedStructure {
           outputs: Seq[Output[Any]]
       ): (Unit, Seq[Output[Any]]) = {
         ((), outputs)
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: Unit,
+          dataTypes: Seq[DataType[Any]]
+      ): (Unit, Seq[DataType[Any]]) = {
+        ((), dataTypes)
+      }
+
+      override def decodeShapeFromOutput(
+          output: Unit,
+          shapes: Seq[Shape]
+      ): (Unit, Seq[Shape]) = {
+        ((), shapes)
       }
 
       override def decodeOutputFromDataType(
@@ -181,6 +196,20 @@ object NestedStructure {
           outputs: Seq[Output[Any]]
       ): (Output[T], Seq[Output[Any]]) = {
         (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: Output[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (DataType[T], Seq[DataType[Any]]) = {
+        (dataTypes.head.asInstanceOf[DataType[T]], dataTypes)
+      }
+
+      override def decodeShapeFromOutput(
+          output: Output[T],
+          shapes: Seq[Shape]
+      ): (Shape, Seq[Shape]) = {
+        (shapes.head, shapes)
       }
 
       override def decodeOutputFromDataType(
@@ -276,6 +305,20 @@ object NestedStructure {
         ), outputs.drop(1))
       }
 
+      override def decodeDataTypeFromOutput(
+          output: Dataset[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (DataType[Variant], Seq[DataType[Any]]) = {
+        (dataTypes.head.asInstanceOf[DataType[Variant]], dataTypes.tail)
+      }
+
+      override def decodeShapeFromOutput(
+          output: Dataset[T],
+          shapes: Seq[Shape]
+      ): (Shape, Seq[Shape]) = {
+        (shapes.head, shapes.tail)
+      }
+
       override def decodeOutputFromDataType(
           dataType: DataType[Variant],
           outputs: Seq[Output[Any]]
@@ -343,6 +386,30 @@ object NestedStructure {
             val (result, remaining) = ev.decodeOutputFromOutput(o, outputs)
             (Some(result), remaining)
           case None => (None, outputs)
+        }
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: Option[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (Option[DD], Seq[DataType[Any]]) = {
+        output match {
+          case Some(o) =>
+            val (result, remaining) = ev.decodeDataTypeFromOutput(o, dataTypes)
+            (Some(result), remaining)
+          case None => (None, dataTypes)
+        }
+      }
+
+      override def decodeShapeFromOutput(
+          output: Option[T],
+          shapes: Seq[Shape]
+      ): (Option[SS], Seq[Shape]) = {
+        output match {
+          case Some(o) =>
+            val (result, remaining) = ev.decodeShapeFromOutput(o, shapes)
+            (Some(result), remaining)
+          case None => (None, shapes)
         }
       }
 
@@ -428,6 +495,24 @@ object NestedStructure {
             .map(f => ev.decodeOutputFromOutput(f._1, f._2)._1), outputs.drop(n))
       }
 
+      override def decodeDataTypeFromOutput(
+          output: Array[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (Array[DD], Seq[DataType[Any]]) = {
+        val n = sizeFromOutput(output)
+        (output.zip(Collections.segment(dataTypes.take(n), output.map(ev.sizeFromOutput).toSeq))
+            .map(f => ev.decodeDataTypeFromOutput(f._1, f._2)._1), dataTypes.drop(n))
+      }
+
+      override def decodeShapeFromOutput(
+          output: Array[T],
+          shapes: Seq[Shape]
+      ): (Array[SS], Seq[Shape]) = {
+        val n = sizeFromOutput(output)
+        (output.zip(Collections.segment(shapes.take(n), output.map(ev.sizeFromOutput).toSeq))
+            .map(f => ev.decodeShapeFromOutput(f._1, f._2)._1), shapes.drop(n))
+      }
+
       override def decodeOutputFromDataType(
           dataType: Array[DD],
           outputs: Seq[Output[Any]]
@@ -500,6 +585,26 @@ object NestedStructure {
         (output
             .zip(Collections.segment(outputs.take(n), output.map(ev.sizeFromOutput)))
             .map(f => ev.decodeOutputFromOutput(f._1, f._2)._1), outputs.drop(n))
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: Seq[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (Seq[DD], Seq[DataType[Any]]) = {
+        val n = sizeFromOutput(output)
+        (output
+            .zip(Collections.segment(dataTypes.take(n), output.map(ev.sizeFromOutput)))
+            .map(f => ev.decodeDataTypeFromOutput(f._1, f._2)._1), dataTypes.drop(n))
+      }
+
+      override def decodeShapeFromOutput(
+          output: Seq[T],
+          shapes: Seq[Shape]
+      ): (Seq[SS], Seq[Shape]) = {
+        val n = sizeFromOutput(output)
+        (output
+            .zip(Collections.segment(shapes.take(n), output.map(ev.sizeFromOutput)))
+            .map(f => ev.decodeShapeFromOutput(f._1, f._2)._1), shapes.drop(n))
       }
 
       override def decodeOutputFromDataType(
@@ -580,6 +685,28 @@ object NestedStructure {
               .map(f => ev.decodeOutputFromOutput(f._1, f._2)._1)).toMap, outputs.drop(n))
       }
 
+      override def decodeDataTypeFromOutput(
+          output: Map[K, T],
+          dataTypes: Seq[DataType[Any]]
+      ): (Map[K, DD], Seq[DataType[Any]]) = {
+        val n = sizeFromOutput(output)
+        (output.keys.zip(
+          output.values
+              .zip(Collections.segment(dataTypes.take(n), output.values.map(ev.sizeFromOutput).toSeq))
+              .map(f => ev.decodeDataTypeFromOutput(f._1, f._2)._1)).toMap, dataTypes.drop(n))
+      }
+
+      override def decodeShapeFromOutput(
+          output: Map[K, T],
+          shapes: Seq[Shape]
+      ): (Map[K, SS], Seq[Shape]) = {
+        val n = sizeFromOutput(output)
+        (output.keys.zip(
+          output.values
+              .zip(Collections.segment(shapes.take(n), output.values.map(ev.sizeFromOutput).toSeq))
+              .map(f => ev.decodeShapeFromOutput(f._1, f._2)._1)).toMap, shapes.drop(n))
+      }
+
       override def decodeOutputFromDataType(
           dataType: Map[K, DD],
           outputs: Seq[Output[Any]]
@@ -655,6 +782,20 @@ object NestedStructure {
         (HNil, outputs)
       }
 
+      override def decodeDataTypeFromOutput(
+          output: HNil,
+          dataTypes: Seq[DataType[Any]]
+      ): (HNil, Seq[DataType[Any]]) = {
+        (HNil, dataTypes)
+      }
+
+      override def decodeShapeFromOutput(
+          output: HNil,
+          shapes: Seq[Shape]
+      ): (HNil, Seq[Shape]) = {
+        (HNil, shapes)
+      }
+
       override def decodeOutputFromDataType(
           dataType: HNil,
           outputs: Seq[Output[Any]]
@@ -727,6 +868,24 @@ object NestedStructure {
       ): (HT :: TT, Seq[Output[Any]]) = {
         val (headOut, headRemaining) = evH.value.decodeOutputFromOutput(output.head, outputs)
         val (tailOut, tailRemaining) = evT.decodeOutputFromOutput(output.tail, headRemaining)
+        (headOut :: tailOut, tailRemaining)
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: HT :: TT,
+          dataTypes: Seq[DataType[Any]]
+      ): (HD :: TD, Seq[DataType[Any]]) = {
+        val (headOut, headRemaining) = evH.value.decodeDataTypeFromOutput(output.head, dataTypes)
+        val (tailOut, tailRemaining) = evT.decodeDataTypeFromOutput(output.tail, headRemaining)
+        (headOut :: tailOut, tailRemaining)
+      }
+
+      override def decodeShapeFromOutput(
+          output: HT :: TT,
+          shapes: Seq[Shape]
+      ): (HS :: TS, Seq[Shape]) = {
+        val (headOut, headRemaining) = evH.value.decodeShapeFromOutput(output.head, shapes)
+        val (tailOut, tailRemaining) = evT.decodeShapeFromOutput(output.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
@@ -830,6 +989,34 @@ object NestedStructure {
         }
       }
 
+      override def decodeDataTypeFromOutput(
+          output: HT :+: TT,
+          dataTypes: Seq[DataType[Any]]
+      ): (HD :+: TD, Seq[DataType[Any]]) = {
+        output match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.decodeDataTypeFromOutput(h, dataTypes)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.decodeDataTypeFromOutput(t, dataTypes)
+            (Inr(result), remaining)
+        }
+      }
+
+      override def decodeShapeFromOutput(
+          output: HT :+: TT,
+          shapes: Seq[Shape]
+      ): (HS :+: TS, Seq[Shape]) = {
+        output match {
+          case Inl(h) =>
+            val (result, remaining) = evH.value.decodeShapeFromOutput(h, shapes)
+            (Inl(result), remaining)
+          case Inr(t) =>
+            val (result, remaining) = evT.decodeShapeFromOutput(t, shapes)
+            (Inr(result), remaining)
+        }
+      }
+
       override def decodeOutputFromDataType(
           dataType: HD :+: TD,
           outputs: Seq[Output[Any]]
@@ -920,6 +1107,22 @@ object NestedStructure {
       ): (PT, Seq[Output[Any]]) = {
         val (out, remaining) = evT.value.decodeOutputFromOutput(genT.to(output), outputs)
         (genT.from(out), remaining)
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: PT,
+          dataTypes: Seq[DataType[Any]]
+      ): (PD, Seq[DataType[Any]]) = {
+        val (out, remaining) = evT.value.decodeDataTypeFromOutput(genT.to(output), dataTypes)
+        (genD.from(out), remaining)
+      }
+
+      override def decodeShapeFromOutput(
+          output: PT,
+          shapes: Seq[Shape]
+      ): (PS, Seq[Shape]) = {
+        val (out, remaining) = evT.value.decodeShapeFromOutput(genT.to(output), shapes)
+        (genS.from(out), remaining)
       }
 
       override def decodeOutputFromDataType(

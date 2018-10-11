@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{RESOURCE, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
@@ -177,15 +176,12 @@ private[api] trait ControlFlow {
     * @throws InvalidDataTypeException If the data types of the tensors returned by `trueFn` and `falseFn` do not match.
     */
   @throws[InvalidDataTypeException]
-  def cond[T, R](
+  def cond[T](
       predicate: Output[Boolean],
       trueFn: () => T,
       falseFn: () => T,
       name: String = "Cond"
-  )(implicit
-      ev: CondOutput.Aux[T, R],
-      evNestedStructureR: NestedStructure.Aux[R, _, _]
-  ): T = {
+  )(implicit evCondArgT: CondArg[T]): T = {
     Op.nameScope(name) {
       Output.constantValue(predicate) match {
         case Some(predicateValue) if predicateValue.scalar => trueFn()
@@ -233,7 +229,7 @@ private[api] trait ControlFlow {
           val merges = resultFalse.zip(resultTrue).map(p => {
             ControlFlow.merge(Seq(p._1, p._2))(TF.fromDataType(p._1.dataType))._1
           })
-          ev.unflatten(originalResultTrue, merges)
+          evCondArgT.decodeOutputFromOutput(originalResultTrue, merges)._1
       }
     }
   }
@@ -250,15 +246,12 @@ private[api] trait ControlFlow {
     *                                  do not match.
     */
   @throws[InvalidDataTypeException]
-  def cases[T, R](
+  def cases[T](
       predicateFnPairs: Seq[(Output[Boolean], () => T)],
       default: () => T,
       exclusive: Boolean = false,
       name: String = "Cases"
-  )(implicit
-      ev: CondOutput.Aux[T, R],
-      evNestedStructureR: NestedStructure.Aux[R, _, _]
-  ): T = {
+  )(implicit evCondArgT: CondArg[T]): T = {
     Op.nameScope(name) {
       // To evaluate the conditions in the correct order, we create nested conditions in reverse.
       val fn = predicateFnPairs.reverse.foldLeft(default) {

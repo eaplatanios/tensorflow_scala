@@ -111,7 +111,7 @@ abstract class Context protected (
       } else {
         op.inputsSeq.zipWithIndex.foreach({
           case (input, index) =>
-            val realInput = add(input)(TF.fromDataType(input.dataType))
+            val realInput = add(input)
             if (realInput != input)
               ControlFlow.updateInput(op, index, realInput)
         })
@@ -147,7 +147,7 @@ abstract class Context protected (
   }
 
   /** Adds `output` to the current context and its outer context recursively. */
-  def add[T: TF](output: Output[T]): Output[T]
+  def add[T](output: Output[T]): Output[T]
 
   /** Returns `true` if back-propagation is supported for this control flow context. */
   def backPropagate: Boolean
