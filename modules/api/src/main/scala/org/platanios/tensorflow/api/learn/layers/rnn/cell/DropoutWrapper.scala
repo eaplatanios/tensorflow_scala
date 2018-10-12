@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that applies dropout to the provided RNN cell.
   *
@@ -47,11 +47,11 @@ class DropoutWrapper[O, OS, S, SS](
     val stateKeepProbability: Float = 1.0f,
     val seed: Option[Int] = None
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS],
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS],
     evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
     evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+) extends RNNCell[O, OS, S, SS](name) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
   require(outputKeepProbability > 0.0 && outputKeepProbability <= 1.0,
@@ -70,7 +70,7 @@ class DropoutWrapper[O, OS, S, SS](
           Basic.constant(inputKeepProbability, name = "InputKeepProbability"),
           Basic.constant(outputKeepProbability, name = "OutputKeepProbability"),
           Basic.constant(stateKeepProbability, name = "StateKeepProbability"), seed,
-          name)(evO, evS, evODropout, evSDropout)
+          name)
       case _ => createdCell
     }
   }
@@ -85,13 +85,12 @@ object DropoutWrapper {
       stateKeepProbability: Float = 1.0f,
       seed: Option[Int] = None
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS],
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS],
       evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
       evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
   ): DropoutWrapper[O, OS, S, SS] = {
     new DropoutWrapper(
-      variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)(
-      evO, evS, evODropout, evSDropout)
+      variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)
   }
 }

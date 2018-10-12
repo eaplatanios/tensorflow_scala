@@ -19,8 +19,8 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 import scala.language.postfixOps
 
@@ -40,14 +40,12 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Attention[T: TF : IsDecimal, AS, ASS](
+abstract class Attention[T: TF : IsDecimal, State, StateShape](
     protected val memory: Output[T],
     protected val memorySequenceLengths: Output[Int] = null,
     val checkInnerDimensionsDefined: Boolean = true,
     val scoreMaskValue: Output[Float] = Float.MinValue,
     val name: String = "Attention"
-)(implicit
-    evAS: WhileLoopVariable.Aux[AS, ASS]
 ) {
   lazy val values: Output[T] = {
     Op.nameScope(s"$name/Values") {
@@ -71,7 +69,7 @@ abstract class Attention[T: TF : IsDecimal, AS, ASS](
     }
   }
 
-  def stateSize: ASS
+  def stateSize: StateShape
 
   lazy val dataType: DataType[T] = {
     keys.dataType
@@ -100,7 +98,7 @@ abstract class Attention[T: TF : IsDecimal, AS, ASS](
     *
     * The default behavior is to return the same output as `initialAlignment`.
     */
-  def initialState: AS
+  def initialState: State
 
   /** Computes an alignment tensor given the provided query and previous alignment tensor.
     *
@@ -113,7 +111,7 @@ abstract class Attention[T: TF : IsDecimal, AS, ASS](
     * @param  previousState Previous alignment tensor.
     * @return Tuple containing the alignment tensor and the next attention state.
     */
-  def alignment(query: Output[T], previousState: AS): (Output[T], AS)
+  def alignment(query: Output[T], previousState: State): (Output[T], State)
 
   /** Computes an alignment score for `query`.
     *
@@ -123,7 +121,7 @@ abstract class Attention[T: TF : IsDecimal, AS, ASS](
     *               `alignmentSize` is the memory's maximum time.
     * @return Score tensor.
     */
-  protected def score(query: Output[T], state: AS): Output[T]
+  protected def score(query: Output[T], state: State): Output[T]
 
   /** Computes alignment probabilities for `score`.
     *
@@ -133,7 +131,7 @@ abstract class Attention[T: TF : IsDecimal, AS, ASS](
     *               `alignmentSize` is the memory's maximum time.
     * @return Alignment probabilities tensor.
     */
-  protected def probability(score: Output[T], state: AS): Output[T] = {
+  protected def probability(score: Output[T], state: State): Output[T] = {
     NN.softmax(score, name = "Probability")
   }
 }
@@ -203,12 +201,6 @@ object Attention {
       if (sequenceLengths == null) {
         null
       } else {
-        val batchSize = {
-          if (sequenceLengths.shape(0) != -1)
-            Basic.constant(sequenceLengths.shape(0))
-          else
-            Basic.shape(sequenceLengths).castTo[Int].slice(0)
-        }
         Basic.sequenceMask(
           sequenceLengths,
           Basic.shape(values).castTo[Int].slice(1)

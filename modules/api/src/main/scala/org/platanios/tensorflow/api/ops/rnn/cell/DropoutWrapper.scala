@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.core.types.{TF, IsFloat16OrFloat32OrFloat64}
+import org.platanios.tensorflow.api.core.types.{IsFloat16OrFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{NN, Op, Output, TensorArray}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 import shapeless._
 
@@ -54,13 +54,14 @@ class DropoutWrapper[O, OS, S, SS] protected (
     val seed: Option[Int] = None,
     val name: String = "DropoutWrapper"
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS],
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS],
     evODropout: DropoutWrapper.Supported[O],
     evSDropout: DropoutWrapper.Supported[S]
-) extends RNNCell[O, OS, S, SS]()(evO, evS) {
+) extends RNNCell[O, OS, S, SS]() {
   override def outputShape: OS = cell.outputShape
   override def stateShape: SS = cell.stateShape
+
   override def forward(input: Tuple[O, S]): Tuple[O, S] = {
     Op.nameScope(name) {
       val dropoutInput = evODropout.dropout(input.output, inputKeepProbability, "input", seed)._1
@@ -81,8 +82,8 @@ object DropoutWrapper {
       seed: Option[Int] = None,
       name: String = "DropoutWrapper"
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS],
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS],
       evODropout: DropoutWrapper.Supported[O],
       evSDropout: DropoutWrapper.Supported[S]
   ): DropoutWrapper[O, OS, S, SS] = {
@@ -145,6 +146,8 @@ object DropoutWrapper {
         }
       }
     }
+
+    // TODO: [IMPLICITS] !!! Handle OutputIndexedSlices and SparseOutput.
 
     implicit def fromTensorArray[T: TF : IsFloat16OrFloat32OrFloat64]: Supported[TensorArray[T]] = {
       new Supported[TensorArray[T]] {

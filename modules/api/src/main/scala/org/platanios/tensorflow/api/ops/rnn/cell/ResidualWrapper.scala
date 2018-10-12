@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 
 /** RNN cell that creates a residual connection (i.e., combining the cell inputs and its outputs) over another RNN cell.
   *
@@ -29,9 +29,9 @@ class ResidualWrapper[O, OS, S, SS] protected (
     val cell: RNNCell[O, OS, S, SS],
     val residualFn: (O, O) => O
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS]()(evO, evS) {
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS]
+) extends RNNCell[O, OS, S, SS]() {
   override def outputShape: OS = cell.outputShape
   override def stateShape: SS = cell.stateShape
 
@@ -47,8 +47,8 @@ object ResidualWrapper {
       cell: RNNCell[O, OS, S, SS],
       residualFn: (O, O) => O
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS]
   ): ResidualWrapper[O, OS, S, SS] = {
     new ResidualWrapper(cell, residualFn)
   }

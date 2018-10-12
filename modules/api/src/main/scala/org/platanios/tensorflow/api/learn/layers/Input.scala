@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, StructureFromDataType}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.Op

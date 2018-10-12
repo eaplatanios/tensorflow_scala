@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.Op
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that is composed by applying a sequence of RNN cells in order.
   *
@@ -31,12 +31,12 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class MultiCell[O, OS, S, SS] protected (
+class StackedCell[O, OS, S, SS] protected (
     val cells: Seq[RNNCell[O, OS, S, SS]],
-    val name: String = "MultiCell"
+    val name: String = "StackedCell"
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS]
 ) extends RNNCell[O, OS, Seq[S], Seq[SS]] {
   override def outputShape: OS = cells.last.outputShape
   override def stateShape: Seq[SS] = cells.map(_.stateShape)
@@ -55,14 +55,14 @@ class MultiCell[O, OS, S, SS] protected (
   }
 }
 
-object MultiCell {
+object StackedCell {
   def apply[O, OS, S, SS](
       cells: Seq[RNNCell[O, OS, S, SS]],
-      name: String = "MultiCell"
+      name: String = "StackedCell"
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
-  ): MultiCell[O, OS, S, SS] = {
-    new MultiCell(cells, name)
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS]
+  ): StackedCell[O, OS, S, SS] = {
+    new StackedCell(cells, name)
   }
 }

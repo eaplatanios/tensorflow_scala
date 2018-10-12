@@ -15,8 +15,8 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that ensures another RNN cell runs on a specific device.
   *
@@ -31,9 +31,9 @@ class DeviceWrapper[O, OS, S, SS] protected (
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS]()(evO, evS) {
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS]
+) extends RNNCell[O, OS, S, SS]() {
   override def outputShape: OS = cell.outputShape
   override def stateShape: SS = cell.stateShape
 
@@ -41,7 +41,7 @@ class DeviceWrapper[O, OS, S, SS] protected (
       batchSize: Output[Int],
       shape: SS,
       name: String = "ZeroState"
-  ): S = {
+  )(implicit evZeroS: Zero.Aux[S, SS]): S = {
     Op.device(device, deviceFunction) {
       super.zeroState(batchSize, shape, name)
     }
@@ -60,9 +60,9 @@ object DeviceWrapper {
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS]
   ): DeviceWrapper[O, OS, S, SS] = {
-    new DeviceWrapper(cell, device, deviceFunction)(evO, evS)
+    new DeviceWrapper(cell, device, deviceFunction)
   }
 }

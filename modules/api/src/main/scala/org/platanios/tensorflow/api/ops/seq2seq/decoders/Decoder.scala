@@ -19,8 +19,9 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
-import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
@@ -45,10 +46,10 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
     val cell: RNNCell[Out, OutShape, State, StateShape],
     val name: String = "RNNDecoder"
 )(implicit
-    evO: WhileLoopVariable.Aux[Out, OutShape],
-    evDO: WhileLoopVariable.Aux[DecOut, DecOutShape],
-    evDS: WhileLoopVariable.Aux[DecState, DecStateShape],
-    evDFO: WhileLoopVariable[DecFinalOut]
+    evStructureO: NestedStructure.Aux[Out, _, OutShape],
+    evStructureDO: NestedStructure.Aux[DecOut, _, DecOutShape],
+    evStructureDS: NestedStructure.Aux[DecState, _, DecStateShape],
+    evStructureDFO: NestedStructure.Aux[DecFinalOut, _, _]
 ) {
   /** Scalar tensor representing the batch size of the input values. */
   val batchSize: Output[Int]
@@ -126,7 +127,7 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
     VariableScope.updatedScope(currentVariableScope, cachingDevice = cachingDevice) {
       var (initialFinished, initialInput, initialState) = initialize()
       val zeroOutput = this.zeroOutput()
-      val zeroOutputs = evDO.outputs(zeroOutput)
+      val zeroOutputs = evStructureDO.outputs(zeroOutput)
       val initialOutputTensorArrays = zeroOutputs.map(output => {
         TensorArray.create(
           size = 0,
@@ -154,8 +155,8 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
       def body(loopVariables: LoopVariables): LoopVariables = {
         val (time, outputTensorArrays, state, input, finished, sequenceLengths) = loopVariables
         val (decoderOutput, decoderState, nextInput, decoderFinished) = next(time, input, state)
-        val decoderOutputs = evDO.outputs(decoderOutput)
-        val decoderStates = evDS.outputs(decoderState)
+        val decoderOutputs = evStructureDO.outputs(decoderOutput)
+        val decoderStates = evStructureDS.outputs(decoderState)
         var nextFinished = {
           if (tracksOwnFinished)
             decoderFinished
@@ -177,7 +178,7 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
             })
             // Passes `decoderStates` through as the next state depending on their corresponding value in `finished` and
             // on their type and shape. Tensor arrays and scalar states are always passed through.
-            val states = evDS.outputs(state)
+            val states = evStructureDS.outputs(state)
             val nextStates = decoderStates.zip(states).map(s => {
               s._1.setShape(s._2.shape)
               if (s._1.rank == 0) {
@@ -190,7 +191,7 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
           } else
             (decoderOutputs, decoderStates)
         }
-        val nextState = evDS.fromOutputs(state, nextStates)
+        val nextState = evStructureDS.decodeOutputFromOutput(state, nextStates)._1
         val nextOutputTensorArrays = outputTensorArrays.zip(nextOutputs).map(t => {
           t._1.write(time, t._2)
         })
@@ -207,15 +208,15 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
           swapMemory = swapMemory)
 
       var (finalOutput, finalState, finalSequenceLengths) = finalize(
-        evDO.fromOutputs(zeroOutput, finalOutputTensorArrays.map(_.stack())),
+        evStructureDO.decodeOutputFromOutput(zeroOutput, finalOutputTensorArrays.map(_.stack()))._1,
         preFinalState, preFinalSequenceLengths)
 
       if (!outputTimeMajor) {
-        finalOutput = evDFO.fromOutputs(
+        finalOutput = evStructureDFO.decodeOutputFromOutput(
           finalOutput,
-          evDFO.outputs(finalOutput).map(o => {
+          evStructureDFO.outputs(finalOutput).map(o => {
             RNN.transposeBatchTime(o)(TF.fromDataType(o.dataType))
-          }))
+          }))._1
       }
       (finalOutput, finalState, finalSequenceLengths)
     }

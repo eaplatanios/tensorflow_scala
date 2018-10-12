@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{RESOURCE, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
@@ -292,17 +293,17 @@ private[api] trait ControlFlow {
     * @return Created op output structure containing the loop variables values after the loop finishes, mirroring the
     *         return structure of `bodyFn`.
     */
-  def whileLoop[T, TS](
+  def whileLoop[T, S](
       predicateFn: T => Output[Boolean],
       bodyFn: T => T,
       loopVariables: T,
-      shapeInvariants: Option[TS] = None,
+      shapeInvariants: Option[S] = None,
       parallelIterations: Int = 10,
       enableBackPropagation: Boolean = true,
       swapMemory: Boolean = false,
       maximumIterations: Output[Int] = null,
       name: String = "WhileLoop"
-  )(implicit ev: WhileLoopVariable.Aux[T, TS]): T = {
+  )(implicit evStructureT: NestedStructure.Aux[T, _, S]): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
     Op.nameScope(name) {
       val loopContext = WhileLoopContext(
@@ -317,7 +318,7 @@ private[api] trait ControlFlow {
         val one = Basic.ones[Int](Shape())
         // Building a loop involves mutating ops and thus we need to lock on the graph.
         Op.currentGraph.synchronized {
-          loopContext.buildLoop[(Output[Int], T), (Shape, TS)](
+          loopContext.buildLoop[(Output[Int], T), (Shape, S)](
             (v: (Output[Int], T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
             (v: (Output[Int], T)) => (v._1 + one, bodyFn(v._2)),
             (zero, loopVariables),

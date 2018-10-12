@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 
 /**
@@ -27,8 +27,8 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   * @author Emmanouil Antonios Platanios
   */
 abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
-  evO: WhileLoopVariable.Aux[O, OS],
-  evS: WhileLoopVariable.Aux[S, SS]
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS]
 ) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
   def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
 
@@ -43,7 +43,6 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
   }
 
   override final def forwardWithoutContext(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
-    createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape)))
-        .forward(input)
+    createCellWithoutContext(mode, evStructureO.shape(input.output)).forward(input)
   }
 }

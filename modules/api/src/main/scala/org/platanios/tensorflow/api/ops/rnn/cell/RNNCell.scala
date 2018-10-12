@@ -15,16 +15,16 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** Contains functions for constructing ops related to recurrent neural network (RNN) cells.
   *
   * @author Emmanouil Antonios Platanios
   */
 abstract class RNNCell[O, OS, S, SS](implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS]
 ) {
   def outputShape: OS
   def stateShape: SS
@@ -33,8 +33,8 @@ abstract class RNNCell[O, OS, S, SS](implicit
       batchSize: Output[Int],
       shape: SS,
       name: String = "ZeroState"
-  ): S = {
-    evS.zero(batchSize, shape, name)
+  )(implicit evZeroS: Zero.Aux[S, SS]): S = {
+    evZeroS.zero(batchSize, shape, name)
   }
 
   @throws[IllegalArgumentException]

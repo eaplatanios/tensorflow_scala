@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
@@ -49,17 +50,18 @@ class RNN[O, OS, S, SS](
     val swapMemory: Boolean = false,
     val sequenceLengths: Tensor[Int] = null
 )(implicit
-    evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
-    evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS],
+    evZeroO: Zero.Aux[O, OS]
 ) extends Layer[O, Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
   override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val createdCell = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
+    val createdCell = cell.createCell(mode, evStructureO.shape(input))
     ops.rnn.RNN.dynamicRNN(
-      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, name)(evO, evS)
+      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, name)
   }
 }
 
@@ -73,9 +75,10 @@ object RNN {
       swapMemory: Boolean = false,
       sequenceLengths: Tensor[Int] = null
   )(implicit
-      evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
-      evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS],
+      evZeroO: Zero.Aux[O, OS]
   ): RNN[O, OS, S, SS] = {
-    new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)(evO, evS)
+    new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)
   }
 }

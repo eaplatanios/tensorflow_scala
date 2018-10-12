@@ -17,10 +17,11 @@ package org.platanios.tensorflow.api.ops.rnn
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
+import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
-import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 
@@ -60,15 +61,16 @@ trait RNN {
   def dynamicRNN[O, OS, S, SS](
       cell: RNNCell[O, OS, S, SS],
       input: O,
-      initialState: S = null.asInstanceOf[S],
+      initialState: S,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       sequenceLengths: Output[Int] = null,
       name: String = "RNN"
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS],
+      evZeroO: Zero.Aux[O, OS]
   ): Tuple[O, S] = {
     Op.nameScope(name) {
       // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
@@ -83,7 +85,7 @@ trait RNN {
       VariableScope.updatedScope(currentVariableScope, cachingDevice = cachingDevice) {
         // By default, `timeMajor` is false and inputs are shaped batch-major: [batch, time, depth]
         // For internal calculations, we transpose to: [time, batch, depth]
-        var processedInput = evO.outputs(input)
+        var processedInput = evStructureO.outputs(input)
         processedInput = {
           if (!timeMajor) {
             // [B, T, D] => [T, B, D]
@@ -105,27 +107,20 @@ trait RNN {
             sequenceLengths.castTo[Int]
           }
         }
-        val batchSize = RNN.bestEffortInputBatchSize(processedInput)
-        val state = {
-          if (initialState != null)
-            initialState
-          else
-            cell.zeroState(batchSize, cell.stateShape)
-        }
         var finalTuple = RNN.dynamicRNNLoop(
-          cell, evO.fromOutputs(input, processedInput), state, parallelIterations, swapMemory,
-          processedSequenceLength)(evO, evS)
+          cell, evStructureO.decodeOutputFromOutput(input, processedInput)._1,
+          initialState, parallelIterations, swapMemory, processedSequenceLength)
         // Outputs of `dynamicRNNLoop` are always shaped [time, batch, depth].
         // If we are performing batch-major calculations, transpose output back to shape [batch, time, depth].
-        val finalTupleOutputs = evO.outputs(finalTuple.output)
+        val finalTupleOutputs = evStructureO.outputs(finalTuple.output)
         if (!timeMajor) {
           // [T, B, D] => [B, T, D]
           finalTuple = Tuple(
-            output = evO.fromOutputs(
+            output = evStructureO.decodeOutputFromOutput(
               input,
               finalTupleOutputs.map(o => {
                 RNN.transposeBatchTime(o)(TF.fromDataType(o.dataType))
-              })),
+              }))._1,
             state = finalTuple.state)
         }
         finalTuple
@@ -178,22 +173,23 @@ trait RNN {
       sequenceLengths: Output[Int] = null,
       name: String = "RNN"
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS],
+      evZeroO: Zero.Aux[O, OS]
   ): (Tuple[O, S], Tuple[O, S]) = {
     Op.nameScope(name) {
       VariableScope.scope(name) {
         // Forward direction
         val forwardTuple = VariableScope.scope("Forward") {
           dynamicRNN(
-            cellFw, input, initialStateFw, timeMajor, parallelIterations, swapMemory, sequenceLengths)(evO, evS)
+            cellFw, input, initialStateFw, timeMajor, parallelIterations, swapMemory, sequenceLengths)
         }
 
         // Backward direction
         val (timeAxis, batchAxis) = if (timeMajor) (0, 1) else (1, 0)
 
         def reverse(input: O): O = {
-          var sequence = evO.outputs(input)
+          var sequence = evStructureO.outputs(input)
           if (sequenceLengths == null)
             sequence = sequence.map(input => {
               Basic.reverse(input, timeAxis)(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int])
@@ -204,14 +200,14 @@ trait RNN {
                 input, sequenceLengths, timeAxis, batchAxis
               )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int])
             })
-          evO.fromOutputs(input, sequence)
+          evStructureO.decodeOutputFromOutput(input, sequence)._1
         }
 
         val backwardTuple = VariableScope.scope("Backward") {
           val reversedInput = reverse(input)
           dynamicRNN(
             cellBw, reversedInput, initialStateBw, timeMajor, parallelIterations,
-            swapMemory, sequenceLengths)(evO, evS)
+            swapMemory, sequenceLengths)
         }
 
         (forwardTuple, Tuple(reverse(backwardTuple.output), backwardTuple.state))
@@ -245,11 +241,12 @@ object RNN extends RNN {
       swapMemory: Boolean,
       sequenceLengths: Output[Int] = null
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS],
+      evZeroO: Zero.Aux[O, OS]
   ): Tuple[O, S] = {
     // Construct an initial output.
-    val inputs = evO.outputs(input)
+    val inputs = evStructureO.outputs(input)
     val inputShape = Basic.shape(inputs.head)(TF.fromDataType(inputs.head.dataType)).castTo[Int]
     val timeSteps = inputShape(0)
     val batchSize = bestEffortInputBatchSize(inputs)
@@ -264,8 +261,8 @@ object RNN extends RNN {
       if (constantBatchSize != shape(1))
         throw InvalidShapeException("The batch size is not the same for all inputs.")
     })
-    val zeroOutput = evO.zero(batchSize, cell.outputShape, "ZeroOutput")
-    val zeroOutputs = evO.outputs(zeroOutput)
+    val zeroOutput = evZeroO.zero(batchSize, cell.outputShape, "ZeroOutput")
+    val zeroOutputs = evStructureO.outputs(zeroOutput)
     val (minSequenceLength, maxSequenceLength) = {
       if (sequenceLengths != null)
         (Math.min(sequenceLengths), Math.max(sequenceLengths))
@@ -273,8 +270,8 @@ object RNN extends RNN {
         (null, timeSteps)
     }
     val time = Op.nameScope("Time")(Basic.zeros[Int](Shape()))
-    val outputDataTypes = evO.outputs(input).map(_.dataType)
-    val outputShapes = evO.shapes(cell.outputShape)
+    val outputDataTypes = evStructureO.outputs(input).map(_.dataType)
+    val outputShapes = evStructureO.shapes(cell.outputShape)
     val outputTensorArrays = outputDataTypes.zip(outputShapes).zipWithIndex.map({
       case ((dataType, shape), index) =>
         TensorArray.create(
@@ -302,11 +299,11 @@ object RNN extends RNN {
       inputs.zip(inputsGotShape).foreach(i => i._1.setShape(i._2(1 ::)))
       val callCell: () => (Seq[Output[Any]], Seq[Output[Any]]) = () => {
         val newTuple = cell(Tuple(
-          output = evO.fromOutputs(input, inputs),
+          output = evStructureO.decodeOutputFromOutput(input, inputs)._1,
           state = state))
-        (evO.outputs(newTuple.output), evS.outputs(newTuple.state))
+        (evStructureO.outputs(newTuple.output), evStructureS.outputs(newTuple.state))
       }
-      val states = evS.outputs(state)
+      val states = evStructureS.outputs(state)
       val (nextOutputs, nextStates) = {
         if (sequenceLengths != null) {
           RNN.rnnStep(
@@ -316,7 +313,7 @@ object RNN extends RNN {
           callCell()
         }
       }
-      val nextState = evS.fromOutputs(state, nextStates)
+      val nextState = evStructureS.decodeOutputFromOutput(state, nextStates)._1
       val nextOutputTensorArrays = loopVariables._2.zip(nextOutputs).map({
         case (tensorArray, output) =>
           tensorArray.write(time, output)
@@ -338,9 +335,9 @@ object RNN extends RNN {
     val finalOutputs = finalOutputTensorArrays.map(_.stack())
     // Restore some shape information
     finalOutputs
-        .zip(evO.shapes(cell.outputShape))
+        .zip(evStructureO.shapes(cell.outputShape))
         .foreach(o => o._1.setShape(Shape(constantTimeSteps, constantBatchSize) ++ o._2))
-    Tuple(evO.fromOutputs(input, finalOutputs), finalState)
+    Tuple(evStructureO.decodeOutputFromOutput(input, finalOutputs)._1, finalState)
   }
 
   /** Calculates one step of a dynamic RNN mini-batch.

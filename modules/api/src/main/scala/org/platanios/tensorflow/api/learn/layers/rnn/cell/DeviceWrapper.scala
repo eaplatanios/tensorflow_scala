@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that ensures another RNN cell runs on a specific device.
   *
@@ -35,9 +35,9 @@ class DeviceWrapper[O, OS, S, SS](
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS]
+) extends RNNCell[O, OS, S, SS](name) {
   override val layerType: String = "DeviceWrapper"
 
   override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
@@ -54,9 +54,9 @@ object DeviceWrapper {
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS]
   ): DeviceWrapper[O, OS, S, SS] = {
-    new DeviceWrapper(variableScope, cell, device, deviceFunction)(evO, evS)
+    new DeviceWrapper(variableScope, cell, device, deviceFunction)
   }
 }

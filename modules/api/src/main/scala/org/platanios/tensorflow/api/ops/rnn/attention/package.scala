@@ -15,8 +15,6 @@
 
 package org.platanios.tensorflow.api.ops.rnn
 
-import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops._
 
 /**
@@ -45,7 +43,7 @@ package object attention {
     type Attention[AttentionDataType, CellState, AttentionState] = attention.Attention[AttentionDataType, CellState, AttentionState]
     type BahdanauAttention[T] = attention.BahdanauAttention[T]
     type LuongAttention[T] = attention.LuongAttention[T]
-    type AttentionWrapperCell[T, S, SS, AS, ASS] = attention.AttentionWrapperCell[T, S, SS, AS, ASS]
+    type AttentionWrapperCell[T, CellState, CellStateDataType, CellStateShape, AttentionState, AttentionStateDataType, AttentionStateShape] = attention.AttentionWrapperCell[T, CellState, CellStateDataType, CellStateShape, AttentionState, AttentionStateDataType, AttentionStateShape]
 
     val LuongAttention      : attention.LuongAttention.type       = attention.LuongAttention
     val BahdanauAttention   : attention.BahdanauAttention.type    = attention.BahdanauAttention

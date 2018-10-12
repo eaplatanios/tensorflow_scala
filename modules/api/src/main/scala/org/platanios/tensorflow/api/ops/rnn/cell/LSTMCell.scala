@@ -65,7 +65,7 @@ class LSTMCell[T: TF : IsNotQuantized] protected (
     val forgetBias: Float = 1.0f,
     val name: String = "LSTMCell"
 ) extends RNNCell[Output[T], Shape, LSTMState[T], (Shape, Shape)] {
-  private[this] val numUnits = bias.shape(0) / 4
+  private val numUnits = bias.shape(0) / 4
 
   override def outputShape: Shape = {
     if (projectionKernel != null)

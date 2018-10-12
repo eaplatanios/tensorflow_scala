@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that creates a residual connection (i.e., combining the cell inputs and its outputs) over another RNN cell.
   *
@@ -33,9 +33,9 @@ class ResidualWrapper[O, OS, S, SS](
     val cell: RNNCell[O, OS, S, SS],
     val residualFn: (O, O) => O
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+    evStructureO: NestedStructure.Aux[O, _, OS],
+    evStructureS: NestedStructure.Aux[S, _, SS]
+) extends RNNCell[O, OS, S, SS](name) {
   override val layerType: String = "ResidualWrapper"
 
   override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
@@ -50,9 +50,9 @@ object ResidualWrapper {
       cell: RNNCell[O, OS, S, SS],
       residualFn: (O, O) => O
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
+      evStructureO: NestedStructure.Aux[O, _, OS],
+      evStructureS: NestedStructure.Aux[S, _, SS]
   ): ResidualWrapper[O, OS, S, SS] = {
-    new ResidualWrapper(variableScope, cell, residualFn)(evO, evS)
+    new ResidualWrapper(variableScope, cell, residualFn)
   }
 }

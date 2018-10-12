@@ -301,7 +301,7 @@ object CondArg {
     }
   }
 
-  // TODO: [IMPLICITS] !!! What about 'Op' and 'TensorArray' appearing in nested structures?
+  // TODO: [IMPLICITS] !!! What about ops appearing in nested sequences?
 
   implicit def fromOp[I, O]: CondArg[Op[I, O]] = {
     new CondArg[Op[I, O]] {
@@ -317,28 +317,6 @@ object CondArg {
           outputs: Seq[Output[Any]]
       ): (Op[I, O], Seq[Output[Any]]) = {
         (outputs.head.op.asInstanceOf[Op[I, O]], outputs.tail)
-      }
-    }
-  }
-
-  implicit def fromTensorArray[T]: CondArg[TensorArray[T]] = {
-    new CondArg[TensorArray[T]] {
-      override def outputs(
-          output: TensorArray[T],
-          context: CondContext
-      ): Seq[Output[Any]] = {
-        Seq(context.processOutput(output.flow))
-      }
-
-      override def decodeOutputFromOutput(
-          output: TensorArray[T],
-          outputs: Seq[Output[Any]]
-      ): (TensorArray[T], Seq[Output[Any]]) = {
-        val newTensorArray = output.copy(
-          flow = outputs.head.asInstanceOf[Output[Float]]
-        )(TF.fromDataType(output.dataType))
-        // TODO: !!! [TENSOR_ARRAY] What about colocate with?
-        (newTensorArray, outputs.tail)
       }
     }
   }
