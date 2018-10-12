@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{DataType, FLOAT32, VARIANT, Variant}
+import org.platanios.tensorflow.api.core.types.{DataType, FLOAT32, INT64, VARIANT, Variant}
 import org.platanios.tensorflow.api.ops.data.Dataset
-import org.platanios.tensorflow.api.ops.{Output, OutputLikeOrTensorArray, SparseOutput, TensorArray}
+import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput, TensorArray}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Collections
 
@@ -74,21 +74,25 @@ trait NestedStructure[T] {
   def decodeDataTypeFromDataType(dataType: D, dataTypes: Seq[DataType[Any]]): (D, Seq[DataType[Any]])
   def decodeShapeFromDataType(dataType: D, shapes: Seq[Shape]): (S, Seq[Shape])
 
-  // TODO: [OPS] These "map" functions involve some runtime checking for the "Symbol" type that would be good to work around.
-
   def map(
       value: T,
-      mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-  ): T
-
-  def mapWithShape(
-      value: T,
-      shape: S,
-      mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+      shape: Option[S],
+      converter: NestedStructure.Converter
   ): T
 }
 
 object NestedStructure {
+  type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
+  type SparseShape = (Shape, Shape, Shape)
+
+  trait Converter {
+    def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = value
+    def apply[T](value: OutputIndexedSlices[T], shape: Option[SparseShape]): OutputIndexedSlices[T] = value
+    def apply[T](value: SparseOutput[T], shape: Option[SparseShape]): SparseOutput[T] = value
+    def apply[T](value: TensorArray[T], shape: Option[Shape]): TensorArray[T] = value
+    def apply[T](value: Dataset[T], shape: Option[Shape]): Dataset[T] = value
+  }
+
   type Aux[T, DD, SS] = NestedStructure[T] {
     type D = DD
     type S = SS
@@ -169,17 +173,10 @@ object NestedStructure {
         ((), shapes)
       }
 
-      override def map(
+      def map(
           value: Unit,
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-      ): Unit = {
-        ()
-      }
-
-      override def mapWithShape(
-          value: Unit,
-          shape: Unit,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+          shape: Option[Unit],
+          converter: NestedStructure.Converter
       ): Unit = {
         ()
       }
@@ -263,17 +260,208 @@ object NestedStructure {
 
       override def map(
           value: Output[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[S],
+          converter: Converter
       ): Output[T] = {
-        mapFn(value.asInstanceOf[Output[Any]]).asInstanceOf[Output[T]]
+        converter[T](value, shape)
+      }
+    }
+  }
+
+  implicit def fromOutputIndexedSlices[T]: Aux[OutputIndexedSlices[T], SparseDataType[T], SparseShape] = {
+    new NestedStructure[OutputIndexedSlices[T]] {
+      override type D = SparseDataType[T]
+      override type S = SparseShape
+
+      override def sizeFromOutput(output: OutputIndexedSlices[T]): Int = {
+        3
       }
 
-      override def mapWithShape(
-          value: Output[T],
-          shape: S,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): Output[T] = {
-        mapFn(value.asInstanceOf[Output[Any]], shape).asInstanceOf[Output[T]]
+      override def sizeFromDataType(dataType: SparseDataType[T]): Int = {
+        3
+      }
+
+      override def dataType(output: OutputIndexedSlices[T]): SparseDataType[T] = {
+        (INT64, output.dataType, INT64)
+      }
+
+      override def shape(output: OutputIndexedSlices[T]): SparseShape = {
+        (output.indices.shape, output.values.shape, output.denseShape.shape)
+      }
+
+      override def outputs(output: OutputIndexedSlices[T]): Seq[Output[Any]] = {
+        Seq(output.indices, output.values, output.denseShape)
+      }
+
+      override def dataTypes(dataType: SparseDataType[T]): Seq[DataType[Any]] = {
+        Seq(dataType._1, dataType._2, dataType._3)
+      }
+
+      override def shapes(shape: SparseShape): Seq[Shape] = {
+        Seq(shape._1, shape._2, shape._3)
+      }
+
+      override def decodeOutputFromOutput(
+          output: OutputIndexedSlices[T],
+          outputs: Seq[Output[Any]]
+      ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+        (OutputIndexedSlices[T](
+          indices = outputs(0).asInstanceOf[Output[Long]],
+          values = outputs(1).asInstanceOf[Output[T]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]],
+        ), outputs.drop(3))
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: OutputIndexedSlices[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (SparseDataType[T], Seq[DataType[Any]]) = {
+        ((dataTypes(0).asInstanceOf[DataType[Long]],
+            dataTypes(1).asInstanceOf[DataType[T]],
+            dataTypes(2).asInstanceOf[DataType[Long]]
+        ), dataTypes.drop(3))
+      }
+
+      override def decodeShapeFromOutput(
+          output: OutputIndexedSlices[T],
+          shapes: Seq[Shape]
+      ): (SparseShape, Seq[Shape]) = {
+        ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
+      }
+
+      override def decodeOutputFromDataType(
+          dataType: SparseDataType[T],
+          outputs: Seq[Output[Any]]
+      ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+        (OutputIndexedSlices[T](
+          indices = outputs(0).asInstanceOf[Output[Long]],
+          values = outputs(1).asInstanceOf[Output[T]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]],
+        ), outputs.drop(3))
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: SparseDataType[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (SparseDataType[T], Seq[DataType[Any]]) = {
+        ((dataTypes(0).asInstanceOf[DataType[Long]],
+            dataTypes(1).asInstanceOf[DataType[T]],
+            dataTypes(2).asInstanceOf[DataType[Long]]
+        ), dataTypes.drop(3))
+      }
+
+      override def decodeShapeFromDataType(
+          dataType: SparseDataType[T],
+          shapes: Seq[Shape]
+      ): (SparseShape, Seq[Shape]) = {
+        ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
+      }
+
+      override def map(
+          value: OutputIndexedSlices[T],
+          shape: Option[SparseShape],
+          converter: Converter
+      ): OutputIndexedSlices[T] = {
+        converter[T](value, shape)
+      }
+    }
+  }
+
+  implicit def fromSparseOutput[T]: Aux[SparseOutput[T], SparseDataType[T], SparseShape] = {
+    new NestedStructure[SparseOutput[T]] {
+      override type D = SparseDataType[T]
+      override type S = SparseShape
+
+      override def sizeFromOutput(output: SparseOutput[T]): Int = {
+        3
+      }
+
+      override def sizeFromDataType(dataType: SparseDataType[T]): Int = {
+        3
+      }
+
+      override def dataType(output: SparseOutput[T]): SparseDataType[T] = {
+        (INT64, output.dataType, INT64)
+      }
+
+      override def shape(output: SparseOutput[T]): SparseShape = {
+        (output.indices.shape, output.values.shape, output.denseShape.shape)
+      }
+
+      override def outputs(output: SparseOutput[T]): Seq[Output[Any]] = {
+        Seq(output.indices, output.values, output.denseShape)
+      }
+
+      override def dataTypes(dataType: SparseDataType[T]): Seq[DataType[Any]] = {
+        Seq(dataType._1, dataType._2, dataType._3)
+      }
+
+      override def shapes(shape: SparseShape): Seq[Shape] = {
+        Seq(shape._1, shape._2, shape._3)
+      }
+
+      override def decodeOutputFromOutput(
+          output: SparseOutput[T],
+          outputs: Seq[Output[Any]]
+      ): (SparseOutput[T], Seq[Output[Any]]) = {
+        (SparseOutput[T](
+          indices = outputs(0).asInstanceOf[Output[Long]],
+          values = outputs(1).asInstanceOf[Output[T]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]],
+        ), outputs.drop(3))
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: SparseOutput[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (SparseDataType[T], Seq[DataType[Any]]) = {
+        ((dataTypes(0).asInstanceOf[DataType[Long]],
+            dataTypes(1).asInstanceOf[DataType[T]],
+            dataTypes(2).asInstanceOf[DataType[Long]]
+        ), dataTypes.drop(3))
+      }
+
+      override def decodeShapeFromOutput(
+          output: SparseOutput[T],
+          shapes: Seq[Shape]
+      ): (SparseShape, Seq[Shape]) = {
+        ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
+      }
+
+      override def decodeOutputFromDataType(
+          dataType: SparseDataType[T],
+          outputs: Seq[Output[Any]]
+      ): (SparseOutput[T], Seq[Output[Any]]) = {
+        (SparseOutput[T](
+          indices = outputs(0).asInstanceOf[Output[Long]],
+          values = outputs(1).asInstanceOf[Output[T]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]],
+        ), outputs.drop(3))
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: SparseDataType[T],
+          dataTypes: Seq[DataType[Any]]
+      ): (SparseDataType[T], Seq[DataType[Any]]) = {
+        ((dataTypes(0).asInstanceOf[DataType[Long]],
+            dataTypes(1).asInstanceOf[DataType[T]],
+            dataTypes(2).asInstanceOf[DataType[Long]]
+        ), dataTypes.drop(3))
+      }
+
+      override def decodeShapeFromDataType(
+          dataType: SparseDataType[T],
+          shapes: Seq[Shape]
+      ): (SparseShape, Seq[Shape]) = {
+        ((shapes(0), shapes(1), shapes(2)), shapes.drop(3))
+      }
+
+      override def map(
+          value: SparseOutput[T],
+          shape: Option[SparseShape],
+          converter: Converter
+      ): SparseOutput[T] = {
+        converter[T](value, shape)
       }
     }
   }
@@ -359,17 +547,10 @@ object NestedStructure {
 
       override def map(
           value: TensorArray[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[S],
+          converter: Converter
       ): TensorArray[T] = {
-        mapFn(value.asInstanceOf[TensorArray[Any]]).asInstanceOf[TensorArray[T]]
-      }
-
-      override def mapWithShape(
-          value: TensorArray[T],
-          shape: S,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): TensorArray[T] = {
-        mapFn(value.asInstanceOf[TensorArray[Any]], shape).asInstanceOf[TensorArray[T]]
+        converter[T](value, shape)
       }
     }
   }
@@ -481,16 +662,10 @@ object NestedStructure {
 
       override def map(
           value: Dataset[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[S],
+          converter: Converter
       ): Dataset[T] = {
-        ???
-      }
-
-      override def mapWithShape(
-          value: Dataset[T], shape: Shape,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): Dataset[T] = {
-        ???
+        converter[T](value, shape)
       }
     }
   }
@@ -604,18 +779,11 @@ object NestedStructure {
 
       override def map(
           value: Option[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-      ): Option[T] = {
-        value.map(ev.map(_, mapFn))
-      }
-
-      override def mapWithShape(
-          value: Option[T],
-          shape: Option[SS],
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+          shape: Option[Option[SS]],
+          converter: Converter
       ): Option[T] = {
         (value, shape) match {
-          case (Some(v), Some(s)) => Some(ev.mapWithShape(v, s, mapFn))
+          case (Some(v), Some(s)) => Some(ev.map(v, s, converter))
           case _ => None
         }
       }
@@ -713,17 +881,11 @@ object NestedStructure {
 
       override def map(
           value: Array[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[Array[SS]],
+          converter: Converter
       ): Array[T] = {
-        value.map(ev.map(_, mapFn))
-      }
-
-      override def mapWithShape(
-          value: Array[T],
-          shape: Array[SS],
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): Array[T] = {
-        value.zip(shape).map(p => ev.mapWithShape(p._1, p._2, mapFn))
+        val shapes = shape.map(_.map(Option(_))).getOrElse(value.map(_ => None))
+        value.zip(shapes).map(p => ev.map(p._1, p._2, converter))
       }
     }
   }
@@ -825,17 +987,11 @@ object NestedStructure {
 
       override def map(
           value: Seq[T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[Seq[SS]],
+          converter: Converter
       ): Seq[T] = {
-        value.map(ev.map(_, mapFn))
-      }
-
-      override def mapWithShape(
-          value: Seq[T],
-          shape: Seq[SS],
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): Seq[T] = {
-        value.zip(shape).map(p => ev.mapWithShape(p._1, p._2, mapFn))
+        val shapes = shape.map(_.map(Option(_))).getOrElse(value.map(_ => None))
+        value.zip(shapes).map(p => ev.map(p._1, p._2, converter))
       }
     }
   }
@@ -943,17 +1099,11 @@ object NestedStructure {
 
       override def map(
           value: Map[K, T],
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[Map[K, SS]],
+          converter: Converter
       ): Map[K, T] = {
-        value.mapValues(ev.map(_, mapFn))
-      }
-
-      override def mapWithShape(
-          value: Map[K, T],
-          shape: Map[K, SS],
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): Map[K, T] = {
-        value.map(p => p._1 -> ev.mapWithShape(p._2, shape(p._1), mapFn))
+        val shapes = shape.map(_.mapValues(Option(_))).getOrElse(value.mapValues(_ => None))
+        (value.keys ++ shapes.keys).map(k => k -> ev.map(value(k), shapes(k), converter)).toMap
       }
     }
   }
@@ -1035,15 +1185,8 @@ object NestedStructure {
 
       override def map(
           value: HNil,
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
-      ): HNil = {
-        HNil
-      }
-
-      override def mapWithShape(
-          value: HNil,
-          shape: HNil,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
+          shape: Option[HNil],
+          converter: Converter
       ): HNil = {
         HNil
       }
@@ -1149,19 +1292,11 @@ object NestedStructure {
 
       override def map(
           value: HT :: TT,
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[HS :: TS],
+          converter: Converter
       ): HT :: TT = {
-        evH.value.map(value.head, mapFn) ::
-            evT.map(value.tail, mapFn)
-      }
-
-      override def mapWithShape(
-          value: HT :: TT,
-          shape: HS :: TS,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): HT :: TT = {
-        evH.value.mapWithShape(value.head, shape.head, mapFn) ::
-            evT.mapWithShape(value.tail, shape.tail, mapFn)
+        evH.value.map(value.head, shape.map(_.head), converter) ::
+            evT.map(value.tail, shape.map(_.tail), converter)
       }
     }
   }
@@ -1309,22 +1444,12 @@ object NestedStructure {
 
       override def map(
           value: HT :+: TT,
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[HS :+: TS],
+          converter: Converter
       ): HT :+: TT = {
         value match {
-          case Inl(h) => Inl(evH.value.map(h, mapFn))
-          case Inr(t) => Inr(evT.map(t, mapFn))
-        }
-      }
-
-      override def mapWithShape(
-          value: HT :+: TT,
-          shape: HS :+: TS,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): HT :+: TT = {
-        (value, shape) match {
-          case (Inl(hv), Inl(hs)) => Inl(evH.value.mapWithShape(hv, hs, mapFn))
-          case (Inr(tv), Inr(ts)) => Inr(evT.mapWithShape(tv, ts, mapFn))
+          case Inl(hv) => Inl(evH.value.map(hv, shape.map(_.asInstanceOf[Inl[HS, TS]].head), converter))
+          case Inr(tv) => Inr(evT.map(tv, shape.map(_.asInstanceOf[Inr[HS, TS]].tail), converter))
           case _ => throw new IllegalStateException("Something went wrong while deriving implicit evidence.")
         }
       }
@@ -1421,17 +1546,10 @@ object NestedStructure {
 
       override def map(
           value: PT,
-          mapFn: OutputLikeOrTensorArray[Any] => OutputLikeOrTensorArray[Any]
+          shape: Option[PS],
+          converter: Converter
       ): PT = {
-        genT.from(evT.value.map(genT.to(value), mapFn))
-      }
-
-      override def mapWithShape(
-          value: PT,
-          shape: PS,
-          mapFn: (OutputLikeOrTensorArray[Any], Shape) => OutputLikeOrTensorArray[Any]
-      ): PT = {
-        genT.from(evT.value.mapWithShape(genT.to(value), genS.to(shape), mapFn))
+        genT.from(evT.value.map(genT.to(value), shape.map(genS.to), converter))
       }
     }
   }

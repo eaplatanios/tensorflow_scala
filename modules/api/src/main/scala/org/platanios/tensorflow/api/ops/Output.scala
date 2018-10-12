@@ -27,7 +27,7 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputLike[T] extends OutputLikeOrTensorArray[T] {
+sealed trait OutputLike[T] {
   protected implicit val evTTF: TF[T] = {
     TF.fromDataType(dataType)
   }

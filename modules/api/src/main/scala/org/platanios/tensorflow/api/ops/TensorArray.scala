@@ -53,7 +53,7 @@ case class TensorArray[T] private (
     private var colocationOps: Seq[UntypedOp] = null
 )(implicit
     val evTTF: TF[T]
-) extends OutputLikeOrTensorArray[T] {
+) {
   val dataType: DataType[T] = TF[T].dataType
 
   /** Changes the element shape of the array given a shape to merge with.

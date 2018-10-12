@@ -19,7 +19,6 @@ import org.platanios.tensorflow.api.ops._
 
 import shapeless._
 
-import scala.collection.TraversableLike
 import scala.language.higherKinds
 
 /** Executables can be executed within a TensorFlow session, but their results (if any) are not returned.
