@@ -68,8 +68,8 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
     val randomSeed: Option[Int] = None,
     val name: String = "Evaluator"
 )(implicit
-  evIn: NestedStructure.Aux[In, _, _],
-  evTrainIn: NestedStructure.Aux[TrainIn, _, _]
+  evIn: NestedStructure.Aux[In, _, _, _],
+  evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, InEval] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
@@ -218,8 +218,8 @@ object Evaluator {
       randomSeed: Option[Int] = None,
       name: String = "Evaluator"
   )(implicit
-      evIn: NestedStructure.Aux[In, _, _],
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
   ): Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] = {
     new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }

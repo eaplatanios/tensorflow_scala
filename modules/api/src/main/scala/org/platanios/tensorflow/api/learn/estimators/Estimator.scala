@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, TensorToOutput}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
@@ -348,30 +348,28 @@ object Estimator {
   }
 
   object SupportedInferInput {
-    implicit def datasetInferInput[In, InT, OutT](implicit
-        evStructure: NestedStructure[In],
-        evTensorToOutput: TensorToOutput.Aux[InT, In]
-    ): SupportedInferInput[In, InT, OutT, Dataset[In], Iterator[(InT, OutT)]] = {
-      new SupportedInferInput[In, InT, OutT, Dataset[In], Iterator[(InT, OutT)]] {
+    implicit def datasetInferInput[In, InV, InD, InS, OutV](implicit
+        evStructure: NestedStructure.Aux[In, InV, InD, InS]
+    ): SupportedInferInput[In, InV, OutV, Dataset[In], Iterator[(InV, OutV)]] = {
+      new SupportedInferInput[In, InV, OutV, Dataset[In], Iterator[(InV, OutV)]] {
         override def toDataset(value: Dataset[In]): Dataset[In] = {
           value
         }
 
-        override def convertFetched(iterator: Iterator[(InT, OutT)]): Iterator[(InT, OutT)] = {
+        override def convertFetched(iterator: Iterator[(InV, OutV)]): Iterator[(InV, OutV)] = {
           iterator
         }
       }
     }
 
-    implicit def singleValueInferInput[In, InT, OutT](implicit
-        evTensorToOutput: TensorToOutput.Aux[InT, In],
-        evStructure: NestedStructure[In]
-    ): SupportedInferInput[In, InT, OutT, InT, OutT] = new SupportedInferInput[In, InT, OutT, InT, OutT] {
-      override def toDataset(value: InT): Dataset[In] = {
+    implicit def singleValueInferInput[In, InV, InD, InS, OutV](implicit
+        evStructure: NestedStructure.Aux[In, InV, InD, InS]
+    ): SupportedInferInput[In, InV, OutV, InV, OutV] = new SupportedInferInput[In, InV, OutV, InV, OutV] {
+      override def toDataset(value: InV): Dataset[In] = {
         Data.datasetFromTensors(value)
       }
 
-      override def convertFetched(iterator: Iterator[(InT, OutT)]): OutT = iterator.next()._2
+      override def convertFetched(iterator: Iterator[(InV, OutV)]): OutV = iterator.next()._2
     }
   }
 }

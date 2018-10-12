@@ -16,8 +16,9 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 /** The Long-Short Term Memory (LSTM) cell.
@@ -64,25 +65,30 @@ class LSTMCell[T: TF : IsNotQuantized] protected (
     val projectionClip: Float = -1,
     val forgetBias: Float = 1.0f,
     val name: String = "LSTMCell"
-) extends RNNCell[Output[T], Shape, LSTMState[T], (Shape, Shape)] {
+) extends RNNCell[Output[T], LSTMState[T]] {
   private val numUnits = bias.shape(0) / 4
 
-  override def outputShape: Shape = {
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): OS = {
     if (projectionKernel != null)
-      Shape(projectionKernel.shape(1))
+      Shape(projectionKernel.shape(1)).asInstanceOf[OS]
     else
-      Shape(numUnits)
+      Shape(numUnits).asInstanceOf[OS]
   }
 
-  override def stateShape: (Shape, Shape) = {
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]): SS = {
     if (projectionKernel != null)
-      (Shape(numUnits), Shape(projectionKernel.shape(1)))
+      (Shape(numUnits), Shape(projectionKernel.shape(1))).asInstanceOf[SS]
     else
-      (Shape(numUnits), Shape(numUnits))
+      (Shape(numUnits), Shape(numUnits)).asInstanceOf[SS]
   }
 
   @throws[IllegalArgumentException]
-  override def forward(input: LSTMTuple[T]): LSTMTuple[T] = {
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: LSTMTuple[T]
+  )(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]
+  ): LSTMTuple[T] = {
     Op.nameScope(name) {
       val output = input.output
       if (output.rank != 2)

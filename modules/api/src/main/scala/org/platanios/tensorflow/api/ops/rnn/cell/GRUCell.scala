@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 /** The Gated Recurrent Unit (GRU) cell.
@@ -43,12 +44,22 @@ class GRUCell[T: TF : IsNotQuantized] protected (
     val candidateBias: Output[T],
     val activation: Output[T] => Output[T],
     val name: String = "GRUCell"
-) extends RNNCell[Output[T], Shape, Output[T], Shape] {
-  override def outputShape: Shape = candidateBias.shape
-  override def stateShape: Shape = candidateBias.shape
+) extends RNNCell[Output[T], Output[T]] {
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): OS = {
+    candidateBias.shape.asInstanceOf[OS]
+  }
+
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[Output[T], SV, SD, SS]): SS = {
+    candidateBias.shape.asInstanceOf[SS]
+  }
 
   @throws[IllegalArgumentException]
-  override def forward(input: BasicTuple[T]): BasicTuple[T] = {
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: BasicTuple[T]
+  )(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evStructureS: NestedStructure.Aux[Output[T], SV, SD, SS]
+  ): BasicTuple[T] = {
     Op.nameScope(name) {
       val output = input.output
       val state = input.state

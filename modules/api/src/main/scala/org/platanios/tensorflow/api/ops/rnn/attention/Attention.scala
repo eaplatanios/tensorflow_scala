@@ -15,11 +15,13 @@
 
 package org.platanios.tensorflow.api.ops.rnn.attention
 
+import cats.data.Nested
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.Aux
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 import scala.language.postfixOps
@@ -40,7 +42,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Attention[T: TF : IsDecimal, State, StateShape](
+abstract class Attention[T: TF : IsDecimal, State](
     protected val memory: Output[T],
     protected val memorySequenceLengths: Output[Int] = null,
     val checkInnerDimensionsDefined: Boolean = true,
@@ -69,7 +71,7 @@ abstract class Attention[T: TF : IsDecimal, State, StateShape](
     }
   }
 
-  def stateSize: StateShape
+  def stateSize[V, D, S](implicit evStructureState: NestedStructure.Aux[State, V, D, S]): S
 
   lazy val dataType: DataType[T] = {
     keys.dataType
@@ -143,15 +145,15 @@ abstract class SimpleAttention[T: TF : IsDecimal](
     override val checkInnerDimensionsDefined: Boolean = true,
     override val scoreMaskValue: Output[Float] = Float.MinValue,
     override val name: String = "SimpleAttention"
-) extends Attention[T, Output[T], Shape](
+) extends Attention[T, Output[T]](
   memory = memory,
   memorySequenceLengths = memorySequenceLengths,
   checkInnerDimensionsDefined = checkInnerDimensionsDefined,
   scoreMaskValue = scoreMaskValue,
   name = name
 ) {
-  override def stateSize: Shape = {
-    Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown())
+  override def stateSize[V, D, S](implicit evStructureState: Aux[Output[T], V, D, S]): S = {
+    Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown()).asInstanceOf[S]
   }
 
   override def initialState: Output[T] = {

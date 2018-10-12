@@ -16,8 +16,9 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 /** A basic Long-Short Term Memory (LSTM) cell.
@@ -47,14 +48,24 @@ class BasicLSTMCell[T: TF : IsNotQuantized] protected (
     val activation: Output[T] => Output[T],
     val forgetBias: Float = 1.0f,
     val name: String = "BasicLSTMCell"
-) extends RNNCell[Output[T], Shape, LSTMState[T], (Shape, Shape)] {
+) extends RNNCell[Output[T], LSTMState[T]] {
   private val numUnits = bias.shape(0) / 4
 
-  override def outputShape: Shape = Shape(numUnits)
-  override def stateShape: (Shape, Shape) = (Shape(numUnits), Shape(numUnits))
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): OS = {
+    Shape(numUnits).asInstanceOf[OS]
+  }
+
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]): SS = {
+    (Shape(numUnits), Shape(numUnits)).asInstanceOf[SS]
+  }
 
   @throws[IllegalArgumentException]
-  override def forward(input: LSTMTuple[T]): LSTMTuple[T] = {
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: LSTMTuple[T]
+  )(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]
+  ): LSTMTuple[T] = {
     Op.nameScope(name) {
       val output = input.output
       if (output.rank != 2)

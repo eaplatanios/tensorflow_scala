@@ -29,17 +29,21 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-class StackedCell[O, OS, S, SS](
+class StackedCell[O, S](
     override val name: String,
-    val cells: Seq[RNNCell[O, OS, S, SS]]
+    val cells: Seq[RNNCell[O, S]]
 )(implicit
-    evStructureO: NestedStructure.Aux[O, _, OS],
-    evStructureS: NestedStructure.Aux[S, _, SS]
-) extends RNNCell[O, OS, Seq[S], Seq[SS]](name) {
+    evStructureBaseS: NestedStructure[S],
+    override protected val evStructureO: NestedStructure[O],
+    override protected val evStructureS: NestedStructure[Seq[S]]
+) extends RNNCell[O, Seq[S]](name) {
   override val layerType: String = "StackedCell"
 
-  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, Seq[S], Seq[SS]] = {
-    val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[O, OS, S, SS]])((seq, cell) => {
+  override def createCellWithoutContext[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureOAux: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, Seq[S]] = {
+    val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[O, S]])((seq, cell) => {
       VariableScope.scope(s"Cell${cell._2}") {
         if (seq.isEmpty)
           seq :+ cell._1.createCellWithoutContext(mode, inputShape)
@@ -52,13 +56,14 @@ class StackedCell[O, OS, S, SS](
 }
 
 object StackedCell {
-  def apply[O, OS, S, SS](
+  def apply[O, S](
       variableScope: String,
-      cells: Seq[RNNCell[O, OS, S, SS]]
+      cells: Seq[RNNCell[O, S]]
   )(implicit
-      evStructureO: NestedStructure.Aux[O, _, OS],
-      evStructureS: NestedStructure.Aux[S, _, SS]
-  ): StackedCell[O, OS, S, SS] = {
+      evStructureO: NestedStructure[O],
+      evStructureS: NestedStructure[S],
+      evStructureSeqS: NestedStructure[Seq[S]]
+  ): StackedCell[O, S] = {
     new StackedCell(variableScope, cells)
   }
 }

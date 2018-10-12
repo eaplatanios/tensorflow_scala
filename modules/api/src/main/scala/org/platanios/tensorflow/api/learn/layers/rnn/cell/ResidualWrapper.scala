@@ -28,31 +28,34 @@ import org.platanios.tensorflow.api.ops
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[O, OS, S, SS](
+class ResidualWrapper[O, S](
     override val name: String,
-    val cell: RNNCell[O, OS, S, SS],
+    val cell: RNNCell[O, S],
     val residualFn: (O, O) => O
 )(implicit
-    evStructureO: NestedStructure.Aux[O, _, OS],
-    evStructureS: NestedStructure.Aux[S, _, SS]
-) extends RNNCell[O, OS, S, SS](name) {
+    override protected val evStructureO: NestedStructure[O],
+    override protected val evStructureS: NestedStructure[S]
+) extends RNNCell[O, S](name) {
   override val layerType: String = "ResidualWrapper"
 
-  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+  override def createCellWithoutContext[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     ops.rnn.cell.ResidualWrapper(createdCell, residualFn)
   }
 }
 
 object ResidualWrapper {
-  def apply[O, OS, S, SS](
+  def apply[O, S](
       variableScope: String,
-      cell: RNNCell[O, OS, S, SS],
+      cell: RNNCell[O, S],
       residualFn: (O, O) => O
   )(implicit
-      evStructureO: NestedStructure.Aux[O, _, OS],
-      evStructureS: NestedStructure.Aux[S, _, SS]
-  ): ResidualWrapper[O, OS, S, SS] = {
+      evStructureO: NestedStructure[O],
+      evStructureS: NestedStructure[S]
+  ): ResidualWrapper[O, S] = {
     new ResidualWrapper(variableScope, cell, residualFn)
   }
 }

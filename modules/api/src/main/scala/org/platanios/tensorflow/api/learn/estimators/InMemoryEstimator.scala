@@ -71,8 +71,8 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
 )(implicit
-    evIn: NestedStructure.Aux[In, _, _],
-    evTrainIn: NestedStructure.Aux[TrainIn, _, _]
+    evIn: NestedStructure.Aux[In, _, _, _],
+    evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends Estimator[In, TrainIn, TrainOut, Out, Loss, EvalIn](modelFunction, configurationBase) {
   if (trainHooks.exists(_.isInstanceOf[Stopper])
       || trainChiefOnlyHooks.exists(_.isInstanceOf[Stopper])
@@ -393,8 +393,8 @@ object InMemoryEstimator {
       tensorBoardConfig: TensorBoardConfig = null,
       evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
   )(implicit
-      evIn: NestedStructure.Aux[In, _, _],
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
   ): InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss, EvalIn] = {
     new InMemoryEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,

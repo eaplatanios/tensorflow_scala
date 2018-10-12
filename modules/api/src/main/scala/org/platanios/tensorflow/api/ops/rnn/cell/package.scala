@@ -46,15 +46,15 @@ package object cell {
   }
 
   private[rnn] trait API {
-    type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
+    type RNNCell[O, S] = cell.RNNCell[O, S]
     type BasicRNNCell[T] = cell.BasicRNNCell[T]
     type GRUCell[T] = cell.GRUCell[T]
     type BasicLSTMCell[T] = cell.BasicLSTMCell[T]
     type LSTMCell[T] = cell.LSTMCell[T]
-    type DeviceWrapper[O, OS, S, SS] = cell.DeviceWrapper[O, OS, S, SS]
-    type DropoutWrapper[O, OS, S, SS] = cell.DropoutWrapper[O, OS, S, SS]
-    type ResidualWrapper[O, OS, S, SS] = cell.ResidualWrapper[O, OS, S, SS]
-    type MultiCell[O, OS, S, SS] = cell.StackedCell[O, OS, S, SS]
+    type DeviceWrapper[O, S] = cell.DeviceWrapper[O, S]
+    type DropoutWrapper[O, S] = cell.DropoutWrapper[O, S]
+    type ResidualWrapper[O, S] = cell.ResidualWrapper[O, S]
+    type MultiCell[O, S] = cell.StackedCell[O, S]
 
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell

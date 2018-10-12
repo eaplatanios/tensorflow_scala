@@ -29,6 +29,8 @@ import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 import scala.language.postfixOps
 
+// TODO: [TYPES] !!! Remove the million type arguments.
+
 /** Basic sampling Recurrent Neural Network (RNN) decoder.
   *
   * @param  cell             RNN cell to use for decoding.
@@ -40,27 +42,25 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape](
-    override val cell: RNNCell[Out, OutShape, State, StateShape],
+class BasicDecoder[Out, Sample, State](
+    override val cell: RNNCell[Out, State],
     val initialCellState: State,
     val helper: BasicDecoder.Helper[Out, Sample, State],
     val outputLayer: Out => Out = (o: Out) => o,
     override val name: String = "BasicRNNDecoder"
-)(implicit
-    evStructureO: NestedStructure.Aux[Out, _, OutShape],
-    evStructureSample: NestedStructure.Aux[Sample, _, SampleShape],
-    evStructureState: NestedStructure.Aux[State, _, StateShape],
-    evZeroO: Zero.Aux[Out, OutShape]
 ) extends Decoder[
-    Out, OutShape, State, StateShape,
-    BasicDecoder.DecoderOutput[Out, Sample], (OutShape, SampleShape), State, StateShape,
+    Out, State,
+    BasicDecoder.DecoderOutput[Out, Sample], State,
     BasicDecoder.DecoderOutput[Out, Sample], State](cell, name) {
   /** Scalar tensor representing the batch size of the input values. */
   override val batchSize: Output[Int] = {
     helper.batchSize
   }
 
-  override def zeroOutput(): BasicDecoder.DecoderOutput[Out, Sample] = {
+  override def zeroOutput[OV, OD, OS]()(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evZeroO: Zero.Aux[Out, OS]
+  ): BasicDecoder.DecoderOutput[Out, Sample] = {
     val zOutput = evZeroO.zero(batchSize, cell.outputShape, "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
     BasicDecoder.DecoderOutput(
@@ -73,7 +73,10 @@ class BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape](
     * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  override def initialize(): (Output[Boolean], Out, State) = {
+  override def initialize[OV, OD, OS, SV, SD, SS]()(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
+  ): (Output[Boolean], Out, State) = {
     Op.nameScope(s"$name/Initialize") {
       val helperInitialize = helper.initialize()
       (helperInitialize._1, helperInitialize._2, initialCellState)
@@ -85,13 +88,17 @@ class BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape](
     * @return Tuple containing: (i) the decoder output, (ii) the next state, (iii) the next inputs, and (iv) a scalar
     *         tensor specifying whether sampling has finished.
     */
-  override def next(
+  override def next[OV, OD, OS, SV, SD, SS, DSV, DSD, DSS](
       time: Output[Int],
       input: Out,
       state: State
+  )(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDS: NestedStructure.Aux[State, DSV, DSD, DSS]
   ): (BasicDecoder.DecoderOutput[Out, Sample], State, Out, Output[Boolean]) = {
     Op.nameScope(s"$name/Next") {
-      val nextTuple = cell(Tuple(input, state))
+      val nextTuple = cell(Tuple(input, state))(evStructureO, evStructureS)
       val nextTupleOutput = outputLayer(nextTuple.output)
       val sample = helper.sample(time, nextTupleOutput, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTupleOutput, nextTuple.state, sample)
@@ -105,28 +112,32 @@ class BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape](
     * @param  state  Final state after decoding.
     * @return Finalized output and state to return from the decoding process.
     */
-  override def finalize(
+  override def finalize[SV, SD, SS, DOV, DOD, DOS, DSV, DSD, DSS](
       output: BasicDecoder.DecoderOutput[Out, Sample],
       state: State,
       sequenceLengths: Output[Int]
+  )(implicit
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDO: NestedStructure.Aux[BasicDecoder.DecoderOutput[Out, Sample], DOV, DOD, DOS],
+      evStructureDS: NestedStructure.Aux[State, DSV, DSD, DSS]
   ): (BasicDecoder.DecoderOutput[Out, Sample], State, Output[Int]) = {
     (output, state, sequenceLengths)
   }
 }
 
 object BasicDecoder {
-  def apply[Out, OutShape, Sample, SampleShape, State, StateShape](
-      cell: RNNCell[Out, OutShape, State, StateShape],
+  def apply[Out, Sample, State](
+      cell: RNNCell[Out, State],
       initialCellState: State,
       helper: BasicDecoder.Helper[Out, Sample, State],
       outputLayer: Out => Out = (o: Out) => o,
       name: String = "BasicRNNDecoder"
   )(implicit
-      evStructureO: NestedStructure.Aux[Out, _, OutShape],
-      evStructureSample: NestedStructure.Aux[Sample, _, SampleShape],
-      evStructureState: NestedStructure.Aux[State, _, StateShape],
-      evZeroO: Zero.Aux[Out, OutShape]
-  ): BasicDecoder[Out, OutShape, Sample, SampleShape, State, StateShape] = {
+      evStructureO: NestedStructure[Out],
+      evStructureS: NestedStructure[Sample],
+      evStructureDS: NestedStructure[State],
+      evZeroOut: Zero[Out]
+  ): BasicDecoder[Out, Sample, State] = {
     new BasicDecoder(cell, initialCellState, helper, outputLayer, name)
   }
 
@@ -166,14 +177,14 @@ object BasicDecoder {
 
   /** RNN decoder helper to be used while training. It only reads inputs and the returned sample indexes are the argmax
     * over the RNN output logits. */
-  case class TrainingHelper[Out, OutShape, State, StateShape](
+  case class TrainingHelper[Out, OutTensorType, OutDataType, OutShape, State, StateTensorType, StateDataType, StateShape](
       input: Out,
       sequenceLengths: Output[Int],
       timeMajor: Boolean = false,
       name: String = "RNNDecoderTrainingHelper"
   )(implicit
-      evStructureO: NestedStructure.Aux[Out, _, OutShape],
-      evStructureS: NestedStructure.Aux[State, _, StateShape],
+      evStructureO: NestedStructure.Aux[Out, OutTensorType, OutDataType, OutShape],
+      evStructureS: NestedStructure.Aux[State, StateTensorType, StateDataType, StateShape],
       evZeroO: Zero.Aux[Out, OutShape]
   ) extends Helper[Out, Out, State] {
     if (sequenceLengths.rank != 1)

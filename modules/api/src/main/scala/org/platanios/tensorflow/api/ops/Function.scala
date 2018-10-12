@@ -37,37 +37,38 @@ import scala.collection.JavaConverters._
 case class Function[I, O](
     name: String,
     function: I => O
-)(implicit
-    evInput: NestedStructure[I],
-    evOutput: NestedStructure[O]
 ) {
-  def apply(
+  def apply[IV, ID, IS, OV, OD, OS](
       arg: I,
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
+  )(implicit
+      evStructureI: NestedStructure.Aux[I, IV, ID, IS],
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS]
   ): O = {
-    val dataTypes = evInput.outputs(arg).map(_.dataType)
+    val dataTypes = evStructureI.outputs(arg).map(_.dataType)
     val key = dataTypes.map(_.toString).mkString(":")
     InstantiatedFunction(
       name = s"${name}_$key",
       function = function,
-      inputDataType = evInput.dataType(arg),
+      inputDataType = evStructureI.dataTypeFromOutput(arg),
       input = Some(arg),
       captureByValue = captureByValue, appendHashToName = appendHashToName
-    )(evInput.asInstanceOf[NestedStructure.Aux[I, evInput.D, evInput.S]], evOutput).apply(arg)
+    ).apply(arg)
   }
 
-  def instantiate[ID, IS](
+  def instantiate[IV, ID, IS, OV, OD, OS](
       inputDataType: ID,
       inputShape: Option[IS] = None,
       input: Option[I] = None,
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   )(implicit
-      evInputSpecific: NestedStructure.Aux[I, ID, IS]
+      evStructureI: NestedStructure.Aux[I, IV, ID, IS],
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS]
   ): InstantiatedFunction[I, O] = {
-    val inputDataTypes = evInputSpecific.dataTypes(inputDataType)
-    val inputShapes = inputShape.map(evInputSpecific.shapes)
+    val inputDataTypes = evStructureI.dataTypes(inputDataType)
+    val inputShapes = inputShape.map(evStructureI.shapes)
     val key = (inputDataTypes.map(_.toString) ++
         inputShapes.getOrElse(Seq.empty).map(_.toString)).mkString(":")
     InstantiatedFunction(
@@ -77,8 +78,7 @@ case class Function[I, O](
       inputShape = inputShape,
       input = input,
       captureByValue = captureByValue,
-      appendHashToName = appendHashToName
-    )(evInputSpecific, evOutput)
+      appendHashToName = appendHashToName)
   }
 }
 
@@ -95,16 +95,13 @@ private[api] class InstantiatedFunction[I, O] protected(
     val name: String,
     private[this] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
-)(implicit
-    evInput: NestedStructure[I],
-    evOutput: NestedStructure[O]
 ) extends Closeable {
-  def outputDataTypes[D](implicit evOSpecific: NestedStructure.Aux[O, D, _]): D = {
-    evOSpecific.dataType(_dummyOutput)
+  def outputDataTypes[V, D, S](implicit evStructureO: NestedStructure.Aux[O, V, D, S]): D = {
+    evStructureO.dataTypeFromOutput(_dummyOutput)
   }
 
-  def outputShapes[S](implicit evOSpecific: NestedStructure.Aux[O, _, S]): S = {
-    evOSpecific.shape(_dummyOutput)
+  def outputShapes[V, D, S](implicit evStructureI: NestedStructure.Aux[O, V, D, S]): S = {
+    evStructureI.shapeFromOutput(_dummyOutput)
   }
 
   /** Lock for the native handle. */
@@ -149,15 +146,18 @@ private[api] class InstantiatedFunction[I, O] protected(
     * @param  name                      Name for the created op.
     * @return Function output.
     */
-  def apply(
+  def apply[IV, ID, IS, OV, OD, OS](
       input: I,
       inline: Boolean = true,
       compiled: Boolean = false,
       separateCompiledGradients: Boolean = false,
       name: String = name
+  )(implicit
+      evStructureI: NestedStructure.Aux[I, IV, ID, IS],
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS]
   ): O = {
     val outputs = Op.nameScope(name) {
-      val outputs = evInput.outputs(input)
+      val outputs = evStructureI.outputs(input)
       addToGraph(outputs.head.graph)
       val builder = Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
         opType = hashedName,
@@ -175,7 +175,7 @@ private[api] class InstantiatedFunction[I, O] protected(
       }
       builder.build().output
     }
-    evOutput.decodeOutputFromOutput(_dummyOutput, outputs)._1
+    evStructureO.decodeOutputFromOutput(_dummyOutput, outputs)._1
   }
 
   /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
@@ -185,7 +185,7 @@ private[api] class InstantiatedFunction[I, O] protected(
 }
 
 object InstantiatedFunction {
-  private[api] def apply[I, ID, IS, O](
+  private[api] def apply[I, IV, ID, IS, O, OV, OD, OS](
       name: String,
       function: I => O,
       inputDataType: ID,
@@ -194,8 +194,8 @@ object InstantiatedFunction {
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   )(implicit
-      evInput: NestedStructure.Aux[I, ID, IS],
-      evOutput: NestedStructure[O]
+      evInput: NestedStructure.Aux[I, IV, ID, IS],
+      evOutput: NestedStructure.Aux[O, OV, OD, OS]
   ): InstantiatedFunction[I, O] = {
     // List of placeholders for the function definition.
     val inputDataTypes = evInput.dataTypes(inputDataType)

@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.RNN
@@ -42,14 +42,9 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, DecState, DecStateShape, DecFinalOut, DecFinalState](
-    val cell: RNNCell[Out, OutShape, State, StateShape],
+abstract class Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState](
+    val cell: RNNCell[Out, State],
     val name: String = "RNNDecoder"
-)(implicit
-    evStructureO: NestedStructure.Aux[Out, _, OutShape],
-    evStructureDO: NestedStructure.Aux[DecOut, _, DecOutShape],
-    evStructureDS: NestedStructure.Aux[DecState, _, DecStateShape],
-    evStructureDFO: NestedStructure.Aux[DecFinalOut, _, _]
 ) {
   /** Scalar tensor representing the batch size of the input values. */
   val batchSize: Output[Int]
@@ -66,24 +61,34 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
     */
   val tracksOwnFinished: Boolean = false
 
-  def zeroOutput(): DecOut
+  def zeroOutput[OV, OD, OS]()(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evZeroO: Zero.Aux[Out, OS]
+  ): DecOut
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
     *
     * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  def initialize(): (Output[Boolean], Out, DecState)
+  def initialize[OV, OD, OS, SV, SD, SS]()(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
+  ): (Output[Boolean], Out, DecState)
 
   /** This method is called once per step of decoding (but only once for dynamic decoding).
     *
     * @return Tuple containing: (i) the decoder output for this step, (ii) the next decoder state, (iii) the next input,
     *         and (iv) a scalar tensor specifying whether decoding has finished.
     */
-  def next(
+  def next[OV, OD, OS, SV, SD, SS, DSV, DSD, DSS](
       time: Output[Int],
       input: Out,
       state: DecState
+  )(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDS: NestedStructure.Aux[DecState, DSV, DSD, DSS]
   ): (DecOut, DecState, Out, Output[Boolean])
 
   /** Finalizes the output of the decoding process.
@@ -93,23 +98,34 @@ abstract class Decoder[Out, OutShape, State, StateShape, DecOut, DecOutShape, De
     * @param  sequenceLengths Tensor containing the sequence lengths that the decoder cell outputs.
     * @return Finalized output and state to return from the decoding process.
     */
-  def finalize(
+  def finalize[SV, SD, SS, DOV, DOD, DOS, DSV, DSD, DSS](
       output: DecOut,
       state: DecState,
       sequenceLengths: Output[Int]
+  )(implicit
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDO: NestedStructure.Aux[DecOut, DOV, DOD, DOS],
+      evStructureDS: NestedStructure.Aux[DecState, DSV, DSD, DSS]
   ): (DecFinalOut, DecFinalState, Output[Int])
 
   /** Performs dynamic decoding using this decoder.
     *
     * This method calls `initialize()` once and `next()` repeatedly.
     */
-  def decode(
+  def decode[OV, OD, OS, SV, SD, SS, DSV, DSD, DSS, DOV, DOD, DOS, DFOV, DFOD, DFOS](
       outputTimeMajor: Boolean = false,
       imputeFinished: Boolean = false,
       maximumIterations: Output[Int] = null,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       name: String = s"$name/DynamicRNNDecode"
+  )(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDS: NestedStructure.Aux[DecState, DSV, DSD, DSS],
+      evStructureDO: NestedStructure.Aux[DecOut, DOV, DOD, DOS],
+      evStructureDFO: NestedStructure.Aux[DecFinalOut, DFOV, DFOD, DFOS],
+      evZeroO: Zero.Aux[Out, OS]
   ): (DecFinalOut, DecFinalState, Output[Int]) = {
     if (maximumIterations != null && maximumIterations.rank != 0) {
       throw InvalidShapeException(

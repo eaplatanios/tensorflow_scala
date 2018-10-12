@@ -76,8 +76,8 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
 )(implicit
-    evIn: NestedStructure.Aux[In, _, _],
-    evTrainIn: NestedStructure.Aux[TrainIn, _, _]
+    evIn: NestedStructure.Aux[In, _, _, _],
+    evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends Estimator[In, TrainIn, TrainOut, Out, Loss, EvalIn](modelFunction, configurationBase) {
   /** Trains the model managed by this estimator.
     *
@@ -477,8 +477,8 @@ object FileBasedEstimator {
       tensorBoardConfig: TensorBoardConfig = null,
       evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
   )(implicit
-      evIn: NestedStructure.Aux[In, _, _],
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _]
+      evIn: NestedStructure.Aux[In, _, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
   ): FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss, EvalIn] = {
     new FileBasedEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,

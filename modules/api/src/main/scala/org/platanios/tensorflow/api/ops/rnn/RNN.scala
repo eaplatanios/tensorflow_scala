@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.Aux
 import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -58,8 +59,8 @@ trait RNN {
     */
   @throws[InvalidShapeException]
   @throws[InvalidArgumentException]
-  def dynamicRNN[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS],
+  def dynamicRNN[O, OV, OD, OS, S, SV, SD, SS](
+      cell: RNNCell[O, S],
       input: O,
       initialState: S,
       timeMajor: Boolean = false,
@@ -68,8 +69,8 @@ trait RNN {
       sequenceLengths: Output[Int] = null,
       name: String = "RNN"
   )(implicit
-      evStructureO: NestedStructure.Aux[O, _, OS],
-      evStructureS: NestedStructure.Aux[S, _, SS],
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[S, SV, SD, SS],
       evZeroO: Zero.Aux[O, OS]
   ): Tuple[O, S] = {
     Op.nameScope(name) {
@@ -161,9 +162,9 @@ trait RNN {
     * @throws InvalidShapeException If the inputs or the provided sequence lengths have invalid or unknown shapes.
     */
   @throws[InvalidShapeException]
-  def bidirectionalDynamicRNN[O, OS, S, SS](
-      cellFw: RNNCell[O, OS, S, SS],
-      cellBw: RNNCell[O, OS, S, SS],
+  def bidirectionalDynamicRNN[O, OV, OD, OS, S, SV, SD, SS](
+      cellFw: RNNCell[O, S],
+      cellBw: RNNCell[O, S],
       input: O,
       initialStateFw: S = null.asInstanceOf[S],
       initialStateBw: S = null.asInstanceOf[S],
@@ -173,8 +174,8 @@ trait RNN {
       sequenceLengths: Output[Int] = null,
       name: String = "RNN"
   )(implicit
-      evStructureO: NestedStructure.Aux[O, _, OS],
-      evStructureS: NestedStructure.Aux[S, _, SS],
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[S, SV, SD, SS],
       evZeroO: Zero.Aux[O, OS]
   ): (Tuple[O, S], Tuple[O, S]) = {
     Op.nameScope(name) {
@@ -233,16 +234,16 @@ object RNN extends RNN {
     * @throws InvalidShapeException If the inputs have invalid or unknown shapes.
     */
   @throws[InvalidShapeException]
-  private[RNN] def dynamicRNNLoop[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS],
+  private[RNN] def dynamicRNNLoop[O, OV, OD, OS, S, SV, SD, SS](
+      cell: RNNCell[O, S],
       input: O,
       initialState: S,
       parallelIterations: Int,
       swapMemory: Boolean,
       sequenceLengths: Output[Int] = null
   )(implicit
-      evStructureO: NestedStructure.Aux[O, _, OS],
-      evStructureS: NestedStructure.Aux[S, _, SS],
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[S, SV, SD, SS],
       evZeroO: Zero.Aux[O, OS]
   ): Tuple[O, S] = {
     // Construct an initial output.

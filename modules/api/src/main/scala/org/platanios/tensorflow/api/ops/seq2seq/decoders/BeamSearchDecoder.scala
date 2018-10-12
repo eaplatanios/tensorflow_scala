@@ -56,8 +56,8 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BeamSearchDecoder[T, State, StateShape](
-    override val cell: RNNCell[Output[T], Shape, State, StateShape],
+class BeamSearchDecoder[T, State](
+    override val cell: RNNCell[Output[T], State],
     val initialCellState: State,
     val embeddingFn: Output[Int] => Output[T],
     val beginTokens: Output[Int],
@@ -67,21 +67,15 @@ class BeamSearchDecoder[T, State, StateShape](
     val outputLayer: Output[T] => Output[T] = (o: Output[T]) => o,
     val reorderTensorArrays: Boolean = true,
     override val name: String = "BeamSearchRNNDecoder"
-)(implicit
-    evStructureT: NestedStructure.Aux[Output[T], _, Shape],
-    evStructureState: NestedStructure.Aux[State, _, StateShape]
 ) extends Decoder[
-    Output[T], Shape, State, StateShape,
-    BeamSearchDecoder.DecoderOutput, (Shape, Shape, Shape),
-    BeamSearchDecoder.DecoderState[State], (StateShape, Shape, Shape, Shape),
+    Output[T], State,
+    BeamSearchDecoder.DecoderOutput,
+    BeamSearchDecoder.DecoderState[State],
     BeamSearchDecoder.FinalOutput,
     BeamSearchDecoder.DecoderState[State]](cell, name) {
   // TODO: [SEQ2SEQ] !!! Handle the tiling inside the decoder itself.
   // evS.map(initialCellState, BeamSearchDecoder.tileBatch(_, beamWidth))
   private val tiledInitialCellState: State = initialCellState
-
-  if (evStructureState.outputs(tiledInitialCellState).exists(_.rank == -1))
-    throw InvalidArgumentException("All tensors in the state need to have known rank for the beam search decoder.")
 
   if (beginTokens.rank != 1)
     throw InvalidShapeException(s"'beginTokens' (shape = ${beginTokens.shape}) must have rank 1.")
@@ -95,9 +89,13 @@ class BeamSearchDecoder[T, State, StateShape](
     }
   }
 
-  private val processedInitialCellState: State = {
+  private def processedInitialCellState[SV, SD, SS](implicit
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
+  ): State = {
+    if (evStructureS.outputs(tiledInitialCellState).exists(_.rank == -1))
+      throw InvalidArgumentException("All tensors in the state need to have known rank for the beam search decoder.")
     Op.nameScope(name) {
-      evStructureState.map(
+      evStructureS.map(
         tiledInitialCellState,
         Some(cell.stateShape),
         BeamSearchDecoder.MaybeTensorConverter(
@@ -105,15 +103,10 @@ class BeamSearchDecoder[T, State, StateShape](
     }
   }
 
-  private val processedBeginTokens: Output[Int] = {
-    Op.nameScope(name) {
-      Basic.tile(Basic.expandDims(beginTokens, 1), Basic.stack[Int](Seq(1, beamWidth)))
-    }
-  }
-
   private val beginInput: Output[T] = {
     Op.nameScope(name) {
-      embeddingFn(processedBeginTokens)
+      val tiledBeginTokens = Basic.tile(Basic.expandDims(beginTokens, 1), Basic.stack[Int](Seq(1, beamWidth)))
+      embeddingFn(tiledBeginTokens)
     }
   }
 
@@ -135,7 +128,10 @@ class BeamSearchDecoder[T, State, StateShape](
     true
   }
 
-  override def zeroOutput(): BeamSearchDecoder.DecoderOutput = {
+  override def zeroOutput[OV, OD, OS]()(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evZeroO: Zero.Aux[Output[T], OS]
+  ): BeamSearchDecoder.DecoderOutput = {
     // We assume the data type of the cell is the same as the initial cell state's first component tensor data type.
     val zScores = Zero[Output[Float], Shape].zero(batchSize, Shape(beamWidth), "ZeroScores")
     val zPredictedIDs = Zero[Output[Int], Shape].zero(batchSize, Shape(beamWidth), "ZeroPredictedIDs")
@@ -148,7 +144,10 @@ class BeamSearchDecoder[T, State, StateShape](
     * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  override def initialize(): (Output[Boolean], Output[T], BeamSearchDecoder.DecoderState[State]) = {
+  override def initialize[OV, OD, OS, SV, SD, SS]()(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
+  ): (Output[Boolean], Output[T], BeamSearchDecoder.DecoderState[State]) = {
     Op.nameScope(s"$name/Initialize") {
       val finished = Basic.oneHot[Boolean, Int](
         indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
@@ -173,25 +172,26 @@ class BeamSearchDecoder[T, State, StateShape](
     * @return Tuple containing: (i) the decoder output, (ii) the next state, (iii) the next inputs, and (iv) a scalar
     *         tensor specifying whether sampling has finished.
     */
-  override def next(
+  override def next[OV, OD, OS, SV, SD, SS, DSV, DSD, DSS](
       time: Output[Int],
       input: Output[T],
       state: BeamSearchDecoder.DecoderState[State]
+  )(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDS: NestedStructure.Aux[BeamSearchDecoder.DecoderState[State], DSV, DSD, DSS]
   ): (BeamSearchDecoder.DecoderOutput, BeamSearchDecoder.DecoderState[State], Output[T], Output[Boolean]) = {
     implicit val evTF: TF[T] = TF.fromDataType(input.dataType)
     Op.nameScope(s"$name/Next") {
-      val mergedInput = evStructureT.map(
-        input, Some(input.shape(2 ::)),
-        BeamSearchDecoder.MergeBatchBeamsConverter(batchSize, beamWidth))
-      val mergedCellState = evStructureState.map(
+      val mergedInput = BeamSearchDecoder.MergeBatchBeamsConverter(batchSize, beamWidth)(input, Some(input.shape(2 ::)))
+      val mergedCellState = evStructureS.map(
         state.modelState, Some(cell.stateShape),
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.MergeBatchBeamsConverter(batchSize, beamWidth)))
       val mergedNextTuple = cell(Tuple(mergedInput, mergedCellState))
-      val nextTupleOutput = outputLayer(evStructureT.map(
-        mergedNextTuple.output, Some(mergedNextTuple.output.shape(1 ::)),
-        BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)))
-      val nextTupleState = evStructureState.map(
+      val nextTupleOutput = BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)(
+        mergedNextTuple.output, Some(mergedNextTuple.output.shape(1 ::)))
+      val nextTupleState = evStructureS.map(
         mergedNextTuple.state, Some(cell.stateShape),
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)))
@@ -278,7 +278,7 @@ class BeamSearchDecoder[T, State, StateShape](
       // Pick out the cell state according to the next search state parent IDs. We use a different gather shape here
       // because the cell state tensors (i.e., the tensors that would be gathered from) all have rank greater than two
       // and we need to preserve those dimensions.
-      val gatheredNextTupleState = evStructureState.map(
+      val gatheredNextTupleState = evStructureS.map(
         nextTupleState, None,
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.GatherConverter(
@@ -304,10 +304,14 @@ class BeamSearchDecoder[T, State, StateShape](
     * @param  state  Final state after decoding.
     * @return Finalized output and state to return from the decoding process.
     */
-  override def finalize(
+  override def finalize[SV, SD, SS, DOV, DOD, DOS, DSV, DSD, DSS](
       output: BeamSearchDecoder.DecoderOutput,
       state: BeamSearchDecoder.DecoderState[State],
       sequenceLengths: Output[Int]
+  )(implicit
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDO: NestedStructure.Aux[BeamSearchDecoder.DecoderOutput, DOV, DOD, DOS],
+      evStructureDS: NestedStructure.Aux[BeamSearchDecoder.DecoderState[State], DSV, DSD, DSS]
   ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.DecoderState[State], Output[Int]) = {
     // Get the maximum sequence length across all search states for each batch
     val maxSequenceLengths = state.sequenceLengths.max(Tensor(1)).castTo[Int]
@@ -316,7 +320,7 @@ class BeamSearchDecoder[T, State, StateShape](
     val finalOutput = BeamSearchDecoder.FinalOutput(predictedIDs, output)
     var finalState = state
     if (reorderTensorArrays)
-      finalState = state.copy[State](modelState = evStructureState.map(
+      finalState = state.copy[State](modelState = evStructureS.map(
         state.modelState, None,
         BeamSearchDecoder.MaybeSortTensorArrayBeamsConverter(
           state.sequenceLengths, output.parentIDs, batchSize, beamWidth)))
@@ -327,8 +331,8 @@ class BeamSearchDecoder[T, State, StateShape](
 object BeamSearchDecoder {
   protected[BeamSearchDecoder] val logger = Logger(LoggerFactory.getLogger("Ops / Beam Search Decoder"))
 
-  def apply[T, State, StateShape](
-      cell: RNNCell[Output[T], Shape, State, StateShape],
+  def apply[T, State](
+      cell: RNNCell[Output[T], State],
       initialCellState: State,
       embeddingFn: Output[Int] => Output[T],
       beginTokens: Output[Int],
@@ -339,10 +343,9 @@ object BeamSearchDecoder {
       reorderTensorArrays: Boolean = true,
       name: String = "BeamSearchRNNDecoder"
   )(implicit
-      evStructureT: NestedStructure.Aux[Output[T], _, Shape],
-      evStructureState: NestedStructure.Aux[State, _, StateShape]
-  ): BeamSearchDecoder[T, State, StateShape] = {
-    new BeamSearchDecoder[T, State, StateShape](
+      evStructureS: NestedStructure[State]
+  ): BeamSearchDecoder[T, State] = {
+    new BeamSearchDecoder[T, State](
       cell, initialCellState, embeddingFn, beginTokens, endToken,
       beamWidth, lengthPenalty, outputLayer, reorderTensorArrays, name)
   }

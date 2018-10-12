@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
@@ -37,16 +38,17 @@ class GRUCell[T: TF : IsNotQuantized](
     val activation: Output[T] => Output[T],
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output[T], Shape, Output[T], Shape](name) {
+) extends RNNCell[Output[T], Output[T]](name) {
   override val layerType: String = "GRUCell"
 
-  override def createCellWithoutContext(
+  override def createCellWithoutContext[OV, OD, OS](
       mode: Mode,
-      inputShape: Shape
-  ): ops.rnn.cell.GRUCell[T] = {
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): ops.rnn.cell.GRUCell[T] = {
+    val shape = inputShape.asInstanceOf[Shape]
     val gateKernel = getParameter[T](
       s"Gate/$KERNEL_NAME",
-      Shape(inputShape(-1) + numUnits, 2 * numUnits),
+      Shape(shape(-1) + numUnits, 2 * numUnits),
       kernelInitializer)
     val gateBias = getParameter[T](
       s"Gate/$BIAS_NAME",
@@ -54,7 +56,7 @@ class GRUCell[T: TF : IsNotQuantized](
       biasInitializer)
     val candidateKernel = getParameter[T](
       s"Candidate/$KERNEL_NAME",
-      Shape(inputShape(-1) + numUnits, numUnits),
+      Shape(shape(-1) + numUnits, numUnits),
       kernelInitializer)
     val candidateBias = getParameter[T](
       s"Candidate/$BIAS_NAME",

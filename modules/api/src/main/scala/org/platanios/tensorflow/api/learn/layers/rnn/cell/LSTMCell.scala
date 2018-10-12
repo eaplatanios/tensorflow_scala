@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
@@ -48,15 +49,16 @@ class LSTMCell[T: TF : IsNotQuantized](
     val projectionClip: Float = -1,
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output[T], Shape, LSTMState[T], (Shape, Shape)](name) {
+) extends RNNCell[Output[T], LSTMState[T]](name) {
   override val layerType: String = "LSTMCell"
 
-  override def createCellWithoutContext(
+  override def createCellWithoutContext[OV, OD, OS](
       mode: Mode,
-      inputShape: Shape
-  ): ops.rnn.cell.LSTMCell[T] = {
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): ops.rnn.cell.LSTMCell[T] = {
+    val shape = inputShape.asInstanceOf[Shape]
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
-    val kernel = getParameter[T](KERNEL_NAME, Shape(inputShape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
+    val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)
     val bias = getParameter[T](BIAS_NAME, Shape(4 * numUnits), biasInitializer)
     val (wfDiag, wiDiag, woDiag) = {
       if (usePeepholes) {

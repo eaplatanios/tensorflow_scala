@@ -31,11 +31,11 @@ class Input[T] private(
     private val _shape: Any,
     private val name: String = "Input"
 ) {
-  def dataType[D, S](implicit evT: NestedStructure.Aux[T, D, S]): D = {
+  def dataType[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
     _dataType.asInstanceOf[D]
   }
 
-  def shape[D, S](implicit evT: NestedStructure.Aux[T, D, S]): S = {
+  def shape[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
     _shape.asInstanceOf[S]
   }
 
@@ -43,20 +43,20 @@ class Input[T] private(
     mutable.Map.empty
   }
 
-  protected def create[D, S]()(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
+  protected def create[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): DatasetIterator[T] = {
     DatasetIterator.fromStructure(
       outputDataTypes = dataType,
       outputShapes = shape,
       name = name)
   }
 
-  final def apply[D, S]()(implicit evT: NestedStructure.Aux[T, D, S]): DatasetIterator[T] = {
+  final def apply[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): DatasetIterator[T] = {
     cache.getOrElse(Op.currentGraph, create())
   }
 
-  def zip[D, S, T2, D2, S2](other: Input[T2])(implicit
-      evT: NestedStructure.Aux[T, D, S],
-      evT2: NestedStructure.Aux[T2, D2, S2]
+  def zip[V, D, S, T2, V2, D2, S2](other: Input[T2])(implicit
+      evT: NestedStructure.Aux[T, V, D, S],
+      evT2: NestedStructure.Aux[T2, V2, D2, S2]
   ): Input[(T, T2)] = {
     new Input[(T, T2)](
       _dataType = (dataType, other.dataType),
@@ -66,11 +66,11 @@ class Input[T] private(
 }
 
 object Input {
-  def apply[T, D, S](
+  def apply[T, V, D, S](
       dataType: D,
       shape: S,
       name: String = "Input"
-  )(implicit evT: NestedStructure.Aux[T, D, S]): Input[T] = {
+  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Input[T] = {
     new Input[T](dataType, shape, name)
   }
 

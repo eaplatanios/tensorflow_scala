@@ -26,28 +26,38 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class DeviceWrapper[O, OS, S, SS] protected (
-    val cell: RNNCell[O, OS, S, SS],
+class DeviceWrapper[O, S] protected (
+    val cell: RNNCell[O, S],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
-)(implicit
-    evStructureO: NestedStructure.Aux[O, _, OS],
-    evStructureS: NestedStructure.Aux[S, _, SS]
-) extends RNNCell[O, OS, S, SS]() {
-  override def outputShape: OS = cell.outputShape
-  override def stateShape: SS = cell.stateShape
+) extends RNNCell[O, S]() {
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): OS = {
+    cell.outputShape
+  }
 
-  override def zeroState(
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[S, SV, SD, SS]): SS = {
+    cell.stateShape
+  }
+
+  override def zeroState[SV, SD, SS](
       batchSize: Output[Int],
       shape: SS,
       name: String = "ZeroState"
-  )(implicit evZeroS: Zero.Aux[S, SS]): S = {
+  )(implicit
+      evS: NestedStructure.Aux[S, SV, SD, SS],
+      evZeroS: Zero.Aux[S, SS]
+  ): S = {
     Op.device(device, deviceFunction) {
       super.zeroState(batchSize, shape, name)
     }
   }
 
-  override def forward(input: Tuple[O, S]): Tuple[O, S] = {
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: Tuple[O, S]
+  )(implicit
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
+  ): Tuple[O, S] = {
     Op.device(device, deviceFunction) {
       cell.forward(input)
     }
@@ -55,14 +65,11 @@ class DeviceWrapper[O, OS, S, SS] protected (
 }
 
 object DeviceWrapper {
-  def apply[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS],
+  def apply[O, S](
+      cell: RNNCell[O, S],
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, _, OS],
-      evStructureS: NestedStructure.Aux[S, _, SS]
-  ): DeviceWrapper[O, OS, S, SS] = {
+  ): DeviceWrapper[O, S] = {
     new DeviceWrapper(cell, device, deviceFunction)
   }
 }

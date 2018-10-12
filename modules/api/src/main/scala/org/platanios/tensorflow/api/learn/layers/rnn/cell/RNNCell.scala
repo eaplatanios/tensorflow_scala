@@ -26,13 +26,29 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
-    evStructureO: NestedStructure.Aux[O, _, OS],
-    evStructureS: NestedStructure.Aux[S, _, SS]
+abstract class RNNCell[O, S](
+    override val name: String
+)(implicit
+    protected val evStructureO: NestedStructure[O],
+    protected val evStructureS: NestedStructure[S]
 ) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
-  def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
+  protected implicit val evStructureOAux: NestedStructure.Aux[O, evStructureO.V, evStructureO.D, evStructureO.S] = {
+    evStructureO.asAux()
+  }
 
-  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+  protected implicit val evStructureSAux: NestedStructure.Aux[S, evStructureS.V, evStructureS.D, evStructureS.S] = {
+    evStructureS.asAux()
+  }
+
+  def createCellWithoutContext[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S]
+
+  final def createCell[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
     if (name != null) {
       VariableScope.scope(name, isPure = true) {
         createCellWithoutContext(mode, inputShape)
@@ -42,7 +58,9 @@ abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
     }
   }
 
-  override final def forwardWithoutContext(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
-    createCellWithoutContext(mode, evStructureO.shape(input.output)).forward(input)
+  override final def forwardWithoutContext(
+      input: Tuple[O, S]
+  )(implicit mode: Mode): Tuple[O, S] = {
+    createCellWithoutContext(mode, evStructureOAux.shapeFromOutput(input.output)).forward(input)
   }
 }

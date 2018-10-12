@@ -47,21 +47,28 @@ import java.security.MessageDigest
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O, OS, S, SS] protected (
-    val cell: RNNCell[O, OS, S, SS],
+class DropoutWrapper[O, S] protected (
+    val cell: RNNCell[O, S],
     val inputKeepProbability: Output[Float] = 1.0f,
     val outputKeepProbability: Output[Float] = 1.0f,
     val stateKeepProbability: Output[Float] = 1.0f,
     val seed: Option[Int] = None,
     val name: String = "DropoutWrapper"
-)(implicit
-    evStructureO: NestedStructure.Aux[O, _, OS],
-    evStructureS: NestedStructure.Aux[S, _, SS]
-) extends RNNCell[O, OS, S, SS]() {
-  override def outputShape: OS = cell.outputShape
-  override def stateShape: SS = cell.stateShape
+) extends RNNCell[O, S]() {
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): OS = {
+    cell.outputShape
+  }
 
-  override def forward(input: Tuple[O, S]): Tuple[O, S] = {
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[S, SV, SD, SS]): SS = {
+    cell.stateShape
+  }
+
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: Tuple[O, S]
+  )(implicit
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
+  ): Tuple[O, S] = {
     Op.nameScope(name) {
       val dropoutInput = evStructureO.map(
         input.output, None, DropoutWrapper.DropoutConverter(inputKeepProbability, "input", seed))
@@ -76,17 +83,14 @@ class DropoutWrapper[O, OS, S, SS] protected (
 }
 
 object DropoutWrapper {
-  def apply[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS],
+  def apply[O, S](
+      cell: RNNCell[O, S],
       inputKeepProbability: Output[Float] = 1.0f,
       outputKeepProbability: Output[Float] = 1.0f,
       stateKeepProbability: Output[Float] = 1.0f,
       seed: Option[Int] = None,
       name: String = "DropoutWrapper"
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, _, OS],
-      evStructureS: NestedStructure.Aux[S, _, SS]
-  ): DropoutWrapper[O, OS, S, SS] = {
+  ): DropoutWrapper[O, S] = {
     new DropoutWrapper(
       cell, inputKeepProbability, outputKeepProbability,
       stateKeepProbability, seed, name)

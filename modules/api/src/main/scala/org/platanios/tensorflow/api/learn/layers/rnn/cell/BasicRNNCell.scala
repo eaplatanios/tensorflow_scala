@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
@@ -37,14 +38,15 @@ class BasicRNNCell[T: TF : IsNotQuantized](
     val activation: Output[T] => Output[T],
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output[T], Shape, Output[T], Shape](name) {
+) extends RNNCell[Output[T], Output[T]](name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def createCellWithoutContext(
+  override def createCellWithoutContext[OV, OD, OS](
       mode: Mode,
-      inputShape: Shape
-  ): ops.rnn.cell.BasicRNNCell[T] = {
-    val kernel = getParameter[T](KERNEL_NAME, Shape(inputShape(-1) + numUnits, numUnits), kernelInitializer)
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): ops.rnn.cell.BasicRNNCell[T] = {
+    val shape = inputShape.asInstanceOf[Shape]
+    val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + numUnits, numUnits), kernelInitializer)
     val bias = getParameter[T](BIAS_NAME, Shape(numUnits), biasInitializer)
     ops.rnn.cell.BasicRNNCell(kernel, bias, activation, name)
   }

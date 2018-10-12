@@ -19,12 +19,12 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
 import com.google.protobuf.{ByteString, GeneratedMessageV3}
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.tensorflow.framework.{AttrValue, CollectionDef, WhileContextDef}
 import org.tensorflow.framework.CollectionDef.BytesList
 
@@ -198,12 +198,12 @@ private[api] case class WhileLoopContext private[control_flow] (
   }
 
   /** Adds the loop termination condition and the loop body to the graph. */
-  private[control_flow] def buildLoop[T, S](
+  private[control_flow] def buildLoop[T, V, D, S](
       predicateFn: T => Output[Boolean],
       bodyFn: T => T,
       loopVariables: T,
       shapeInvariants: Option[S]
-  )(implicit evStructureT: NestedStructure.Aux[T, _, S]): T = {
+  )(implicit evStructureT: NestedStructure.Aux[T, V, D, S]): T = {
     try {
       // Enter the frame for this loop.
       enter()
