@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, NestedStructureOps}
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
@@ -79,7 +79,7 @@ class Session private[api](
       options: Option[RunOptions] = None
   )(implicit
       evFetchable: NestedStructure.Aux[F, FV, FD, FS],
-      evExecutable: Executable[E]
+      evExecutable: NestedStructureOps[E]
   ): FV = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
@@ -101,8 +101,8 @@ class Session private[api](
     *                 have various forms and its type defines the return type of this function. Please refer to the
     *                 documentation of the nested structure type class for details on the allowed types.
     * @param  targets Optional argument specifying which ops to execute in the TensorFlow graph, without returning their
-    *                 value. Please refer to the documentation of the [[Executable]] type class for details on the
-    *                 allowed types of `targets`.
+    *                 value. Please refer to the documentation of the [[NestedStructureOps]] type class for details on
+    *                 the allowed types of `targets`.
     * @param  options Optional [[RunOptions]] protocol buffer that allows controlling the behavior of this particular
     *                 run (e.g., turning tracing on).
     * @return   A tuple containing two elements:
@@ -119,7 +119,7 @@ class Session private[api](
       options: Option[RunOptions] = None
   )(implicit
       evFetchable: NestedStructure.Aux[F, FV, FD, FS],
-      evExecutable: Executable[E]
+      evExecutable: NestedStructureOps[E]
   ): (FV, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
@@ -134,7 +134,7 @@ class Session private[api](
       wantMetadata: Boolean = false
   )(implicit
       evFetchable: NestedStructure.Aux[F, FV, FD, FS],
-      evExecutable: Executable[E]
+      evExecutable: NestedStructureOps[E]
   ): (FV, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")

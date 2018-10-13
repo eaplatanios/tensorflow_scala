@@ -13,7 +13,7 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.core.client
+package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.ops._
 
@@ -28,11 +28,11 @@ import scala.language.higherKinds
   * Currently supported executable types are:
   *   - Single [[Op]] object.
   *   - Single [[OutputLike]] object.
-  *   - Traversables of other [[Executable]]s (e.g., `Set`s, `List`s, etc.).
+  *   - Traversables of other [[NestedStructureOps]]s (e.g., `Set`s, `List`s, etc.).
   *     - Note that, even though `Set(List(op1), List(op1, op2))` is supported, `Set(Set(op1), List(op1, op2))` is not.
   *     - Traversables that are not homogeneous are not supported (e.g., `Set(op1, Set(op1, op2))`).
-  *   - Arrays of other [[Executable]]s.
-  *   - Products of other [[Executable]]s (e.g., tuples).
+  *   - Arrays of other [[NestedStructureOps]]s.
+  *   - Products of other [[NestedStructureOps]]s (e.g., tuples).
   *     - Note that with tuples, heterogeneous types are supported, due to the tuple type being a kind of heterogeneous
   *       collection.
   * Internally, the executable provided to a session will be de-duplicated to prevent redundant computation. This means
@@ -40,16 +40,16 @@ import scala.language.higherKinds
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait Executable[T] {
+sealed trait NestedStructureOps[T] {
   /** Target ops to execute. */
   def ops(executable: T): Set[UntypedOp]
 }
 
-object Executable {
-  def apply[T: Executable]: Executable[T] = implicitly[Executable[T]]
+object NestedStructureOps {
+  def apply[T: NestedStructureOps]: NestedStructureOps[T] = implicitly[NestedStructureOps[T]]
 
-  implicit val fromUnit: Executable[Unit] = {
-    new Executable[Unit] {
+  implicit val fromUnit: NestedStructureOps[Unit] = {
+    new NestedStructureOps[Unit] {
       /** Target ops to execute. */
       override def ops(executable: Unit): Set[UntypedOp] = {
         Set.empty
@@ -57,56 +57,56 @@ object Executable {
     }
   }
 
-  implicit def fromOp[I, O]: Executable[Op[I, O]] = {
-    new Executable[Op[I, O]] {
+  implicit def fromOp[I, O]: NestedStructureOps[Op[I, O]] = {
+    new NestedStructureOps[Op[I, O]] {
       override def ops(executable: Op[I, O]): Set[UntypedOp] = {
         Set(executable)
       }
     }
   }
 
-  implicit def fromOutput[T]: Executable[Output[T]] = {
-    new Executable[Output[T]] {
+  implicit def fromOutput[T]: NestedStructureOps[Output[T]] = {
+    new NestedStructureOps[Output[T]] {
       override def ops(executable: Output[T]): Set[UntypedOp] = {
         Set(executable.op)
       }
     }
   }
 
-  implicit def fromOption[T: Executable]: Executable[Option[T]] = {
-    new Executable[Option[T]] {
+  implicit def fromOption[T: NestedStructureOps]: NestedStructureOps[Option[T]] = {
+    new NestedStructureOps[Option[T]] {
       override def ops(executable: Option[T]): Set[UntypedOp] = {
-        executable.map(e => Executable[T].ops(e)).getOrElse(Set.empty)
+        executable.map(e => NestedStructureOps[T].ops(e)).getOrElse(Set.empty)
       }
     }
   }
 
-  implicit def fromArray[T: Executable]: Executable[Array[T]] = {
-    new Executable[Array[T]] {
+  implicit def fromArray[T: NestedStructureOps]: NestedStructureOps[Array[T]] = {
+    new NestedStructureOps[Array[T]] {
       override def ops(executable: Array[T]): Set[UntypedOp] = {
-        executable.flatMap(e => Executable[T].ops(e)).toSet
+        executable.flatMap(e => NestedStructureOps[T].ops(e)).toSet
       }
     }
   }
 
-  implicit def fromSeq[T: Executable]: Executable[Seq[T]] = {
-    new Executable[Seq[T]] {
+  implicit def fromSeq[T: NestedStructureOps]: NestedStructureOps[Seq[T]] = {
+    new NestedStructureOps[Seq[T]] {
       override def ops(executable: Seq[T]): Set[UntypedOp] = {
-        executable.flatMap(e => Executable[T].ops(e)).toSet
+        executable.flatMap(e => NestedStructureOps[T].ops(e)).toSet
       }
     }
   }
 
-  implicit def fromSet[T: Executable]: Executable[Set[T]] = {
-    new Executable[Set[T]] {
+  implicit def fromSet[T: NestedStructureOps]: NestedStructureOps[Set[T]] = {
+    new NestedStructureOps[Set[T]] {
       override def ops(executable: Set[T]): Set[UntypedOp] = {
-        executable.flatMap(e => Executable[T].ops(e))
+        executable.flatMap(e => NestedStructureOps[T].ops(e))
       }
     }
   }
 
-  implicit val fromHNil: Executable[HNil] = {
-    new Executable[HNil] {
+  implicit val fromHNil: NestedStructureOps[HNil] = {
+    new NestedStructureOps[HNil] {
       override def ops(executable: HNil): Set[UntypedOp] = {
         Set.empty
       }
@@ -114,10 +114,10 @@ object Executable {
   }
 
   implicit def fromHList[H, T <: HList](implicit
-      evH: Strict[Executable[H]],
-      evT: Executable[T]
-  ): Executable[H :: T] = {
-    new Executable[H :: T] {
+      evH: Strict[NestedStructureOps[H]],
+      evT: NestedStructureOps[T]
+  ): NestedStructureOps[H :: T] = {
+    new NestedStructureOps[H :: T] {
       override def ops(executable: H :: T): Set[UntypedOp] = {
         evH.value.ops(executable.head) ++
             evT.ops(executable.tail)
@@ -126,10 +126,10 @@ object Executable {
   }
 
   implicit def fromCoproduct[H, T <: Coproduct](implicit
-      evH: Strict[Executable[H]],
-      evT: Executable[T]
-  ): Executable[H :+: T] = {
-    new Executable[H :+: T] {
+      evH: Strict[NestedStructureOps[H]],
+      evT: NestedStructureOps[T]
+  ): NestedStructureOps[H :+: T] = {
+    new NestedStructureOps[H :+: T] {
       override def ops(executable: H :+: T): Set[UntypedOp] = {
         executable match {
           case Inl(h) => evH.value.ops(h)
@@ -141,9 +141,9 @@ object Executable {
 
   implicit def fromProduct[P <: Product, L <: HList](implicit
       gen: Generic.Aux[P, L],
-      executableL: Strict[Executable[L]]
-  ): Executable[P] = {
-    new Executable[P] {
+      executableL: Strict[NestedStructureOps[L]]
+  ): NestedStructureOps[P] = {
+    new NestedStructureOps[P] {
       override def ops(executable: P): Set[UntypedOp] = {
         executableL.value.ops(gen.to(executable))
       }

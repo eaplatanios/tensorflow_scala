@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Session}
+import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
 import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, NestedStructureOps}
 import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -108,7 +108,7 @@ class SessionWrapper private[learn](
       wantMetadata: Boolean = false
   )(implicit
       evFetchable: NestedStructure.Aux[T, V, D, S],
-      evExecutable: Executable[E]
+      evExecutable: NestedStructureOps[E]
   ): (V, Option[RunMetadata]) = {
     if (!_hooksEnabled || activeHooks.isEmpty) {
       super.runHelper(feeds, fetches, targets, options, wantMetadata)
@@ -293,7 +293,7 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
       wantMetadata: Boolean = false
   )(implicit
       evFetchable: NestedStructure.Aux[F, FV, FD, FS],
-      evExecutable: Executable[E]
+      evExecutable: NestedStructureOps[E]
   ): (FV, Option[RunMetadata]) = {
     var result: (FV, Option[RunMetadata]) = null
     while (result == null) {

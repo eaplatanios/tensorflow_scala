@@ -13,22 +13,22 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.core.client
+package org.platanios.tensorflow.api.implicits.helpers
 
-import org.platanios.tensorflow.api.using
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.using
 
-import org.scalatest.junit.JUnitSuite
 import org.junit.Test
+import org.scalatest.junit.JUnitSuite
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class ExecutableSuite extends JUnitSuite {
-  def executable[T: Executable](value: T): T = value
+class NestedStructureOpsSuite extends JUnitSuite {
+  def executable[T: NestedStructureOps](value: T): T = value
 
   @Test def testOpExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
