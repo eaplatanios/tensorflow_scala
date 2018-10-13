@@ -80,7 +80,7 @@ lazy val testSettings = Seq(
   parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
-lazy val all = (project in file("./modules"))
+lazy val all = (project in file("."))
     .aggregate(jni, api, data, examples, site)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
