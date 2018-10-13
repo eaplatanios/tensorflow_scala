@@ -301,13 +301,12 @@ struct KernelRegistration {
 };
 
 auto jvmCallbackOpInitializer = []{
-  auto* reg = reinterpret_cast<std::unordered_multimap<string, KernelRegistration>*>(GlobalKernelRegistry());
-  if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_CPU), ":")) == reg->end()) {
+  if (GetRegisteredKernelsForOp("JVMCallback").kernel_size() == 0) {
     REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
     REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
   }
   // TODO: !!!
-  // if (reg->find(strings::StrCat("JVMCallback:", DeviceTypeString(DEVICE_GPU), ":")) == reg->end()) {
+  // if (GetRegisteredKernelsForOp("JVMCallback").kernel_size() == 0) {
   //   REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
   //   REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
   // }
