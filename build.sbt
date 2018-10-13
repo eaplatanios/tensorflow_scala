@@ -24,8 +24,8 @@ crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.7")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.10.0"
-val circeVersion = "0.9.1" // Use for working with JSON.
+val tensorFlowVersion = "1.11.0"
+val circeVersion = "0.10.0" // Use for working with JSON.
 
 autoCompilerPlugins in ThisBuild := true
 
@@ -42,18 +42,19 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
   "-Yno-adapted-args",
+  // "-Ypartial-unification",
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture",                      // Turn on future language features.
-//  "-P:splain:all",
-//  "-P:splain:infix",
-//  "-P:splain:foundreq",
-//  "-P:splain:implicits",
-//  "-P:splain:color",
-//  "-P:splain:tree",
-//  "-P:splain:boundsimplicits:false"
+  "-Xfuture", // Turn on future language features.
+  // "-P:splain:all",
+  // "-P:splain:infix",
+  // "-P:splain:foundreq",
+  // "-P:splain:implicits",
+  // "-P:splain:color",
+  // "-P:splain:tree",
+  // "-P:splain:boundsimplicits:false"
 )
 
 nativeCrossCompilationEnabled in ThisBuild := false
@@ -65,14 +66,14 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.1" cross CrossVersion.patch)
+  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
     "junit"         %  "junit"     % "4.12",
-    "org.scalactic" %% "scalactic" % "3.0.4",
-    "org.scalatest" %% "scalatest" % "3.0.4" % "test"),
+    "org.scalactic" %% "scalactic" % "3.0.5",
+    "org.scalatest" %% "scalatest" % "3.0.5" % "test"),
   logBuffered in Test := false,
   fork in test := false,
   testForkedParallel in Test := false,
@@ -315,8 +316,6 @@ lazy val noPublishSettings = Seq(
 
 val deletedPublishedSnapshots = taskKey[Unit]("Delete published snapshots.")
 
-import sbtrelease.Utilities._
-
 lazy val publishSettings = Seq(
   publishArtifact := true,
   homepage := Some(url("https://github.com/eaplatanios/tensorflow_scala")),
@@ -352,9 +351,8 @@ lazy val publishSettings = Seq(
     optKey = pgpSigningKey.value,
     optPassphrase = sys.env.get("PGP_PASSWORD").map(_.toCharArray)),
   publishMavenStyle := true,
-  // publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
-  publishTo in ThisBuild := Some(
+  publishTo := Some(
     if (isSnapshot.value)
       Opts.resolver.sonatypeSnapshots
     else
@@ -363,16 +361,12 @@ lazy val publishSettings = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    // runClean,
+    runClean,
     runTest,
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    ReleaseStep({ st: State =>
-      val extracted = st.extract
-      val ref = extracted.get(thisProjectRef)
-      extracted.runAggregated(releasePublishArtifactsAction in JniCross in Global in ref, st)
-    }),
+    releaseStepCommandAndRemaining("+publishSigned"),
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
@@ -390,3 +384,4 @@ lazy val publishSettings = Seq(
           s"${Opts.resolver.sonatypeSnapshots.root}/${organization.value.replace(".", "/")}/" :: Nil) ! streams.value.log
   }
 )
+
