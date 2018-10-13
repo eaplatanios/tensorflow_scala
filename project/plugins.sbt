@@ -15,11 +15,11 @@
 
 logLevel := Level.Warn
 
-val tensorFlowVersion = "1.10.0"
+val tensorFlowVersion = "1.11.0"
 
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
-  "org.ow2.asm" % "asm" % "5.0.4",
+  "org.ow2.asm" % "asm" % "6.2.1",
   "org.tensorflow" % "proto" % tensorFlowVersion)
 
 // addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC4")
@@ -29,13 +29,13 @@ libraryDependencies ++= Seq(
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
 
 // Plugins used for generating the library website
-addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.1")
-addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.18")
+addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.2")
+addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.24")
 
 // Packaging and publishing related plugins
-addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.8")
-addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "1.1.1")
-addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.0")
+addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.9")
+addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "2.0.0-M2")
+addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.3")
 
 // Generally useful plugins
-// addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.0.3") // Provides fast dependency resolution.
+// addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.1.0-M4") // Provides fast dependency resolution.
