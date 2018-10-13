@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
@@ -25,6 +25,7 @@ import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -75,18 +76,6 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
   require(Op.checkNameScope(name), "Invalid evaluator name.")
 
-  override type InnerStateF = Unit
-  override type InnerStateE = Unit
-  override type InnerStateR = Unit
-
-  override protected val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
-    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
-  }
-
-  override protected val evExecutableInnerState: Executable[InnerStateE] = {
-    implicitly[Executable[InnerStateE]]
-  }
-
   override private[learn] val priority: Int = -1000
 
   protected var graph              : Graph                           = _
@@ -94,8 +83,8 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
   protected var datasetInitializers: Seq[(String, UntypedOp)]        = _
   protected var evaluateOps        : Model.EvaluateOps[TrainIn, Out] = _
 
-  override protected def fetches: Unit = ()
-  override protected def targets: Unit = ()
+  override protected def fetches: Seq[Output[Any]] = Seq.empty
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def begin(): Unit = {
     graph = Graph()
@@ -114,7 +103,7 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Unit],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
@@ -142,11 +131,11 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
         case (datasetName, datasetInitializer) =>
           sessionCreator.addLocalInitOp(datasetInitializer)
           session.run(targets = evaluateOps.metricResets)
-          session.run(targets = datasetInitializer)
+          session.run(targets = Set(datasetInitializer))
           var shouldStop = false
           while (!shouldStop) {
             try {
-              session.run(targets = evaluateOps.metricUpdates.toSet)
+              session.run(targets = evaluateOps.metricUpdates.map(_.op).toSet)
             } catch {
               case _: OutOfRangeException => shouldStop = true
             }

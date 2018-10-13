@@ -16,7 +16,6 @@
 package org.platanios.tensorflow
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable}
 import org.platanios.tensorflow.api.core.types
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.ops.{Gradients, UntypedOp}
@@ -174,10 +173,6 @@ package object horovod {
       */
     case class BroadcastGlobalVariablesHook(rootRank: Int, device: String = "")
         extends tf.learn.Hook {
-      override type StateF = Unit
-      override type StateE = Unit
-      override type StateR = Unit
-
       protected var broadcastOp: Option[UntypedOp] = None
 
       override protected def begin(): Unit = {
@@ -189,7 +184,7 @@ package object horovod {
       }
 
       override protected def afterSessionCreation(session: Session): Unit = {
-        broadcastOp.foreach(op => session.run(targets = op))
+        broadcastOp.foreach(op => session.run(targets = Set(op)))
       }
     }
 

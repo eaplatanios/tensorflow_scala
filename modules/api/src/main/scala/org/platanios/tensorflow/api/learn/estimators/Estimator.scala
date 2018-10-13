@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.estimators
 
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Fetchable, SessionConfig}
+import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
@@ -179,12 +179,12 @@ abstract class Estimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
     * @return Either an iterator over `(IT, ModelInferenceOutput)` tuples, or a single element of type `I`, depending on
     *         the type of `input`.
     */
-  def infer[InT, OutT, InferIn, InferOut](
+  def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
-      evFetchableIn: Fetchable.Aux[In, InT],
-      evFetchableOut: Fetchable.Aux[Out, OutT],
-      ev: Estimator.SupportedInferInput[In, InT, OutT, InferIn, InferOut]
+      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
+      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut]
   ): InferOut
 
   /** Evaluates the model managed by this estimator given the provided evaluation data, `data`.
@@ -342,9 +342,9 @@ object Estimator {
     }
   }
 
-  trait SupportedInferInput[In, InT, OutT, InferIn, InferOut] {
+  trait SupportedInferInput[In, InV, OutV, InferIn, InferOut] {
     def toDataset(value: InferIn): Dataset[In]
-    def convertFetched(iterator: Iterator[(InT, OutT)]): InferOut
+    def convertFetched(iterator: Iterator[(InV, OutV)]): InferOut
   }
 
   object SupportedInferInput {

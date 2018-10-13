@@ -16,12 +16,15 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
+
+import scala.collection.mutable
 
 /** Sessions provide the client interface for interacting with TensorFlow computations.
   *
@@ -56,29 +59,28 @@ class Session private[api](
     *
     * @param  feeds   Optional feed map. This argument can be used to feed values into a TensorFlow session. It is a map
     *                 from graph nodes to their corresponding [[Tensor]] values. More specifically, for all allowed
-    *                 types for this argument, please refer to the documentation of the [[Feedable]] type class.
+    *                 types for this argument, please refer to the documentation of the nested structure type class.
     * @param  fetches Optional argument specifying which values to fetch from the TensorFlow session. This argument can
     *                 have various forms and its type defines the return type of this function. Please refer to the
-    *                 documentation of the [[Fetchable]] type class for details on the allowed types.
+    *                 documentation of the nested structure type class for details on the allowed types.
     * @param  targets Optional argument specifying which ops to execute in the TensorFlow graph, without returning their
-    *                 value. Please refer to the documentation of the [[Executable]] type class for details on the
-    *                 allowed types of `targets`.
+    *                 value.
     * @param  options Optional [[RunOptions]] protocol buffer that allows controlling the behavior of this particular
     *                 run (e.g., turning tracing on).
     * @return The evaluated tensors using the structure of `fetches`. For more details on the return type, please refer
-    *         to the documentation of the [[Fetchable]] type class.
+    *         to the documentation of the nested structure type class.
     * @throws IllegalStateException If this session has already been closed.
     */
   @throws[IllegalStateException]
-  def run[F, E, R](
+  def run[F, FV, FD, FS, E](
       feeds: FeedMap = FeedMap.empty,
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
   )(implicit
-      evFetchable: Fetchable.Aux[F, R],
+      evFetchable: NestedStructure.Aux[F, FV, FD, FS],
       evExecutable: Executable[E]
-  ): R = {
+  ): FV = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
 
@@ -97,7 +99,7 @@ class Session private[api](
     *                 types for this argument, please refer to the documentation of the [[Feedable]] type class.
     * @param  fetches Optional argument specifying which values to fetch from the TensorFlow session. This argument can
     *                 have various forms and its type defines the return type of this function. Please refer to the
-    *                 documentation of the [[Fetchable]] type class for details on the allowed types.
+    *                 documentation of the nested structure type class for details on the allowed types.
     * @param  targets Optional argument specifying which ops to execute in the TensorFlow graph, without returning their
     *                 value. Please refer to the documentation of the [[Executable]] type class for details on the
     *                 allowed types of `targets`.
@@ -105,35 +107,35 @@ class Session private[api](
     *                 run (e.g., turning tracing on).
     * @return   A tuple containing two elements:
     *           - The evaluated tensors using the structure of `fetches`. For more details on the return type, please
-    *           refer to the documentation of the [[Fetchable]] type class.
+    *           refer to the documentation of the nested structure type class.
     *           - A [[RunMetadata]] protocol buffer option containing the collected run metadata, if any.
     * @throws IllegalStateException If the session has already been closed.
     */
   @throws[IllegalStateException]
-  def runWithMetadata[F, E, R](
+  def runWithMetadata[F, FV, FD, FS, E](
       feeds: FeedMap = FeedMap.empty,
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
   )(implicit
-      evFetchable: Fetchable.Aux[F, R],
+      evFetchable: NestedStructure.Aux[F, FV, FD, FS],
       evExecutable: Executable[E]
-  ): (R, Option[RunMetadata]) = {
+  ): (FV, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
 
   /** Helper method for [[run]] and [[runWithMetadata]]. */
   @throws[IllegalStateException]
-  private[api] def runHelper[F, E, R](
+  private[api] def runHelper[F, FV, FD, FS, E](
       feeds: FeedMap = FeedMap.empty,
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
   )(implicit
-      evFetchable: Fetchable.Aux[F, R],
+      evFetchable: NestedStructure.Aux[F, FV, FD, FS],
       evExecutable: Executable[E]
-  ): (R, Option[RunMetadata]) = {
+  ): (FV, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
     // TODO: !!! [JNI] Add a call to 'extend' once some JNI issues are resolved.
@@ -141,7 +143,7 @@ class Session private[api](
     val inputTensorHandles: Array[Long] = inputTensors.map(_.resolve()).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
     val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
-    val (uniqueFetches, resultsBuilder) = Fetchable.process(fetches)(evFetchable)
+    val (uniqueFetches, resultsBuilder) = Session.processFetches(fetches)(evFetchable)
     val outputOpHandles: Array[Long] = uniqueFetches.map(_.op.nativeHandle).toArray
     val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
@@ -163,7 +165,7 @@ class Session private[api](
         targetOpHandles = targetOpHandles,
         wantRunMetadata = wantMetadata,
         outputTensorHandles = outputTensorHandles)
-      val outputs: R = resultsBuilder(outputTensorHandles.map(handle => {
+      val outputs: FV = resultsBuilder(outputTensorHandles.map(handle => {
         val tensor = Tensor.fromHostNativeHandle[Any](handle)
         NativeTensor.delete(handle)
         tensor
@@ -239,5 +241,28 @@ object Session {
     // potential memory leak.
     Disposer.add(session, closeFn)
     session
+  }
+
+  private[core] def processFetches[T, V, D, S](
+      fetchable: T
+  )(implicit ev: NestedStructure.Aux[T, V, D, S]): (Seq[Output[Any]], Seq[Tensor[Any]] => V) = {
+    val fetches = ev.outputs(fetchable)
+    val (uniqueFetches, indices) = uniquifyFetches(fetches)
+    val resultsBuilder = (values: Seq[Tensor[Any]]) => {
+      ev.decodeTensorFromOutput(fetchable, indices.map(values(_)))._1
+    }
+    (uniqueFetches, resultsBuilder)
+  }
+
+  private[Session] def uniquifyFetches(
+      fetches: Seq[Output[Any]]
+  ): (Seq[Output[Any]], Seq[Int]) = {
+    val uniqueFetches = mutable.ArrayBuffer.empty[Output[Any]]
+    val seenFetches = mutable.Map.empty[Output[_], Int]
+    val indices = fetches.map(f => seenFetches.getOrElseUpdate(f, {
+      uniqueFetches += f
+      uniqueFetches.length - 1
+    }))
+    (uniqueFetches, indices)
   }
 }

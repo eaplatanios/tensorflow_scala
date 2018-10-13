@@ -151,7 +151,7 @@ private[learn] case class SessionManager(
       if (initOp.isEmpty && initFunction.isEmpty && localInitOp.isEmpty)
         throw InvalidArgumentException(
           "Model is not initialized and no 'initOp', 'initFunction', or 'localInitOp' was provided.")
-      initOp.foreach(op => session.run(feeds = initFeedMap, targets = op))
+      initOp.foreach(op => session.run(feeds = initFeedMap, targets = Set(op)))
       initFunction.foreach(f => f(session))
     }
     tryLocalInitOp(session).foreach(
@@ -361,7 +361,7 @@ private[learn] case class SessionManager(
       isModelReadyForLocalInit(session) match {
         case None =>
           SessionManager.logger.debug("Running local initialization op.")
-          session.run(targets = op)
+          session.run(targets = Set(op))
           SessionManager.logger.debug("Finished running local initialization op.")
           None
         case s => s

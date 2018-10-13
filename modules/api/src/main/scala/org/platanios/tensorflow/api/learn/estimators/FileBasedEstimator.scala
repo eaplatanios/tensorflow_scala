@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.estimators
 
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.Fetchable
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
@@ -170,11 +169,11 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
             hooks = allHooks.toSet,
             chiefOnlyHooks = allChiefOnlyHooks.toSet,
             sessionScaffold = SessionScaffold(
-              localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
+              localInitFunction = Some((session, _) => session.run(targets = Set(dataInitializer))),
               saver = saver))
           try {
             while (!session.shouldStop)
-              session.run(targets = trainOps.trainOp)
+              session.run(targets = Set(trainOps.trainOp))
           } catch {
             case _: OutOfRangeException => session.setShouldStop(true)
             case e if RECOVERABLE_EXCEPTIONS.contains(e.getClass) => session.close()
@@ -206,12 +205,12 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
     * @return Either an iterator over `(IT, ModelInferenceOutput)` tuples, or a single element of type `I`, depending on
     *         the type of `input`.
     */
-  override def infer[InT, OutT, InferIn, InferOut](
+  override def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
-      evFetchableIn: Fetchable.Aux[In, InT],
-      evFetchableOut: Fetchable.Aux[Out, OutT],
-      ev: Estimator.SupportedInferInput[In, InT, OutT, InferIn, InferOut]
+      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
+      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut]
   ): InferOut = {
     inferWithHooks(input)
   }
@@ -245,14 +244,14 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
     *                                     and no checkpoint could be found in this estimator's working directory.
     */
   @throws[CheckpointNotFoundException]
-  def inferWithHooks[InT, OutT, InferIn, InferOut](
+  def inferWithHooks[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn,
       hooks: Set[Hook] = inferHooks,
       checkpointPath: Path = null
   )(implicit
-      evFetchableIn: Fetchable.Aux[In, InT],
-      evFetchableOut: Fetchable.Aux[Out, OutT],
-      ev: Estimator.SupportedInferInput[In, InT, OutT, InferIn, InferOut]
+      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
+      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut]
   ): InferOut = {
     Op.nameScope("Estimator/Infer") {
       if (hooks.exists(_.isInstanceOf[Stopper]))
@@ -281,21 +280,21 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
         val session = MonitoredSession(
           ChiefSessionCreator(
             sessionScaffold = SessionScaffold(
-              localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
+              localInitFunction = Some((session, _) => session.run(targets = Set(dataInitializer))),
               saver = saver),
             sessionConfig = configuration.sessionConfig,
             checkpointPath = workingDir),
           hooks.filter(!_.isInstanceOf[Stopper]), shouldRecover = true)
-        val output = ev.convertFetched(new Iterator[(InT, OutT)] {
+        val output = ev.convertFetched(new Iterator[(InV, OutV)] {
           override def hasNext: Boolean = !session.shouldStop
-          override def next(): (InT, OutT) = {
+          override def next(): (InV, OutV) = {
             try {
               session.run(fetches = (inferOps.input, inferOps.output))
             } catch {
               case _: OutOfRangeException =>
                 session.setShouldStop(true)
                 // TODO: !!! Do something to avoid this null pair.
-                (null.asInstanceOf[InT], null.asInstanceOf[OutT])
+                (null.asInstanceOf[InV], null.asInstanceOf[OutV])
               case t: Throwable =>
                 session.closeWithoutHookEnd()
                 throw t
@@ -425,7 +424,7 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
           ChiefSessionCreator(
             master = configuration.evaluationMaster,
             sessionScaffold = SessionScaffold(
-              localInitFunction = Some((session, _) => session.run(targets = dataInitializer)),
+              localInitFunction = Some((session, _) => session.run(targets = Set(dataInitializer))),
               saver = saver),
             sessionConfig = configuration.sessionConfig,
             checkpointPath = configuration.workingDir),
@@ -436,7 +435,7 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
             val step = session.run(fetches = globalStep.value).scalar
             while (!session.shouldStop)
               try {
-                session.run(targets = evalUpdateOps)
+                session.run(targets = Set(evalUpdateOps))
               } catch {
                 case _: OutOfRangeException => session.setShouldStop(true)
               }

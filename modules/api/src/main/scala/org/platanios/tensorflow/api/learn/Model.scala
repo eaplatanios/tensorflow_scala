@@ -25,7 +25,6 @@ import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Variable
 
-
 // TODO: [LEARN] Add support for trainable models with only the loss function gradient available.
 
 /**

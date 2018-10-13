@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -35,34 +35,26 @@ class NaNChecker protected (
     val tensorNames: Set[String],
     val failOnNaN: Boolean = true
 ) extends Hook {
-  override type StateF = Seq[Output[Any]]
-  override type StateE = Unit
-  override type StateR = Seq[Tensor[Any]]
-
-  private[this] var outputs: Seq[Output[Any]] = _
+  private var outputs: Seq[Output[Any]] = _
 
   override protected def begin(): Unit = {
     // Convert tensor names to op outputs.
     outputs = tensorNames.map(Op.currentGraph.getOutputByName).toSeq
   }
 
-  override protected def beforeSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R]
+  override protected def beforeSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV]
   )(implicit
-      evFetchable: Fetchable.Aux[F, R],
-      evExecutable: Executable[E]
-  ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Unit, Seq[Tensor[Any]]]] = {
+      evStructureC: NestedStructure.Aux[C, CV, _, _]
+  ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
     Some(Hook.SessionRunArgs(fetches = outputs))
   }
 
   @throws[IllegalStateException]
-  override protected def afterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
+  override protected def afterSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV],
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
-  )(implicit
-      evFetchable: Fetchable.Aux[F, R],
-      evExecutable: Executable[E]
-  ): Unit = {
+  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
     // TODO: [TYPES] !!! Remove the cast once we start using static types everywhere.
     runResult.result.filter(_.toFloat.isNaN.any().scalar).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."

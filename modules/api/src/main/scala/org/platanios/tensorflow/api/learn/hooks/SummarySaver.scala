@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.ops.{Output, Summary}
+import org.platanios.tensorflow.api.ops.{Output, Summary, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.tensorflow.util.SessionLog
@@ -44,18 +44,6 @@ class SummarySaver protected (
     val triggerAtEnd: Boolean = true,
     val collection: Graph.Key[Output[Any]] = Graph.Keys.SUMMARIES
 ) extends TriggeredHook(trigger, triggerAtEnd) {
-  override type InnerStateF = Option[Output[String]]
-  override type InnerStateE = Unit
-  override type InnerStateR = Option[Tensor[String]]
-
-  override protected val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
-    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
-  }
-
-  override protected val evExecutableInnerState: Executable[InnerStateE] = {
-    implicitly[Executable[InnerStateE]]
-  }
-
   protected var summary      : Option[Output[String]]    = None
   protected var summaryWriter: Option[SummaryFileWriter] = None
 
@@ -65,27 +53,25 @@ class SummarySaver protected (
       summaryWriter = Some(SummaryFileWriterCache.get(directory))
   }
 
-  override protected def end(session: Session): Unit = summaryWriter.foreach(_.flush())
+  override protected def end(session: Session): Unit = {
+    summaryWriter.foreach(_.flush())
+  }
 
-  override protected def fetches: InnerStateF = summary
-  override protected def targets: Unit = ()
+  override protected def fetches: Seq[Output[Any]] = summary.toSeq
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[InnerStateR],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
-    runResult.result match {
-      case Some(s) =>
-        summaryWriter.foreach(writer => {
-          if (step == 0L)
-            writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), step)
-          writer.writeSummaryString(s.scalar, step)
-          writer.flush()
-        })
-      case None => ()
-    }
+    summaryWriter.foreach(writer => {
+      if (step == 0L)
+        writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), step)
+      writer.writeSummaryString(runResult.result.head.scalar.asInstanceOf[String], step)
+      writer.flush()
+    })
   }
 }
 

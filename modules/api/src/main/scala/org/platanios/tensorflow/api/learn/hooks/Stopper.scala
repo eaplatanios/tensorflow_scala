@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.{Counter, StopCriteria}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -34,10 +35,6 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 private[learn] class Stopper protected (protected var criteria: StopCriteria) extends Hook {
-  override type StateF = (Option[Output[Long]], Option[Output[Long]], Option[Output[Float]])
-  override type StateE = Unit
-  override type StateR = (Option[Tensor[Long]], Option[Tensor[Long]], Option[Tensor[Float]])
-
   private var epoch: Variable[Long] = _
   private var step : Variable[Long] = _
   private var loss : Output[Float]  = _
@@ -48,7 +45,10 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
   private var lastLoss        : Float        = Float.MaxValue
   private var numStepsBelowTol: Int          = 0
 
-  private var sessionFetches: StateF = _
+  private var sessionFetches : Seq[Output[Any]] = _
+  private var epochFetchIndex: Int              = _
+  private var stepFetchIndex : Int              = _
+  private var lossFetchIndex : Int              = _
 
   /** Updates the stop criteria used by this stop hook. This method is used by in-memory estimators. */
   def updateCriteria(criteria: StopCriteria): Unit = {
@@ -73,85 +73,63 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
   }
 
   override protected def begin(): Unit = {
+    val fetches = mutable.ListBuffer.empty[Output[Any]]
     if (criteria.maxSeconds.isDefined)
       startTime = System.currentTimeMillis()
-
-    val epoch = {
-      if (criteria.needEpoch) {
-        this.epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, local = false, Op.currentGraph).getOrElse(
-          throw new IllegalStateException(
-            s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopHook'."))
-        Some(this.epoch.value)
-      } else {
-        None
-      }
+    if (criteria.needEpoch) {
+      epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, local = false, Op.currentGraph).getOrElse(
+        throw new IllegalStateException(
+          s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopHook'."))
+      epochFetchIndex = fetches.size
+      fetches.append(epoch.value)
     }
-
-    val step = {
-      if (criteria.needStep) {
-        this.step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false, Op.currentGraph).getOrElse(
-          throw new IllegalStateException(
-            s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopHook'."))
-        Some(this.step.value)
-      } else {
-        None
-      }
+    if (criteria.needStep) {
+      step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false, Op.currentGraph).getOrElse(
+        throw new IllegalStateException(
+          s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopHook'."))
+      stepFetchIndex = fetches.size
+      fetches.append(step.value)
     }
-
-    val loss = {
-      if (criteria.needLoss) {
-        this.loss = Math.addN(Op.currentGraph.getCollection(Graph.Keys.LOSSES).toSeq.map(_.toFloat))
-        Some(this.loss)
-      } else {
-        None
-      }
+    if (criteria.needLoss) {
+      loss = Math.addN(Op.currentGraph.getCollection(Graph.Keys.LOSSES).toSeq.map(_.toFloat))
+      lossFetchIndex = fetches.size
+      fetches.append(loss)
     }
-
-    sessionFetches = (epoch, step, loss)
+    sessionFetches = fetches
   }
 
   override protected def afterSessionCreation(session: Session): Unit = {
     reset(session)
   }
 
-  override protected def beforeSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R]
+  override protected def beforeSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV]
   )(implicit
-      evFetchable: Fetchable.Aux[F, R],
-      evExecutable: Executable[E]
-  ): Option[Hook.SessionRunArgs[StateF, StateE, StateR]] = {
+      evStructureC: NestedStructure.Aux[C, CV, _, _]
+  ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
     Some(Hook.SessionRunArgs(fetches = sessionFetches))
   }
 
   @throws[IllegalStateException]
-  override protected def afterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[StateR]
-  )(implicit
-      evFetchable: Fetchable.Aux[F, R],
-      evExecutable: Executable[E]
-  ): Unit = {
+  override protected def afterSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
+  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+
     var converged = false
-    runResult.result match {
-      case (Some(e), _, _) if lastEpoch.exists(e.scalar >= _) =>
+    if (criteria.maxEpochs.isDefined) {
+      val epoch = runResult.result(epochFetchIndex).scalar.asInstanceOf[Long]
+      if (lastEpoch.exists(epoch >= _)) {
         Stopper.logger.debug("Stop requested: Exceeded maximum number of epochs.")
         converged = true
-      case (_, Some(s), _) if lastStep.exists(s.scalar >= _) =>
+      }
+    }
+    if (criteria.maxSteps.isDefined) {
+      val step = runResult.result(stepFetchIndex).scalar.asInstanceOf[Long]
+      if (lastStep.exists(step >= _)) {
         Stopper.logger.debug("Stop requested: Exceeded maximum number of steps.")
         converged = true
-      case (_, _, Some(l)) =>
-        val lossDiff = scala.math.abs(lastLoss - l.scalar)
-        if (criteria.absLossChangeTol.exists(lossDiff < _) ||
-            criteria.relLossChangeTol.exists(scala.math.abs(lossDiff / lastLoss) < _)) {
-          numStepsBelowTol += 1
-        } else {
-          numStepsBelowTol = 0
-        }
-        if (numStepsBelowTol > criteria.maxStepBelowTol) {
-          Stopper.logger.debug("Stop requested: Loss value converged.")
-          converged = true
-        }
-      case _ => ()
+      }
     }
     criteria.maxSeconds.foreach(maxSeconds => {
       if (System.currentTimeMillis() - startTime >= maxSeconds) {
@@ -159,6 +137,20 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
         converged = true
       }
     })
+    if (criteria.absLossChangeTol.isDefined || criteria.relLossChangeTol.isDefined) {
+      val loss = runResult.result(lossFetchIndex).scalar.asInstanceOf[Float]
+      val lossDiff = scala.math.abs(lastLoss - loss)
+      if (criteria.absLossChangeTol.exists(lossDiff < _) ||
+          criteria.relLossChangeTol.exists(scala.math.abs(lossDiff / lastLoss) < _)) {
+        numStepsBelowTol += 1
+      } else {
+        numStepsBelowTol = 0
+      }
+      if (numStepsBelowTol > criteria.maxStepBelowTol) {
+        Stopper.logger.debug("Stop requested: Loss value converged.")
+        converged = true
+      }
+    }
     if (converged)
       runContext.requestStop()
   }

@@ -33,9 +33,9 @@ class FetchableSuite extends JUnitSuite {
       val fetchable2 = OutputIndexedSlices(Basic.constant(2L), Basic.constant(2L), Basic.constant(2L))
       val fetchable3 = SparseOutput(
         Basic.constant(Tensor(Tensor(2L), Tensor(1L))), Basic.constant(Tensor(2L, 1L)), Basic.constant(Tensor(3L)))
-      val processed1 = Fetchable.process(fetchable1)
-      val processed2 = Fetchable.process(fetchable2)
-      val processed3 = Fetchable.process(fetchable3)
+      val processed1 = Session.processFetches(fetchable1)
+      val processed2 = Session.processFetches(fetchable2)
+      val processed3 = Session.processFetches(fetchable3)
       assert(processed1._1.length === 1)
       assert(processed1._1(0).name === "Constant:0")
       assert(processed1._2(Seq.fill(1)(Tensor(0))).isInstanceOf[Tensor[_]])
@@ -54,7 +54,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedSeq = Fetchable.process(Seq(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
+      val processedSeq = Session.processFetches(Seq(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
       assert(processedSeq._1.length === 3)
       assert(processedSeq._1(0).name === "Constant:0")
       assert(processedSeq._1(1).name === "Constant_1:0")
@@ -69,7 +69,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedArray = Fetchable.process(Array(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
+      val processedArray = Session.processFetches(Array(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
       assert(processedArray._1.length === 3)
       assert(processedArray._1(0).name === "Constant:0")
       assert(processedArray._1(1).name === "Constant_1:0")
@@ -84,7 +84,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedMap = Fetchable.process(
+      val processedMap = Session.processFetches(
         Map("1" -> Basic.constant(1.0), "2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0)))
       assert(processedMap._1.length === 3)
       assert(processedMap._1(0).name === "Constant:0")
@@ -103,7 +103,7 @@ class FetchableSuite extends JUnitSuite {
       val fetchable1 = Basic.constant(1.0)
       val fetchable2 = Basic.constant(2.0)
       val fetchable3 = Basic.constant(3.0)
-      val processedSeq = Fetchable.process(Seq(fetchable1, fetchable1, fetchable2, fetchable2, fetchable3))
+      val processedSeq = Session.processFetches(Seq(fetchable1, fetchable1, fetchable2, fetchable2, fetchable3))
       assert(processedSeq._1.length === 3)
       assert(processedSeq._1(0).name === "Constant:0")
       assert(processedSeq._1(1).name === "Constant_1:0")
@@ -123,7 +123,7 @@ class FetchableSuite extends JUnitSuite {
       val fetchable1 = Basic.constant(1.0)
       val fetchable2 = Basic.constant(2.0)
       val fetchable3 = Basic.constant(3.0)
-      val processedMap = Fetchable.process(
+      val processedMap = Session.processFetches(
         Map("1_1" -> fetchable1, "1_2" -> fetchable1, "2_1" -> fetchable2, "2_2" -> fetchable2, "3" -> fetchable3))
       assert(processedMap._1.length === 3)
       assert(processedMap._1(0).name === "Constant_1:0")
@@ -141,7 +141,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedSeq = Fetchable.process(Seq(Seq(Basic.constant(1.0)), Seq(Basic.constant(2.0), Basic.constant(3.0))))
+      val processedSeq = Session.processFetches(Seq(Seq(Basic.constant(1.0)), Seq(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedSeq._1.length === 3)
       assert(processedSeq._1(0).name === "Constant:0")
       assert(processedSeq._1(1).name === "Constant_1:0")
@@ -158,7 +158,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedSeqArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedSeq = Fetchable.process(
+      val processedSeq = Session.processFetches(
         Seq(Array(Basic.constant(1.0)), Array(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedSeq._1.length === 3)
       assert(processedSeq._1(0).name === "Constant:0")
@@ -176,7 +176,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedMapArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedMap = Fetchable.process(
+      val processedMap = Session.processFetches(
         Map("1" -> Map("1" -> Basic.constant(1.0)),
           "2" -> Map("2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0))))
       assert(processedMap._1.length === 3)
@@ -195,7 +195,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedMapSeq(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedMap = Fetchable.process(
+      val processedMap = Session.processFetches(
         Map("1" -> Seq(Basic.constant(1.0)), "2" -> Seq(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedMap._1.length === 3)
       assert(processedMap._1(0).name === "Constant:0")
@@ -213,7 +213,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableTuple(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedTuple = Fetchable.process((Basic.constant(1.0), Basic.constant(2.0)))
+      val processedTuple = Session.processFetches((Basic.constant(1.0), Basic.constant(2.0)))
       assert(processedTuple._1.length === 2)
       assert(processedTuple._1(0).name === "Constant:0")
       assert(processedTuple._1(1).name === "Constant_1:0")
@@ -224,7 +224,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedTuple(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedTuple = Fetchable.process((Basic.constant(1.0), (Basic.constant(2.0), Basic.constant(3.0))))
+      val processedTuple = Session.processFetches((Basic.constant(1.0), (Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedTuple._1.length === 3)
       assert(processedTuple._1(0).name === "Constant:0")
       assert(processedTuple._1(1).name === "Constant_1:0")
@@ -236,7 +236,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedTupleArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedTuple = Fetchable.process((Basic.constant(1.0), Array(Basic.constant(2.0), Basic.constant(3.0))))
+      val processedTuple = Session.processFetches((Basic.constant(1.0), Array(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedTuple._1.length === 3)
       assert(processedTuple._1(0).name === "Constant:0")
       assert(processedTuple._1(1).name === "Constant_1:0")
@@ -248,7 +248,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedTupleMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedTuple = Fetchable.process(
+      val processedTuple = Session.processFetches(
         (Basic.constant(1.0), Map("2" -> Basic.constant(2.0), "3" -> Basic.constant(3.0))))
       assert(processedTuple._1.length === 3)
       assert(processedTuple._1(0).name === "Constant:0")

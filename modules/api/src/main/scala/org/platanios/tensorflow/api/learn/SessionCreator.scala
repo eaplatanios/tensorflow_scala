@@ -24,7 +24,7 @@ import java.nio.file.Path
 
 import scala.collection.mutable
 
-/** Factory for [[Session]]s.
+/** Factory for sessions.
   *
   * @author Emmanouil Antonios Platanios
   */

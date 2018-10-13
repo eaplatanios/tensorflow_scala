@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.config.TensorBoardConfig
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -32,11 +32,7 @@ import scala.util.Try
   * @author Emmanouil Antonios Platanios
   */
 private[learn] class TensorBoardHook protected (val tensorBoardConfig: TensorBoardConfig) extends Hook {
-  override type StateF = Unit
-  override type StateE = Unit
-  override type StateR = Unit
-
-  private[this] var tensorBoardProcess: Option[Process] = None
+  private var tensorBoardProcess: Option[Process] = None
 
   override protected def begin(): Unit = tensorBoardProcess = {
     Option(tensorBoardConfig).flatMap(config => {

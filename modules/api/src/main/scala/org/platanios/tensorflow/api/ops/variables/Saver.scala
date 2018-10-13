@@ -252,7 +252,7 @@ class Saver private(
     val restoreOp = session.graph.getOpByName(saverDef.getRestoreOpName)
     session.run(
       feeds = Map(filenameTensor -> savePath.toString.toTensor),
-      targets = restoreOp)
+      targets = Set(restoreOp))
   }
 
   /** Returns the sequence of the latest and not-yet-deleted checkpoint filenames, sorted from oldest to newest. You can

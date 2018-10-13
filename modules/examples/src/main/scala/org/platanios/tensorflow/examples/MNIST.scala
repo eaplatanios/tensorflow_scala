@@ -33,18 +33,18 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))
-    val trainImages = () => tf.data.datasetFromTensorSlices(dataSet.trainImages)
-    val trainLabels = () => tf.data.datasetFromTensorSlices(dataSet.trainLabels)
-    val testImages = () => tf.data.datasetFromTensorSlices(dataSet.testImages)
-    val testLabels = () => tf.data.datasetFromTensorSlices(dataSet.testLabels)
-    val trainData = () =>
-      trainImages().zip(trainLabels())
+    val trainImages = tf.data.datasetFromTensorSlices(dataSet.trainImages)
+    val trainLabels = tf.data.datasetFromTensorSlices(dataSet.trainLabels)
+    val testImages = tf.data.datasetFromTensorSlices(dataSet.testImages)
+    val testLabels = tf.data.datasetFromTensorSlices(dataSet.testLabels)
+    val trainData =
+      trainImages.zip(trainLabels)
           .repeat()
           .shuffle(10000)
           .batch(256)
           .prefetch(10)
-    val evalTrainData = () => trainImages().zip(trainLabels()).batch(1000).prefetch(10)
-    val evalTestData = () => testImages().zip(testLabels()).batch(1000).prefetch(10)
+    val evalTrainData = trainImages.zip(trainLabels).batch(1000).prefetch(10)
+    val evalTestData = testImages.zip(testLabels).batch(1000).prefetch(10)
 
     logger.info("Building the logistic regression model.")
 
@@ -84,13 +84,13 @@ object MNIST {
       Set(
         tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.Evaluator(
-          log = true, datasets = Seq(("Train", evalTrainData), ("Test", evalTestData)),
+          log = true, datasets = Seq(("Train", () => evalTrainData), ("Test", () => evalTestData)),
           metrics = Seq(accMetric), trigger = tf.learn.StepHookTrigger(1000), name = "Evaluator"),
         tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(100)),
         tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
+    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
     def accuracy(images: Tensor[UByte], labels: Tensor[UByte]): Float = {
       val predictions = estimator.infer(() => images)

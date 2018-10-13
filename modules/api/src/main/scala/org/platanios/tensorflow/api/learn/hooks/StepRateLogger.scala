@@ -15,7 +15,9 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -46,25 +48,13 @@ class StepRateLogger protected (
 ) extends TriggeredHook(trigger, triggerAtEnd) with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
-  override type InnerStateF = Unit
-  override type InnerStateE = Unit
-  override type InnerStateR = Unit
-
-  override protected val evFetchableInnerState: Fetchable.Aux[InnerStateF, InnerStateR] = {
-    implicitly[Fetchable.Aux[InnerStateF, InnerStateR]]
-  }
-
-  override protected val evExecutableInnerState: Executable[InnerStateE] = {
-    implicitly[Executable[InnerStateE]]
-  }
-
-  override protected def fetches: Unit = ()
-  override protected def targets: Unit = ()
+  override protected def fetches: Seq[Output[Any]] = Seq.empty
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Unit],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
     elapsed.foreach(elapsed => {

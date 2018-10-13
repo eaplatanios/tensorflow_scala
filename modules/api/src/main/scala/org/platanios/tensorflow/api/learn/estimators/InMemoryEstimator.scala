@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.estimators
 
 import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
@@ -84,7 +84,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
 
   protected val model: TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn] = modelFunction(configuration)
 
-  protected val stopHook              : Stopper           = Stopper(stopCriteria)
+  protected val stopHook              : Stopper                 = Stopper(stopCriteria)
   protected var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + stopHook
   protected var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
@@ -188,7 +188,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
       if (frozen)
         graph.freeze()
       session.disableHooks()
-      session.run(targets = initializer)
+      session.run(targets = Set(initializer))
       stopHook.updateCriteria(stopCriteria)
       stopHook.reset(session)
       session.enableHooks()
@@ -196,7 +196,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
       try {
         while (!session.shouldStop)
           try {
-            session.run(targets = trainingOps.trainOp)
+            session.run(targets = Set(trainingOps.trainOp))
           } catch {
             case _: OutOfRangeException => session.setShouldStop(true)
           }
@@ -227,12 +227,12 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
     * @return Either an iterator over `(IT, ModelInferenceOutput)` tuples, or a single element of type `I`, depending on
     *         the type of `input`.
     */
-  override def infer[InT, OutT, InferIn, InferOut](
+  override def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
-      evFetchableIn: Fetchable.Aux[In, InT],
-      evFetchableOut: Fetchable.Aux[Out, OutT],
-      ev: Estimator.SupportedInferInput[In, InT, OutT, InferIn, InferOut]
+      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
+      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut]
   ): InferOut = {
     session.removeHooks(currentTrainHooks ++ evaluateHooks)
     val output = Op.createWith(graph) {
@@ -244,15 +244,15 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
       if (frozen)
         graph.freeze()
       session.disableHooks()
-      session.run(targets = initializer)
+      session.run(targets = Set(initializer))
       stopHook.updateCriteria(StopCriteria.none)
       stopHook.reset(session)
       session.enableHooks()
       session.resetShouldStop()
       try {
-        ev.convertFetched(new Iterator[(InT, OutT)] {
+        ev.convertFetched(new Iterator[(InV, OutV)] {
           override def hasNext: Boolean = !session.shouldStop
-          override def next(): (InT, OutT) = {
+          override def next(): (InV, OutV) = {
             try {
               // TODO: !!! There might be an issue with the stop criteria here.
               session.removeHooks(currentTrainHooks ++ evaluateHooks)
@@ -263,7 +263,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
               case _: OutOfRangeException =>
                 session.setShouldStop(true)
                 // TODO: !!! Do something to avoid this null pair.
-                (null.asInstanceOf[InT], null.asInstanceOf[OutT])
+                (null.asInstanceOf[InV], null.asInstanceOf[OutV])
               case t: Throwable =>
                 stopHook.updateCriteria(stopCriteria)
                 session.closeWithoutHookEnd()
@@ -326,7 +326,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
       if (frozen)
         graph.freeze()
       session.disableHooks()
-      session.run(targets = initializer)
+      session.run(targets = Set(initializer))
       stopHook.updateCriteria(if (maxSteps != -1L) StopCriteria.steps(maxSteps) else StopCriteria.none)
       stopHook.reset(session)
       session.enableHooks()
@@ -338,7 +338,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
             val step = session.run(fetches = globalStep.value).scalar
             while (!session.shouldStop)
               try {
-                session.run(targets = evaluationUpdateOps)
+                session.run(targets = Set(evaluationUpdateOps))
               } catch {
                 case _: OutOfRangeException => session.setShouldStop(true)
               }
@@ -371,7 +371,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
   }
 
   /** Returns the train hooks being used by this estimator, except for the [[Stopper]] being used. */
-  private[this] def currentTrainHooks: Set[Hook] = {
+  private def currentTrainHooks: Set[Hook] = {
     if (configuration.isChief)
       (allTrainHooks ++ allTrainChiefOnlyHooks).toSet - stopHook
     else
