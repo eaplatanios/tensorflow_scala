@@ -146,8 +146,12 @@ object XCLoader extends Loader {
         val split = UniformSplit(allLabels.shape(0), seed)
         val (trainIndices, testIndices) = split(trainPortion)
         SplitData(
-          trainData = Data(features = allFeatures.gather(trainIndices), labels = allLabels.gather(trainIndices)),
-          testData = Data(features = allFeatures.gather(testIndices), labels = allLabels.gather(testIndices)))
+          trainData = Data(
+            features = allFeatures.gather[Int](trainIndices),
+            labels = allLabels.gather[Int](trainIndices)),
+          testData = Data(
+            features = allFeatures.gather[Int](testIndices),
+            labels = allLabels.gather[Int](testIndices)))
       }
     }
   }
@@ -167,11 +171,11 @@ object XCLoader extends Loader {
       */
     def split(split: Int = 0): XCLoader.SplitData[Tensor] = {
       val trainData = XCLoader.Data(
-        features = data.features.toTensor.gather(splits(split).trainIndices),
-        labels = data.labels.toTensor.gather(splits(split).trainIndices))
+        features = data.features.toTensor.gather[Int](splits(split).trainIndices),
+        labels = data.labels.toTensor.gather[Int](splits(split).trainIndices))
       val testData = XCLoader.Data(
-        features = data.features.toTensor.gather(splits(split).testIndices),
-        labels = data.labels.toTensor.gather(splits(split).testIndices))
+        features = data.features.toTensor.gather[Int](splits(split).testIndices),
+        labels = data.labels.toTensor.gather[Int](splits(split).testIndices))
       XCLoader.SplitData(trainData, testData)
     }
   }
@@ -226,7 +230,7 @@ object XCLoader extends Loader {
 
   def labelPropensityScores(dataset: SmallDataset[Tensor]): Tensor[Float] = {
     val numSamples = dataset.data.labels.shape(0)
-    val labelCounts = dataset.data.labels.castTo[Float].sum(axes = Seq(0))
+    val labelCounts = dataset.data.labels.castTo[Float].sum[Int](axes = Seq(0))
     val a = dataset.datasetType.labelsPropensityA
     val b = dataset.datasetType.labelsPropensityB
     val c = (math.log(numSamples) - 1) * math.pow(b + 1, a)

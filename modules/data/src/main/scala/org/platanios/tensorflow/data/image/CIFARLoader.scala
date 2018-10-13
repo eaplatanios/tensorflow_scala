@@ -152,10 +152,10 @@ case class CIFARDataset(
       val split = UniformSplit(allLabels.shape(0), seed)
       val (trainIndices, testIndices) = split(trainPortion)
       copy(
-        trainImages = allImages.gather(trainIndices),
-        trainLabels = allLabels.gather(trainIndices),
-        testImages = allImages.gather(testIndices),
-        testLabels = allLabels.gather(testIndices))
+        trainImages = allImages.gather[Int](trainIndices),
+        trainLabels = allLabels.gather[Int](trainIndices),
+        testImages = allImages.gather[Int](testIndices),
+        testLabels = allLabels.gather[Int](testIndices))
     }
   }
 }

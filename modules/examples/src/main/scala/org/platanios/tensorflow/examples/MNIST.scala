@@ -75,7 +75,7 @@ object MNIST {
     val summariesDir = Paths.get("temp/mnist-mlp")
     val accMetric = tf.metrics.MapMetric(
       (v: (Output[Float], Output[Int])) => {
-        (v._1.argmax(-1).toFloat, v._2.toFloat)
+        (tf.argmax(v._1, -1, INT64).toFloat, v._2.toFloat)
       }, tf.metrics.Accuracy("Accuracy"))
     val estimator = tf.learn.InMemoryEstimator(
       model,
