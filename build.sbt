@@ -358,6 +358,8 @@ lazy val publishSettings = Seq(
     else
       Opts.resolver.sonatypeStaging
   ),
+  publishConfiguration := publishConfiguration.value.withOverwrite(true),
+  publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
