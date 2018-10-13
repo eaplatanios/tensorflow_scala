@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
 import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Class wrapping dynamic-sized, per-time-step, write-once tensor arrays.
@@ -52,7 +53,7 @@ case class TensorArray[T] private (
     colocateWithFirstWrite: Boolean = true,
     private var colocationOps: Seq[UntypedOp] = null
 )(implicit
-    val evTTF: TF[T]
+    private[api] val evTTF: TF[T]
 ) {
   val dataType: DataType[T] = TF[T].dataType
 

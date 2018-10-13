@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.ops.{Basic, Clip, Op, OutputLike}
 

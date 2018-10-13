@@ -42,19 +42,19 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
   "-Yno-adapted-args",
-  "-Ypartial-unification",
+  // "-Ypartial-unification",
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture",                      // Turn on future language features.
-//  "-P:splain:all",
-//  "-P:splain:infix",
-//  "-P:splain:foundreq",
-//  "-P:splain:implicits",
-//  "-P:splain:color",
-//  "-P:splain:tree",
-//  "-P:splain:boundsimplicits:false"
+  "-Xfuture", // Turn on future language features.
+  // "-P:splain:all",
+  // "-P:splain:infix",
+  // "-P:splain:foundreq",
+  // "-P:splain:implicits",
+  // "-P:splain:color",
+  // "-P:splain:tree",
+  // "-P:splain:boundsimplicits:false"
 )
 
 nativeCrossCompilationEnabled in ThisBuild := false
@@ -66,7 +66,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
+  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(

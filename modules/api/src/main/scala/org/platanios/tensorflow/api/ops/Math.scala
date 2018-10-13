@@ -4594,7 +4594,7 @@ trait Math {
 
 object Math extends Math {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToMathOps[OC, T: TF](
+    implicit def outputConvertibleToMathOps[T: TF, OC](
         value: OC
     )(implicit f: OC => Output[T]): MathOps[T] = {
       new MathOps(f(value))

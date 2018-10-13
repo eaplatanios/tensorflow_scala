@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.TF
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 
 import shapeless._
@@ -213,7 +214,7 @@ object Zero {
 
   implicit def fromProduct[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
       genP: Generic.Aux[P, L],
-      evL: Strict[Aux[L, LS]],
+      evL: Aux[L, LS],
       tuplerS: Tupler.Aux[LS, PS],
       genS: Generic.Aux[PS, LS]
   ): Aux[P, PS] = {
@@ -225,7 +226,7 @@ object Zero {
           shape: PS,
           name: String = "Zero"
       ): P = {
-        genP.from(evL.value.zero(batchSize, genS.to(shape), name))
+        genP.from(evL.zero(batchSize, genS.to(shape), name))
       }
     }
   }

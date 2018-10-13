@@ -28,7 +28,6 @@ import scala.collection.{TraversableLike, breakOut}
 private[api] trait Implicits
     extends Priority3Implicits
         with Basic.Implicits
-        with Cast.Implicits
         with Math.Implicits
         with NN.Implicits {
   implicit def tensorFromSupportedType[T: TF](value: T): Tensor[T] = {
@@ -186,7 +185,8 @@ private[tensors] trait UntypedPriority1Implicits extends UntypedPriority0Implici
   }
 }
 
-private[tensors] trait UntypedPriority0Implicits {
+private[tensors] trait UntypedPriority0Implicits
+    extends Cast.Implicits {
   implicit def tensorConvertibleAsUntyped[V, T](
       value: V
   )(implicit f: V => Tensor[T]): Tensor[Any] = {

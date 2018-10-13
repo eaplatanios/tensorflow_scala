@@ -141,11 +141,11 @@ object NestedStructureOps {
 
   implicit def fromProduct[P <: Product, L <: HList](implicit
       gen: Generic.Aux[P, L],
-      executableL: Strict[NestedStructureOps[L]]
+      executableL: NestedStructureOps[L]
   ): NestedStructureOps[P] = {
     new NestedStructureOps[P] {
       override def ops(executable: P): Set[UntypedOp] = {
-        executableL.value.ops(gen.to(executable))
+        executableL.ops(gen.to(executable))
       }
     }
   }

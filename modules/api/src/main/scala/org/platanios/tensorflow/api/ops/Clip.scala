@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 /** Contains functions for constructing ops related to clipping tensor values.
@@ -194,7 +195,7 @@ trait Clip {
 
 object Clip extends Clip {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToClipOps[OC, T: TF](
+    implicit def outputConvertibleToClipOps[T: TF, OC](
         value: OC
     )(implicit f: OC => Output[T]): ClipOps[T] = {
       new ClipOps(f(value))

@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.types._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
@@ -115,7 +116,7 @@ case class SequenceLoss[Predictions: TF : IsDecimal, Labels: TF, L: TF : IsFloat
     loss: (Output[Predictions], Output[Labels]) => Output[Predictions],
     averageAcrossTimeSteps: Boolean = true,
     averageAcrossBatch: Boolean = true,
-    weights: Tensor[Predictions] = null,
+    weights: Tensor[Predictions] = null
 ) extends Loss[(Output[Predictions], Output[Labels]), L](name) {
   override val layerType: String = "SequenceLoss"
 

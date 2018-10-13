@@ -18,6 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{IsFloat16OrFloat32OrFloat64, IsInt32OrInt64, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.SparseShape
 import org.platanios.tensorflow.api.ops._

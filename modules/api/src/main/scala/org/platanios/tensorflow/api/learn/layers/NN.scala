@@ -145,7 +145,7 @@ case class BatchNormalization[T: TF : IsDecimal](
 
       def broadcast[V: TF](v: Output[V]): Output[V] = {
         if (v.rank != inputRank && (reductionAxes != (0 until inputRank - 1)))
-          tf.reshape(v, broadcastShape)
+          tf.reshape[V, Int](v, broadcastShape)
         else
           v
       }
@@ -186,7 +186,7 @@ case class BatchNormalization[T: TF : IsDecimal](
   ): Output[Float] = {
     Op.nameScope(s"${variable.name}/AssignMovingAverage") {
       Op.colocateWith(Set(variable.op), ignoreExisting = true) {
-        val updateDelta = (variable.value - value) * (1.0f - momentum)
+        val updateDelta = ops.Math.multiply(ops.Math.subtract(variable.value, value), ops.Math.subtract(1.0f, momentum))
         variable.assignSub(updateDelta)
       }
     }

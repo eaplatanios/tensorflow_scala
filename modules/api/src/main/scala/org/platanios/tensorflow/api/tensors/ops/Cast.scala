@@ -70,6 +70,13 @@ trait Cast {
 
 object Cast extends Cast {
   private[tensors] trait Implicits {
+    // This implicit helps the Scala 2.11 compiler.
+    implicit def tensorToCastOps[T](
+        value: Tensor[T]
+    ): CastOps[T, Tensor] = {
+      new CastOps(value)
+    }
+
     implicit def tensorConvertibleToCastOps[T: TF, TC, TL[TT] <: TensorLike[TT]](
         value: TC
     )(implicit

@@ -21,6 +21,7 @@ import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.language.postfixOps
 
@@ -1210,7 +1211,11 @@ trait Dataset[T] { outer =>
   def shard[V, D, S](
       numShards: Long,
       shardIndex: Long
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[T] = {
+  )(implicit
+      evT: NestedStructure.Aux[T, V, D, S],
+      // The following implicit hint helps the compiler for Scala 2.11 support.
+      evStructure: NestedStructure.Aux[(T, Output[Long]), (V, Tensor[Long]), (D, DataType[Long]), (S, Shape)]
+  ): Dataset[T] = {
     if (shardIndex >= numShards)
       throw InvalidArgumentException(s"'index' (= $shardIndex) must be smaller than 'numShards' (= $numShards).")
     if (numShards == 1) {

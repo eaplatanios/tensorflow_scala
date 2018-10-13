@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.io.CheckpointReader
 import org.platanios.tensorflow.api.learn._
@@ -210,7 +211,9 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
   )(implicit
       evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
       evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
-      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut]
+      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
+      // This implicit helps the Scala 2.11 compiler.
+      evFetchableInOut: NestedStructure.Aux[(In, Out), (InV, OutV), (InD, OutD), (InS, OutS)]
   ): InferOut = {
     inferWithHooks(input)
   }
@@ -251,7 +254,9 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
   )(implicit
       evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
       evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
-      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut]
+      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
+      // This implicit helps the Scala 2.11 compiler.
+      evFetchableInOut: NestedStructure.Aux[(In, Out), (InV, OutV), (InD, OutD), (InS, OutS)]
   ): InferOut = {
     Op.nameScope("Estimator/Infer") {
       if (hooks.exists(_.isInstanceOf[Stopper]))

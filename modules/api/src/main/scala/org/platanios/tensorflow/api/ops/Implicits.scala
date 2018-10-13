@@ -30,7 +30,6 @@ private[api] trait Implicits
     extends Priority3Implicits
         with control_flow.Implicits
         with Basic.Implicits
-        with Cast.Implicits
         with Clip.Implicits
         with Embedding.Implicits
         with Math.Implicits
@@ -252,7 +251,8 @@ private[ops] trait UntypedPriority1Implicits extends UntypedPriority0Implicits {
   }
 }
 
-private[ops] trait UntypedPriority0Implicits {
+private[ops] trait UntypedPriority0Implicits
+    extends Cast.Implicits {
   implicit def outputConvertibleAsUntyped[V, T](
       value: V
   )(implicit f: V => Output[T]): Output[Any] = {

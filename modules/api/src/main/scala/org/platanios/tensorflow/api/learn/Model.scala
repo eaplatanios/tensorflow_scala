@@ -35,7 +35,7 @@ trait Model {
 }
 
 abstract class InferenceModel[In, Out](implicit
-    evIn: NestedStructure.Aux[In, _, _, _],
+    evIn: NestedStructure.Aux[In, _, _, _]
 ) extends Model {
   def buildInferOps(): Model.InferOps[In, Out]
 }

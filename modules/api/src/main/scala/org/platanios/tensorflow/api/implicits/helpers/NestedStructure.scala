@@ -399,7 +399,7 @@ object NestedStructure {
         (OutputIndexedSlices[T](
           indices = outputs(0).asInstanceOf[Output[Long]],
           values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]]
         ), outputs.drop(3))
       }
 
@@ -410,7 +410,7 @@ object NestedStructure {
         (TensorIndexedSlices[T](
           indices = tensors(0).asInstanceOf[Tensor[Long]],
           values = tensors(1).asInstanceOf[Tensor[T]],
-          denseShape = tensors(2).asInstanceOf[Tensor[Long]],
+          denseShape = tensors(2).asInstanceOf[Tensor[Long]]
         ), tensors.drop(3))
       }
 
@@ -438,7 +438,7 @@ object NestedStructure {
         (OutputIndexedSlices[T](
           indices = outputs(0).asInstanceOf[Output[Long]],
           values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]]
         ), outputs.drop(3))
       }
 
@@ -529,7 +529,7 @@ object NestedStructure {
         (SparseOutput[T](
           indices = outputs(0).asInstanceOf[Output[Long]],
           values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]]
         ), outputs.drop(3))
       }
 
@@ -540,7 +540,7 @@ object NestedStructure {
         (SparseTensor[T](
           indices = tensors(0).asInstanceOf[Tensor[Long]],
           values = tensors(1).asInstanceOf[Tensor[T]],
-          denseShape = tensors(2).asInstanceOf[Tensor[Long]],
+          denseShape = tensors(2).asInstanceOf[Tensor[Long]]
         ), tensors.drop(3))
       }
 
@@ -568,7 +568,7 @@ object NestedStructure {
         (SparseOutput[T](
           indices = outputs(0).asInstanceOf[Output[Long]],
           values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]],
+          denseShape = outputs(2).asInstanceOf[Output[Long]]
         ), outputs.drop(3))
       }
 
@@ -1846,7 +1846,7 @@ object NestedStructure {
 
   implicit def fromProduct[PT <: Product, PV <: Product, PD <: Product, PS <: Product, HT <: HList, HV <: HList, HD <: HList, HS <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: Strict[Aux[HT, HV, HD, HS]],
+      evT: Aux[HT, HV, HD, HS],
       tuplerV: Tupler.Aux[HV, PV],
       tuplerD: Tupler.Aux[HD, PD],
       tuplerS: Tupler.Aux[HS, PS],
@@ -1860,54 +1860,54 @@ object NestedStructure {
       override type S = PS
 
       override def sizeFromOutput(output: PT): Int = {
-        evT.value.sizeFromOutput(genT.to(output))
+        evT.sizeFromOutput(genT.to(output))
       }
 
       override def sizeFromDataType(dataType: PD): Int = {
-        evT.value.sizeFromDataType(genD.to(dataType))
+        evT.sizeFromDataType(genD.to(dataType))
       }
 
       override def dataTypeFromOutput(output: PT): PD = {
-        tuplerD(evT.value.dataTypeFromOutput(genT.to(output)))
+        tuplerD(evT.dataTypeFromOutput(genT.to(output)))
       }
 
       override def shapeFromOutput(output: PT): PS = {
-        tuplerS(evT.value.shapeFromOutput(genT.to(output)))
+        tuplerS(evT.shapeFromOutput(genT.to(output)))
       }
 
       override def outputFromTensor(tensor: PV): PT = {
-        genT.from(evT.value.outputFromTensor(genV.to(tensor)))
+        genT.from(evT.outputFromTensor(genV.to(tensor)))
       }
 
       override def dataTypeFromTensor(tensor: PV): PD = {
-        tuplerD(evT.value.dataTypeFromTensor(genV.to(tensor)))
+        tuplerD(evT.dataTypeFromTensor(genV.to(tensor)))
       }
 
       override def shapeFromTensor(tensor: PV): PS = {
-        tuplerS(evT.value.shapeFromTensor(genV.to(tensor)))
+        tuplerS(evT.shapeFromTensor(genV.to(tensor)))
       }
 
       override def outputs(output: PT): Seq[Output[Any]] = {
-        evT.value.outputs(genT.to(output))
+        evT.outputs(genT.to(output))
       }
 
       override def tensors(tensor: PV): Seq[Tensor[Any]] = {
-        evT.value.tensors(genV.to(tensor))
+        evT.tensors(genV.to(tensor))
       }
 
       override def dataTypes(dataType: PD): Seq[DataType[Any]] = {
-        evT.value.dataTypes(genD.to(dataType))
+        evT.dataTypes(genD.to(dataType))
       }
 
       override def shapes(shape: PS): Seq[Shape] = {
-        evT.value.shapes(genS.to(shape))
+        evT.shapes(genS.to(shape))
       }
 
       override def decodeOutputFromOutput(
           output: PT,
           outputs: Seq[Output[Any]]
       ): (PT, Seq[Output[Any]]) = {
-        val (out, remaining) = evT.value.decodeOutputFromOutput(genT.to(output), outputs)
+        val (out, remaining) = evT.decodeOutputFromOutput(genT.to(output), outputs)
         (genT.from(out), remaining)
       }
 
@@ -1915,7 +1915,7 @@ object NestedStructure {
           output: PT,
           tensors: Seq[Tensor[Any]]
       ): (PV, Seq[Tensor[Any]]) = {
-        val (out, remaining) = evT.value.decodeTensorFromOutput(genT.to(output), tensors)
+        val (out, remaining) = evT.decodeTensorFromOutput(genT.to(output), tensors)
         (tuplerV(out), remaining)
       }
 
@@ -1923,7 +1923,7 @@ object NestedStructure {
           output: PT,
           dataTypes: Seq[DataType[Any]]
       ): (PD, Seq[DataType[Any]]) = {
-        val (out, remaining) = evT.value.decodeDataTypeFromOutput(genT.to(output), dataTypes)
+        val (out, remaining) = evT.decodeDataTypeFromOutput(genT.to(output), dataTypes)
         (genD.from(out), remaining)
       }
 
@@ -1931,7 +1931,7 @@ object NestedStructure {
           output: PT,
           shapes: Seq[Shape]
       ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evT.value.decodeShapeFromOutput(genT.to(output), shapes)
+        val (out, remaining) = evT.decodeShapeFromOutput(genT.to(output), shapes)
         (genS.from(out), remaining)
       }
 
@@ -1939,7 +1939,7 @@ object NestedStructure {
           dataType: PD,
           outputs: Seq[Output[Any]]
       ): (PT, Seq[Output[Any]]) = {
-        val (out, remaining) = evT.value.decodeOutputFromDataType(genD.to(dataType), outputs)
+        val (out, remaining) = evT.decodeOutputFromDataType(genD.to(dataType), outputs)
         (genT.from(out), remaining)
       }
 
@@ -1947,7 +1947,7 @@ object NestedStructure {
           dataType: PD,
           dataTypes: Seq[DataType[Any]]
       ): (PD, Seq[DataType[Any]]) = {
-        val (out, remaining) = evT.value.decodeDataTypeFromDataType(genD.to(dataType), dataTypes)
+        val (out, remaining) = evT.decodeDataTypeFromDataType(genD.to(dataType), dataTypes)
         (tuplerD(out), remaining)
       }
 
@@ -1955,7 +1955,7 @@ object NestedStructure {
           dataType: PD,
           shapes: Seq[Shape]
       ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evT.value.decodeShapeFromDataType(genD.to(dataType), shapes)
+        val (out, remaining) = evT.decodeShapeFromDataType(genD.to(dataType), shapes)
         (tuplerS(out), remaining)
       }
 
@@ -1964,7 +1964,7 @@ object NestedStructure {
           shape: Option[PS],
           converter: Converter
       ): PT = {
-        genT.from(evT.value.map(genT.to(value), shape.map(genS.to), converter))
+        genT.from(evT.map(genT.to(value), shape.map(genS.to), converter))
       }
     }
   }

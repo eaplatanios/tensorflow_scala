@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, IsNumeric, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, RandomNormalInitializer}
@@ -80,7 +81,7 @@ case class Sum[T: TF : IsNumeric](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Math.sum(input, axes, keepDims = keepDims, name = name)
+    ops.Math.sum[T, Int](input, axes, keepDims = keepDims, name = name)
   }
 }
 
@@ -94,7 +95,7 @@ case class Mean[T: TF : IsNotQuantized](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Math.mean(input, axes, keepDims = keepDims, name = name)
+    ops.Math.mean[T, Int](input, axes, keepDims = keepDims, name = name)
   }
 }
 

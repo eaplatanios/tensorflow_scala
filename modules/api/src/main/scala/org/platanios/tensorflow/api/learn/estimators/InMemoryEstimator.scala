@@ -20,6 +20,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
 import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
@@ -232,7 +233,9 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
   )(implicit
       evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
       evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
-      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut]
+      ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
+      // This implicit helps the Scala 2.11 compiler.
+      evFetchableInOut: NestedStructure.Aux[(In, Out), (InV, OutV), (InD, OutD), (InS, OutS)]
   ): InferOut = {
     session.removeHooks(currentTrainHooks ++ evaluateHooks)
     val output = Op.createWith(graph) {

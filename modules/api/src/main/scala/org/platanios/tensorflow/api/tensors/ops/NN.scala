@@ -841,7 +841,7 @@ trait NN {
 
 object NN extends NN {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToNNOps[TC, T: TF](
+    implicit def tensorConvertibleToNNOps[T: TF, TC](
         value: TC
     )(implicit f: TC => Tensor[T]): NNOps[T] = {
       new NNOps(f(value))

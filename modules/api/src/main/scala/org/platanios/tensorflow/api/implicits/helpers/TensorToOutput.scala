@@ -113,7 +113,7 @@ object TensorToOutput {
 
   implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: Strict[Aux[HT, HO]],
+      evT: Aux[HT, HO],
       tuplerO: Tupler.Aux[HO, PO],
       genO: Generic.Aux[PO, HO]
   ): Aux[PT, PO] = {

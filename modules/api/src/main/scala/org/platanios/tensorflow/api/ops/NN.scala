@@ -1686,7 +1686,7 @@ trait NN {
 
 object NN extends NN {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToNNOps[OC, T: TF](
+    implicit def outputConvertibleToNNOps[T: TF, OC](
         value: OC
     )(implicit f: OC => Output[T]): NNOps[T] = {
       new NNOps(f(value))

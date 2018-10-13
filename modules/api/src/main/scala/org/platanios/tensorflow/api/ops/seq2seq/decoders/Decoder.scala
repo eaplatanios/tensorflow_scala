@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
-import org.platanios.tensorflow.api.core.types.TF
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
@@ -25,6 +25,7 @@ import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.language.postfixOps
 
@@ -125,7 +126,13 @@ abstract class Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState]
       evStructureDS: NestedStructure.Aux[DecState, DSV, DSD, DSS],
       evStructureDO: NestedStructure.Aux[DecOut, DOV, DOD, DOS],
       evStructureDFO: NestedStructure.Aux[DecFinalOut, DFOV, DFOD, DFOS],
-      evZeroO: Zero.Aux[Out, OS]
+      evZeroO: Zero.Aux[Out, OS],
+      // This implicit helps the Scala 2.11 compiler.
+      evStructure: NestedStructure.Aux[
+          (Output[Int], Seq[TensorArray[Any]], DecState, Out, Output[Boolean], Output[Int]),
+          (Tensor[Int], Seq[Tensor[Float]], DSV, OV, Tensor[Boolean], Tensor[Int]),
+          (DataType[Int], Seq[DataType[Float]], DSD, OD, DataType[Boolean], DataType[Int]),
+          (Shape, Seq[Shape], DSS, OS, Shape, Shape)]
   ): (DecFinalOut, DecFinalState, Output[Int]) = {
     if (maximumIterations != null && maximumIterations.rank != 0) {
       throw InvalidShapeException(

@@ -96,6 +96,13 @@ trait Cast {
 
 object Cast extends Cast {
   private[ops] trait Implicits {
+    // This implicit helps the Scala 2.11 compiler.
+    implicit def outputToCastOps[T](
+        value: Output[T]
+    ): CastOps[T, Output] = {
+      new CastOps(value)
+    }
+
     implicit def outputConvertibleToCastOps[T: TF, OC, OL[TT] <: OutputLike[TT]](
         value: OC
     )(implicit

@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.types.{TF, IsNumeric, IsReal}
+import org.platanios.tensorflow.api.implicits.Implicits._
 
 /** Contains functions for constructing ops related to sparse tensors.
   *
@@ -69,7 +70,7 @@ trait Sparse {
 
 object Sparse extends Sparse {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToSparseOps[OC, T: TF](
+    implicit def outputConvertibleToSparseOps[T: TF, OC](
         value: OC
     )(implicit f: OC => SparseOutput[T]): SparseOps[T] = {
       new SparseOps(f(value))
