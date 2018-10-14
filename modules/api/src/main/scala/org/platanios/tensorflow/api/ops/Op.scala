@@ -18,11 +18,10 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types.DataType
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
 
@@ -39,11 +38,9 @@ import scala.util.Try
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
   *
-  * TODO: Add Op.run method and Op.Output.eval method.
-  *
   * An `Op` is a symbolic representation of the computation it performs. It is a node in a TensorFlow [[Graph]] that
   * takes zero or more `Op.Output` objects as input, and produces zero or more `Op.Output` objects as output. `Op`
-  * objects are constructed by calling op creation functions, such as [[Basic.constant]] or [[Math.matmul]].
+  * objects are constructed by calling op creation functions, such as `tf.constant` or `tf.matmul`.
   *
   * For example, `val c = MathOps.matmul(a, b)` creates an `Op` of type `"MatMul"` that takes `Op.Output`s `a` and
   * `b` as input, and produces `Op.Output` `c` as output.
@@ -54,102 +51,182 @@ import scala.util.Try
   *
   *       After the graph has been launched in a [[Session]], an `Op` can be executed by using `Session.run`.
   *
-  *       TODO: Add `Op.run` use example, once that is supported.
   * @author Emmanouil Antonios Platanios
   */
-final case class Op private (graph: Graph, private[api] val nativeHandle: Long) {
+final case class Op[I: Op.OpInput, O: Op.OpOutput] private (
+    graph: Graph,
+    private[ops] val originalInput: Option[I],
+    private[api] val nativeHandle: Long
+) {
   // Update the ops cache of the graph with the current op.
   graph.opsCache.update(nativeHandle, this)
 
   /** Name of the op. */
-  lazy val name: String = using(graph.reference) { _ => NativeOp.name(nativeHandle) }
+  lazy val name: String = {
+    using(graph.reference) { _ =>
+      NativeOp.name(nativeHandle)
+    }
+  }
 
   /** Type of the op (i.e., the name of the computation performed by the operation). */
-  lazy val opType: String = using(graph.reference) { _ => NativeOp.opType(nativeHandle) }
+  lazy val opType: String = {
+    using(graph.reference) { _ =>
+      NativeOp.opType(nativeHandle)
+    }
+  }
 
   /** Device in which the op tensors are stored and where all computations for this op are performed. */
-  def device: String = using(graph.reference) { _ =>
-    val nativeDevice = NativeOp.device(nativeHandle)
-    if (nativeDevice == null)
-      ""
-    else
-      nativeDevice
+  def device: String = {
+    using(graph.reference) { _ =>
+      val nativeDevice = NativeOp.device(nativeHandle)
+      if (nativeDevice == null)
+        ""
+      else
+        nativeDevice
+    }
   }
 
   /** Colocation ops for this op (i.e., ops guaranteed to be placed on the same device). */
-  def colocationOps: Set[Op] = using(graph.reference) { _ =>
-    Try(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
-        .map(_.toSet[String]
-            .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
-            .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
-        .getOrElse(Set.empty[Op])
+  def colocationOps: Set[UntypedOp] = {
+    using(graph.reference) { _ =>
+      Try(NativeOp.getAttrStringList(nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME))
+          .map(_.toSet[String]
+              .filter(_.startsWith(COLOCATION_OPS_ATTRIBUTE_PREFIX))
+              .map(opName => graph.findOp(opName.substring(COLOCATION_OPS_ATTRIBUTE_PREFIX.length)).get))
+          .getOrElse(Set.empty)
+    }
   }
 
-  private[Op] def updateColocationOps(colocationOpNames: Set[String]): Unit = {
+  private def updateColocationOps(colocationOpNames: Set[String]): Unit = {
     val builder = AttrValue.newBuilder()
     builder.setList(builder.getListBuilder.addAllS(
       colocationOps.toSeq.map(opName => COLOCATION_OPS_ATTRIBUTE_PREFIX + opName)
           .sorted.map(ByteString.copyFrom(_, StandardCharsets.ISO_8859_1)).asJava))
     using(graph.reference) { r =>
       NativeLibrary.setAttributeProto(
-        r.nativeHandle, nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME, builder.build().toByteArray)
+        r.nativeHandle, nativeHandle, COLOCATION_OPS_ATTRIBUTE_NAME,
+        builder.build().toByteArray)
     }
   }
 
-  private[ops] var controlFlowContext: Option[Context] = None
+  private[ops] var gradientFn: Option[Gradients.UntypedGradientFn] = None
+
+  def setGradient[GI >: I : Op.OpInput, GO >: O : Op.OpOutput](
+      gradientFn: Gradients.GradientFn[I, O, GI, GO]
+  )(implicit
+      evGI: Op.OpInput[GI],
+      evGO: Op.OpOutput[GO]
+  ): Unit = {
+    this.gradientFn = Some(Gradients.convertGradientFn[I, O, GI, GO](gradientFn)(evGI, evGO))
+  }
+
+  def hasGradient: Boolean = {
+    gradientFn.isDefined
+  }
+
+  private[ops] var controlFlowContext: Option[Context] = {
+    None
+  }
 
   // The following caching of inputs and control inputs is done so that we can improve performance by avoiding redundant
   // JNI calls, while at the same time allowing the control flow package to modify inputs and control inputs of ops.
 
-  private[this] var _numInputs: Int = _loadNumInputs()
-  private[this] var _inputs: Array[Output] = _loadInputs()
-  private[this] var _numControlInputs: Int = _loadNumControlInputs()
-  private[this] var _controlInputs: Set[Op] = _loadControlInputs()
+  private[Op] var _numInputs       : Int                = _loadNumInputs()
+  private[Op] var _inputs          : Array[Output[Any]] = _loadInputs()
+  private[Op] var _numControlInputs: Int                = _loadNumControlInputs()
+  private[Op] var _controlInputs   : Set[UntypedOp]     = _loadControlInputs()
 
-  private[ops] def reloadNumInputs(): Unit = _numInputs = _loadNumInputs()
-  private[ops] def reloadInputs(): Unit = _inputs = _loadInputs()
-  private[ops] def reloadNumControlInputs(): Unit = _numControlInputs = _loadNumControlInputs()
-  private[ops] def reloadControlInputs(): Unit = _controlInputs = _loadControlInputs()
+  private[ops] def _reloadNumInputs(): Unit = _numInputs = _loadNumInputs()
+  private[ops] def _reloadInputs(): Unit = _inputs = _loadInputs()
+  private[ops] def _reloadNumControlInputs(): Unit = _numControlInputs = _loadNumControlInputs()
+  private[ops] def _reloadControlInputs(): Unit = _controlInputs = _loadControlInputs()
 
-  private[this] def _loadNumInputs(): Int = using(graph.reference) { _ => NativeOp.numInputs(nativeHandle) }
-
-  private[this] def _loadInputs(): Array[Output] = using(graph.reference) { _ =>
-    NativeOp.inputs(nativeHandle).map(i => {
-      val op = graph.opsCache.getOrElseUpdate(
-        i.opHandle,
-        Op(graph, i.opHandle))
-      op.outputs(i.outputIndex)
-    })
+  private[Op] def _loadNumInputs(): Int = {
+    using(graph.reference) { _ =>
+      NativeOp.numInputs(nativeHandle)
+    }
   }
 
-  private[this] def _loadNumControlInputs(): Int = using(graph.reference) { _ =>
-    NativeOp.numControlInputs(nativeHandle)
+  private[Op] def _loadInputs(): Array[Output[Any]] = {
+    using(graph.reference) { _ =>
+      NativeOp.inputs(nativeHandle).map(i => {
+        val op = graph.opsCache.getOrElseUpdate(
+          i.opHandle,
+          Op[Seq[Output[Any]], Seq[Output[Any]]](
+            graph = graph,
+            originalInput = None,
+            nativeHandle = i.opHandle))
+        op._outputs(i.outputIndex)
+      })
+    }
   }
 
-  private[this] def _loadControlInputs(): Set[Op] = using(graph.reference) { _ =>
-    NativeOp.controlInputs(nativeHandle)
-        .map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
+  private[Op] def _loadNumControlInputs(): Int = {
+    using(graph.reference) { _ =>
+      NativeOp.numControlInputs(nativeHandle)
+    }
+  }
+
+  private[Op] def _loadControlInputs(): Set[UntypedOp] = {
+    using(graph.reference) { _ =>
+      NativeOp.controlInputs(nativeHandle).map(handle => {
+        graph.opsCache.getOrElseUpdate(
+          handle,
+          Op[Seq[Output[Any]], Seq[Output[Any]]](
+            graph = graph,
+            originalInput = None,
+            nativeHandle = handle))
+      }).toSet
+    }
+  }
+
+  private[Op] def _outputs: Array[Output[Any]] = {
+    (0 until numOutputs).map(i => {
+      Output[Any](op = this, index = i)
+    }).toArray
   }
 
   /** Number of inputs to this op (i.e., number of tensors fed as input to this op). */
-  def numInputs: Int = _numInputs
+  def numInputs: Int = {
+    _numInputs
+  }
 
-  /** Inputs of this op. Note that these inputs are outputs of other ops and thus have type [[Output]]. */
-  def inputs: Array[Output] = _inputs
+  /** Input of this op. */
+  def input: I = {
+    implicitly[Op.OpInput[I]].fromOutputs(_inputs, originalInput)
+  }
 
-  /** Number of control inputs to this op. These are ops that are guaranteed to finish executing before this op starts
-    * executing). */
-  def numControlInputs: Int = _numControlInputs
+  /** Inputs of this op. */
+  def inputsSeq: Seq[Output[Any]] = {
+    _inputs
+  }
 
-  /** Control inputs of this op. These are ops that are guaranteed to finish executing before this op starts
-    * executing). */
-  def controlInputs: Set[Op] = _controlInputs
+  /** Number of control inputs to this op. These are ops that are guaranteed to execute before this op. */
+  def numControlInputs: Int = {
+    _numControlInputs
+  }
+
+  /** Control inputs of this op. These are ops that are guaranteed to execute before this op. */
+  def controlInputs: Set[UntypedOp] = {
+    _controlInputs
+  }
 
   /** Number of tensors produced by this operation. */
-  def numOutputs: Int = using(graph.reference) { _ => NativeOp.numOutputs(nativeHandle) }
+  def numOutputs: Int = {
+    using(graph.reference) { _ =>
+      NativeOp.numOutputs(nativeHandle)
+    }
+  }
 
-  /** Outputs of this op. */
-  def outputs: Array[Output] = (0 until numOutputs).map(i => Output(op = this, index = i)).toArray
+  /** Output of this op. */
+  def output: O = {
+    implicitly[Op.OpOutput[O]].fromOutputs(_outputs)
+  }
+
+  /** Inputs of this op. */
+  def outputsSeq: Seq[Output[Any]] = {
+    _outputs
+  }
 
   /** Gets the (current) number of control outputs of this op. These are ops that are guaranteed to start executing
     * after this op finishes executing.
@@ -157,7 +234,11 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @note A concurrent modification of the graph can change the number of control outputs of this op.
     * @return Current number of control outputs of this op.
     */
-  def numControlOutputs: Int = using(graph.reference) { _ => NativeOp.numControlOutputs(nativeHandle) }
+  def numControlOutputs: Int = {
+    using(graph.reference) { _ =>
+      NativeOp.numControlOutputs(nativeHandle)
+    }
+  }
 
   /** Gets the (current) control outputs of this op. These are ops that are guaranteed to start executing after this op
     * finishes executing.
@@ -165,10 +246,21 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @note A concurrent modification of the graph can change the number of control outputs of this op.
     * @return Current control outputs of this op.
     */
-  def controlOutputs: Set[Op] = {
-    val controlOutputHandles = using(graph.reference) { _ => NativeOp.controlOutputs(nativeHandle) }
-    controlOutputHandles.map(handle => graph.opsCache.getOrElseUpdate(handle, Op(graph, handle))).toSet
+  def controlOutputs: Set[UntypedOp] = {
+    val controlOutputHandles = using(graph.reference) { _ =>
+      NativeOp.controlOutputs(nativeHandle)
+    }
+    controlOutputHandles.map(handle => {
+      graph.opsCache.getOrElseUpdate(
+        handle,
+        Op[Seq[Output[Any]], Seq[Output[Any]]](
+          graph = graph,
+          originalInput = None,
+          nativeHandle = handle))
+    }).toSet
   }
+
+  //region Attributes
 
   /** Gets the value of a string-valued attribute of this op with name `name`.
     *
@@ -177,12 +269,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no string attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def stringAttribute(name: String): String = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrString(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no string attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def stringAttribute(name: String): String = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrString(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no string attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -193,12 +287,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no string array attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def stringArrayAttribute(name: String): Array[String] = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrStringList(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no string array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def stringArrayAttribute(name: String): Array[String] = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrStringList(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no string array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -209,12 +305,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If the no long attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def longAttribute(name: String): Long = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrInt(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no long attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def longAttribute(name: String): Long = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrInt(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no long attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -225,12 +323,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If the no long array attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def longArrayAttribute(name: String): Array[Long] = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrIntList(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no long array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def longArrayAttribute(name: String): Array[Long] = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrIntList(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no long array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -241,12 +341,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no float attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def floatAttribute(name: String): Float = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrFloat(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no float attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def floatAttribute(name: String): Float = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrFloat(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no float attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -257,12 +359,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no float array attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def floatArrayAttribute(name: String): Array[Float] = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrFloatList(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no float array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def floatArrayAttribute(name: String): Array[Float] = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrFloatList(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no float array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -273,12 +377,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no boolean attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def booleanAttribute(name: String): Boolean = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrBool(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no boolean attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def booleanAttribute(name: String): Boolean = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrBool(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no boolean attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -289,12 +395,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no boolean array attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def booleanArrayAttribute(name: String): Array[Boolean] = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrBoolList(nativeHandle, name)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no boolean array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def booleanArrayAttribute(name: String): Array[Boolean] = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrBoolList(nativeHandle, name)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no boolean array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -305,12 +413,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no data type attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def dataTypeAttribute(name: String): DataType = using(graph.reference) { _ =>
-    try {
-      DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no data type attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def dataTypeAttribute(name: String): DataType[Any] = {
+    using(graph.reference) { _ =>
+      try {
+        DataType.fromCValue(NativeOp.getAttrType(nativeHandle, name))
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no data type attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -321,12 +431,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no data type array attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def dataTypeArrayAttribute(name: String): Array[DataType] = using(graph.reference) { _ =>
-    try {
-      NativeOp.getAttrTypeList(nativeHandle, name).map(DataType.fromCValue)
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no data type array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def dataTypeArrayAttribute(name: String): Array[DataType[Any]] = {
+    using(graph.reference) { _ =>
+      try {
+        NativeOp.getAttrTypeList(nativeHandle, name).map(DataType.fromCValue)
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no data type array attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -337,12 +449,14 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no tensor attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def tensorAttribute(name: String): Tensor[DataType] = using(graph.reference) { _ =>
-    try {
-      Tensor.fromHostNativeHandle[DataType](NativeOp.getAttrTensor(nativeHandle, name))
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no tensor attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def tensorAttribute[T](name: String): Tensor[T] = {
+    using(graph.reference) { _ =>
+      try {
+        Tensor.fromHostNativeHandle[T](NativeOp.getAttrTensor(nativeHandle, name))
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no tensor attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
@@ -353,27 +467,41 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
     * @throws IllegalArgumentException If no shape attribute with name `name` can be found for this op.
     */
   @throws[IllegalArgumentException]
-  def shapeAttribute(name: String): Shape = using(graph.reference) { _ =>
-    try {
-      Shape.fromSeq(NativeOp.getAttrShape(nativeHandle, name).map(_.toInt))
-    } catch {
-      case e: Exception => throw new IllegalArgumentException(
-        s"Op has no shape attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+  def shapeAttribute(name: String): Shape = {
+    using(graph.reference) { _ =>
+      try {
+        Shape.fromSeq(NativeOp.getAttrShape(nativeHandle, name).map(_.toInt))
+      } catch {
+        case e: Exception => throw new IllegalArgumentException(
+          s"Op has no shape attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")
+      }
     }
   }
 
+  //endregion Attributes
+
+  //region Serialization
+
   /** Constructs and returns a [[OpDef]] object, which is a serialized version of this op. */
-  def toOpDef: OpDef = OpDef.parseFrom(NativeOp.toOpDef(graph.nativeHandle, opType))
+  def toOpDef: OpDef = {
+    OpDef.parseFrom(NativeOp.toOpDef(graph.nativeHandle, opType))
+  }
 
   /** Constructs and returns a [[NodeDef]] object, which is a serialized version of this op. */
-  def toNodeDef: NodeDef = NodeDef.parseFrom(NativeOp.toNodeDef(nativeHandle))
+  def toNodeDef: NodeDef = {
+    NodeDef.parseFrom(NativeOp.toNodeDef(nativeHandle))
+  }
 
-  override def toString: String = name
+  //endregion Serialization
+
+  override def toString: String = {
+    name
+  }
 
   // TODO: [OP] Better implementations for equals and hashCode.
 
   override def equals(that: Any): Boolean = that match {
-    case that: Op => this.graph == that.graph && this.nativeHandle == that.nativeHandle
+    case that: Op[_, _] => this.graph == that.graph && this.nativeHandle == that.nativeHandle
     case _ => false
   }
 
@@ -386,81 +514,1115 @@ final case class Op private (graph: Graph, private[api] val nativeHandle: Long) 
   }
 }
 
-final case class OpSpecification(name: String, opType: String, device: String)
-
 object Op {
   private[ops] val logger = Logger(LoggerFactory.getLogger("Op"))
 
-  private[ops] trait API {
-    type Op = ops.Op
-    val Op: ops.Op.type = ops.Op
+  //region Type Traits
 
-    type OpCreationContext = ops.GraphConstructionScope
-    type OpSpecification = ops.OpSpecification
+  sealed trait OpInput[T] {
+    @inline def fromOutputs(outputs: Seq[Output[Any]], reference: Option[T]): T
+    @inline def toBuilderInputs(value: T): Seq[Builder.Input]
+    @inline def toOutputs(value: T): Seq[Output[Any]]
+    @inline def toOutputLikes(value: T): Seq[OutputLike[Any]]
+  }
 
-    def currentGraph: Graph = Op.currentGraph
-    def currentNameScope: String = Op.currentNameScope
-    def currentDevice: String = Op.currentDevice
-    def currentDeviceFunction: OpSpecification => String = Op.currentDeviceFunction
-    def currentColocationOps: Set[Op] = Op.currentColocationOps
-    def currentControlDependencies: Set[Op] = Op.currentControlDependencies
-    def currentAttributes: Map[String, Any] = Op.currentAttributes
-    def currentContainer: String = Op.currentContainer
+  object OpInput {
+    implicit def opInputPrimitiveEvidence[T: OpInputPrimitive]: OpInput[T] = {
+      new OpInput[T] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]], reference: Option[T]): T = {
+          implicitly[OpInputPrimitive[T]].fromOutputs(outputs, reference)._1
+        }
 
-    def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
-      Op.currentGraphRandomSeed(opSeed)
+        @inline override def toBuilderInputs(value: T): Seq[Builder.Input] = {
+          implicitly[OpInputPrimitive[T]].toBuilderInputs(value)
+        }
+
+        @inline override def toOutputs(value: T): Seq[Output[Any]] = {
+          implicitly[OpInputPrimitive[T]].toOutputs(value)
+        }
+
+        @inline override def toOutputLikes(value: T): Seq[OutputLike[Any]] = {
+          implicitly[OpInputPrimitive[T]].toOutputLikes(value)
+        }
+      }
     }
 
-    def setCurrentGraphRandomSeed(value: Int): Unit = Op.setCurrentGraphRandomSeed(value)
+    implicit def opInputPrimitiveTuple2Evidence[T1, T2](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2]
+    ): OpInput[(T1, T2)] = {
+      new OpInput[(T1, T2)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2)]
+        ): (T1, T2) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, _) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          (value1, value2)
+        }
 
-    def createWith[R](
-        graph: Graph = null, nameScope: String = null, device: String = "",
-        deviceFunction: OpSpecification => String = _.device, colocationOps: Set[Op] = null,
-        controlDependencies: Set[Op] = null, attributes: Map[String, Any] = null, container: String = null)(
-        block: => R): R = {
-      Op.createWith(
-        graph, nameScope, device, deviceFunction, colocationOps, controlDependencies, attributes, container)(block)
+        @inline override def toBuilderInputs(value: (T1, T2)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2)
+        }
+
+        @inline override def toOutputs(value: (T1, T2)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2)
+        }
+      }
     }
 
-    def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
-      Op.createWithNameScope(nameScope, values)(block)
+    implicit def opInputPrimitiveTuple3Evidence[T1, T2, T3](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3]
+    ): OpInput[(T1, T2, T3)] = {
+      new OpInput[(T1, T2, T3)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3)]
+        ): (T1, T2, T3) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, _) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          (value1, value2, value3)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3)
+        }
+      }
     }
 
-    def device[R](
-        device: String = "",
-        deviceFunction: OpSpecification => String = _.device
-    )(block: => R): R = {
-      Op.device(device, deviceFunction)(block)
+    implicit def opInputPrimitiveTuple4Evidence[T1, T2, T3, T4](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4]
+    ): OpInput[(T1, T2, T3, T4)] = {
+      new OpInput[(T1, T2, T3, T4)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4)]
+        ): (T1, T2, T3, T4) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, _) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          (value1, value2, value3, value4)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4)
+        }
+      }
     }
 
-    def colocateWith[R](colocationOps: Set[Op], ignoreExisting: Boolean = false)(block: => R): R = {
-      Op.colocateWith(colocationOps, ignoreExisting)(block)
+    implicit def opInputPrimitiveTuple5Evidence[T1, T2, T3, T4, T5](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5]
+    ): OpInput[(T1, T2, T3, T4, T5)] = {
+      new OpInput[(T1, T2, T3, T4, T5)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5)]
+        ): (T1, T2, T3, T4, T5) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, _) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          (value1, value2, value3, value4, value5)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5)
+        }
+      }
     }
 
-    def initialization[R](block: => R): R = {
-      Op.initialization(block)
+    implicit def opInputPrimitiveTuple6Evidence[T1, T2, T3, T4, T5, T6](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6]
+    ): OpInput[(T1, T2, T3, T4, T5, T6)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6)]
+        ): (T1, T2, T3, T4, T5, T6) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, _) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          (value1, value2, value3, value4, value5, value6)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6)
+        }
+      }
     }
 
-    def globalVariablesInitializer(name: String = "GlobalVariablesInitializer"): Op = {
-      Op.currentGraph.globalVariablesInitializer(name)
+    implicit def opInputPrimitiveTuple7Evidence[T1, T2, T3, T4, T5, T6, T7](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7)]
+        ): (T1, T2, T3, T4, T5, T6, T7) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, _) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          (value1, value2, value3, value4, value5, value6, value7)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7)
+        }
+      }
     }
 
-    def localVariablesInitializer(name: String = "LocalVariablesInitializer"): Op = {
-      Op.currentGraph.localVariablesInitializer(name)
+    implicit def opInputPrimitiveTuple8Evidence[T1, T2, T3, T4, T5, T6, T7, T8](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7],
+        evT8: OpInputPrimitive[T8]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7, T8)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7, T8)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7, T8)]
+        ): (T1, T2, T3, T4, T5, T6, T7, T8) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, remaining7) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          val (value8, _) = evT8.fromOutputs(remaining7, reference.map(_._8))
+          (value1, value2, value3, value4, value5, value6, value7, value8)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7, T8)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7) ++
+              evT8.toBuilderInputs(value._8)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7, T8)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7) ++
+              evT8.toOutputs(value._8)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7) ++
+              evT8.toOutputLikes(value._8)
+        }
+      }
     }
 
-    def modelVariablesInitializer(name: String = "ModelVariablesInitializer"): Op = {
-      Op.currentGraph.modelVariablesInitializer(name)
+    implicit def opInputPrimitiveTuple9Evidence[T1, T2, T3, T4, T5, T6, T7, T8, T9](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7],
+        evT8: OpInputPrimitive[T8],
+        evT9: OpInputPrimitive[T9]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9)]
+        ): (T1, T2, T3, T4, T5, T6, T7, T8, T9) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, remaining7) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          val (value8, remaining8) = evT8.fromOutputs(remaining7, reference.map(_._8))
+          val (value9, _) = evT9.fromOutputs(remaining8, reference.map(_._9))
+          (value1, value2, value3, value4, value5, value6, value7, value8, value9)
+        }
+
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7) ++
+              evT8.toBuilderInputs(value._8) ++
+              evT9.toBuilderInputs(value._9)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7) ++
+              evT8.toOutputs(value._8) ++
+              evT9.toOutputs(value._9)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7) ++
+              evT8.toOutputLikes(value._8) ++
+              evT9.toOutputLikes(value._9)
+        }
+      }
     }
 
-    def metricVariablesInitializer(name: String = "MetricVariablesInitializer"): Op = {
-      Op.currentGraph.metricVariablesInitializer(name)
-    }
+    implicit def opInputPrimitiveTuple10Evidence[T1, T2, T3, T4, T5, T6, T7, T8, T9, T10](implicit
+        evT1: OpInputPrimitive[T1],
+        evT2: OpInputPrimitive[T2],
+        evT3: OpInputPrimitive[T3],
+        evT4: OpInputPrimitive[T4],
+        evT5: OpInputPrimitive[T5],
+        evT6: OpInputPrimitive[T6],
+        evT7: OpInputPrimitive[T7],
+        evT8: OpInputPrimitive[T8],
+        evT9: OpInputPrimitive[T9],
+        evT10: OpInputPrimitive[T10]
+    ): OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] = {
+      new OpInput[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)]
+        ): (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs, reference.map(_._1))
+          val (value2, remaining2) = evT2.fromOutputs(remaining1, reference.map(_._2))
+          val (value3, remaining3) = evT3.fromOutputs(remaining2, reference.map(_._3))
+          val (value4, remaining4) = evT4.fromOutputs(remaining3, reference.map(_._4))
+          val (value5, remaining5) = evT5.fromOutputs(remaining4, reference.map(_._5))
+          val (value6, remaining6) = evT6.fromOutputs(remaining5, reference.map(_._6))
+          val (value7, remaining7) = evT7.fromOutputs(remaining6, reference.map(_._7))
+          val (value8, remaining8) = evT8.fromOutputs(remaining7, reference.map(_._8))
+          val (value9, remaining9) = evT9.fromOutputs(remaining8, reference.map(_._9))
+          val (value10, _) = evT10.fromOutputs(remaining9, reference.map(_._10))
+          (value1, value2, value3, value4, value5, value6, value7, value8, value9, value10)
+        }
 
-    def trainableVariablesInitializer(name: String = "TrainableVariablesInitializer"): Op = {
-      Op.currentGraph.trainableVariablesInitializer(name)
+        @inline override def toBuilderInputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)): Seq[Builder.Input] = {
+          evT1.toBuilderInputs(value._1) ++
+              evT2.toBuilderInputs(value._2) ++
+              evT3.toBuilderInputs(value._3) ++
+              evT4.toBuilderInputs(value._4) ++
+              evT5.toBuilderInputs(value._5) ++
+              evT6.toBuilderInputs(value._6) ++
+              evT7.toBuilderInputs(value._7) ++
+              evT8.toBuilderInputs(value._8) ++
+              evT9.toBuilderInputs(value._9) ++
+              evT10.toBuilderInputs(value._10)
+        }
+
+        @inline override def toOutputs(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)): Seq[Output[Any]] = {
+          evT1.toOutputs(value._1) ++
+              evT2.toOutputs(value._2) ++
+              evT3.toOutputs(value._3) ++
+              evT4.toOutputs(value._4) ++
+              evT5.toOutputs(value._5) ++
+              evT6.toOutputs(value._6) ++
+              evT7.toOutputs(value._7) ++
+              evT8.toOutputs(value._8) ++
+              evT9.toOutputs(value._9) ++
+              evT10.toOutputs(value._10)
+        }
+
+        @inline override def toOutputLikes(value: (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)): Seq[OutputLike[Any]] = {
+          evT1.toOutputLikes(value._1) ++
+              evT2.toOutputLikes(value._2) ++
+              evT3.toOutputLikes(value._3) ++
+              evT4.toOutputLikes(value._4) ++
+              evT5.toOutputLikes(value._5) ++
+              evT6.toOutputLikes(value._6) ++
+              evT7.toOutputLikes(value._7) ++
+              evT8.toOutputLikes(value._8) ++
+              evT9.toOutputLikes(value._9) ++
+              evT10.toOutputLikes(value._10)
+        }
+      }
     }
   }
+
+  sealed trait OpInputPrimitive[T] {
+    @inline def fromOutputs(outputs: Seq[Output[Any]], reference: Option[T]): (T, Seq[Output[Any]])
+    @inline def toBuilderInputs(value: T): Seq[Builder.Input]
+    @inline def toOutputs(value: T): Seq[Output[Any]]
+    @inline def toOutputLikes(value: T): Seq[OutputLike[Any]]
+  }
+
+  object OpInputPrimitive {
+    implicit val unitEvidence: OpInputPrimitive[Unit] = new OpInputPrimitive[Unit] {
+      @inline override def fromOutputs(
+          outputs: Seq[Output[Any]],
+          reference: Option[Unit]
+      ): (Unit, Seq[Output[Any]]) = {
+        ((), outputs)
+      }
+
+      @inline override def toBuilderInputs(value: Unit): Seq[Builder.Input] = {
+        Seq.empty
+      }
+
+      @inline override def toOutputs(value: Unit): Seq[Output[Any]] = {
+        Seq.empty
+      }
+
+      @inline override def toOutputLikes(value: Unit): Seq[OutputLike[Any]] = {
+        Seq.empty
+      }
+    }
+
+    implicit def outputEvidence[T]: OpInputPrimitive[Output[T]] = {
+      new OpInputPrimitive[Output[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Output[T]]
+        ): (Output[T], Seq[Output[Any]]) = {
+          (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+        }
+
+        @inline override def toBuilderInputs(value: Output[T]): Seq[Builder.Input] = {
+          Seq(Builder.InputTensor(value))
+        }
+
+        @inline override def toOutputs(value: Output[T]): Seq[Output[Any]] = {
+          Seq(value)
+        }
+
+        @inline override def toOutputLikes(value: Output[T]): Seq[OutputLike[Any]] = {
+          Seq(value)
+        }
+      }
+    }
+
+    implicit def outputIndexedSlicesEvidence[T]: OpInputPrimitive[OutputIndexedSlices[T]] = {
+      new OpInputPrimitive[OutputIndexedSlices[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[OutputIndexedSlices[T]]
+        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+          (OutputIndexedSlices[T](
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def toBuilderInputs(value: OutputIndexedSlices[T]): Seq[Builder.Input] = {
+          Seq(
+            Builder.InputTensor(value.indices),
+            Builder.InputTensor(value.values),
+            Builder.InputTensor(value.denseShape))
+        }
+
+        @inline override def toOutputs(value: OutputIndexedSlices[T]): Seq[Output[Any]] = {
+          Seq(value.indices, value.values, value.denseShape)
+        }
+
+        @inline override def toOutputLikes(value: OutputIndexedSlices[T]): Seq[OutputLike[Any]] = {
+          Seq(value)
+        }
+      }
+    }
+
+    implicit def sparseOutputEvidence[T]: OpInputPrimitive[SparseOutput[T]] = {
+      new OpInputPrimitive[SparseOutput[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[SparseOutput[T]]
+        ): (SparseOutput[T], Seq[Output[Any]]) = {
+          (SparseOutput(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def toBuilderInputs(value: SparseOutput[T]): Seq[Builder.Input] = {
+          Seq(
+            Builder.InputTensor(value.indices),
+            Builder.InputTensor(value.values),
+            Builder.InputTensor(value.denseShape))
+        }
+
+        @inline override def toOutputs(value: SparseOutput[T]): Seq[Output[Any]] = {
+          Seq(value.indices, value.values, value.denseShape)
+        }
+
+        @inline override def toOutputLikes(value: SparseOutput[T]): Seq[OutputLike[Any]] = {
+          Seq(value)
+        }
+      }
+    }
+
+    implicit def outputLikeEvidence[T]: OpInputPrimitive[OutputLike[T]] = {
+      new OpInputPrimitive[OutputLike[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[OutputLike[T]]
+        ): (OutputLike[T], Seq[Output[Any]]) = {
+          val (value, remaining) = reference match {
+            case Some(_: Output[T]) =>
+              (outputs.head, outputs.tail)
+            case Some(_: OutputIndexedSlices[T]) =>
+              (OutputIndexedSlices(
+                indices = outputs(0).asInstanceOf[Output[Long]],
+                values = outputs(1).asInstanceOf[Output[T]],
+                denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                  outputs.drop(3))
+            case Some(_: SparseOutput[T]) =>
+              (SparseOutput(
+                indices = outputs(0).asInstanceOf[Output[Long]],
+                values = outputs(1).asInstanceOf[Output[T]],
+                denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                  outputs.drop(3))
+            case None =>
+              if (outputs.size == 1) {
+                (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+              } else if (outputs.head.rank == 1) {
+                (OutputIndexedSlices(
+                  indices = outputs(0).asInstanceOf[Output[Long]],
+                  values = outputs(1).asInstanceOf[Output[T]],
+                  denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                    outputs.drop(3))
+              } else {
+                (SparseOutput(
+                  indices = outputs(0).asInstanceOf[Output[Long]],
+                  values = outputs(1).asInstanceOf[Output[T]],
+                  denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                    outputs.drop(3))
+              }
+          }
+          (value.asInstanceOf[OutputLike[T]], remaining)
+        }
+
+        @inline override def toBuilderInputs(value: OutputLike[T]): Seq[Builder.Input] = {
+          value match {
+            case o: Output[_] =>
+              Seq(Builder.InputTensor(o))
+            case o: OutputIndexedSlices[_] =>
+              Seq(
+                Builder.InputTensor(o.indices),
+                Builder.InputTensor(o.values),
+                Builder.InputTensor(o.denseShape))
+            case o: SparseOutput[_] =>
+              Seq(
+                Builder.InputTensor(o.indices),
+                Builder.InputTensor(o.values),
+                Builder.InputTensor(o.denseShape))
+          }
+        }
+
+        @inline override def toOutputs(value: OutputLike[T]): Seq[Output[Any]] = {
+          value match {
+            case o: Output[_] => Seq(o)
+            case o: OutputIndexedSlices[_] => Seq(o.indices, o.values, o.denseShape)
+            case o: SparseOutput[_] => Seq(o.indices, o.values, o.denseShape)
+          }
+        }
+
+        @inline override def toOutputLikes(value: OutputLike[T]): Seq[OutputLike[Any]] = {
+          Seq(value)
+        }
+      }
+    }
+
+    implicit def seqOutputEvidence[T]: OpInputPrimitive[Seq[Output[T]]] = {
+      new OpInputPrimitive[Seq[Output[T]]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Seq[Output[T]]]
+        ): (Seq[Output[T]], Seq[Output[Any]]) = {
+          reference match {
+            case Some(r) =>
+              val parts = outputs.splitAt(r.size)
+              (parts._1.map(_.asInstanceOf[Output[T]]), parts._2)
+            case None => ???
+          }
+        }
+
+        @inline override def toBuilderInputs(value: Seq[Output[T]]): Seq[Builder.Input] = {
+          Seq(Builder.InputTensorList(value))
+        }
+
+        @inline override def toOutputs(value: Seq[Output[T]]): Seq[Output[Any]] = {
+          value
+        }
+
+        @inline override def toOutputLikes(value: Seq[Output[T]]): Seq[OutputLike[Any]] = {
+          value
+        }
+      }
+    }
+
+    implicit def seqOutputIndexedSlicesEvidence[T]: OpInputPrimitive[Seq[OutputIndexedSlices[T]]] = {
+      new OpInputPrimitive[Seq[OutputIndexedSlices[T]]] {
+        private val evOutputIndexedSlices: OpInputPrimitive[OutputIndexedSlices[T]] = {
+          outputIndexedSlicesEvidence[T]
+        }
+
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Seq[OutputIndexedSlices[T]]]
+        ): (Seq[OutputIndexedSlices[T]], Seq[Output[Any]]) = {
+          reference match {
+            case Some(r) =>
+              r.foldLeft((Seq.empty[OutputIndexedSlices[T]], Seq.empty[Output[Any]])) {
+                case ((accResult, remaining), ref) =>
+                  val (result, newRemaining) = evOutputIndexedSlices.fromOutputs(remaining, Some(ref))
+                  (accResult :+ result, newRemaining)
+              }
+            case None => ???
+          }
+        }
+
+        @inline override def toBuilderInputs(value: Seq[OutputIndexedSlices[T]]): Seq[Builder.Input] = {
+          value.flatMap(evOutputIndexedSlices.toBuilderInputs)
+        }
+
+        @inline override def toOutputs(value: Seq[OutputIndexedSlices[T]]): Seq[Output[Any]] = {
+          value.flatMap(evOutputIndexedSlices.toOutputs)
+        }
+
+        @inline override def toOutputLikes(value: Seq[OutputIndexedSlices[T]]): Seq[OutputLike[Any]] = {
+          value.flatMap(evOutputIndexedSlices.toOutputLikes)
+        }
+      }
+    }
+
+    implicit def seqSparseOutputEvidence[T]: OpInputPrimitive[Seq[SparseOutput[T]]] = {
+      new OpInputPrimitive[Seq[SparseOutput[T]]] {
+        private val evSparseOutput: OpInputPrimitive[SparseOutput[T]] = {
+          sparseOutputEvidence[T]
+        }
+
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Seq[SparseOutput[T]]]
+        ): (Seq[SparseOutput[T]], Seq[Output[Any]]) = {
+          reference match {
+            case Some(r) =>
+              r.foldLeft((Seq.empty[SparseOutput[T]], Seq.empty[Output[Any]])) {
+                case ((accResult, remaining), ref) =>
+                  val (result, newRemaining) = evSparseOutput.fromOutputs(remaining, Some(ref))
+                  (accResult :+ result, newRemaining)
+              }
+            case None => ???
+          }
+        }
+
+        @inline override def toBuilderInputs(value: Seq[SparseOutput[T]]): Seq[Builder.Input] = {
+          value.flatMap(evSparseOutput.toBuilderInputs)
+        }
+
+        @inline override def toOutputs(value: Seq[SparseOutput[T]]): Seq[Output[Any]] = {
+          value.flatMap(evSparseOutput.toOutputs)
+        }
+
+        @inline override def toOutputLikes(value: Seq[SparseOutput[T]]): Seq[OutputLike[Any]] = {
+          value.flatMap(evSparseOutput.toOutputLikes)
+        }
+      }
+    }
+
+    implicit def seqOutputLikeEvidence[T]: OpInputPrimitive[Seq[OutputLike[T]]] = {
+      new OpInputPrimitive[Seq[OutputLike[T]]] {
+        private val evOutputLike: OpInputPrimitive[OutputLike[T]] = {
+          outputLikeEvidence[T]
+        }
+
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]],
+            reference: Option[Seq[OutputLike[T]]]
+        ): (Seq[OutputLike[T]], Seq[Output[Any]]) = {
+          reference match {
+            case Some(r) =>
+              r.foldLeft((Seq.empty[OutputLike[T]], Seq.empty[Output[Any]])) {
+                case ((accResult, remaining), ref) =>
+                  val (result, newRemaining) = evOutputLike.fromOutputs(remaining, Some(ref))
+                  (accResult :+ result, newRemaining)
+              }
+            case None => ???
+          }
+        }
+
+        @inline override def toBuilderInputs(value: Seq[OutputLike[T]]): Seq[Builder.Input] = {
+          value.flatMap(evOutputLike.toBuilderInputs)
+        }
+
+        @inline override def toOutputs(value: Seq[OutputLike[T]]): Seq[Output[Any]] = {
+          value.flatMap(evOutputLike.toOutputs)
+        }
+
+        @inline override def toOutputLikes(value: Seq[OutputLike[T]]): Seq[OutputLike[Any]] = {
+          value.flatMap(evOutputLike.toOutputLikes)
+        }
+      }
+    }
+  }
+
+  sealed trait OpOutput[T] {
+    @inline def fromOutputs(outputs: Seq[Output[Any]]): T
+    @inline def fromOutputLikes(outputs: Seq[OutputLike[Any]]): T
+  }
+
+  object OpOutput {
+    implicit def opOutputPrimitiveEvidence[T: OpOutputPrimitive]: OpOutput[T] = {
+      new OpOutput[T] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]]): T = {
+          implicitly[OpOutputPrimitive[T]].fromOutputs(outputs)._1
+        }
+
+        @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): T = {
+          implicitly[OpOutputPrimitive[T]].fromOutputLikes(outputs)._1
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple2Evidence[T1, T2](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2]
+    ): OpOutput[(T1, T2)] = {
+      new OpOutput[(T1, T2)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, _) = evT2.fromOutputs(remaining1)
+          (value1, value2)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, _) = evT2.fromOutputLikes(remaining1)
+          (value1, value2)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple3Evidence[T1, T2, T3](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3]
+    ): OpOutput[(T1, T2, T3)] = {
+      new OpOutput[(T1, T2, T3)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, _) = evT3.fromOutputs(remaining2)
+          (value1, value2, value3)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, _) = evT3.fromOutputLikes(remaining2)
+          (value1, value2, value3)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple4Evidence[T1, T2, T3, T4](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3],
+        evT4: OpOutputPrimitive[T4]
+    ): OpOutput[(T1, T2, T3, T4)] = {
+      new OpOutput[(T1, T2, T3, T4)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3, T4) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, remaining3) = evT3.fromOutputs(remaining2)
+          val (value4, _) = evT4.fromOutputs(remaining3)
+          (value1, value2, value3, value4)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3, T4) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, remaining3) = evT3.fromOutputLikes(remaining2)
+          val (value4, _) = evT4.fromOutputLikes(remaining3)
+          (value1, value2, value3, value4)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple5Evidence[T1, T2, T3, T4, T5](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3],
+        evT4: OpOutputPrimitive[T4],
+        evT5: OpOutputPrimitive[T5]
+    ): OpOutput[(T1, T2, T3, T4, T5)] = {
+      new OpOutput[(T1, T2, T3, T4, T5)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3, T4, T5) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, remaining3) = evT3.fromOutputs(remaining2)
+          val (value4, remaining4) = evT4.fromOutputs(remaining3)
+          val (value5, _) = evT5.fromOutputs(remaining4)
+          (value1, value2, value3, value4, value5)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3, T4, T5) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, remaining3) = evT3.fromOutputLikes(remaining2)
+          val (value4, remaining4) = evT4.fromOutputLikes(remaining3)
+          val (value5, _) = evT5.fromOutputLikes(remaining4)
+          (value1, value2, value3, value4, value5)
+        }
+      }
+    }
+
+    implicit def opOutputPrimitiveTuple6Evidence[T1, T2, T3, T4, T5, T6](implicit
+        evT1: OpOutputPrimitive[T1],
+        evT2: OpOutputPrimitive[T2],
+        evT3: OpOutputPrimitive[T3],
+        evT4: OpOutputPrimitive[T4],
+        evT5: OpOutputPrimitive[T5],
+        evT6: OpOutputPrimitive[T6]
+    ): OpOutput[(T1, T2, T3, T4, T5, T6)] = {
+      new OpOutput[(T1, T2, T3, T4, T5, T6)] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (T1, T2, T3, T4, T5, T6) = {
+          val (value1, remaining1) = evT1.fromOutputs(outputs)
+          val (value2, remaining2) = evT2.fromOutputs(remaining1)
+          val (value3, remaining3) = evT3.fromOutputs(remaining2)
+          val (value4, remaining4) = evT4.fromOutputs(remaining3)
+          val (value5, remaining5) = evT5.fromOutputs(remaining4)
+          val (value6, _) = evT6.fromOutputs(remaining5)
+          (value1, value2, value3, value4, value5, value6)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (T1, T2, T3, T4, T5, T6) = {
+          val (value1, remaining1) = evT1.fromOutputLikes(outputs)
+          val (value2, remaining2) = evT2.fromOutputLikes(remaining1)
+          val (value3, remaining3) = evT3.fromOutputLikes(remaining2)
+          val (value4, remaining4) = evT4.fromOutputLikes(remaining3)
+          val (value5, remaining5) = evT5.fromOutputLikes(remaining4)
+          val (value6, _) = evT6.fromOutputLikes(remaining5)
+          (value1, value2, value3, value4, value5, value6)
+        }
+      }
+    }
+
+    implicit def seqOutputEvidence[T]: OpOutput[Seq[Output[T]]] = {
+      new OpOutput[Seq[Output[T]]] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]]): Seq[Output[T]] = {
+          outputs.map(_.asInstanceOf[Output[T]])
+        }
+
+        @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): Seq[Output[T]] = {
+          outputs.map(_.toOutput.asInstanceOf[Output[T]])
+        }
+      }
+    }
+  }
+
+  sealed trait OpOutputPrimitive[T] {
+    @inline def fromOutputs(outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
+    @inline def fromOutputLikes(outputs: Seq[OutputLike[Any]]): (T, Seq[OutputLike[Any]])
+  }
+
+  object OpOutputPrimitive {
+    implicit val unitEvidence: OpOutputPrimitive[Unit] = {
+      new OpOutputPrimitive[Unit] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]]): (Unit, Seq[Output[Any]]) = {
+          ((), outputs)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (Unit, Seq[OutputLike[Any]]) = {
+          (Seq.empty, outputs)
+        }
+      }
+    }
+
+    implicit def outputEvidence[T]: OpOutputPrimitive[Output[T]] = {
+      new OpOutputPrimitive[Output[T]] {
+        @inline override def fromOutputs(outputs: Seq[Output[Any]]): (Output[T], Seq[Output[Any]]) = {
+          (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (Output[T], Seq[OutputLike[Any]]) = {
+          if (outputs.head != null) {
+            (outputs.head.toOutput.asInstanceOf[Output[T]], outputs.tail)
+          } else {
+            (null, outputs.tail)
+          }
+        }
+      }
+    }
+
+    implicit def outputIndexedSlicesEvidence[T]: OpOutputPrimitive[OutputIndexedSlices[T]] = {
+      new OpOutputPrimitive[OutputIndexedSlices[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
+          (OutputIndexedSlices(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (OutputIndexedSlices[T], Seq[OutputLike[Any]]) = {
+          // TODO: [OPS] !!! Not sure if this is correct.
+          if (outputs.head != null) {
+            (outputs.head.asInstanceOf[OutputIndexedSlices[T]], outputs.tail)
+          } else {
+            (null, outputs.tail)
+          }
+        }
+      }
+    }
+
+    implicit def sparseOutputEvidence[T]: OpOutputPrimitive[SparseOutput[T]] = {
+      new OpOutputPrimitive[SparseOutput[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (SparseOutput[T], Seq[Output[Any]]) = {
+          (SparseOutput(
+            indices = outputs(0).asInstanceOf[Output[Long]],
+            values = outputs(1).asInstanceOf[Output[T]],
+            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              outputs.drop(3))
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (SparseOutput[T], Seq[OutputLike[Any]]) = {
+          // TODO: [OPS] !!! Not sure if this is correct.
+          if (outputs.head != null) {
+            (outputs.head.asInstanceOf[SparseOutput[T]], outputs.tail)
+          } else {
+            (null, outputs.tail)
+          }
+        }
+      }
+    }
+
+    implicit def outputLikeEvidence[T]: OpOutputPrimitive[OutputLike[T]] = {
+      new OpOutputPrimitive[OutputLike[T]] {
+        @inline override def fromOutputs(
+            outputs: Seq[Output[Any]]
+        ): (OutputLike[T], Seq[Output[Any]]) = {
+          if (outputs.size == 1) {
+            (outputs.head.asInstanceOf[Output[T]], outputs.tail)
+          } else if (outputs.head.rank == 1) {
+            (OutputIndexedSlices(
+              indices = outputs(0).asInstanceOf[Output[Long]],
+              values = outputs(1).asInstanceOf[Output[T]],
+              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                outputs.drop(3))
+          } else {
+            (SparseOutput(
+              indices = outputs(0).asInstanceOf[Output[Long]],
+              values = outputs(1).asInstanceOf[Output[T]],
+              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                outputs.drop(3))
+          }
+        }
+
+        @inline override def fromOutputLikes(
+            outputs: Seq[OutputLike[Any]]
+        ): (OutputLike[T], Seq[OutputLike[Any]]) = {
+          (outputs.head.asInstanceOf[OutputLike[T]], outputs.tail)
+        }
+      }
+    }
+  }
+
+  //endregion Type Traits
+
+  //region Graph Construction Helpers
 
   /** Returns the graph of the current op creation context. */
   private[api] def currentGraph: Graph = {
@@ -486,12 +1648,12 @@ object Op {
   }
 
   /** Returns the colocation ops of the current op creation context. */
-  private[api] def currentColocationOps: Set[Op] = {
+  private[api] def currentColocationOps: Set[UntypedOp] = {
     graphConstructionScope.value.colocationOps
   }
 
   /** Returns the control dependencies of the current op creation context. */
-  private[api] def currentControlDependencies: Set[Op] = {
+  private[api] def currentControlDependencies: Set[UntypedOp] = {
     graphConstructionScope.value.controlDependencies
   }
 
@@ -521,7 +1683,9 @@ object Op {
     * @param  opSeed Op-specific seed value.
     * @return Tuple of two numbers that should be used for the local seed of this operation.
     */
-  private[api] def currentGraphRandomSeed(opSeed: Option[Int] = None): (Option[Int], Option[Int]) = {
+  private[api] def currentGraphRandomSeed(
+      opSeed: Option[Int] = None
+  ): (Option[Int], Option[Int]) = {
     (currentGraph.randomSeed, opSeed) match {
       // Avoid (0, 0) as the C++ ops interpret it as non-determinism, which would be unexpected.
       case (Some(0), Some(0)) => (Some(0), Some(Int.MaxValue))
@@ -550,7 +1714,10 @@ object Op {
     *
     * @param  value Value to set the graph-level random seed to.
     */
-  private[api] def setCurrentGraphRandomSeed(value: Int): Unit = currentGraph.setRandomSeed(value)
+  private[api] def setCurrentGraphRandomSeed(value: Int): Unit = {
+    currentGraph.setRandomSeed(value)
+  }
+
 
   /** Creates a context that can be used for creating ops according to the provided options.
     *
@@ -599,11 +1766,11 @@ object Op {
     * in the `createWith(...)` function. The `nameScope` argument will be interpreted as follows:
     *
     *   - A string not ending with `"/"` will create a new name scope, in which `nameScope` is appended to the prefix of
-    *     all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
-    *     by calling `uniqueName(graph = context.graph, name = nameScope)`.
+    * all operations created in the provided code block. If `nameScope` has been used before, it will be made unique
+    * by calling `uniqueName(graph = context.graph, name = nameScope)`.
     *   - A string ending with `"/"` will be treated as an "absolute" name scope, which makes it possible to re-enter
-    *     existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
-    *     within the appropriate context.
+    * existing scopes. Such absolute name scopes can be obtained by using the `currentNameScope` function, from
+    * within the appropriate context.
     *   - A value of `""` will reset the current name scope to the top-level (i.e., empty) name scope.
     *
     * This function checks the provided `nameScope` for validity by checking whether it matches: (i) the regular
@@ -838,66 +2005,57 @@ object Op {
       nameScope: String = null,
       device: String = "",
       deviceFunction: OpSpecification => String = _.device,
-      colocationOps: Set[Op] = null,
-      controlDependencies: Set[Op] = null,
+      colocationOps: Set[UntypedOp] = null,
+      controlDependencies: Set[UntypedOp] = null,
       attributes: Map[String, Any] = null,
       container: String = null
   )(block: => R): R = {
     // TODO: Move this to a separate scope class.
     // TODO: !!! The order of the updates matters here so let's make sure everything is fine.
     var updatedContext = graphConstructionScope.value
-    val newGraph: Graph = mergeGraph(graph, updatedContext)
+    val newGraph = mergeGraph(graph, updatedContext.graph)
     updatedContext = updatedContext.copy(graph = newGraph, outerContext = Some(updatedContext))
-    val newNameScope: String = mergeNameScope(nameScope, updatedContext.nameScope, updatedContext.graph.uniqueName(_))
+    val newNameScope = mergeNameScope(nameScope, updatedContext.nameScope, updatedContext.graph.uniqueName(_))
     updatedContext = updatedContext.copy(nameScope = newNameScope, outerContext = Some(updatedContext))
-    val newDevice: String = mergeDevice(device, updatedContext.device)
+    val newDevice = mergeDevice(device, updatedContext.device)
     updatedContext = updatedContext.copy(device = newDevice, outerContext = Some(updatedContext))
-    val newDeviceFunction: OpSpecification => String = mergeDeviceFunction(
-      deviceFunction, updatedContext.deviceFunction, updatedContext.device)
+    val newDeviceFunction = mergeDeviceFunction(deviceFunction, updatedContext.deviceFunction, updatedContext.device)
     updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction, outerContext = Some(updatedContext))
-    val newColocationOps: Set[Op] = mergeColocationOps(colocationOps, updatedContext)
+    val newColocationOps = mergeColocationOps(colocationOps, updatedContext)
     updatedContext = updatedContext.copy(colocationOps = newColocationOps, outerContext = Some(updatedContext))
-    val (newControlDependencies, newControlFlowContext): (Set[Op], Option[Context]) =
-      mergeControlDependencies(controlDependencies, updatedContext)
+    val (newControlDependencies, newControlFlowContext) = mergeControlDependencies(controlDependencies, updatedContext)
     updatedContext = updatedContext.copy(
       controlDependencies = newControlDependencies, controlFlowContext = newControlFlowContext,
       outerContext = Some(updatedContext))
-    val newAttributes: Map[String, Any] = mergeAttributes(attributes, updatedContext)
+    val newAttributes = mergeAttributes(attributes, updatedContext)
     updatedContext = updatedContext.copy(attributes = newAttributes, outerContext = Some(updatedContext))
-    val newContainer: String = mergeContainer(container, updatedContext)
+    val newContainer = mergeContainer(container, updatedContext.container)
     updatedContext = updatedContext.copy(container = newContainer, outerContext = Some(updatedContext))
     graphConstructionScope.withValue(updatedContext)(block)
   }
 
   /** Creates a context that can be used for creating ops.
     *
-    * This function validates that the provided `values` are all defined in the same graph, makes that the graph used
-    * by the op creation context it defines, and also "pushes" the provided `nameScope` in the op creation context. More
-    * details on the op creation context can be found in the documentation of the public API [[createWith]] function of
-    * this library.
+    * This function "pushes" the provided `nameScope` in the op creation context. More details on the op creation
+    * context can be found in the documentation of the public API [[createWith]] function of this library.
     *
     * @param  nameScope Name scope to use.
-    * @param  values    Input values to obtain the default graph from.
     * @param  block     Code block to run using the provided options.
     * @tparam R Return type of the code block.
     * @return Return value of the code block.
     * @throws GraphMismatchException If any two of the values provided lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[api] def createWithNameScope[R](nameScope: String, values: Set[Op] = Set.empty[Op])(block: => R): R = {
+  private[api] def nameScope[R](nameScope: String)(block: => R): R = {
     val scope = graphConstructionScope
-    if (values.nonEmpty) {
-      val newGraph: Graph = mergeGraph(getGraphFromInputs(values), scope.value)
-      val newNameScope: String = mergeNameScope(nameScope, scope.value.nameScope, newGraph.uniqueName(_))
-      scope.withValue(scope.value.copy(graph = newGraph, nameScope = newNameScope, outerContext = Some(scope.value))) {
-        block
-      }
-    } else {
-      val newNameScope: String = mergeNameScope(nameScope, scope.value.nameScope, scope.value.graph.uniqueName(_))
-      scope.withValue(scope.value.copy(nameScope = newNameScope, outerContext = Some(scope.value))) {
-        block
-      }
-    }
+    val newNameScope = mergeNameScope(
+      nameScope,
+      scope.value.nameScope,
+      scope.value.graph.uniqueName(_))
+    scope.withValue(scope.value.copy(
+      nameScope = newNameScope,
+      outerContext = Some(scope.value))
+    )(block)
   }
 
   /** Executes the provided block of code placing all created ops in the specified device. A `deviceFunction` argument
@@ -956,7 +2114,10 @@ object Op {
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
   )(block: => R): R = {
-    createWith(device = device, deviceFunction = deviceFunction)(block)
+    createWith(
+      device = device,
+      deviceFunction = deviceFunction
+    )(block)
   }
 
   /** Creates a context that can be used for creating ops and placing them on the same device as `colocationOps`.
@@ -971,10 +2132,10 @@ object Op {
     * @return Return value of the code block.
     */
   private[api] def colocateWith[R](
-      colocationOps: Set[Op],
+      colocationOps: Set[UntypedOp],
       ignoreExisting: Boolean = false
   )(block: => R): R = {
-    val newColocationOps: Set[Op] = {
+    val newColocationOps: Set[UntypedOp] = {
       if (ignoreExisting)
         colocationOps
       else
@@ -983,8 +2144,11 @@ object Op {
     // By default, `colocateWith` resets the device function stack, since `colocateWith` is typically used in specific
     // internal library functions where colocation is intended to be "stronger" than device functions.
     graphConstructionScope.withValue(graphConstructionScope.value.copy(
-      device = "", deviceFunction = (opSpec: OpSpecification) => opSpec.device,
-      colocationOps = newColocationOps, outerContext = Some(graphConstructionScope.value)))(block)
+      device = "",
+      deviceFunction = (opSpec: OpSpecification) => opSpec.device,
+      colocationOps = newColocationOps,
+      outerContext = Some(graphConstructionScope.value))
+    )(block)
   }
 
   /** Creates a context that can be used for creating gradient ops and placing them on the same device as
@@ -999,7 +2163,7 @@ object Op {
     * @return Return value of the code block.
     */
   private[api] def colocateWithForGradient[R](
-      colocationOps: Set[Op],
+      colocationOps: Set[UntypedOp],
       gradientUID: Option[String],
       ignoreExisting: Boolean = false
   )(block: => R): R = {
@@ -1037,13 +2201,13 @@ object Op {
     * equivalent to crawling up the context stack, finding the first context that is not building a graph function, and
     * using it.
     *
-    * @param  block   Code block to run using the initialization op creation context.
-    * @tparam R       Return type of the code block.
+    * @param  block Code block to run using the initialization op creation context.
+    * @tparam R Return type of the code block.
     * @return Return value of the code block.
     * @throws IllegalStateException If all graphs in the context stack are used for building functions.
     */
   @throws[IllegalStateException]
-  private[api] def initialization[R](block: => R): R = {
+  private[api] def initializationScope[R](block: => R): R = {
     // Get the first context that's not building a function.
     var outerContext = graphConstructionScope.value
     while (outerContext.graph.isInstanceOf[FunctionGraph] && outerContext.outerContext.isDefined)
@@ -1052,19 +2216,28 @@ object Op {
       throw new IllegalStateException("All graphs are building functions.")
     graphConstructionScope.withValue(outerContext) {
       // Entering an `initScope` preserves the name scope of the current context.
-      createWith(nameScope = graphConstructionScope.value.nameScope, controlDependencies = Set.empty[Op])(block)
+      createWith(
+        nameScope = graphConstructionScope.value.nameScope,
+        controlDependencies = Set.empty
+      )(block)
     }
   }
 
   /** Merges a graph to the provided op creation context graph and returns the graph to use when specifying the updated
     * op creation context. The merging rules are specified in the documentation of the [[createWith]] function.
     *
-    * @param  graph   Graph to merge.
-    * @param  context Op creation context whose graph needs to be updated.
+    * @param  graph    Graph to merge.
+    * @param  oldGraph Current op creation context graph.
     * @return Graph to use for the new op creation context.
     */
-  private[this] def mergeGraph(graph: Graph, context: GraphConstructionScope): Graph = {
-    if (graph == null) context.graph else graph
+  private def mergeGraph(
+      graph: Graph,
+      oldGraph: Graph
+  ): Graph = {
+    if (graph == null)
+      oldGraph
+    else
+      graph
   }
 
   /** Merges a name scope to the provided op creation context name scope and returns the name scope to use when
@@ -1078,22 +2251,27 @@ object Op {
     * @throws IllegalNameException If the provided name scope does not pass the regular expression validity checks.
     */
   @throws[IllegalNameException]
-  private[api] def mergeNameScope(nameScope: String, oldNameScope: String, uniqueNameFn: String => String): String = {
+  private[api] def mergeNameScope(
+      nameScope: String,
+      oldNameScope: String,
+      uniqueNameFn: String => String
+  ): String = {
     if (nameScope == null) {
       oldNameScope
     } else {
+      val normalizedNameScope = normalizeNameScope(nameScope)
       // Check whether the provided name scope is valid.
       // If the root name scope is being set, then stricter checks are performed on it (i.e., op naming checks). This
       // makes sure the name scope does not start with any illegal characters (e.g., '_', '-', '\', and '/').
-      if ((oldNameScope == "" && nameScope != "" && !checkName(nameScope))
-          || (oldNameScope != "" && !checkNameScope(nameScope)))
-        throw IllegalNameException(s"Illegal name scope '$nameScope'.")
-      if (nameScope == "")
+      if ((oldNameScope == "" && normalizedNameScope != "" && !checkName(normalizedNameScope))
+          || (oldNameScope != "" && !checkNameScope(normalizedNameScope)))
+        throw IllegalNameException(s"Illegal name scope '$normalizedNameScope'.")
+      if (normalizedNameScope == "")
         ""
-      else if (nameScope.endsWith("/"))
-        convertNameScopeToName(nameScope)
+      else if (normalizedNameScope.endsWith("/"))
+        convertNameScopeToName(normalizedNameScope)
       else
-        uniqueNameFn(nameScope)
+        uniqueNameFn(normalizedNameScope)
     }
   }
 
@@ -1151,11 +2329,14 @@ object Op {
     * @param  context       Op creation context whose colocation ops need to be updated.
     * @return Set of colocation ops to use for the new op creation context.
     */
-  private[this] def mergeColocationOps(colocationOps: Set[Op], context: GraphConstructionScope): Set[Op] = {
+  private def mergeColocationOps(
+      colocationOps: Set[UntypedOp],
+      context: GraphConstructionScope
+  ): Set[UntypedOp] = {
     if (colocationOps == null)
       context.colocationOps
     else if (colocationOps.isEmpty)
-      Set.empty[Op]
+      Set.empty
     else
       context.colocationOps ++ colocationOps
   }
@@ -1168,13 +2349,13 @@ object Op {
     * @param  context             Op creation context whose control dependencies needs to be updated.
     * @return Set of control dependencies to use for the new op creation context.
     */
-  private[this] def mergeControlDependencies(
-      controlDependencies: Set[Op],
+  private def mergeControlDependencies(
+      controlDependencies: Set[UntypedOp],
       context: GraphConstructionScope
-  ): (Set[Op], Option[Context]) = {
+  ): (Set[UntypedOp], Option[Context]) = {
     if (controlDependencies == null)
       (context.controlDependencies, context.controlFlowContext)
-    else if (controlDependencies == Set.empty[Op])
+    else if (controlDependencies.isEmpty)
       (controlDependencies, None)
     else
       (context.controlDependencies ++ controlDependencies, context.controlFlowContext)
@@ -1188,12 +2369,15 @@ object Op {
     * @param  context    Op creation context whose attributes needs to be updated.
     * @return Set of attributes to use for the new op creation context.
     */
-  private[this] def mergeAttributes(attributes: Map[String, Any], context: GraphConstructionScope): Map[String, Any] = {
-    if (attributes == null)
+  private def mergeAttributes(
+      attributes: Map[String, Any],
+      context: GraphConstructionScope
+  ): Map[String, Any] = {
+    if (attributes == null) {
       context.attributes
-    else if (attributes == Map.empty[String, Any])
+    } else if (attributes == Map.empty[String, Any]) {
       attributes.filter(attribute => attribute._2 != null)
-    else {
+    } else {
       var mergedMap = Map[String, Any](context.attributes.toSeq: _*)
       attributes.foreach(attribute => {
         if (attribute._2 == null && mergedMap.contains(attribute._1))
@@ -1209,15 +2393,12 @@ object Op {
     * the updated op creation context. The merging rules are specified in the documentation of the [[createWith]]
     * function.
     *
-    * @param  container Container to merge.
-    * @param  context   Op creation context whose container needs to be updated.
+    * @param  container    Container to merge.
+    * @param  oldContainer Current op creation context container.
     * @return Container to use for the new op creation context.
     */
-  private[this] def mergeContainer(container: String, context: GraphConstructionScope): String = {
-    if (container == null)
-      context.container
-    else
-      container
+  private[this] def mergeContainer(container: String, oldContainer: String): String = {
+    if (container == null) oldContainer else container
   }
 
   /** Checks whether the provided string is a valid op name.
@@ -1236,6 +2417,10 @@ object Op {
     */
   private[api] def checkNameScope(nameScope: String): Boolean = {
     VALID_NAME_SCOPE_REGEX.pattern.matcher(nameScope).matches
+  }
+
+  def normalizeNameScope(nameScope: String): String = {
+    nameScope.replaceAll(":", "_")
   }
 
   /** Converts the provided name scope to a valid op name, by removing a trailing `"/"` if there exists one.
@@ -1257,7 +2442,10 @@ object Op {
     * @throws GraphMismatchException If the two ops lie in different graphs.
     */
   @throws[GraphMismatchException]
-  private[ops] def assertSameGraph(op1: Op, op2: Op): Unit = {
+  private[ops] def assertSameGraph(
+      op1: UntypedOp,
+      op2: UntypedOp
+  ): Unit = {
     if (op1.graph != op2.graph)
       throw GraphMismatchException(s"'$op1' and '$op2' must be defined in the same graph.")
   }
@@ -1278,7 +2466,10 @@ object Op {
     *                                at least one of the `inputs` is not defined in it.
     */
   @throws[GraphMismatchException]
-  private[ops] def getGraphFromInputs(inputs: Set[Op], graph: Graph = null): Graph = {
+  private[ops] def getGraphFromInputs(
+      inputs: Set[UntypedOp],
+      graph: Graph = null
+  ): Graph = {
     val returnGraph = if (graph == null) inputs.head.graph else graph
     inputs.foreach(i => {
       if (graph == null)
@@ -1307,8 +2498,10 @@ object Op {
 
   //endregion ProtoBuf Helper Functions
 
-  private[ops] def controlDependencies(inputs: Set[Output]): Set[Op] = {
-    val controlDependencies: mutable.Set[Op] = mutable.Set(Op.currentControlDependencies.toSeq: _*)
+  private[ops] def controlDependencies(
+      inputs: Set[Output[Any]]
+  ): Set[UntypedOp] = {
+    val controlDependencies = mutable.Set(Op.currentControlDependencies.toSeq: _*)
     controlDependencies ++= inputs.flatMap(_.op.controlInputs)
     inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
     controlDependencies.toSet
@@ -1319,15 +2512,16 @@ object Op {
     * control dependencies due to transitive dependencies (e.g., if `a` depends on `b` and `c`, and `b` depends on
     * `c`, then the dependency of `a` on `c` is pruned).
     *
-    * @param  controlDependencies  Current set of control dependencies for the op that is being built.
-    * @param  op           Op that is a direct or indirect (through other ops) input or control input, for the op that
-    *                      is being built.
-    * @param  processedOps Already processed ops (provided for efficiency purposes so that we do not go through them
-    *                      a second time).
+    * @param  controlDependencies Current set of control dependencies for the op that is being built.
+    * @param  op                  Op that is a direct or indirect (through other ops) input or control input, for the op
+    *                             that is being built.
+    * @param  processedOps        Already processed ops (provided for efficiency purposes so that we do not go through
+    *                             them a second time).
     */
   private[this] def pruneControlDependencies(
-      controlDependencies: mutable.Set[Op],
-      op: Op, processedOps: mutable.Set[Op] = mutable.Set.empty[Op],
+      controlDependencies: mutable.Set[UntypedOp],
+      op: UntypedOp,
+      processedOps: mutable.Set[UntypedOp] = mutable.Set.empty,
       maxDepth: Int = 10
   ): Unit = {
     if (maxDepth > 0 && !processedOps.contains(op)) {
@@ -1335,20 +2529,39 @@ object Op {
       controlDependencies -= op
       processedOps += op
       // Prune transitive control dependencies
-      op.inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op, processedOps, maxDepth - 1))
+      op._inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op, processedOps, maxDepth - 1))
       op.controlInputs.foreach(pruneControlDependencies(controlDependencies, _, processedOps, maxDepth - 1))
     }
   }
 
-  private[Op] def transitiveColocationOps(currentOps: Set[Op], collectedOps: Set[Op] = Set.empty[Op]): Set[Op] = {
+  private[Op] def transitiveColocationOps(
+      currentOps: Set[UntypedOp],
+      collectedOps: Set[UntypedOp] = Set.empty
+  ): Set[UntypedOp] = {
     val newOps = collectedOps ++ currentOps ++ currentOps.flatMap(_.colocationOps)
-    if (newOps.size == collectedOps.size)
+    if (newOps.size == collectedOps.size) {
       newOps
-    else
-      newOps ++ newOps.foldLeft(newOps)((collected, op) => transitiveColocationOps(Set(op), collected))
+    } else {
+      newOps ++ newOps.foldLeft(newOps)((collected, op) => {
+        transitiveColocationOps(Set(op), collected)
+      })
+    }
   }
 
-  final case class Builder(opType: String, name: String)  {
+  final case class Builder[I: OpInput, O: OpOutput](
+      opType: String,
+      name: String,
+      input: I,
+      addAsIndividualInputs: Boolean = false
+  ) {
+    private[this] val inputs = {
+      if (addAsIndividualInputs) {
+        implicitly[OpInput[I]].toOutputs(input).map(Builder.InputTensor(_))
+      } else {
+        implicitly[OpInput[I]].toBuilderInputs(input)
+      }
+    }
+
     private[this] val scope = graphConstructionScope.value
 
     scope.graph.assertNotFrozen()
@@ -1358,19 +2571,18 @@ object Op {
 
     private val graph: Graph = scope.graph
 
-    private var built         : Boolean           = false
-    // TODO: [OP] Avoid using this extra input functions sequence.
-    private var inputFunctions: Seq[Long => Unit] = Seq.empty
-    private var inputs        : Seq[Output]       = Seq.empty
-    private var inputLists    : Seq[Seq[Output]]  = Seq.empty
-    private var device        : Option[String]    = None
-    private var attributes    : Map[String, Any]  = Map.empty
+    private var built     : Boolean                             = false
+    private var device    : Option[String]                      = None
+    private var attributes: Map[String, Any]                    = Map.empty
+    private var gradientFn: Option[Gradients.UntypedGradientFn] = None
 
-    def build(): Op = graph.synchronized {
+    def build(): Op[I, O] = graph.synchronized {
       using(graph.reference) { r =>
         if (built)
           throw OpBuilderUsedException("This op builder has already been used to built an op and cannot be re-used.")
         device = Option(scope.deviceFunction(OpSpecification(this.name, opType, scope.device)))
+
+        // Decide on the name of the new op.
         val name = {
           // If a name ends with a "/" then it is a name scope and we use it as-is, after removing the trailing "/".
           if (this.name.endsWith("/"))
@@ -1378,12 +2590,26 @@ object Op {
           else
             graph.uniqueName(this.name)
         }
-        val nativeHandle: Long = NativeOp.allocate(r.nativeHandle, opType, name)
-        inputFunctions.foreach(_ (nativeHandle))
-        val controlDependencies: mutable.Set[Op] = mutable.Set(scope.controlDependencies.toSeq: _*)
-        inputs.foreach(input => pruneControlDependencies(controlDependencies, input.op))
-        inputLists.foreach(_.foreach(input => pruneControlDependencies(controlDependencies, input.op)))
+        val nativeHandle = NativeOp.allocate(r.nativeHandle, opType, name)
+
+        // Add inputs and prune the control dependencies while doing that.
+        val controlDependencies = mutable.Set(scope.controlDependencies.toSeq: _*)
+        inputs.foreach {
+          case Builder.InputTensor(inputTensor) =>
+            pruneControlDependencies(controlDependencies, inputTensor.op)
+            val processedInput = graph.processOpInput(inputTensor)
+            NativeOp.addInput(nativeHandle, processedInput.op.nativeHandle, processedInput.index)
+          case Builder.InputTensorList(inputTensorList) =>
+            inputTensorList.foreach(input => pruneControlDependencies(controlDependencies, input.op))
+            val processedInputList = inputTensorList.map(graph.processOpInput)
+            NativeOp.addInputList(
+              nativeHandle, processedInputList.map(_.op.nativeHandle).toArray, processedInputList.map(_.index).toArray)
+        }
+
+        // Add the pruned control dependencies.
         controlDependencies.foreach(op => NativeOp.addControlInput(nativeHandle, op.nativeHandle))
+
+        // Add colocation constraints.
         val colocationOps = transitiveColocationOps(scope.colocationOps.filter(_ != null))
         val opDevice = device match {
           case None | Some("") => colocationOps.find(_.device != "").map(_.device).getOrElse("")
@@ -1400,13 +2626,19 @@ object Op {
             NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
           }
         })
+
+        // Add attributes.
         mergeAttributes(scope.attributes)
         setAttributes(nativeHandle)
+
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
-        val op = Op(graph, NativeOp.finish(nativeHandle))
+
+        // Build the op and set its requested placement device.
+        val op = Op[I, O](graph, Some(input), NativeOp.finish(nativeHandle))
+        op.gradientFn = gradientFn
         NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = scope.controlFlowContext
-        op.inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
+        op._inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
         op.controlFlowContext.foreach(_.add(op))
         built = true
         op
@@ -1439,9 +2671,9 @@ object Op {
             NativeOp.setAttrBool(nativeHandle, attribute._1, value)
           case value: Array[Boolean] =>
             NativeOp.setAttrBoolList(nativeHandle, attribute._1, value)
-          case value: DataType =>
+          case value: DataType[_] =>
             NativeOp.setAttrType(nativeHandle, attribute._1, value.cValue)
-          case value: Array[DataType] =>
+          case value: Array[DataType[_]] =>
             NativeOp.setAttrTypeList(nativeHandle, attribute._1, value.map(_.cValue))
           case value: Tensor[_] =>
             val handle = value.resolve()
@@ -1466,117 +2698,125 @@ object Op {
           case value: InstantiatedFunction[_, _] =>
             NativeOp.setAttrFuncName(nativeHandle, attribute._1, encodeString(value.hashedName))
           case _ =>
-            throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}.'")
+            throw new IllegalArgumentException(s"Unsupported attribute type for attribute named '${attribute._1}'.")
         }
       })
     }
 
     private def encodeString(value: String): Array[Byte] = value.getBytes(Charset.forName("UTF-8"))
 
-    def addInput(input: Output): Builder = {
-      val processedInput = graph.processOpInput(input)
-      this.inputFunctions :+= {
-        nativeHandle: Long => NativeOp.addInput(nativeHandle, processedInput.op.nativeHandle, processedInput.index)
-      }
-      this.inputs :+= input
-      this
-    }
-
-    def addInputList(inputList: Seq[Output]): Builder = {
-      val processedInputList = inputList.map(graph.processOpInput)
-      this.inputFunctions :+= {
-        nativeHandle: Long =>
-          NativeOp.addInputList(
-            nativeHandle, processedInputList.map(_.nativeHandle).toArray, processedInputList.map(_.index).toArray)
-      }
-      this.inputLists :+= inputList
-      this
-    }
-
-    def setDevice(device: String): Builder = {
+    def setDevice(device: String): Builder[I, O] = {
       this.device = Some(device)
       this
     }
 
-    def setAttribute(name: String, value: String): Builder = {
+    def setAttribute(name: String, value: String): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[String]): Builder = {
+    def setAttribute(name: String, value: Array[String]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Long): Builder = {
+    def setAttribute(name: String, value: Long): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Long]): Builder = {
+    def setAttribute(name: String, value: Array[Long]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Float): Builder = {
+    def setAttribute(name: String, value: Float): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Float]): Builder = {
+    def setAttribute(name: String, value: Array[Float]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Boolean): Builder = {
+    def setAttribute(name: String, value: Boolean): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Boolean]): Builder = {
+    def setAttribute(name: String, value: Array[Boolean]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: DataType): Builder = {
+    def setAttribute[T](name: String, value: DataType[T]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[DataType]): Builder = {
+    def setAttribute[T](name: String, value: Array[DataType[T]]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Tensor[_ <: DataType]): Builder = {
+    def setAttribute[T](name: String, value: Tensor[T]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Tensor[_ <: DataType]]): Builder = {
+    def setAttribute[T](name: String, value: Array[Tensor[T]]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Shape): Builder = {
+    def setAttribute(name: String, value: Shape): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: Array[Shape]): Builder = {
+    def setAttribute(name: String, value: Array[Shape]): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: AttrValue): Builder = {
+    def setAttribute(name: String, value: AttrValue): Builder[I, O] = {
       attributes += name -> value
       this
     }
 
-    def setAttribute(name: String, value: InstantiatedFunction[_, _]): Builder = {
+    def setAttribute(name: String, value: InstantiatedFunction[_, _]): Builder[I, O] = {
       value.addToGraph(graph)
       attributes += name -> value
       this
     }
+
+    def setGradientFn[GI >: I, GO >: O](
+        gradientFn: Gradients.GradientFn[I, O, GI, GO]
+    )(implicit
+        evGI: OpInput[GI],
+        evGO: OpOutput[GO]
+    ): Builder[I, O] = {
+      this.gradientFn = Some(Gradients.convertGradientFn[I, O, GI, GO](gradientFn)(evGI, evGO))
+      this
+    }
+
+    def setGradientFnHelper[GI >: I, GO >: O](
+        gradientFn: Option[Gradients.GradientFn[I, O, GI, GO]]
+    )(implicit
+        evGI: OpInput[GI],
+        evGO: OpOutput[GO]
+    ): Builder[I, O] = {
+      this.gradientFn = gradientFn.map(Gradients.convertGradientFn[I, O, GI, GO](_)(evGI, evGO))
+      this
+    }
   }
+
+  object Builder {
+    sealed trait Input
+    case class InputTensor[T](input: Output[T]) extends Input
+    case class InputTensorList[T](inputList: Seq[Output[T]]) extends Input
+  }
+
+  //endregion Graph Construction Helpers
 }

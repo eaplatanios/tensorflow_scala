@@ -15,9 +15,12 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output, OutputIndexedSlices, Summary}
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{Resource, TF, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{Schedule, FixedSchedule}
+import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 /** Optimizer that implements the Adam optimization algorithm.
@@ -71,7 +74,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   */
 class Adam protected (
     val learningRate: Float = 0.001f,
-    val decay: Schedule = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule[Float](),
     val beta1: Float = 0.9f,
     val beta2: Float = 0.999f,
     val useNesterov: Boolean = false,
@@ -82,44 +85,54 @@ class Adam protected (
 ) extends Optimizer {
   override val ignoreDuplicateSparseIndices: Boolean = true
 
-  protected var learningRateTensor: Output = _
-  protected var beta1Tensor       : Output = _
-  protected var beta2Tensor       : Output = _
-  protected var epsilonTensor     : Output = _
+  protected var learningRateTensor: Output[Float] = _
+  protected var beta1Tensor       : Output[Float] = _
+  protected var beta2Tensor       : Output[Float] = _
+  protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
+      variable: Variable[V],
+      iteration: Option[Variable[I]]
+  ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.cast(variable.dataType).toOutput
+    learningRateTensor.castTo[V].toOutput
   }
 
-  protected def getBeta1(variable: Variable): Output = {
+  protected def getBeta1[V: TF](
+      variable: Variable[V]
+  ): Output[V] = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    beta1Tensor.cast(variable.dataType).toOutput
+    beta1Tensor.castTo[V].toOutput
   }
 
-  protected def getBeta2(variable: Variable): Output = {
+  protected def getBeta2[V: TF](
+      variable: Variable[V]
+  ): Output[V] = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    beta2Tensor.cast(variable.dataType).toOutput
+    beta2Tensor.castTo[V].toOutput
   }
 
-  protected def getEpsilon(variable: Variable): Output = {
+  protected def getEpsilon[V: TF](
+      variable: Variable[V]
+  ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    epsilonTensor.cast(variable.dataType).toOutput
+    epsilonTensor.castTo[V].toOutput
   }
 
-  protected def getBetaPowerAccumulators: (Variable, Variable) = {
-    (getNonSlotVariable("Beta1Power", Op.currentGraph), getNonSlotVariable("Beta2Power", Op.currentGraph))
+  protected def getBetaPowerAccumulators: (Variable[Float], Variable[Float]) = {
+    (getNonSlotVariable[Float]("Beta1Power", Op.currentGraph),
+        getNonSlotVariable[Float]("Beta2Power", Op.currentGraph))
   }
 
-  override def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     // Create slots for the first and second moments.
     variables.foreach(v => {
-      zerosSlot("M", v, name)
-      zerosSlot("V", v, name)
+      zerosSlot("M", v, name)(TF.fromDataType(v.dataType))
+      zerosSlot("V", v, name)(TF.fromDataType(v.dataType))
     })
     // We create the 'beta1' and 'beta2' accumulators on the same device as the first variable. We sort the variables
     // list to make sure this device is consistent across workers (these need to go on the same parameter server,
@@ -129,7 +142,9 @@ class Adam protected (
     getOrCreateNonSlotVariable("Beta2Power", beta2, Set(firstVariable.op), ignoreExisting = true)
   }
 
-  override def prepare(iteration: Option[Variable]): Unit = {
+  override def prepare[I: TF : IsInt32OrInt64](
+      iteration: Option[Variable[I]]
+  ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
@@ -138,26 +153,73 @@ class Adam protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
-    val m = getSlot("M", variable)
-    val v = getSlot("V", variable)
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: Output[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
+    val m = getSlot[T, T]("M", variable)
+    val v = getSlot[T, T]("V", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
-    Adam.resourceApplyDense(
-      variable = variable,
-      m = m,
-      v = v,
-      beta1Power = Cast.cast(beta1Power.value, variable.dataType),
-      beta2Power = Cast.cast(beta2Power.value, variable.dataType),
-      stepSize = getLearningRate(variable, iteration),
-      beta1 = getBeta1(variable),
-      beta2 = getBeta2(variable),
-      epsilon = getEpsilon(variable),
-      gradient = gradient,
-      useLocking = useLocking,
-      useNesterov = useNesterov)
+    Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
+      opType = "ResourceApplyAdam",
+      name = s"$name/ApplyDense",
+      input = (variable.handle,
+          m.handle,
+          v.handle,
+          beta1Power.value.castTo[T],
+          beta2Power.value.castTo[T],
+          getLearningRate(variable, iteration),
+          getBeta1(variable),
+          getBeta2(variable),
+          getEpsilon(variable),
+          gradient)
+    ).setAttribute("use_locking", useLocking)
+        .setAttribute("use_nesterov", useNesterov)
+        .build()
   }
 
-  override def finish(updateOps: Set[Op], nameScope: String): Op = {
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
+    Op.nameScope(s"$name/ApplySparse") {
+      val m = getSlot[T, T]("M", variable)
+      val v = getSlot[T, T]("V", variable)
+      val (beta1Power, beta2Power) = getBetaPowerAccumulators
+      val beta1 = getBeta1(variable)
+      val beta2 = getBeta2(variable)
+      val epsilon = getEpsilon(variable)
+      var learningRate = getLearningRate(variable, iteration)
+      val one = Basic.ones[T](Shape())
+      learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
+      learningRate = learningRate / (one - beta1Power.value.castTo[T])
+
+      // m_t = beta1 * m + (1 - beta1) * gradient
+      val mScaledGradient = gradient.values * (one - beta1)
+      var mT = m.assign(m.value * beta1)
+      mT = Op.createWith(controlDependencies = Set(mT.op)) {
+        m.assignScatterAdd(gradient.indices, mScaledGradient)
+      }
+
+      // v_t = beta2 * v + (1 - beta2) * gradient * gradient
+      val vScaledGradient = gradient.values * gradient.values * (one - beta2)
+      var vT = v.assign(v.value * beta2)
+      vT = Op.createWith(controlDependencies = Set(vT.op)) {
+        v.assignScatterAdd(gradient.indices, vScaledGradient)
+      }
+
+      val vTSqrt = Math.sqrt(vT)
+      val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
+      ControlFlow.group(Set(update.op, mT.op, vT.op))
+    }
+  }
+
+  override def finish(
+      updateOps: Set[UntypedOp],
+      nameScope: String
+  ): UntypedOp = {
     // Update the power accumulators.
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val updateBetaPowerOps = Op.createWith(controlDependencies = updateOps) {
@@ -169,42 +231,12 @@ class Adam protected (
     }
     ControlFlow.group(updateOps ++ updateBetaPowerOps, nameScope)
   }
-
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    val m = getSlot("M", variable)
-    val v = getSlot("V", variable)
-    val (beta1Power, beta2Power) = getBetaPowerAccumulators
-    val beta1 = getBeta1(variable)
-    val beta2 = getBeta2(variable)
-    val epsilon = getEpsilon(variable)
-    var learningRate = getLearningRate(variable, iteration)
-    learningRate = learningRate * Math.sqrt(1 - beta2Power.cast(variable.dataType))
-    learningRate = learningRate / (1 - beta1Power.cast(variable.dataType))
-
-    // m_t = beta1 * m + (1 - beta1) * gradient
-    val mScaledGradient = gradient.values * (1 - beta1)
-    var mT = m.assign(m.value * beta1)
-    mT = Op.createWith(controlDependencies = Set(mT.op)) {
-      m.assignScatterAdd(gradient.indices, mScaledGradient)
-    }
-
-    // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-    val vScaledGradient = gradient.values * gradient.values * (1 - beta2)
-    var vT = v.assign(v.value * beta2)
-    vT = Op.createWith(controlDependencies = Set(vT.op)) {
-      v.assignScatterAdd(gradient.indices, vScaledGradient)
-    }
-
-    val vTSqrt = Math.sqrt(vT)
-    val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
-    ControlFlow.group(Set(update.op, mT.op, vT.op))
-  }
 }
 
 object Adam {
   def apply(
       learningRate: Float = 0.001f,
-      decay: Schedule = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
       useNesterov: Boolean = false,
@@ -213,63 +245,8 @@ object Adam {
       learningRateSummaryTag: String = null,
       name: String = "Adam"
   ): Adam = {
-    new Adam(learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name)
-  }
-
-  /** Creates an op that updates `variable` by applying the Adam algorithm update to it.
-    *
-    * The Adam update for step `t` is as follows:
-    * {{{
-    *   learningRate_t = initialLearningRate * sqrt(beta1 - beta2^t) / (1 - beta1^t)
-    *   m_t =  beta1 * m_{t-1} + (1 - beta1) * gradient
-    *   v_t = beta2 * v_{t-1} + (1 - beta2) * gradient * gradient
-    *   variable -= learningRate_t * m_t / (sqrt(v_t) + epsilon)
-    * }}}
-    *
-    * @param  variable    Variable whose value to update.
-    * @param  m           Adam first momentum accumulator variable.
-    * @param  v           Adam second momentum accumulator variable.
-    * @param  beta1Power  `beta1` accumulated power value.
-    * @param  beta2Power  `beta2` accumulated power value.
-    * @param  stepSize    Step size to use for the Adam update.
-    * @param  beta1       Adam first momentum parameter.
-    * @param  beta2       Adam second momentum parameter.
-    * @param  epsilon     Adam ridge term.
-    * @param  gradient    Gradient to apply.
-    * @param  useNesterov If `true`, Nesterov acceleration is used for the update.
-    * @param  useLocking  If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is undefined,
-    *                     but may exhibit less contention.
-    * @param  name        Name for the created op.
-    * @return Created op.
-    */
-  private[optimizers] def resourceApplyDense(
-      variable: Variable,
-      m: Variable,
-      v: Variable,
-      beta1Power: Output,
-      beta2Power: Output,
-      stepSize: Output,
-      beta1: Output,
-      beta2: Output,
-      epsilon: Output,
-      gradient: Output,
-      useNesterov: Boolean = false,
-      useLocking: Boolean = false,
-      name: String = "ResourceApplyAdam"
-  ): Op = {
-    Op.Builder(opType = "ResourceApplyAdam", name = name)
-        .addInput(variable.handle)
-        .addInput(m.handle)
-        .addInput(v.handle)
-        .addInput(beta1Power)
-        .addInput(beta2Power)
-        .addInput(stepSize)
-        .addInput(beta1)
-        .addInput(beta2)
-        .addInput(epsilon)
-        .addInput(gradient)
-        .setAttribute("use_locking", useLocking)
-        .setAttribute("use_nesterov", useNesterov)
-        .build()
+    new Adam(
+      learningRate, decay, beta1, beta2, useNesterov,
+      epsilon, useLocking, learningRateSummaryTag, name)
   }
 }

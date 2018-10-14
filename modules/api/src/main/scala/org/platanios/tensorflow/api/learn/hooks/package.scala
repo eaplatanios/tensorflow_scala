@@ -23,9 +23,9 @@ package object hooks {
       extends HookTrigger.API {
     type Hook = hooks.Hook
     type CheckpointSaver = hooks.CheckpointSaver
-    type Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = hooks.Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
+    type Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] = hooks.Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval]
     type LossLogger = hooks.LossLogger
-    type ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = hooks.ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
+    type ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, InEval] = hooks.ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, InEval]
     type NaNChecker = hooks.NaNChecker
     type StepRateLogger = hooks.StepRateLogger
     type Stopper = hooks.Stopper

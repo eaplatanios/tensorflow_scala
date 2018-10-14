@@ -18,16 +18,14 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.learn._
-import org.platanios.tensorflow.api.ops.{Op, Output, Resources}
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.io.data.Dataset
-import org.platanios.tensorflow.api.ops.lookup.Lookup
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
+import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT64}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -60,43 +58,43 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
+class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
     val log: Boolean = true,
     val summaryDir: Path = null,
-    val datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
-    val metrics: Seq[Metric[EI, Output]],
+    val datasets: Seq[(String, () => Dataset[TrainIn])],
+    val metrics: Seq[Metric[InEval, Output[Float]]],
     val trigger: HookTrigger = StepHookTrigger(100),
     val triggerAtEnd: Boolean = true,
     val numDecimalPoints: Int = 4,
     val randomSeed: Option[Int] = None,
     val name: String = "Evaluator"
+)(implicit
+  evIn: NestedStructure.Aux[In, _, _, _],
+  evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] {
+    with ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, InEval] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
   require(Op.checkNameScope(name), "Invalid evaluator name.")
 
   override private[learn] val priority: Int = -1000
 
-  private[this] var graph              : Graph                                = _
-  private[this] var sessionCreator     : SessionCreator                       = _
-  private[this] var datasetInitializers: Seq[(String, Op)]                    = _
-  private[this] var evaluateOps        : Model.EvaluateOps[TT, TO, TD, TS, I] = _
+  protected var graph              : Graph                           = _
+  protected var sessionCreator     : SessionCreator                  = _
+  protected var datasetInitializers: Seq[(String, UntypedOp)]        = _
+  protected var evaluateOps        : Model.EvaluateOps[TrainIn, Out] = _
+
+  override protected def fetches: Seq[Output[Any]] = Seq.empty
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def begin(): Unit = {
     graph = Graph()
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
-      evaluateOps = Op.createWithNameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
-      datasetInitializers = datasets.map(d => (d._1, evaluateOps.inputIterator.createInitializer(d._2())))
+      evaluateOps = Op.nameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
+      datasetInitializers = datasets.map(d => (d._1, evaluateOps.inputIterator.createInitializer(d._2()): UntypedOp))
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
-        sessionScaffold = SessionScaffold(
-          initOp = Some(ControlFlow.group(Set(
-            Variable.initializer(Variable.globalVariables),
-            Resources.initializer(Resources.sharedResources)))),
-          localInitOp = Some(ControlFlow.group(Set(
-            Variable.initializer(Variable.localVariables),
-            Lookup.lookupsInitializer())))),
+        sessionScaffold = SessionScaffold(),
         sessionConfig = modelInstance.configuration.sessionConfig,
         checkpointPath = modelInstance.configuration.workingDir)
     }
@@ -105,7 +103,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = Op.createWith(graph, nameScope = name) {
     Evaluator.logger.debug(s"Computing $name.")
@@ -133,11 +131,11 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
         case (datasetName, datasetInitializer) =>
           sessionCreator.addLocalInitOp(datasetInitializer)
           session.run(targets = evaluateOps.metricResets)
-          session.run(targets = datasetInitializer)
+          session.run(targets = Set(datasetInitializer))
           var shouldStop = false
           while (!shouldStop) {
             try {
-              session.run(targets = evaluateOps.metricUpdates.toSet)
+              session.run(targets = evaluateOps.metricUpdates.map(_.op).toSet)
             } catch {
               case _: OutOfRangeException => shouldStop = true
             }
@@ -146,7 +144,7 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
           sessionCreator.removeLocalInitOp(datasetInitializer)
           summaryProto.foreach(sp => value.zip(metrics.map(_.name)).foreach(m => {
             if (m._1.shape.rank == 0 && (m._1.dataType.isFloatingPoint || m._1.dataType.isInteger)) {
-              val castedValue = m._1.cast(FLOAT32).scalar
+              val castedValue = m._1.toFloat.scalar
               val value = Summary.Value.newBuilder()
               value.setTag(s"$name/$datasetName/${m._2}")
               value.setSimpleValue(castedValue)
@@ -158,10 +156,10 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
           if (log) {
             val line = s"║ %${firstColWidth}s │".format(datasetName) + value.map(metricValue => {
               if (metricValue.shape.rank == 0 && metricValue.dataType.isFloatingPoint) {
-                val castedValue = metricValue.cast(FLOAT32).scalar.asInstanceOf[Float]
+                val castedValue = metricValue.toFloat.scalar
                 s" %${colWidth}.${numDecimalPoints}f ".format(castedValue)
               } else if (metricValue.shape.rank == 0 && metricValue.dataType.isInteger) {
-                val castedValue = metricValue.cast(INT64).scalar.asInstanceOf[Long]
+                val castedValue = metricValue.toLong.scalar
                 s" %${colWidth}d ".format(castedValue)
               } else {
                 s" %${colWidth}s ".format("Not Scalar")
@@ -198,17 +196,20 @@ class Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] protected (
 object Evaluator {
   private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
 
-  def apply[IT, IO, ID, IS, I, TT, TO, TD, TS, EI](
+  def apply[In, TrainIn, TrainOut, Out, Loss, InEval](
       log: Boolean = true,
       summaryDir: Path = null,
-      datasets: Seq[(String, () => Dataset[TT, TO, TD, TS])],
-      metrics: Seq[Metric[EI, Output]],
+      datasets: Seq[(String, () => Dataset[TrainIn])],
+      metrics: Seq[Metric[InEval, Output[Float]]],
       trigger: HookTrigger = StepHookTrigger(100),
       triggerAtEnd: Boolean = true,
       numDecimalPoints: Int = 4,
       randomSeed: Option[Int] = None,
       name: String = "Evaluator"
-  ): Evaluator[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = {
+  )(implicit
+      evIn: NestedStructure.Aux[In, _, _, _],
+      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
+  ): Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] = {
     new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }
 }

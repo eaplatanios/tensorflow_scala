@@ -15,13 +15,13 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.core.types.TF
 
 /** Contains functions for constructing ops related to logging.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Logging {
+trait Logging {
   /** $OpDocLoggingPrint
     *
     * @group LoggingOps
@@ -34,18 +34,33 @@ private[api] trait Logging {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def print[T: OutputOps](
-      input: T, data: Seq[Output], message: String = "", firstN: Int = -1, summarize: Int = 3,
-      name: String = "Print"): T = {
-    implicitly[OutputOps[T]].applyUnary(input, i => {
-      Op.Builder("Print", name)
-          .addInput(i)
-          .addInputList(data)
-          .setAttribute("message", message)
+  def print[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
+      data: Seq[Output[Any]],
+      message: String = "",
+      firstN: Int = -1,
+      summarize: Int = 3,
+      name: String = "Print"
+  )(implicit
+      ev: OutputOps.Aux[OL, T]
+  ): OL[T] = {
+    ev.applyUnary(input, o =>
+      Op.Builder[(Output[T], Seq[Output[Any]]), Output[T]](
+        opType = "Print",
+        name = name,
+        input = (o, data)
+      ).setAttribute("message", message)
           .setAttribute("first_n", firstN)
           .setAttribute("summarize", summarize)
-          .build().outputs(0)
-    })
+          .setGradientFn(printGradient(_, _)(TF[T]))
+          .build().output)
+  }
+
+  protected def printGradient[T: TF](
+      op: Op[(Output[T], Seq[Output[Any]]), Output[T]],
+      outputGradient: Output[T]
+  ): (Output[T], Seq[Output[Any]]) = {
+    (outputGradient, Seq.fill(op.input._2.length)(null))
   }
 
   /** $OpDocLoggingTimestamp
@@ -54,23 +69,16 @@ private[api] trait Logging {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def timestamp(name: String = "Timestamp"): Output = {
-    Op.Builder("Timestamp", name)
-        .build().outputs(0)
+  def timestamp(name: String = "Timestamp"): Output[Double] = {
+    Op.Builder[Unit, Output[Double]](
+      opType = "Timestamp",
+      name = name,
+      input = ()
+    ).build().output
   }
 }
 
-private[api] object Logging extends Logging {
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("Timestamp")
-
-    GradientsRegistry.register("Print", printGradient)
-
-    private[this] def printGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      outputGradients ++ Seq.fill(op.inputs.length - 1)(null)
-    }
-  }
-
+object Logging extends Logging {
   /** @define OpDocLoggingPrint
     *   The `print` op prints a list of tensors.
     *

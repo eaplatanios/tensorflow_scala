@@ -56,6 +56,8 @@ object Op {
   @native def getAttrShape(handle: Long, name: String): Array[Long]
   @native def toNodeDef(handle: Long): Array[Byte]
   @native def allOps: Array[Byte]
+  @native def allRegisteredKernels: Array[Byte]
+  @native def registeredKernelsForOp(opName: String): Array[Byte]
   @native def tryEvaluateConstant(graphHandle: Long, opHandle: Long, outputIndex: Int): Long
 
   //endregion Operation

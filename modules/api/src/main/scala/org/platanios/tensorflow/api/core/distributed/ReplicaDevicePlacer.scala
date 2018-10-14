@@ -31,8 +31,12 @@ import org.platanios.tensorflow.api.ops.OpSpecification
   * @author Emmanouil Antonios Platanios
   */
 class ReplicaDevicePlacer private[distributed](
-    psNumTasks: Int, psDevice: String, workerDevice: String, psOpTypes: Set[String],
-    psStrategy: OpSpecification => Int) {
+    val psNumTasks: Int,
+    val psDevice: String,
+    val workerDevice: String,
+    val psOpTypes: Set[String],
+    val psStrategy: OpSpecification => Int
+) {
   def apply(opSpecification: OpSpecification): String = {
     val currentDevice = DeviceSpecification.fromString(opSpecification.device)
 
@@ -100,9 +104,13 @@ object ReplicaDevicePlacer {
     * @return [[ReplicaDevicePlacer]], whose `apply` method can be passed to `Op.createWith(deviceFunction = ...)`.
     */
   def apply(
-      psNumTasks: Int = 0, psDevice: String = "/job:ps", workerDevice: String = "/job:worker",
-      clusterConfig: ClusterConfig = null, psOpTypes: Set[String] = Set("Variable", "VariableV2", "VarHandleOp"),
-      psStrategy: OpSpecification => Int = null): ReplicaDevicePlacer = {
+      psNumTasks: Int = 0,
+      psDevice: String = "/job:ps",
+      workerDevice: String = "/job:worker",
+      clusterConfig: ClusterConfig = null,
+      psOpTypes: Set[String] = Set("Variable", "VariableV2", "VarHandleOp"),
+      psStrategy: OpSpecification => Int = null
+  ): ReplicaDevicePlacer = {
     val numTasks = {
       if (clusterConfig != null) {
         // Get `psJob` from `psDevice` by stripping "/job:".
@@ -117,9 +125,13 @@ object ReplicaDevicePlacer {
       null
     } else {
       // TODO: [DISTRIBUTED] !!! Variables in the LOCAL_VARIABLES collection should not be placed on the parameter server.
-      new ReplicaDevicePlacer(
-        numTasks, psDevice, workerDevice, psOpTypes,
-        if (psStrategy == null) RoundRobinDeviceSetter(numTasks).apply else psStrategy)
+      val psStrategyWithDefault: OpSpecification => Int = {
+        if (psStrategy == null)
+          RoundRobinDeviceSetter(numTasks).apply
+        else
+          psStrategy
+      }
+      new ReplicaDevicePlacer(numTasks, psDevice, workerDevice, psOpTypes, psStrategyWithDefault)
     }
   }
 
@@ -128,7 +140,7 @@ object ReplicaDevicePlacer {
     * @param  psNumTasks Number of parameter server tasks to cycle among.
     */
   private[distributed] case class RoundRobinDeviceSetter(psNumTasks: Int) {
-    private[this] var nextTask: Int = 0
+    private var nextTask: Int = 0
 
     def apply(opSpecification: OpSpecification): Int = {
       val task = nextTask

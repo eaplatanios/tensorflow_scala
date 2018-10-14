@@ -17,8 +17,8 @@ package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
+import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF, IsStringOrIntOrUInt}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 
 /** Lookup table initializer that uses a text file.
   *
@@ -50,8 +50,8 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   *     "text.txt", STRING, INT64, TextFileWholeLine, TextFileLineNumber, " "))
   * }}}
   *
-  * @param  filename        Scalar `STRING` tensor containing the filename of the text file to be used for
-  *                         initialization. The path must be accessible from wherever the graph is initialized (e.g.,
+  * @param  filename        Scalar tensor containing the filename of the text file to be used for initialization.
+  *                         The path must be accessible from wherever the graph is initialized (e.g.,
   *                         trainer or evaluation workers).
   * @param  keysDataType    Data type of the table keys.
   * @param  valuesDataType  Data type of the table values.
@@ -62,52 +62,62 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LookupTableTextFileInitializer protected (
-    val filename: Output,
-    override val keysDataType: DataType,
-    override val valuesDataType: DataType,
-    val keysExtractor: TextFileFieldExtractor,
-    val valuesExtractor: TextFileFieldExtractor,
+class LookupTableTextFileInitializer[K: TF, V: TF] protected (
+    val filename: Output[String],
+    override val keysDataType: DataType[K],
+    override val valuesDataType: DataType[V],
+    val keysExtractor: TextFileFieldExtractor[K],
+    val valuesExtractor: TextFileFieldExtractor[V],
     val delimiter: String = "\t",
     val vocabularySize: Int = -1
 ) extends LookupTableInitializer(keysDataType, valuesDataType) {
-  if (keysExtractor == TextFileLineNumber && keysDataType != INT64)
-    throw InvalidArgumentException(
-      s"The keys data type must be INT64 in order to use the 'TextFileLineNumber' extractor, but it was $keysDataType.")
-  if (keysExtractor == TextFileWholeLine && !keysDataType.isInteger && keysDataType != STRING)
-    throw InvalidArgumentException(
-      s"The keys data type must be an integer type or STRING in order to use the 'TextFileWholeLine' extractor, b" +
-          s"ut it was $keysDataType.")
   if (vocabularySize != -1 && vocabularySize <= 0)
     throw InvalidArgumentException("The vocabulary size must be positive, if provided.")
 
-  override def initialize(table: InitializableLookupTable, name: String = "LookupTableTextFileInitialize"): Op = {
-    table.checkDataTypes(keysDataType, valuesDataType)
-    Op.createWithNameScope(name, Set(table.handle.op)) {
-      val initializationOp = Lookup.createLookupTableTextFileInitializer(
-        table.handle, filename, keysExtractor.value, valuesExtractor.value, vocabularySize, delimiter)
-      Op.currentGraph.addToCollection(initializationOp, Graph.Keys.TABLE_INITIALIZERS)
-      // If the filename asset tensor is anything other than a string constant (e.g., if it is a placeholder), then it
-      // does not make sense to track it as an asset.
+  override def initialize(
+      table: InitializableLookupTable[K, V],
+      name: String = "LookupTableTextFileInitialize"
+  )(implicit evVTF: TF[V]): UntypedOp = {
+    Op.nameScope(name) {
+      val initializationOp = Op.Builder[(Output[Resource], Output[String]), Unit](
+        opType = "InitializeTableFromTextFileV2",
+        name = name,
+        input = (table.handle, filename)
+      ).setAttribute("key_index", keysExtractor.value)
+          .setAttribute("value_index", valuesExtractor.value)
+          .setAttribute("vocab_size", vocabularySize)
+          .setAttribute("delimiter", delimiter)
+          .build()
+      Op.currentGraph.addToCollection(Graph.Keys.TABLE_INITIALIZERS)(initializationOp)
+      // If the filename asset tensor is anything other than a string constant
+      // (e.g., if it is a placeholder), then it does not make sense to track
+      // it as an asset.
       if (filename.op.opType == "Const")
-        Op.currentGraph.addToCollection(filename, Graph.Keys.ASSET_FILEPATHS)
+        Op.currentGraph.addToCollection(Graph.Keys.ASSET_FILEPATHS)(filename)
       initializationOp
     }
   }
 }
 
 object LookupTableTextFileInitializer {
-  def apply(
-      filename: Output, keysDataType: DataType, valuesDataType: DataType,
-      keysExtractor: TextFileFieldExtractor, valuesExtractor: TextFileFieldExtractor, delimiter: String = "\t",
-      vocabularySize: Int = -1): LookupTableTextFileInitializer = {
+  def apply[K: TF, V: TF](
+      filename: Output[String],
+      keysDataType: DataType[K],
+      valuesDataType: DataType[V],
+      keysExtractor: TextFileFieldExtractor[K],
+      valuesExtractor: TextFileFieldExtractor[V],
+      delimiter: String = "\t",
+      vocabularySize: Int = -1
+  ): LookupTableTextFileInitializer[K, V] = {
     new LookupTableTextFileInitializer(
-      filename, keysDataType, valuesDataType, keysExtractor, valuesExtractor, delimiter, vocabularySize)
+      filename, keysDataType, valuesDataType,
+      keysExtractor, valuesExtractor,
+      delimiter, vocabularySize)
   }
 }
 
 /** Represents a field extractor from a text file. */
-sealed trait TextFileFieldExtractor {
+sealed trait TextFileFieldExtractor[+K] {
   val name : String
   val value: Int
 
@@ -115,13 +125,15 @@ sealed trait TextFileFieldExtractor {
 }
 
 /** Text file field extractor that extracts the line number as the field (starting at zero). */
-case object TextFileLineNumber extends TextFileFieldExtractor {
+case object TextFileLineNumber extends TextFileFieldExtractor[Long] {
   override val name : String = "LINE_NUMBER"
   override val value: Int    = -1
 }
 
 /** Text file field extractor that extracts the whole line as a field. */
-case object TextFileWholeLine extends TextFileFieldExtractor {
+case class TextFileWholeLine[+K: TF]()(implicit
+    ev: IsStringOrIntOrUInt[K]
+) extends TextFileFieldExtractor[K] {
   override val name : String = "WHOLE_LINE"
   override val value: Int    = -2
 }
@@ -130,7 +142,7 @@ case object TextFileWholeLine extends TextFileFieldExtractor {
   *
   * @param  index Column index.
   */
-case class TextFileColumn(index: Int) extends TextFileFieldExtractor {
+case class TextFileColumn[+K: TF](index: Int) extends TextFileFieldExtractor[K] {
   override val name : String = s"COLUMN[$index]"
   override val value: Int    = index
 }

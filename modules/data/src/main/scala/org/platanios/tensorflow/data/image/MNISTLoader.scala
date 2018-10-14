@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.types.UByte
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.UniformSplit
 
@@ -83,7 +84,7 @@ object MNISTLoader extends Loader {
     MNISTDataset(datasetType, trainImages, trainLabels, testImages, testLabels)
   }
 
-  private[this] def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
+  private def extractImages(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
     logger.info(s"Extracting images from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -99,13 +100,13 @@ object MNISTLoader extends Loader {
     val numberOfRows = (byteBuffer.getInt & 0xffffffffL).toInt
     val numberOfColumns = (byteBuffer.getInt & 0xffffffffL).toInt
     val numBytes = byteBuffer.limit() - 16
-    val tensor = Tensor.fromBuffer(UINT8, Shape(numberOfImages, numberOfRows, numberOfColumns), numBytes, byteBuffer)
+    val tensor = Tensor.fromBuffer[UByte](Shape(numberOfImages, numberOfRows, numberOfColumns), numBytes, byteBuffer)
     outputStream.close()
     inputStream.close()
     tensor
   }
 
-  private[this] def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UINT8] = {
+  private def extractLabels(path: Path, bufferSize: Int = 8192): Tensor[UByte] = {
     logger.info(s"Extracting labels from file '$path'.")
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
@@ -119,7 +120,7 @@ object MNISTLoader extends Loader {
       throw new IllegalStateException(s"Invalid magic number '$magicNumber' in MNIST labels file '$path'.")
     val numberOfLabels = (byteBuffer.getInt & 0xffffffffL).toInt
     val numBytes = byteBuffer.limit() - 8
-    val tensor = Tensor.fromBuffer(UINT8, Shape(numberOfLabels), numBytes, byteBuffer)
+    val tensor = Tensor.fromBuffer[UByte](Shape(numberOfLabels), numBytes, byteBuffer)
     outputStream.close()
     inputStream.close()
     tensor
@@ -128,10 +129,10 @@ object MNISTLoader extends Loader {
 
 case class MNISTDataset(
     datasetType: MNISTLoader.DatasetType,
-    trainImages: Tensor[UINT8],
-    trainLabels: Tensor[UINT8],
-    testImages: Tensor[UINT8],
-    testLabels: Tensor[UINT8]
+    trainImages: Tensor[UByte],
+    trainLabels: Tensor[UByte],
+    testImages: Tensor[UByte],
+    testLabels: Tensor[UByte]
 ) {
   def splitRandomly(trainPortion: Float, seed: Option[Long] = None): MNISTDataset = {
     if (trainPortion == 1.0f) {
@@ -142,10 +143,10 @@ case class MNISTDataset(
       val split = UniformSplit(allLabels.shape(0), seed)
       val (trainIndices, testIndices) = split(trainPortion)
       copy(
-        trainImages = allImages.gather(trainIndices),
-        trainLabels = allLabels.gather(trainIndices),
-        testImages = allImages.gather(testIndices),
-        testLabels = allLabels.gather(testIndices))
+        trainImages = allImages.gather[Int](trainIndices),
+        trainLabels = allLabels.gather[Int](trainIndices),
+        testImages = allImages.gather[Int](testIndices),
+        testLabels = allLabels.gather[Int](testIndices))
     }
   }
 }

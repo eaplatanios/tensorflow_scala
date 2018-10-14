@@ -16,11 +16,11 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.core.types.DataType
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
-/** Wrapper around an [[Op]] meant to represent one of its inputs. Actual op inputs have type [[Output]] since they
+/** Wrapper around an op meant to represent one of its inputs. Actual op inputs have type [[Output]] since they
   * represent outputs of other ops. Currently, [[Input]] is only useful for representing consumers of an [[Op]]'s
   * outputs.
   *
@@ -29,17 +29,30 @@ import org.platanios.tensorflow.jni.{Op => NativeOp}
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Input private[ops](op: Op, index: Int) {
+final case class Input[T] private[ops](
+    op: UntypedOp,
+    index: Int
+) {
   /** Name of this op input. This is simply set to `"<op.name>:<index>"`. */
-  lazy val name: String = s"${op.name}:$index"
+  lazy val name: String = {
+    s"${op.name}:$index"
+  }
 
   /** Data type of this op input. */
-  lazy val dataType: DataType = using(graph.reference) { r =>
-    DataType.fromCValue(NativeOp.inputDataType(r.nativeHandle, op.nativeHandle, index))
+  lazy val dataType: DataType[T] = {
+    using(graph.reference) { r =>
+      DataType.fromCValue(
+        NativeOp.inputDataType(r.nativeHandle, op.nativeHandle, index)
+      ).asInstanceOf[DataType[T]]
+    }
   }
 
   /** Graph where the op belongs. */
-  def graph: Graph = op.graph
+  def graph: Graph = {
+    op.graph
+  }
 
-  override def toString: String = s"Op.Input(name = $name, dataType = $dataType)"
+  override def toString: String = {
+    s"Op.Input(name = $name, dataType = $dataType)"
+  }
 }

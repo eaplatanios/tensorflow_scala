@@ -15,19 +15,19 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.ops.{NN, Op, Output, TensorArray}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-
-import shapeless._
-import shapeless.ops.hlist.Tupler
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.types.{IsFloat16OrFloat32OrFloat64, IsInt32OrInt64, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.SparseShape
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.data.Dataset
+import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
-
-import scala.collection.SeqLike
-import scala.collection.generic.CanBuildFrom
-import scala.reflect.ClassTag
 
 /** RNN cell that applies dropout to the provided RNN cell.
   *
@@ -48,168 +48,101 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O, OS, S, SS] protected (
-    val cell: RNNCell[O, OS, S, SS],
-    val inputKeepProbability: Output = 1.0f,
-    val outputKeepProbability: Output = 1.0f,
-    val stateKeepProbability: Output = 1.0f,
+class DropoutWrapper[O, S] protected (
+    val cell: RNNCell[O, S],
+    val inputKeepProbability: Output[Float] = 1.0f,
+    val outputKeepProbability: Output[Float] = 1.0f,
+    val stateKeepProbability: Output[Float] = 1.0f,
     val seed: Option[Int] = None,
     val name: String = "DropoutWrapper"
-)(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS],
-    evODropout: DropoutWrapper.Supported[O],
-    evSDropout: DropoutWrapper.Supported[S]
-) extends RNNCell[O, OS, S, SS]()(evO, evS) {
-  override def outputShape: OS = cell.outputShape
-  override def stateShape: SS = cell.stateShape
-  override def forward(input: Tuple[O, S]): Tuple[O, S] = Op.createWithNameScope(name) {
-    val dropoutInput = evODropout.dropout(input.output, inputKeepProbability, "input", seed)._1
-    val nextTuple = cell(Tuple(dropoutInput, input.state))
-    val nextState = evSDropout.dropout(nextTuple.state, stateKeepProbability, "state", seed)._1
-    val nextOutput = evODropout.dropout(nextTuple.output, stateKeepProbability, "output", seed)._1
-    Tuple(nextOutput, nextState)
+) extends RNNCell[O, S]() {
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): OS = {
+    cell.outputShape
+  }
+
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[S, SV, SD, SS]): SS = {
+    cell.stateShape
+  }
+
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: Tuple[O, S]
+  )(implicit
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
+  ): Tuple[O, S] = {
+    Op.nameScope(name) {
+      val dropoutInput = evStructureO.map(
+        input.output, None, DropoutWrapper.DropoutConverter(inputKeepProbability, "input", seed))
+      val nextTuple = cell(Tuple(dropoutInput, input.state))
+      val nextState = evStructureS.map(
+        nextTuple.state, None, DropoutWrapper.DropoutConverter(stateKeepProbability, "state", seed))
+      val nextOutput = evStructureO.map(
+        nextTuple.output, None, DropoutWrapper.DropoutConverter(outputKeepProbability, "output", seed))
+      Tuple(nextOutput, nextState)
+    }
   }
 }
 
 object DropoutWrapper {
-  def apply[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS],
-      inputKeepProbability: Output = 1.0f,
-      outputKeepProbability: Output = 1.0f,
-      stateKeepProbability: Output = 1.0f,
+  def apply[O, S](
+      cell: RNNCell[O, S],
+      inputKeepProbability: Output[Float] = 1.0f,
+      outputKeepProbability: Output[Float] = 1.0f,
+      stateKeepProbability: Output[Float] = 1.0f,
       seed: Option[Int] = None,
       name: String = "DropoutWrapper"
-  )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS],
-      evODropout: DropoutWrapper.Supported[O],
-      evSDropout: DropoutWrapper.Supported[S]
-  ): DropoutWrapper[O, OS, S, SS] = {
+  ): DropoutWrapper[O, S] = {
     new DropoutWrapper(
-      cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed, name)(
-      evO, evS, evODropout, evSDropout)
+      cell, inputKeepProbability, outputKeepProbability,
+      stateKeepProbability, seed, name)
   }
 
-  private[this] def generateSeed(saltPrefix: String, seed: Option[Int], index: Int): Option[Int] = {
+  private def generateSeed(
+      saltPrefix: String,
+      seed: Option[Int],
+      index: Int
+  ): Option[Int] = {
+    // TODO: [OPS] !!! What about the index?
+
     seed.map(s => {
-      val md5 = MessageDigest.getInstance("MD5").digest(s"$s${saltPrefix}_$index".getBytes(StandardCharsets.UTF_8))
+      val md5 = MessageDigest.getInstance("MD5")
+          .digest(s"$s${saltPrefix}_$index".getBytes(StandardCharsets.UTF_8))
       ByteBuffer.wrap(md5.take(8)).getInt() & 0x7fffffff
     })
   }
 
-  trait Supported[T] {
-    def dropout(value: T, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0): (T, Int)
-  }
+  private[DropoutWrapper] case class DropoutConverter(
+      keepProbability: Output[Float],
+      saltPrefix: String,
+      seed: Option[Int]
+  ) extends NestedStructure.Converter {
+    // TODO: [IMPLICITS] !!! Handle OutputIndexedSlices and SparseOutput.
 
-  object Supported {
-    implicit val outputSupported: Supported[Output] = new Supported[Output] {
-      override def dropout(
-          value: Output, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
-      ): (Output, Int) = {
-        (NN.dynamicDropout(value, keepProbability, seed = generateSeed(saltPrefix, seed, index)), index + 1)
-      }
+    override def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = {
+
+      // TODO: [TYPES] !!! Super hacky. Remove in the future.
+      val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
+
+      NN.dynamicDropout(
+        value,
+        keepProbability.castTo[T](TF.fromDataType(value.dataType)),
+        seed = generateSeed(saltPrefix, seed, index = 0)
+      )(TF.fromDataType(value.dataType), ev, IntDefault[Int], TF[Int], IsInt32OrInt64[Int])
     }
 
-    implicit val tensorArraySupported: Supported[TensorArray] = new Supported[TensorArray] {
-      override def dropout(
-          value: TensorArray, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
-      ): (TensorArray, Int) = {
-        (value, index)
-      }
+    @throws[InvalidArgumentException]
+    override def apply[T](value: OutputIndexedSlices[T], shape: Option[SparseShape]): OutputIndexedSlices[T] = {
+      throw InvalidArgumentException("Tensor indexed slices are not supported in the dropout wrapper.")
     }
 
-    implicit val lstmStateSupported: Supported[LSTMState] = new Supported[LSTMState] {
-      override def dropout(
-          value: LSTMState, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
-      ): (LSTMState, Int) = {
-        (LSTMState(
-          value.c,
-          NN.dynamicDropout(value.m, keepProbability, seed = generateSeed(saltPrefix, seed, index))), index + 1)
-      }
+    @throws[InvalidArgumentException]
+    override def apply[T](value: SparseOutput[T], shape: Option[SparseShape]): SparseOutput[T] = {
+      throw InvalidArgumentException("Sparse tensors are not supported in the dropout wrapper.")
     }
 
-    implicit def arraySupported[T: ClassTag](implicit ev: Supported[T]): Supported[Array[T]] = new Supported[Array[T]] {
-      override def dropout(
-          value: Array[T], keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
-      ): (Array[T], Int) = {
-        var currentIndex = index
-        (value.map({ v =>
-          val (dropoutV, dropoutIndex) = ev.dropout(v, keepProbability, saltPrefix, seed, currentIndex)
-          currentIndex = dropoutIndex
-          dropoutV
-        }), currentIndex)
-      }
-    }
-
-    implicit def seqSupported[T, CC[A] <: SeqLike[A, CC[A]]](implicit
-        ev: Supported[T],
-        cbf: CanBuildFrom[CC[T], T, CC[T]]
-    ): Supported[CC[T]] = new Supported[CC[T]] {
-      override def dropout(
-          value: CC[T], keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
-      ): (CC[T], Int) = {
-        // TODO: Make this atomic for parallel sequences.
-        var currentIndex = index
-        (value.map({ v =>
-          val (dropoutV, dropoutIndex) = ev.dropout(v, keepProbability, saltPrefix, seed, currentIndex)
-          currentIndex = dropoutIndex
-          dropoutV
-        })(cbf), currentIndex)
-      }
-    }
-
-    implicit def mapSupported[T, MK](implicit ev: Supported[T]): Supported[Map[MK, T]] = new Supported[Map[MK, T]] {
-      override def dropout(
-          value: Map[MK, T], keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
-      ): (Map[MK, T], Int) = {
-        // TODO: Make this atomic for parallel maps.
-        var currentIndex = index
-        (value.mapValues({ v =>
-          val (dropoutV, dropoutIndex) = ev.dropout(v, keepProbability, saltPrefix, seed, currentIndex)
-          currentIndex = dropoutIndex
-          dropoutV
-        }), currentIndex)
-      }
-    }
-
-    implicit val hnilSupported: Supported[HNil] = new Supported[HNil] {
-      override def dropout(
-          value: HNil,
-          keepProbability: Output,
-          saltPrefix: String,
-          seed: Option[Int],
-          index: Int = 0
-      ): (HNil, Int) = {
-        (HNil, index)
-      }
-    }
-
-    implicit def recursiveSupportedConstructor[H, T <: HList](implicit
-        evHead: Lazy[Supported[H]],
-        evTail: Supported[T]
-    ): Supported[H :: T] = new Supported[H :: T] {
-      override def dropout(
-          value: H :: T, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int
-      ): (H :: T, Int) = {
-        val dropoutH = evHead.value.dropout(value.head, keepProbability, saltPrefix, seed, index)
-        val dropoutT = evTail.dropout(value.tail, keepProbability, saltPrefix, seed, dropoutH._2)
-        (dropoutH._1 :: dropoutT._1, dropoutT._2)
-      }
-    }
-
-    // This also covers `OutputIndexedSlices` and `SparseOutput` as they are case classes (i.e., products).
-    implicit def productSupportedConstructor[P <: Product, L <: HList](implicit
-        gen: Generic.Aux[P, L],
-        evL: Supported[L],
-        tupler: Tupler.Aux[L, P]
-    ): Supported[P] = new Supported[P] {
-      override def dropout(
-          value: P, keepProbability: Output, saltPrefix: String, seed: Option[Int], index: Int = 0
-      ): (P, Int) = {
-        val tuple = evL.dropout(gen.to(value), keepProbability, saltPrefix, seed, index)
-        (tupler(tuple._1), tuple._2)
-      }
+    @throws[InvalidArgumentException]
+    override def apply[T](value: Dataset[T], shape: Option[Shape]): Dataset[T] = {
+      throw InvalidArgumentException("Unsupported argument type for use with the dropout wrapper.")
     }
   }
 }

@@ -16,11 +16,14 @@
 package org.platanios.tensorflow.api.ops.rnn.attention
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.tensors.Tensor
+
+// TODO: [TYPES] !!! Remove the million type arguments.
 
 /** RNN cell that wraps another RNN cell and adds support for attention to it.
   *
@@ -43,19 +46,22 @@ import org.platanios.tensorflow.api.types.{DataType, INT32}
   *
   * @author Emmanouil Antonios Platanios
   */
-class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
-    val cell: RNNCell[Output, Shape, S, SS],
-    val attentions: Seq[Attention[AS, ASS]], // TODO: Allow for varying supported types in the sequence.
-    val attentionLayerWeights: Seq[Output] = null,
-    val cellInputFn: (Output, Output) => Output = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
+class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] private[attention] (
+    val cell: RNNCell[Output[T], CellState],
+    val attentions: Seq[Attention[T, AttentionState]], // TODO: [TYPES] Allow for varying supported types in the sequence.
+    val attentionLayerWeights: Seq[Output[T]] = null,
+    val cellInputFn: (Output[T], Output[T]) => Output[T] = {
+      (input: Output[T], attention: Output[T]) =>
+        Basic.concatenate(Seq(input, attention), -1)(TF.fromDataType(input.dataType))
+    },
     val outputAttention: Boolean = true,
     val storeAlignmentsHistory: Boolean = false,
     val name: String = "AttentionWrapperCell"
 )(implicit
-    evS: WhileLoopVariable.Aux[S, SS],
-    evAS: WhileLoopVariable.Aux[AS, ASS]
-) extends RNNCell[Output, Shape, AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]], (SS, Shape, Shape, Seq[Shape], Seq[Shape], Seq[ASS])] {
-  private[this] val attentionLayersSize: Int = {
+    evCellState: NestedStructure[CellState],
+    evAttentionState: NestedStructure[AttentionState]
+) extends RNNCell[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] {
+  private val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
       require(attentionLayerWeights.lengthCompare(attentions.size) == 0,
         s"The number of attention layer weights (${attentionLayerWeights.size}) must match the number of " +
@@ -71,28 +77,38 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
   /** Returns an initial state for this attention cell wrapper.
     *
     * @param  initialCellState Initial state for the wrapped cell.
-    * @param  dataType         Optional data type which defaults to the data type of the last tensor in
-    *                          `initialCellState`.
     * @return Initial state for this attention cell wrapper.
     */
-  def initialState(initialCellState: S, dataType: DataType = null): AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]] = {
+  def initialState(
+      initialCellState: CellState
+  ): AttentionWrapperState[T, CellState, Seq[AttentionState]] = {
     if (initialCellState == null) {
       null
     } else {
-      Op.createWithNameScope(s"$name/InitialState") {
-        val state = evS.outputs(initialCellState).last
-        val inferredDataType = if (dataType == null) state.dataType else dataType
-        val batchSize: Output = if (state.rank != -1 && state.shape(0) != -1) state.shape(0) else Basic.shape(state)(0)
+      Op.nameScope(s"$name/InitialState") {
+        val state = evCellState.outputs(initialCellState).last.asInstanceOf[Output[T]]
+        val batchSize = {
+          if (state.rank != -1 && state.shape(0) != -1)
+            Basic.constant(state.shape(0))
+          else
+            Basic.shape(state).castTo[Int].slice(0)
+        }
         val initialAlignments = attentions.map(_.initialAlignment)
         AttentionWrapperState(
           cellState = initialCellState,
-          time = Basic.zeros(INT32, Shape.scalar()),
-          attention = Basic.fill(inferredDataType, Basic.stack(Seq(batchSize, attentionLayersSize)))(0),
+          time = Basic.zeros[Int](Shape.scalar()),
+          attention = Basic.fill[T, Int](
+            Basic.stack[Int](Seq(batchSize, attentionLayersSize))
+          )(Tensor.zeros[T](Shape())),
           alignments = initialAlignments,
           alignmentsHistory = {
             if (storeAlignmentsHistory)
               initialAlignments.map(a =>
-                TensorArray.create(0, inferredDataType, dynamicSize = true, elementShape = a.shape))
+                TensorArray.create(
+                  size = 0,
+                  dynamicSize = true,
+                  elementShape = a.shape
+                )(TF.fromDataType(state.dataType)))
             else
               Seq.empty
           },
@@ -101,18 +117,33 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
     }
   }
 
-  override def outputShape: Shape = if (outputAttention) Shape(attentionLayersSize) else cell.outputShape
+  override def outputShape[OV, OD, OS](implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]
+  ): OS = {
+    if (outputAttention)
+      Shape(attentionLayersSize).asInstanceOf[OS]
+    else
+      cell.outputShape
+  }
 
-  override def stateShape: (SS, Shape, Shape, Seq[Shape], Seq[Shape], Seq[ASS]) = {
-    (cell.stateShape, Shape(1), Shape(attentionLayersSize),
-        attentions.map(a => Output.constantValueAsShape(a.alignmentSize.expandDims(0)).getOrElse(Shape.unknown())),
+  override def stateShape[SV, SD, SS](implicit
+      evStructureS: NestedStructure.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], SV, SD, SS]
+  ): SS = {
+    (cell.stateShape(evCellState.asAux), Shape(1), Shape(attentionLayersSize),
         attentions.map(a => {
-          if (storeAlignmentsHistory)
-            Output.constantValueAsShape(a.alignmentSize.expandDims(0)).getOrElse(Shape.unknown())
-          else
-            Shape.scalar()
+          Output.constantValueAsShape(a.alignmentSize.expandDims(0))
+              .getOrElse(Shape.unknown())
         }),
-        attentions.map(_.stateSize))
+        attentions.map(a => {
+          if (storeAlignmentsHistory) {
+            Output.constantValueAsShape(a.alignmentSize.expandDims(0))
+                .getOrElse(Shape.unknown())
+          } else {
+            Shape.scalar()
+          }
+        }),
+        attentions.map(_.stateSize(evAttentionState.asAux))
+    ).asInstanceOf[SS]
   }
 
   /** Performs a step using this attention-wrapped RNN cell.
@@ -129,14 +160,18 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
     * @param  input Input tuple to the attention wrapper cell.
     * @return Next tuple.
     */
-  override def forward(
-      input: Tuple[Output, AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]]]
-  ): Tuple[Output, AttentionWrapperState[S, SS, Seq[AS], Seq[ASS]]] = {
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]]
+  )(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evStructureS: NestedStructure.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], SV, SD, SS]
+  ): Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] = {
     // Step 1: Calculate the true inputs to the cell based on the previous attention value.
     val cellInput = cellInputFn(input.output, input.state.attention)
-    val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
+    val nextTuple = cell.forward(
+      Tuple(cellInput, input.state.cellState)
+    )(NestedStructure[Output[T]], evCellState.asAux)
     val output = nextTuple.output
-    val batchSize: Output = if (output.rank != -1 && output.shape(0) != -1) output.shape(0) else Basic.shape(output)(0)
     val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentions.map(_ => null)
     val (allAttentions, allAlignments, allStates) = (attentions, input.state.attentionState, weights).zipped.map {
       case (mechanism, previousState, w) =>
@@ -175,19 +210,23 @@ class AttentionWrapperCell[S, SS, AS, ASS] private[attention] (
 }
 
 object AttentionWrapperCell {
-  def apply[S, SS, AS, ASS](
-      cell: RNNCell[Output, Shape, S, SS],
-      attentions: Seq[Attention[AS, ASS]],
-      attentionLayerWeights: Seq[Output] = null,
-      cellInputFn: (Output, Output) => Output = (input, attention) => Basic.concatenate(Seq(input, attention), -1),
+  def apply[T: TF : IsNotQuantized, CellState, AttentionState](
+      cell: RNNCell[Output[T], CellState],
+      attentions: Seq[Attention[T, AttentionState]],
+      attentionLayerWeights: Seq[Output[T]] = null,
+      cellInputFn: (Output[T], Output[T]) => Output[T] = {
+        (input: Output[T], attention: Output[T]) =>
+          Basic.concatenate(Seq(input, attention), -1)(TF.fromDataType(input.dataType))
+      },
       outputAttention: Boolean = true,
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"
   )(implicit
-      evS: WhileLoopVariable.Aux[S, SS],
-      evAS: WhileLoopVariable.Aux[AS, ASS]
-  ): AttentionWrapperCell[S, SS, AS, ASS] = {
-    new AttentionWrapperCell[S, SS, AS, ASS](
-      cell, attentions, attentionLayerWeights, cellInputFn, outputAttention, storeAlignmentsHistory, name)
+      evCellState: NestedStructure[CellState],
+      evAttentionState: NestedStructure[AttentionState]
+  ): AttentionWrapperCell[T, CellState, AttentionState] = {
+    new AttentionWrapperCell[T, CellState, AttentionState](
+      cell, attentions, attentionLayerWeights, cellInputFn,
+      outputAttention, storeAlignmentsHistory, name)
   }
 }

@@ -15,9 +15,9 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that creates a residual connection (i.e., combining the cell inputs and its outputs) over another RNN cell.
   *
@@ -28,31 +28,34 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[O, OS, S, SS](
+class ResidualWrapper[O, S](
     override val name: String,
-    val cell: RNNCell[O, OS, S, SS],
+    val cell: RNNCell[O, S],
     val residualFn: (O, O) => O
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+    override protected val evStructureO: NestedStructure[O],
+    override protected val evStructureS: NestedStructure[S]
+) extends RNNCell[O, S](name) {
   override val layerType: String = "ResidualWrapper"
 
-  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+  override def createCellWithoutContext[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     ops.rnn.cell.ResidualWrapper(createdCell, residualFn)
   }
 }
 
 object ResidualWrapper {
-  def apply[O, OS, S, SS](
+  def apply[O, S](
       variableScope: String,
-      cell: RNNCell[O, OS, S, SS],
+      cell: RNNCell[O, S],
       residualFn: (O, O) => O
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
-  ): ResidualWrapper[O, OS, S, SS] = {
-    new ResidualWrapper(variableScope, cell, residualFn)(evO, evS)
+      evStructureO: NestedStructure[O],
+      evStructureS: NestedStructure[S]
+  ): ResidualWrapper[O, S] = {
+    new ResidualWrapper(variableScope, cell, residualFn)
   }
 }

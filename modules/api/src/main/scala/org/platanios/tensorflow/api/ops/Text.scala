@@ -15,12 +15,12 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Text {
+ trait Text {
   /** $OpDocTextRegexReplace
     *
     * @group TextOps
@@ -33,18 +33,18 @@ private[api] trait Text {
     * @return Created op output.
     */
   def regexReplace(
-      input: Output,
-      pattern: Output,
-      rewrite: Output,
+      input: Output[String],
+      pattern: Output[String],
+      rewrite: Output[String],
       replaceGlobal: Boolean = true,
       name: String = "RegexReplace"
-  ): Output = {
-    Op.Builder(opType = "RegexReplace", name = name)
-        .addInput(input)
-        .addInput(pattern)
-        .addInput(rewrite)
-        .setAttribute("replace_global", replaceGlobal)
-        .build().outputs(0)
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[String], Output[String]), Output[String]](
+      opType = "RegexReplace",
+      name = name,
+      input = (input, pattern, rewrite)
+    ).setAttribute("replace_global", replaceGlobal)
+        .build().output
   }
 
   /** $OpDocTextStringJoin
@@ -56,17 +56,23 @@ private[api] trait Text {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def stringJoin(inputs: Seq[Output], separator: String = "", name: String = "StringJoin"): Output = {
-    Op.Builder(opType = "StringJoin", name = name)
-        .addInputList(inputs)
-        .setAttribute("separator", separator)
-        .build().outputs(0)
+  def stringJoin(
+      inputs: Seq[Output[String]],
+      separator: String = "",
+      name: String = "StringJoin"
+  ): Output[String] = {
+    Op.Builder[Seq[Output[String]], Output[String]](
+      opType = "StringJoin",
+      name = name,
+      input = inputs
+    ).setAttribute("separator", separator)
+        .build().output
   }
 
   /** $OpDocTextStringSplit
     *
     * @group TextOps
-    * @param  input     Input `STRING` tensor.
+    * @param  input     Input tensor.
     * @param  delimiter Delimiter used for splitting. If `delimiter` is an empty string, each element of the `source` is
     *                   split into individual strings, each containing one byte. (This includes splitting multi-byte
     *                   sequences of UTF-8 characters). If `delimiter` contains multiple bytes, it is treated as a set
@@ -76,82 +82,105 @@ private[api] trait Text {
     * @return Created op output.
     */
   def stringSplit(
-      input: Output,
-      delimiter: Output = " ",
+      input: Output[String],
+      delimiter: Output[String] = " ",
       skipEmpty: Boolean = true,
       name: String = "StringSplit"
-  ): SparseOutput = {
-    val outputs = Op.Builder(opType = "StringSplit", name = name)
-        .addInput(input)
-        .addInput(delimiter)
-        .setAttribute("skip_empty", skipEmpty)
-        .build().outputs
-    SparseOutput(outputs(0), outputs(1), outputs(2))
+  ): SparseOutput[String] = {
+    Op.Builder[(Output[String], Output[String]), SparseOutput[String]](
+      opType = "StringSplit",
+      name = name,
+      input = (input, delimiter)
+    ).setAttribute("skip_empty", skipEmpty)
+        .build().output
   }
 
   /** $OpDocTextStringEncodeBase64
     *
     * @group TextOps
-    * @param  input Input `STRING` tensor.
+    * @param  input Input tensor.
     * @param  pad   Boolean value indicating whether or not padding is applied at the string ends.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def encodeBase64(input: Output, pad: Boolean = false, name: String = "EncodeBase64"): Output = {
-    Op.Builder(opType = "EncodeBase64", name = name)
-        .addInput(input)
-        .setAttribute("pad", pad)
-        .build().outputs(0)
+  def encodeBase64(
+      input: Output[String],
+      pad: Boolean = false,
+      name: String = "EncodeBase64"
+  ): Output[String] = {
+    Op.Builder[Output[String], Output[String]](
+      opType = "EncodeBase64",
+      name = name,
+      input = input
+    ).setAttribute("pad", pad)
+        .build().output
   }
 
   /** $OpDocTextStringDecodeBase64
     *
     * @group TextOps
-    * @param  input Input `STRING` tensor.
+    * @param  input Input tensor.
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def decodeBase64(input: Output, name: String = "DecodeBase64"): Output = {
-    Op.Builder(opType = "DecodeBase64", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  def decodeBase64(
+      input: Output[String],
+      name: String = "DecodeBase64"
+  ): Output[String] = {
+    Op.Builder[Output[String], Output[String]](
+      opType = "DecodeBase64",
+      name = name,
+      input = input
+    ).build().output
   }
 
   /** $OpDocTextStringToHashBucket
     *
     * @group TextOps
-    * @param  input      `STRING` tensor containing the strings to assign to each bucket.
+    * @param  input      Tensor containing the strings to assign to each bucket.
     * @param  numBuckets Number of buckets.
     * @param  name       Name for the created op.
     * @return Created op output, which has the same shape as `input`.
     */
   @deprecated("It is recommended to use `stringToHashBucketFast` or `stringToHashBucketStrong`.", "0.1.0")
-  def stringToHashBucket(input: Output, numBuckets: Int, name: String = "StringToHashBucket"): Output = {
-    Op.Builder(opType = "StringToHashBucket", name = name)
-        .addInput(input)
-        .setAttribute("num_buckets", numBuckets)
-        .build().outputs(0)
+  def stringToHashBucket(
+      input: Output[String],
+      numBuckets: Int,
+      name: String = "StringToHashBucket"
+  ): Output[Long] = {
+    Op.Builder[Output[String], Output[Long]](
+      opType = "StringToHashBucket",
+      name = name,
+      input = input
+    ).setAttribute("num_buckets", numBuckets)
+        .build().output
   }
 
   /** $OpDocTextStringToHashBucketFast
     *
     * @group TextOps
-    * @param  input      `STRING` tensor containing the strings to assign to each bucket.
+    * @param  input      Tensor containing the strings to assign to each bucket.
     * @param  numBuckets Number of buckets.
     * @param  name       Name for the created op.
     * @return Created op output, which has the same shape as `input`.
     */
-  def stringToHashBucketFast(input: Output, numBuckets: Int, name: String = "StringToHashBucketFast"): Output = {
-    Op.Builder(opType = "StringToHashBucketFast", name = name)
-        .addInput(input)
-        .setAttribute("num_buckets", numBuckets)
-        .build().outputs(0)
+  def stringToHashBucketFast(
+      input: Output[String],
+      numBuckets: Int,
+      name: String = "StringToHashBucketFast"
+  ): Output[Long] = {
+    Op.Builder[Output[String], Output[Long]](
+      opType = "StringToHashBucketFast",
+      name = name,
+      input = input
+    ).setAttribute("num_buckets", numBuckets)
+        .build().output
   }
 
   /** $OpDocTextStringToHashBucketStrong
     *
     * @group TextOps
-    * @param  input      `STRING` tensor containing the strings to assign to each bucket.
+    * @param  input      Tensor containing the strings to assign to each bucket.
     * @param  numBuckets Number of buckets.
     * @param  key1       First part of the key for the keyed hash function.
     * @param  key2       Second part of the key for the keyed hash function.
@@ -159,126 +188,142 @@ private[api] trait Text {
     * @return Created op output, which has the same shape as `input`.
     */
   def stringToHashBucketStrong(
-      input: Output,
+      input: Output[String],
       numBuckets: Int,
       key1: Long,
       key2: Long,
       name: String = "StringToHashBucketStrong"
-  ): Output = {
-    Op.Builder(opType = "StringToHashBucketStrong", name = name)
-        .addInput(input)
-        .setAttribute("num_buckets", numBuckets)
-        .setAttribute("key", Seq(key1, key2))
-        .build().outputs(0)
+  ): Output[Long] = {
+    Op.Builder[Output[String], Output[Long]](
+      opType = "StringToHashBucketStrong",
+      name = name,
+      input = input
+    ).setAttribute("num_buckets", numBuckets)
+        .setAttribute("key", Tensor(key1, key2))
+        .build().output
   }
 }
 
 object Text extends Text {
-  case class TextOps(output: Output) {
-    /** $OpDocTextRegexReplace
-      *
-      * @group TextOps
-      * @param  pattern       Tensor containing the regular expression to match the input.
-      * @param  rewrite       Tensor containing the rewrite to be applied to the matched expression.
-      * @param  replaceGlobal If `true`, the replacement is global, otherwise the replacement is done only on the first
-      *                       match.
-      * @param  name          Name for the created op.
-      * @return Created op output.
-      */
-    def regexReplace(
-        pattern: Output,
-        rewrite: Output,
-        replaceGlobal: Boolean = true,
-        name: String = "RegexReplace"
-    ): Output = {
-      Text.regexReplace(output, pattern, rewrite, replaceGlobal, name)
+  private[ops] trait Implicits {
+    implicit def outputConvertibleToTextOps[OC](
+        value: OC
+    )(implicit f: OC => Output[String]): TextOps = {
+      new TextOps(f(value))
     }
 
-    /** $OpDocTextStringToHashBucket
-      *
-      * @group TextOps
-      * @param  numBuckets Number of buckets.
-      * @param  name       Name for the created op.
-      * @return Created op output, which has the same shape as `input`.
-      */
-    @deprecated("It is recommended to use `stringToHashBucketFast` or `stringToHashBucketStrong`.", "0.1.0")
-    def stringToHashBucket(numBuckets: Int, name: String = "StringToHashBucket"): Output = {
-      Text.stringToHashBucket(output, numBuckets, name)
-    }
+    implicit class TextOps(val output: Output[String]) {
+      /** $OpDocTextRegexReplace
+        *
+        * @group TextOps
+        * @param  pattern       Tensor containing the regular expression to match the input.
+        * @param  rewrite       Tensor containing the rewrite to be applied to the matched expression.
+        * @param  replaceGlobal If `true`, the replacement is global, otherwise the replacement is done only on the first
+        *                       match.
+        * @param  name          Name for the created op.
+        * @return Created op output.
+        */
+      def regexReplace(
+          pattern: Output[String],
+          rewrite: Output[String],
+          replaceGlobal: Boolean = true,
+          name: String = "RegexReplace"
+      ): Output[String] = {
+        Text.regexReplace(output, pattern, rewrite, replaceGlobal, name)
+      }
 
-    /** $OpDocTextStringToHashBucketFast
-      *
-      * @group TextOps
-      * @param  numBuckets Number of buckets.
-      * @param  name       Name for the created op.
-      * @return Created op output, which has the same shape as `input`.
-      */
-    def stringToHashBucketFast(numBuckets: Int, name: String = "StringToHashBucketFast"): Output = {
-      Text.stringToHashBucketFast(output, numBuckets, name)
-    }
+      /** $OpDocTextStringSplit
+        *
+        * @group TextOps
+        * @param  delimiter Delimiter used for splitting. If `delimiter` is an empty string, each element of the `source`
+        *                   is split into individual strings, each containing one byte. (This includes splitting
+        *                   multi-byte sequences of UTF-8 characters). If `delimiter` contains multiple bytes, it is
+        *                   treated as a set of delimiters with each considered a potential split point.
+        * @param  skipEmpty Boolean value indicating whether or not to skip empty tokens.
+        * @param  name      Name for the created op.
+        * @return Created op output.
+        */
+      def stringSplit(
+          delimiter: Output[String] = " ",
+          skipEmpty: Boolean = true,
+          name: String = "StringSplit"
+      ): SparseOutput[String] = {
+        Text.stringSplit(output, delimiter, skipEmpty, name)
+      }
 
-    /** $OpDocTextStringToHashBucketStrong
-      *
-      * @group TextOps
-      * @param  numBuckets Number of buckets.
-      * @param  key1       First part of the key for the keyed hash function.
-      * @param  key2       Second part of the key for the keyed hash function.
-      * @param  name       Name for the created op.
-      * @return Created op output, which has the same shape as `input`.
-      */
-    def stringToHashBucketStrong(
-        numBuckets: Int, key1: Long, key2: Long, name: String = "StringToHashBucketStrong"): Output = {
-      Text.stringToHashBucketStrong(output, numBuckets, key1, key2, name)
-    }
+      /** $OpDocTextStringEncodeBase64
+        *
+        * @group TextOps
+        * @param  pad  Boolean value indicating whether or not padding is applied at the string ends.
+        * @param  name Name for the created op.
+        * @return Created op output.
+        */
+      def encodeBase64(
+          pad: Boolean = false,
+          name: String = "EncodeBase64"
+      ): Output[String] = {
+        Text.encodeBase64(output, pad, name)
+      }
 
-    /** $OpDocTextStringSplit
-      *
-      * @group TextOps
-      * @param  delimiter Delimiter used for splitting. If `delimiter` is an empty string, each element of the `source`
-      *                   is split into individual strings, each containing one byte. (This includes splitting
-      *                   multi-byte sequences of UTF-8 characters). If `delimiter` contains multiple bytes, it is
-      *                   treated as a set of delimiters with each considered a potential split point.
-      * @param  skipEmpty Boolean value indicating whether or not to skip empty tokens.
-      * @param  name      Name for the created op.
-      * @return Created op output.
-      */
-    def stringSplit(delimiter: Output = " ", skipEmpty: Boolean = true, name: String = "StringSplit"): SparseOutput = {
-      Text.stringSplit(output, delimiter, skipEmpty, name)
-    }
+      /** $OpDocTextStringDecodeBase64
+        *
+        * @group TextOps
+        * @param  name Name for the created op.
+        * @return Created op output.
+        */
+      def decodeBase64(
+          name: String = "DecodeBase64"
+      ): Output[String] = {
+        Text.decodeBase64(output, name)
+      }
 
-    /** $OpDocTextStringEncodeBase64
-      *
-      * @group TextOps
-      * @param  pad  Boolean value indicating whether or not padding is applied at the string ends.
-      * @param  name Name for the created op.
-      * @return Created op output.
-      */
-    def encodeBase64(pad: Boolean = false, name: String = "EncodeBase64"): Output = {
-      Text.encodeBase64(output, pad, name)
-    }
+      /** $OpDocTextStringToHashBucket
+        *
+        * @group TextOps
+        * @param  numBuckets Number of buckets.
+        * @param  name       Name for the created op.
+        * @return Created op output, which has the same shape as `input`.
+        */
+      @deprecated("It is recommended to use `stringToHashBucketFast` or `stringToHashBucketStrong`.", "0.1.0")
+      def stringToHashBucket(
+          numBuckets: Int,
+          name: String = "StringToHashBucket"
+      ): Output[Long] = {
+        Text.stringToHashBucket(output, numBuckets, name)
+      }
 
-    /** $OpDocTextStringDecodeBase64
-      *
-      * @group TextOps
-      * @param  name Name for the created op.
-      * @return Created op output.
-      */
-    def decodeBase64(name: String = "DecodeBase64"): Output = {
-      Text.decodeBase64(output, name)
-    }
-  }
+      /** $OpDocTextStringToHashBucketFast
+        *
+        * @group TextOps
+        * @param  numBuckets Number of buckets.
+        * @param  name       Name for the created op.
+        * @return Created op output, which has the same shape as `input`.
+        */
+      def stringToHashBucketFast(
+          numBuckets: Int,
+          name: String = "StringToHashBucketFast"
+      ): Output[Long] = {
+        Text.stringToHashBucketFast(output, numBuckets, name)
+      }
 
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("RegexReplace")
-    GradientsRegistry.registerNonDifferentiable("ReduceJoin")
-    GradientsRegistry.registerNonDifferentiable("StringJoin")
-    GradientsRegistry.registerNonDifferentiable("StringSplit")
-    GradientsRegistry.registerNonDifferentiable("AsString")
-    GradientsRegistry.registerNonDifferentiable("EncodeBase64")
-    GradientsRegistry.registerNonDifferentiable("DecodeBase64")
-    GradientsRegistry.registerNonDifferentiable("StringToHashBucket")
-    GradientsRegistry.registerNonDifferentiable("StringToHashBucketFast")
-    GradientsRegistry.registerNonDifferentiable("StringToHashBucketStrong")
+      /** $OpDocTextStringToHashBucketStrong
+        *
+        * @group TextOps
+        * @param  numBuckets Number of buckets.
+        * @param  key1       First part of the key for the keyed hash function.
+        * @param  key2       Second part of the key for the keyed hash function.
+        * @param  name       Name for the created op.
+        * @return Created op output, which has the same shape as `input`.
+        */
+      def stringToHashBucketStrong(
+          numBuckets: Int,
+          key1: Long,
+          key2: Long,
+          name: String = "StringToHashBucketStrong"
+      ): Output[Long] = {
+        Text.stringToHashBucketStrong(output, numBuckets, key1, key2, name)
+      }
+    }
   }
 
   /** @define OpDocTextRegexReplace

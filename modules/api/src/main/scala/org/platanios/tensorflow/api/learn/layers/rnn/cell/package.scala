@@ -26,28 +26,30 @@ package object cell {
   private[cell] val BIAS_NAME  : String = "Bias"
 
   type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
-  type BasicTuple = Tuple[Output, Output]
+  type BasicTuple[T] = ops.rnn.cell.BasicTuple[T]
 
   val Tuple: ops.rnn.cell.Tuple.type = ops.rnn.cell.Tuple
 
-  type LSTMState = ops.rnn.cell.LSTMState
+  type LSTMState[T] = ops.rnn.cell.LSTMState[T]
 
   val LSTMState: ops.rnn.cell.LSTMState.type = ops.rnn.cell.LSTMState
 
-  type LSTMTuple = ops.rnn.cell.LSTMTuple
+  type LSTMTuple[T] = ops.rnn.cell.LSTMTuple[T]
 
-  def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = ops.rnn.cell.LSTMTuple(output, state)
+  def LSTMTuple[T](output: Output[T], state: LSTMState[T]): LSTMTuple[T] = {
+    ops.rnn.cell.LSTMTuple(output, state)
+  }
 
   private[rnn] trait API {
-    type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
-    type BasicRNNCell = cell.BasicRNNCell
-    type GRUCell = cell.GRUCell
-    type BasicLSTMCell = cell.BasicLSTMCell
-    type LSTMCell = cell.LSTMCell
-    type DeviceWrapper[O, OS, S, SS] = cell.DeviceWrapper[O, OS, S, SS]
-    type DropoutWrapper[O, OS, S, SS] = cell.DropoutWrapper[O, OS, S, SS]
-    type ResidualWrapper[O, OS, S, SS] = cell.ResidualWrapper[O, OS, S, SS]
-    type MultiCell[O, OS, S, SS] = cell.MultiCell[O, OS, S, SS]
+    type RNNCell[O, S] = cell.RNNCell[O, S]
+    type BasicRNNCell[T] = cell.BasicRNNCell[T]
+    type GRUCell[T] = cell.GRUCell[T]
+    type BasicLSTMCell[T] = cell.BasicLSTMCell[T]
+    type LSTMCell[T] = cell.LSTMCell[T]
+    type DeviceWrapper[O, S] = cell.DeviceWrapper[O, S]
+    type DropoutWrapper[O, S] = cell.DropoutWrapper[O, S]
+    type ResidualWrapper[O, S] = cell.ResidualWrapper[O, S]
+    type MultiCell[O, S] = cell.StackedCell[O, S]
 
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell
@@ -56,19 +58,20 @@ package object cell {
     val DeviceWrapper  : cell.DeviceWrapper.type   = cell.DeviceWrapper
     val DropoutWrapper : cell.DropoutWrapper.type  = cell.DropoutWrapper
     val ResidualWrapper: cell.ResidualWrapper.type = cell.ResidualWrapper
-    val MultiCell      : cell.MultiCell.type       = cell.MultiCell
+    val MultiCell      : cell.StackedCell.type     = cell.StackedCell
 
     type RNNTuple[O, S] = cell.Tuple[O, S]
-    type BasicTuple = cell.Tuple[Output, Output]
+    type BasicTuple[T] = cell.BasicTuple[T]
+    type LSTMTuple[T] = cell.LSTMTuple[T]
 
-    type LSTMState = cell.LSTMState
+    type LSTMState[T] = cell.LSTMState[T]
 
     val LSTMState: cell.LSTMState.type = cell.LSTMState
 
-    type LSTMTuple = cell.Tuple[Output, LSTMState]
-
     val RNNTuple: cell.Tuple.type = cell.Tuple
 
-    def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = cell.Tuple(output, state)
+    def LSTMTuple[T](output: Output[T], state: LSTMState[T]): LSTMTuple[T] = {
+      cell.LSTMTuple(output, state)
+    }
   }
 }

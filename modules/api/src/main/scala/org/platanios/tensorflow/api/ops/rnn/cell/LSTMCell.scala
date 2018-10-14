@@ -16,13 +16,27 @@
 package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Math, Output}
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
-/** $OpDocRNNCellLSTMCell
+/** The Long-Short Term Memory (LSTM) cell.
+  *
+  * The op uses optional peep-hole connections, optional cell clipping, and an optional projection layer.
+  *
+  * The default non-peephole implementation is based on:
+  * ["Long Short-Term Memory", S. Hochreiter and J. Schmidhuber. Neural Computation, 9(8):1735-1780, 1997.](http://www.bioinf.jku.at/publications/older/2604.pdf).
+  *
+  * The peephole implementation is based on:
+  * ["Long short-term memory recurrent neural network architectures for large scale acoustic modeling", Hasim Sak, Andrew Senior, and Francoise Beaufays. INTERSPEECH, 2014](https://research.google.com/pubs/archive/43905.pdf).
+  *
+  * Input tensors must be two-dimensional.
   *
   * @group RNNCellOps
   * @param  kernel           Kernel matrix to use.
   * @param  bias             Bias vector to use.
+  * @param  activation       Activation function to use.
   * @param  cellClip         If different than `-1`, then the cell state is clipped by this value prior to the cell
   *                          output activation.
   * @param  wfDiag           If not `null`, then diagonal peep-hole connections are added from the forget gate to the
@@ -34,56 +48,109 @@ import org.platanios.tensorflow.api.ops.{Math, Output}
   * @param  projectionKernel If not `null`, then this matrix is used to project the cell output.
   * @param  projectionClip   If different than `-1` and `projectionKernel` not `null`, then the projected output is
   *                          clipped by this value.
-  * @param  activation       Activation function to use.
   * @param  forgetBias       Forget bias added to the forget gate.
   * @param  name             Name scope for the created ops.
   *
   * @author Emmanouil Antonios Platanios
   */
-class LSTMCell protected (
-    val kernel: Output,
-    val bias: Output,
+class LSTMCell[T: TF : IsNotQuantized] protected (
+    val kernel: Output[T],
+    val bias: Output[T],
+    val activation: Output[T] => Output[T],
     val cellClip: Float = -1,
-    val wfDiag: Output = null,
-    val wiDiag: Output = null,
-    val woDiag: Output = null,
-    val projectionKernel: Output = null,
+    val wfDiag: Output[T] = null,
+    val wiDiag: Output[T] = null,
+    val woDiag: Output[T] = null,
+    val projectionKernel: Output[T] = null,
     val projectionClip: Float = -1,
-    val activation: Output => Output = Math.tanh(_),
     val forgetBias: Float = 1.0f,
     val name: String = "LSTMCell"
-) extends RNNCell[Output, Shape, LSTMState, (Shape, Shape)] {
-  private[this] val numUnits = bias.shape(0) / 4
+) extends RNNCell[Output[T], LSTMState[T]] {
+  private val numUnits = bias.shape(0) / 4
 
-  override def outputShape: Shape = {
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): OS = {
     if (projectionKernel != null)
-      Shape(projectionKernel.shape(1))
+      Shape(projectionKernel.shape(1)).asInstanceOf[OS]
     else
-      Shape(numUnits)
+      Shape(numUnits).asInstanceOf[OS]
   }
 
-  override def stateShape: (Shape, Shape) = {
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]): SS = {
     if (projectionKernel != null)
-      (Shape(numUnits), Shape(projectionKernel.shape(1)))
+      (Shape(numUnits), Shape(projectionKernel.shape(1))).asInstanceOf[SS]
     else
-      (Shape(numUnits), Shape(numUnits))
+      (Shape(numUnits), Shape(numUnits)).asInstanceOf[SS]
   }
 
-  override def forward(input: LSTMTuple): LSTMTuple = {
-    RNNCell.lstmCell(
-      input, kernel, bias, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip, activation, forgetBias,
-      name)
+  @throws[IllegalArgumentException]
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: LSTMTuple[T]
+  )(implicit
+      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
+      evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]
+  ): LSTMTuple[T] = {
+    Op.nameScope(name) {
+      val output = input.output
+      if (output.rank != 2)
+        throw new IllegalArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
+      if (output.shape(1) == -1)
+        throw new IllegalArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
+      val one = Basic.constant(1)
+      // Parameters of gates are concatenated into one multiply for efficiency.
+      val lstmMatrix = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, input.state.m), axis = 1), kernel), bias)
+      // i = input gate, j = new input, f = forget gate, o = output gate
+      val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
+      val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
+      // Diagonal connections
+      val forgetBiasTensor = Basic.constant(forgetBias).castTo[T]
+      var firstTerm = f + forgetBiasTensor
+      if (wfDiag != null)
+        firstTerm = firstTerm + Math.multiply(wfDiag, input.state.c)
+      var secondTerm = i
+      if (wiDiag != null)
+        secondTerm = secondTerm + Math.multiply(wiDiag, input.state.c)
+      var c = Math.add(
+        Math.multiply(input.state.c, Math.sigmoid(firstTerm)),
+        Math.multiply(Math.sigmoid(secondTerm), activation(j)))
+      if (cellClip != -1) {
+        val cellClipTensor = Basic.constant(cellClip).castTo[T]
+        c = c.clipByValue(-cellClipTensor, cellClipTensor)
+      }
+      var m = {
+        if (woDiag != null)
+          Math.multiply(activation(c), Math.sigmoid(o + Math.multiply(woDiag, c)))
+        else
+          Math.multiply(activation(c), Math.sigmoid(o))
+      }
+      // Projection
+      if (projectionKernel != null) {
+        m = Math.matmul(m, projectionKernel)
+        if (projectionClip != -1) {
+          val projectionClipTensor = Basic.constant(projectionClip).castTo[T]
+          m = m.clipByValue(-projectionClipTensor, projectionClipTensor)
+        }
+      }
+      LSTMTuple(m, LSTMState(c, m))
+    }
   }
 }
 
 object LSTMCell {
-  def apply(
-      kernel: Output, bias: Output, cellClip: Float = -1,
-      wfDiag: Output = null, wiDiag: Output = null, woDiag: Output = null,
-      projectionKernel: Output = null, projectionClip: Float = -1,
-      activation: Output => Output = Math.tanh(_), forgetBias: Float = 1.0f,
-      name: String = "LSTMCell"): LSTMCell = {
-    new LSTMCell(
-      kernel, bias, cellClip, wfDiag, wiDiag, woDiag, projectionKernel, projectionClip, activation, forgetBias, name)
+  def apply[T: TF : IsNotQuantized](
+      kernel: Output[T],
+      bias: Output[T],
+      activation: Output[T] => Output[T],
+      cellClip: Float = -1,
+      wfDiag: Output[T] = null,
+      wiDiag: Output[T] = null,
+      woDiag: Output[T] = null,
+      projectionKernel: Output[T] = null,
+      projectionClip: Float = -1,
+      forgetBias: Float = 1.0f,
+      name: String = "LSTMCell"
+  ): LSTMCell[T] = {
+    new LSTMCell[T](
+      kernel, bias, activation, cellClip, wfDiag, wiDiag, woDiag,
+      projectionKernel, projectionClip, forgetBias, name)
   }
 }

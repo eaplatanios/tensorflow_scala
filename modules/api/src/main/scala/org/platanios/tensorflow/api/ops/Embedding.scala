@@ -18,9 +18,9 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.INT32
 
 import scala.language.postfixOps
 
@@ -28,14 +28,14 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait Embedding {
+trait Embedding {
   /** $OpDocEmbeddingEmbeddingLookup
     *
     * @group EmbeddingOps
     * @param  parameters        Embedding map, which is either a single tensor, a list of `P` tensors with the same
     *                           shape, except for their first dimension, representing sharded embedding tensors, or a
     *                           `PartitionedVariable`, created by partitioning along the first dimension.
-    * @param  ids               `INT32` or `INT64` tensor to be looked up in `parameters`.
+    * @param  ids               Tensor to be looked up in `parameters`.
     * @param  partitionStrategy Partitioning strategy to use if `parameters.numPartitions > 1`.
     * @param  transformFn       If provided, this function is applied to each partitioned tensor of retrieved
     *                           embeddings, colocated with the embeddings. The shape of the argument to this function
@@ -47,17 +47,20 @@ private[ops] trait Embedding {
     * @param  name              Name prefix used for the created op.
     * @return Obtained embeddings for the provided `ids`.
     */
-  def embeddingLookup(
-      parameters: EmbeddingMap,
-      ids: Output,
+  def embeddingLookup[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      parameters: EmbeddingMap[T],
+      ids: Output[I],
       partitionStrategy: PartitionStrategy = ModStrategy,
-      transformFn: Output => Output = null,
-      maxNorm: Output = null,
+      transformFn: Output[T] => Output[T] = null,
+      maxNorm: Output[T] = null,
       name: String = "EmbeddingLookup"
-  ): Output = {
-    Op.createWithNameScope(name) {
+  ): Output[T] = {
+    Op.nameScope(name) {
       if (parameters.numPartitions == 1 && (ids.rank == 1 || transformFn == null)) {
-        Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp), ignoreExisting = true) {
+        Op.colocateWith(
+          Set(parameters.partitionParameters(0).colocationOp),
+          ignoreExisting = true
+        ) {
           var result = parameters.partitionParameters(0).gather(ids)
           if (maxNorm != null)
             result = Embedding.clipByNorm(result, ids, maxNorm)
@@ -66,25 +69,28 @@ private[ops] trait Embedding {
           result
         }
       } else {
+        val numPartitions = Basic.constant(parameters.numPartitions).castTo[I]
         // Flatten the ids. There are two cases where we need to do this:
         //   - There is more than one parameter tensors.
         //   - There is a `transformFn` and ids is not statically known to be 1-D.
         // In this case, we must flatten because `transformFn` expects a flat tensor of embeddings.
         val flattenedIds = ids.reshape(Shape(-1))
-        val originalIds = Math.range(0, flattenedIds.size)
+        val originalIds = Math.range(0, flattenedIds.size.toInt)
         // Create `partitionAssignments` and set `newIds` depending on the strategy.
         val transformedIds = partitionStrategy.transformIds(
-          flattenedIds, parameters.partitionParameters, parameters.numPartitions)
-        var partitionAssignments = transformedIds._1
-        val newIds = transformedIds._2
-        // Cast partition assignments to `INT32` for use in `dynamicPartition`.
+          flattenedIds, parameters.partitionParameters, numPartitions)
+
+        // Cast partition assignments to integers for use in `dynamicPartition`.
         // There really should not be more than 2^32 partitions.
-        partitionAssignments = partitionAssignments.cast(INT32)
+        val partitionAssignments = transformedIds._1.castTo[Int]
+        val newIds = transformedIds._2
 
         // Partition list of ids based on assignments into `parameters.numPartitions` separate lists.
-        val gatherIds = DataFlow.dynamicPartition(newIds, partitionAssignments, parameters.numPartitions)
+        val gatherIds = DataFlow.dynamicPartition(
+          newIds, partitionAssignments, parameters.numPartitions)
         // Similarly, partition the original indices.
-        val partitionIndices = DataFlow.dynamicPartition(originalIds, partitionAssignments, parameters.numPartitions)
+        val partitionIndices = DataFlow.dynamicPartition(
+          originalIds, partitionAssignments, parameters.numPartitions)
 
         // Do `parameters.numPartitions` separate lookups, finding embeddings for `plist(p)` in `parameters(p)`.
         val partitionedResult = parameters.partitionParameters.zip(gatherIds).map {
@@ -109,7 +115,9 @@ private[ops] trait Embedding {
         val elementStaticShape = {
           if (transformFn == null) {
             var shape = parameters.partitionParameters(0).staticShape(1 ::)
-            parameters.partitionParameters.tail.foreach(p => shape = shape.mergeWith(p.staticShape(1 ::)))
+            parameters.partitionParameters.tail.foreach(p => {
+              shape = shape.mergeWith(p.staticShape(1 ::))
+            })
             shape
           } else {
             result.shape(1 ::)
@@ -119,19 +127,24 @@ private[ops] trait Embedding {
         // Compute the dynamic element shape.
         val elementDynamicShape = {
           if (elementStaticShape.isFullyDefined) {
-            elementStaticShape.toOutput()
+            elementStaticShape.toOutput
           } else if (transformFn == null) {
             // It's important that we compute the shape on the right device to avoid data copies.
-            Op.colocateWith(Set(parameters.partitionParameters(0).colocationOp), ignoreExisting = true) {
+            Op.colocateWith(
+              Set(parameters.partitionParameters(0).colocationOp),
+              ignoreExisting = true
+            ) {
               parameters.partitionParameters(0).dynamicShape(1 ::)
             }
           } else {
-            Basic.shape(result)(1 ::)
+            Basic.shape(result).slice(1 ::)
           }
         }
 
         // Reshape to reverse the flattening of the ids.
-        result = result.reshape(Basic.concatenate(Seq(Basic.shape(ids), elementDynamicShape)))
+        val idsShape = Basic.shape(ids)
+        val resultShape = Basic.concatenate(Seq(idsShape, elementDynamicShape))
+        result = result.reshape(resultShape)
 
         // Normally the reshape is sufficient, but setting shape explicitly teaches shape inference that
         // `parameters.partitionParameters(1 ::).shape` matters (in the case that `transformFn` is `null`).
@@ -152,9 +165,9 @@ private[ops] trait Embedding {
     * @param  parameters        Embedding map, which is either a single tensor, a list of `P` tensors with the same
     *                           shape, except for their first dimension, representing sharded embedding tensors, or a
     *                           `PartitionedVariable`, created by partitioning along the first dimension.
-    * @param  sparseIds         `NxM` sparse tensor containing `INT64` ids, where `N` typically corresponds to the batch
+    * @param  sparseIds         `NxM` sparse tensor containing ids, where `N` typically corresponds to the batch
     *                           size and `M` is arbitrary.
-    * @param  sparseWeights     Either a sparse tensor containing `FLOAT32` or `FLOAT64` weight values, or None `null`
+    * @param  sparseWeights     Either a sparse tensor containing weight values, or None `null`
     *                           to indicate all weights should be taken to be equal to 1. If specified, `sparseWeights`
     *                           must have exactly the same shape and indices as `sparseIds`.
     * @param  partitionStrategy Partitioning strategy to use if `parameters.numPartitions > 1`.
@@ -163,15 +176,15 @@ private[ops] trait Embedding {
     * @param  name              Name prefix used for the created op.
     * @return Obtained embeddings for the provided `ids`.
     */
-  def sparseEmbeddingLookup(
-      parameters: EmbeddingMap,
-      sparseIds: SparseOutput,
-      sparseWeights: SparseOutput = null,
+  def sparseEmbeddingLookup[T: TF : IsReal, I: TF : IsInt32OrInt64](
+      parameters: EmbeddingMap[T],
+      sparseIds: SparseOutput[I],
+      sparseWeights: SparseOutput[T] = null,
       partitionStrategy: PartitionStrategy = ModStrategy,
       combiner: Combiner = SumSqrtNCombiner,
-      maxNorm: Output = null,
+      maxNorm: Output[T] = null,
       name: String = "SparseEmbeddingLookup"
-  ): Output = {
+  ): Output[T] = {
     val ignoreWeights = sparseWeights == null
     if (!ignoreWeights) {
       sparseIds.indices.shape.assertIsCompatibleWith(sparseWeights.indices.shape)
@@ -181,25 +194,29 @@ private[ops] trait Embedding {
       else if (sparseIds.denseShape != sparseWeights.denseShape)
         throw InvalidShapeException("The dense shapes of 'sparseIds' and 'sparseWeights' must be compatible.")
     }
-    Op.createWithNameScope(name) {
-      val segmentIds = sparseIds.indices(::, 0).cast(INT32)
-      val (ids, idx) = Basic.unique(sparseIds.values, 0)
+    Op.nameScope(name) {
+      val segmentIds = sparseIds.indices(::, 0).castTo[Int]
+      val (ids, idx) = Basic.unique(sparseIds.values, 0, indicesDataType = Int)
       var embeddings = embeddingLookup(parameters, ids, partitionStrategy, maxNorm = maxNorm)
       if (ignoreWeights) {
         combiner.combine(embeddings, idx, segmentIds)
       } else {
         embeddings = embeddings.gather(idx)
-        val weights = sparseWeights.values.cast(embeddings.dataType)
+        val weights = sparseWeights.values.castTo[T]
         // Reshape weights to allow broadcasting.
         val weightsStaticShape = weights.shape
         val weightsDynamicShape = Basic.shape(weights)
-        val ones = Basic.fill(weightsDynamicShape.dataType, Basic.expandDims(Basic.rank(embeddings) - 1, 0))(1)
-        val broadcastedWeightsShape = Basic.concatenate(Seq(weightsDynamicShape, ones), 0)
+        val ones = Basic.ones(
+          dataType = weightsDynamicShape.dataType,
+          shape = Basic.expandDims(Basic.rank(embeddings) - 1, 0))
+        val broadcastedWeightsShape = Basic.concatenate(
+          Seq(weightsDynamicShape, ones), axis = 0)
         val reshapedWeights = weights.reshape(broadcastedWeightsShape)
         // Set the weight shape, since after reshaping to `broadcastedWeightsShape`, the shape becomes unknown.
-        if (embeddings.shape.rank != -1)
-          reshapedWeights.setShape(
-            weightsStaticShape.concatenateWith(Shape.fromSeq((0 until embeddings.shape.rank - 1).map(_ => 1))))
+        if (embeddings.shape.rank != -1) {
+          val onesShape = Shape.fromSeq((0 until embeddings.shape.rank - 1).map(_ => 1))
+          reshapedWeights.setShape(weightsStaticShape.concatenateWith(onesShape))
+        }
         val weightedEmbeddings = embeddings * reshapedWeights
         combiner.combineWeighted(weightedEmbeddings, reshapedWeights, segmentIds)
       }
@@ -210,17 +227,23 @@ private[ops] trait Embedding {
   sealed trait PartitionStrategy {
     /** Transforms the provided ids based on this partition strategy and returns the partition assignments and the
       * new/transformed ids. */
-    def transformIds(ids: Output, parameters: Seq[EmbeddingParameters], numPartitions: Int): (Output, Output)
+    def transformIds[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+        ids: Output[I],
+        parameters: Seq[EmbeddingParameters[T]],
+        numPartitions: Output[I]
+    ): (Output[I], Output[I])
   }
 
   /** Each id is assigned to partition `p = id % parameters.numPartitions`. For instance, 13 ids are split across 5
-    * partitions as: `[[0, 5, 10], [1, 6, 11], [2, 7, 12], [3, 8], [4, 9]]`.*/
+    * partitions as: `[[0, 5, 10], [1, 6, 11], [2, 7, 12], [3, 8], [4, 9]]`. */
   case object ModStrategy extends PartitionStrategy {
-    override def transformIds(
-        ids: Output, parameters: Seq[EmbeddingParameters], numPartitions: Int): (Output, Output) = {
-      val numPartitionsOutput = numPartitions: Output
-      val partitionAssignments = ids % numPartitionsOutput
-      val newIds = ids.truncateDivide(numPartitionsOutput)
+    override def transformIds[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+        ids: Output[I],
+        parameters: Seq[EmbeddingParameters[T]],
+        numPartitions: Output[I]
+    ): (Output[I], Output[I]) = {
+      val partitionAssignments = ids % numPartitions
+      val newIds = ids.truncateDivide(numPartitions)
       (partitionAssignments, newIds)
     }
   }
@@ -228,33 +251,36 @@ private[ops] trait Embedding {
   /** Ids are assigned to partitions in a contiguous manner. In this case, 13 ids are split across 5 partitions as:
     * `[[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10], [11, 12]]`. */
   case object DivStrategy extends PartitionStrategy {
-    override def transformIds(
-        ids: Output, parameters: Seq[EmbeddingParameters], numPartitions: Int): (Output, Output) = {
-      val numPartitionsOutput = numPartitions: Output
+    override def transformIds[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+        ids: Output[I],
+        parameters: Seq[EmbeddingParameters[T]],
+        numPartitions: Output[I]
+    ): (Output[I], Output[I]) = {
       // We compute `numTotalIds` as the sum of the first dimension size of `parameters`, and then we assign to
       // partitions based on a constant number of ids per partition. We optimize if we already know the full shape
       // statically.
-      val numTotalIds: Output = {
+      val numTotalIds = {
         if (parameters.forall(p => p.staticShape.rank != -1 && p.staticShape(0) != -1)) {
-          parameters.map(_.staticShape(0)).sum
+          Basic.constant(parameters.map(_.staticShape(0)).toTensor.sum()).castTo[I]
         } else {
           val axis0Sizes = parameters.map(p => {
             if (p.staticShape.rank != -1 && p.staticShape(0) != -1)
-              Basic.constant(p.staticShape(0))
+              Basic.constant(p.staticShape(0)).castTo[Long]
             else
               Op.colocateWith(Set(p.colocationOp), ignoreExisting = true)(p.dynamicShape(0))
           })
-          Math.sum(Basic.stack(axis0Sizes).cast(ids.dataType))
+          Math.sum(Basic.stack(axis0Sizes).castTo[I])
         }
       }
-      val idsPerPartition = numTotalIds.truncateDivide(numPartitionsOutput)
-      val extras = numTotalIds % numPartitionsOutput
-      val partitionAssignments = Math.maximum(
-        ids.truncateDivide(idsPerPartition + 1),
+      val one = Basic.ones[I](Shape())
+      val idsPerPartition = numTotalIds.truncateDivide(numPartitions)
+      val extras: Output[I] = numTotalIds % numPartitions
+      val partitionAssignments: Output[I] = Math.maximum(
+        ids.truncateDivide(idsPerPartition + one),
         (ids - extras).truncateDivide(idsPerPartition))
       val newIds = Math.select(
-        partitionAssignments < extras,
-        ids % (idsPerPartition + 1),
+        Math.less(partitionAssignments, extras),
+        ids % (idsPerPartition + one),
         (ids - extras) % idsPerPartition)
       (partitionAssignments, newIds)
     }
@@ -262,29 +288,53 @@ private[ops] trait Embedding {
 
   /** Method for combining sparse embeddings. */
   sealed trait Combiner {
-    @inline def combine(parameters: Output, indices: Output, segmentIndices: Output): Output
-    @inline def combineWeighted(parameters: Output, weights: Output, segmentIndices: Output): Output
+    @inline def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        indices: Output[I],
+        segmentIndices: Output[Int]
+    ): Output[T]
+
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        weights: Output[T],
+        segmentIndices: Output[I]
+    ): Output[T]
   }
 
   /** Combines sparse embeddings by using a weighted sum. */
   case object SumCombiner extends Combiner {
-    @inline override def combine(
-        parameters: Output, indices: Output, segmentIndices: Output): Output = {
+    @inline override def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        indices: Output[I],
+        segmentIndices: Output[Int]
+    ): Output[T] = {
       Math.sparseSegmentSum(parameters, indices, segmentIndices)
     }
 
-    @inline def combineWeighted(parameters: Output, weights: Output, segmentIndices: Output): Output = {
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        weights: Output[T],
+        segmentIndices: Output[I]
+    ): Output[T] = {
       Math.segmentSum(parameters, segmentIndices)
     }
   }
 
   /** Combines sparse embeddings by using a weighted sum divided by the total weight. */
   case object MeanCombiner extends Combiner {
-    @inline override def combine(parameters: Output, indices: Output, segmentIndices: Output): Output = {
+    @inline override def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        indices: Output[I],
+        segmentIndices: Output[Int]
+    ): Output[T] = {
       Math.sparseSegmentMean(parameters, indices, segmentIndices)
     }
 
-    @inline def combineWeighted(parameters: Output, weights: Output, segmentIndices: Output): Output = {
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        weights: Output[T],
+        segmentIndices: Output[I]
+    ): Output[T] = {
       val embeddings = Math.segmentSum(parameters, segmentIndices)
       val weightsSum = Math.segmentSum(weights, segmentIndices)
       Math.divide(embeddings, weightsSum)
@@ -292,48 +342,117 @@ private[ops] trait Embedding {
   }
 
   /** Combines sparse embeddings by using a weighted sum divided by the square root of the sum of the
-      squares of the weights. */
+    * squares of the weights. */
   case object SumSqrtNCombiner extends Combiner {
-    @inline override def combine(parameters: Output, indices: Output, segmentIndices: Output): Output = {
+    @inline override def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        indices: Output[I],
+        segmentIndices: Output[Int]
+    ): Output[T] = {
       Math.sparseSegmentSumSqrtN(parameters, indices, segmentIndices)
     }
 
-    @inline def combineWeighted(parameters: Output, weights: Output, segmentIndices: Output): Output = {
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+        parameters: Output[T],
+        weights: Output[T],
+        segmentIndices: Output[I]
+    ): Output[T] = {
       val embeddings = Math.segmentSum(parameters, segmentIndices)
-      val weightsSquaredSum = Math.segmentSum(weights.square(), segmentIndices)
-      Math.divide(embeddings, weightsSquaredSum.sqrt())
+      val weightsSquaredSum = Math.segmentSum(weights.square, segmentIndices)
+      Math.divide(embeddings, weightsSquaredSum.sqrt)
     }
   }
 }
 
 object Embedding extends Embedding {
-  /** If `maxNorm` is not `null`, this method clips `parameters` to a maximum l2-norm of `maxNorm`. */
-  private[Embedding] def clipByNorm(
-      parameters: Output, indices: Output, maxNorm: Output = null, name: String = "ClipNorm"): Output = {
-    if (maxNorm == null)
-      parameters
-    else if (parameters.rank != -1 && indices.rank != -1)
-      parameters.clipByNorm(maxNorm, indices.rank until parameters.rank)
-    else
-      parameters.clipByNorm(maxNorm, Math.range(Basic.rank(indices), Basic.rank(parameters)))
-  }
+  private[ops] trait Implicits {
+    implicit def singlePartitionEmbeddingMap[T: TF](
+        parameters: EmbeddingParameters[T]
+    ): EmbeddingMap[T] = {
+      EmbeddingMap(Seq(parameters))
+    }
 
-  case class OutputParameters(parameters: Output) extends EmbeddingParameters {
-    @inline override def colocationOp: Op = parameters.op
-    @inline override def staticShape: Shape = parameters.shape
-    @inline override def dynamicShape: Output = Basic.shape(parameters)
+    implicit def multiplePartitionsEmbeddingMap[T: TF](
+        parameters: Seq[EmbeddingParameters[T]]
+    ): EmbeddingMap[T] = {
+      EmbeddingMap(parameters)
+    }
 
-    override def gather(indices: Output, name: String = "Gather"): Output = {
-      Basic.gather(parameters, indices, name = name)
+    implicit def outputToEmbeddingMap[T: TF : IsNotQuantized](
+        parameters: Output[T]
+    ): EmbeddingMap[T] = {
+      OutputParameters(parameters)
+    }
+
+    implicit def variableToEmbeddingMap[T: TF : IsNotQuantized](
+        parameters: Variable[T]
+    ): EmbeddingMap[T] = {
+      VariableParameters(parameters)
     }
   }
 
-  case class VariableParameters(parameters: Variable) extends EmbeddingParameters {
-    @inline override def colocationOp: Op = parameters.op
-    @inline override def staticShape: Shape = parameters.shape
-    @inline override def dynamicShape: Output = Basic.shape(parameters.value)
+  /** If `maxNorm` is not `null`, this method clips `parameters` to a maximum l2-norm of `maxNorm`. */
+  private[Embedding] def clipByNorm[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      parameters: Output[T],
+      indices: Output[I],
+      maxNorm: Output[T] = null,
+      name: String = "ClipNorm"
+  ): Output[T] = {
+    if (maxNorm == null) {
+      parameters
+    } else if (parameters.rank != -1 && indices.rank != -1) {
+      parameters.clipByNorm(
+        maxNorm,
+        indices.rank until parameters.rank)
+    } else {
+      parameters.clipByNorm(
+        maxNorm,
+        Math.range(Basic.rank(indices), Basic.rank(parameters)))
+    }
+  }
 
-    override def gather(indices: Output, name: String = "Gather"): Output = {
+  case class OutputParameters[T: TF : IsNotQuantized](
+      parameters: Output[T]
+  ) extends EmbeddingParameters[T] {
+    @inline override def colocationOp: UntypedOp = {
+      parameters.op
+    }
+
+    @inline override def staticShape: Shape = {
+      parameters.shape
+    }
+
+    @inline override def dynamicShape: Output[Long] = {
+      Basic.shape(parameters)
+    }
+
+    override def gather[I: TF : IsInt32OrInt64](
+        indices: Output[I],
+        name: String = "Gather"
+    ): Output[T] = {
+      Basic.gather(parameters, indices, axis = 0, name = name)
+    }
+  }
+
+  case class VariableParameters[T: TF : IsNotQuantized](
+      parameters: Variable[T]
+  ) extends EmbeddingParameters[T] {
+    @inline override def colocationOp: UntypedOp = {
+      parameters.op
+    }
+
+    @inline override def staticShape: Shape = {
+      parameters.shape
+    }
+
+    @inline override def dynamicShape: Output[Long] = {
+      Basic.shape(parameters.value)
+    }
+
+    override def gather[I: TF : IsInt32OrInt64](
+        indices: Output[I],
+        name: String = "Gather"
+    ): Output[T] = {
       parameters.gather(indices, name = name)
     }
   }
@@ -393,21 +512,24 @@ object Embedding extends Embedding {
   private[ops] trait Documentation
 }
 
-case class EmbeddingMap(partitionParameters: Seq[EmbeddingParameters]) {
+case class EmbeddingMap[T: TF](partitionParameters: Seq[EmbeddingParameters[T]]) {
   val numPartitions: Int = partitionParameters.size
 }
 
 /** Trait for specifying supported embedding parameter types. */
-trait EmbeddingParameters {
+trait EmbeddingParameters[T] {
   /** Returns the op that generates these parameters (to be used for colocating other ops with it). */
-  @inline def colocationOp: Op
+  @inline def colocationOp: UntypedOp
 
   /** Returns the static shape of this parameters tensor. */
   @inline def staticShape: Shape
 
   /** Returns the dynamic shape of this parameters tensor. */
-  @inline def dynamicShape: Output
+  @inline def dynamicShape: Output[Long]
 
   /** Gathers the embeddings corresponding to `indices` from `parameters`. */
-  def gather(indices: Output, name: String = "Gather"): Output
+  def gather[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      name: String = "Gather"
+  ): Output[T]
 }

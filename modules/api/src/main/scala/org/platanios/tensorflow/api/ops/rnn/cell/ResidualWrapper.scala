@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 
 /** RNN cell that creates a residual connection (i.e., combining the cell inputs and its outputs) over another RNN cell.
   *
@@ -25,17 +25,24 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[O, OS, S, SS] protected (
-    val cell: RNNCell[O, OS, S, SS],
+class ResidualWrapper[O, S] protected (
+    val cell: RNNCell[O, S],
     val residualFn: (O, O) => O
-)(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS]()(evO, evS) {
-  override def outputShape: OS = cell.outputShape
-  override def stateShape: SS = cell.stateShape
+) extends RNNCell[O, S]() {
+  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): OS = {
+    cell.outputShape
+  }
 
-  override def forward(input: Tuple[O, S]): Tuple[O, S] = {
+  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[S, SV, SD, SS]): SS = {
+    cell.stateShape
+  }
+
+  override def forward[OV, OD, OS, SV, SD, SS](
+      input: Tuple[O, S]
+  )(implicit
+      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
+  ): Tuple[O, S] = {
     val nextTuple = cell.forward(input)
     val nextOutput = residualFn(input.output, nextTuple.output)
     Tuple(nextOutput, nextTuple.state)
@@ -43,13 +50,10 @@ class ResidualWrapper[O, OS, S, SS] protected (
 }
 
 object ResidualWrapper {
-  def apply[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS],
+  def apply[O, S](
+      cell: RNNCell[O, S],
       residualFn: (O, O) => O
-  )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
-  ): ResidualWrapper[O, OS, S, SS] = {
-    new ResidualWrapper(cell, residualFn)(evO, evS)
+  ): ResidualWrapper[O, S] = {
+    new ResidualWrapper(cell, residualFn)
   }
 }

@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.rnn.attention
 
-import org.platanios.tensorflow.api.core.{NewAxis, Shape}
+import org.platanios.tensorflow.api.core.NewAxis
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.types.{TF, IsDecimal}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
 
@@ -54,25 +55,38 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class BahdanauAttention(
-    override protected val memory: Output,
-    protected val memoryWeights: Output,
-    protected val queryWeights: Output,
-    protected val scoreWeights: Output,
-    override protected val memorySequenceLengths: Output = null,
-    protected val normalizationFactor: Output = null,
-    protected val normalizationBias: Output = null,
-    protected val probabilityFn: Output => Output = NN.softmax(_, name = "Probability"),
-    override val scoreMaskValue: Output = Float.NegativeInfinity,
+class BahdanauAttention[T: TF : IsDecimal](
+    override protected val memory: Output[T],
+    protected val memoryWeights: Output[T],
+    protected val queryWeights: Output[T],
+    protected val scoreWeights: Output[T],
+    protected val probabilityFn: Output[T] => Output[T],
+    override protected val memorySequenceLengths: Output[Int] = null,
+    protected val normalizationFactor: Output[T] = null,
+    protected val normalizationBias: Output[T] = null,
+    override val scoreMaskValue: Output[Float] = Float.MinValue,
     override val name: String = "BahdanauAttention"
-) extends SimpleAttention(memory, memorySequenceLengths, checkInnerDimensionsDefined = true, scoreMaskValue, name) {
-  override lazy val keys: Output = {
+) extends SimpleAttention(
+  memory = memory,
+  memorySequenceLengths = memorySequenceLengths,
+  checkInnerDimensionsDefined = true,
+  scoreMaskValue = scoreMaskValue,
+  name = name
+) {
+  override lazy val keys: Output[T] = {
     if (values.rank == 3) {
-      val reshapedLogits = Basic.reshape(values, Basic.stack(Seq(Basic.constant(-1), Basic.shape(values)(-1))))
+      val reshapedLogits = Basic.reshape(
+        values,
+        Basic.stack(Seq(
+          Basic.constant(-1),
+          Basic.shape(values).castTo[Int].slice(-1))))
       val product = Math.matmul(reshapedLogits, memoryWeights)
       val reshapedProduct = Basic.reshape(
         product,
-        Basic.concatenate(Seq(Basic.shape(values)(0 :: -1), Basic.shape(memoryWeights)(-1, NewAxis)), axis = 0))
+        Basic.concatenate(Seq(
+          Basic.shape(values).castTo[Int].slice(0 :: -1),
+          Basic.shape(memoryWeights).castTo[Int].slice(-1, NewAxis)
+        ), axis = 0))
       reshapedProduct.setShape(values.shape(0 :: -1) + memoryWeights.shape(-1))
       reshapedProduct
     } else {
@@ -81,17 +95,24 @@ class BahdanauAttention(
   }
 
   @throws[InvalidArgumentException]
-  override protected def score(query: Output, previousAlignment: Output): Output = {
+  override protected def score(
+      query: Output[T],
+      previousAlignment: Output[T]
+  ): Output[T] = {
     val queryDepth = query.shape(-1)
     val keysDepth = keys.shape(-1)
-    if (queryDepth != keysDepth)
+    if (queryDepth != keysDepth) {
       throw InvalidArgumentException(
         "Incompatible or unknown inner dimensions between query and keys. " +
-            s"Query (${query.name}) has $queryDepth units. Keys (${keys.name}) have $keysDepth units. " +
-            "Perhaps you need to set the number of units of the attention model to the keys' number of units.")
+            s"Query (${query.name}) has $queryDepth units. " +
+            s"Keys (${keys.name}) have $keysDepth units. " +
+            "Perhaps you need to set the number of units of the attention model " +
+            "to the keys' number of units.")
+    }
 
     // Reshape from [batchSize, ...] to [batchSize, 1, ...] for broadcasting.
     val reshapedQuery = Math.matmul(query, queryWeights).expandDims(1)
+
     val weights = {
       if (normalizationFactor == null)
         scoreWeights
@@ -104,24 +125,38 @@ class BahdanauAttention(
       Math.sum(weights * Math.tanh(keys + reshapedQuery + normalizationBias), 2)
   }
 
-  override protected def probability(score: Output, previousAlignment: Output): Output = probabilityFn(score)
+  override protected def probability(
+      score: Output[T],
+      previousAlignment: Output[T]
+  ): Output[T] = {
+    probabilityFn(score)
+  }
 }
 
 object BahdanauAttention {
-  def apply(
-      memory: Output,
-      memoryWeights: Output,
-      queryWeights: Output,
-      scoreWeights: Output,
-      memorySequenceLengths: Output = null,
-      normalizationFactor: Output = null,
-      normalizationBias: Output = null,
-      probabilityFn: (Output) => Output = NN.softmax(_, name = "Probability"),
-      scoreMaskValue: Output = Float.NegativeInfinity,
+  def apply[T: TF : IsDecimal](
+      memory: Output[T],
+      memoryWeights: Output[T],
+      queryWeights: Output[T],
+      scoreWeights: Output[T],
+      probabilityFn: Output[T] => Output[T] = null,
+      memorySequenceLengths: Output[Int] = null,
+      normalizationFactor: Output[T] = null,
+      normalizationBias: Output[T] = null,
+      scoreMaskValue: Output[Float] = Float.MinValue,
       name: String = "BahdanauAttention"
-  ): BahdanauAttention = {
-    new BahdanauAttention(
-      memory, memoryWeights, queryWeights, scoreWeights, memorySequenceLengths, normalizationFactor, normalizationBias,
-      probabilityFn, scoreMaskValue, name)
+  ): BahdanauAttention[T] = {
+    if (probabilityFn == null) {
+      new BahdanauAttention(
+        memory, memoryWeights, queryWeights, scoreWeights,
+        probabilityFn = NN.softmax(_, name = "Probability"),
+        memorySequenceLengths, normalizationFactor,
+        normalizationBias, scoreMaskValue, name)
+    } else {
+      new BahdanauAttention(
+        memory, memoryWeights, queryWeights, scoreWeights,
+        probabilityFn, memorySequenceLengths, normalizationFactor,
+        normalizationBias, scoreMaskValue, name)
+    }
   }
 }

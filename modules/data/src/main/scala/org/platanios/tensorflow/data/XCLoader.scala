@@ -132,9 +132,9 @@ object XCLoader extends Loader {
 
   // TODO: [DATA] RCV1-x (an issue related to Google Drive will need to be resolved first).
 
-  case class Data[TL[D <: DataType] <: TensorLike[D]](features: TL[FLOAT32], labels: TL[BOOLEAN])
+  case class Data[TL[A] <: TensorLike[A]](features: TL[Float], labels: TL[Boolean])
 
-  case class SplitData[TL[D <: DataType] <: TensorLike[D]](trainData: Data[TL], testData: Data[TL]) {
+  case class SplitData[TL[A] <: TensorLike[A]](trainData: Data[TL], testData: Data[TL]) {
     def splitRandomly(trainPortion: Float, seed: Option[Long] = None): SplitData[Tensor] = {
       if (trainPortion == 1.0f) {
         SplitData(
@@ -146,15 +146,19 @@ object XCLoader extends Loader {
         val split = UniformSplit(allLabels.shape(0), seed)
         val (trainIndices, testIndices) = split(trainPortion)
         SplitData(
-          trainData = Data(features = allFeatures.gather(trainIndices), labels = allLabels.gather(trainIndices)),
-          testData = Data(features = allFeatures.gather(testIndices), labels = allLabels.gather(testIndices)))
+          trainData = Data(
+            features = allFeatures.gather[Int](trainIndices),
+            labels = allLabels.gather[Int](trainIndices)),
+          testData = Data(
+            features = allFeatures.gather[Int](testIndices),
+            labels = allLabels.gather[Int](testIndices)))
       }
     }
   }
 
   case class Split(trainIndices: Seq[Int], testIndices: Seq[Int])
 
-  case class SmallDataset[TL[D <: DataType] <: TensorLike[D]](
+  case class SmallDataset[TL[A] <: TensorLike[A]](
       datasetType: SmallDatasetType,
       data: Data[TL],
       splits: Seq[Split]
@@ -167,16 +171,16 @@ object XCLoader extends Loader {
       */
     def split(split: Int = 0): XCLoader.SplitData[Tensor] = {
       val trainData = XCLoader.Data(
-        features = data.features.toTensor.gather(splits(split).trainIndices),
-        labels = data.labels.toTensor.gather(splits(split).trainIndices))
+        features = data.features.toTensor.gather[Int](splits(split).trainIndices),
+        labels = data.labels.toTensor.gather[Int](splits(split).trainIndices))
       val testData = XCLoader.Data(
-        features = data.features.toTensor.gather(splits(split).testIndices),
-        labels = data.labels.toTensor.gather(splits(split).testIndices))
+        features = data.features.toTensor.gather[Int](splits(split).testIndices),
+        labels = data.labels.toTensor.gather[Int](splits(split).testIndices))
       XCLoader.SplitData(trainData, testData)
     }
   }
 
-  case class LargeDataset[TL[D <: DataType] <: TensorLike[D]](datasetType: LargeDatasetType, data: SplitData[TL])
+  case class LargeDataset[TL[A] <: TensorLike[A]](datasetType: LargeDatasetType, data: SplitData[TL])
 
   override protected val logger = Logger(LoggerFactory.getLogger("XC Data Loader"))
 
@@ -224,9 +228,9 @@ object XCLoader extends Loader {
     dataset
   }
 
-  def labelPropensityScores(dataset: SmallDataset[Tensor]): Tensor[FLOAT32] = {
+  def labelPropensityScores(dataset: SmallDataset[Tensor]): Tensor[Float] = {
     val numSamples = dataset.data.labels.shape(0)
-    val labelCounts = dataset.data.labels.toFloat32.sum(axes = Seq(0))
+    val labelCounts = dataset.data.labels.castTo[Float].sum[Int](axes = Seq(0))
     val a = dataset.datasetType.labelsPropensityA
     val b = dataset.datasetType.labelsPropensityB
     val c = (math.log(numSamples) - 1) * math.pow(b + 1, a)
@@ -235,7 +239,7 @@ object XCLoader extends Loader {
 
   // TODO: [SPARSE] Add support for computing the propensity scores from sparse datasets.
 
-  private[this] def loadCommon(path: Path, datasetType: DatasetType, bufferSize: Int = 8192): Path = {
+  private def loadCommon(path: Path, datasetType: DatasetType, bufferSize: Int = 8192): Path = {
     val url = datasetType.url
     val compressedFilename = datasetType.compressedFilename
     val workingDir = path.resolve(datasetType.name.toLowerCase())
@@ -243,11 +247,11 @@ object XCLoader extends Loader {
     workingDir.resolve(datasetType.compressedFilename)
   }
 
-  private[this] def sparseDataToDense(data: Data[SparseTensor]): Data[Tensor] = {
+  private def sparseDataToDense(data: Data[SparseTensor]): Data[Tensor] = {
     Data(data.features.toTensor, data.labels.toTensor)
   }
 
-  private[this] def extractSmallScaleDataset[TL[D <: DataType] <: TensorLike[D]](
+  private def extractSmallScaleDataset[TL[A] <: TensorLike[A]](
       path: Path,
       datasetType: SmallDatasetType,
       dataConverter: Data[SparseTensor] => Data[TL],
@@ -286,7 +290,7 @@ object XCLoader extends Loader {
     dataset
   }
 
-  private[this] def extractLargeScaleDataset[TL[D <: DataType] <: TensorLike[D]](
+  private def extractLargeScaleDataset[TL[A] <: TensorLike[A]](
       path: Path,
       datasetType: LargeDatasetType,
       dataConverter: Data[SparseTensor] => Data[TL],
@@ -325,7 +329,7 @@ object XCLoader extends Loader {
   }
 
   @throws[IllegalArgumentException]
-  private[this] def readData(
+  private def readData(
       inputStream: ZipInputStream,
       datasetType: DatasetType,
       bufferSize: Int = 8192
@@ -366,19 +370,19 @@ object XCLoader extends Loader {
 
     val labelIndicesBuffer = ByteBuffer.wrap(labelIndicesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     labelIndicesStream.close()
-    val labelIndices = Tensor.fromBuffer(INT64, Shape(labelsCount, 2), labelsCount * 2 * 8, labelIndicesBuffer).toInt32
+    val labelIndices = Tensor.fromBuffer[Long](Shape(labelsCount, 2), labelsCount * 2 * 8, labelIndicesBuffer)
 
     val labelValuesBuffer = ByteBuffer.wrap(labelValuesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     labelValuesStream.close()
-    val labelValues = Tensor.fromBuffer(BOOLEAN, Shape(labelsCount), labelsCount, labelValuesBuffer)
+    val labelValues = Tensor.fromBuffer[Boolean](Shape(labelsCount), labelsCount, labelValuesBuffer)
 
     val featureIndicesBuffer = ByteBuffer.wrap(featureIndicesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     featureIndicesStream.close()
-    val featureIndices = Tensor.fromBuffer(INT64, Shape(featuresCount, 2), featuresCount * 2 * 8, featureIndicesBuffer).toInt32
+    val featureIndices = Tensor.fromBuffer[Long](Shape(featuresCount, 2), featuresCount * 2 * 8, featureIndicesBuffer)
 
     val featureValuesBuffer = ByteBuffer.wrap(featureValuesStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     featureValuesStream.close()
-    val featureValues = Tensor.fromBuffer(FLOAT32, Shape(featuresCount), featuresCount * 4, featureValuesBuffer)
+    val featureValues = Tensor.fromBuffer[Float](Shape(featuresCount), featuresCount * 4, featureValuesBuffer)
 
     val features = SparseTensor(featureIndices, featureValues, Shape(numSamples, numFeatures))
     val labels = SparseTensor(labelIndices, labelValues, Shape(numSamples, numLabels))
@@ -386,7 +390,7 @@ object XCLoader extends Loader {
     Data(features, labels)
   }
 
-  private[this] def readSplits(
+  private def readSplits(
       inputStream: ZipInputStream,
       bufferSize: Int = 8192
   ): Array[Array[Int]] = {

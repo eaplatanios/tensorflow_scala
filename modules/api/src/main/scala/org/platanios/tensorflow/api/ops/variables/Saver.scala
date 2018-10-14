@@ -17,13 +17,13 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.types.{DataType, TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.FileIO
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32}
 import org.platanios.tensorflow.api.utilities.Proto
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
@@ -102,8 +102,11 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false)
-    extends ProtoSerializable {
+class Saver private(
+    saverDef: SaverDef,
+    saveRelativePaths: Boolean = false,
+    padGlobalStep: Boolean = false
+) extends ProtoSerializable {
   val writerVersion: Saver.WriterVersion = saverDef.getVersion match {
     case CheckpointFormatVersion.V1 => Saver.V1
     case CheckpointFormatVersion.V2 => Saver.V2
@@ -112,9 +115,13 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
 
   Saver.checkSaverDef(saverDef)
 
-  private[this] var lastCheckpoints   : mutable.Queue[(Path, Long)] = mutable.Queue.empty[(Path, Long)]
-  private[this] var nextCheckpointTime: Float                       =
+  private var lastCheckpoints: mutable.Queue[(Path, Long)] = {
+    mutable.Queue.empty[(Path, Long)]
+  }
+
+  private var nextCheckpointTime: Float = {
     (System.currentTimeMillis() / 60000) + saverDef.getKeepCheckpointEveryNHours * 3600
+  }
 
   /** Saves the current value of the saveables this saver is responsible for.
     *
@@ -184,25 +191,32 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     val savePathParent = absoluteSavePath.getParent
     val modelCheckpointPath = {
       try {
-        val filenameTensor = session.graph.getOutputByName(saverDef.getFilenameTensorName)
-        val saveTensor = session.graph.getOutputByName(saverDef.getSaveTensorName)
+        val filenameTensor = session.graph.getOutputByName(
+          saverDef.getFilenameTensorName
+        ).asInstanceOf[Output[String]]
+        val saveTensor = session.graph.getOutputByName(
+          saverDef.getSaveTensorName
+        ).asInstanceOf[Output[String]]
         val modelCheckpointPath = absoluteSavePath.getFileSystem.getPath(
-          // TODO: [SESSION] !!! Feed mappers for string inputs.
           session.run(
-            feeds = Map[Output, Tensor[DataType]](filenameTensor -> checkpointFile.toString.toTensor),
-            fetches = saveTensor).scalar.asInstanceOf[String])
+            feeds = Map(filenameTensor -> checkpointFile.toString.toTensor),
+            fetches = saveTensor).scalar)
         if (writeCheckpointState) {
           maybeDeleteOldCheckpoints(modelCheckpointPath, metaGraphSuffix)
           Saver.updateCheckpointStateFile(
-            savePathParent, modelCheckpointPath, latestCheckpoints, checkpointStateFilename, saveRelativePaths)
+            savePathParent, modelCheckpointPath, latestCheckpoints,
+            checkpointStateFilename, saveRelativePaths)
         }
         Some(modelCheckpointPath)
       } catch {
         case exception: Exception =>
-          if (!Files.isDirectory(savePathParent))
+          if (!Files.isDirectory(savePathParent)) {
             throw new IllegalArgumentException(
-              s"The parent directory of '$absoluteSavePath' does not exist, preventing the saver from running.")
-          throw exception
+              s"The parent directory of '$absoluteSavePath' does not exist, " +
+                  s"preventing the saver from running.")
+          } else {
+            throw exception
+          }
       }
     }
 
@@ -232,15 +246,20 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     */
   def restore(session: Session, savePath: Path): Unit = {
     Saver.logger.info(s"Restoring parameters from '$savePath'.")
-    val filenameTensor = session.graph.getOutputByName(saverDef.getFilenameTensorName)
+    val filenameTensor = session.graph.getOutputByName(
+      saverDef.getFilenameTensorName
+    ).asInstanceOf[Output[String]]
     val restoreOp = session.graph.getOpByName(saverDef.getRestoreOpName)
-    // TODO: [SESSION] !!! Feed mappers for string inputs.
-    session.run(feeds = Map[Output, Tensor[DataType]](filenameTensor -> savePath.toString.toTensor), targets = restoreOp)
+    session.run(
+      feeds = Map(filenameTensor -> savePath.toString.toTensor),
+      targets = Set(restoreOp))
   }
 
   /** Returns the sequence of the latest and not-yet-deleted checkpoint filenames, sorted from oldest to newest. You can
     * pass any of the returned values to `restore`. */
-  def latestCheckpoints: Seq[Path] = lastCheckpoints.map(_._1)
+  def latestCheckpoints: Seq[Path] = {
+    lastCheckpoints.map(_._1)
+  }
 
   /** Recovers the internal saver state (holding the last checkpoints) after a crash.
     *
@@ -250,7 +269,10 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     * @param  checkpoints Sequence of checkpoint filenames (can also be glob patterns).
     */
   def recoverLastCheckpoints(checkpoints: Seq[Path]): Unit = {
-    val times = Saver.checkpointTimes(checkpoints, unit = TimeUnit.SECONDS, followSymbolicLinks = true)
+    val times = Saver.checkpointTimes(
+      checkpointPrefixes = checkpoints,
+      unit = TimeUnit.SECONDS,
+      followSymbolicLinks = true)
     lastCheckpoints = mutable.Queue(checkpoints.zip(times).sortBy(_._2): _*)
   }
 
@@ -265,7 +287,10 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
     * @throws IllegalArgumentException If an unsupported checkpoint format version is being used by this saver.
     */
   @throws[IllegalArgumentException]
-  private[this] def maybeDeleteOldCheckpoints(checkpointFile: Path, metaGraphSuffix: String = "meta"): Unit = {
+  private def maybeDeleteOldCheckpoints(
+      checkpointFile: Path,
+      metaGraphSuffix: String = "meta"
+  ): Unit = {
     if (saverDef.getMaxToKeep > 0) {
       // Remove first from list if the same name was used before.
       lastCheckpoints = lastCheckpoints.filter(_._1 != checkpointFile)
@@ -298,7 +323,9 @@ class Saver private (saverDef: SaverDef, saveRelativePaths: Boolean = false, pad
   override def toProto: SaverDef = toProto(null)
 
   /** Alias for `toSaverDef`. */
-  def toProto(exportScope: String = null): SaverDef = toSaverDef(exportScope)
+  def toProto(exportScope: String = null): SaverDef = {
+    toSaverDef(exportScope)
+  }
 
   /** Constructs and returns a [[SaverDef]] object that represents this saver.
     *
@@ -381,7 +408,8 @@ object Saver {
     val collectedSaveables: Set[Saveable] = {
       if (saveables == null) {
         // TODO: [VARIABLES] Use a better default for this.
-        Op.currentGraph.getCollection(Graph.Keys.GLOBAL_VARIABLES).map(new Saveable.VariableSaveable(_))
+        Op.currentGraph.getCollection(Graph.Keys.GLOBAL_VARIABLES)
+            .map(new Saveable.VariableSaveable(_))
       } else {
         saveables
       }
@@ -503,16 +531,16 @@ object Saver {
     *                                     value indicating whether or not to load that collection. Note that the
     *                                     collection specified by `unboundInputsCollectionKey` is never loaded.
     *                                     Defaults to a function that returns `true` for all inputs.
-    * @return Constructed [[Saver]].
+    * @return Constructed saver.
     */
   def fromMetaGraphDef(
       metaGraphDef: MetaGraphDef,
       importScope: String = null,
       saveRelativePaths: Boolean = false,
       padGlobalStep: Boolean = true,
-      inputsMap: Map[(String, Int), Output] = Map.empty,
-      controlDependenciesMap: Map[String, Op] = Map.empty,
-      controlDependencies: Set[Op] = Set.empty,
+      inputsMap: Map[(String, Int), Output[Any]] = Map.empty,
+      controlDependenciesMap: Map[String, UntypedOp] = Map.empty,
+      controlDependencies: Set[UntypedOp] = Set.empty,
       clearDevices: Boolean = false,
       unboundInputsCollectionKey: Graph.Key[String] = Graph.Keys.UNBOUND_INPUTS,
       restoreCollectionsPredicate: Graph.Key[_] => Boolean = _ => true
@@ -554,7 +582,10 @@ object Saver {
     *                             checkpoints.
     * @return Full path to the latest checkpoint, or `None`, if no checkpoint was found.
     */
-  def latestCheckpoint(directory: Path, checkpointStateFile: String = "checkpoint"): Option[Path] = {
+  def latestCheckpoint(
+      directory: Path,
+      checkpointStateFile: String = "checkpoint"
+  ): Option[Path] = {
     // Pick the latest checkpoint based on the checkpoint state.
     val checkpointState = loadCheckpointState(directory, checkpointStateFile)
     if (checkpointState.isDefined && checkpointState.get.getModelCheckpointPath != null) {
@@ -587,7 +618,12 @@ object Saver {
     * @param  filename  File in `directory` that is used to store the checkpoint state.
     * @return Path of the file that contains the checkpoint state.
     */
-  private def checkpointPath(directory: Path, filename: String = "checkpoint"): Path = directory.resolve(filename)
+  private def checkpointPath(
+      directory: Path,
+      filename: String = "checkpoint"
+  ): Path = {
+    directory.resolve(filename)
+  }
 
   /** Returns a boolean value indicating whether a V1 or V2 checkpoint exists with the specified prefix.
     *
@@ -602,7 +638,8 @@ object Saver {
   private def checkpointExists(checkpointPrefix: Path): Boolean = {
     // Try V2's metadata file first.
     val pathPattern = prefixToCheckpointPath(checkpointPrefix, CheckpointFormatVersion.V2)
-    FileIO.getMatchingPaths(pathPattern).nonEmpty || FileIO.getMatchingPaths(checkpointPrefix).nonEmpty
+    FileIO.getMatchingPaths(pathPattern).nonEmpty ||
+        FileIO.getMatchingPaths(checkpointPrefix).nonEmpty
   }
 
   /** Generates a checkpoint state.
@@ -678,9 +715,15 @@ object Saver {
           else
             path
         })
-        checkpointState(directory, modelCheckpointRelativePath, allModelCheckpointRelativePaths)
+        checkpointState(
+          directory,
+          modelCheckpointRelativePath,
+          allModelCheckpointRelativePaths)
       } else {
-        checkpointState(directory, modelCheckpointPath, allModelCheckpointPaths)
+        checkpointState(
+          directory,
+          modelCheckpointPath,
+          allModelCheckpointPaths)
       }
     }
 
@@ -690,7 +733,9 @@ object Saver {
             "Please use a different save path.")
 
     // Preventing potential read/write race condition by atomically writing to a file.
-    FileIO.writeStringToFileAtomic(coordinatorCheckpointStateFilename, TextFormat.printToString(state))
+    FileIO.writeStringToFileAtomic(
+      coordinatorCheckpointStateFilename,
+      TextFormat.printToString(state))
   }
 
   /** Loads the checkpoint state stored in the file named `checkpointStateFilename`, in the specified directory.
@@ -709,19 +754,23 @@ object Saver {
     // Check that the file exists before opening it to avoid many lines of errors from colossus in the logs.
     if (Files.exists(coordinatorCheckpointStateFilename)) {
       try {
-        val loadedString = Files.readAllLines(coordinatorCheckpointStateFilename).asScala.mkString("\n")
+        val loadedLines = Files.readAllLines(coordinatorCheckpointStateFilename)
         val checkpointStateBuilder = CheckpointState.newBuilder()
-        TextFormat.merge(loadedString, checkpointStateBuilder)
+        TextFormat.merge(loadedLines.asScala.mkString("\n"), checkpointStateBuilder)
         if (checkpointStateBuilder.getModelCheckpointPath == null)
           throw new IllegalArgumentException(s"Invalid checkpoint state loaded from: $directory.")
         // For relative paths, we prepend the directory.
         val modelCheckpointPath = checkpointStateBuilder.getModelCheckpointPath
-        if (!directory.getFileSystem.getPath(modelCheckpointPath).isAbsolute)
-          checkpointStateBuilder.setModelCheckpointPath(directory.resolve(modelCheckpointPath).toAbsolutePath.toString)
+        if (!directory.getFileSystem.getPath(modelCheckpointPath).isAbsolute) {
+          checkpointStateBuilder.setModelCheckpointPath(
+            directory.resolve(modelCheckpointPath).toAbsolutePath.toString)
+        }
         (0 until checkpointStateBuilder.getAllModelCheckpointPathsCount).foreach(i => {
           val path = checkpointStateBuilder.getAllModelCheckpointPaths(i)
-          if (!directory.getFileSystem.getPath(path).isAbsolute)
-            checkpointStateBuilder.setAllModelCheckpointPaths(i, directory.resolve(path).toAbsolutePath.toString)
+          if (!directory.getFileSystem.getPath(path).isAbsolute) {
+            checkpointStateBuilder.setAllModelCheckpointPaths(
+              i, directory.resolve(path).toAbsolutePath.toString)
+          }
         })
         Some(checkpointStateBuilder.build())
       } catch {
@@ -782,7 +831,8 @@ object Saver {
     val badCheckpointPrefix = times.indexWhere(_ < 0)
     if (badCheckpointPrefix != -1) {
       val prefix = checkpointPrefixes(badCheckpointPrefix)
-      throw new IllegalArgumentException(s"Could not obtain the time for checkpoint with prefix: $prefix.")
+      throw new IllegalArgumentException(
+        s"Could not obtain the time for checkpoint with prefix: $prefix.")
     }
 
     times
@@ -799,7 +849,10 @@ object Saver {
     * @throws IllegalArgumentException If an unsupported checkpoint format version is being used.
     */
   @throws[IllegalArgumentException]
-  private def prefixToCheckpointPath(prefix: Path, checkpointFormatVersion: CheckpointFormatVersion): Path = {
+  private def prefixToCheckpointPath(
+      prefix: Path,
+      checkpointFormatVersion: CheckpointFormatVersion
+  ): Path = {
     checkpointFormatVersion match {
       case SaverDef.CheckpointFormatVersion.V1 =>
         // Just the data file.
@@ -807,11 +860,13 @@ object Saver {
       case SaverDef.CheckpointFormatVersion.V2 =>
         // The index file identifies a checkpoint.
         prefix.resolveSibling(s"${prefix.getFileName}.index")
-      case _ => throw new IllegalArgumentException(s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
     }
   }
 
-  private[this] val SHARDED_CHECKPOINT_FILENAME_REGEX = "-[\\d\\?]+-of-\\d+$".r
+  private val SHARDED_CHECKPOINT_FILENAME_REGEX = "-[\\d\\?]+-of-\\d+$".r
 
   /** Returns the meta graph filename.
     *
@@ -822,11 +877,16 @@ object Saver {
     * @param  metaGraphSuffix Meta graph filename suffix.
     * @return Meta graph filename.
     */
-  private def metaGraphFilename(checkpointFile: Path, metaGraphSuffix: String = "meta"): Path = {
-    // If the checkpoint filename is sharded, it could be of format "model.ckpt-<step#>-?????-of-<shard#>".
-    // For example, "model.ckpt-123456-?????-of-00005", or "model.ckpt-123456-00001-of-00002".
+  private def metaGraphFilename(
+      checkpointFile: Path,
+      metaGraphSuffix: String = "meta"
+  ): Path = {
+    // If the checkpoint filename is sharded, it could be of format
+    // "model.ckpt-<step#>-?????-of-<shard#>". For example,
+    // "model.ckpt-123456-?????-of-00005", or "model.ckpt-123456-00001-of-00002".
     val filename = checkpointFile.getFileName.toString
-    val baseName = SHARDED_CHECKPOINT_FILENAME_REGEX.pattern.matcher(filename).replaceFirst("")
+    val baseName = SHARDED_CHECKPOINT_FILENAME_REGEX.pattern.matcher(filename)
+        .replaceFirst("")
     checkpointFile.resolveSibling(s"$baseName.$metaGraphSuffix")
   }
 
@@ -855,7 +915,9 @@ object Saver {
   * [[DefaultSaverDefBuilder]] by default, which should be fine for most applications. */
 //noinspection ScalaDeprecation
 trait SaverDefBuilder {
-  private[this] val checkpointFormatVersion: CheckpointFormatVersion = SaverDef.CheckpointFormatVersion.V2
+  private val checkpointFormatVersion: CheckpointFormatVersion = {
+    SaverDef.CheckpointFormatVersion.V2
+  }
 
   /** Creates an op that saves the provided sequence of saveables into a file.
     *
@@ -871,13 +933,17 @@ trait SaverDefBuilder {
     * @throws IllegalArgumentException If an unsupported checkpoint format version is being used.
     */
   @throws[IllegalArgumentException]
-  protected def save(prefix: Output, saveables: Set[Saveable], name: String = "Save"): Op = {
+  protected def save(
+      prefix: Output[String],
+      saveables: Set[Saveable],
+      name: String = "Save"
+  ): Op[Seq[Output[Any]], Unit] = {
     if (saveables.nonEmpty) {
       val (tensorNames, tensors, slices) =
         saveables.flatMap(_.saveSpecifications)
             .map(s => (s.name, s.value(), s.saveSliceSpecification))
-            .toSeq.unzip3[String, Output, String]
-      checkpointFormatVersion match {
+            .toSeq.unzip3[String, Output[Any], String]
+      val saveOp = checkpointFormatVersion match {
         case SaverDef.CheckpointFormatVersion.V1 =>
           SaverDefBuilder.saveSlicesOp(prefix, tensorNames, tensors, slices, name): @silent
         case SaverDef.CheckpointFormatVersion.V2 =>
@@ -885,8 +951,9 @@ trait SaverDefBuilder {
         case _ => throw new IllegalArgumentException(
           s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
       }
+      saveOp.asInstanceOf[Op[Seq[Output[Any]], Unit]]
     } else {
-      ControlFlow.noOp(name)
+      ControlFlow.noOp(name).asInstanceOf[Op[Seq[Output[Any]], Unit]]
     }
   }
 
@@ -894,7 +961,7 @@ trait SaverDefBuilder {
     *
     * Note that this method is intended to be overridden by subclasses that want to generate different types of ops.
     *
-    * @param  prefix   String tensor containing a single element. That element corresponds to the prefix of a V2
+    * @param  prefix   Tensor containing a single element. That element corresponds to the prefix of a V2
     *                  checkpoint. For example, `"/fs/train/ckpt-<step>/tmp/worker<i>-<step>"`. Note that is the V1
     *                  checkpoint format is being used (which is deprecated), then this prefix is interpreted as a
     *                  filename instead.
@@ -902,26 +969,37 @@ trait SaverDefBuilder {
     * @param  name     Name for the created op.
     * @return Created op outputs (restored tensors that constitute `saveable`).
     */
-  protected def restore(prefix: Output, saveable: Saveable, name: String = "Restore"): Seq[Output] = {
+  protected def restore[T](
+      prefix: Output[String],
+      saveable: Saveable,
+      name: String = "Restore"
+  ): Seq[Output[T]] = {
     val (tensorNames, slices, dataTypes) =
       saveable.saveSpecifications
-          .map(s => (s.name, s.saveSliceSpecification, s.value().dataType))
-          .unzip3[String, String, DataType]
-    SaverDefBuilder.restoreV2Op(prefix, tensorNames, slices, dataTypes, name)
+          .map(s => (
+              s.name,
+              s.saveSliceSpecification,
+              s.value().dataType.asInstanceOf[DataType[T]]))
+          .unzip3[String, String, DataType[T]]
+    SaverDefBuilder.restoreV2Op[T](prefix, tensorNames, slices, dataTypes, name)
   }
 
   /** Adds ops to save objects that are on the same shard and returns a tensor containing the filename used for the save
     * operation.
     *
-    * @param  prefix    String tensor containing a single element. That element corresponds to the prefix of a V2
+    * @param  prefix    Tensor containing a single element. That element corresponds to the prefix of a V2
     *                   checkpoint. For example, `"/fs/train/ckpt-<step>/tmp/worker<i>-<step>"`. Note that is the V1
     *                   checkpoint format is being used (which is deprecated), then this prefix is interpreted as a
     *                   filename instead.
     * @param  saveables Sequence of saveable objects that the created op will save.
     * @param  name      Name for the created op.
-    * @return Scalar string tensor containing the filename used for the save operation.
+    * @return Tensor containing the filename used for the save operation.
     */
-  protected def addSaveOps(prefix: Output, saveables: Set[Saveable], name: String = "Save"): Output = {
+  protected def addSaveOps(
+      prefix: Output[String],
+      saveables: Set[Saveable],
+      name: String = "Save"
+  ): Output[String] = {
     val saveOp = save(prefix, saveables, name)
     ControlFlow.withControlDependencies(Set(saveOp), prefix)
   }
@@ -931,22 +1009,26 @@ trait SaverDefBuilder {
     * Note that the sharded save procedure for the V2 checkpoint format is different than that for V1. There is a
     * special "merge" step that merges the small metadata produced from each device.
     *
-    * @param  prefix            String tensor containing a single element. That element corresponds to the prefix of a
+    * @param  prefix            Tensor containing a single element. That element corresponds to the prefix of a
     *                           V2 checkpoint. For example, `"/fs/train/ckpt-<step>/tmp/worker<i>-<step>"`. Note that is
     *                           the V1 checkpoint format is being used (which is deprecated), then this prefix is
     *                           interpreted as a filename instead.
     * @param  saveablesByDevice Sequence of device-saveables pairs, sorted by ascending device name. This is the result
     *                           of the [[SaverDefBuilder.groupByDevice]] method.
-    * @return Scalar string tensor containing the filename used for the save operation.
+    * @return Tensor containing the filename used for the save operation.
     */
-  protected def addShardedSaveOps(prefix: Output, saveablesByDevice: Seq[(String, Set[Saveable])]): Output = {
+  protected def addShardedSaveOps(
+      prefix: Output[String],
+      saveablesByDevice: Seq[(String, Set[Saveable])]
+  ): Output[String] = {
     checkpointFormatVersion match {
       case SaverDef.CheckpointFormatVersion.V1 =>
-        val numberOfShards = Tensor(INT32, saveablesByDevice.length).toOutput
-        val shardedSaves = saveablesByDevice.zipWithIndex.map { case ((device, saveables), shard) =>
-          Op.createWith(device = Saver.setCPU0(device)) {
-            addSaveOps(SaverDefBuilder.shardedFilenameOp(prefix, shard, numberOfShards), saveables)
-          }
+        val numberOfShards = Tensor(saveablesByDevice.length).toOutput
+        val shardedSaves = saveablesByDevice.zipWithIndex.map {
+          case ((device, saveables), shard) =>
+            Op.createWith(device = Saver.setCPU0(device)) {
+              addSaveOps(SaverDefBuilder.shardedFilenameOp(prefix, shard, numberOfShards), saveables)
+            }
         }
         // Return the sharded name for the save path.
         Op.createWith(controlDependencies = shardedSaves.map(_.op).toSet) {
@@ -954,7 +1036,7 @@ trait SaverDefBuilder {
         }
       case SaverDef.CheckpointFormatVersion.V2 =>
         // Suffix for any well-formed 'prefix', when sharded.
-        val _SHARDED_SUFFIX: Output = s"_temp_${UUID.randomUUID().toString}/part"
+        val _SHARDED_SUFFIX = s"_temp_${UUID.randomUUID().toString}/part": Output[String]
         // Transformations:
         //   - Users pass in "save_path_" in the save and restore methods. E.g., "myckpt".
         //   - 'prefix' gets fed <save_path><_SHARDED_SUFFIX>.
@@ -971,36 +1053,41 @@ trait SaverDefBuilder {
         //
         // On failure and  subsequent restore, an outdated and orphaned temporary directory can be safely removed.
         val temporaryCheckpointPrefix = Text.stringJoin(Seq(prefix, _SHARDED_SUFFIX))
-        val (shardedPrefixes, shardedSaves) = saveablesByDevice.zipWithIndex.map { case ((device, saveables), shard) =>
-          Op.createWith(device = Saver.setCPU0(device)) {
-            val prefix = SaverDefBuilder.shardedFilenameOp(temporaryCheckpointPrefix, shard, saveablesByDevice.length)
-            (prefix, addSaveOps(prefix, saveables))
-          }
+        val (shardedPrefixes, shardedSaves) = saveablesByDevice.zipWithIndex.map {
+          case ((device, saveables), shard) =>
+            Op.createWith(device = Saver.setCPU0(device)) {
+              val prefix = SaverDefBuilder.shardedFilenameOp(
+                temporaryCheckpointPrefix, shard, saveablesByDevice.length)
+              (prefix, addSaveOps(prefix, saveables))
+            }
         }.unzip
         // Co-locates the merge step with the last device.
         Op.createWith(
           controlDependencies = shardedSaves.map(_.op).toSet,
           device = Saver.setCPU0(saveablesByDevice.last._1)
         ) {
-          // The V2 format write path consists of a metadata merging step. Once merged, we attempt to delete the temporary
-          // directory, "<user-fed prefix>_temp".
+          // The V2 format write path consists of a metadata merging step.
+          // Once merged, we attempt to delete the temporary directory,
+          // "<user-fed prefix>_temp".
           val concatenatedPrefixes = {
             if (shardedPrefixes.length > 1)
               Basic.stack(shardedPrefixes)
             else
               shardedPrefixes.head.reshape(Shape(1))
           }
-          val mergeOp = SaverDefBuilder.mergeV2Checkpoints(concatenatedPrefixes, prefix, deleteOldDirectories = true)
+          val mergeOp = SaverDefBuilder.mergeV2Checkpoints(
+            concatenatedPrefixes, prefix, deleteOldDirectories = true)
           // Returns the prefix "<user-fed prefix>" only, without the sharded specification suffix.
           ControlFlow.withControlDependencies(Set(mergeOp), prefix)
         }
-      case _ => throw new IllegalArgumentException(s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
+      case _ => throw new IllegalArgumentException(
+        s"Unsupported checkpoint format version '$checkpointFormatVersion'.")
     }
   }
 
   /** Adds ops to restore objects that are on the same shard.
     *
-    * @param  prefix              String tensor containing a single element. That element corresponds to the prefix of a
+    * @param  prefix              Tensor containing a single element. That element corresponds to the prefix of a
     *                             V2 checkpoint. For example, `"/fs/train/ckpt-<step>/tmp/worker<i>-<step>"`. Note that
     *                             is the V1 checkpoint format is being used (which is deprecated), then this prefix is
     *                             interpreted as a filename instead.
@@ -1012,26 +1099,30 @@ trait SaverDefBuilder {
     * @return Created op.
     */
   protected def addRestoreOps(
-      prefix: Output,
+      prefix: Output[String],
       saveables: Set[Saveable],
       reshape: Boolean,
       restoreSequentially: Boolean,
       name: String = "Restore"
-  ): Op = {
-    var restoreOps = Seq.empty[Op]
+  ): Op[Seq[Output[Any]], Unit] = {
+    var restoreOps = Seq.empty[UntypedOp]
     saveables.foreach(saveable => {
-      val restoreControlInputs: Set[Op] = if (restoreSequentially) Set(restoreOps.last) else Set.empty[Op]
+      val restoreControlInputs = if (restoreSequentially) Set(restoreOps.last) else Set.empty[UntypedOp]
       // Load and optionally reshape on the CPU, as string tensors are not available on the GPU.
       // TODO: !!! [GPU] Re-enable restore on GPU when we can support annotating string tensors as "HostMemory" inputs.
-      Op.createWith(controlDependencies = restoreControlInputs, device = Saver.setCPU0(saveable.device)) {
+      Op.createWith(
+        controlDependencies = restoreControlInputs,
+        device = Saver.setCPU0(saveable.device)
+      ) {
         val shapes = {
           if (reshape) {
             // Compute the shapes and let the restore op decide if and how to do the reshape.
             saveable.saveSpecifications.map(s => {
+              val sValue = s.value()
               if (s.value().shape.isFullyDefined)
-                s.value().shape.toOutput()
+                sValue.shape.toOutput
               else
-                Basic.shape(s.value())
+                Basic.shape(sValue)(TF.fromDataType(sValue.dataType))
             })
           } else {
             null
@@ -1042,7 +1133,7 @@ trait SaverDefBuilder {
     })
 
     // Create a no-op that has control dependencies for all the updates.
-    ControlFlow.group(restoreOps.toSet)
+    ControlFlow.group(restoreOps.toSet).asInstanceOf[Op[Seq[Output[Any]], Unit]]
   }
 
   /** Adds ops to restore sharded (per device) objects.
@@ -1060,17 +1151,20 @@ trait SaverDefBuilder {
     * @return Created op.
     */
   protected def addShardedRestoreOps(
-      prefix: Output,
+      prefix: Output[String],
       saveablesByDevice: Seq[(String, Set[Saveable])],
       reshape: Boolean,
       restoreSequentially: Boolean,
       name: String = "Restore"
-  ): Op = {
-    val restoreOps = saveablesByDevice.map { case (device, saveables) =>
-      Op.createWith(device = device)(addRestoreOps(prefix, saveables, restoreSequentially, reshape, name))
+  ): Op[Seq[Output[Any]], Unit] = {
+    val restoreOps = saveablesByDevice.map {
+      case (device, saveables) =>
+        Op.device(device) {
+          addRestoreOps(prefix, saveables, restoreSequentially, reshape, name)
+        }
     }
     // Create a no-op that has control dependencies for all the updates.
-    ControlFlow.group(restoreOps.toSet)
+    ControlFlow.group(restoreOps.map(_.asInstanceOf[UntypedOp]).toSet).asInstanceOf[Op[Seq[Output[Any]], Unit]]
   }
 
   /** Adds save/restore nodes to the graph and creates and returns a [[SaverDef]] proto.
@@ -1105,18 +1199,20 @@ trait SaverDefBuilder {
       name: String = "Saver"
   ): SaverDef = {
     SaverDefBuilder.checkSaveables(saveables)
-    val (filenameOutput, saveOutput, restoreOp) = Op.createWithNameScope(name, saveables.flatMap(_.producerOps)) {
+    val (filenameOutput, saveOutput, restoreOp) = Op.nameScope(name) {
       // Add the constant string tensor for the filename.
-      val filenameOutput = filename: Output
+      val filenameOutput = filename: Output[String]
       // Add the save ops.
       if (sharded) {
         val saveablesByDevice = SaverDefBuilder.groupByDevice(saveables)
         val saveOutput = addShardedSaveOps(filenameOutput, saveablesByDevice)
-        val restoreOp = addShardedRestoreOps(filenameOutput, saveablesByDevice, reshape, restoreSequentially)
+        val restoreOp = addShardedRestoreOps(
+          filenameOutput, saveablesByDevice, reshape, restoreSequentially)
         (filenameOutput, saveOutput, restoreOp)
       } else {
         val saveOutput = addSaveOps(filenameOutput, saveables)
-        val restoreOp = addRestoreOps(filenameOutput, saveables, reshape, restoreSequentially)
+        val restoreOp = addRestoreOps(
+          filenameOutput, saveables, reshape, restoreSequentially)
         (filenameOutput, saveOutput, restoreOp)
       }
     }
@@ -1149,7 +1245,7 @@ object SaverDefBuilder {
   /** Checks that the provided saveable objects are valid. More specifically, this function checks if two or more
     * saveable objects have been provided for the same underlying producer. */
   private def checkSaveables(saveables: Set[Saveable]): Unit = {
-    val seenProducers = mutable.Set.empty[Op]
+    val seenProducers = mutable.Set.empty[UntypedOp]
     saveables.foreach(s => {
       s.producerOps.foreach(producer => {
         if (seenProducers.contains(producer))
@@ -1178,17 +1274,23 @@ object SaverDefBuilder {
     */
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   @throws[IllegalArgumentException]
-  private def saveOp(filename: Output, tensorNames: Seq[String], tensors: Seq[Output], name: String = "Save"): Op = {
+  private def saveOp[T](
+      filename: Output[String],
+      tensorNames: Seq[String],
+      tensors: Seq[Output[T]],
+      name: String = "Save"
+  ): Op[(Output[String], Output[String], Seq[Output[T]]), Unit] = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
             s"'tensors' (${tensors.length}).")
     // TODO: [TENSORS] !!! Can we avoid all the tensor reshapes in the future? Maybe have a "withRank" function.
-    Op.Builder(opType = "Save", name = name)
-        .addInput(filename)
-        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
-        .addInputList(tensors)
-        .build()
+    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
+    Op.Builder[(Output[String], Output[String], Seq[Output[T]]), Unit](
+      opType = "Save",
+      name = name,
+      input = (filename, tensorNamesInput, tensors)
+    ).build()
   }
 
   /** Creates an op that saves the input tensors to disk.
@@ -1228,12 +1330,12 @@ object SaverDefBuilder {
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
   @throws[IllegalArgumentException]
   private def saveSlicesOp(
-      filename: Output,
+      filename: Output[String],
       tensorNames: Seq[String],
-      tensors: Seq[Output],
+      tensors: Seq[Output[Any]],
       slices: Seq[String],
       name: String = "Save"
-  ): Op = {
+  ): Op[(Output[String], Output[String], Output[String], Seq[Output[Any]]), Unit] = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
@@ -1242,12 +1344,13 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
             s"'slices' (${slices.length}).")
-    Op.Builder(opType = "SaveSlices", name = name)
-        .addInput(filename)
-        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
-        .addInput(slices.toTensor.reshape(Shape(slices.length)).toOutput)
-        .addInputList(tensors)
-        .build()
+    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
+    val slicesInput = slices.toTensor.reshape(Shape(slices.length)).toOutput
+    Op.Builder[(Output[String], Output[String], Output[String], Seq[Output[Any]]), Unit](
+      opType = "SaveSlices",
+      name = name,
+      input = (filename, tensorNamesInput, slicesInput, tensors)
+    ).build()
   }
 
   /** Creates an op that restores a tensor from checkpoint files.
@@ -1270,17 +1373,18 @@ object SaverDefBuilder {
     * @return Created op output.
     */
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
-  private def restoreOp(
-      filenamePattern: Output,
+  private def restoreOp[T: TF](
+      filenamePattern: Output[String],
       tensorName: String,
       preferredShard: Int = -1,
       name: String = "Restore"
-  ): Output = {
-    Op.Builder(opType = "Restore", name = name)
-        .addInput(filenamePattern)
-        .addInput(Tensor(tensorName).toOutput)
-        .setAttribute("preferred_shard", preferredShard)
-        .build().outputs(0)
+  ): Output[T] = {
+    Op.Builder[(Output[String], Output[String]), Output[T]](
+      opType = "Restore",
+      name = name,
+      input = (filenamePattern, tensorName)
+    ).setAttribute("preferred_shard", preferredShard)
+        .build().output
   }
 
   /** Creates an op that restores a tensor from checkpoint files.
@@ -1289,8 +1393,7 @@ object SaverDefBuilder {
     * tensor. `slice` specifies the shape of the larger tensor and the slice that the restored tensor covers. The
     * `slice` input has the same format as the elements of the `slices` input of [[saveSlicesOp]].
     *
-    * @param  filenamePattern String tensor containing a single element. That element corresponds to the filename
-    *                         pattern used for the restore operation.
+    * @param  filenamePattern Filename pattern used for the restore operation.
     * @param  tensorName      Name of the tensor to be restored.
     * @param  slice           Slice specification to use when restoring the tensor.
     * @param  preferredShard  Index of the file to open first, if multiple files match the provided `filenamePattern`.
@@ -1298,19 +1401,19 @@ object SaverDefBuilder {
     * @return Created op output.
     */
   @deprecated("The V1 checkpoint format version has been deprecated.", "0.1")
-  private def restoreSliceOp(
-      filenamePattern: Output,
+  private def restoreSliceOp[T: TF](
+      filenamePattern: Output[String],
       tensorName: String,
       slice: String,
       preferredShard: Int = -1,
       name: String = "Restore"
-  ): Output = {
-    Op.Builder(opType = "RestoreSlice", name = name)
-        .addInput(filenamePattern)
-        .addInput(Tensor(tensorName).toOutput)
-        .addInput(Tensor(slice).toOutput)
-        .setAttribute("preferred_shard", preferredShard)
-        .build().outputs(0)
+  ): Output[T] = {
+    Op.Builder[(Output[String], Output[String], Output[String]), Output[T]](
+      opType = "RestoreSlice",
+      name = name,
+      input = (filenamePattern, tensorName, slice)
+    ).setAttribute("preferred_shard", preferredShard)
+        .build().output
   }
 
   /** Creates an op that saves the input tensors to disk.
@@ -1345,12 +1448,12 @@ object SaverDefBuilder {
     */
   @throws[IllegalArgumentException]
   private def saveV2Op(
-      prefix: Output,
+      prefix: Output[String],
       tensorNames: Seq[String],
-      tensors: Seq[Output],
+      tensors: Seq[Output[Any]],
       slices: Seq[String],
       name: String = "Save"
-  ): Op = {
+  ): Op[(Output[String], Output[String], Output[String], Seq[Output[Any]]), Unit] = {
     if (tensorNames.length != tensors.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
@@ -1359,16 +1462,17 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
             s"'slices' (${slices.length}).")
-    Op.Builder(opType = "SaveV2", name = name)
-        .addInput(prefix)
-        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
-        .addInput(slices.toTensor.reshape(Shape(slices.length)).toOutput)
-        .addInputList(tensors)
-        .setAttribute("dtypes", tensors.map(_.dataType).toArray)
+    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
+    val slicesInput = slices.toTensor.reshape(Shape(slices.length)).toOutput
+    Op.Builder[(Output[String], Output[String], Output[String], Seq[Output[Any]]), Unit](
+      opType = "SaveV2",
+      name = name,
+      input = (prefix, tensorNamesInput, slicesInput, tensors)
+    ).setAttribute("dtypes", tensors.map(_.dataType).toArray)
         .build()
   }
 
-  /** Creates an op that restores a tensor from V2 checkpoint files.
+  /** Creates an op that restores tensors from V2 checkpoint files.
     *
     * For backward compatibility with the V1 format, the created op currently allows restoring from a V1 checkpoint as
     * well:
@@ -1399,13 +1503,13 @@ object SaverDefBuilder {
     *                                  and the number of data types in `dataTypes`.
     */
   @throws[IllegalArgumentException]
-  private def restoreV2Op(
-      prefix: Output,
+  private def restoreV2Op[T](
+      prefix: Output[String],
       tensorNames: Seq[String],
       slices: Seq[String],
-      dataTypes: Seq[DataType],
+      dataTypes: Seq[DataType[T]],
       name: String = "Restore"
-  ): Seq[Output] = {
+  ): Seq[Output[T]] = {
     if (tensorNames.length != slices.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
@@ -1414,12 +1518,14 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of data types in " +
             s"'dataTypes' (${dataTypes.length}).")
-    Op.Builder(opType = "RestoreV2", name = name)
-        .addInput(prefix)
-        .addInput(tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput)
-        .addInput(slices.toTensor.reshape(Shape(slices.length)).toOutput)
-        .setAttribute("dtypes", dataTypes.toArray)
-        .build().outputs.toSeq
+    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
+    val slicesInput = slices.toTensor.reshape(Shape(slices.length)).toOutput
+    Op.Builder[(Output[String], Output[String], Output[String]), Seq[Output[T]]](
+      opType = "RestoreV2",
+      name = name,
+      input = (prefix, tensorNamesInput, slicesInput)
+    ).setAttribute("dtypes", dataTypes.map(_.asInstanceOf[DataType[Any]]).toArray)
+        .build().output
   }
 
   /** Creates an op that merges the metadata files of sharded checkpoints (the op is V2 checkpoint format specific).
@@ -1427,9 +1533,9 @@ object SaverDefBuilder {
     * The result is one logical checkpoint, with one physical metadata file and renamed data files. This op is intended
     * for "grouping" multiple checkpoints in a sharded checkpoint setup.
     *
-    * @param  checkpointPrefixes   One-dimensional string tensor containing the prefixes of the V2 checkpoints to merge.
-    * @param  destinationPrefix    Scalar string tensor containing the desired final prefix. That prefix is allowed to
-    *                              be the same as one of the `checkpointPrefixes`.
+    * @param  checkpointPrefixes   Prefixes of the V2 checkpoints to merge.
+    * @param  destinationPrefix    Desired final prefix. That prefix is allowed to be the same as one of the
+    *                              `checkpointPrefixes`.
     * @param  deleteOldDirectories If `true`, the op attempts to recursively delete the directory of each path in the
     *                              input `checkpointPrefixes`. This is useful when those paths are non user-facing
     *                              temporary locations.
@@ -1437,38 +1543,39 @@ object SaverDefBuilder {
     * @return Created op.
     */
   private def mergeV2Checkpoints(
-      checkpointPrefixes: Output,
-      destinationPrefix: Output,
+      checkpointPrefixes: Output[String],
+      destinationPrefix: Output[String],
       deleteOldDirectories: Boolean = true,
       name: String = "MergeV2Checkpoints"
-  ): Op = {
-    Op.Builder(opType = "MergeV2Checkpoints", name = name)
-        .addInput(checkpointPrefixes)
-        .addInput(destinationPrefix)
-        .setAttribute("delete_old_dirs", deleteOldDirectories)
+  ): Op[(Output[String], Output[String]), Unit] = {
+    Op.Builder[(Output[String], Output[String]), Unit](
+      opType = "MergeV2Checkpoints",
+      name = name,
+      input = (checkpointPrefixes, destinationPrefix)
+    ).setAttribute("delete_old_dirs", deleteOldDirectories)
         .build()
   }
 
   /** Creates an op that generates a sharded filename. The filename is `printf` formatted as
     * `%s-%05d-of-%05d, basename, shard, num_shards`.
     *
-    * @param  filename       String tensor containing a single element. That element corresponds to the base filename.
-    * @param  shard          Scalar tensor containing the shard index.
-    * @param  numberOfShards Scalar tensor containing the total number of shards.
+    * @param  filename       Base filename.
+    * @param  shard          Shard index.
+    * @param  numberOfShards Total number of shards.
     * @param  name           Created op name.
     * @return Created scalar op output containing the sharded filename.
     */
   private def shardedFilenameOp(
-      filename: Output,
-      shard: Output,
-      numberOfShards: Output,
+      filename: Output[String],
+      shard: Output[Int],
+      numberOfShards: Output[Int],
       name: String = "ShardedFilename"
-  ): Output = {
-    Op.Builder(opType = "ShardedFilename", name = name)
-        .addInput(filename)
-        .addInput(shard)
-        .addInput(numberOfShards)
-        .build().outputs(0)
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[Int], Output[Int]), Output[String]](
+      opType = "ShardedFilename",
+      name = name,
+      input = (filename, shard, numberOfShards)
+    ).build().output
   }
 
   /** Creates an op that generates a glob pattern matching all sharded file names.
@@ -1479,14 +1586,15 @@ object SaverDefBuilder {
     * @return Created scalar op output containing a filename pattern string.
     */
   private def shardedFilenameSpecificationOp(
-      filename: Output,
-      numberOfShards: Output,
+      filename: Output[String],
+      numberOfShards: Output[Int],
       name: String = "ShardedFilenameSpecification"
-  ): Output = {
-    Op.Builder(opType = "ShardedFilespec", name = name)
-        .addInput(filename)
-        .addInput(numberOfShards)
-        .build().outputs(0)
+  ): Output[String] = {
+    Op.Builder[(Output[String], Output[Int]), Output[String]](
+      opType = "ShardedFilespec",
+      name = name,
+      input = (filename, numberOfShards)
+    ).build().output
   }
 }
 
@@ -1499,18 +1607,21 @@ private[variables] object DefaultSaverDefBuilder extends SaverDefBuilder
   * @param  value                  Value that needs to be saved.
   * @param  saveSliceSpecification Slice specification string used for saving.
   */
-case class SaveSpecification private(name: String, value: () => Output, saveSliceSpecification: String)
+case class SaveSpecification private(
+    name: String,
+    value: () => Output[Any],
+    saveSliceSpecification: String)
 
 /** Base class for defining objects that be saved and restored.
   *
   * @param  saveSpecifications Sequence containing a save specification per tensor that needs to be saved.
   */
-abstract class Saveable protected (val saveSpecifications: Seq[SaveSpecification]) {
+abstract class Saveable protected(val saveSpecifications: Seq[SaveSpecification]) {
   /** Name to save the object under. */
   val name: String
 
   /** The "producer" ops that this saveable wraps. For example, a `Variable` op saving its backing tensor. */
-  val producerOps: Set[Op]
+  val producerOps: Set[UntypedOp]
 
   /** Device of this saveable object. All tensors that need to be saved must lie on the same device. */
   def device: String = {
@@ -1528,18 +1639,23 @@ abstract class Saveable protected (val saveSpecifications: Seq[SaveSpecification
     *                         ignored.
     * @return Op that restores the state of this saveable object.
     */
-  private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op
+  private[api] def restore[I: IsInt32OrInt64](
+      restoredTensors: Seq[Output[Any]],
+      restoredShapes: Seq[Output[I]] = null
+  ): UntypedOp
 }
 
 private[ops] object Saveable {
   /** Wrapper saveable object that allows variables to be saved. */
-  implicit class VariableSaveable(variable: Variable)
+  implicit class VariableSaveable(variable: Variable[Any])
       extends Saveable(
         Seq(SaveSpecification(
           if (variable.partitionInformation != null) variable.partitionInformation.fullName else variable.name,
           () => variable.value,
           Option(variable.partitionInformation).map(_.saveSpecString).getOrElse("")))) {
-    private val variableDevice: String = variable.device
+    private val variableDevice: String = {
+      variable.device
+    }
 
     override val name: String = {
       if (variable.partitionInformation != null)
@@ -1548,46 +1664,31 @@ private[ops] object Saveable {
         variable.name
     }
 
-    override val producerOps: Set[Op] = Set(variable.op)
+    override val producerOps: Set[UntypedOp] = {
+      Set(variable.op)
+    }
 
-    override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-      var restoredTensor = {
-        if (restoredShapes != null)
-          Basic.reshape(restoredTensors.head, restoredShapes.head)
-        else
-          restoredTensors.head
+    override private[api] def restore[I: IsInt32OrInt64](
+        restoredTensors: Seq[Output[Any]],
+        restoredShapes: Seq[Output[I]] = null
+    ): UntypedOp = {
+      val dataType = restoredTensors.head.dataType
+      var restoredTensor = restoredTensors.head
+      if (restoredShapes != null) {
+        val shapeDataType = restoredShapes.head.dataType
+        restoredTensor = Basic.reshape(
+          restoredTensors.head,
+          restoredShapes.head
+        )(TF.fromDataType(dataType), TF.fromDataType(shapeDataType), IsInt32OrInt64[I])
       }
       // Copy the restored tensor to the variable's device.
-      restoredTensor = Op.createWith(device = variableDevice)(Basic.identity(restoredTensor))
-      Variable.assign(variable.handle, restoredTensor)
-    }
-  }
-
-  /** Wrapper saveable object that allows partitioned variables to be saved. */
-  implicit class PartitionedVariableSaveable(variable: PartitionedVariable)
-      extends Saveable(
-        variable.map(v => SaveSpecification(
-          v.partitionInformation.fullName,
-          () => v.value,
-          v.partitionInformation.saveSpecString)).toSeq) {
-    private val variableDevices: Seq[String] = variable.map(_.device).toSeq
-
-    override val name: String = variable.name
-
-    override val producerOps: Set[Op] = variable.map(_.op).toSet
-
-    override private[api] def restore(restoredTensors: Seq[Output], restoredShapes: Seq[Output] = null): Op = {
-      var tensors: Seq[Output] = {
-        if (restoredShapes != null)
-          restoredTensors.zip(restoredShapes).map(p => Basic.reshape(p._1, p._2))
-        else
-          restoredTensors
+      restoredTensor = Op.createWith(device = variableDevice) {
+        Basic.identity(restoredTensor)(TF.fromDataType(dataType))
       }
-      // Copy the restored tensors to the variable's devices.
-      tensors = tensors.zip(variableDevices).map(p => Op.createWith(device = p._2)(Basic.identity(p._1)))
-      val restoreOps = variable.zip(tensors).map(p => Variable.assign(p._1.handle, p._2))
-      // Create a no-op that has control dependencies for all the updates.
-      ControlFlow.group(restoreOps.toSet)
+      Variable.assign(
+        variable.handle,
+        restoredTensor
+      )(TF.fromDataType(dataType))
     }
   }
 }

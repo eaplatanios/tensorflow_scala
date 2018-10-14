@@ -15,11 +15,10 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
-import org.platanios.tensorflow.api.learn.layers.{layerContext, Layer}
+import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Op
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 
 /**
@@ -27,29 +26,41 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[O, OS, S, SS](override val name: String)(implicit
-  evO: WhileLoopVariable.Aux[O, OS],
-  evS: WhileLoopVariable.Aux[S, SS]
+abstract class RNNCell[O, S](
+    override val name: String
+)(implicit
+    protected val evStructureO: NestedStructure[O],
+    protected val evStructureS: NestedStructure[S]
 ) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
-  def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS]
+  protected implicit val evStructureOAux: NestedStructure.Aux[O, evStructureO.V, evStructureO.D, evStructureO.S] = {
+    evStructureO.asAux()
+  }
 
-  final def createCell(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = Op.createWith(
-    nameScope = layerContext.value.nameScope,
-    device = layerContext.value.device,
-    deviceFunction = layerContext.value.deviceFunction
-  ) {
-    VariableScope.updatedScope(layerContext.value.variableScope, isPure = true) {
-      if (name != null) {
-        VariableScope.scope(name, isPure = true) {
-          createCellWithoutContext(mode, inputShape)
-        }
-      } else {
+  protected implicit val evStructureSAux: NestedStructure.Aux[S, evStructureS.V, evStructureS.D, evStructureS.S] = {
+    evStructureS.asAux()
+  }
+
+  def createCellWithoutContext[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S]
+
+  final def createCell[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
+    if (name != null) {
+      VariableScope.scope(name, isPure = true) {
         createCellWithoutContext(mode, inputShape)
       }
+    } else {
+      createCellWithoutContext(mode, inputShape)
     }
   }
 
-  override final def forwardWithoutContext(input: Tuple[O, S])(implicit mode: Mode): Tuple[O, S] = {
-    createCellWithoutContext(mode, evO.fromShapes(input.output, evO.outputs(input.output).map(_.shape))).forward(input)
+  override final def forwardWithoutContext(
+      input: Tuple[O, S]
+  )(implicit mode: Mode): Tuple[O, S] = {
+    createCellWithoutContext(mode, evStructureOAux.shapeFromOutput(input.output)).forward(input)
   }
 }

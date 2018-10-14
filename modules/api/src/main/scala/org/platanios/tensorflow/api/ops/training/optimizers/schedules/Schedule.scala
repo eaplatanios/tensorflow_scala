@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.ops.Output
 
@@ -26,7 +27,7 @@ import org.platanios.tensorflow.api.ops.Output
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Schedule {
+trait Schedule[T] {
   /** Applies the scheduling method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -37,17 +38,18 @@ trait Schedule {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  def apply(value: Output, step: Option[Variable]): Output
+  def apply[I: TF : IsInt32OrInt64](
+      value: Output[T],
+      step: Option[Variable[I]]
+  ): Output[T]
 
   /** Composes the provided `other` schedule with this schedule and returns the resulting schedule. */
-  def >>(other: Schedule): ComposedSchedule = ComposedSchedule(other, this)
+  def >>(other: Schedule[T]): ComposedSchedule[T] = {
+    ComposedSchedule(other, this)
+  }
 
   /** Composes this schedule with the provided, `other` schedule and returns the resulting schedule. */
-  def compose(other: Schedule): ComposedSchedule = ComposedSchedule(this, other)
-}
-
-/** Dummy scheduling method representing no schedule being used. Useful as a default value for `Schedule`-valued
-  * function arguments. */
-case object FixedSchedule extends Schedule {
-  def apply(value: Output, step: Option[Variable]): Output = value
+  def compose(other: Schedule[T]): ComposedSchedule[T] = {
+    ComposedSchedule(this, other)
+  }
 }

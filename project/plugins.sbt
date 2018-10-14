@@ -39,4 +39,3 @@ addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.3")
 
 // Generally useful plugins
 // addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.1.0-M4") // Provides fast dependency resolution.
-

@@ -16,14 +16,15 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.core.types._
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.FloatDefault
 
 /** Contains functions for constructing ops related to random numbers and tensors.
   *
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
-private[api] trait Random {
+trait Random {
   /** $OpDocRandomRandomShuffle
     *
     * @group RandomOps
@@ -31,22 +32,27 @@ private[api] trait Random {
     * @param  seed  Optional random seed, used to generate a random seed pair for the random number generator, when
     *               combined with the graph-level seed.
     * @param  name  Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def randomShuffle(value: Output, seed: Option[Int] = None, name: String = "RandomShuffle"): Output = {
+  def randomShuffle[T: TF](
+      value: Output[T],
+      seed: Option[Int] = None,
+      name: String = "RandomShuffle"
+  ): Output[T] = {
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
-    Op.Builder(opType = "RandomShuffle", name = name)
-        .addInput(value)
-        .setAttribute("seed", graphSeed.getOrElse(0))
+    Op.Builder[Output[T], Output[T]](
+      opType = "RandomShuffle",
+      name = name,
+      input = value
+    ).setAttribute("seed", graphSeed.getOrElse(0))
         .setAttribute("seed2", opSeed.getOrElse(0))
-        .build().outputs(0)
+        .build().output
   }
 
   /** $OpDocRandomRandomUniform
     *
     * @group RandomOps
-    * @param  dataType Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], [[FLOAT64]],
-    *                  [[INT32]], or [[INT64]].
     * @param  shape    Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  minValue Scalar tensor containing the inclusive lower bound on the random of random values to generate.
     *                  Defaults to `0`.
@@ -55,50 +61,45 @@ private[api] trait Random {
     * @param  seed     Optional random seed, used to generate a random seed pair for the random number generator, when
     *                  combined with the graph-level seed.
     * @param  name     Name for the created op.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
     * @return Created op output.
-    * @throws IllegalArgumentException If `dataType` has an unsupported value.
     */
-  @throws[IllegalArgumentException]
-  def randomUniform(
-      dataType: DataType = FLOAT32,
-      shape: Output = Shape.scalar(),
-      minValue: Output = 0.0,
-      maxValue: Output = 1.0,
+  def randomUniform[T: FloatDefault : TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+      shape: Output[I],
+      minValue: Output[T] = null,
+      maxValue: Output[T] = null,
       seed: Option[Int] = None,
       name: String = "RandomUniform"
-  ): Output = {
-    if (!Set[DataType](FLOAT16, FLOAT32, FLOAT64, INT32, INT64).contains(dataType))
-      throw new IllegalArgumentException(
-        s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, FLOAT64, INT32, or INT64.")
-    Op.createWithNameScope(name, Set(shape.op, minValue.op, maxValue.op)) {
-      val castedMinValue = Cast.cast(minValue, dataType)
-      val castedMaxValue = Cast.cast(maxValue, dataType)
-      val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
-      if (dataType.isInteger) {
-        Op.Builder(opType = "RandomUniformInt", name = name)
-            .addInput(shape)
-            .addInput(castedMinValue)
-            .addInput(castedMaxValue)
-            .setAttribute("seed", graphSeed.getOrElse(0))
-            .setAttribute("seed2", opSeed.getOrElse(0))
-            .build().outputs(0)
-      } else {
-        val random = Op.Builder(opType = "RandomUniform", name = name)
-            .addInput(shape)
-            .setAttribute("dtype", dataType)
-            .setAttribute("seed", graphSeed.getOrElse(0))
-            .setAttribute("seed2", opSeed.getOrElse(0))
-            .build().outputs(0)
-        Math.add(random * (castedMaxValue - castedMinValue), castedMinValue)
-      }
+  ): Output[T] = {
+    val dataType = TF[T].dataType
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val minValueWithDefault = if (minValue == null) Basic.zeros[T](Shape()) else minValue
+    val maxValueWithDefault = if (maxValue == null) Basic.ones[T](Shape()) else maxValue
+    if (dataType.isInteger) {
+      Op.Builder[(Output[I], Output[T], Output[T]), Output[T]](
+        opType = "RandomUniformInt",
+        name = name,
+        input = (shape, minValueWithDefault, maxValueWithDefault)
+      ).setAttribute("seed", graphSeed.getOrElse(0))
+          .setAttribute("seed2", opSeed.getOrElse(0))
+          .build().output
+    } else {
+      val random = Op.Builder[Output[I], Output[T]](
+        opType = "RandomUniform",
+        name = name,
+        input = shape
+      ).setAttribute("dtype", dataType)
+          .setAttribute("seed", graphSeed.getOrElse(0))
+          .setAttribute("seed2", opSeed.getOrElse(0))
+          .build().output
+      Math.add(random * (maxValueWithDefault - minValueWithDefault), minValueWithDefault)
     }
   }
 
   /** $OpDocRandomRandomNormal
     *
     * @group RandomOps
-    * @param  dataType          Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], or
-    *                           [[FLOAT64]].
     * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
     * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
@@ -106,39 +107,34 @@ private[api] trait Random {
     * @param  seed              Optional random seed, used to generate a random seed pair for the random number
     *                           generator, when combined with the graph-level seed.
     * @param  name              Name for the created op.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
     * @return Created op output.
-    * @throws IllegalArgumentException If `dataType` has an unsupported value.
     */
-  @throws[IllegalArgumentException]
-  def randomNormal(
-      dataType: DataType = FLOAT32,
-      shape: Output = Shape.scalar(),
-      mean: Output = 0.0,
-      standardDeviation: Output = 1.0,
+  def randomNormal[T: FloatDefault : TF : IsFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+      shape: Output[I],
+      mean: Output[T] = null,
+      standardDeviation: Output[T] = null,
       seed: Option[Int] = None,
       name: String = "RandomNormal"
-  ): Output = {
-    if (dataType != FLOAT16 && dataType != FLOAT32 && dataType != FLOAT64)
-      throw new IllegalArgumentException(s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, or FLOAT64.")
-    Op.createWithNameScope(name, Set(shape.op, mean.op, standardDeviation.op)) {
-      val castedMean = Cast.cast(mean, dataType)
-      val castedStandardDeviation = Cast.cast(standardDeviation, dataType)
-      val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
-      val random = Op.Builder(opType = "RandomStandardNormal", name = name)
-          .addInput(shape)
-          .setAttribute("dtype", dataType)
-          .setAttribute("seed", graphSeed.getOrElse(0))
-          .setAttribute("seed2", opSeed.getOrElse(0))
-          .build().outputs(0)
-      Math.add(random * castedStandardDeviation, castedMean)
-    }
+  ): Output[T] = {
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val meanWithDefault = if (mean == null) Basic.zeros[T](Shape()) else mean
+    val standardDeviationWithDefault = if (standardDeviation == null) Basic.ones[T](Shape()) else standardDeviation
+    val random = Op.Builder[Output[I], Output[T]](
+      opType = "RandomStandardNormal",
+      name = name,
+      input = shape
+    ).setAttribute("dtype", TF[T].dataType)
+        .setAttribute("seed", graphSeed.getOrElse(0))
+        .setAttribute("seed2", opSeed.getOrElse(0))
+        .build().output
+    Math.add(random * standardDeviationWithDefault, meanWithDefault)
   }
 
   /** $OpDocRandomRandomTruncatedNormal
     *
     * @group RandomOps
-    * @param  dataType          Data type for the output tensor. Must be one of: [[FLOAT16]], [[FLOAT32]], or
-    *                           [[FLOAT64]].
     * @param  shape             Rank-1 tensor containing the shape of the output tensor. Defaults to a scalar tensor.
     * @param  mean              Scalar tensor containing the mean of the Normal distribution. Defaults to `0`.
     * @param  standardDeviation Scalar tensor containing the standard deviation of the Normal distribution. Defaults to
@@ -146,43 +142,33 @@ private[api] trait Random {
     * @param  seed              Optional random seed, used to generate a random seed pair for the random number
     *                           generator, when combined with the graph-level seed.
     * @param  name              Name for the created op.
+    * @tparam T Tensor data type.
+    * @tparam I Tensor shape type.
     * @return Created op output.
-    * @throws IllegalArgumentException If `dataType` has an unsupported value.
     */
-  @throws[IllegalArgumentException]
-  def randomTruncatedNormal(
-      dataType: DataType = FLOAT32,
-      shape: Output = Shape.scalar(),
-      mean: Output = 0.0,
-      standardDeviation: Output = 1.0,
+  def randomTruncatedNormal[T: FloatDefault : TF : IsFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+      shape: Output[I],
+      mean: Output[T] = null,
+      standardDeviation: Output[T] = null,
       seed: Option[Int] = None,
       name: String = "RandomTruncatedNormal"
-  ): Output = {
-    if (dataType != FLOAT16 && dataType != FLOAT32 && dataType != FLOAT64)
-      throw new IllegalArgumentException(s"'dataType' ($dataType) must be one of: FLOAT16, FLOAT32, or FLOAT64.")
-    Op.createWithNameScope(name, Set(shape.op, mean.op, standardDeviation.op)) {
-      val castedMean = Cast.cast(mean, dataType)
-      val castedStandardDeviation = Cast.cast(standardDeviation, dataType)
-      val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
-      val random = Op.Builder(opType = "TruncatedNormal", name = name)
-          .addInput(shape)
-          .setAttribute("dtype", dataType)
-          .setAttribute("seed", graphSeed.getOrElse(0))
-          .setAttribute("seed2", opSeed.getOrElse(0))
-          .build().outputs(0)
-      Math.add(random * castedStandardDeviation, castedMean)
-    }
+  ): Output[T] = {
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val meanWithDefault = if (mean == null) Basic.zeros[T](Shape()) else mean
+    val standardDeviationWithDefault = if (standardDeviation == null) Basic.ones[T](Shape()) else standardDeviation
+    val random = Op.Builder[Output[I], Output[T]](
+      opType = "TruncatedNormal",
+      name = name,
+      input = shape
+    ).setAttribute("dtype", TF[T].dataType)
+        .setAttribute("seed", graphSeed.getOrElse(0))
+        .setAttribute("seed2", opSeed.getOrElse(0))
+        .build().output
+    Math.add(random * standardDeviationWithDefault, meanWithDefault)
   }
 }
 
-private[api] object Random extends Random {
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("RandomShuffle")
-    GradientsRegistry.registerNonDifferentiable("RandomUniform")
-    GradientsRegistry.registerNonDifferentiable("RandomUniformInt")
-    GradientsRegistry.registerNonDifferentiable("RandomStandardNormal")
-  }
-
+object Random extends Random {
   /** @define OpDocRandomRandomShuffle
     *   The `randomShuffle` op randomly shuffles a tensor along its first axis.
     *

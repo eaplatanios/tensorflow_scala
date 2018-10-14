@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that applies dropout to the provided RNN cell.
   *
@@ -39,19 +39,17 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O, OS, S, SS](
+class DropoutWrapper[O, S](
     override val name: String,
-    val cell: RNNCell[O, OS, S, SS],
+    val cell: RNNCell[O, S],
     val inputKeepProbability: Float = 1.0f,
     val outputKeepProbability: Float = 1.0f,
     val stateKeepProbability: Float = 1.0f,
     val seed: Option[Int] = None
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS],
-    evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
-    evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+    override protected val evStructureO: NestedStructure[O],
+    override protected val evStructureS: NestedStructure[S]
+) extends RNNCell[O, S](name) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
   require(outputKeepProbability > 0.0 && outputKeepProbability <= 1.0,
@@ -61,7 +59,10 @@ class DropoutWrapper[O, OS, S, SS](
 
   override val layerType: String = "DropoutWrapper"
 
-  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+  override def createCellWithoutContext[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     mode match {
       case TRAINING =>
@@ -70,28 +71,25 @@ class DropoutWrapper[O, OS, S, SS](
           Basic.constant(inputKeepProbability, name = "InputKeepProbability"),
           Basic.constant(outputKeepProbability, name = "OutputKeepProbability"),
           Basic.constant(stateKeepProbability, name = "StateKeepProbability"), seed,
-          name)(evO, evS, evODropout, evSDropout)
+          name)
       case _ => createdCell
     }
   }
 }
 
 object DropoutWrapper {
-  def apply[O, OS, S, SS](
+  def apply[O, S](
       variableScope: String,
-      cell: RNNCell[O, OS, S, SS],
+      cell: RNNCell[O, S],
       inputKeepProbability: Float = 1.0f,
       outputKeepProbability: Float = 1.0f,
       stateKeepProbability: Float = 1.0f,
       seed: Option[Int] = None
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS],
-      evODropout: ops.rnn.cell.DropoutWrapper.Supported[O],
-      evSDropout: ops.rnn.cell.DropoutWrapper.Supported[S]
-  ): DropoutWrapper[O, OS, S, SS] = {
+      evStructureO: NestedStructure[O],
+      evStructureS: NestedStructure[S]
+  ): DropoutWrapper[O, S] = {
     new DropoutWrapper(
-      variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)(
-      evO, evS, evODropout, evSDropout)
+      variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)
   }
 }

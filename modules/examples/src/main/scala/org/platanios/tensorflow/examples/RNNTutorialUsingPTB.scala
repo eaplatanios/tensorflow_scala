@@ -35,18 +35,19 @@ object RNNTutorialUsingPTB {
   val numSteps    : Int = 20
   val prefetchSize: Int = 10
 
-  val dataType              : DataType = FLOAT32
-  val vocabularySize        : Int      = 10000
-  val numHidden             : Int      = 200
-  val numLayers             : Int      = 1
-  val dropoutKeepProbability: Float    = 0.5f
+  val vocabularySize        : Int             = 10000
+  val numHidden             : Int             = 200
+  val numLayers             : Int             = 1
+  val dropoutKeepProbability: Float           = 0.5f
 
-  object RNNOutputLayer extends tf.learn.Layer[LSTMTuple, Output]("RNNOutputLayer") {
+  object RNNOutputLayer extends tf.learn.Layer[LSTMTuple[Float], Output[Float]]("RNNOutputLayer") {
     override val layerType: String = "RNNOutputLayer"
 
-    override def forwardWithoutContext(input: LSTMTuple)(implicit mode: tf.learn.Mode): Output = {
-      val weights = tf.variable("OutputWeights", dataType, Shape(numHidden, vocabularySize))
-      val bias = tf.variable("OutputBias", dataType, Shape(vocabularySize))
+    override def forwardWithoutContext(
+        input: LSTMTuple[Float]
+    )(implicit mode: tf.learn.Mode): Output[Float] = {
+      val weights = tf.variable[Float]("OutputWeights", Shape(numHidden, vocabularySize))
+      val bias = tf.variable[Float]("OutputBias", Shape(vocabularySize))
       val output = tf.linear(tf.reshape(input.output, Shape(-1, numHidden)), weights.value, bias.value)
       // We reshape the output logits to feed into the sequence loss layer
       tf.reshape(output, Shape(batchSize, numSteps, vocabularySize))
@@ -58,26 +59,29 @@ object RNNTutorialUsingPTB {
     val trainInput = tf.learn.Input(INT32, Shape(-1, -1))
     // Slightly better results can be obtained with forget gate biases initialized to 1 but the hyper-parameters of the
     // model would need to be different than those reported in the paper.
-    val rnnCell = DropoutWrapper(
-      "DropoutCell", BasicLSTMCell("LSTMCell", numHidden, FLOAT32, forgetBias = 0.0f), 0.00001f)
+    val rnnCell = DropoutWrapper("DropoutCell", BasicLSTMCell[Float]("LSTMCell", numHidden, tf.tanh(_), forgetBias = 0.0f), 0.00001f)
     // TODO: Add multi-RNN cell.
     val rnn = RNN("RNN", rnnCell, timeMajor = false)
-    val layer = tf.learn.device("/device:CPU:0") {
-      tf.learn.Embedding("Embedding", vocabularySize, numHidden, dataType)
-    } >> tf.learn.Dropout("Embedding/Dropout", dropoutKeepProbability) >> rnn >> RNNOutputLayer
-    val loss = tf.learn.SequenceLoss("Loss/SequenceLoss", averageAcrossTimeSteps = false, averageAcrossBatch = true) >>
-        tf.learn.Sum("Loss/Sum") >>
-        tf.learn.ScalarSummary("Loss/Summary", "Loss")
+    val layer = tf.learn.Embedding[Float]("Embedding", vocabularySize, numHidden) >>
+        tf.learn.Dropout("Embedding/Dropout", dropoutKeepProbability) >>
+        rnn >>
+        RNNOutputLayer
+    val loss = tf.learn.SequenceLoss[Float, Int, Float](
+      name = "Loss/SequenceLoss",
+      loss = tf.sparseSoftmaxCrossEntropy[Float, Int](_, _),
+      averageAcrossTimeSteps = false,
+      averageAcrossBatch = true) >>
+        tf.learn.Sum[Float]("Loss/Sum") >>
+        tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
     val optimizer = tf.train.GradientDescent(1.0f)
     tf.learn.Model.supervised(input, layer, trainInput, loss, optimizer, tf.learn.ClipGradientsByGlobalNorm(5.0f))
   }
 
   def main(args: Array[String]): Unit = {
     val dataset = PTBLoader.load(Paths.get("datasets/PTB"))
-    val trainDataset =
-      PTBLoader.tokensToBatchedTFDataset(dataset.train, batchSize, numSteps, "TrainDataset")
-          .repeat()
-          .prefetch(prefetchSize)
+    val trainDataset = () => PTBLoader.tokensToBatchedTFDataset(dataset.train, batchSize, numSteps, "TrainDataset")
+        .repeat()
+        .prefetch(prefetchSize)
 
     val summariesDir = Paths.get("temp/rnn-ptb")
     val estimator = tf.learn.InMemoryEstimator(
@@ -90,6 +94,6 @@ object RNNTutorialUsingPTB {
         tf.learn.SummarySaver(summariesDir, tf.learn.StepHookTrigger(10)),
         tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(() => trainDataset, tf.learn.StopCriteria(maxSteps = Some(10000)))
+    estimator.train(trainDataset, tf.learn.StopCriteria(maxSteps = Some(10000)))
   }
 }

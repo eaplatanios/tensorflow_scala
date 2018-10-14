@@ -16,22 +16,23 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, IsNumeric, TF}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, RandomNormalInitializer}
-import org.platanios.tensorflow.api.types.DataType
 
 /**
   * @author Emmanouil Antonios Platanios
   */
 object Math {
   private[layers] trait API {
-    type Cast = layers.Cast
-    type AddN = layers.AddN
-    type Sum = layers.Sum
-    type Mean = layers.Mean
-    type AddBias = layers.AddBias
-    type Linear = layers.Linear
+    type Cast[From, To] = layers.Cast[From, To]
+    type AddN[T] = layers.AddN[T]
+    type Sum[T] = layers.Sum[T]
+    type Mean[T] = layers.Mean[T]
+    type AddBias[T] = layers.AddBias[T]
+    type Linear[T] = layers.Linear[T]
 
     val Cast   : layers.Cast.type    = layers.Cast
     val AddN   : layers.AddN.type    = layers.AddN
@@ -44,73 +45,87 @@ object Math {
   object API extends API
 }
 
-case class Cast(override val name: String, dataType: DataType)
-    extends Layer[Output, Output](name) {
-  override val layerType: String = s"Cast[$dataType]"
+case class Cast[From, To: TF](
+    override val name: String
+) extends Layer[Output[From], Output[To]](name) {
+  override val layerType: String = s"Cast[${TF[To].dataType}]"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    ops.Cast.cast(input, dataType, name = name)
+  override def forwardWithoutContext(
+      input: Output[From]
+  )(implicit mode: Mode): Output[To] = {
+    Op.nameScope(name) {
+      input.castTo[To]
+    }
   }
 }
 
-case class AddN(override val name: String)
-    extends Layer[Seq[Output], Output](name) {
+case class AddN[T: TF : IsNumeric](
+    override val name: String
+) extends Layer[Seq[Output[T]], Output[T]](name) {
   override val layerType: String = "AddN"
 
-  override def forwardWithoutContext(input: Seq[Output])(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(
+      input: Seq[Output[T]]
+  )(implicit mode: Mode): Output[T] = {
     ops.Math.addN(input, name = name)
   }
 }
 
-case class Sum(override val name: String, axes: Seq[Int] = Seq.empty, keepDims: Boolean = false)
-    extends Layer[Output, Output](name) {
+case class Sum[T: TF : IsNumeric](
+    override val name: String,
+    axes: Seq[Int] = null,
+    keepDims: Boolean = false
+) extends Layer[Output[T], Output[T]](name) {
   override val layerType: String = "Sum"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    if (axes.isEmpty)
-      ops.Math.sum(input, keepDims = keepDims, name = name)
-    else
-      ops.Math.sum(input, axes, keepDims = keepDims, name = name)
+  override def forwardWithoutContext(
+      input: Output[T]
+  )(implicit mode: Mode): Output[T] = {
+    ops.Math.sum[T, Int](input, axes, keepDims = keepDims, name = name)
   }
 }
 
-case class Mean(override val name: String, axes: Seq[Int] = Seq.empty, keepDims: Boolean = false)
-    extends Layer[Output, Output](name) {
+case class Mean[T: TF : IsNotQuantized](
+    override val name: String,
+    axes: Seq[Int] = null,
+    keepDims: Boolean = false
+) extends Layer[Output[T], Output[T]](name) {
   override val layerType: String = "Mean"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    if (axes.isEmpty)
-      ops.Math.mean(input, keepDims = keepDims, name = name)
-    else
-      ops.Math.mean(input, axes, keepDims = keepDims, name = name)
+  override def forwardWithoutContext(
+      input: Output[T]
+  )(implicit mode: Mode): Output[T] = {
+    ops.Math.mean[T, Int](input, axes, keepDims = keepDims, name = name)
   }
 }
 
-case class AddBias(
+case class AddBias[T: TF : IsNumeric](
     override val name: String,
     initializer: Initializer = RandomNormalInitializer()
-) extends Layer[Output, Output](name) {
+) extends Layer[Output[T], Output[T]](name) {
   override val layerType: String = "AddBias"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    val bias = getParameter(s"$name/Bias", input.dataType, Shape(input.shape(-1)), initializer)
+  override def forwardWithoutContext(
+      input: Output[T]
+  )(implicit mode: Mode): Output[T] = {
+    val bias = getParameter[T](s"$name/Bias", Shape(input.shape(-1)), initializer)
     ops.NN.addBias(input, bias)
   }
 }
 
-case class Linear(
+case class Linear[T: TF : IsNotQuantized](
     override val name: String,
     units: Int,
     useBias: Boolean = true,
     weightsInitializer: Initializer = RandomNormalInitializer(),
     biasInitializer: Initializer = RandomNormalInitializer()
-) extends Layer[Output, Output](name) {
+) extends Layer[Output[T], Output[T]](name) {
   override val layerType: String = s"Linear[$units]"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
-    val weights = getParameter("Weights", input.dataType, Shape(input.shape(-1), units), weightsInitializer)
+  override def forwardWithoutContext(input: Output[T])(implicit mode: Mode): Output[T] = {
+    val weights = getParameter[T]("Weights", Shape(input.shape(-1), units), weightsInitializer)
     if (useBias)
-      ops.NN.linear(input, weights, getParameter("Bias", input.dataType, Shape(units), biasInitializer))
+      ops.NN.linear(input, weights, getParameter[T]("Bias", Shape(units), biasInitializer))
     else
       ops.NN.linear(input, weights)
   }

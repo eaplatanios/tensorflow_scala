@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
 
 /** RNN cell that ensures another RNN cell runs on a specific device.
   *
@@ -29,18 +29,21 @@ import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
   *
   * @author Emmanouil Antonios Platanios
   */
-class DeviceWrapper[O, OS, S, SS](
+class DeviceWrapper[O, S](
     override val name: String,
-    val cell: RNNCell[O, OS, S, SS],
+    val cell: RNNCell[O, S],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
 )(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
-) extends RNNCell[O, OS, S, SS](name)(evO, evS) {
+    override protected val evStructureO: NestedStructure[O],
+    override protected val evStructureS: NestedStructure[S]
+) extends RNNCell[O, S](name) {
   override val layerType: String = "DeviceWrapper"
 
-  override def createCellWithoutContext(mode: Mode, inputShape: OS): ops.rnn.cell.RNNCell[O, OS, S, SS] = {
+  override def createCellWithoutContext[OV, OD, OS](
+      mode: Mode,
+      inputShape: OS
+  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
     Op.createWith(device = device, deviceFunction = deviceFunction) {
       ops.rnn.cell.DeviceWrapper(cell.createCellWithoutContext(mode, inputShape), device, deviceFunction)
     }
@@ -48,15 +51,15 @@ class DeviceWrapper[O, OS, S, SS](
 }
 
 object DeviceWrapper {
-  def apply[O, OS, S, SS](
+  def apply[O, S](
       variableScope: String,
-      cell: RNNCell[O, OS, S, SS],
+      cell: RNNCell[O, S],
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
-  ): DeviceWrapper[O, OS, S, SS] = {
-    new DeviceWrapper(variableScope, cell, device, deviceFunction)(evO, evS)
+      evStructureO: NestedStructure[O],
+      evStructureS: NestedStructure[S]
+  ): DeviceWrapper[O, S] = {
+    new DeviceWrapper(variableScope, cell, device, deviceFunction)
   }
 }

@@ -15,10 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output}
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Cycle-linear 10x decay method.
   *
@@ -41,7 +42,7 @@ class CycleLinear10xDecay protected (
     val cycleSteps: Int,
     val startStep: Long = 0L,
     val name: String = "CycleLinear10xDecay"
-) extends Schedule {
+) extends Schedule[Float] {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -51,16 +52,19 @@ class CycleLinear10xDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply(value: Output, step: Option[Variable]): Output = {
+  override def apply[I: TF : IsInt32OrInt64](
+      value: Output[Float],
+      step: Option[Variable[I]]
+  ): Output[Float] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for cycle-linear 10x decay.")
-    Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Cast.cast(step.get.value, value.dataType)
-      val cycleStepsValue = Basic.constant(cycleSteps, value.dataType)
+    Op.nameScope(name) {
+      val stepValue = step.get.value.castTo[Float]
+      val cycleStepsValue = Basic.constant(cycleSteps).castTo[Float]
       if (startStep == 0L) {
         decay(value, stepValue, cycleStepsValue)
       } else {
-        val startStepValue = Basic.constant(startStep, value.dataType)
+        val startStepValue = Basic.constant(startStep).castTo[Float]
         ControlFlow.cond(
           stepValue < startStepValue,
           () => value,
@@ -69,9 +73,13 @@ class CycleLinear10xDecay protected (
     }
   }
 
-  private[this] def decay(initialValue: Output, step: Output, cycleSteps: Output): Output = {
+  private def decay(
+      initialValue: Output[Float],
+      step: Output[Float],
+      cycleSteps: Output[Float]
+  ): Output[Float] = {
     // Cycle the rate linearly by 10x every `cycleSteps`, up and down.
-    val cyclePosition = 1.0f - Math.abs(((step % (2 * cycleSteps)) - cycleSteps).cast(FLOAT32) / cycleSteps)
+    val cyclePosition = 1.0f - Math.abs(((step % (2 * cycleSteps)) - cycleSteps).castTo[Float] / cycleSteps)
     (0.1f + cyclePosition) * 3.0f // 10x difference in each cycle (0.3 - 3).
   }
 }

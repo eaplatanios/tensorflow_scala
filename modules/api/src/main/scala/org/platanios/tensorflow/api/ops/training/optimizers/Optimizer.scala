@@ -16,13 +16,14 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.core.types._
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer._
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, Initializer, Variable, VariableScope}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, FLOAT64, RESOURCE}
+import org.platanios.tensorflow.api.utilities.DefaultsTo.{AnyDefault, LongDefault}
 
 import scala.collection.mutable
 
@@ -41,15 +42,21 @@ trait Optimizer {
 
   // TODO: [OPTIMIZER] Slot variables make re-using optimizer objects a bit dirty.
 
-  /** Some [[Optimizer]] subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
+  /** Some optimizer subclasses use additional variables. For example, `MomentumOptimizer` and `AdaGradOptimizer`
     * use variables to accumulate updates. This map is where these variables are stored. */
-  protected final val slots = mutable.Map.empty[String, mutable.Map[Variable, Variable]]
+  protected final val slots: mutable.Map[String, mutable.Map[Variable[Any], Variable[Any]]] = {
+    mutable.Map.empty
+  }
 
   /** Returns the names of all slots used by this optimizer. */
-  protected final def slotNames: Set[String] = slots.keySet.toSet
+  protected final def slotNames: Set[String] = {
+    slots.keySet.toSet
+  }
 
   /** Contains variables used by some optimizers that require no slots to be stored. */
-  protected final val nonSlotVariables = mutable.Map.empty[(String, Option[Graph]), Variable]
+  protected final val nonSlotVariables: mutable.Map[(String, Option[Graph]), Variable[Any]] = {
+    mutable.Map.empty
+  }
 
   /** Creates an op that makes a step towards minimizing `loss` by updating the values of the variables in `variables`.
     *
@@ -69,18 +76,20 @@ trait Optimizer {
     * @param  name                       Name for the created op.
     * @return Created op.
     */
-  final def minimize(
-      loss: Output,
-      lossGradients: Seq[OutputLike] = null,
-      variables: Set[Variable] = null,
+  @throws[IllegalArgumentException]
+  def minimize[T: TF : IsFloat32OrFloat64, I: LongDefault : TF : IsInt32OrInt64](
+      loss: Output[T],
+      lossGradients: Seq[OutputLike[T]] = null,
+      variables: Set[Variable[Any]] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
       colocateGradientsWithOps: Boolean = false,
-      iteration: Option[Variable] = None,
+      iteration: Option[Variable[I]] = None,
       name: String = "Minimize"
-  ): Op = {
+  ): UntypedOp = {
     val gradientsAndVariables = computeGradients(
-      loss, lossGradients, variables, gradientsGatingMethod, gradientsAggregationMethod, colocateGradientsWithOps)
+      loss, lossGradients, variables, gradientsGatingMethod,
+      gradientsAggregationMethod, colocateGradientsWithOps)
     applyGradients(gradientsAndVariables, iteration, name)
   }
 
@@ -96,45 +105,53 @@ trait Optimizer {
     * @param  colocateGradientsWithOps   Boolean value indicating whether to colocate the gradient ops with the original
     *                                    ops.
     * @return Sequence of gradient-variable pairs.
+    * @throws IllegalArgumentException If there are no variables to optimize.
     */
-  def computeGradients(
-      loss: Output,
-      lossGradients: Seq[OutputLike] = null,
-      variables: Set[Variable] = null,
+  @throws[IllegalArgumentException]
+  def computeGradients[T: TF : IsFloat32OrFloat64](
+      loss: Output[T],
+      lossGradients: Seq[OutputLike[T]] = null,
+      variables: Set[Variable[Any]] = null,
       gradientsGatingMethod: Gradients.GatingMethod = Gradients.OpGating,
       gradientsAggregationMethod: Gradients.AggregationMethod = Gradients.AddAggregationMethod,
       colocateGradientsWithOps: Boolean = false
-  ): Seq[(OutputLike, Variable)] = {
-    assertSupportedDataTypes(Iterable[OutputLike](loss))
-    if (lossGradients != null)
-      assertSupportedDataTypes(lossGradients)
+  ): Seq[(OutputLike[T], Variable[Any])] = {
     // TODO: [VARIABLES] Settle on what keys to use for variables.
-    val collectedVariables: Seq[Variable] = {
+    val collectedVariables: Seq[Variable[Any]] = {
       {
-        if (variables == null) loss.graph.trainableVariables else variables
+        if (variables == null)
+          loss.graph.trainableVariables
+        else
+          variables
       } ++ loss.graph.getCollection(Graph.Keys.STREAMING_MODEL_PORTS)
     }.toSeq
     if (collectedVariables.isEmpty)
       throw new IllegalArgumentException("There are no variables to optimize.")
-    val variableProcessors: Seq[VariableProcessor] = collectedVariables.map(getVariableProcessor)
-    val variableTargets: Seq[Output] = variableProcessors.map(_.target)
-    val gradients: Seq[OutputLike] = {
+
+    // TODO: [TYPES] !!! Super hacky. Remove in the future.
+    implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
+
+    val variableProcessors = collectedVariables.map(v => {
+      getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
+    })
+    val variableTargets = variableProcessors.map(_.target)
+    val gradients = {
+      // TODO: [TYPES] !!! What if the variable targets have different data types?
       val gradients = Gradients.gradients(
-        ys = Seq[Output](loss),
+        ys = Seq(loss),
         xs = variableTargets,
+        dataType = TF[T].dataType,
         dys = lossGradients,
         gateGradients = gradientsGatingMethod == Gradients.OpGating,
         aggregationMethod = gradientsAggregationMethod,
         colocateGradientsWithOps = colocateGradientsWithOps)
-      if (gradientsGatingMethod == Gradients.GraphGating)
-        ControlFlow.tuple(gradients.toArray).toSeq
-      else
+      if (gradientsGatingMethod == Gradients.GraphGating) {
+        ControlFlow.tuple(gradients)
+      } else {
         gradients
+      }
     }
-    val gradientsAndVariables: Seq[(OutputLike, Variable)] = gradients.zip(collectedVariables)
-    assertSupportedDataTypes(
-      gradientsAndVariables.filter(p => (p._1 != null) && p._2.dataType != RESOURCE).map(_._2.value))
-    gradientsAndVariables
+    gradients.zip(collectedVariables)
   }
 
   /** Creates an op that applies the provided gradients to the provided variables.
@@ -144,21 +161,24 @@ trait Optimizer {
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  def applyGradients(
-      gradientsAndVariables: Seq[(OutputLike, Variable)],
-      iteration: Option[Variable] = None,
+  @throws[IllegalArgumentException]
+  def applyGradients[T: TF, I: LongDefault : TF : IsInt32OrInt64](
+      gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
+      iteration: Option[Variable[I]] = None,
       name: String = this.name
-  ): Op = {
+  ): UntypedOp = {
     // This is a default implementation of `applyGradients` that is shared by most optimizers. It relies on the subclass
     // implementing the following methods: `createSlots`, `prepare`, `finish`, `applyDense`, and `applySparse`.
-    val variables: Seq[Variable] = gradientsAndVariables.filter(_._1 != null).map(_._2)
-    if (variables.isEmpty)
+    val variables: Seq[Variable[Any]] = gradientsAndVariables.filter(_._1 != null).map(_._2)
+    if (variables.isEmpty) {
       throw new IllegalArgumentException(
-        s"No gradients were provided for any of the variables: ${gradientsAndVariables.map(_._2).mkString(", ")}.")
+        "No gradients were provided for any of the variables: " +
+            s"${gradientsAndVariables.map(_._2).mkString(", ")}.")
+    }
 
-    Op.createWithNameScope(name) {
+    Op.nameScope(name) {
       // Create the slots needed by the variables.
-      Op.initialization {
+      Op.initializationScope {
         VariableScope.scope(name) {
           createSlots(variables)
         }
@@ -167,12 +187,17 @@ trait Optimizer {
       prepare(iteration)
 
       // Collect the update ops for all variables.
-      val updateOps = mutable.Set.empty[Op]
-      for ((g, v, p) <- gradientsAndVariables.map(p => (p._1, p._2, getVariableProcessor(p._2))).filter(_._1 != null)) {
+      val updateOps = mutable.Set.empty[UntypedOp]
+      for ((g, v) <- gradientsAndVariables if g != null) {
+
+        // TODO: [TYPES] !!! Super hacky. Remove in the future.
+        implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
+
+        val p = getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"Update/${v.op.name}") {
           Op.colocateWith(Set(v.op), ignoreExisting = true) {
-            updateOps.add(p.updateOp(this, g, iteration))
+            updateOps.add(p.updateOp(this, g.castTo(v.dataType), iteration))
           }
         }
       }
@@ -180,48 +205,36 @@ trait Optimizer {
       // Create the op that applies the gradient updates to all variables.
       val applyUpdates = {
         iteration match {
-          case Some(i) => Op.createWith(controlDependencies = Set(finish(updateOps.toSet, "Finish"))) {
-            Op.colocateWith(Set(i.op), ignoreExisting = true) {
-              // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
-              Variable.assignAdd(i.handle, Basic.constant(1, dataType = i.dataType), name)
+          case Some(i) =>
+            val finishOp = finish(updateOps.toSet, "Finish")
+            Op.createWith(controlDependencies = Set(finishOp)) {
+              Op.colocateWith(Set(i.op), ignoreExisting = true) {
+                // The implicit read in the default assign add operation in `Variable` is slow and so we avoid that here.
+                Variable.assignAdd(i.handle, Basic.ones[I](Shape()), name)
+              }
             }
-          }
-          case None => finish(updateOps.toSet, "Finish")
+          case None =>
+            finish(updateOps.toSet, "Finish")
         }
       }
 
       // Add the created op to the graph train ops collection.
-      updateOps.head.graph.addToCollection(applyUpdates, Graph.Keys.TRAIN_OP)
+      updateOps.head.graph.addToCollection(Graph.Keys.TRAIN_OP)(applyUpdates)
 
       applyUpdates
     }
   }
 
-  /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
-    * field allow other float types. */
-  val supportedDataTypes: Set[DataType] = Set[DataType](FLOAT32, FLOAT64)
-
-  /** Asserts that the provided `outputs` all have data types that are supported by this optimizer.
-    *
-    * @param  outputs Outputs whose data types to check.
-    * @throws InvalidDataTypeException If any of the provided outputs has an unsupported data type.
-    */
-  @throws[InvalidDataTypeException]
-  private[this] def assertSupportedDataTypes(outputs: Iterable[OutputLike]): Unit = {
-    outputs.foreach(output => {
-      if (!supportedDataTypes.contains(output.dataType))
-        throw InvalidDataTypeException(s"Data type '${output.dataType}' is not supported by this optimizer.")
-    })
-  }
-
   /** Create all slots needed by this optimizer. */
-  def createSlots(variables: Seq[Variable]): Unit = {
+  def createSlots(variables: Seq[Variable[Any]]): Unit = {
     // No slots are created by default.
   }
 
   /** Creates all necessary tensors before applying the gradients. This function is called from within an op creation
     * context that uses as its name scope the name that users have chosen for the application of gradients. */
-  def prepare(iteration: Option[Variable]): Unit = {}
+  def prepare[I: TF : IsInt32OrInt64](iteration: Option[Variable[I]]): Unit = {
+    // No preparation is done by default.
+  }
 
   /** Creates an op that finishes the gradients application. This function is called from within an op creation context
     * that uses as its name scope the name that users have chosen for the application of gradients.
@@ -230,7 +243,10 @@ trait Optimizer {
     * @param  nameScope Name scope to use for all the ops created by this function.
     * @return Created op output.
     */
-  def finish(updateOps: Set[Op], nameScope: String): Op = {
+  def finish(
+      updateOps: Set[UntypedOp],
+      nameScope: String
+  ): UntypedOp = {
     ControlFlow.group(updateOps, nameScope)
   }
 
@@ -241,7 +257,11 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op
+  def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: Output[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp
 
   /** Applies the updates corresponding to the provided gradient, to the provided variable.
     *
@@ -255,7 +275,11 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op
+  def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp
 
   /** Applies the updates corresponding to the provided gradient (with potentially duplicate indices), to the provided
     * variable.
@@ -277,11 +301,11 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparseDuplicateIndices(
-      gradient: OutputIndexedSlices,
-      variable: Variable,
-      iteration: Option[Variable]
-  ): Op = {
+  def applySparseDuplicateIndices[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
     if (ignoreDuplicateSparseIndices)
       applySparse(gradient, variable, iteration)
     else
@@ -294,30 +318,32 @@ trait Optimizer {
     * @param  name Slot name.
     * @return Map used for caching slots created under the provided name.
     */
-  private[this] def slotMap(name: String): mutable.Map[Variable, Variable] = {
-    slots.getOrElseUpdate(name, mutable.Map.empty[Variable, Variable])
+  private def slotMap(name: String): mutable.Map[Variable[Any], Variable[Any]] = {
+    slots.getOrElseUpdate(name, mutable.Map.empty[Variable[Any], Variable[Any]])
   }
 
   /** Gets an existing slot or creates a new one if none exists, for the provided arguments.
     *
     * @param  name          Slot name.
     * @param  variable      Slot primary variable.
+    * @param  dataType      Slot variable data type.
     * @param  initializer   Slot variable initializer.
     * @param  shape         Slot variable shape.
-    * @param  dataType      Slot variable data type.
     * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
     * @return Requested slot variable.
     */
-  protected final def getSlot(
+  protected final def getSlot[T: TF, R: TF](
       name: String,
-      variable: Variable,
+      variable: Variable[T],
+      dataType: DataType[R],
       initializer: Initializer,
       shape: Shape,
-      dataType: DataType,
       variableScope: String
-  ): Variable = {
+  ): Variable[R] = {
     Op.colocateWith(Set(variable.op), ignoreExisting = true) {
-      slotMap(name).getOrElseUpdate(variable, Slot.create(variable, initializer, variableScope, dataType, shape))
+      slotMap(name).getOrElseUpdate(variable, {
+        Slot.create(variable, dataType, initializer, variableScope, shape)
+      }).asInstanceOf[Variable[R]]
     }
   }
 
@@ -327,8 +353,13 @@ trait Optimizer {
     * @param  variable Slot primary variable.
     * @return Requested slot variable, or `null` if it cannot be found.
     */
-  protected final def getSlot(name: String, variable: Variable): Variable = {
-    slots.getOrElse(name, Map.empty[Variable, Variable]).getOrElse(variable, null)
+  protected final def getSlot[T: TF, R: TF](
+      name: String,
+      variable: Variable[T]
+  ): Variable[R] = {
+    slots.getOrElse(name, Map.empty[Variable[Any], Variable[Any]])
+        .getOrElse(variable, null)
+        .asInstanceOf[Variable[R]]
   }
 
   /** Gets an existing slot or creates a new one using an initial value of zeros, if none exists.
@@ -338,9 +369,15 @@ trait Optimizer {
     * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
     * @return Requested slot variable.
     */
-  protected final def zerosSlot(name: String, variable: Variable, variableScope: String): Variable = {
+  protected final def zerosSlot[T: TF](
+      name: String,
+      variable: Variable[T],
+      variableScope: String
+  ): Variable[T] = {
     Op.colocateWith(Set(variable.op), ignoreExisting = true) {
-      slotMap(name).getOrElseUpdate(variable, Slot.zeros(variable, s"$variableScope/$name"))
+      slotMap(name).getOrElseUpdate(variable, {
+        Slot.zeros(variable, variable.dataType, s"$variableScope/$name")
+      }).asInstanceOf[Variable[T]]
     }
   }
 
@@ -351,17 +388,18 @@ trait Optimizer {
     * @param  colocationOps Set of colocation ops for the non-slot variable.
     * @return Created non-slot variable.
     */
-  protected final def getOrCreateNonSlotVariable(
+  protected final def getOrCreateNonSlotVariable[T: TF](
       name: String,
-      initialValue: Tensor[_ <: DataType],
-      colocationOps: Set[Op] = Set.empty,
+      initialValue: Tensor[T],
+      colocationOps: Set[UntypedOp] = Set.empty,
       ignoreExisting: Boolean = false
-  ): Variable = {
+  ): Variable[T] = {
     nonSlotVariables.getOrElseUpdate(
       (name, colocationOps.map(_.graph).headOption),
       Op.colocateWith(colocationOps, ignoreExisting) {
-        Variable.getVariable(name, initializer = ConstantInitializer(initialValue), trainable = false)
-      })
+        Variable.getVariable[T](
+          name, initialValue.shape, initializer = ConstantInitializer(initialValue), trainable = false)
+      }).asInstanceOf[Variable[T]]
   }
 
   /** Gets a non-slot variable that has been added to this optimizer (or throws an error if no such non-slot variable
@@ -371,47 +409,71 @@ trait Optimizer {
     * @param  graph Graph in which the variable is defined.
     * @return Obtained non-slot variable.
     */
-  protected final def getNonSlotVariable(name: String, graph: Graph = null): Variable = {
-    nonSlotVariables((name, Option(graph)))
+  protected final def getNonSlotVariable[T: TF](
+      name: String,
+      graph: Graph = null
+  ): Variable[T] = {
+    nonSlotVariables((name, Option(graph))).asInstanceOf[Variable[T]]
   }
 
   /** Gets all the non-slot variables that have been added to this optimizer. */
-  protected final def getNonSlotVariables: Iterable[Variable] = nonSlotVariables.values
+  protected final def getNonSlotVariables: Iterable[Variable[Any]] = {
+    nonSlotVariables.values
+  }
 
   /** Returns a sequence of variables which encode the current state of this optimizer. The returned variables include
     * both slot variables and non-slot global variables created by this optimizer, in the current graph. */
-  final def variables: Seq[Variable] = {
-    (getNonSlotVariables.filter(_.graph == Op.currentGraph) ++ slots.values.flatMap(_.values))
-        .toSeq.sortBy(_.name)
+  final def state: Seq[Variable[Any]] = {
+    (getNonSlotVariables.filter(_.graph == Op.currentGraph) ++
+        slots.values.flatMap(_.values)).toSeq.sortBy(_.name)
   }
 }
 
 private[optimizers] object Optimizer {
   /** Gets the appropriate variable processor to use for `variable`. */
-  private[optimizers] def getVariableProcessor(variable: Variable): VariableProcessor = variable match {
-    // TODO: [VARIABLES] This is dummy for now.
-    case v if v.op.opType == "VarHandleOp" => ResourceVariableProcessor(v)
-    case v if v.op.opType == "SubmodelPort" => StreamingModelPortProcessor(v)
-    case _ => throw new IllegalArgumentException(s"Unsupported variable op type '${variable.op.opType}'.")
+  private[optimizers] def getVariableProcessor[T: TF : IsFloat32OrFloat64](
+      variable: Variable[T]
+  ): VariableProcessor[T] = {
+    variable match {
+      // TODO: [VARIABLES] This is dummy for now.
+      case v if v.op.opType == "VarHandleOp" =>
+        ResourceVariableProcessor(v)
+      case v if v.op.opType == "SubmodelPort" =>
+        StreamingModelPortProcessor(v)
+      case _ => throw new IllegalArgumentException(
+        s"Unsupported variable op type '${variable.op.opType}'.")
+    }
   }
 
   /** Trait for abstracting over variables in the optimizers. */
-  private[Optimizer] sealed trait VariableProcessor {
+  private[Optimizer] sealed trait VariableProcessor[T] {
     /** Returns the optimization target for this variable. */
-    def target: Output
+    def target: Output[Resource]
 
     /** Returns the update ops for updating this variable using the gradient provided by `gradient`. */
-    def updateOp(optimizer: Optimizer, gradient: OutputLike, iteration: Option[Variable]): Op
+    def updateOp[I: TF : IsInt32OrInt64](
+        optimizer: Optimizer,
+        gradient: OutputLike[T],
+        iteration: Option[Variable[I]]
+    ): UntypedOp
   }
 
   /** Variable processor for resource-based variables. */
-  private[Optimizer] case class ResourceVariableProcessor(variable: Variable) extends VariableProcessor {
-    override def target: Output = variable.handle
+  private[Optimizer] case class ResourceVariableProcessor[T: TF : IsFloat32OrFloat64](
+      variable: Variable[T]
+  ) extends VariableProcessor[T] {
+    override def target: Output[Resource] = {
+      variable.handle
+    }
 
-    override def updateOp(optimizer: Optimizer, gradient: OutputLike, iteration: Option[Variable]): Op = {
+    override def updateOp[I: TF : IsInt32OrInt64](
+        optimizer: Optimizer,
+        gradient: OutputLike[T],
+        iteration: Option[Variable[I]]
+    ): UntypedOp = {
       gradient match {
-        case g: Output => optimizer.applyDense(g, variable, iteration)
-        case g: OutputIndexedSlices => optimizer.applySparseDuplicateIndices(g, variable, iteration)
+        case g: Output[T] => optimizer.applyDense(g, variable, iteration)
+        case g: OutputIndexedSlices[T] => optimizer.applySparseDuplicateIndices(g, variable, iteration)
         case _ => throw new IllegalArgumentException(
           "Unsupported gradient type. Currently only 'Output' and 'OutputIndexedSlices' are supported.")
       }
@@ -419,11 +481,21 @@ private[optimizers] object Optimizer {
   }
 
   /** Variable processor for streaming model ports. */
-  private[Optimizer] case class StreamingModelPortProcessor(variable: Variable) extends VariableProcessor {
+  private[Optimizer] case class StreamingModelPortProcessor[T: TF](
+      variable: Variable[T]
+  ) extends VariableProcessor[T] {
     // TODO: [VARIABLES] This is probably wrong.
-    override def target: Output = variable.handle
+    override def target: Output[Resource] = {
+      variable.handle
+    }
 
-    override def updateOp(optimizer: Optimizer, gradient: OutputLike, iteration: Option[Variable]): Op = gradient.op
+    override def updateOp[I: TF : IsInt32OrInt64](
+        optimizer: Optimizer,
+        gradient: OutputLike[T],
+        iteration: Option[Variable[I]]
+    ): UntypedOp = {
+      gradient.op
+    }
   }
 
   /** Sums the values of the provided indexed slices associated with any non-unique indices and returns the resulting
@@ -432,9 +504,17 @@ private[optimizers] object Optimizer {
     * @param  input Indexed slices with potentially duplicate indices.
     * @return Indexed slices with de-duplicated indices and summed values slices associated with each unique index.
     */
-  private[Optimizer] def deDuplicateOutputIndexedSlices(input: OutputIndexedSlices): OutputIndexedSlices = {
-    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0))
-    val summedValues = Math.unsortedSegmentSum(input.values, newIndexPositions, Basic.shape(uniqueIndices)(0))
-    OutputIndexedSlices(indices = uniqueIndices, values = summedValues, denseShape = input.denseShape)
+  private[Optimizer] def deDuplicateOutputIndexedSlices[T: TF : IsNumeric](
+      input: OutputIndexedSlices[T]
+  ): OutputIndexedSlices[T] = {
+    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0), indicesDataType = Int)
+    val summedValues = Math.unsortedSegmentSum(
+      data = input.values,
+      segmentIndices = newIndexPositions,
+      segmentsNumber = Basic.shape(uniqueIndices).castTo[Int].slice(0))
+    OutputIndexedSlices(
+      indices = uniqueIndices,
+      values = summedValues,
+      denseShape = input.denseShape)
   }
 }

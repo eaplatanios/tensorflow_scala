@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Map metric wrapper.
   *
@@ -37,7 +36,7 @@ class MapMetric[S, T, R](
   override def name: String = metric.name
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  override def weights: Option[Tensor[FLOAT32]] = metric.weights
+  override def weights: Option[Tensor[Float]] = metric.weights
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
@@ -48,7 +47,7 @@ class MapMetric[S, T, R](
     */
   override def compute(
       values: S,
-      weights: Option[Output] = None,
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Compute"
   ): R = {
     metric.compute(mapFn(values), weights, name)
@@ -65,7 +64,7 @@ class MapMetric[S, T, R](
     */
   override def streaming(
       values: S,
-      weights: Option[Output] = None,
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Streaming"
   ): Metric.StreamingInstance[R] = {
     metric.streaming(mapFn(values), weights, name)

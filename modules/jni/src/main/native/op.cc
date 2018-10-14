@@ -546,6 +546,7 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrTensor
   TF_Tensor* value;
   TF_OperationGetAttrTensor(op, attr_name_string, &value, status.get());
   CHECK_STATUS(env, status.get(), 0);
+  env->ReleaseStringUTFChars(attr_name, attr_name_string);
   return reinterpret_cast<jlong>(value);
 }
 
@@ -577,6 +578,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrS
   std::unique_ptr<int64_t[]> cdims(new int64_t[num_dims]);
   TF_OperationGetAttrShape(op, attr_name_string, cdims.get(), num_dims, status.get());
   CHECK_STATUS(env, status.get(), nullptr);
+  env->ReleaseStringUTFChars(attr_name, attr_name_string);
 
   jlongArray return_array = env->NewLongArray(num_dims);
   jlong *dims = env->GetLongArrayElements(return_array, nullptr);
@@ -594,6 +596,37 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps(
   jbyteArray ret = env->NewByteArray(op_list_buffer->length);
   jbyte* cpy = env->GetByteArrayElements(ret, nullptr);
   std::memcpy(cpy, op_list_buffer->data, op_list_buffer->length);
+  env->ReleaseByteArrayElements(ret, cpy, 0);
+  return ret;
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allRegisteredKernels(
+  JNIEnv* env,
+  jobject object
+) {
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_Buffer* kernel_list_buffer = TF_GetAllRegisteredKernels(status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+  jbyteArray ret = env->NewByteArray(kernel_list_buffer->length);
+  jbyte* cpy = env->GetByteArrayElements(ret, nullptr);
+  std::memcpy(cpy, kernel_list_buffer->data, kernel_list_buffer->length);
+  env->ReleaseByteArrayElements(ret, cpy, 0);
+  return ret;
+}
+
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_registeredKernelsForOp(
+  JNIEnv* env,
+  jobject object,
+  jstring op_name
+) {
+  const char *c_op_name = env->GetStringUTFChars(op_name, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+  TF_Buffer* kernel_list_buffer = TF_GetRegisteredKernelsForOp(c_op_name, status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+  env->ReleaseStringUTFChars(op_name, c_op_name);
+  jbyteArray ret = env->NewByteArray(kernel_list_buffer->length);
+  jbyte* cpy = env->GetByteArrayElements(ret, nullptr);
+  std::memcpy(cpy, kernel_list_buffer->data, kernel_list_buffer->length);
   env->ReleaseByteArrayElements(ret, cpy, 0);
   return ret;
 }

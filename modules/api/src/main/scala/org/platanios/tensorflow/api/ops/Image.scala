@@ -15,13 +15,18 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.core.types._
+import org.platanios.tensorflow.api.ops.Image._
 
 /** Contains functions for constructing ops related to processing image data.
   *
   * @author Emmanouil Antonios Platanios, Sören Brunk
   */
-private[ops] trait Image {
+trait Image {
+  // TODO: [OPS] Add missing ops.
+  // TODO: [OPS] Add implicits.
+  // TODO: [GRADIENTS] Add gradients.
+
   /** $OpDocImageExtractImagePatches
     *
     * @group ImageOps
@@ -37,44 +42,27 @@ private[ops] trait Image {
     * @return Created op output, which is a `4`-dimensional tensor with shape
     *         `[batch, outputRows, outputCols, slidingWindowSizes(1) * slidingWindowSizes(2) * depth]`.
     */
-  def extractImagePatches(
-      images: Output,
+  def extractImagePatches[T: TF : IsReal](
+      images: Output[T],
       slidingWindowSizes: Seq[Int],
       strides: Seq[Int],
       rates: Seq[Int],
       name: String = "ExtractImagePatches"
-  ): Output = {
-    Op.Builder(opType = "ExtractImagePatches", name = name)
-        .addInput(images)
-        .setAttribute("ksizes", slidingWindowSizes.map(_.toLong).toArray)
+  ): Output[T] = {
+    Op.Builder[Output[T], Output[T]](
+      opType = "ExtractImagePatches",
+      name = name,
+      input = images
+    ).setAttribute("ksizes", slidingWindowSizes.map(_.toLong).toArray)
         .setAttribute("strides", strides.map(_.toLong).toArray)
         .setAttribute("rates", rates.map(_.toLong).toArray)
-        .build().outputs(0)
-  }
-
-  /** DCT method used for JPEG decoding. **/
-  sealed trait DCTMethod {
-    def toTFString: String
-  }
-
-  object DCTMethod {
-    case object IntegerFast extends DCTMethod {
-      override def toTFString: String = "INTEGER_FAST"
-    }
-
-    case object IntegerAccurate extends DCTMethod {
-      override def toTFString: String = "INTEGER_ACCURATE"
-    }
-
-    case object SystemDefault extends DCTMethod {
-      override def toTFString: String = ""
-    }
+        .build().output
   }
 
   /** $OpDocImageDecodeJpeg
     *
     * @group ImageOps
-    * @param  contents            0-D [[Output]] of type [[STRING]] containing the JPEG-encoded image.
+    * @param  contents            0-D [[Output]] of containing the JPEG-encoded image.
     * @param  numChannels         Number of color channels for the decoded image. Defaults to 0.
     * @param  ratio               Downscaling ratio.
     * @param  fancyUpscaling      If `true` use a slower but nicer upscaling of the chroma planes (yuv420/422 only).
@@ -85,10 +73,10 @@ private[ops] trait Image {
     *                             ignored (e.g., the internal JPEG library changes to a version that does not have that
     *                             specific option).
     * @param  name                Name for the created op.
-    * @return 3-D tensor of type [[UINT8]] with shape `[height, width, numChannels]`.
+    * @return 3-D tensor with shape `[height, width, numChannels]`.
     */
   def decodeJpeg(
-      contents: Output,
+      contents: Output[String],
       numChannels: Int = 0,
       ratio: Int = 1,
       fancyUpscaling: Boolean = true,
@@ -96,18 +84,170 @@ private[ops] trait Image {
       acceptableFraction: Float = 1,
       dctMethod: DCTMethod = DCTMethod.SystemDefault,
       name: String = "DecodeJpeg"
-  ): Output = {
-    Op.Builder(opType = "DecodeJpeg", name = name)
-        .addInput(contents)
-        .setAttribute("channels", numChannels)
+  ): Output[UByte] = {
+    Op.Builder[Output[String], Output[UByte]](
+      opType = "DecodeJpeg",
+      name = name,
+      input = contents
+    ).setAttribute("channels", numChannels)
         .setAttribute("ratio", ratio)
         .setAttribute("fancy_upscaling", fancyUpscaling)
         .setAttribute("try_recover_truncated", tryRecoverTruncated)
         .setAttribute("acceptable_fraction", acceptableFraction)
         .setAttribute("dct_method", dctMethod.toTFString)
-        .build().outputs(0)
+        .build().output
   }
 
+  /** $OpDocImageEncodeJpeg
+    *
+    * @group ImageOps
+    * @param  image              3-D tensor with shape `[height, width, numChannels]`.
+    * @param  format             Per-pixel image format.
+    * @param  quality            Quality of the compression from 0 to 100 (higher is better and slower).
+    * @param  progressive        If `true`, create a JPEG that loads progressively (coarse to fine).
+    * @param  optimizeSize       If `true`, spend CPU/RAM to reduce size with no quality change.
+    * @param  chromaDownsampling Boolean value indicating whether or not to perform chroma downsampling. For details on
+    *                            this method, please refer to
+    *                            [http://en.wikipedia.org/wiki/Chroma_subsampling](http://en.wikipedia.org/wiki/Chroma_subsampling).
+    * @param  densityUnit        Unit used to specify `xDensity` and `yDensity`:
+    *                            Pixels per inch [[DensityUnit.Inch]] or centimeter [[DensityUnit.Centimeter]].
+    * @param  xDensity           Horizontal pixels per density unit.
+    * @param  yDensity           Vertical pixels per density unit.
+    * @param  xmpMetadata        If not empty, embed this XMP metadata in the image header. Defaults to `""`.
+    * @param  name               Name for the created op.
+    * @return 0-D tensor containing the JPEG-encoded image.
+    */
+  def encodeJpeg(
+      image: Output[UByte],
+      format: ImageFormat = ImageFormat.Default,
+      quality: Int = 95,
+      progressive: Boolean = false,
+      optimizeSize: Boolean = false,
+      chromaDownsampling: Boolean = true,
+      densityUnit: DensityUnit = DensityUnit.Inch,
+      xDensity: Int = 300,
+      yDensity: Int = 300,
+      xmpMetadata: String = "",
+      name: String = "EncodeJpeg"
+  ): Output[String] = {
+    Op.Builder[Output[UByte], Output[String]](
+      opType = "EncodeJpeg",
+      name = name,
+      input = image
+    ).setAttribute("format", format.toTFString)
+        .setAttribute("quality", quality)
+        .setAttribute("progressive", progressive)
+        .setAttribute("optimize_size", optimizeSize)
+        .setAttribute("chroma_downsampling", chromaDownsampling)
+        .setAttribute("density_unit", densityUnit.toTFString)
+        .setAttribute("x_density", xDensity)
+        .setAttribute("y_density", yDensity)
+        .setAttribute("xmp_metadata", xmpMetadata)
+        .build().output
+  }
+
+  /** $OpDocImageResizeArea
+    *
+    * @group ImageOps
+    * @param  images       4-D tensor with shape `[batch, height, width, channels]`.
+    * @param  size         1-D tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
+    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
+    *                      of images and resized images. If false, rescale by new_height / height.
+    *                      Treat the width dimension similarly. Defaults to `false`.
+    * @param name          Name for the created op.
+    * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
+    */
+  def resizeArea[T: TF : IsReal](
+      images: Output[T],
+      size: Output[Int],
+      alignCorners: Boolean = false,
+      name: String = "ResizeArea"
+  ): Output[Float] = {
+    Op.Builder[(Output[T], Output[Int]), Output[Float]](
+      opType = "ResizeArea",
+      name = name,
+      input = (images, size)
+    ).setAttribute("align_corners", alignCorners)
+        .build().output
+  }
+
+  /** $OpDocImageResizeBilinear
+    *
+    * @group ImageOps
+    * @param  images       4-D tensor with shape `[batch, height, width, channels]`.
+    * @param  size         1-D tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
+    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
+    *                      of images and resized images. If false, rescale by new_height / height.
+    *                      Treat the width dimension similarly. Defaults to `false`.
+    * @param name          Name for the created op.
+    * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
+    */
+  def resizeBilinear[T: TF : IsReal](
+      images: Output[T],
+      size: Output[Int],
+      alignCorners: Boolean = false,
+      name: String = "ResizeBilinear"
+  ): Output[Float] = {
+    Op.Builder[(Output[T], Output[Int]), Output[Float]](
+      opType = "ResizeBilinear",
+      name = name,
+      input = (images, size)
+    ).setAttribute("align_corners", alignCorners)
+        .build().output
+  }
+
+  /** $OpDocImageResizeBicubic
+    *
+    * @group ImageOps
+    * @param  images       4-D tensor with shape `[batch, height, width, channels]`.
+    * @param  size         1-D tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
+    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
+    *                      of images and resized images. If false, rescale by new_height / height.
+    *                      Treat the width dimension similarly. Defaults to `false`.
+    * @param name          Name for the created op.
+    * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
+    */
+  def resizeBicubic[T: TF : IsReal](
+      images: Output[T],
+      size: Output[Int],
+      alignCorners: Boolean = false,
+      name: String = "ResizeBicubic"
+  ): Output[Float] = {
+    Op.Builder[(Output[T], Output[Int]), Output[Float]](
+      opType = "ResizeBicubic",
+      name = name,
+      input = (images, size)
+    ).setAttribute("align_corners", alignCorners)
+        .build().output
+  }
+
+  /** $OpDocImageResizeNearestNeighbor
+    *
+    * @group ImageOps
+    * @param  images       4-D tensor with shape `[batch, height, width, channels]`.
+    * @param  size         1-D tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
+    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
+    *                      of images and resized images. If false, rescale by new_height / height.
+    *                      Treat the width dimension similarly. Defaults to `false`.
+    * @param name          Name for the created op.
+    * @return 4-D tensor with shape `[batch, newHeight, newWidth, channels]`.
+    */
+  def resizeNearestNeighbor[T: TF : IsReal](
+      images: Output[T],
+      size: Output[Int],
+      alignCorners: Boolean = false,
+      name: String = "ResizeNearestNeighbor"
+  ): Output[T] = {
+    Op.Builder[(Output[T], Output[Int]), Output[T]](
+      opType = "ResizeNearestNeighbor",
+      name = name,
+      input = (images, size)
+    ).setAttribute("align_corners", alignCorners)
+        .build().output
+  }
+}
+
+object Image extends Image {
   /** Image tensor format. **/
   sealed trait ImageFormat {
     def toTFString: String
@@ -142,162 +282,25 @@ private[ops] trait Image {
     }
   }
 
-  /** $OpDocImageEncodeJpeg
-    *
-    * @group ImageOps
-    * @param  image              3-D tensor of type [[UINT8]], with shape `[height, width, numChannels]`.
-    * @param  format             Per-pixel image format.
-    * @param  quality            Quality of the compression from 0 to 100 (higher is better and slower).
-    * @param  progressive        If `true`, create a JPEG that loads progressively (coarse to fine).
-    * @param  optimizeSize       If `true`, spend CPU/RAM to reduce size with no quality change.
-    * @param  chromaDownsampling Boolean value indicating whether or not to perform chroma downsampling. For details on
-    *                            this method, please refer to
-    *                            [http://en.wikipedia.org/wiki/Chroma_subsampling](http://en.wikipedia.org/wiki/Chroma_subsampling).
-    * @param  densityUnit        Unit used to specify `xDensity` and `yDensity`:
-    *                            Pixels per inch [[DensityUnit.Inch]] or centimeter [[DensityUnit.Centimeter]].
-    * @param  xDensity           Horizontal pixels per density unit.
-    * @param  yDensity           Vertical pixels per density unit.
-    * @param  xmpMetadata        If not empty, embed this XMP metadata in the image header. Defaults to `""`.
-    * @param  name               Name for the created op.
-    * @return 0-D tensor of type [[STRING]] containing the JPEG-encoded image.
-    */
-  def encodeJpeg(
-      image: Output,
-      format: ImageFormat = ImageFormat.Default,
-      quality: Int = 95,
-      progressive: Boolean = false,
-      optimizeSize: Boolean = false,
-      chromaDownsampling: Boolean = true,
-      densityUnit: DensityUnit = DensityUnit.Inch,
-      xDensity: Int = 300,
-      yDensity: Int = 300,
-      xmpMetadata: String = "",
-      name: String = "EncodeJpeg"):
-  Output = {
-    Op.Builder(opType = "EncodeJpeg", name = name)
-        .addInput(image)
-        .setAttribute("format", format.toTFString)
-        .setAttribute("quality", quality)
-        .setAttribute("progressive", progressive)
-        .setAttribute("optimize_size", optimizeSize)
-        .setAttribute("chroma_downsampling", chromaDownsampling)
-        .setAttribute("density_unit", densityUnit.toTFString)
-        .setAttribute("x_density", xDensity)
-        .setAttribute("y_density", yDensity)
-        .setAttribute("xmp_metadata", xmpMetadata)
-        .build().outputs(0)
+  /** DCT method used for JPEG decoding. **/
+  sealed trait DCTMethod {
+    def toTFString: String
   }
 
-  /** $OpDocImageResizeArea
-    *
-    * @group ImageOps
-    * @param  images       4-D tensor with shape `[batch, height, width, channels]`. Must be one of the following types:
-    *                      [[UINT8]], [[INT8]], [[UINT16]], [[INT16]], [[INT32]], [[INT64]], [[FLOAT16]], [[FLOAT32]],
-    *                      [[FLOAT64]].
-    * @param  size         1-D [[INT32]] tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
-    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
-    *                      of images and resized images. If false, rescale by new_height / height.
-    *                      Treat the width dimension similarly. Defaults to `false`.
-    * @param name          Name for the created op.
-    *
-    * @return 4-D tensor of type [[FLOAT32]] with shape `[batch, newHeight, newWidth, channels]`.
-    */
-  def resizeArea(
-      images: Output,
-      size: Output,
-      alignCorners: Boolean = false,
-      name: String = "ResizeArea"
-  ): Output = {
-    Op.Builder(opType = "ResizeArea", name = name)
-        .addInput(images)
-        .addInput(size)
-        .setAttribute("align_corners", alignCorners)
-        .build().outputs(0)
+  object DCTMethod {
+    case object IntegerFast extends DCTMethod {
+      override def toTFString: String = "INTEGER_FAST"
+    }
+
+    case object IntegerAccurate extends DCTMethod {
+      override def toTFString: String = "INTEGER_ACCURATE"
+    }
+
+    case object SystemDefault extends DCTMethod {
+      override def toTFString: String = ""
+    }
   }
 
-  /** $OpDocImageResizeBilinear
-    *
-    * @group ImageOps
-    * @param  images       4-D tensor with shape `[batch, height, width, channels]`. Must be one of the following types:
-    *                      [[UINT8]], [[INT8]], [[UINT16]], [[INT16]], [[INT32]], [[INT64]], [[BFLOAT16]], [[FLOAT16]],
-    *                      [[FLOAT32]], [[FLOAT64]].
-    * @param  size         1-D [[INT32]] tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
-    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
-    *                      of images and resized images. If false, rescale by new_height / height.
-    *                      Treat the width dimension similarly. Defaults to `false`.
-    * @param name          Name for the created op.
-    *
-    * @return 4-D tensor of type [[FLOAT32]] with shape `[batch, newHeight, newWidth, channels]`.
-    */
-  def resizeBilinear(
-      images: Output,
-      size: Output,
-      alignCorners: Boolean = false,
-      name: String = "ResizeBilinear"
-  ): Output = {
-    Op.Builder(opType = "ResizeBilinear", name = name)
-        .addInput(images)
-        .addInput(size)
-        .setAttribute("align_corners", alignCorners)
-        .build().outputs(0)
-  }
-
-  /** $OpDocImageResizeBicubic
-    *
-    * @group ImageOps
-    * @param  images       4-D tensor with shape `[batch, height, width, channels]`. Must be one of the following types:
-    *                      [[UINT8]], [[INT8]], [[UINT16]], [[INT16]], [[INT32]], [[INT64]], [[FLOAT16]], [[FLOAT32]],
-    *                      [[FLOAT64]].
-    * @param  size         1-D [[INT32]] tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
-    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
-    *                      of images and resized images. If false, rescale by new_height / height.
-    *                      Treat the width dimension similarly. Defaults to `false`.
-    * @param name          Name for the created op.
-    *
-    * @return 4-D tensor of type [[FLOAT32]] with shape `[batch, newHeight, newWidth, channels]`.
-    */
-  def resizeBicubic(
-      images: Output,
-      size: Output,
-      alignCorners: Boolean = false,
-      name: String = "ResizeBicubic"
-  ): Output = {
-    Op.Builder(opType = "ResizeBicubic", name = name)
-        .addInput(images)
-        .addInput(size)
-        .setAttribute("align_corners", alignCorners)
-        .build().outputs(0)
-  }
-
-  /** $OpDocImageResizeNearestNeighbor
-    *
-    * @group ImageOps
-    * @param  images       4-D tensor with shape `[batch, height, width, channels]`. Must be one of the following types:
-    *                      [[UINT8]], [[INT8]], [[UINT16]], [[INT16]], [[INT32]], [[INT64]], [[FLOAT16]], [[FLOAT32]],
-    *                      [[FLOAT64]].
-    * @param  size         1-D [[INT32]] tensor of 2 elements: `newHeight, newWidth`. The new size for the images.
-    * @param  alignCorners If true, rescale input by (new_height - 1) / (height - 1), which exactly aligns the 4 corners
-    *                      of images and resized images. If false, rescale by new_height / height.
-    *                      Treat the width dimension similarly. Defaults to `false`.
-    * @param name          Name for the created op.
-    *
-    * @return 4-D tensor that has the same type as `images` and shape `[batch, newHeight, newWidth, channels]`.
-    */
-  def resizeNearestNeighbor(
-      images: Output,
-      size: Output,
-      alignCorners: Boolean = false,
-      name: String = "ResizeNearestNeighbor"
-  ): Output = {
-    Op.Builder(opType = "ResizeNearestNeighbor", name = name)
-        .addInput(images)
-        .addInput(size)
-        .setAttribute("align_corners", alignCorners)
-        .build().outputs(0)
-  }
-}
-
-private[ops] object Image extends Image {
   /** @define OpDocImageExtractImagePatches
     *   The `extractImagePatches` op extracts `patches` from `images` and puts them in the `depth` output dimension.
     *
@@ -331,26 +334,26 @@ private[ops] object Image extends Image {
     *     3: Output an RGB image.
     *
     * @define OpDocImageResizeArea
-    * The `resizeArea` op resizes `images` to `size` using area interpolation.
+    *   The `resizeArea` op resizes `images` to `size` using area interpolation.
     *
-    * Input images can be of different types but output images are always float.
+    *   Input images can be of different types but output images are always float.
     *
-    * Each output pixel is computed by first transforming the pixel's footprint into the input tensor and then averaging
-    * the pixels that intersect the footprint. An input pixel's contribution to the average is weighted by the fraction
-    * of its area that intersects the footprint. This is the same as OpenCV's INTER_AREA.
+    *   Each output pixel is computed by first transforming the pixel's footprint into the input tensor and then
+    *   averaging the pixels that intersect the footprint. An input pixel's contribution to the average is weighted by
+    *   the fraction of its area that intersects the footprint. This is the same as OpenCV's INTER_AREA.
     *
     * @define OpDocImageResizeBilinear
-    * The `resizeBilinear` op resizes `images` to `size` using bilinear interpolation.
+    *   The `resizeBilinear` op resizes `images` to `size` using bilinear interpolation.
     *
-    * Input images can be of different types but output images are always float.
+    *   Input images can be of different types but output images are always float.
     *
     * @define OpDocImageResizeBicubic
-    * The `resizeBicubic` op resizes `images` to `size` using bicubic interpolation.
+    *   The `resizeBicubic` op resizes `images` to `size` using bicubic interpolation.
     *
-    * Input images can be of different types but output images are always float.
+    *   Input images can be of different types but output images are always float.
     *
     * @define OpDocImageResizeNearestNeighbor
-    * The `resizeNearestNeighbor` op resizes `images` to `size` using nearest neighbor interpolation.
+    *   The `resizeNearestNeighbor` op resizes `images` to `size` using nearest neighbor interpolation.
     */
   private[ops] trait Documentation
 }

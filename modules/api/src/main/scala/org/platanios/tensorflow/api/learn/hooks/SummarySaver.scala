@@ -18,9 +18,8 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
-import org.platanios.tensorflow.api.ops.{Output, Summary}
+import org.platanios.tensorflow.api.ops.{Output, Summary, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import org.tensorflow.util.SessionLog
 
@@ -43,10 +42,10 @@ class SummarySaver protected (
     val directory: Path,
     val trigger: HookTrigger = StepHookTrigger(10),
     val triggerAtEnd: Boolean = true,
-    val collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
+    val collection: Graph.Key[Output[Any]] = Graph.Keys.SUMMARIES
 ) extends TriggeredHook(trigger, triggerAtEnd) {
-  private[this] var summary      : Option[Output]            = None
-  private[this] var summaryWriter: Option[SummaryFileWriter] = None
+  protected var summary      : Option[Output[String]]    = None
+  protected var summaryWriter: Option[SummaryFileWriter] = None
 
   override protected def begin(): Unit = {
     summary = Summary.mergeAll(collection)
@@ -54,20 +53,23 @@ class SummarySaver protected (
       summaryWriter = Some(SummaryFileWriterCache.get(directory))
   }
 
-  override protected def end(session: Session): Unit = summaryWriter.foreach(_.flush())
+  override protected def end(session: Session): Unit = {
+    summaryWriter.foreach(_.flush())
+  }
 
-  override protected def fetches: Seq[Output] = summary.map(Seq(_)).getOrElse(Seq.empty)
+  override protected def fetches: Seq[Output[Any]] = summary.toSeq
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
     summaryWriter.foreach(writer => {
       if (step == 0L)
         writer.writeSessionLog(SessionLog.newBuilder().setStatus(SessionLog.SessionStatus.START).build(), step)
-      writer.writeSummaryString(runResult.values(0).scalar.asInstanceOf[String], step)
+      writer.writeSummaryString(runResult.result.head.scalar.asInstanceOf[String], step)
       writer.flush()
     })
   }
@@ -78,7 +80,7 @@ object SummarySaver {
       directory: Path,
       trigger: HookTrigger = StepHookTrigger(10),
       triggerAtEnd: Boolean = true,
-      collection: Graph.Key[Output] = Graph.Keys.SUMMARIES
+      collection: Graph.Key[Output[Any]] = Graph.Keys.SUMMARIES
   ): SummarySaver = {
     new SummarySaver(directory, trigger, triggerAtEnd, collection)
   }

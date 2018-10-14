@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.rnn.attention
 
-import org.platanios.tensorflow.api.core.{NewAxis, Shape}
+import org.platanios.tensorflow.api.core.NewAxis
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.types.{TF, IsDecimal}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
 
@@ -31,12 +32,12 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
   * @param  memory                Memory to query; usually the output of an RNN encoder. Each tensor in the memory
   *                               should be shaped `[batchSize, maxTime, ...]`.
   * @param  memoryWeights         Weights tensor with which the memory is multiplied to produce the attention keys.
+  * @param  probabilityFn         Optional function that converts computed scores to probabilities. Defaults to the
+  *                               softmax function. A potentially useful alternative is the hardmax function.
   * @param  memorySequenceLengths Sequence lengths for the batch entries in the memory. If provided, the memory tensor
   *                               rows are masked with zeros for values past the respective sequence lengths.
   * @param  scaleFactor           Scalar tensor with which the scores are multiplied before used to compute attention
   *                               probabilities.
-  * @param  probabilityFn         Optional function that converts computed scores to probabilities. Defaults to the
-  *                               softmax function. A potentially useful alternative is the hardmax function.
   * @param  scoreMaskValue        Mask value to use for the score before passing it to `probabilityFn`. Defaults to
   *                               negative infinity. Note that this value is only used if `memorySequenceLengths` is not
   *                               `null`.
@@ -44,22 +45,35 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class LuongAttention(
-    override protected val memory: Output,
-    protected val memoryWeights: Output,
-    override protected val memorySequenceLengths: Output = null,
-    protected val scaleFactor: Output = null,
-    protected val probabilityFn: Output => Output = NN.softmax(_, name = "Probability"),
-    override val scoreMaskValue: Output = Float.NegativeInfinity,
+class LuongAttention[T: TF : IsDecimal](
+    override protected val memory: Output[T],
+    protected val memoryWeights: Output[T],
+    protected val probabilityFn: Output[T] => Output[T],
+    override protected val memorySequenceLengths: Output[Int] = null,
+    protected val scaleFactor: Output[T] = null,
+    override val scoreMaskValue: Output[Float] = Float.MinValue,
     override val name: String = "LuongAttention"
-) extends SimpleAttention(memory, memorySequenceLengths, checkInnerDimensionsDefined = true, scoreMaskValue, name) {
-  override lazy val keys: Output = {
+) extends SimpleAttention(
+  memory = memory,
+  memorySequenceLengths = memorySequenceLengths,
+  checkInnerDimensionsDefined = true,
+  scoreMaskValue = scoreMaskValue,
+  name = name
+) {
+  override lazy val keys: Output[T] = {
     if (values.rank == 3) {
-      val reshapedLogits = Basic.reshape(values, Basic.stack(Seq(Basic.constant(-1), Basic.shape(values)(-1))))
+      val reshapedLogits = Basic.reshape(
+        values,
+        Basic.stack(Seq(
+          Basic.constant(-1),
+          Basic.shape(values).castTo[Int].slice(-1))))
       val product = Math.matmul(reshapedLogits, memoryWeights)
       val reshapedProduct = Basic.reshape(
         product,
-        Basic.concatenate(Seq(Basic.shape(values)(0 :: -1), Basic.shape(memoryWeights)(-1, NewAxis)), axis = 0))
+        Basic.concatenate(Seq(
+          Basic.shape(values).castTo[Int].slice(0 :: -1),
+          Basic.shape(memoryWeights).castTo[Int].slice(-1, NewAxis)
+        ), axis = 0))
       reshapedProduct.setShape(values.shape(0 :: -1) + memoryWeights.shape(-1))
       reshapedProduct
     } else {
@@ -68,14 +82,20 @@ class LuongAttention(
   }
 
   @throws[InvalidArgumentException]
-  override protected def score(query: Output, previousAlignment: Output): Output = {
+  override protected def score(
+      query: Output[T],
+      previousAlignment: Output[T]
+  ): Output[T] = {
     val queryDepth = query.shape(-1)
     val keysDepth = keys.shape(-1)
-    if (queryDepth != keysDepth)
+    if (queryDepth != keysDepth) {
       throw InvalidArgumentException(
         "Incompatible or unknown inner dimensions between query and keys. " +
-            s"Query (${query.name}) has $queryDepth units. Keys (${keys.name}) have $keysDepth units. " +
-            "Perhaps you need to set the number of units of the attention model to the keys' number of units.")
+            s"Query (${query.name}) has $queryDepth units. " +
+            s"Keys (${keys.name}) have $keysDepth units. " +
+            "Perhaps you need to set the number of units of the attention model " +
+            "to the keys' number of units.")
+    }
 
     // Reshape from [batchSize, ...] to [batchSize, 1, ...] for broadcasting.
     val reshapedQuery = query.expandDims(1)
@@ -86,25 +106,39 @@ class LuongAttention(
     // [batchTime, 1, maxTime]. We then squeeze out the center singleton dimension.
     var score = Math.matmul(reshapedQuery, keys, transposeB = true)
     score = Basic.squeeze(score, Seq(1))
+
     if (scaleFactor == null)
       score
     else
       scaleFactor * score
   }
 
-  override protected def probability(score: Output, previousAlignment: Output): Output = probabilityFn(score)
+  override protected def probability(
+      score: Output[T],
+      previousAlignment: Output[T]
+  ): Output[T] = {
+    probabilityFn(score)
+  }
 }
 
 object LuongAttention {
-  def apply(
-      memory: Output,
-      memoryWeights: Output,
-      memorySequenceLengths: Output = null,
-      scaleWeights: Output = null,
-      probabilityFn: (Output) => Output = NN.softmax(_, name = "Probability"),
-      scoreMaskValue: Output = Float.NegativeInfinity,
+  def apply[T: TF : IsDecimal](
+      memory: Output[T],
+      memoryWeights: Output[T],
+      probabilityFn: Output[T] => Output[T] = null,
+      memorySequenceLengths: Output[Int] = null,
+      scaleWeights: Output[T] = null,
+      scoreMaskValue: Output[Float] = Float.MinValue,
       name: String = "LuongAttention"
-  ): LuongAttention = {
-    new LuongAttention(memory, memoryWeights, memorySequenceLengths, scaleWeights, probabilityFn, scoreMaskValue, name)
+  ): LuongAttention[T] = {
+    if (probabilityFn == null) {
+      new LuongAttention(
+        memory, memoryWeights, probabilityFn = NN.softmax(_, name = "Probability"),
+        memorySequenceLengths, scaleWeights, scoreMaskValue, name)
+    } else {
+      new LuongAttention(
+        memory, memoryWeights, probabilityFn, memorySequenceLengths,
+        scaleWeights, scoreMaskValue, name)
+    }
   }
 }

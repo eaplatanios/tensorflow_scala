@@ -15,12 +15,12 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
 import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, NestedStructureOps}
 import org.platanios.tensorflow.api.learn.hooks.Hook
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -57,13 +57,20 @@ import scala.util.control.Exception._
 // TODO: !!! [LEARN] [SESSIONS] This should probably not be extending session (given the confused functionality w.r.t. "runHelper").
 class SessionWrapper private[learn](
     protected var session: Session,
-    private val hooks: Set[Hook] = Set.empty[Hook]
-) extends Session(session.graphReference, session.target, session.nativeHandleWrapper, () => session.close()) {
+    private val hooks: Set[Hook] = Set.empty
+) extends Session(
+  session.graphReference,
+  session.target,
+  session.nativeHandleWrapper,
+  () => session.close()
+) {
   protected var _closed      : Boolean = false
   protected var _shouldStop  : Boolean = false
   protected var _hooksEnabled: Boolean = true
 
-  protected val activeHooks: mutable.Set[Hook] = mutable.Set[Hook](hooks.toSeq: _*)
+  protected val activeHooks: mutable.Set[Hook] = {
+    mutable.Set[Hook](hooks.toSeq: _*)
+  }
 
   def enableHooks(): Unit = {
     _hooksEnabled = true
@@ -93,13 +100,16 @@ class SessionWrapper private[learn](
   }
 
   @throws[RuntimeException]
-  override private[api] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: Option[RunOptions] = None, wantMetadata: Boolean = false
+  override private[api] def runHelper[T, V, D, S, E](
+      feeds: FeedMap = FeedMap.empty,
+      fetches: T = Seq.empty[Output[Any]],
+      targets: E = Set.empty[UntypedOp],
+      options: Option[RunOptions] = None,
+      wantMetadata: Boolean = false
   )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
-  ): (R, Option[RunMetadata]) = {
+      evFetchable: NestedStructure.Aux[T, V, D, S],
+      evExecutable: NestedStructureOps[E]
+  ): (V, Option[RunMetadata]) = {
     if (!_hooksEnabled || activeHooks.isEmpty) {
       super.runHelper(feeds, fetches, targets, options, wantMetadata)
     } else {
@@ -107,17 +117,25 @@ class SessionWrapper private[learn](
       val currentHooks = activeHooks.toSeq.sortBy(-_.priority)
 
       // Invoke the hooks' `beforeSessionRun` callbacks.
-      val runContext = Hook.SessionRunContext(Hook.SessionRunArgs(feeds, fetches, targets, options), this)
-      val combinedArgs = invokeHooksBeforeSessionRun(runContext, options, wantMetadata, currentHooks)
+      val targetOps = evExecutable.ops(targets)
+      val runContext = Hook.SessionRunContext(Hook.SessionRunArgs[T, V](feeds, fetches, targetOps, options), this)
+      val hookRunArgs = currentHooks.map(hook => hook.internalBeforeSessionRun(runContext))
+      val combinedArgs = invokeHooksBeforeSessionRun(runContext, options, wantMetadata, currentHooks, hookRunArgs)
 
       // Do session run.
       val result = super.runHelper(
-        combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets, combinedArgs.options, combinedArgs.wantMetadata)
+        combinedArgs.feeds, combinedArgs.fetches, combinedArgs.targets,
+        combinedArgs.options, combinedArgs.wantMetadata)
 
       // Invoke the hooks' `afterSessionRun` callbacks.
-      currentHooks.zipWithIndex.foreach(hook => {
-        hook._1.internalAfterSessionRun(runContext, Hook.SessionRunResult(result._1._2(hook._2), result._2))
-      })
+      currentHooks.zip(hookRunArgs).zipWithIndex.foreach {
+        case ((hook, runArgs), index) =>
+          val results = result._1._2(index)
+          val decodedResult = runArgs.get.decodeResults(results)
+          hook.internalAfterSessionRun(
+            runContext,
+            Hook.SessionRunResult(decodedResult, result._2))
+      }
 
       // Update the `_shouldStop` flag and return.
       setShouldStop(_shouldStop || runContext.stopRequested)
@@ -127,45 +145,43 @@ class SessionWrapper private[learn](
 
   /** Invoked `Hook.beforeSessionRun()` for all hooks and manages their feed maps, fetches, and run options. */
   @throws[RuntimeException]
-  private[this] def invokeHooksBeforeSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
+  private def invokeHooksBeforeSessionRun[T, V, D, S](
+      runContext: Hook.SessionRunContext[T, V],
       runOptions: Option[RunOptions],
       wantMetadata: Boolean,
-      hooks: Seq[Hook]
+      hooks: Seq[Hook],
+      hookRunArgs: Seq[Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]]]
   )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Hook.SessionRunArgs[(F, Seq[Seq[Output]]), (E, Seq[Op]), (R, Seq[Seq[Tensor[DataType]]])] = {
+      evFetchable: NestedStructure.Aux[T, V, D, S]
+  ): Hook.SessionRunArgs[(T, Seq[Seq[Output[Any]]]), (V, Seq[Seq[Tensor[Any]]])] = {
     var hooksFeedMap = FeedMap.empty
-    val hooksFetchesList = mutable.ListBuffer.empty[Seq[Output]]
-    val hooksTargetsList = mutable.ListBuffer.empty[Op]
+    var hooksFetches = Seq.empty[Seq[Output[Any]]]
+    val hooksTargets = mutable.Set.empty[UntypedOp]
     var hooksRunOptions = runOptions.getOrElse(RunOptions.getDefaultInstance)
     var hooksWantMetadata = wantMetadata
-    hooks.foreach(hook => hook.internalBeforeSessionRun(runContext) match {
+    hookRunArgs.foreach {
       case Some(runArgs) =>
         if (runArgs.feeds.nonEmpty) {
           if (hooksFeedMap.nonEmpty && hooksFeedMap.intersects(runArgs.feeds))
             throw new RuntimeException("The same tensor is fed by two hooks.")
           hooksFeedMap = hooksFeedMap ++ runArgs.feeds
         }
-        if (runArgs.fetches.nonEmpty)
-          hooksFetchesList.append(runArgs.fetches)
-        else
-          hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
-        if (runArgs.targets.nonEmpty)
-          hooksTargetsList.appendAll(runArgs.targets)
+        hooksFetches :+= runArgs.flatFetches
+        hooksTargets ++= runArgs.targets
         runArgs.options.foreach(options => hooksRunOptions = mergeRunOptions(hooksRunOptions, options))
         hooksWantMetadata ||= runArgs.wantMetadata
       case None =>
-        hooksFetchesList.append(Seq.empty) // TODO: !!! [HOOKS] Can we avoid these empty sequences entirely?
-    })
+        hooksFetches :+= Seq.empty
+    }
     val feeds = runContext.args.feeds
     if (feeds.nonEmpty && hooksFeedMap.nonEmpty && feeds.intersects(hooksFeedMap))
       throw new RuntimeException("The same tensor is fed by the user and by a hook.")
     val combinedFeeds = feeds ++ hooksFeedMap
-    val combinedFetches = (runContext.args.fetches, hooksFetchesList)
-    val combinedTargets = (runContext.args.targets, hooksTargetsList)
-    Hook.SessionRunArgs(combinedFeeds, combinedFetches, combinedTargets, Some(hooksRunOptions), hooksWantMetadata)
+    val combinedFetches = (runContext.args.fetches, hooksFetches)
+    val combinedTargets = runContext.args.targets ++ hooksTargets.toSet
+    Hook.SessionRunArgs[(T, Seq[Seq[Output[Any]]]), (V, Seq[Seq[Tensor[Any]]])](
+      combinedFeeds, combinedFetches, combinedTargets,
+      Some(hooksRunOptions), hooksWantMetadata)
   }
 
   /** Merges an instance of [[RunOptions]] into another one, returning a new instance of [[RunOptions]].
@@ -178,7 +194,7 @@ class SessionWrapper private[learn](
     * @param  newOptions New run options to merge into `oldRunOptions`.
     * @return Merged run options as a new instance of [[RunOptions]].
     */
-  private[this] def mergeRunOptions(oldOptions: RunOptions, newOptions: RunOptions): RunOptions = {
+  private def mergeRunOptions(oldOptions: RunOptions, newOptions: RunOptions): RunOptions = {
     val runOptionsBuilder = RunOptions.newBuilder(oldOptions)
     runOptionsBuilder.setTraceLevelValue(Math.max(oldOptions.getTraceLevelValue, newOptions.getTraceLevelValue))
     runOptionsBuilder.setTimeoutInMs(Math.max(oldOptions.getTimeoutInMs, newOptions.getTimeoutInMs))
@@ -269,14 +285,17 @@ case class RecoverableSession private[learn](sessionCreator: SessionCreator)
     }
   }
 
-  override private[api] def runHelper[F, E, R](
-      feeds: FeedMap = FeedMap.empty, fetches: F = Seq.empty[Output], targets: E = Traversable.empty[Op],
-      options: Option[RunOptions] = None, wantMetadata: Boolean = false
+  override private[api] def runHelper[F, FV, FD, FS, E](
+      feeds: FeedMap = FeedMap.empty,
+      fetches: F = Seq.empty[Output[Any]],
+      targets: E = Set.empty[UntypedOp],
+      options: Option[RunOptions] = None,
+      wantMetadata: Boolean = false
   )(implicit
-      executable: Executable[E],
-      fetchable: Fetchable.Aux[F, R]
-  ): (R, Option[RunMetadata]) = {
-    var result: (R, Option[RunMetadata]) = null
+      evFetchable: NestedStructure.Aux[F, FV, FD, FS],
+      evExecutable: NestedStructureOps[E]
+  ): (FV, Option[RunMetadata]) = {
+    var result: (FV, Option[RunMetadata]) = null
     while (result == null) {
       if (closed) {
         session = RecoverableSession.createSession(sessionCreator)

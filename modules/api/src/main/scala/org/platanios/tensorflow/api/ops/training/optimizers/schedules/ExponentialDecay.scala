@@ -15,7 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output}
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -45,7 +47,7 @@ class ExponentialDecay protected (
     val staircase: Boolean = false,
     val startStep: Long = 0L,
     val name: String = "ExponentialDecay"
-) extends Schedule {
+) extends Schedule[Float] {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -55,17 +57,20 @@ class ExponentialDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply(value: Output, step: Option[Variable]): Output = {
+  override def apply[I: TF : IsInt32OrInt64](
+      value: Output[Float],
+      step: Option[Variable[I]]
+  ): Output[Float] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for exponential decay.")
-    Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Cast.cast(step.get.value, value.dataType)
-      val decayRateValue = Basic.constant(decayRate, value.dataType)
-      val decayStepsValue = Basic.constant(decaySteps, value.dataType)
+    Op.nameScope(name) {
+      val stepValue = step.get.value.castTo[Float]
+      val decayRateValue = Basic.constant(decayRate)
+      val decayStepsValue = Basic.constant(decaySteps).castTo[Float]
       if (startStep == 0L) {
         decay(value, stepValue, decayRateValue, decayStepsValue, staircase)
       } else {
-        val startStepValue = Basic.constant(startStep, value.dataType)
+        val startStepValue = Basic.constant(startStep).castTo[Float]
         ControlFlow.cond(
           stepValue < startStepValue,
           () => value,
@@ -74,13 +79,13 @@ class ExponentialDecay protected (
     }
   }
 
-  private[this] def decay(
-      initialValue: Output,
-      step: Output,
-      decayRate: Output,
-      decaySteps: Output,
+  private def decay(
+      initialValue: Output[Float],
+      step: Output[Float],
+      decayRate: Output[Float],
+      decaySteps: Output[Float],
       staircase: Boolean
-  ): Output = {
+  ): Output[Float] = {
     val power = Math.divide(step, decaySteps)
     val decay = Math.pow(decayRate, if (staircase) Math.floor(power) else power)
     Math.multiply(initialValue, decay)

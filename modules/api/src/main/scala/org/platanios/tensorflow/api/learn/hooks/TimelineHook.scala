@@ -16,9 +16,8 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{Session, Timeline}
-import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -50,6 +49,9 @@ class TimelineHook protected (
     val trigger: HookTrigger = StepHookTrigger(1000),
     val triggerAtEnd: Boolean = true
 ) extends TriggeredHook(trigger, triggerAtEnd) {
+  override protected def fetches: Seq[Output[Any]] = Seq.empty
+  override protected def targets: Set[UntypedOp] = Set.empty
+
   override protected def runOptions: Option[RunOptions] = {
     Some(RunOptions.newBuilder().setTraceLevel(RunOptions.TraceLevel.FULL_TRACE).build())
   }
@@ -59,7 +61,7 @@ class TimelineHook protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
     TimelineHook.logger.info("Saving timeline.")

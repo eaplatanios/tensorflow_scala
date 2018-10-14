@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.data.image
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.types.UByte
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.UniformSplit
 
@@ -79,7 +80,7 @@ object CIFARLoader extends Loader {
     dataset
   }
 
-  private[this] def extractFiles(
+  private def extractFiles(
       path: Path,
       datasetType: DatasetType = CIFAR_10,
       bufferSize: Int = 8192
@@ -114,12 +115,12 @@ object CIFARLoader extends Loader {
     dataset
   }
 
-  private[this] def readImagesAndLabels(
+  private def readImagesAndLabels(
       inputStream: TarArchiveInputStream,
       entry: TarArchiveEntry,
       datasetType: DatasetType = CIFAR_10,
       bufferSize: Int = 8192
-  ): (Tensor[UINT8], Tensor[UINT8]) = {
+  ): (Tensor[UByte], Tensor[UByte]) = {
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
     Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
@@ -127,7 +128,7 @@ object CIFARLoader extends Loader {
     outputStream.close()
     val numSamples = entry.getSize.toInt / datasetType.entryByteSize
     val combinedShape = Shape(numSamples, datasetType.entryByteSize)
-    val combined = Tensor.fromBuffer(UINT8, combinedShape, entry.getSize.toInt, byteBuffer)
+    val combined = Tensor.fromBuffer[UByte](combinedShape, entry.getSize.toInt, byteBuffer)
     datasetType match {
       case CIFAR_10 => (combined(::, 1 ::).reshape(Shape(-1, 32, 32, 3)), combined(::, 0))
       case CIFAR_100 => (combined(::, 2 ::).reshape(Shape(-1, 32, 32, 3)), combined(::, 0 :: 2))
@@ -137,10 +138,10 @@ object CIFARLoader extends Loader {
 
 case class CIFARDataset(
     datasetType: CIFARLoader.DatasetType,
-    trainImages: Tensor[UINT8],
-    trainLabels: Tensor[UINT8],
-    testImages: Tensor[UINT8],
-    testLabels: Tensor[UINT8]
+    trainImages: Tensor[UByte],
+    trainLabels: Tensor[UByte],
+    testImages: Tensor[UByte],
+    testLabels: Tensor[UByte]
 ) {
   def splitRandomly(trainPortion: Float, seed: Option[Long] = None): CIFARDataset = {
     if (trainPortion == 1.0f) {
@@ -151,10 +152,10 @@ case class CIFARDataset(
       val split = UniformSplit(allLabels.shape(0), seed)
       val (trainIndices, testIndices) = split(trainPortion)
       copy(
-        trainImages = allImages.gather(trainIndices),
-        trainLabels = allLabels.gather(trainIndices),
-        testImages = allImages.gather(testIndices),
-        testLabels = allLabels.gather(testIndices))
+        trainImages = allImages.gather[Int](trainIndices),
+        trainLabels = allLabels.gather[Int](trainIndices),
+        testImages = allImages.gather[Int](testIndices),
+        testLabels = allLabels.gather[Int](testIndices))
     }
   }
 }

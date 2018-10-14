@@ -15,11 +15,16 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.core.types.{TF, IsNumeric, IsReal}
+import org.platanios.tensorflow.api.implicits.Implicits._
+
 /** Contains functions for constructing ops related to sparse tensors.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Sparse {
+trait Sparse {
+  // TODO: [OPS] Add gradients and missing ops. There exist ops we can use such as `SparseAddGrad`.
+
   /** $OpDocSparseSparseAdd
     *
     * @group SparseOps
@@ -29,17 +34,17 @@ private[api] trait Sparse {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def sparseAdd(x: SparseOutput, y: SparseOutput, threshold: Output = 0, name: String = "SparseAdd"): SparseOutput = {
-    val result = Op.Builder("SparseAdd", name)
-        .addInput(x.indices)
-        .addInput(x.values)
-        .addInput(x.denseShape)
-        .addInput(y.indices)
-        .addInput(y.values)
-        .addInput(y.denseShape)
-        .addInput(threshold)
-        .build().outputs
-    SparseOutput(result(0), result(1), result(2))
+  def sparseAdd[T: TF : IsNumeric, TR: TF : IsReal](
+      x: SparseOutput[T],
+      y: SparseOutput[T],
+      threshold: Output[TR],
+      name: String = "SparseAdd"
+  ): SparseOutput[T] = {
+    Op.Builder[(SparseOutput[T], SparseOutput[T], Output[TR]), SparseOutput[T]](
+      opType = "SparseAdd",
+      name = name,
+      input = (x, y, threshold)
+    ).build().output
   }
 
   /** $OpDocSparseSparseDenseAdd
@@ -50,42 +55,65 @@ private[api] trait Sparse {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sparseDenseAdd(x: SparseOutput, y: Output, name: String = "SparseDenseAdd"): Output = {
-    Op.Builder("SparseTensorDenseAdd", name)
-        .addInput(x.indices)
-        .addInput(x.values)
-        .addInput(x.denseShape)
-        .addInput(y)
-        .build().outputs(0)
+  def sparseDenseAdd[T: TF : IsNumeric](
+      x: SparseOutput[T],
+      y: Output[T],
+      name: String = "SparseDenseAdd"
+  ): Output[T] = {
+    Op.Builder[(SparseOutput[T], Output[T]), SparseOutput[T]](
+      opType = "SparseTensorDenseAdd",
+      name = name,
+      input = (x, y)
+    ).build().output
   }
 }
 
 object Sparse extends Sparse {
-  case class SparseOps(sparseOutput: SparseOutput) {
-    def +(other: SparseOutput): SparseOutput = add(other)
-    def +(other: Output): Output = addDense(other)
-
-    /** $OpDocSparseSparseAdd
-      *
-      * @group SparseOps
-      * @param  other     Tensor to add to the current one.
-      * @param  threshold Sparsity threshold.
-      * @param  name      Name for the created op.
-      * @return Created op output.
-      */
-    def add(other: SparseOutput, threshold: Output = 0, name: String = "SparseAdd"): SparseOutput = {
-      Sparse.sparseAdd(sparseOutput, other, threshold, name)
+  private[ops] trait Implicits {
+    implicit def outputConvertibleToSparseOps[T: TF, OC](
+        value: OC
+    )(implicit f: OC => SparseOutput[T]): SparseOps[T] = {
+      new SparseOps(f(value))
     }
 
-    /** $OpDocSparseSparseDenseAdd
-      *
-      * @group SparseOps
-      * @param  other Dense tensor to add to the current one.
-      * @param  name  Name for the created op.
-      * @return Created op output.
-      */
-    def addDense(other: Output, name: String = "SparseDenseAdd"): Output = {
-      Sparse.sparseDenseAdd(sparseOutput, other, name)
+    implicit class SparseOps[T: TF](val sparseOutput: SparseOutput[T]) {
+      def +(other: SparseOutput[T])(implicit ev: IsNumeric[T]): SparseOutput[T] = {
+        add(other, threshold = 0)
+      }
+
+      def +(other: Output[T])(implicit ev: IsNumeric[T]): Output[T] = {
+        addDense(other)
+      }
+
+      /** $OpDocSparseSparseAdd
+        *
+        * @group SparseOps
+        * @param  other     Tensor to add to the current one.
+        * @param  threshold Sparsity threshold.
+        * @param  name      Name for the created op.
+        * @return Created op output.
+        */
+      def add[TR: TF : IsReal](
+          other: SparseOutput[T],
+          threshold: Output[TR],
+          name: String = "SparseAdd"
+      )(implicit ev: IsNumeric[T]): SparseOutput[T] = {
+        Sparse.sparseAdd(sparseOutput, other, threshold, name)
+      }
+
+      /** $OpDocSparseSparseDenseAdd
+        *
+        * @group SparseOps
+        * @param  other Dense tensor to add to the current one.
+        * @param  name  Name for the created op.
+        * @return Created op output.
+        */
+      def addDense(
+          other: Output[T],
+          name: String = "SparseDenseAdd"
+      )(implicit ev: IsNumeric[T]): Output[T] = {
+        Sparse.sparseDenseAdd(sparseOutput, other, name)
+      }
     }
   }
 

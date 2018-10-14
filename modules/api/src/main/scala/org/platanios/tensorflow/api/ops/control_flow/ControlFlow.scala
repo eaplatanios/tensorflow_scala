@@ -17,17 +17,15 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
+import org.platanios.tensorflow.api.core.types.{DataType, RESOURCE, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{INT32, RESOURCE}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
 
 import org.tensorflow.framework.AttrValue
-
-import scala.reflect.ClassTag
 
 /** Contains functions for constructing ops related to control flow.
   *
@@ -46,10 +44,13 @@ private[api] trait ControlFlow {
     * @param  name         Name for the created op (used mainly as a name scope).
     * @return Created op output.
     */
-  private[api] def withControlDependencies[T <: OutputLike](
-      dependencies: Set[Op], input: T, name: String = "WithControlDependencies"): T = {
-    Op.createWithNameScope(name, dependencies + input.op) {
-      Op.colocateWith(Set[Op](input.op), ignoreExisting = true) {
+  private[api] def withControlDependencies[T: TF, OL[A] <: OutputLike[A]](
+      dependencies: Set[UntypedOp],
+      input: OL[T],
+      name: String = "WithControlDependencies"
+  ): OL[T] = {
+    Op.nameScope(name) {
+      Op.colocateWith(Set(input.op), ignoreExisting = true) {
         Op.createWith(controlDependencies = dependencies) {
           Basic.identity(input)
         }
@@ -64,27 +65,39 @@ private[api] trait ControlFlow {
     * @param  name   Name for the created op (used mainly as a name scope).
     * @return Created op output, which in this case is the result of a `noOp`.
     */
-  def group(inputs: Set[Op], name: String = "Group"): Op = Op.createWith(Op.getGraphFromInputs(inputs)) {
-    val inputsByDevice = inputs.groupBy(_.device)
-    if (inputsByDevice.size == 1) {
-      // 1-level tree. The root node is the returned no-op node.
-      val (device, ops) = inputsByDevice.head
-      if (device != null)
-        Op.createWith(device = device, controlDependencies = ops)(noOp(name))
-      else
-        Op.createWith(controlDependencies = ops)(noOp(name))
+  def group(
+      inputs: Set[UntypedOp],
+      name: String = "Group"
+  ): Op[Unit, Unit] = {
+    if (inputs.isEmpty) {
+      noOp(name)
     } else {
-      // 2-level tree. The root node is the returned no-op node. `dependencies` contains 1 NoOp node for each device.
-      val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
-        case (device, ops) =>
+      Op.createWith(graph = Op.getGraphFromInputs(inputs)) {
+        val inputsByDevice = inputs.groupBy(_.device)
+        if (inputsByDevice.size == 1) {
+          // 1-level tree. The root node is the returned no-op node.
+          val (device, ops) = inputsByDevice.head
           if (device != null)
             Op.createWith(device = device, controlDependencies = ops)(noOp(name))
           else
             Op.createWith(controlDependencies = ops)(noOp(name))
+        } else {
+          // 2-level tree. The root node is the returned no-op node.
+          // `dependencies` contains 1 NoOp node for each device.
+          val dependencies: Seq[UntypedOp] = inputsByDevice.toSeq.sortBy(_._1).map {
+            case (device, ops) =>
+              if (device != null)
+                Op.createWith(device = device, controlDependencies = ops)(noOp(name))
+              else
+                Op.createWith(controlDependencies = ops)(noOp(name))
+          }
+          Op.createWith(controlDependencies = dependencies.toSet)(noOp(name))
+        }
       }
-      Op.createWith(controlDependencies = dependencies.toSet)(noOp(name))
     }
   }
+
+  // TODO: [TYPES] Make `tuple` generic so that it works over arbitrary tuples of tensors.
 
   /** $OpDocControlFlowTuple
     *
@@ -95,16 +108,23 @@ private[api] trait ControlFlow {
     * @param  name          Name for the created ops (used mainly as a name scope).
     * @return Created op outputs, which in this case are the values of `inputs`.
     */
-  def tuple[T <: OutputLike](
-      inputs: Array[T], controlInputs: Set[Op] = Set.empty, name: String = "Tuple")
-      (implicit tag: ClassTag[T]): Array[T] = {
+  def tuple[T: TF, OL[A] <: OutputLike[A]](
+      inputs: Seq[OL[T]],
+      controlInputs: Set[UntypedOp] = Set.empty,
+      name: String = "Tuple"
+  ): Seq[OL[T]] = {
     val gatingOps = inputs.filter(_ != null).map(_.op).toSet
     if (gatingOps.isEmpty) {
       inputs
     } else {
-      Op.createWithNameScope(name, gatingOps) {
+      Op.nameScope(name) {
         val gate = group(gatingOps ++ controlInputs)
-        inputs.map(input => if (input == null) input else withControlDependencies(Set[Op](gate), input))
+        inputs.map(input => {
+          if (input == null)
+            input
+          else
+            withControlDependencies(Set(gate), input)
+        })
       }
     }
   }
@@ -115,8 +135,12 @@ private[api] trait ControlFlow {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def noOp(name: String = "NoOp"): Op = {
-    Op.Builder(opType = "NoOp", name = name).build()
+  def noOp(name: String = "NoOp"): Op[Unit, Unit] = {
+    Op.Builder[Unit, Unit](
+      opType = "NoOp",
+      name = name,
+      input = ()
+    ).build()
   }
 
   /** Creates an op that raises an exception to abort the process when called.
@@ -132,11 +156,14 @@ private[api] trait ControlFlow {
       errorMessage: String = "",
       exitWithoutError: Boolean = false,
       name: String = "Abort"
-  ): Output = {
-    Op.Builder(opType = "Abort", name = name)
-        .setAttribute("error_message", errorMessage)
+  ): Op[Unit, Unit] = {
+    Op.Builder[Unit, Unit](
+      opType = "Abort",
+      name = name,
+      input = ()
+    ).setAttribute("error_message", errorMessage)
         .setAttribute("exit_without_error", exitWithoutError)
-        .build().outputs(0)
+        .build()
   }
 
   /** $OpDocControlFlowCond
@@ -150,16 +177,16 @@ private[api] trait ControlFlow {
     * @throws InvalidDataTypeException If the data types of the tensors returned by `trueFn` and `falseFn` do not match.
     */
   @throws[InvalidDataTypeException]
-  def cond[T, R](
-      predicate: Output,
+  def cond[T](
+      predicate: Output[Boolean],
       trueFn: () => T,
       falseFn: () => T,
       name: String = "Cond"
-  )(implicit ev: CondOutput.Aux[T, R]): T = {
-    Op.createWithNameScope(name) {
+  )(implicit evCondArgT: CondArg[T]): T = {
+    Op.nameScope(name) {
       Output.constantValue(predicate) match {
-        case Some(predicateValue) if predicateValue.scalar == true => trueFn()
-        case Some(predicateValue) if predicateValue.scalar == false => falseFn()
+        case Some(predicateValue) if predicateValue.scalar => trueFn()
+        case Some(predicateValue) if !predicateValue.scalar => falseFn()
         case None =>
           // Add the switch to the graph.
           val (pFalse, pTrue) = ControlFlow.switch(predicate, predicate)
@@ -196,12 +223,14 @@ private[api] trait ControlFlow {
           })
 
           // Add to collections.
-          Op.currentGraph.addToCollection(contextTrue, CondContext.COND_CONTEXTS)
-          Op.currentGraph.addToCollection(contextFalse, CondContext.COND_CONTEXTS)
+          Op.currentGraph.addToCollection(CondContext.COND_CONTEXTS)(contextTrue)
+          Op.currentGraph.addToCollection(CondContext.COND_CONTEXTS)(contextFalse)
 
           // Add the final merge to the graph.
-          val merges = resultFalse.zip(resultTrue).map(p => ControlFlow.merge(Seq(p._1, p._2))._1)
-          ev.unflatten(originalResultTrue, merges)
+          val merges = resultFalse.zip(resultTrue).map(p => {
+            ControlFlow.merge(Seq(p._1, p._2))(TF.fromDataType(p._1.dataType))._1
+          })
+          evCondArgT.decodeOutputFromOutput(originalResultTrue, merges)._1
       }
     }
   }
@@ -218,15 +247,13 @@ private[api] trait ControlFlow {
     *                                  do not match.
     */
   @throws[InvalidDataTypeException]
-  def cases[T, R](
-      predicateFnPairs: Seq[(Output, () => T)],
+  def cases[T](
+      predicateFnPairs: Seq[(Output[Boolean], () => T)],
       default: () => T,
       exclusive: Boolean = false,
       name: String = "Cases"
-  )(implicit
-      ev: CondOutput.Aux[T, R]
-  ): T = {
-    Op.createWithNameScope(name) {
+  )(implicit evCondArgT: CondArg[T]): T = {
+    Op.nameScope(name) {
       // To evaluate the conditions in the correct order, we create nested conditions in reverse.
       val fn = predicateFnPairs.reverse.foldLeft(default) {
         case (falseFn, predicateFnPair) => () =>
@@ -237,7 +264,10 @@ private[api] trait ControlFlow {
       }
       if (exclusive) {
         Op.createWith(controlDependencies = Set(Checks.assertAtMostNTrue(
-          predicateFnPairs.map(_._1), n = 1, message = "'cases' was created with 'exclusive = true'."))) {
+          predicateFnPairs.map(_._1),
+          n = 1,
+          message = "'cases' was created with 'exclusive = true'."))
+        ) {
           fn()
         }
       } else {
@@ -257,40 +287,40 @@ private[api] trait ControlFlow {
     * @param  parallelIterations    Number of iterations allowed to run in parallel.
     * @param  enableBackPropagation If `true`, back-propagation support is enabled for this while-loop context.
     * @param  swapMemory            If `true`, GPU-CPU memory swapping support is enabled for this while-loop context.
-    * @param  maximumIterations     Optional `INT32` scalar specifying the maximum number of iterations to loop for. If
+    * @param  maximumIterations     Optional `Int` scalar specifying the maximum number of iterations to loop for. If
     *                               `null` (the default), no iteration limit is enforced.
     * @param  name                  Name prefix for the created ops.
     * @return Created op output structure containing the loop variables values after the loop finishes, mirroring the
     *         return structure of `bodyFn`.
     */
-  def whileLoop[T, TS](
-      predicateFn: T => Output,
+  def whileLoop[T, V, D, S](
+      predicateFn: T => Output[Boolean],
       bodyFn: T => T,
       loopVariables: T,
-      shapeInvariants: Option[TS] = None,
+      shapeInvariants: Option[S] = None,
       parallelIterations: Int = 10,
       enableBackPropagation: Boolean = true,
       swapMemory: Boolean = false,
-      maximumIterations: Output = null, 
+      maximumIterations: Output[Int] = null,
       name: String = "WhileLoop"
-  )(implicit ev: WhileLoopVariable.Aux[T, TS]): T = {
+  )(implicit evStructureT: NestedStructure.Aux[T, V, D, S]): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
-    Op.createWithNameScope(name) {
+    Op.nameScope(name) {
       val loopContext = WhileLoopContext(
         Option(maximumIterations), parallelIterations, enableBackPropagation, swapMemory)
-      Op.currentGraph.addToCollection(loopContext, WhileLoopContext.WHILE_LOOP_CONTEXTS)
+      Op.currentGraph.addToCollection(WhileLoopContext.WHILE_LOOP_CONTEXTS)(loopContext)
       if (maximumIterations == null) {
         loopContext.buildLoop(predicateFn, bodyFn, loopVariables, shapeInvariants)
       } else {
         require(maximumIterations.rank == 0 || maximumIterations.rank == -1,
           s"'maximumIterations' must be a scalar, but has shape ${maximumIterations.shape}.")
-        val zero = Basic.constant(0, name = "Zero")
-        val one = Basic.constant(1, name = "One")
+        val zero = Basic.zeros[Int](Shape())
+        val one = Basic.ones[Int](Shape())
         // Building a loop involves mutating ops and thus we need to lock on the graph.
         Op.currentGraph.synchronized {
-          loopContext.buildLoop[(Output, T), (Shape, TS)](
-            (v: (Output, T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
-            (v: (Output, T)) => (v._1 + one, bodyFn(v._2)),
+          loopContext.buildLoop[(Output[Int], T), (Tensor[Int], V), (DataType[Int], D), (Shape, S)](
+            (v: (Output[Int], T)) => Math.logicalAnd(v._1 < maximumIterations, predicateFn(v._2)),
+            (v: (Output[Int], T)) => (v._1 + one, bodyFn(v._2)),
             (zero, loopVariables),
             shapeInvariants.map((Shape.scalar(), _)))._2
         }
@@ -300,41 +330,51 @@ private[api] trait ControlFlow {
 }
 
 private[api] object ControlFlow extends ControlFlow {
-  case class ControlFlowOps(op: Op) {
-    /** Returns `true` if the provided op is within a cond statement. */
-    def isInCond: Boolean = op.controlFlowContext.flatMap(_.condContext).isDefined
-
-    /** Returns `true` if the provided op is within a while loop statement. */
-    def isInWhileLoop: Boolean = op.controlFlowContext.flatMap(_.whileLoopContext()).isDefined
-
-    /** Returns `true` if the provided op is within an XLA control flow context. */
-    def isInXLAContext: Boolean = {
-      val xlaCompile = {
-        try {
-          op.booleanAttribute("_XlaCompile")
-        } catch {
-          case _: IllegalArgumentException => false
-        }
+  private[control_flow] trait Implicits {
+    implicit class ControlFlowOps(val op: UntypedOp) {
+      /** Returns `true` if the provided op is within a cond statement. */
+      def isInCond: Boolean = {
+        op.controlFlowContext.flatMap(_.condContext).isDefined
       }
-      xlaCompile || op.controlFlowContext.flatMap(_.xlaContext).isDefined
+
+      /** Returns `true` if the provided op is within a while loop statement. */
+      def isInWhileLoop: Boolean = {
+        op.controlFlowContext.flatMap(_.whileLoopContext()).isDefined
+      }
+
+      /** Returns `true` if the provided op is within an XLA control flow context. */
+      def isInXLAContext: Boolean = {
+        val xlaCompile = {
+          try {
+            op.booleanAttribute("_XlaCompile")
+          } catch {
+            case _: IllegalArgumentException => false
+          }
+        }
+        xlaCompile || op.controlFlowContext.flatMap(_.xlaContext).isDefined
+      }
     }
   }
 
   /** Returns `true` if and only if the provided op is a switch op. */
-  private[ops] def isSwitch(op: Op): Boolean = op.opType == "Switch" || op.opType == "RefSwitch"
+  private[ops] def isSwitch(op: Op[_, _]): Boolean = {
+    op.opType == "Switch" || op.opType == "RefSwitch"
+  }
 
   /** Returns `true` if and only if the provided op is a merge op. */
-  private[ops] def isMerge(op: Op): Boolean = op.opType == "Merge" || op.opType == "RefMerge"
+  private[ops] def isMerge(op: Op[_, _]): Boolean = {
+    op.opType == "Merge" || op.opType == "RefMerge"
+  }
 
   /** Returns `true` if and only if the provided op is a switch op for a conditional. */
-  private[ops] def isCondSwitch(op: Op): Boolean = {
-    if (!isSwitch(op) || op.outputs.length == 0) {
+  private[ops] def isCondSwitch(op: Op[_, _]): Boolean = {
+    if (!isSwitch(op) || op.numOutputs == 0) {
       false
     } else {
       // Switch nodes are not part of the "cond" control flow context that they represent, and so we consider the
       // consumers of its outputs to determine if it is a "cond" switch or not. A switch is a "cond" switch if and only
       // if all its consumers are in "cond" contexts.
-      op.outputs.forall(_.consumers.forall(i => {
+      op.outputsSeq.forall(_.consumers.forall(i => {
         var context = i.op.controlFlowContext
         if (isLoopEnter(i.op))
           context = context.flatMap(_.outerContext)
@@ -344,14 +384,14 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns `true` if and only if the provided op is a merge op for a conditional. */
-  private[ops] def isCondMerge(op: Op): Boolean = {
-    if (!isMerge(op) || op.inputs.length == 0) {
+  private[ops] def isCondMerge(op: Op[_, _]): Boolean = {
+    if (!isMerge(op) || op.numInputs == 0) {
       false
     } else {
       // Merge nodes are not part of the "cond" control flow context that they represent, and so we consider their
       // inputs to determine if they are "cond" merges or not. A merge is a "cond" merge if and only if all its inputs
       // are in "cond" contexts.
-      op.inputs.forall(i => {
+      op.inputsSeq.forall(i => {
         val context = getOutputContext(i.op)
         context.isDefined && context.get.isInstanceOf[CondContext]
       })
@@ -359,18 +399,22 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns `true` if and only if the provided op is a loop invariant. */
-  private[ops] def isLoopEnter(op: Op): Boolean = op.opType == "Enter" || op.opType == "RefEnter"
+  private[ops] def isLoopEnter(op: Op[_, _]): Boolean = {
+    op.opType == "Enter" || op.opType == "RefEnter"
+  }
 
   /** Returns `true` if and only if the provided op is a constant loop invariant. */
-  private[ops] def isLoopConstantEnter(op: Op): Boolean = {
+  private[ops] def isLoopConstantEnter(op: Op[_, _]): Boolean = {
     isLoopEnter(op) && op.booleanAttribute("is_constant")
   }
 
   /** Returns `true` if and only if the provided op is a loop exit op. */
-  private[ops] def isLoopExit(op: Op): Boolean = op.opType == "Exit" || op.opType == "RefExit"
+  private[ops] def isLoopExit(op: Op[_, _]): Boolean = {
+    op.opType == "Exit" || op.opType == "RefExit"
+  }
 
   /** Returns `true` if and only if the provided op is a switch op for a while loop. */
-  private[ops] def isLoopSwitch(op: Op): Boolean = {
+  private[ops] def isLoopSwitch(op: Op[_, _]): Boolean = {
     isSwitch(op) &&
         op.controlFlowContext.isDefined &&
         op.controlFlowContext.get.isInstanceOf[WhileLoopContext] &&
@@ -378,7 +422,7 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns `true` if and only if the provided op is a merge op for a while loop. */
-  private[ops] def isLoopMerge(op: Op): Boolean = {
+  private[ops] def isLoopMerge(op: Op[_, _]): Boolean = {
     isMerge(op) &&
         op.controlFlowContext.isDefined &&
         op.controlFlowContext.get.isInstanceOf[WhileLoopContext] &&
@@ -386,16 +430,16 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns the enter op if we can infer `value` to be a loop invariant. Otherwise, returns [[None]]. */
-  private[control_flow] def getLoopConstantEnter(value: Output): Option[Op] = {
+  private[control_flow] def getLoopConstantEnter(value: Output[_]): Option[UntypedOp] = {
     val identityOpTypes = Set("Identity", "RefIdentity", "Switch", "RefSwitch")
     var op = value.op
     while (identityOpTypes.contains(op.opType))
-      op = op.inputs(0).op
+      op = op.inputsSeq(0).op
     Some(op).filter(isLoopConstantEnter)
   }
 
   /** Returns the control flow context for the outputs of an op. */
-  private[ops] def getOutputContext(op: Op): Option[Context] = {
+  private[ops] def getOutputContext(op: Op[_, _]): Option[Context] = {
     val context = op.controlFlowContext
     if (isLoopExit(op))
       context.flatMap(_.outerContext)
@@ -404,7 +448,10 @@ private[api] object ControlFlow extends ControlFlow {
   }
 
   /** Returns `true` if `maybeContainingContext` is or contains `context`. */
-  private[ops] def isContainingContext(context: Context, maybeContainingContext: Option[Context]): Boolean = {
+  private[ops] def isContainingContext(
+      context: Context,
+      maybeContainingContext: Option[Context]
+  ): Boolean = {
     if (maybeContainingContext.isEmpty && context == null) {
       true
     } else {
@@ -421,7 +468,7 @@ private[api] object ControlFlow extends ControlFlow {
     * loop context or any ancestor while loop context (including outside of any context) are valid. In practice, there
     * are many other edge cases as well. */
   @throws[InvalidArgumentException]
-  private[ops] def checkInputFromValidContext(op: Op, inputOp: Op): Unit = {
+  private[ops] def checkInputFromValidContext(op: Op[_, _], inputOp: Op[_, _]): Unit = {
     val opContext = op.controlFlowContext
     val inputContext = getOutputContext(inputOp)
     val errorMessage = inputContext match {
@@ -494,9 +541,9 @@ private[api] object ControlFlow extends ControlFlow {
     */
   @throws[InvalidArgumentException]
   private[control_flow] def getMaxSizeFromNestedMaximumIterations(
-      value: Output,
+      value: Output[_],
       whileLoopContext: WhileLoopContext
-  ): Output = {
+  ): Output[Int] = {
     val valueName = value.name
     // `currentContext` is the context that `tf.gradients()` was called in.
     val currentContext = Op.currentControlFlowContext
@@ -550,11 +597,11 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name      Name for the created op.
     * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
     */
-  private[control_flow] def colocatedSwitch[T <: OutputLike](
-      input: T,
-      predicate: Output,
+  private[control_flow] def colocatedSwitch[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
+      predicate: Output[Boolean],
       name: String = "Switch"
-  ): (T, T) = {
+  ): (OL[T], OL[T]) = {
     // The device colocation below addresses the following scenario:
     //
     // Assume you execute Optimizer.applyGradients() in a branch of a cond() and:
@@ -569,14 +616,18 @@ private[api] object ControlFlow extends ControlFlow {
     //
     // `var` and `data` may be pinned to different devices and so we want the ops created within the
     // `Op.colocateWith(Set(data.op)) { }` block to ignore the existing stack.
-    Op.colocateWith(Set(input.op), ignoreExisting = true)(switch(input, predicate, name))
+    Op.colocateWith(Set(input.op), ignoreExisting = true) {
+      switch(input, predicate, name)
+    }
   }
 
   /** Returns an `assert` op that checks that the provided predicates are exclusive (i.e., not more than one of them can
     * be `true` at the same time). */
-  private[ControlFlow] def assertExclusive(predicates: Seq[Output]): Op = {
+  private[ControlFlow] def assertExclusive(
+      predicates: Seq[Output[Boolean]]
+  ): Op[Seq[Output[Any]], Unit] = {
     val stacked = Basic.stack(predicates, name = "StackedPredicates")
-    val numTrue = Math.sum(Cast.cast(stacked, INT32), name = "NumTruePredicates")
+    val numTrue = Math.sum(stacked.castTo[Int], name = "NumTruePredicates")
     val atMostOneTrue = Math.less(numTrue, Basic.constant(2, name = "TwoTruePredicates"))
     val errorData =
       Seq(
@@ -595,8 +646,14 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  private[control_flow] def controlTrigger(name: String = "ControlTrigger"): Op = {
-    Op.Builder(opType = "ControlTrigger", name = name).build()
+  private[control_flow] def controlTrigger(
+      name: String = "ControlTrigger"
+  ): Op[Unit, Unit] = {
+    Op.Builder[Unit, Unit](
+      opType = "ControlTrigger",
+      name = name,
+      input = ()
+    ).build()
   }
 
   /** Creates an op that forwards its input to the output.
@@ -607,10 +664,15 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name  Name for the created op.
     * @return Created op output, which has the same value as the input tensor.
     */
-  private[control_flow] def loopCond(input: Output, name: String = "LoopCond"): Output = {
-    Op.Builder(opType = "LoopCond", name = name)
-        .addInput(input)
-        .build().outputs(0)
+  private[control_flow] def loopCond(
+      input: Output[Boolean],
+      name: String = "LoopCond"
+  ): Output[Boolean] = {
+    Op.Builder[Output[Boolean], Output[Boolean]](
+      opType = "LoopCond",
+      name = name,
+      input = input
+    ).build().output
   }
 
   /** Creates an op that makes its input available to the next iteration.
@@ -619,33 +681,48 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name  Name for the created op.
     * @return Created op output, which is the same as `input`.
     */
-  private[control_flow] def nextIteration[T <: OutputLike](input: T, name: String = "NextIteration"): T = {
+  private[control_flow] def nextIteration[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
+      name: String = "NextIteration"
+  ): OL[T] = {
     val result = {
       input match {
-        case i: Output =>
-          Op.Builder("NextIteration", name)
-              .addInput(i)
-              .build().outputs(0)
-        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
-          val values = nextIteration(i.values, "Values")
-          val indices = nextIteration(i.indices, "Indices")
+        case o: Output[T] =>
+          Op.Builder[Output[T], Output[T]](
+            opType = "NextIteration",
+            name = name,
+            input = o
+          ).setGradientFn(nextIterationGradient(_, _)(TF[T]))
+              .build().output
+        case o: OutputIndexedSlices[T] => Op.nameScope(name) {
+          val values = nextIteration(o.values, "Values")
+          val indices = nextIteration(o.indices, "Indices")
           val denseShape = {
-            if (i.denseShape != null)
-              nextIteration(i.denseShape, "DenseShape")
+            if (o.denseShape != null)
+              nextIteration(o.denseShape, "DenseShape")
             else
               null
           }
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
         }
-        case i: SparseOutput => Op.createWithNameScope(name) {
-          val values = nextIteration(i.values, "Values")
-          val indices = nextIteration(i.indices, "Indices")
-          val denseShape = nextIteration(i.denseShape, "DenseShape")
+        case o: SparseOutput[T] => Op.nameScope(name) {
+          val values = nextIteration(o.values, "Values")
+          val indices = nextIteration(o.indices, "Indices")
+          val denseShape = nextIteration(o.denseShape, "DenseShape")
           SparseOutput(indices = indices, values = values, denseShape = denseShape)
         }
       }
     }
-    result.asInstanceOf[T]
+    result.asInstanceOf[OL[T]]
+  }
+
+  /** A forward next-iteration op is translated into a back-propagation identity op. Note that the back-propagation
+    * next-iteration op is added in switch op gradient. */
+  protected def nextIterationGradient[T: TF](
+      op: Op[Output[T], Output[T]],
+      outputGradient: OutputLike[T]
+  ): OutputLike[T] = {
+    outputGradient
   }
 
   /** Creates an op that creates or finds a child frame, and makes `input` available to that child frame.
@@ -662,42 +739,89 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name               Name for the created op.
     * @return Created op output, which is the same as `input`.
     */
-  private[control_flow] def enter[T <: OutputLike](
-      input: T, frameName: String, isConstant: Boolean = false, parallelIterations: Int = 10,
-      useInputShape: Boolean = true, name: String = "Enter"): T = {
+  private[control_flow] def enter[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
+      frameName: String,
+      isConstant: Boolean = false,
+      parallelIterations: Int = 10,
+      useInputShape: Boolean = true,
+      name: String = "Enter"
+  ): OL[T] = {
     val result = {
       input match {
-        case i: Output =>
-          val result = Op.Builder("Enter", name)
-              .addInput(i)
-              .setAttribute("frame_name", frameName)
+        case o: Output[T] =>
+          val result = Op.Builder[Output[T], Output[T]](
+            opType = "Enter",
+            name = name,
+            input = o
+          ).setAttribute("frame_name", frameName)
               .setAttribute("is_constant", isConstant)
               .setAttribute("parallel_iterations", parallelIterations)
-              .build().outputs(0)
+              .setGradientFn(enterGradient(_, _)(TF[T]))
+              .build().output.toOutput
           if (useInputShape)
-            result.setShape(i.shape)
+            result.setShape(o.shape)
           result
-        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
-          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "Values")
-          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "Indices")
+        case o: OutputIndexedSlices[T] => Op.nameScope(name) {
+          val values = enter(o.values, frameName, isConstant, parallelIterations, useInputShape, "Values")
+          val indices = enter(o.indices, frameName, isConstant, parallelIterations, useInputShape, "Indices")
           val denseShape = {
-            if (i.denseShape != null)
-              enter(i.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShape")
+            if (o.denseShape != null)
+              enter(o.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShape")
             else
               null
           }
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
         }
-        case i: SparseOutput => Op.createWithNameScope(name) {
-          val values = enter(i.values, frameName, isConstant, parallelIterations, useInputShape, "Values")
-          val indices = enter(i.indices, frameName, isConstant, parallelIterations, useInputShape, "Indices")
+        case o: SparseOutput[T] => Op.nameScope(name) {
+          val values = enter(o.values, frameName, isConstant, parallelIterations, useInputShape, "Values")
+          val indices = enter(o.indices, frameName, isConstant, parallelIterations, useInputShape, "Indices")
           val denseShape = enter(
-            i.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShape")
+            o.denseShape, frameName, isConstant, parallelIterations, useInputShape, "DenseShape")
           SparseOutput(indices = indices, values = values, denseShape = denseShape)
         }
       }
     }
-    result.asInstanceOf[T]
+    result.asInstanceOf[OL[T]]
+  }
+
+  /** Gradients for an enter op are calculated using an exit op. For loop variables, `outputGradients` is the gradient
+    * and so we just add an exit op. For loop invariants, we need to add an accumulator loop. */
+  protected def enterGradient[T: TF](
+      op: Op[Output[T], Output[T]],
+      outputGradient: OutputLike[T]
+  ): OutputLike[T] = {
+    Op.currentControlFlowContext.map(gradientContext => {
+      if (!gradientContext.backPropagate) {
+        // We skip gradient computation in this case.
+        outputGradient
+      } else if (gradientContext.gradientLoopState.isEmpty) {
+        // We pass the gradient through if we are not in a gradient while-loop context.
+        outputGradient
+      } else if (op.booleanAttribute("is_constant")) {
+        // We add a gradient accumulator for each while-loop invariant.
+        gradientContext.asInstanceOf[WhileLoopContext].addBackwardAccumulator(op, outputGradient)
+      } else {
+        val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
+        val result = exit(outputGradient)
+        result match {
+          case o: Output[T] =>
+            gradientWhileLoopContext.loopExits += o
+          case o: OutputIndexedSlices[T] =>
+            gradientWhileLoopContext.loopExits += o.indices
+            gradientWhileLoopContext.loopExits += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopExits += o.denseShape
+          case o: SparseOutput[T] =>
+            gradientWhileLoopContext.loopExits += o.indices
+            gradientWhileLoopContext.loopExits += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopExits += o.denseShape
+        }
+        gradientContext.exitResult(Seq(result))
+        result
+      }
+    }).get
   }
 
   /** Creates an op that exits from the current frame to its parent frame.
@@ -708,30 +832,36 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name  Name for the created op.
     * @return Created op output, which is the same as `input`.
     */
-  private[control_flow] def exit[T <: OutputLike](input: T, name: String = "Exit"): T = {
+  private[control_flow] def exit[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
+      name: String = "Exit"
+  ): OL[T] = {
     val result = {
       input match {
-        case i: Output =>
-          Op.Builder("Exit", name)
-              .addInput(i)
-              .build().outputs(0)
-        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
-          val values = exit(i.values, "Values")
-          val indices = exit(i.indices, "Indices")
+        case o: Output[T] =>
+          Op.Builder[Output[T], Output[T]](
+            opType = "Exit",
+            name = name,
+            input = o
+          ).setGradientFn(exitGradient(_, _)(TF[T]))
+              .build().output
+        case o: OutputIndexedSlices[T] => Op.nameScope(name) {
+          val values = exit(o.values, "Values")
+          val indices = exit(o.indices, "Indices")
           val denseShape = {
-            if (i.denseShape != null)
-              exit(i.denseShape, "DenseShape")
+            if (o.denseShape != null)
+              exit(o.denseShape, "DenseShape")
             else
               null
           }
           OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape)
         }
-        case i: SparseOutput => Op.createWithNameScope(name) {
-          val values = exit(i.values, "Values")
-          val indices = exit(i.indices, "Indices")
+        case o: SparseOutput[T] => Op.nameScope(name) {
+          val values = exit(o.values, "Values")
+          val indices = exit(o.indices, "Indices")
           val denseShape = {
-            if (i.denseShape != null)
-              exit(i.denseShape, "DenseShape")
+            if (o.denseShape != null)
+              exit(o.denseShape, "DenseShape")
             else
               null
           }
@@ -739,7 +869,62 @@ private[api] object ControlFlow extends ControlFlow {
         }
       }
     }
-    result.asInstanceOf[T]
+    result.asInstanceOf[OL[T]]
+  }
+
+  /** Gradients for an exit op are calculated using an enter op. */
+  @throws[UnimplementedException]
+  protected def exitGradient[T: TF](
+      op: Op[Output[T], Output[T]],
+      outputGradient: OutputLike[T]
+  ): OutputLike[T] = {
+    Op.currentControlFlowContext.map(gradientContext => {
+      if (!gradientContext.backPropagate) {
+        // We skip gradient computation in this case.
+        null
+      } else if (op.controlFlowContext.flatMap(_.gradientLoopState).isDefined) {
+        throw UnimplementedException("Second-order gradients are not supported for while loops.")
+      } else {
+        outputGradient match {
+          case o: Output[T] =>
+            gradientContext.values += o.name
+          case o: OutputIndexedSlices[T] =>
+            gradientContext.values += o.indices.name
+            gradientContext.values += o.values.name
+            if (o.denseShape != null)
+              gradientContext.values += o.denseShape.name
+          case o: SparseOutput[T] =>
+            gradientContext.values += o.indices.name
+            gradientContext.values += o.values.name
+            if (o.denseShape != null)
+              gradientContext.values += o.denseShape.name
+        }
+        val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
+        gradientContext.enter()
+        val result = enter(
+          outputGradient,
+          gradientContext.name,
+          isConstant = false,
+          parallelIterations = gradientWhileLoopContext.parallelIterations,
+          name = "ExitGradient")
+        result match {
+          case o: Output[T] =>
+            gradientWhileLoopContext.loopEnters += o
+          case o: OutputIndexedSlices[T] =>
+            gradientWhileLoopContext.loopEnters += o.indices
+            gradientWhileLoopContext.loopEnters += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopEnters += o.denseShape
+          case o: SparseOutput[T] =>
+            gradientWhileLoopContext.loopEnters += o.indices
+            gradientWhileLoopContext.loopEnters += o.values
+            if (o.denseShape != null)
+              gradientWhileLoopContext.loopEnters += o.denseShape
+        }
+        gradientContext.exit()
+        result
+      }
+    }).get
   }
 
   /** Creates an op that forwards `input` to the output port determined by `predicate`.
@@ -751,42 +936,135 @@ private[api] object ControlFlow extends ControlFlow {
     * @param  name      Name for the created op.
     * @return Tuple containing `outputFalse` and `outputTrue`, in that order.
     */
-  private[control_flow] def switch[T <: OutputLike](input: T, predicate: Output, name: String = "Switch"): (T, T) = {
+  private[control_flow] def switch[T: TF, OL[A] <: OutputLike[A]](
+      input: OL[T],
+      predicate: Output[Boolean],
+      name: String = "Switch"
+  ): (OL[T], OL[T]) = {
     val result = {
       input match {
-        case i: Output =>
-          val outputs = Op.Builder("Switch", name)
-              .addInput(i)
-              .addInput(predicate)
-              .build().outputs
-          (outputs(0), outputs(1))
-        case i: OutputIndexedSlices => Op.createWithNameScope(name) {
-          val (valuesFalse, valuesTrue) = switch(i.values, predicate, "Values")
-          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, "Indices")
-          val (denseShapeFalse, denseShapeTrue) = {
-            if (i.denseShape != null)
-              switch(i.denseShape, predicate, "DenseShape")
-            else
-              (null, null)
+        case o: Output[T] =>
+          Op.Builder[(Output[T], Output[Boolean]), (Output[T], Output[T])](
+            opType = "Switch",
+            name = name,
+            input = (o, predicate)
+          ).setGradientFn[(OutputLike[T], Output[Boolean]), (OutputLike[T], OutputLike[T])](switchGradient(_, _)(TF[T]))
+              .build().output
+        case o: OutputIndexedSlices[T] =>
+          Op.nameScope(name) {
+            val (valuesFalse, valuesTrue) = switch(o.values, predicate, "Values")
+            val (indicesFalse, indicesTrue) = switch(o.indices, predicate, "Indices")
+            val (denseShapeFalse, denseShapeTrue) = {
+              if (o.denseShape != null)
+                switch(o.denseShape, predicate, "DenseShape")
+              else
+                (null, null)
+            }
+            (OutputIndexedSlices(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
+                OutputIndexedSlices(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
           }
-          (OutputIndexedSlices(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
-              OutputIndexedSlices(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
-        }
-        case i: SparseOutput => Op.createWithNameScope(name) {
-          val (valuesFalse, valuesTrue) = switch(i.values, predicate, "ValuesSwitch")
-          val (indicesFalse, indicesTrue) = switch(i.indices, predicate, "IndicesSwitch")
-          val (denseShapeFalse, denseShapeTrue) = {
-            if (i.denseShape != null)
-              switch(i.denseShape, predicate, "DenseShape")
-            else
-              (null, null)
+        case o: SparseOutput[T] =>
+          Op.nameScope(name) {
+            val (valuesFalse, valuesTrue) = switch(o.values, predicate, "ValuesSwitch")
+            val (indicesFalse, indicesTrue) = switch(o.indices, predicate, "IndicesSwitch")
+            val (denseShapeFalse, denseShapeTrue) = {
+              if (o.denseShape != null)
+                switch(o.denseShape, predicate, "DenseShape")
+              else
+                (null, null)
+            }
+            (SparseOutput(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
+                SparseOutput(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
           }
-          (SparseOutput(indices = indicesFalse, values = valuesFalse, denseShape = denseShapeFalse),
-              SparseOutput(indices = indicesTrue, values = valuesTrue, denseShape = denseShapeTrue))
-        }
       }
     }
-    result.asInstanceOf[(T, T)]
+    result.asInstanceOf[(OL[T], OL[T])]
+  }
+
+  /** Gradients for a switch op are calculated using a merge op. If the switch is a loop switch, it will be visited
+    * twice. We create the merge op on the first visit, and we update the second input of the merge on the second
+    * visit. A next-iteration op is also added in the second visit. */
+  protected def switchGradient[T: TF](
+      op: Op[(Output[T], Output[Boolean]), (Output[T], Output[T])],
+      outputGradient: (OutputLike[T], OutputLike[T])
+  ): (OutputLike[T], Output[Boolean]) = {
+    val gradientContext = Op.currentControlFlowContext
+    op.controlFlowContext match {
+      case Some(opContext: CondContext) =>
+        val (gradientOtherBranch, gradientTakenBranch) = opContext.branch match {
+          case TrueBranch => (outputGradient._1, outputGradient._2)
+          case FalseBranch => (outputGradient._2, outputGradient._1)
+        }
+
+        if (gradientOtherBranch != null) {
+          (merge(Seq(outputGradient._1, outputGradient._2), name = "CondGradient")._1, null)
+        } else if (op.input._1.dataType == RESOURCE) {
+          // At this point, we have created `zeroGradient` guarded by the right switch. Unfortunately, we may still
+          // get `null` here for non-trainable data types or for some types of ops (e.g., `ResourceGather`) created
+          // within only one branch.
+          // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
+          val zeros = gradientTakenBranch match {
+            case o: Output[_] => Basic.zerosLike(o)(TF.fromDataType(o.dataType))
+            case o: OutputIndexedSlices[_] =>
+              OutputIndexedSlices(
+                Basic.zeros[Long](Shape(1)),
+                Basic.zeros(o.values.dataType, Shape(1, o.values.shape(1))),
+                o.denseShape)
+            case o: SparseOutput[_] =>
+              SparseOutput(
+                Basic.zeros[Long](Shape(1, o.indices.shape(1))),
+                Basic.zeros(o.values.dataType, Shape(1)),
+                o.denseShape)
+          }
+          val zeroGradient = opContext.branch.other.selectSwitchResult(
+            ControlFlow.colocatedSwitch(zeros, opContext.predicate)(TF.fromDataType(zeros.dataType)))
+          if (opContext.branch.value == 0) {
+            (merge(Seq(
+              gradientTakenBranch,
+              zeroGradient.asInstanceOf[OutputLike[T]]
+            ), name = "CondGradient")(TF.fromDataType(gradientTakenBranch.dataType))._1, null)
+          } else {
+            (merge(Seq(
+              zeroGradient.asInstanceOf[OutputLike[T]],
+              gradientTakenBranch
+            ), name = "CondGradient")(TF.fromDataType(gradientTakenBranch.dataType))._1, null)
+          }
+        } else {
+          (null, null)
+        }
+      case Some(_: WhileLoopContext) =>
+        gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
+          case Some(mergeGradient) =>
+            // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
+            // and so we update the second input to the merge node.
+            if (outputGradient._2 != null) {
+              WhileLoopContext.addNextIterationAndBackEdge(
+                mergeGradient.asInstanceOf[OutputLike[T]],
+                outputGradient._2,
+                enforceShapeInvariant = false)
+            }
+            (null, null)
+          case None if outputGradient._1 != null =>
+            // This is the first time this switch node is visited. It comes from the exit branch of the switch, which
+            // is `outputGradients(0)`. `outputGradients(1)` is empty at this point. We use `outputGradients(0)` for
+            // both inputs to the merge for now, but we update the second input of the merge node when we visit this
+            // switch node for a second time.
+            val mergeGradient = merge(Seq(outputGradient._1, outputGradient._1), name = "SwitchGradient")._1
+            gradientContext
+                .flatMap(_.gradientLoopState)
+                .map(_.switchMap)
+                .foreach(_ += (op: UntypedOp) -> mergeGradient)
+            (mergeGradient, null)
+          case _ =>
+            // This is the first time this switch node is visited. It comes from the identity branch. Such a switch
+            // has `null` gradient for the exit branch, meaning that the output is not differentiable.
+            (null, null)
+        }
+      case _ =>
+        val falseGradient = switch(outputGradient._1, op.input._2)._1
+        val trueGradient = switch(outputGradient._2, op.input._2)._2
+        (merge(Seq(falseGradient, trueGradient))._1, null)
+    }
   }
 
   /** Creates an op that forwards the value of an available tensor from `inputs` to `output`.
@@ -808,45 +1086,88 @@ private[api] object ControlFlow extends ControlFlow {
     * @return Tuple containing `output` and `outputIndex`, in that order.
     */
   @throws[IllegalArgumentException]
-  private[control_flow] def merge[T <: OutputLike](inputs: Seq[T], name: String = "Merge"): (T, Output) = {
+  private[control_flow] def merge[T: TF, OL[A] <: OutputLike[A]](
+      inputs: Seq[OL[T]],
+      name: String = "Merge"
+  ): (OL[T], Output[Int]) = {
     val result = {
       inputs match {
-        case i if i.forall(_.isInstanceOf[Output]) =>
-          val outputs = Op.Builder("Merge", name)
-              .addInputList(i.map(_.asInstanceOf[Output]))
-              .build().outputs
-          (outputs(0), outputs(1))
-        case i if i.forall(_.isInstanceOf[SparseOutput]) => Op.createWithNameScope(name) {
-          val ii = i.map(_.asInstanceOf[SparseOutput])
-          val (indices, chosenIndex) = merge(ii.map(_.indices), "Indices")
-          val (values, _) = merge(ii.map(_.values), "Values")
-          val (denseShape, _) = if (ii.map(_.denseShape).exists(_ != null)) {
-            if (ii.map(_.denseShape).contains(null))
-              throw new IllegalArgumentException(
-                "Either all merged 'SparseOutput's must have a known dense shape, or none of them.")
-            merge(ii.map(_.denseShape), "DenseShape")
-          } else {
-            null
+        case o if o.forall(_.isInstanceOf[Output[T]]) =>
+          Op.Builder[Seq[Output[T]], (Output[T], Output[Int])](
+            opType = "Merge",
+            name = name,
+            input = o.map(_.asInstanceOf[Output[T]])
+          ).setGradientFn(mergeGradient(_, _)(TF[T]))
+              .build().output
+        case o if o.forall(_.isInstanceOf[SparseOutput[T]]) =>
+          Op.nameScope(name) {
+            val oo = o.map(_.asInstanceOf[SparseOutput[T]])
+            val (indices, chosenIndex) = merge(oo.map(_.indices), "Indices")
+            val (values, _) = merge(oo.map(_.values), "Values")
+            val (denseShape, _) = if (oo.map(_.denseShape).exists(_ != null)) {
+              if (oo.map(_.denseShape).contains(null))
+                throw new IllegalArgumentException(
+                  "Either all merged 'SparseOutput's must have a known dense shape, or none of them.")
+              merge(oo.map(_.denseShape), "DenseShape")
+            } else {
+              null
+            }
+            (SparseOutput(indices = indices, values = values, denseShape = denseShape), chosenIndex)
           }
-          (SparseOutput(indices = indices, values = values, denseShape = denseShape), chosenIndex)
-        }
-        case i => Op.createWithNameScope(name) {
-          val ii = i.map(_.toOutputIndexedSlices(optimize = false))
-          val (indices, chosenIndex) = merge(ii.map(_.indices), "Indices")
-          val (values, _) = merge(ii.map(_.values), "Values")
-          val (denseShape, _) = if (ii.map(_.denseShape).exists(_ != null)) {
-            if (ii.map(_.denseShape).contains(null))
-              throw new IllegalArgumentException(
-                "Either all merged 'OutputIndexedSlices' must have a known dense shape, or none of them.")
-            merge(ii.map(_.denseShape), "DenseShape")
-          } else {
-            null
+        case o =>
+          Op.nameScope(name) {
+            val oo = o.map(_.toOutputIndexedSlices(optimize = false))
+            val (indices, chosenIndex) = merge(oo.map(_.indices), "Indices")
+            val (values, _) = merge(oo.map(_.values), "Values")
+            val (denseShape, _) = if (oo.map(_.denseShape).exists(_ != null)) {
+              if (oo.map(_.denseShape).contains(null))
+                throw new IllegalArgumentException(
+                  "Either all merged 'OutputIndexedSlices' must have a known dense shape, or none of them.")
+              merge(oo.map(_.denseShape), "DenseShape")
+            } else {
+              null
+            }
+            (OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape), chosenIndex)
           }
-          (OutputIndexedSlices(indices = indices, values = values, denseShape = denseShape), chosenIndex)
-        }
       }
     }
-    result.asInstanceOf[(T, Output)]
+    result.asInstanceOf[(OL[T], Output[Int])]
+  }
+
+  /** Gradients for a merge op are calculated using a switch op. */
+  protected def mergeGradient[T: TF](
+      op: Op[Seq[Output[T]], (Output[T], Output[Int])],
+      outputGradient: (Output[T], Output[Int])
+  ): Seq[Output[T]] = {
+    val gradientContext = Op.currentControlFlowContext
+    ControlFlow.getOutputContext(op.input.head.op) match {
+      case Some(opContext: CondContext) =>
+        val predicate = gradientContext.flatMap(_.gradientLoopState).map(gradientLoopState => {
+          // This merge node is part of a conditional structure within a loop. The back-propagation needs to have the
+          // value of this predicate for every iteration and so, we must have its values accumulated in the forward,
+          // and use the accumulated values as the predicate for this back-propagation switch.
+          gradientLoopState.historyMap.getOrElse(opContext.predicate.name, {
+            // We want to remember the value of the predicate for every iteration.
+            gradientLoopState.backwardContext.exit()
+            val historyPredicate = gradientLoopState.addForwardAccumulator(opContext.predicate)
+            gradientLoopState.backwardContext.enter()
+            // We now add the stack pop op. If `opContext.predicate.op` is in a (possibly outer) `CondContext`, then
+            // the stack pop op will be guarded with a switch.
+            val realPredicate = gradientLoopState.addBackwardAccumulatedValue(historyPredicate, opContext.predicate)
+            gradientLoopState.historyMap += opContext.predicate.name -> realPredicate
+            realPredicate
+          })
+        }).getOrElse(opContext.predicate).asInstanceOf[Output[Boolean]]
+        val switch = colocatedSwitch(outputGradient._1, predicate)
+        Seq(switch._1, switch._2)
+      case Some(_: WhileLoopContext) =>
+        val switch = colocatedSwitch(outputGradient._1, gradientContext.get.asInstanceOf[WhileLoopContext].pivot)
+        Seq(switch._1, switch._2)
+      case _ =>
+        (0 until op.numInputs).map(i => {
+          colocatedSwitch(outputGradient._1, Math.equal(op.output._2, i))._2
+        })
+    }
   }
 
   //endregion Low Level Ops
@@ -854,255 +1175,40 @@ private[api] object ControlFlow extends ControlFlow {
   //region Native Library Functions
 
   /** Replaces the `index`th input of `op` with `newInput`. */
-  private[control_flow] def updateInput(op: Op, index: Int, newInput: Output): Unit = {
+  private[control_flow] def updateInput(op: Op[_, _], index: Int, newInput: Output[_]): Unit = {
     using(op.graph.reference)(r => {
       NativeLibrary.updateInput(r.nativeHandle, op.nativeHandle, index, newInput.op.nativeHandle, newInput.index)
     })
-    op.reloadNumInputs()
-    op.reloadInputs()
+    op._reloadNumInputs()
+    op._reloadInputs()
   }
 
   /** Adds `inputOp` as a control input of `op`. */
-  private[control_flow] def addControlInput(op: Op, inputOp: Op): Unit = {
+  private[control_flow] def addControlInput(op: Op[_, _], inputOp: Op[_, _]): Unit = {
     using(op.graph.reference)(r => {
       NativeLibrary.addControlInput(r.nativeHandle, op.nativeHandle, inputOp.nativeHandle)
     })
-    op.reloadNumControlInputs()
-    op.reloadControlInputs()
+    op._reloadNumControlInputs()
+    op._reloadControlInputs()
   }
 
   /** Clears the control inputs of `op` (i.e., removes all of them). */
-  private[control_flow] def clearControlInputs(op: Op): Unit = {
+  private[control_flow] def clearControlInputs(op: Op[_, _]): Unit = {
     using(op.graph.reference)(r => {
       NativeLibrary.clearControlInputs(r.nativeHandle, op.nativeHandle)
     })
-    op.reloadNumControlInputs()
-    op.reloadControlInputs()
+    op._reloadNumControlInputs()
+    op._reloadControlInputs()
   }
 
   /** Sets attribute `name` of `op` to the provided value. */
-  private[control_flow] def setAttribute(op: Op, name: String, value: AttrValue): Unit = {
+  private[control_flow] def setAttribute(op: Op[_, _], name: String, value: AttrValue): Unit = {
     using(op.graph.reference)(r => {
       NativeLibrary.setAttributeProto(r.nativeHandle, op.nativeHandle, name, value.toByteArray)
     })
   }
 
   //endregion Native Library Functions
-
-  //region Gradients
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("ControlTrigger")
-
-    GradientsRegistry.register("LoopCond", loopCondGradient)
-    GradientsRegistry.register("NextIteration", nextIterationGradient)
-    GradientsRegistry.register("RefNextIteration", nextIterationGradient)
-    GradientsRegistry.register("Enter", enterGradient)
-    GradientsRegistry.register("RefEnter", enterGradient)
-    GradientsRegistry.register("Exit", exitGradient)
-    GradientsRegistry.register("RefExit", exitGradient)
-    GradientsRegistry.register("Switch", switchGradient)
-    GradientsRegistry.register("RefSwitch", switchGradient)
-    GradientsRegistry.register("Merge", mergeGradient)
-    GradientsRegistry.register("RefMerge", mergeGradient)
-
-    /** We stop back-propagation for the predicate of a while loop. */
-    private[this] def loopCondGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Seq(null)
-    }
-
-    /** A forward next-iteration op is translated into a back-propagation identity op. Note that the back-propagation
-      * next-iteration op is added in switch op gradient. */
-    private[this] def nextIterationGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      outputGradients
-    }
-
-    /** Gradients for an enter op are calculated using an exit op. For loop variables, `outputGradients` is the gradient
-      * and so we just add an exit op. For loop invariants, we need to add an accumulator loop. */
-    private[this] def enterGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Op.currentControlFlowContext.map(gradientContext => {
-        if (!gradientContext.backPropagate) {
-          // We skip gradient computation in this case.
-          outputGradients
-        } else if (gradientContext.gradientLoopState.isEmpty) {
-          // We pass the gradient through if we are not in a gradient while-loop context.
-          outputGradients
-        } else if (op.booleanAttribute("is_constant")) {
-          // We add a gradient accumulator for each while-loop invariant.
-          Seq(gradientContext.asInstanceOf[WhileLoopContext].addBackwardAccumulator(op, outputGradients.head))
-        } else {
-          val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
-          val result = Seq(exit(outputGradients.head))
-          result(0) match {
-            case o: Output => gradientWhileLoopContext.loopExits += o
-            case o: OutputIndexedSlices =>
-              gradientWhileLoopContext.loopExits += o.indices
-              gradientWhileLoopContext.loopExits += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopExits += o.denseShape
-            case o: SparseOutput =>
-              gradientWhileLoopContext.loopExits += o.indices
-              gradientWhileLoopContext.loopExits += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopExits += o.denseShape
-          }
-          gradientContext.exitResult(result)
-          result
-        }
-      }).get
-    }
-
-    /** Gradients for an exit op are calculated using an enter op. */
-    @throws[UnimplementedException]
-    private[this] def exitGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      Op.currentControlFlowContext.map(gradientContext => {
-        if (!gradientContext.backPropagate) {
-          // We skip gradient computation in this case.
-          Seq(null)
-        } else if (op.controlFlowContext.flatMap(_.gradientLoopState).isDefined) {
-          throw UnimplementedException("Second-order gradients are not supported for while loops.")
-        } else {
-          outputGradients.head match {
-            case o: Output => gradientContext.values += o.name
-            case o: OutputIndexedSlices =>
-              gradientContext.values += o.indices.name
-              gradientContext.values += o.values.name
-              if (o.denseShape != null)
-                gradientContext.values += o.denseShape.name
-            case o: SparseOutput =>
-              gradientContext.values += o.indices.name
-              gradientContext.values += o.values.name
-              if (o.denseShape != null)
-                gradientContext.values += o.denseShape.name
-          }
-          val gradientWhileLoopContext = gradientContext.asInstanceOf[WhileLoopContext]
-          gradientContext.enter()
-          val result = Seq(enter(
-            outputGradients.head,
-            gradientContext.name,
-            isConstant = false,
-            parallelIterations = gradientWhileLoopContext.parallelIterations,
-            name = "ExitGradient"))
-          result(0) match {
-            case o: Output => gradientWhileLoopContext.loopEnters += o
-            case o: OutputIndexedSlices =>
-              gradientWhileLoopContext.loopEnters += o.indices
-              gradientWhileLoopContext.loopEnters += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopEnters += o.denseShape
-            case o: SparseOutput =>
-              gradientWhileLoopContext.loopEnters += o.indices
-              gradientWhileLoopContext.loopEnters += o.values
-              if (o.denseShape != null)
-                gradientWhileLoopContext.loopEnters += o.denseShape
-          }
-          gradientContext.exit()
-          result
-        }
-      }).get
-    }
-
-    /** Gradients for a switch op are calculated using a merge op. If the switch is a loop switch, it will be visited
-      * twice. We create the merge op on the first visit, and we update the second input of the merge on the second
-      * visit. A next-iteration op is also added in the second visit. */
-    private[this] def switchGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val gradientContext = Op.currentControlFlowContext
-      op.controlFlowContext match {
-        case Some(opContext: CondContext) =>
-          if (outputGradients(1 - opContext.branch.value) != null) {
-            Seq(merge(outputGradients, name = "CondGradient")._1, null)
-          } else if (op.inputs(0).dataType == RESOURCE) {
-            // At this point, we have created `zeroGradient` guarded by the right switch. Unfortunately, we may still
-            // get `null` here for non-trainable data types or for some types of ops (e.g., `ResourceGather`) created
-            // within only one branch.
-            // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
-            val goodGradient = outputGradients(opContext.branch.value)
-            val zeros = goodGradient match {
-              case o: Output => Basic.zerosLike(o)
-              case o: OutputIndexedSlices =>
-                OutputIndexedSlices(
-                  Basic.zeros(o.indices.dataType, Shape(1)),
-                  Basic.zeros(o.values.dataType, Shape(1, o.values.shape(1))),
-                  o.denseShape)
-              case o: SparseOutput =>
-                SparseOutput(
-                  Basic.zeros(o.indices.dataType, Shape(1, o.indices.shape(1))),
-                  Basic.zeros(o.values.dataType, Shape(1)),
-                  o.denseShape)
-            }
-            val zeroGradient = opContext.branch.other.selectSwitchResult(
-              ControlFlow.colocatedSwitch(zeros, opContext.predicate))
-            if (opContext.branch.value == 0)
-              Seq(merge(Seq(goodGradient, zeroGradient), name = "CondGradient")._1, null)
-            else
-              Seq(merge(Seq(zeroGradient, goodGradient), name = "CondGradient")._1, null)
-          } else {
-            Seq(null, null)
-          }
-        case Some(_: WhileLoopContext) =>
-          gradientContext.flatMap(_.gradientLoopState).flatMap(_.switchMap.get(op)) match {
-            case Some(mergeGradient) =>
-              // This is the second time this switch node is visited. It comes from the non-exit branch of the switch,
-              // and so we update the second input to the merge node.
-              if (outputGradients(1) != null)
-                WhileLoopContext.addNextIterationAndBackEdge(
-                  mergeGradient, outputGradients(1), enforceShapeInvariant = false)
-              Seq(null, null)
-            case None if outputGradients.head != null =>
-              // This is the first time this switch node is visited. It comes from the exit branch of the switch, which
-              // is `outputGradients(0)`. `outputGradients(1)` is empty at this point. We use `outputGradients(0)` for
-              // both inputs to the merge for now, but we update the second input of the merge node when we visit this
-              // switch node for a second time.
-              val mergeGradient = merge(Seq(outputGradients(0), outputGradients(0)), name = "SwitchGradient")._1
-              gradientContext.flatMap(_.gradientLoopState).map(_.switchMap).foreach(_ += op -> mergeGradient)
-              Seq(mergeGradient, null)
-            case _ =>
-              // This is the first time this switch node is visited. It comes from the identity branch. Such a switch
-              // has `null` gradient for the exit branch, meaning that the output is not differentiable.
-              Seq(null, null)
-          }
-        case _ =>
-          val falseGradient = switch(outputGradients(0), op.inputs(1))._1
-          val trueGradient = switch(outputGradients(1), op.inputs(1))._2
-          Seq(merge(Seq(falseGradient, trueGradient))._1, null)
-      }
-    }
-
-    /** Gradients for a merge op are calculated using a switch op. */
-    private[this] def mergeGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val gradientContext = Op.currentControlFlowContext
-      ControlFlow.getOutputContext(op.inputs(0).op) match {
-        case Some(opContext: CondContext) =>
-          val predicate = gradientContext.flatMap(_.gradientLoopState).map(gradientLoopState => {
-            // This merge node is part of a conditional structure within a loop. The back-propagation needs to have the
-            // value of this predicate for every iteration and so, we must have its values accumulated in the forward,
-            // and use the accumulated values as the predicate for this back-propagation switch.
-            gradientLoopState.historyMap.getOrElse(opContext.predicate.name, {
-              // We want to remember the value of the predicate for every iteration.
-              gradientLoopState.backwardContext.exit()
-              val historyPredicate = gradientLoopState.addForwardAccumulator(opContext.predicate)
-              gradientLoopState.backwardContext.enter()
-              // We now add the stack pop op. If `opContext.predicate.op` is in a (possibly outer) `CondContext`, then
-              // the stack pop op will be guarded with a switch.
-              val realPredicate = gradientLoopState.addBackwardAccumulatedValue(historyPredicate, opContext.predicate)
-              gradientLoopState.historyMap += opContext.predicate.name -> realPredicate
-              realPredicate
-            })
-          }).getOrElse(opContext.predicate)
-          val switch = colocatedSwitch(outputGradients.head, predicate)
-          Seq(switch._1, switch._2)
-        case Some(_: WhileLoopContext) =>
-          val switch = colocatedSwitch(outputGradients.head, gradientContext.get.asInstanceOf[WhileLoopContext].pivot)
-          Seq(switch._1, switch._2)
-        case _ =>
-          (0 until op.numInputs).map(i => {
-            colocatedSwitch(outputGradients.head, Math.equal(op.outputs(1), i))._2
-          })
-      }
-    }
-  }
-
-  //endregion Gradients
 
   /** @define OpDocControlFlowGroup
     *   The `group` op groups multiple ops together.
@@ -1268,7 +1374,7 @@ private[api] object ControlFlow extends ControlFlow {
     *   never get ahead of the counter thread because the thread incrementing `x` depends on the value of the counter.
     *   {{{
     *     val n = 10000
-    *     val x = tf.constant(Tensor.zeros(INT32, Shape(n)))
+    *     val x = tf.constant(Tensor.zeros[Int](Shape(n)))
     *     val p = (i: Output, x: Output) => i < n
     *     val b = (i: Output, x: Output) => (tf.print(i + 1, Seq(i)), tf.print(x + 1, Seq(x), "x: "))
     *     val r = tf.whileLoop(p, b, (0, x))

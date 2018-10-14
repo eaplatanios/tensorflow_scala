@@ -17,12 +17,12 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
-import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.core.types.FLOAT32
+import org.platanios.tensorflow.api.ops.{Op, UntypedOp}
 import org.platanios.tensorflow.api.ops.Op.createWith
 import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
 import org.platanios.tensorflow.api.ops.Math.add
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 import org.scalatest._
 
@@ -30,7 +30,7 @@ import org.scalatest._
   * @author Emmanouil Antonios Platanios
   */
 class GraphSpec extends FlatSpec with Matchers {
-  private[this] def prepareGraph(): (Graph, Array[Op]) = {
+  private[this] def prepareGraph(): (Graph, Array[UntypedOp]) = {
     val graph = Graph()
     val ops = createWith(graph = graph) {
       val c1 = constant(Tensor(1.0), name = "C_1")
@@ -48,29 +48,29 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'preventFeeding'" must "prevent valid ops from being fetched" in {
     val (graph, ops) = prepareGraph()
-    assert(graph.isFeedable(ops(0).outputs(0)))
-    assert(graph.isFeedable(ops(1).outputs(0)))
-    assert(graph.isFeedable(ops(2).outputs(0)))
-    assert(graph.isFeedable(ops(3).outputs(0)))
-    graph.preventFeeding(ops(0).outputs(0))
-    assert(!graph.isFeedable(ops(0).outputs(0)))
-    assert(graph.isFeedable(ops(1).outputs(0)))
-    assert(graph.isFeedable(ops(2).outputs(0)))
-    assert(graph.isFeedable(ops(3).outputs(0)))
-    graph.preventFeeding(ops(2).outputs(0))
-    assert(!graph.isFeedable(ops(0).outputs(0)))
-    assert(graph.isFeedable(ops(1).outputs(0)))
-    assert(!graph.isFeedable(ops(2).outputs(0)))
-    assert(graph.isFeedable(ops(3).outputs(0)))
+    assert(graph.isFeedable(ops(0).outputsSeq(0)))
+    assert(graph.isFeedable(ops(1).outputsSeq(0)))
+    assert(graph.isFeedable(ops(2).outputsSeq(0)))
+    assert(graph.isFeedable(ops(3).outputsSeq(0)))
+    graph.preventFeeding(ops(0).outputsSeq(0))
+    assert(!graph.isFeedable(ops(0).outputsSeq(0)))
+    assert(graph.isFeedable(ops(1).outputsSeq(0)))
+    assert(graph.isFeedable(ops(2).outputsSeq(0)))
+    assert(graph.isFeedable(ops(3).outputsSeq(0)))
+    graph.preventFeeding(ops(2).outputsSeq(0))
+    assert(!graph.isFeedable(ops(0).outputsSeq(0)))
+    assert(graph.isFeedable(ops(1).outputsSeq(0)))
+    assert(!graph.isFeedable(ops(2).outputsSeq(0)))
+    assert(graph.isFeedable(ops(3).outputsSeq(0)))
   }
 
   it must "throw a 'GraphMismatchException' when provided ops from other graphs" in {
     val (graph, ops) = prepareGraph()
     createWith(graph = Graph()) {
       assert(intercept[GraphMismatchException](graph.isFeedable(constant(1.0))).getMessage ===
-                 "The provided op output does not belong to this graph.")
+          "The provided op output does not belong to this graph.")
       assert(intercept[GraphMismatchException](graph.preventFeeding(constant(1.0))).getMessage ===
-                 "The provided op output does not belong to this graph.")
+          "The provided op output does not belong to this graph.")
     }
   }
 
@@ -96,9 +96,9 @@ class GraphSpec extends FlatSpec with Matchers {
     val (graph, ops) = prepareGraph()
     createWith(graph = Graph()) {
       assert(intercept[GraphMismatchException](graph.isFetchable(constant(1.0).op)).getMessage ===
-                 "The provided op does not belong to this graph.")
+          "The provided op does not belong to this graph.")
       assert(intercept[GraphMismatchException](graph.preventFetching(constant(1.0).op)).getMessage ===
-                 "The provided op does not belong to this graph.")
+          "The provided op does not belong to this graph.")
     }
   }
 
@@ -126,39 +126,39 @@ class GraphSpec extends FlatSpec with Matchers {
       "if an op name does not exist in the graph" in {
     val (graph, _) = prepareGraph()
     assert(intercept[InvalidArgumentException](graph.getOpByName("A")).getMessage
-               === "Name 'A' refers to an op which does not exist in the graph.")
+        === "Name 'A' refers to an op which does not exist in the graph.")
     assert(intercept[InvalidArgumentException](graph.getOpByName("A:0")).getMessage
-               === "Name 'A:0' appears to refer to an op output, but 'allowOutput' was set to 'false'.")
+        === "Name 'A:0' appears to refer to an op output, but 'allowOutput' was set to 'false'.")
   }
 
   "'outputByName'" must "return an existing op output in a graph" in {
     val (graph, ops) = prepareGraph()
-    assert(graph.getOutputByName("C_2:0") === ops(1).outputs(0))
+    assert(graph.getOutputByName("C_2:0") === ops(1).outputsSeq(0))
   }
 
   it must "throw an 'InvalidArgumentException' exception with an informative message " +
       "if an op output name does not exist in the graph" in {
     val (graph, _) = prepareGraph()
     assert(intercept[InvalidArgumentException](graph.getOutputByName("A:0:3")).getMessage
-               === "Name 'A:0:3' looks a like an op output name, but it is not a valid one. " +
+        === "Name 'A:0:3' looks a like an op output name, but it is not a valid one. " +
         "Op output names must be of the form \"<op_name>:<output_index>\".")
     assert(intercept[InvalidArgumentException](graph.getOutputByName("A:0")).getMessage
-               === "Name 'A:0' refers to an op output which does not exist in the graph. " +
+        === "Name 'A:0' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'A', does not exist in the graph.")
     assert(intercept[InvalidArgumentException](graph.getOutputByName("C_2:5")).getMessage
-               === "Name 'C_2:5' refers to an op output which does not exist in the graph. " +
+        === "Name 'C_2:5' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'C_2', does exist in the graph, but it only has 1 output(s).")
     assert(intercept[InvalidArgumentException](graph.getOutputByName("A")).getMessage
-               === "Name 'A' looks like an (invalid) op name, and not an op output name. " +
+        === "Name 'A' looks like an (invalid) op name, and not an op output name. " +
         "Op output names must be of the form \"<op_name>:<output_index>\".")
     assert(intercept[InvalidArgumentException](graph.getOutputByName("C_2")).getMessage
-               === "Name 'C_2' appears to refer to an op, but 'allowOp' was set to 'false'.")
+        === "Name 'C_2' appears to refer to an op, but 'allowOp' was set to 'false'.")
   }
 
   "'graphElementByName'" must "return an existing element in a graph" in {
     val (graph, ops) = prepareGraph()
     assert(graph.getByName("C_2").left.get === ops(1))
-    assert(graph.getByName("C_2:0").right.get === ops(1).outputs(0))
+    assert(graph.getByName("C_2:0").right.get === ops(1).outputsSeq(0))
   }
 
   it must "throw an 'InvalidArgumentException' exception with an informative message " +
@@ -166,22 +166,22 @@ class GraphSpec extends FlatSpec with Matchers {
     val (graph, _) = prepareGraph()
     assert(intercept[InvalidArgumentException](
       graph.getByName("A", allowOp = true, allowOutput = true)).getMessage
-               === "Name 'A' refers to an op which does not exist in the graph.")
+        === "Name 'A' refers to an op which does not exist in the graph.")
     assert(intercept[InvalidArgumentException](
       graph.getByName("A:0:3", allowOp = true, allowOutput = true)).getMessage
-               === "Name 'A:0:3' looks a like an op output name, but it is not a valid one. " +
+        === "Name 'A:0:3' looks a like an op output name, but it is not a valid one. " +
         "Op output names must be of the form \"<op_name>:<output_index>\".")
     assert(intercept[InvalidArgumentException](
       graph.getByName("A:0", allowOp = true, allowOutput = true)).getMessage
-               === "Name 'A:0' refers to an op output which does not exist in the graph. " +
+        === "Name 'A:0' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'A', does not exist in the graph.")
     assert(intercept[InvalidArgumentException](
       graph.getByName("C_2:5", allowOp = true, allowOutput = true)).getMessage
-               === "Name 'C_2:5' refers to an op output which does not exist in the graph. " +
+        === "Name 'C_2:5' refers to an op output which does not exist in the graph. " +
         "More specifically, op, 'C_2', does exist in the graph, but it only has 1 output(s).")
     assert(intercept[IllegalArgumentException](
       graph.getByName("A", allowOp = false, allowOutput = false)).getMessage
-               === "'allowOutput' and 'allowOp' cannot both be set to 'false'.")
+        === "'allowOutput' and 'allowOp' cannot both be set to 'false'.")
   }
 
   object INPUTS extends Graph.Keys.OutputCollectionKey {
@@ -198,16 +198,16 @@ class GraphSpec extends FlatSpec with Matchers {
 
     Op.createWith(graph) {
       // Create a minimal graph with zero variables.
-      val input = placeholder(FLOAT32, Shape(), name = "Input")
-      val offset = constant(42, FLOAT32, name = "Offset")
+      val input = placeholder[Float](Shape(), name = "Input")
+      val offset = constant(42.0f, name = "Offset")
       val output = add(input, offset, name = "AddOffset")
 
       // Add input and output tensors to graph collections.
-      graph.addToCollection(input, INPUTS)
-      graph.addToCollection(output, OUTPUTS)
+      graph.addToCollection(INPUTS)(input)
+      graph.addToCollection(OUTPUTS)(output)
 
       val outputValue = session.run(Map(input -> Tensor(-10f)), output)
-      assert(outputValue.scalar === 32)
+      assert(outputValue.scalar == 32)
     }
 
     // Generate the 'MetaGraphDef' object.
@@ -230,12 +230,12 @@ class GraphSpec extends FlatSpec with Matchers {
     // assert(newMetaGraphDef.equals(metaGraphDef))
 
     // Ensure that we can still get a reference to our graph collections.
-    val newInput = newGraph.getCollection(INPUTS).head
-    val newOutput = newGraph.getCollection(OUTPUTS).head
+    val newInput = newGraph.getCollection(INPUTS).head.asInstanceOf[Output[Float]]
+    val newOutput = newGraph.getCollection(OUTPUTS).head.asInstanceOf[Output[Float]]
 
     // Verify that the new graph computes the same result as the original.
     val newOutputValue = newSession.run(Map(newInput -> Tensor(-10f)), newOutput)
-    assert(newOutputValue.scalar === 32)
+    assert(newOutputValue.scalar == 32.0f)
 
     newSession.close()
   }

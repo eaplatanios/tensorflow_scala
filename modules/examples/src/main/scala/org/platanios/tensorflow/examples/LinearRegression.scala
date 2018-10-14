@@ -27,18 +27,18 @@ import scala.util.Random
   * @author Emmanouil Antonios Platanios
   */
 object LinearRegression {
-  private[this] val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
-  private[this] val random = new Random()
+  private val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
+  private val random = new Random()
 
-  private[this] val weight = random.nextFloat()
+  private val weight = random.nextFloat()
 
   def main(args: Array[String]): Unit = {
     logger.info("Building linear regression model.")
-    val inputs = tf.placeholder(FLOAT32, Shape(-1, 1))
-    val outputs = tf.placeholder(FLOAT32, Shape(-1, 1))
-    val weights = tf.variable("weights", FLOAT32, Shape(1, 1), tf.ZerosInitializer)
+    val inputs = tf.placeholder[Float](Shape(-1, 1))
+    val outputs = tf.placeholder[Float](Shape(-1, 1))
+    val weights = tf.variable[Float]("weights", Shape(1, 1), tf.ZerosInitializer)
     val predictions = tf.matmul(inputs, weights)
-    val loss = tf.sum(tf.square(predictions - outputs))
+    val loss = tf.sum(tf.square(tf.subtract(predictions, outputs)))
     val trainOp = tf.train.AdaGrad(1.0f).minimize(loss)
 
     logger.info("Training the linear regression model.")
@@ -57,7 +57,7 @@ object LinearRegression {
     logger.info(s"True weight value: $weight")
   }
 
-  def batch(batchSize: Int): (Tensor[FLOAT32], Tensor[FLOAT32]) = {
+  def batch(batchSize: Int): (Tensor[Float], Tensor[Float]) = {
     val inputs = ArrayBuffer.empty[Float]
     val outputs = ArrayBuffer.empty[Float]
     var i = 0
@@ -67,6 +67,7 @@ object LinearRegression {
       outputs += weight * input
       i += 1
     }
-    (Tensor(inputs).reshape(Shape(-1, 1)), Tensor(outputs).reshape(Shape(-1, 1)))
+    (Tensor[Float](inputs).reshape(Shape(-1, 1)),
+        Tensor[Float](outputs).reshape(Shape(-1, 1)))
   }
 }

@@ -16,14 +16,14 @@
 package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.core.exception.{InvalidShapeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.core.Graph.Keys.{OpCollectionKey, OutputCollectionKey, VariableCollectionKey}
+import org.platanios.tensorflow.api.core.exception.{InvalidShapeException, ShapeMismatchException}
+import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets}
+import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 /** Trait representing evaluation metrics that support both eager computation, as well as computation in a streaming
   * manner.
@@ -35,7 +35,7 @@ trait Metric[T, R] {
   def name: String
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  def weights: Option[Tensor[FLOAT32]] = None
+  def weights: Option[Tensor[Float]] = None
 
   /** Computes the value of this metric for the provided values, optionally weighted by `weights`.
     *
@@ -46,7 +46,7 @@ trait Metric[T, R] {
     */
   def compute(
       values: T,
-      weights: Option[Output] = None,
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Compute"
   ): R
 
@@ -61,11 +61,13 @@ trait Metric[T, R] {
     */
   def streaming(
       values: T,
-      weights: Option[Output] = None,
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Streaming"
   ): Metric.StreamingInstance[R]
 
-  protected def getWeights(providedWeights: Option[Output]): Option[Output] = {
+  protected def getWeights(
+      providedWeights: Option[Output[Float]]
+  ): Option[Output[Float]] = {
     providedWeights
         .map(w => this.weights.map(w * _).getOrElse(w))
         .orElse(this.weights.map(_.toOutput))
@@ -75,7 +77,11 @@ trait Metric[T, R] {
 }
 
 object Metric {
-  case class StreamingInstance[R](value: R, update: R, reset: Op, variables: Set[Variable])
+  case class StreamingInstance[R](
+      value: R,
+      update: R,
+      reset: UntypedOp,
+      variables: Set[Variable[Any]])
 
   /** Key to collect the subset of `Variable` objects that are used for computing and storing metric values. */
   object METRIC_VARIABLES extends VariableCollectionKey {
@@ -98,28 +104,44 @@ object Metric {
   }
 
   /** Creates a new variable and adds it to the `LOCAL_VARIABLES` graph collection. */
-  def variable(
+  def variable[T: TF](
       name: String,
-      dataType: DataType = null,
       shape: Shape = null,
       initializer: Initializer = ZerosInitializer,
-      collections: Set[Graph.Key[Variable]] = Set.empty
-  ): Variable = {
+      collections: Set[Graph.Key[Variable[Any]]] = Set.empty
+  ): Variable[T] = {
     // TODO: [DISTRIBUTE] Add support for the distribute API.
-    Variable.getVariable(
-      name = name, dataType = dataType, shape = shape, initializer = initializer, trainable = false,
+    Variable.getVariable[T](
+      name, shape, initializer, trainable = false,
       collections = collections ++ Set(Metric.METRIC_VARIABLES, Graph.Keys.LOCAL_VARIABLES))
   }
 
   /** Divides two values, returning 0 if the denominator is <= 0. */
-  def safeDiv(numerator: Output, denominator: Output, name: String = "SafeDiv"): Output = {
-    Math.select(Math.greater(denominator, 0), Math.divide(numerator, denominator), 0, name)
+  def safeDiv[T: TF : IsNotQuantized](
+      numerator: Output[T],
+      denominator: Output[T],
+      name: String = "SafeDiv"
+  ): Output[T] = {
+    val zero = Basic.zeros[T](Shape())
+    Math.select(
+      condition = Math.greater(denominator, zero),
+      x = Math.divide(numerator, denominator),
+      y = zero,
+      name = name)
   }
 
   /** Divides two scalar values, returning 0 if the denominator is 0. */
-  def safeScalarDiv(numerator: Output, denominator: Output, name: String = "SafeScalarDiv"): Output = {
+  def safeScalarDiv[T: TF : IsNotQuantized](
+      numerator: Output[T],
+      denominator: Output[T],
+      name: String = "SafeScalarDiv"
+  ): Output[T] = {
     val zeros = Basic.zerosLike(denominator)
-    Math.select(Math.equal(denominator, zeros), zeros, Math.divide(numerator, denominator), name)
+    Math.select(
+      condition = Math.equal(denominator, zeros),
+      x = zeros,
+      y = Math.divide(numerator, denominator),
+      name = name)
   }
 
   /** Broadcast `weights` to the same shape as `values`.
@@ -133,18 +155,21 @@ object Metric {
     * @param  name    Name prefix for the created ops.
     * @return Broadcasted weights.
     */
-  private[metrics] def weightsBroadcast(
-      values: Output,
-      weights: Output,
+  private[metrics] def weightsBroadcast[T: TF](
+      values: Output[T],
+      weights: Output[Float],
       name: String = "BroadcastWeights"
-  ): Output = {
-    Op.createWithNameScope(name, Set(values.op, weights.op)) {
+  ): Output[Float] = {
+    Op.nameScope(name) {
       // Try static check for exact match.
-      if (values.shape.isFullyDefined && weights.shape.isFullyDefined && values.shape.isCompatibleWith(weights.shape)) {
+      if (values.shape.isFullyDefined &&
+          weights.shape.isFullyDefined &&
+          values.shape.isCompatibleWith(weights.shape)
+      ) {
         weights
       } else {
         Op.createWith(controlDependencies = Set(weightsAssertBroadcastable(values, weights))) {
-          Math.multiply(weights, Basic.onesLike(values), name = "Broadcast")
+          Math.multiply(weights, Basic.onesLike(values).castTo[Float], name = "Broadcast")
         }
       }
     }
@@ -161,12 +186,12 @@ object Metric {
     * @param  name    Name prefix for the created ops.
     * @return Assertion op for the assertion that `weights` can be broadcast to the same shape as `values`.
     */
-  private[metrics] def weightsAssertBroadcastable(
-      values: Output,
-      weights: Output,
+  private[metrics] def weightsAssertBroadcastable[T: TF](
+      values: Output[T],
+      weights: Output[Float],
       name: String = "AssertBroadcastable"
-  ): Op = {
-    Op.createWithNameScope(name, Set(values.op, weights.op)) {
+  ): UntypedOp = {
+    Op.nameScope(name) {
       val valuesRank = Basic.rank(values, name = "Values/Rank")
       val valuesShape = Basic.shape(values, name = "Values/Shape")
       val valuesRankStatic = Output.constantValue(valuesRank)
@@ -177,7 +202,8 @@ object Metric {
       val weightsShapeStatic = Output.constantValueAsShape(weightsShape)
       // Try static checks.
       (valuesRankStatic, valuesShapeStatic, weightsRankStatic, weightsShapeStatic) match {
-        case (Some(_), _, Some(wR), _) if wR.scalar == 0 => ControlFlow.noOp("StaticScalarCheckSuccess")
+        case (Some(_), _, Some(wR), _) if wR.scalar == 0 =>
+          ControlFlow.noOp("StaticScalarCheckSuccess")
         case (Some(vR), _, Some(wR), _) if vR != wR => throw InvalidShapeException(
           "'weights' can not be broadcasted to 'values'. " +
               s"values.rank = ${vR.scalar}, " +
@@ -211,14 +237,14 @@ object Metric {
 
   /** Returns a boolean tensor indicating whether `weightsShape` has valid non-scalar dimensions for broadcasting to
     * `valuesShape`. */
-  private[this] def weightsHaveValidNonScalarShape(
-      valuesRank: Output,
-      valuesShape: Output,
-      weightsRank: Output,
-      weightsShape: Output,
+  private def weightsHaveValidNonScalarShape(
+      valuesRank: Output[Int],
+      valuesShape: Output[Long],
+      weightsRank: Output[Int],
+      weightsShape: Output[Long],
       name: String = "WeightsHaveValidNonScalarShape"
-  ): Output = {
-    Op.createWithNameScope(name, Set(valuesRank.op, valuesShape.op, weightsRank.op, weightsShape.op)) {
+  ): Output[Boolean] = {
+    Op.nameScope(name) {
       val isSameRank = Math.equal(valuesRank, weightsRank, name = "IsSameRank")
       ControlFlow.cond(
         isSameRank,
@@ -229,18 +255,18 @@ object Metric {
 
   /** Returns a boolean tensor indicating whether `weightsShape` has valid dimensions for broadcasting to
     * `valuesShape`. */
-  private[this] def weightsHaveValidDimensions(
-      valuesShape: Output,
-      weightsShape: Output,
+  private def weightsHaveValidDimensions(
+      valuesShape: Output[Long],
+      weightsShape: Output[Long],
       name: String = "WeightsHaveValidDimensions"
-  ): Output = {
-    Op.createWithNameScope(name, Set(valuesShape.op, weightsShape.op)) {
+  ): Output[Boolean] = {
+    Op.nameScope(name) {
       val reshapedValuesShape = Basic.expandDims(valuesShape, -1)
       val reshapedWeightsShape = Basic.expandDims(weightsShape, -1)
       val validDimensions = Basic.concatenate(Seq(reshapedValuesShape, Basic.onesLike(reshapedValuesShape)), 1)
       val invalidDimensions = Sets.setDifference(reshapedWeightsShape, validDimensions)
       val numInvalidDimensions = Basic.size(invalidDimensions.values, name = "NumInvalidDimensions")
-      Math.equal(0, numInvalidDimensions)
+      Math.equal(0L, numInvalidDimensions)
     }
   }
 
@@ -265,12 +291,12 @@ object Metric {
     * @param  expectedRankDiff Expected rank difference.
     * @return Tuple containing the processed `predictions`, `targets`, and `weights`.
     */
-  def matchAxes(
-      predictions: Output,
-      targets: Option[Output] = None,
-      weights: Option[Output] = None,
+  def matchAxes[P: TF, T: TF](
+      predictions: Output[P],
+      targets: Option[Output[T]] = None,
+      weights: Option[Output[Float]] = None,
       expectedRankDiff: Int = 0
-  ): (Output, Option[Output], Option[Output]) = {
+  ): (Output[P], Option[Output[T]], Option[Output[Float]]) = {
     var matchedPredictions = predictions
     var matchedTargets = targets
     targets match {
@@ -322,7 +348,7 @@ object Metric {
           // If weights are scalar, do nothing. Otherwise, try to add or remove an axis to match predictions.
           matchedWeights = matchedWeights.map(mw => {
             ControlFlow.cond(
-              Math.equal(mw, 0),
+              Math.equal(mw, 0.0f),
               () => mw,
               () => ControlFlow.cond(
                 Math.equal(rankDiff, -1),
@@ -351,9 +377,12 @@ object Metric {
     *                                `[D1, ..., DN]`.
     */
   @throws[ShapeMismatchException]
-  def maybeExpandTargets(predictions: Output, targets: Output): Output = {
+  def maybeExpandTargets[P: TF, T: TF](
+      predictions: Output[P],
+      targets: Output[T]
+  ): Output[T] = {
     // TODO: [SPARSE] Support sparse `targets`.
-    Op.createWithNameScope("MaybeExpandTargets") {
+    Op.nameScope("MaybeExpandTargets") {
       if (predictions.rank > -1 && targets.rank > -1) {
         // We first try to use static shape information.
         if (predictions.rank == targets.rank)

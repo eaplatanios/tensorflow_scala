@@ -15,12 +15,14 @@
 
 package org.platanios.tensorflow.api.ops.rnn.attention
 
+import cats.data.Nested
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, NN, Op, Output}
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.Aux
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 import scala.language.postfixOps
 
@@ -40,32 +42,40 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Attention[AS, ASS](
-    protected val memory: Output,
-    protected val memorySequenceLengths: Output = null,
+abstract class Attention[T: TF : IsDecimal, State](
+    protected val memory: Output[T],
+    protected val memorySequenceLengths: Output[Int] = null,
     val checkInnerDimensionsDefined: Boolean = true,
-    val scoreMaskValue: Output = Float.NegativeInfinity,
+    val scoreMaskValue: Output[Float] = Float.MinValue,
     val name: String = "Attention"
-)(implicit
-    evAS: WhileLoopVariable.Aux[AS, ASS]
 ) {
-  lazy val values: Output = Op.createWithNameScope(s"$name/Values") {
-    Attention.maybeMaskValues(memory, memorySequenceLengths, checkInnerDimensionsDefined)
+  lazy val values: Output[T] = {
+    Op.nameScope(s"$name/Values") {
+      Attention.maybeMaskValues(memory, memorySequenceLengths, checkInnerDimensionsDefined)
+    }
   }
 
-  lazy val keys: Output = values
-
-  lazy val batchSize: Output = Op.createWithNameScope(s"$name/BatchSize") {
-    Attention.dimSize(keys, 0)
+  lazy val keys: Output[T] = {
+    values
   }
 
-  lazy val alignmentSize: Output = Op.createWithNameScope(s"$name/AlignmentSize") {
-    Attention.dimSize(keys, 1)
+  lazy val batchSize: Output[Int] = {
+    Op.nameScope(s"$name/BatchSize") {
+      Attention.dimSize(keys, axis = 0)
+    }
   }
 
-  def stateSize: ASS
+  lazy val alignmentSize: Output[Int] = {
+    Op.nameScope(s"$name/AlignmentSize") {
+      Attention.dimSize(keys, axis = 1)
+    }
+  }
 
-  lazy val dataType: DataType = keys.dataType
+  def stateSize[V, D, S](implicit evStructureState: NestedStructure.Aux[State, V, D, S]): S
+
+  lazy val dataType: DataType[T] = {
+    keys.dataType
+  }
 
   /** Initial alignment value.
     *
@@ -74,10 +84,12 @@ abstract class Attention[AS, ASS](
     *
     * The default behavior is to return a tensor of all zeros.
     */
-  lazy val initialAlignment: Output = {
-    Op.createWithNameScope(s"$name/InitialAlignment", Set(batchSize.op)) {
-      val fullShape = Basic.stack(Seq(batchSize, alignmentSize.cast(batchSize.dataType)), axis = 0)
-      Basic.zeros(dataType, fullShape)
+  lazy val initialAlignment: Output[T] = {
+    Op.nameScope(s"$name/InitialAlignment") {
+      val fullShape = Basic.stack(
+        Seq(batchSize, alignmentSize.castTo[Int]),
+        axis = 0)
+      Basic.zeros[T, Int](fullShape)
     }
   }
 
@@ -88,7 +100,7 @@ abstract class Attention[AS, ASS](
     *
     * The default behavior is to return the same output as `initialAlignment`.
     */
-  def initialState: AS
+  def initialState: State
 
   /** Computes an alignment tensor given the provided query and previous alignment tensor.
     *
@@ -101,7 +113,7 @@ abstract class Attention[AS, ASS](
     * @param  previousState Previous alignment tensor.
     * @return Tuple containing the alignment tensor and the next attention state.
     */
-  def alignment(query: Output, previousState: AS): (Output, AS)
+  def alignment(query: Output[T], previousState: State): (Output[T], State)
 
   /** Computes an alignment score for `query`.
     *
@@ -111,7 +123,7 @@ abstract class Attention[AS, ASS](
     *               `alignmentSize` is the memory's maximum time.
     * @return Score tensor.
     */
-  protected def score(query: Output, state: AS): Output
+  protected def score(query: Output[T], state: State): Output[T]
 
   /** Computes alignment probabilities for `score`.
     *
@@ -121,82 +133,108 @@ abstract class Attention[AS, ASS](
     *               `alignmentSize` is the memory's maximum time.
     * @return Alignment probabilities tensor.
     */
-  protected def probability(score: Output, state: AS): Output = NN.softmax(score, name = "Probability")
+  protected def probability(score: Output[T], state: State): Output[T] = {
+    NN.softmax(score, name = "Probability")
+  }
 }
 
 /** Base class for attention models that use as state the previous alignment. */
-abstract class SimpleAttention(
-    override protected val memory: Output,
-    override protected val memorySequenceLengths: Output = null,
+abstract class SimpleAttention[T: TF : IsDecimal](
+    override protected val memory: Output[T],
+    override protected val memorySequenceLengths: Output[Int] = null,
     override val checkInnerDimensionsDefined: Boolean = true,
-    override val scoreMaskValue: Output = Float.NegativeInfinity,
+    override val scoreMaskValue: Output[Float] = Float.MinValue,
     override val name: String = "SimpleAttention"
-) extends Attention[Output, Shape](memory, memorySequenceLengths, checkInnerDimensionsDefined, scoreMaskValue, name) {
-  override def stateSize: Shape = {
-    Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown())
+) extends Attention[T, Output[T]](
+  memory = memory,
+  memorySequenceLengths = memorySequenceLengths,
+  checkInnerDimensionsDefined = checkInnerDimensionsDefined,
+  scoreMaskValue = scoreMaskValue,
+  name = name
+) {
+  override def stateSize[V, D, S](implicit evStructureState: Aux[Output[T], V, D, S]): S = {
+    Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown()).asInstanceOf[S]
   }
 
-  override def initialState: Output = {
-    Op.createWithNameScope(s"$name/InitialState", Set(batchSize.op)) {
+  override def initialState: Output[T] = {
+    Op.nameScope(s"$name/InitialState") {
       Basic.identity(initialAlignment)
     }
   }
 
-  override def alignment(query: Output, previousState: Output): (Output, Output) = Op.createWithNameScope(name) {
-    val unmaskedScore = score(query, previousState)
-    val maskedScore = Attention.maybeMaskScore(unmaskedScore, memorySequenceLengths, scoreMaskValue)
-    val alignment = probability(maskedScore, previousState)
-    (alignment, alignment)
+  override def alignment(
+      query: Output[T],
+      previousState: Output[T]
+  ): (Output[T], Output[T]) = {
+    Op.nameScope(name) {
+      val unmaskedScore = score(query, previousState)
+      val maskedScore = Attention.maybeMaskScore(
+        unmaskedScore, memorySequenceLengths, scoreMaskValue.castTo[T])
+      val alignment = probability(maskedScore, previousState)
+      (alignment, alignment)
+    }
   }
 }
 
 object Attention {
-  private[attention] def dimSize(value: Output, axis: Int): Output = {
+  private[attention] def dimSize[T: TF](
+      value: Output[T],
+      axis: Int
+  ): Output[Int] = {
     if (value.rank != -1 && value.shape(axis) != -1)
       Basic.constant(value.shape(axis))
     else
-      Basic.shape(value)(axis)
+      Basic.shape(value).castTo[Int].slice(axis)
   }
 
   /** Potentially masks the provided values tensor based on the provided sequence lengths. */
   @throws[InvalidShapeException]
-  private[attention] def maybeMaskValues(
-      values: Output, sequenceLengths: Output, checkInnerDimensionsDefined: Boolean
-  ): Output = {
-    if (checkInnerDimensionsDefined && !values.shape(2 ::).isFullyDefined)
+  private[attention] def maybeMaskValues[T: TF : IsNotQuantized](
+      values: Output[T],
+      sequenceLengths: Output[Int],
+      checkInnerDimensionsDefined: Boolean
+  ): Output[T] = {
+    if (checkInnerDimensionsDefined && !values.shape(2 ::).isFullyDefined) {
       throw InvalidShapeException(
-        s"Expected memory '${values.name}' to have fully defined inner dimensions, but saw shape: ${values.shape}.")
-    val (batchSize, sequenceMask) = {
+        s"Expected memory '${values.name}' to have fully defined " +
+            s"inner dimensions, but saw shape: ${values.shape}.")
+    }
+    val sequenceMask = {
       if (sequenceLengths == null) {
-        (null, null)
+        null
       } else {
-        val batchSize = {
-          if (sequenceLengths.shape(0) != -1)
-            Basic.constant(sequenceLengths.shape(0))
-          else
-            Basic.shape(sequenceLengths)(0)
-        }
-        (batchSize, Basic.sequenceMask(sequenceLengths, Basic.shape(values)(1), values.dataType))
+        Basic.sequenceMask(
+          sequenceLengths,
+          Basic.shape(values).castTo[Int].slice(1)
+        ).castTo[T]
       }
     }
     if (sequenceMask == null) {
       values
     } else {
       val rank = if (values.rank != -1) Basic.constant(values.rank) else Basic.rank(values)
-      val extraOnes = Basic.ones(INT32, Basic.expandDims(rank - 2, 0))
-      val mask = sequenceMask.reshape(Basic.concatenate(Seq(Basic.shape(sequenceMask), extraOnes), 0))
+      val extraOnes = Basic.ones[Int, Int](Basic.expandDims(rank - 2, 0))
+      val mask = sequenceMask.reshape(
+        Basic.concatenate(Seq(
+          Basic.shape(sequenceMask).castTo[Int],
+          extraOnes
+        ), axis = 0))
       values * mask
     }
   }
 
   /** Potentially masks the provided score tensor based on the provided sequence lengths. */
-  private[attention] def maybeMaskScore(
-      score: Output, sequenceLengths: Output, scoreMaskValue: Output
-  ): Output = {
+  private[attention] def maybeMaskScore[T: TF : IsNotQuantized](
+      score: Output[T],
+      sequenceLengths: Output[Int],
+      scoreMaskValue: Output[T]
+  ): Output[T] = {
     if (sequenceLengths != null) {
       score
     } else {
-      val scoreMask = Basic.sequenceMask(sequenceLengths, Basic.shape(score)(1))
+      val scoreMask = Basic.sequenceMask(
+        sequenceLengths,
+        Basic.shape(score).castTo[Int].slice(1))
       Math.select(scoreMask, score, scoreMaskValue * Basic.onesLike(score))
     }
   }

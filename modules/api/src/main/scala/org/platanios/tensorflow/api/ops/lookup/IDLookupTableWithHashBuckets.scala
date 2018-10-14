@@ -15,12 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.lookup
 
-import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidDataTypeException}
+import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
+import org.platanios.tensorflow.api.core.types.{DataType, INT64, TF, IsStringOrIntOrUInt}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
 
 /** String to ID lookup table wrapper that assigns out-of-vocabulary keys to buckets.
   *
@@ -55,51 +54,24 @@ import org.platanios.tensorflow.api.types.{DataType, INT64, STRING}
   * @param  table             Lookup table to wrap.
   * @param  numOOVBuckets     Number of out-of-vocabulary buckets.
   * @param  hashSpecification Hashing function specification to use.
-  * @param  keysDataType      Data type of the table keys.
   * @param  name              Name of this lookup table.
   *
   * @author Emmanouil Antonios Platanios
   */
-class IDLookupTableWithHashBuckets(
-    val table: HashTable,
+class IDLookupTableWithHashBuckets[K: TF : IsStringOrIntOrUInt] private[IDLookupTableWithHashBuckets](
+    val table: Option[HashTable[K, Long]],
+    override val keysDataType: DataType[K],
     val numOOVBuckets: Int,
     val hashSpecification: HashSpecification = FAST_HASH,
-    override val keysDataType: DataType = null,
     override val name: String = "IDLookupTableWithHashBuckets"
 ) extends LookupTable(keysDataType, INT64, name) {
-  private[this] var inferredKeysDataType: DataType = keysDataType
-  if (table != null) {
-    if (inferredKeysDataType == null)
-      inferredKeysDataType = table.keysDataType
-    if (table.keysDataType != STRING && table.keysDataType != INT64)
-      throw InvalidDataTypeException(
-        s"Expected table key data type to be either STRING or INT64, but got ${table.keysDataType}.")
-    if (table.keysDataType.isInteger && !inferredKeysDataType.isInteger)
-      throw InvalidDataTypeException("Expected non-integer table key data type but got integer.")
-    else if (!table.keysDataType.isInteger && inferredKeysDataType.isInteger)
-      throw InvalidDataTypeException("Expected integer table key data type but got non-integer.")
-    if (table.valuesDataType != INT64)
-      throw InvalidDataTypeException(s"Expected INT64 table value data type but got ${table.valuesDataType}.")
-  } else {
-    if (numOOVBuckets <= 0)
-      throw InvalidArgumentException(s"'numOOVBuckets' must be > 0 if no table is provided, but was $numOOVBuckets.")
-    if (inferredKeysDataType == null)
-      inferredKeysDataType = STRING
-  }
-  if (!inferredKeysDataType.isInteger && inferredKeysDataType != STRING)
-    throw InvalidDataTypeException(
-      s"Expected key data type to be either STRING or INT64, but got ${table.keysDataType}.")
-
   /** Creates an op used to initialize this table.
     *
     * @param  name Name for the created op.
     * @return Created op.
     */
-  override def initialize(name: String): Op = {
-    if (table == null)
-      ControlFlow.noOp(name)
-    else
-      table.initialize(name)
+  override def initialize(name: String): UntypedOp = {
+    table.map(_.initialize(name)).getOrElse(ControlFlow.noOp(name))
   }
 
   /** Creates an op that computes the number of elements in this table.
@@ -107,11 +79,11 @@ class IDLookupTableWithHashBuckets(
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  override def size(name: String): Output = {
-    if (table == null)
-      Basic.constant(numOOVBuckets, INT64, Shape.scalar())
-    else
-      Op.createWithNameScope(name)(table.size(name) + numOOVBuckets)
+  override def size(name: String): Output[Long] = {
+    Op.nameScope(name) {
+      table.map(t => t.size(name) + numOOVBuckets.toLong)
+          .getOrElse(Basic.constant(numOOVBuckets.toLong, name = name))
+    }
   }
 
   /** Creates an op that looks up the provided keys in this table and returns the corresponding values.
@@ -121,56 +93,89 @@ class IDLookupTableWithHashBuckets(
     * @return Created op output.
     * @throws InvalidDataTypeException If the provided keys data types does not match the keys data type of this table.
     */
-  @throws[InvalidDataTypeException]
-  override def lookup[T <: OutputLike : OutputOps](keys: T, name: String): T = Op.createWithNameScope(name) {
-    if (keys.dataType != keysDataType)
-      throw InvalidDataTypeException(s"Invalid keys data type ${keys.dataType} (expected $keysDataType).")
-    implicitly[OutputOps[T]].applyUnary(keys, o => {
-      val castedKeys = if (table != null && table.keysDataType == INT64) o.cast(INT64) else o
-      if (numOOVBuckets == 0) {
-        table.lookup(castedKeys)
-      } else {
-        var buckets = hashSpecification.stringToHashBucket(castedKeys.cast(STRING), numOOVBuckets)
-        if (table == null) {
-          buckets
+  override def lookup[OL[A] <: OutputLike[A]](
+      keys: OL[K],
+      name: String = "Lookup"
+  )(implicit ev: OutputOps.Aux[OL, K]): OL[Long] = {
+    Op.nameScope(name) {
+      ev.applyUnary(keys, o => {
+        if (numOOVBuckets == 0) {
+          table.get.lookup(o)
         } else {
-          val ids = table.lookup(castedKeys)
-          buckets = Math.add(buckets, table.size())
-          Math.select(Math.notEqual(ids, table.defaultValue), ids, buckets)
+          var buckets = hashSpecification.stringToHashBucket(o.castTo[String], numOOVBuckets)
+          table.map(t => {
+            val ids = t.lookup(o)
+            buckets = Math.add(buckets, t.size())
+            Math.select(Math.notEqual(ids, t.defaultValue), ids, buckets)
+          }).getOrElse(buckets)
         }
-      }
-    })
+      })
+    }
   }
 }
 
 object IDLookupTableWithHashBuckets {
-  def apply(
-      table: HashTable, numOOVBuckets: Int, hashSpecification: HashSpecification = FAST_HASH,
-      keysDataType: DataType = null, name: String = "IDLookupTableWithHashBuckets"): IDLookupTableWithHashBuckets = {
-    new IDLookupTableWithHashBuckets(table, numOOVBuckets, hashSpecification, keysDataType, name)
+  def apply[K: TF : IsStringOrIntOrUInt](
+      table: HashTable[K, Long],
+      numOOVBuckets: Int,
+      hashSpecification: HashSpecification = FAST_HASH,
+      name: String = "IDLookupTableWithHashBuckets"
+  ): IDLookupTableWithHashBuckets[K] = {
+    new IDLookupTableWithHashBuckets(
+      Some(table), table.keysDataType, numOOVBuckets, hashSpecification, name)
+  }
+
+  @throws[IllegalArgumentException]
+  def empty[K: TF : IsStringOrIntOrUInt](
+      keysDataType: DataType[K],
+      numOOVBuckets: Int,
+      hashSpecification: HashSpecification = FAST_HASH,
+      name: String = "IDLookupTableWithHashBuckets"
+  ): IDLookupTableWithHashBuckets[K] = {
+    require(
+      numOOVBuckets > 0,
+      "When no hash table is provided, the number of out-of-vocabulary buckets must be > 0.")
+    new IDLookupTableWithHashBuckets(
+      None, keysDataType, numOOVBuckets, hashSpecification, name)
   }
 }
 
 /** Hash specification for use with `IDLookupTableWithHashBuckets`. */
 sealed trait HashSpecification {
-  def stringToHashBucket(input: Output, numBuckets: Int, name: String = "StringToHashBucket"): Output
+  def stringToHashBucket(
+      input: Output[String],
+      numBuckets: Int,
+      name: String = "StringToHashBucket"
+  ): Output[Long]
 }
 
 @deprecated("It is recommended to use `FAST_HASH` or `STRONG_HASH` instead.", "0.1.0")
 case object LEGACY_HASH extends HashSpecification {
-  override def stringToHashBucket(input: Output, numBuckets: Int, name: String): Output = {
+  override def stringToHashBucket(
+      input: Output[String],
+      numBuckets: Int,
+      name: String = "StringToHashBucket"
+  ): Output[Long] = {
     Text.stringToHashBucket(input, numBuckets, name)
   }
 }
 
 case object FAST_HASH extends HashSpecification {
-  override def stringToHashBucket(input: Output, numBuckets: Int, name: String): Output = {
+  override def stringToHashBucket(
+      input: Output[String],
+      numBuckets: Int,
+      name: String = "StringToHashBucket"
+  ): Output[Long] = {
     Text.stringToHashBucketFast(input, numBuckets, name)
   }
 }
 
 case class STRONG_HASH(key1: Long, key2: Long) extends HashSpecification {
-  override def stringToHashBucket(input: Output, numBuckets: Int, name: String): Output = {
+  override def stringToHashBucket(
+      input: Output[String],
+      numBuckets: Int,
+      name: String = "StringToHashBucket"
+  ): Output[Long] = {
     Text.stringToHashBucketStrong(input, numBuckets, key1, key2, name)
   }
 }

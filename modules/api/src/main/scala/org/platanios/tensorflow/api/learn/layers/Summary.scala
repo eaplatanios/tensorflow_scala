@@ -16,24 +16,25 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.types.{IsReal, TF, UByte}
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, UINT8}
-
-import spire.math.UByte
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Summary(override val name: String) extends Layer[Output, Output](name)
+abstract class Summary[T: TF : IsReal](
+    override val name: String
+) extends Layer[Output[T], Output[T]](name)
 
 object Summary {
   private[layers] trait API {
-    type ScalarSummary = layers.ScalarSummary
-    type HistogramSummary = layers.HistogramSummary
-    type ImageSummary = layers.ImageSummary
+    type Summary[T] = layers.Summary[T]
+    type ScalarSummary[T] = layers.ScalarSummary[T]
+    type HistogramSummary[T] = layers.HistogramSummary[T]
+    type ImageSummary[T] = layers.ImageSummary[T]
     type AudioSummary = layers.AudioSummary
 
     val ScalarSummary   : layers.ScalarSummary.type    = layers.ScalarSummary
@@ -45,45 +46,51 @@ object Summary {
   object API extends API
 }
 
-case class ScalarSummary(
+case class ScalarSummary[T: TF : IsReal](
     override val name: String,
     tag: String,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
+    collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES)
 ) extends Summary(name) {
   override val layerType: String = "ScalarSummary"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(
+      input: Output[T]
+  )(implicit mode: Mode): Output[T] = {
     ops.Summary.scalar(tag, input, collections, family)
     input
   }
 }
 
-case class HistogramSummary(
+case class HistogramSummary[T: TF : IsReal](
     override val name: String,
     tag: String,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
+    collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES)
 ) extends Summary(name) {
   override val layerType: String = "HistogramSummary"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(
+      input: Output[T]
+  )(implicit mode: Mode): Output[T] = {
     ops.Summary.histogram(tag, input, collections, family)
     input
   }
 }
 
-case class ImageSummary(
+case class ImageSummary[T: TF : IsReal](
     override val name: String,
     tag: String,
-    badColor: Tensor[DataType] = Tensor(UINT8, UByte(255), UByte(0), UByte(0), UByte(255)),
+    badColor: Tensor[UByte] = Tensor[UByte](UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
     maxOutputs: Int = 3,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
+    collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES)
 ) extends Summary(name) {
   override val layerType: String = "ImageSummary"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(
+      input: Output[T]
+  )(implicit mode: Mode): Output[T] = {
     ops.Summary.image(tag, input, badColor, maxOutputs, collections, family)
     input
   }
@@ -92,14 +99,16 @@ case class ImageSummary(
 case class AudioSummary(
     override val name: String,
     tag: String,
-    samplingRate: Tensor[DataType],
+    samplingRate: Tensor[Float],
     maxOutputs: Int = 3,
     family: String = null,
-    collections: Set[Graph.Key[Output]] = Set(Graph.Keys.SUMMARIES)
-) extends Summary(name) {
+    collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES)
+) extends Summary[Float](name) {
   override val layerType: String = "AudioSummary"
 
-  override def forwardWithoutContext(input: Output)(implicit mode: Mode): Output = {
+  override def forwardWithoutContext(
+      input: Output[Float]
+  )(implicit mode: Mode): Output[Float] = {
     ops.Summary.audio(tag, input, samplingRate, maxOutputs, collections, family)
   input
   }

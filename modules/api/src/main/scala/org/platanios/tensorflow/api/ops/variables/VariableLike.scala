@@ -15,16 +15,15 @@
 
 package org.platanios.tensorflow.api.ops.variables
 
-import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.ops.{Op, Output, OutputConvertible}
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.core.types.{DataType, TF, IsInt32OrInt64, IsNumeric}
+import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 
 /** Represents objects that can be used as variables (e.g., variables and partitioned variables).
   *
   * @author Emmanouil Antonios Platanios
   */
-trait VariableLike extends OutputConvertible {
+trait VariableLike[T] {
   /** Graph where this variable is defined. */
   val graph: Graph
 
@@ -32,7 +31,7 @@ trait VariableLike extends OutputConvertible {
   val name: String
 
   /** Data type of this variable. */
-  val dataType: DataType
+  val dataType: DataType[T]
 
   /** Shape of this variable. */
   val shape: Shape
@@ -47,13 +46,13 @@ trait VariableLike extends OutputConvertible {
     * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
     * converting them to tensors.
     */
-  val value: Output
+  val value: Output[T]
 
   /** Op responsible for initializing this variable. */
-  val initializer: Op
+  val initializer: UntypedOp
 
   /** Op output that is `true` when the variable has been initialized and `false` otherwise. */
-  val isInitialized: Output
+  val isInitialized: Output[Boolean]
 
   /** Value of the initialized variable. You should use this instead of the variable itself to initialize
     * another variable with a value that depends on the value of this variable.
@@ -66,7 +65,7 @@ trait VariableLike extends OutputConvertible {
     *   val w = tf.variable("w", initializer = tf.ConstantInitializer(v.initializedValue * 2.0))
     * }}}
     */
-  val initializedValue: Output
+  val initializedValue: Output[T]
 
   /** Creates an op that reads the value of this variable.
     *
@@ -78,7 +77,7 @@ trait VariableLike extends OutputConvertible {
     *
     * @return Created op.
     */
-  def read(name: String = "Read"): Output
+  def read(name: String = "Read"): Output[T]
 
   /** Creates an op that reads the value of this variable sparsely, using the provided `indices`.
     *
@@ -90,7 +89,7 @@ trait VariableLike extends OutputConvertible {
     * @return Created op.
     */
   @throws[UnsupportedOperationException]
-  def gather(indices: Output, name: String = "Gather"): Output
+  def gather[I: TF : IsInt32OrInt64](indices: Output[I], name: String = "Gather"): Output[T]
 
   /** Creates an op that assigns the provided value to this variable and returns its value.
     *
@@ -99,7 +98,7 @@ trait VariableLike extends OutputConvertible {
     * @return Variable value read op, after the assignment.
     */
   @throws[UnsupportedOperationException]
-  def assign(value: Output, name: String = "Assign"): Output
+  def assign(value: Output[T], name: String = "Assign"): Output[T]
 
   /** Creates an op that adds the provided value to the current value of the variable and returns its value.
     *
@@ -108,8 +107,7 @@ trait VariableLike extends OutputConvertible {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  @throws[InvalidDataTypeException]
-  def assignAdd(value: Output, name: String = "AssignAdd"): Output
+  def assignAdd(value: Output[T], name: String = "AssignAdd"): Output[T]
 
   /** Creates an op that subtracts the provided value from the current value of the variable and returns its value.
     *
@@ -118,8 +116,7 @@ trait VariableLike extends OutputConvertible {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  @throws[InvalidDataTypeException]
-  def assignSub(value: Output, name: String = "AssignAdd"): Output
+  def assignSub(value: Output[T], name: String = "AssignAdd"): Output[T]
 
   /** Creates an op that applies updates the provided sparse value updates to this variable and returns its value.
     *
@@ -129,8 +126,11 @@ trait VariableLike extends OutputConvertible {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  @throws[InvalidDataTypeException]
-  def assignScatter(indices: Output, values: Output, name: String = "AssignScatter"): Output
+  def assignScatter[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      values: Output[T],
+      name: String = "AssignScatter"
+  ): Output[T]
 
   /** Creates an op that adds the provided sparse value to the current value of the variable and returns its value.
     *
@@ -140,8 +140,11 @@ trait VariableLike extends OutputConvertible {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  @throws[InvalidDataTypeException]
-  def assignScatterAdd(indices: Output, values: Output, name: String = "AssignScatterAdd"): Output
+  def assignScatterAdd[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      values: Output[T],
+      name: String = "AssignScatterAdd"
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Creates an op that subtracts the provided sparse value from the current value of the variable and returns its
     * value.
@@ -152,9 +155,74 @@ trait VariableLike extends OutputConvertible {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  @throws[InvalidDataTypeException]
-  def assignScatterSub(indices: Output, values: Output, name: String = "AssignScatterSub"): Output
+  def assignScatterSub[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      values: Output[T],
+      name: String = "AssignScatterSub"
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
+
+  /** Creates an op that multiplies the provided sparse value from the current value of the variable and returns its
+    * value.
+    *
+    * @param  indices Indices corresponding to the `values` being multiplied.
+    * @param  values  Values to multiply with, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the subtraction.
+    */
+  @throws[UnsupportedOperationException]
+  def assignScatterMul[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      values: Output[T],
+      name: String = "AssignScatterMul"
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
+
+  /** Creates an op that divides the current value of the variable by the provided sparse value and returns its
+    * value.
+    *
+    * @param  indices Indices corresponding to the `values` dividing the current variable value.
+    * @param  values  Values to divide by, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the subtraction.
+    */
+  @throws[UnsupportedOperationException]
+  def assignScatterDiv[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      values: Output[T],
+      name: String = "AssignScatterDiv"
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
+
+  /** Creates an op that computes the element-wise minimum between the current value of the variable and the provided
+    * sparse value, and returns its value.
+    *
+    * @param  indices Indices corresponding to the provided `values`.
+    * @param  values  Values to compute the minimum with respect to, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the subtraction.
+    */
+  @throws[UnsupportedOperationException]
+  def assignScatterMin[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      values: Output[T],
+      name: String = "AssignScatterMin"
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
+
+  /** Creates an op that computes the element-wise maximum between the current value of the variable and the provided
+    * sparse value, and returns its value.
+    *
+    * @param  indices Indices corresponding to the provided `values`.
+    * @param  values  Values to compute the maximum with respect to, corresponding to the provided `indices`.
+    * @param  name    Name for created op.
+    * @return Variable value read op, after the subtraction.
+    */
+  @throws[UnsupportedOperationException]
+  def assignScatterMax[I: TF : IsInt32OrInt64](
+      indices: Output[I],
+      values: Output[T],
+      name: String = "AssignScatterMax"
+  )(implicit evTIsNumeric: IsNumeric[T]): Output[T]
 
   /** Converts this variable to an op output. This function simply returns an op corresponding to the variable value. */
-  def toOutput: Output = value
+  def toOutput: Output[T] = {
+    value
+  }
 }

@@ -16,14 +16,14 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.client.{Executable, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.learn.SessionWrapper
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -53,10 +53,13 @@ class CheckpointSaver protected (
 ) extends TriggeredHook(trigger, triggerAtEnd) {
   override private[learn] val priority: Int = 1000
 
-  private[this] val savePath: Path = directory.resolve(checkpointBaseName)
+  protected val savePath: Path = directory.resolve(checkpointBaseName)
 
-  private[this] var saver        : Option[Saver]             = None
-  private[this] var summaryWriter: Option[SummaryFileWriter] = None
+  protected var saver        : Option[Saver]             = None
+  protected var summaryWriter: Option[SummaryFileWriter] = None
+
+  override protected def fetches: Seq[Output[Any]] = Seq.empty
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def begin(): Unit = {
     val savers = Op.currentGraph.getCollection(Graph.Keys.SAVERS)
@@ -70,10 +73,9 @@ class CheckpointSaver protected (
     summaryWriter.foreach(_.flush())
   }
 
-  override protected def onFirstTrigger[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Unit = {
+  override protected def onFirstTrigger[C, CV](
+      runContext: Hook.SessionRunContext[C, CV]
+  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
     // We save the graph and the saver at the first call of `beforeSessionRun`. We cannot do this in `begin()` because
     // we let other hooks change the graph and add variables in their `begin()` methods. The graph is finalized after
     // all `begin()` calls.
@@ -87,7 +89,7 @@ class CheckpointSaver protected (
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
     CheckpointSaver.logger.info(s"Saving checkpoint for step $step.")

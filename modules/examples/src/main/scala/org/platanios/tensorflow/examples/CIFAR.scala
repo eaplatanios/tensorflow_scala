@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.types.UByte
 import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.CIFARLoader
 
@@ -28,14 +29,14 @@ import java.nio.file.Paths
   * @author Emmanouil Antonios Platanios
   */
 object CIFAR {
-  private[this] val logger = Logger(LoggerFactory.getLogger("Examples / CIFAR"))
+  private val logger = Logger(LoggerFactory.getLogger("Examples / CIFAR"))
 
   def main(args: Array[String]): Unit = {
     val dataSet = CIFARLoader.load(Paths.get("datasets/CIFAR"), CIFARLoader.CIFAR_10)
-    val trainImages = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainImages)
-    val trainLabels = tf.data.TensorSlicesDataset[Tensor[DataType], Output, DataType, Shape](dataSet.trainLabels)
-    val trainData =
-      trainImages.zip(trainLabels)
+    val trainImages = () => tf.data.datasetFromTensorSlices(dataSet.trainImages)
+    val trainLabels = () => tf.data.datasetFromTensorSlices(dataSet.trainLabels)
+    val trainData = () =>
+      trainImages().zip(trainLabels())
           .repeat()
           .shuffle(10000)
           .batch(64)
@@ -43,26 +44,26 @@ object CIFAR {
 
     logger.info("Building the logistic regression model.")
     val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2), dataSet.trainImages.shape(3)))
-        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
     val trainInput = tf.learn.Input(UINT8, Shape(-1))
-        .asInstanceOf[tf.learn.Input[Tensor[DataType], Output, DataType, Shape]]
-    val layer = tf.learn.Cast("Input/Cast", FLOAT32) >>
-        tf.learn.Conv2D("Layer_0/Conv2D", Shape(2, 2, 3, 16), 1, 1, SameConvPadding) >>
-        tf.learn.AddBias("Layer_0/Bias") >>
-        tf.learn.ReLU("Layer_0/ReLU", 0.1f) >>
-        tf.learn.MaxPool("Layer_0/MaxPool", Seq(1, 2, 2, 1), 1, 1, SameConvPadding) >>
-        tf.learn.Conv2D("Layer_1/Conv2D", Shape(2, 2, 16, 32), 1, 1, SameConvPadding) >>
-        tf.learn.AddBias("Bias_1") >>
-        tf.learn.ReLU("Layer_1/ReLU", 0.1f) >>
-        tf.learn.MaxPool("Layer_1/MaxPool", Seq(1, 2, 2, 1), 1, 1, SameConvPadding) >>
-        tf.learn.Flatten("Layer_2/Flatten") >>
-        tf.learn.Linear("Layer_2/Linear", 256) >> tf.learn.ReLU("Layer_2/ReLU", 0.1f) >>
-        tf.learn.Linear("OutputLayer/Linear", 10)
-    val trainingInputLayer = tf.learn.Cast("TrainInput/Cast", INT64)
-    val loss = tf.learn.SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >>
-        tf.learn.Mean("Loss/Mean") >> tf.learn.ScalarSummary("Loss/Summary", "Loss")
+    val layer = tf.learn.Cast[UByte, Float]("Input/Cast") >>
+        tf.learn.Conv2D[Float]("Layer_0/Conv2D", Shape(2, 2, 3, 16), 1, 1, SameConvPadding) >>
+        tf.learn.AddBias[Float]("Layer_0/Bias") >>
+        tf.learn.ReLU[Float]("Layer_0/ReLU", 0.1f) >>
+        tf.learn.MaxPool[Float]("Layer_0/MaxPool", Seq(1, 2, 2, 1), 1, 1, SameConvPadding) >>
+        tf.learn.Conv2D[Float]("Layer_1/Conv2D", Shape(2, 2, 16, 32), 1, 1, SameConvPadding) >>
+        tf.learn.AddBias[Float]("Bias_1") >>
+        tf.learn.ReLU[Float]("Layer_1/ReLU", 0.1f) >>
+        tf.learn.MaxPool[Float]("Layer_1/MaxPool", Seq(1, 2, 2, 1), 1, 1, SameConvPadding) >>
+        tf.learn.Flatten[Float]("Layer_2/Flatten") >>
+        tf.learn.Linear[Float]("Layer_2/Linear", 256) >>
+        tf.learn.ReLU[Float]("Layer_2/ReLU", 0.1f) >>
+        tf.learn.Linear[Float]("OutputLayer/Linear", 10)
+    val trainInputLayer = tf.learn.Cast[UByte, Long]("TrainInput/Cast")
+    val loss = tf.learn.SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss/CrossEntropy") >>
+        tf.learn.Mean[Float]("Loss/Mean") >>
+        tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
     val optimizer = tf.train.AdaGrad(0.1f)
-    val model = tf.learn.Model.supervised(input, layer, trainInput, trainingInputLayer, loss, optimizer)
+    val model = tf.learn.Model.supervised(input, layer, trainInput, trainInputLayer, loss, optimizer)
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/cnn-cifar")
@@ -71,17 +72,17 @@ object CIFAR {
       tf.learn.Configuration(Some(summariesDir)),
       tf.learn.StopCriteria(maxSteps = Some(100000)),
       Set(
+        tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
-        // tf.learn.SummarySaverHook(summariesDir, tf.learn.StepHookTrigger(100)),
       tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
-    estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
+    estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
 
-    def accuracy(images: Tensor[DataType], labels: Tensor[DataType]): Float = {
+    def accuracy(images: Tensor[UByte], labels: Tensor[UByte]): Float = {
       val predictions = estimator.infer(() => images)
-      predictions.asInstanceOf[Tensor[FLOAT32]]
-          .argmax(1).cast(UINT8)
-          .equal(labels.asInstanceOf[Tensor[UINT8]]).cast(FLOAT32)
+      predictions
+          .argmax(1).toUByte
+          .equal(labels).toFloat
           .mean().scalar
     }
 

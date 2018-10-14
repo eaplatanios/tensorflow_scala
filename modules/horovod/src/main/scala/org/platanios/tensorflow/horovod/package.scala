@@ -16,6 +16,11 @@
 package org.platanios.tensorflow
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.types
+import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
+import org.platanios.tensorflow.api.ops.{Gradients, UntypedOp}
+import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
 
 /** Horovod allows training TensorFlow models in a distributed fashion, using MPI for communication between processes.
   *
@@ -108,30 +113,32 @@ package object horovod {
       *                      with `HOROVOD_GPU_ALLGATHER`.
       * @return Reduced tensor value.
       */
-    def allReduce[O <: OutputLike](
-        value: O,
+    def allReduce[T: TF : IsNotQuantized, OL[A] <: OutputLike[A]](
+        value: OL[T],
         average: Boolean = true,
         deviceDense: String = "",
         deviceSparse: String = ""
-    ): O = value match {
-      case v: OutputIndexedSlices => tf.device(deviceSparse) {
-        // For indexed slices we do two all-gathers instead of an all-reduce.
-        val horovodSize = tf.constant(size, v.dataType)
-        var values = allGatherOp(v.values, name = s"${v.values.name.replace(":", "_")}/AllGather")
-        val indices = allGatherOp(v.indices, name = s"${v.indices.name.replace(":", "_")}/AllGather")
+    ): OL[T] = {
+      value match {
+        case v: OutputIndexedSlices[T] => tf.device(deviceSparse) {
+          // For indexed slices we do two all-gathers instead of an all-reduce.
+          val horovodSize = tf.constant(size).castTo[T]
+          var values = allGatherOp(v.values, name = s"${v.values.name.replace(":", "_")}/AllGather")
+          val indices = allGatherOp(v.indices, name = s"${v.indices.name.replace(":", "_")}/AllGather")
 
-        // To convert this operation to an average, we divide all gathered values by the Horovod size.
-        values = if (average) tf.divide(values, horovodSize) else values
-        OutputIndexedSlices(indices, values, v.denseShape).asInstanceOf[O]
-      }
-      case v => tf.device(deviceDense) {
-        // TODO: [HOROVOD] What about sparse tensors?
-        val horovodSize = tf.constant(size, v.dataType)
-        val summedValue = allReduceOp(v.toOutput, name = s"${v.name.replace(":", "_")}/AllReduce")
-        if (average)
-          tf.divide(summedValue, horovodSize).asInstanceOf[O]
-        else
-          summedValue.asInstanceOf[O]
+          // To convert this operation to an average, we divide all gathered values by the Horovod size.
+          values = if (average) tf.divide(values, horovodSize) else values
+          OutputIndexedSlices(indices, values, v.denseShape).asInstanceOf[OL[T]]
+        }
+        case v => tf.device(deviceDense) {
+          // TODO: [HOROVOD] What about sparse tensors?
+          val horovodSize = tf.constant(size).castTo[T]
+          val summedValue = allReduceOp(v.toOutput, name = s"${v.name.replace(":", "_")}/AllReduce")
+          if (average)
+            tf.divide(summedValue, horovodSize).asInstanceOf[OL[T]]
+          else
+            summedValue.asInstanceOf[OL[T]]
+        }
       }
     }
 
@@ -141,13 +148,16 @@ package object horovod {
       *                  processes.
       * @return Created broadcast op.
       */
-    def broadcastGlobalVariables(rootRank: Int): Op = {
+    def broadcastGlobalVariables(rootRank: Int): UntypedOp = {
       tf.group(tf.currentGraph.globalVariables.map(v => {
-        Op.Builder(opType = "AssignVariableOp", name = s"${v.name}/Broadcast/Assign")
-            .addInput(v.op.outputs.head)
-            .addInput(broadcastOp(v.value, rootRank, s"${v.name}/Broadcast"))
-            .setAttribute("dtype", v.dataType)
-            .build()
+        Op.Builder[(Output[Any], Output[Any]), Output[Any]](
+          opType = "AssignVariableOp",
+          name = s"${v.name}/Broadcast/Assign",
+          input = (
+              v.op.outputsSeq.head,
+              broadcastOp(v.value, rootRank, s"${v.name}/Broadcast")(TF.fromDataType(v.dataType)))
+        ).setAttribute("dtype", v.dataType)
+            .build(): UntypedOp
       }))
     }
 
@@ -163,7 +173,7 @@ package object horovod {
       */
     case class BroadcastGlobalVariablesHook(rootRank: Int, device: String = "")
         extends tf.learn.Hook {
-      protected var broadcastOp: Option[Op] = None
+      protected var broadcastOp: Option[UntypedOp] = None
 
       override protected def begin(): Unit = {
         if (broadcastOp.isEmpty || broadcastOp.get.graph != tf.currentGraph) {
@@ -174,7 +184,7 @@ package object horovod {
       }
 
       override protected def afterSessionCreation(session: Session): Unit = {
-        broadcastOp.foreach(op => session.run(targets = op))
+        broadcastOp.foreach(op => session.run(targets = Set(op)))
       }
     }
 
@@ -203,20 +213,20 @@ package object horovod {
         *                                    original ops.
         * @return Sequence of gradient-variable pairs.
         */
-      override def computeGradients(
-          loss: Output,
-          lossGradients: Seq[OutputLike] = null,
-          variables: Set[Variable] = null,
-          gradientsGatingMethod: tf.gradients.GatingMethod = tf.gradients.OpGating,
-          gradientsAggregationMethod: tf.gradients.AggregationMethod = tf.gradients.AddAggregationMethod,
-          colocateGradientsWithOps: Boolean = false
-      ): Seq[(OutputLike, Variable)] = {
-        val gradients = super.computeGradients(
+      override def computeGradients[T: TF : types.IsFloat32OrFloat64](
+          loss: Output[T],
+          lossGradients: Seq[OutputLike[T]],
+          variables: Set[Variable[Any]],
+          gradientsGatingMethod: Gradients.GatingMethod,
+          gradientsAggregationMethod: Gradients.AggregationMethod,
+          colocateGradientsWithOps: Boolean
+      ): Seq[(OutputLike[T], Variable[Any])] = {
+        val gradients = optimizer.computeGradients(
           loss, lossGradients, variables, gradientsGatingMethod, gradientsAggregationMethod, colocateGradientsWithOps)
         if (size <= 1) {
           gradients
         } else {
-          tf.createWithNameScope(s"$name/AllReduce") {
+          tf.nameScope(s"$name/AllReduce") {
             gradients.map(gv => {
               if (gv._1 != null) {
                 (allReduce(gv._1, deviceDense = deviceDense, deviceSparse = deviceSparse), gv._2)
@@ -235,29 +245,25 @@ package object horovod {
         * @param  name                  Name for the created op.
         * @return Created op.
         */
-      override def applyGradients(
-          gradientsAndVariables: Seq[(OutputLike, Variable)],
-          iteration: Option[Variable] = None,
-          name: String = this.name
-      ): Op = {
+      override def applyGradients[T: TF, I: LongDefault : TF : types.IsInt32OrInt64](
+          gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
+          iteration: Option[Variable[I]],
+          name: String
+      ): UntypedOp = {
         optimizer.applyGradients(gradientsAndVariables, iteration, name)
       }
 
-      /** Supported data types for the loss function, the variables, and the gradients. Subclasses should override this
-        * field allow other float types. */
-      override val supportedDataTypes: Set[DataType] = {
-        optimizer.supportedDataTypes
-      }
-
       /** Create all slots needed by this optimizer. */
-      override def createSlots(variables: Seq[Variable]): Unit = {
+      override def createSlots(variables: Seq[Variable[Any]]): Unit = {
         optimizer.createSlots(variables)
       }
 
       /** Creates all necessary tensors before applying the gradients. This function is called from within an op
         * creation context that uses as its name scope the name that users have chosen for the application of
         * gradients. */
-      override def prepare(iteration: Option[Variable]): Unit = {
+      override def prepare[I: TF : types.IsInt32OrInt64](
+          iteration: Option[Variable[I]]
+      ): Unit = {
         optimizer.prepare(iteration)
       }
 
@@ -268,7 +274,10 @@ package object horovod {
         * @param  nameScope Name scope to use for all the ops created by this function.
         * @return Created op output.
         */
-      override def finish(updateOps: Set[Op], nameScope: String): Op = {
+      override def finish(
+          updateOps: Set[UntypedOp],
+          nameScope: String
+      ): UntypedOp = {
         optimizer.finish(updateOps, nameScope)
       }
 
@@ -279,11 +288,11 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override def applyDense(
-          gradient: Output,
-          variable: Variable,
-          iteration: Option[Variable]
-      ): Op = {
+      override def applyDense[T: TF : types.IsNotQuantized, I: TF : types.IsInt32OrInt64](
+          gradient: Output[T],
+          variable: Variable[T],
+          iteration: Option[Variable[I]]
+      ): UntypedOp = {
         optimizer.applyDense(gradient, variable, iteration)
       }
 
@@ -299,11 +308,11 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override def applySparse(
-          gradient: OutputIndexedSlices,
-          variable: Variable,
-          iteration: Option[Variable]
-      ): Op = {
+      override def applySparse[T: TF : types.IsNotQuantized, I: TF : types.IsInt32OrInt64](
+          gradient: OutputIndexedSlices[T],
+          variable: Variable[T],
+          iteration: Option[Variable[I]]
+      ): UntypedOp = {
         optimizer.applySparse(gradient, variable, iteration)
       }
 
@@ -327,11 +336,11 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override def applySparseDuplicateIndices(
-          gradient: OutputIndexedSlices,
-          variable: Variable,
-          iteration: Option[Variable]
-      ): Op = {
+      override def applySparseDuplicateIndices[T: TF : types.IsNotQuantized, I: TF : types.IsInt32OrInt64](
+          gradient: OutputIndexedSlices[T],
+          variable: Variable[T],
+          iteration: Option[Variable[I]]
+      ): UntypedOp = {
         optimizer.applySparseDuplicateIndices(gradient, variable, iteration)
       }
     }
@@ -358,10 +367,15 @@ package object horovod {
     * @param  name  Name for the created op.
     * @return Tensor of the same shape and type as `value` that is summed across all processes.
     */
-  private[horovod] def allReduceOp(value: Output, name: String = "HorovodAllReduce"): Output = {
-    Op.Builder("HorovodAllreduce", name)
-        .addInput(value)
-        .build().outputs(0)
+  private[horovod] def allReduceOp[T: TF](
+      value: Output[T],
+      name: String = "HorovodAllReduce"
+  ): Output[T] = {
+    Op.Builder[Output[T], Output[T]](
+      opType = "HorovodAllreduce",
+      name = name,
+      input = value
+    ).build().output
   }
 
   /** Creates an op which concatenates the input tensor with the same input tensor on all other Horovod processes.
@@ -375,10 +389,15 @@ package object horovod {
     *         identical to the input shape, except for the first dimension, which may be greater and is the sum of all
     *         first dimensions of the tensors in the different Horovod processes.
     */
-  private[horovod] def allGatherOp(value: Output, name: String = "HorovodAllGather"): Output = {
-    Op.Builder("HorovodAllgather", name)
-        .addInput(value)
-        .build().outputs(0)
+  private[horovod] def allGatherOp[T: TF](
+      value: Output[T],
+      name: String = "HorovodAllGather"
+  ): Output[T] = {
+    Op.Builder[Output[T], Output[T]](
+      opType = "HorovodAllgather",
+      name = name,
+      input = value
+    ).build().output
   }
 
   /** Creates an op which broadcasts the input tensor on root rank to the same input tensor on all other Horovod
@@ -393,14 +412,16 @@ package object horovod {
     * @param  name     Name for the created op.
     * @return Tensor of the same shape and type as `value`, with its value broadcasted from root rank.
     */
-  private[horovod] def broadcastOp(value: Output, rootRank: Int, name: String = "HorovodBroadcast"): Output = {
-    Op.Builder("HorovodBroadcast", name)
-        .addInput(value)
-        .setAttribute("root_rank", rootRank)
-        .build().outputs(0)
+  private[horovod] def broadcastOp[T: TF](
+      value: Output[T],
+      rootRank: Int,
+      name: String = "HorovodBroadcast"
+  ): Output[T] = {
+    Op.Builder[Output[T], Output[T]](
+      opType = "HorovodBroadcast",
+      name = name,
+      input = value
+    ).setAttribute("root_rank", rootRank)
+        .build().output
   }
-
-  tf.gradientsRegistry.registerNonDifferentiable("HorovodAllreduce")
-  tf.gradientsRegistry.registerNonDifferentiable("HorovodAllgather")
-  tf.gradientsRegistry.registerNonDifferentiable("HorovodBroadcast")
 }

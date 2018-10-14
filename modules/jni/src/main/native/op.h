@@ -260,6 +260,22 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allOps
 
 /*
  * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    allRegisteredKernels
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_allRegisteredKernels
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
+ * Method:    registeredKernelsForOp
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_registeredKernelsForOp
+  (JNIEnv *, jobject, jstring);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_Op__
  * Method:    tryEvaluateConstant
  * Signature: (JJI)J
  */

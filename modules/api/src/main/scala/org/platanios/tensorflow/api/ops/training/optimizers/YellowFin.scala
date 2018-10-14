@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.{NewAxis, Shape}
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -23,7 +24,7 @@ import org.platanios.tensorflow.api.ops.training.ExponentialMovingAverage
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, INT32}
+import org.platanios.tensorflow.api.utilities.DefaultsTo.LongDefault
 
 /** Optimizer that implements the YellowFin algorithm.
   *
@@ -53,7 +54,7 @@ import org.platanios.tensorflow.api.types.{FLOAT32, INT32}
   */
 class YellowFin protected (
     override val learningRate: Float = 1.0f,
-    override val decay: Schedule = FixedSchedule,
+    override val decay: Schedule[Float] = FixedSchedule[Float](),
     override val momentum: Float = 0.0f,
     val beta: Float = 0.999f,
     val curvatureWindowWidth: Int = 20,
@@ -63,32 +64,42 @@ class YellowFin protected (
     override val useLocking: Boolean = false,
     override val learningRateSummaryTag: String = null,
     override val name: String = "YellowFin"
-) extends GradientDescent(learningRate, decay, momentum, useNesterov, useLocking, learningRateSummaryTag, name) {
-  protected var learningRateVariable      : Variable = _
-  protected var learningRateFactorVariable: Variable = _
-  protected var momentumVariable          : Variable = _
+) extends GradientDescent(
+  learningRate, decay, momentum, useNesterov,
+  useLocking, learningRateSummaryTag, name
+) {
+  protected var learningRateVariable      : Variable[Float] = _
+  protected var learningRateFactorVariable: Variable[Float] = _
+  protected var momentumVariable          : Variable[Float] = _
 
   protected var movingAverage  : ExponentialMovingAverage = _
-  protected var curvatureWindow: Variable                 = _
-  protected var betaTensor     : Output                   = _
-  protected var step           : Variable                 = _
-  protected var incrementStepOp: Op                       = _
-  protected var doTune         : Output                   = _
+  protected var curvatureWindow: Variable[Float]          = _
+  protected var betaTensor     : Output[Float]            = _
+  protected var step           : Variable[Int]            = _
+  protected var incrementStepOp: UntypedOp                = _
+  protected var doTune         : Output[Boolean]          = _
 
-  override protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  override protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
+      variable: Variable[V],
+      iteration: Option[Variable[I]]
+  ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.cast(variable.dataType)
+    learningRateTensor.castTo[V]
   }
 
-  override protected def getMomentum(variable: Variable): Output = {
+  override protected def getMomentum[V: TF](
+      variable: Variable[V]
+  ): Output[V] = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    momentumTensor.cast(variable.dataType)
+    momentumTensor.castTo[V]
   }
 
-  override def createSlots(variables: Seq[Variable]): Unit = {
-    variables.foreach(v => zerosSlot("Momentum", v, name))
+  override def createSlots(variables: Seq[Variable[Any]]): Unit = {
+    variables.foreach(v => {
+      zerosSlot("Momentum", v, name)(TF.fromDataType(v.dataType))
+    })
   }
 
   /** Creates an op that applies the provided gradients to the provided variables.
@@ -98,15 +109,15 @@ class YellowFin protected (
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  override def applyGradients(
-      gradientsAndVariables: Seq[(OutputLike, Variable)],
-      iteration: Option[Variable] = None,
+  override def applyGradients[T: TF, I: LongDefault : TF : IsInt32OrInt64](
+      gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
+      iteration: Option[Variable[I]] = None,
       name: String = this.name
-  ): Op = {
+  ): UntypedOp = {
     // We first apply the gradient descent updates (with momentum).
     val applyGradientsOp = super.applyGradients(gradientsAndVariables, iteration, name)
 
-    Op.createWithNameScope(name) {
+    Op.nameScope(name) {
       // We then apply the YellowFin update ops that tune the momentum and the learning rate.
       val yellowFinUpdateOp = Op.createWith(controlDependencies = Set(applyGradientsOp)) {
         yellowFinUpdate(gradientsAndVariables)
@@ -116,61 +127,88 @@ class YellowFin protected (
     }
   }
 
-  override def prepare(iteration: Option[Variable]): Unit = {
+  override def prepare[I: TF : IsInt32OrInt64](
+      iteration: Option[Variable[I]]
+  ): Unit = {
     movingAverage = ExponentialMovingAverage(beta, zeroDebias = zeroDebias)
     val lr = Tensor(learningRate)
     val mu = Tensor(momentum)
-    learningRateVariable = Variable.getVariable(
-      "LearningRate", FLOAT32, Shape(), ConstantInitializer(lr), trainable = false)
-    momentumVariable = Variable.getVariable(
-      "Momentum", FLOAT32, Shape(), ConstantInitializer(mu), trainable = false)
-    learningRateFactorVariable = Variable.getVariable(
-      "LearningRateFactor", FLOAT32, Shape(), OnesInitializer, trainable = false)
+    learningRateVariable = Variable.getVariable[Float](
+      "LearningRate", Shape(), ConstantInitializer(lr), trainable = false)
+    momentumVariable = Variable.getVariable[Float](
+      "Momentum", Shape(), ConstantInitializer(mu), trainable = false)
+    learningRateFactorVariable = Variable.getVariable[Float](
+      "LearningRateFactor", Shape(), OnesInitializer, trainable = false)
     learningRateTensor = decay(learningRateVariable.value * learningRateFactorVariable.value, iteration)
     momentumTensor = momentumVariable.value
-    betaTensor = Basic.constant(beta, momentumVariable.dataType, name = "Beta")
-    step = Variable.getVariable("Step", INT32, Shape(), ZerosInitializer, trainable = false)
+    betaTensor = Basic.constant(beta, name = "Beta")
+    step = Variable.getVariable[Int]("Step", Shape(), ZerosInitializer, trainable = false)
     incrementStepOp = step.assignAdd(1, "IncrementStep").op
     doTune = Math.greater(step.value, 0)
-    curvatureWindow = Variable.getVariable(
-      "CurvatureWindow", FLOAT32, Shape(curvatureWindowWidth), ZerosInitializer, trainable = false)
+    curvatureWindow = Variable.getVariable[Float](
+      "CurvatureWindow", Shape(curvatureWindowWidth), ZerosInitializer, trainable = false)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }
 
-  override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
-    GradientDescent.resourceApplyMomentumDense(
-      variable = variable,
-      accumulator = getSlot("Momentum", variable),
-      stepSize = getLearningRate(variable, iteration),
-      gradient = gradient,
-      momentum = getMomentum(variable),
-      useLocking = useLocking,
-      useNesterov = useNesterov)
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: Output[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
+    Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[T]), Unit](
+      opType = "ResourceApplyMomentum",
+      name = s"$name/ApplyDense",
+      input = (variable.handle,
+          getSlot[T, T]("Momentum", variable).handle,
+          getLearningRate(variable, iteration),
+          gradient,
+          getMomentum(variable))
+    ).setAttribute("use_locking", useLocking)
+        .setAttribute("use_nesterov", useNesterov)
+        .build()
   }
 
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    GradientDescent.resourceApplyMomentumSparse(
-      variable = variable,
-      accumulator = getSlot("Momentum", variable),
-      stepSize = getLearningRate(variable, iteration),
-      gradient = gradient.values,
-      indices = gradient.indices,
-      momentum = getMomentum(variable),
-      useLocking = useLocking,
-      useNesterov = useNesterov)
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
+    Op.Builder[(Output[Resource], Output[Resource], Output[T], Output[T], Output[Long], Output[T]), Unit](
+      opType = "ResourceSparseApplyMomentum",
+      name = s"$name/ApplySparse",
+      input = (variable.handle,
+          getSlot[T, T]("Momentum", variable).handle,
+          getLearningRate(variable, iteration),
+          gradient.values,
+          gradient.indices,
+          getMomentum(variable))
+    ).setAttribute("use_locking", useLocking)
+        .setAttribute("use_nesterov", useNesterov)
+        .build()
   }
 
-  protected def yellowFinUpdate(gradientsAndVariables: Seq[(OutputLike, Variable)]): Op = {
-    val gradSquared = gradientsAndVariables.map(gv => Op.colocateWith(Set(gv._2.op), ignoreExisting = true)(Math.square(gv._1)))
+  protected def yellowFinUpdate[T: TF](
+      gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])]
+  ): UntypedOp = {
+    val castedGradientsAndVariables = gradientsAndVariables.map(gv => {
+      (gv._1.castTo[Float], gv._2)
+    })
+
+    val gradSquared = castedGradientsAndVariables.map(gv => {
+      Op.colocateWith(Set(gv._2.op), ignoreExisting = true) {
+        Math.square(gv._1).toOutput
+      }
+    })
+
     val gradNormSquared = gradSquared.map(Math.sum(_))
-    val gradNormSquaredAvgOp = movingAverage.computeForValues(gradNormSquared.toSet)
+    val gradNormSquaredAvgOp = movingAverage.computeForValues(gradNormSquared.map(_.asInstanceOf[Output[Any]]).toSet)
     val (gradNormSquaredSum, gradNormSquaredAvg) = Op.createWith(controlDependencies = Set(gradNormSquaredAvgOp)) {
       val sum = Math.addN(gradNormSquared)
       val avg = Math.addN(gradNormSquared.map(movingAverage.average(_).get.read()))
       (sum, avg)
     }
-    val gradients = gradientsAndVariables.map(_._1)
+    val gradients = castedGradientsAndVariables.map(_._1.toOutput)
     val sparsityAvg = gradientsSparsity(gradients)
     val (hMin, hMax) = curvatureRange(gradNormSquaredSum, sparsityAvg)
     val gradVar = gradientsVariance(gradients, gradNormSquaredAvg, sparsityAvg)
@@ -179,28 +217,26 @@ class YellowFin protected (
     // Single-step: minimizes the surrogate for the expected squared distance from the optimum of a local quadratic
     // approximation after a single step while keeping all directions in the robust region.
 
-    def getMomentum: Output = {
-      // We have the equation x^2 D^2 + (1-x)^4 * C / h_min^2, where x = sqrt(mu). We substitute x, which is sqrt(mu),
-      // with x = y + 1. It gives y^3 + py = q, where p = (D^2 h_min^2)/(2*C) and q = -p. We use the Vieta's
-      // substitution (http://mathworld.wolfram.com/VietasSubstitution.html) to compute the root. There is only one real
-      // solution y (which is in [0, 1]).
-      val p = Math.square(distAvg) * Math.square(hMin) / (2.0f * gradVar)
-      val w3 = (-Math.sqrt(Math.square(p) + 4.0f * Math.pow(p, 3) / 27.0f) - p) / 2.0f
-      val w = Math.sign(w3) * Math.pow(Math.abs(w3), 1.0f / 3.0f)
-      val y = w - p / (3.0f * w)
-      val cubicRoot = y + 1.0f
-      val dr = hMax / hMin
-      Math.maximum(Math.square(cubicRoot), Math.square((Math.sqrt(dr) - 1.0f) / (Math.sqrt(dr) + 1.0f)))
-    }
-
     val momentum = Basic.identity(ControlFlow.cond(
       doTune,
-      () => getMomentum,
+      () => {
+        // We have the equation x^2 D^2 + (1-x)^4 * C / h_min^2, where x = sqrt(mu). We substitute x, which is sqrt(mu),
+        // with x = y + 1. It gives y^3 + py = q, where p = (D^2 h_min^2)/(2*C) and q = -p. We use the Vieta's
+        // substitution (http://mathworld.wolfram.com/VietasSubstitution.html) to compute the root. There is only one real
+        // solution y (which is in [0, 1]).
+        val p = Math.square(distAvg) * Math.square(hMin) / (gradVar * 2.0f)
+        val w3 = (-Math.sqrt(Math.square(p) + Math.pow(p, 3.0f) * 4.0f / 27.0f) - p) / 2.0f
+        val w = Math.sign(w3) * Math.pow(Math.abs(w3), 1.0f / 3.0f)
+        val y = w - p / (w * 3.0f)
+        val cubicRoot = y + 1.0f
+        val dr = hMax / hMin
+        Math.maximum(Math.square(cubicRoot), Math.square((Math.sqrt(dr) - 1.0f) / (Math.sqrt(dr) + 1.0f)))
+      },
       () => momentumVariable.value,
-      name = "MomentumTuneCond"))
+      name = "MomentumTuneCond")).castTo[Float]
 
-    def getLearningRate: Output = {
-      Math.square(1.0f - Math.sqrt(momentum)) / hMin
+    def getLearningRate = {
+      (Math.square(Math.subtract(1.0f, Math.sqrt(momentum))) / hMin).castTo[Float]
     }
 
     val learningRate = Op.createWith(controlDependencies = Set(momentum.op)) {
@@ -213,8 +249,8 @@ class YellowFin protected (
 
     // Tune the learning rate and the momentum.
     val updateOps = Op.createWith(controlDependencies = Set(momentum.op, learningRate.op)) {
-      val updatedMu = Math.add(betaTensor * momentumVariable.value, (1.0f - betaTensor) * momentum)
-      val updatedLR = Math.add(betaTensor * learningRateVariable.value, (1.0f - betaTensor) * learningRate)
+      val updatedMu = Math.add(betaTensor * momentumVariable.value, Math.subtract(1.0f, betaTensor) * momentum)
+      val updatedLR = Math.add(betaTensor * learningRateVariable.value, Math.subtract(1.0f, betaTensor) * learningRate)
       val momentumUpdate = momentumVariable.assign(updatedMu, name = "MomentumUpdate")
       val learningRateUpdate = learningRateVariable.assign(updatedLR, name = "LearningRateUpdate")
       Set(momentumUpdate.op, learningRateUpdate.op)
@@ -223,14 +259,14 @@ class YellowFin protected (
     ControlFlow.group(updateOps)
   }
 
-  protected def gradientsSparsity(gradients: Seq[OutputLike]): Option[Output] = {
+  protected def gradientsSparsity(gradients: Seq[Output[Float]]): Option[Output[Float]] = {
     if (sparsityDebias) {
-      Op.createWithNameScope("GradientsSparsity") {
+      Op.nameScope("GradientsSparsity") {
         // If the sparse mini-batch gradient has 10 percent of its entries non-zero, its sparsity is 0.1. The norms of
         // dense gradients averaged over the full dataset are roughly estimated from the norms of mini-batch sparse
         // gradient norm * sqrt(sparsity). An extension may only correct the sparse blob.
-        val nonZeroCount = Math.addN(gradients.map(Math.countNonZeroSparse(_))).cast(gradients.head.dataType)
-        val totalCount = Math.addN(gradients.map(Basic.size(_))).cast(gradients.head.dataType)
+        val nonZeroCount = Math.addN(gradients.map(Math.countNonZeroSparse(_))).castTo[Float]
+        val totalCount = Math.addN(gradients.map(Basic.size(_))).castTo[Float]
         val sparsity = nonZeroCount / totalCount
         val sparsityAvgOp = movingAverage.computeForValues(Set(sparsity))
         val sparsityAvg = Op.createWith(controlDependencies = Set(sparsityAvgOp)) {
@@ -243,15 +279,18 @@ class YellowFin protected (
     }
   }
 
-  protected def curvatureRange(gradNormSquaredSum: Output, sparsityAvg: Option[Output]): (Output, Output) = {
-    Op.createWithNameScope("CurvatureRange") {
+  protected def curvatureRange(
+      gradNormSquaredSum: Output[Float],
+      sparsityAvg: Option[Output[Float]]
+  ): (Output[Float], Output[Float]) = {
+    Op.nameScope("CurvatureRange") {
       val windowWidthTensor = Basic.constant(curvatureWindowWidth)
       // We use log-smoothing for the curvature range.
       val updatedCurvatureWindow = curvatureWindow.assignScatter(
         step.value % windowWidthTensor, Math.log(gradNormSquaredSum))
       // Note here that the steps start from 0.
       val validWindow = Basic.slice(
-        updatedCurvatureWindow, Tensor(0), Math.minimum(windowWidthTensor, step.value + 1)(NewAxis))
+        updatedCurvatureWindow, Tensor(0), Math.minimum(windowWidthTensor, step.value + 1).slice(NewAxis))
       val hMinT = Math.min(validWindow)
       val hMaxT = Math.max(validWindow)
       Op.createWith(controlDependencies = Set(hMinT.op, hMaxT.op)) {
@@ -270,18 +309,18 @@ class YellowFin protected (
   }
 
   protected def gradientsVariance(
-      gradients: Seq[OutputLike],
-      gradNormSquaredAvg: Output,
-      sparsityAvg: Option[Output]
-  ): Output = {
-    Op.createWithNameScope("GradientsVariance") {
+      gradients: Seq[OutputLike[Float]],
+      gradNormSquaredAvg: Output[Float],
+      sparsityAvg: Option[Output[Float]]
+  ): Output[Float] = {
+    Op.nameScope("GradientsVariance") {
       val grads = gradients.map(_.toOutput)
-      val gradAvgOp = movingAverage.computeForValues(grads.toSet)
+      val gradAvgOp = movingAverage.computeForValues(grads.map(_.asInstanceOf[Output[Any]]).toSet)
       val gradAvgSquared = Op.createWith(controlDependencies = Set(gradAvgOp)) {
         grads.map(g => Math.square(movingAverage.average(g).get.read()))
       }
       var gradVar = Math.maximum(
-        Basic.constant(1e-6f, gradNormSquaredAvg.dataType),
+        Basic.constant(1e-6f).castTo[Float],
         gradNormSquaredAvg - Math.addN(gradAvgSquared.map(Math.sum(_))))
       sparsityAvg.foreach(gradVar *= _)
       gradVar
@@ -289,14 +328,14 @@ class YellowFin protected (
   }
 
   protected def distanceToOptimum(
-      gradNormSquaredSum: Output,
-      gradNormSquaredAvg: Output,
-      sparsityAvg: Option[Output]
-  ): Output = {
+      gradNormSquaredSum: Output[Float],
+      gradNormSquaredAvg: Output[Float],
+      sparsityAvg: Option[Output[Float]]
+  ): Output[Float] = {
     val gradNorm = Math.sqrt(gradNormSquaredSum)
     val gradNormAvgOp = movingAverage.computeForValues(Set(gradNorm))
     val dist = Op.createWith(controlDependencies = Set(gradNormAvgOp)) {
-        movingAverage.average(gradNorm).get.read() / gradNormSquaredAvg
+      movingAverage.average(gradNorm).get.read() / gradNormSquaredAvg
     }
     val distAvgOp = movingAverage.computeForValues(Set(dist))
     val distAvg = Op.createWith(controlDependencies = Set(distAvgOp)) {
@@ -311,7 +350,7 @@ class YellowFin protected (
 object YellowFin {
   def apply(
       learningRate: Float = 1.0f,
-      decay: Schedule = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       momentum: Float = 0.0f,
       beta: Float = 0.999f,
       curvatureWindowWidth: Int = 20,
@@ -323,7 +362,8 @@ object YellowFin {
       name: String = "YellowFin"
   ): YellowFin = {
     new YellowFin(
-      learningRate, decay, momentum, beta, curvatureWindowWidth, zeroDebias, sparsityDebias, useNesterov,
+      learningRate, decay, momentum, beta, curvatureWindowWidth,
+      zeroDebias, sparsityDebias, useNesterov,
       useLocking, learningRateSummaryTag, name)
   }
 }

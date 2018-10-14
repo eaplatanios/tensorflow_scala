@@ -27,22 +27,22 @@ import scala.collection.JavaConverters._
   * @author Emmanouil Antonios Platanios
   */
 object TensorFlow {
-  private[this] val logger: Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
+  private val logger: Logger = Logger(LoggerFactory.getLogger("TensorFlow Native"))
 
   /** TensorFlow native library name. */
-  private[this] val LIB_NAME: String = "tensorflow"
+  private val LIB_NAME: String = "tensorflow"
 
   /** TensorFlow native framework library name. */
-  private[this] val LIB_FRAMEWORK_NAME: String = "tensorflow_framework"
+  private val LIB_FRAMEWORK_NAME: String = "tensorflow_framework"
 
   /** TensorFlow JNI bindings library name. */
-  private[this] val JNI_LIB_NAME: String = "tensorflow_jni"
+  private val JNI_LIB_NAME: String = "tensorflow_jni"
 
   /** TensorFlow ops library name. */
-  private[this] val OPS_LIB_NAME: String = "tensorflow_ops"
+  private val OPS_LIB_NAME: String = "tensorflow_ops"
 
   /** Current platform operating system. */
-  private[this] val os = {
+  private val os = {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) "linux"
     else if (name.contains("os x") || name.contains("darwin")) "darwin"
@@ -51,7 +51,7 @@ object TensorFlow {
   }
 
   /** Current platform architecture. */
-  private[this] val architecture = {
+  private val architecture = {
     val arch = System.getProperty("os.arch").toLowerCase
     if (arch == "amd64") "x86_64"
     else arch
@@ -109,7 +109,7 @@ object TensorFlow {
   }
 
   /** Checks if the TensorFlow JNI bindings library has been loaded. */
-  private[this] def checkIfLoaded(): Boolean = {
+  private def checkIfLoaded(): Boolean = {
     try {
       TensorFlow.version
       true

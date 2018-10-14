@@ -15,14 +15,16 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
-import org.platanios.tensorflow.api.types.INT32
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types._
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 /** Contains functions for constructing ops related to clipping tensor values.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[ops] trait Clip {
+trait Clip {
   /** $OpDocClipClipByValue
     *
     * @group ClipOps
@@ -34,12 +36,41 @@ private[ops] trait Clip {
     * @param  name         Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByValue(input: Output, clipValueMin: Output, clipValueMax: Output, name: String = "ClipByValue"): Output = {
-    Op.Builder("ClipByValue", name)
-        .addInput(input)
-        .addInput(clipValueMin)
-        .addInput(clipValueMax)
-        .build().outputs(0)
+  def clipByValue[T: TF : IsNotQuantized](
+      input: Output[T],
+      clipValueMin: Output[T],
+      clipValueMax: Output[T],
+      name: String = "ClipByValue"
+  ): Output[T] = {
+    Op.Builder[(Output[T], Output[T], Output[T]), Output[T]](
+      opType = "ClipByValue",
+      name = name,
+      input = (input, clipValueMin, clipValueMax)
+    ).setGradientFn(clipByValueGradient(_, _)(TF[T], IsNotQuantized[T]))
+        .build().output
+  }
+
+  protected def clipByValueGradient[T: TF : IsNotQuantized](
+      op: Op[(Output[T], Output[T], Output[T]), Output[T]],
+      outputGradient: Output[T]
+  ): (Output[T], Output[T], Output[T]) = {
+    val x = op.input._1
+    val y = op.input._2
+    val z = op.input._3
+    val xShape = Basic.shape(x)
+    val yShape = Basic.shape(y)
+    val zShape = Basic.shape(z)
+    val zeros = Basic.zerosLike(outputGradient)
+    val xyMask = Math.less(x, y)
+    val xzMask = Math.greater(x, z)
+    val xGradient = Math.select(Math.logicalOr(xyMask, xzMask), zeros, outputGradient)
+    val yGradient = Math.select(xyMask, outputGradient, zeros)
+    val zGradient = Math.select(xzMask, outputGradient, zeros)
+    val (_, ry) = Basic.broadcastGradientArguments(xShape, yShape)
+    val (rx, rz) = Basic.broadcastGradientArguments(xShape, zShape)
+    (Math.sum(xGradient, rx).reshape(xShape),
+        Math.sum(yGradient, ry).reshape(yShape),
+        Math.sum(zGradient, rz).reshape(zShape))
   }
 
   /** $OpDocClipClipByNorm
@@ -47,15 +78,20 @@ private[ops] trait Clip {
     * @group ClipOps
     * @param  input    Input tensor.
     * @param  clipNorm 0-D (scalar) tensor > 0, specifying the maximum clipping value.
-    * @param  axes     1-D (vector) `INT32` tensor containing the dimensions to use for computing the l2-norm. If
+    * @param  axes     1-D (vector) tensor containing the dimensions to use for computing the l2-norm. If
     *                  `null` (the default), all dimensions are used.
     * @param  name     Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByNorm(input: Output, clipNorm: Output, axes: Output = null, name: String = "ClipByNorm"): Output = {
-    Op.createWithNameScope(name) {
+  def clipByNorm[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+      input: Output[T],
+      clipNorm: Output[T],
+      axes: Output[I] = null,
+      name: String = "ClipByNorm"
+  ): Output[T] = {
+    Op.nameScope(name) {
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val l2Norm = Math.sum(input.square(), axes, keepDims = true).sqrt()
+      val l2Norm = Math.sum(Math.square(input), axes, keepDims = true).sqrt
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(intermediate.shape)
@@ -71,15 +107,20 @@ private[ops] trait Clip {
     * @param  name     Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByAverageNorm(input: Output, clipNorm: Output, name: String = "ClipByAverageNorm"): Output = {
-    Op.createWithNameScope(name) {
+  def clipByAverageNorm[T: TF : IsNotQuantized](
+      input: Output[T],
+      clipNorm: Output[T],
+      name: String = "ClipByAverageNorm"
+  ): Output[T] = {
+    Op.nameScope(name) {
       // Calculate the l2-norm per element and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val numElements = Basic.size(input).cast(INT32)
-      val l2NormInv = Math.sum(input.square(), keepDims = true).rsqrt()
+      val numElements = Basic.size(input).castTo[T]
+      val l2NormInv = Math.sum(input.square, keepDims = true).rsqrt
       val intermediate = input * clipNorm
       // Assert that the result shape is compatible with the initial shape, to prevent unintentional broadcasting.
       input.shape.assertIsCompatibleWith(intermediate.shape)
-      Basic.identity(intermediate * Math.minimum(l2NormInv * numElements, 1 / clipNorm))
+      val one = Basic.ones[T](Shape())
+      Basic.identity(intermediate * Math.minimum(l2NormInv * numElements, one / clipNorm))
     }
   }
 
@@ -90,18 +131,22 @@ private[ops] trait Clip {
     * @param  name   Name prefix for created ops.
     * @return Created op output.
     */
-  def globalNorm(inputs: Seq[OutputLike], name: String = "GlobalNorm"): Output = {
-    Op.createWithNameScope(name) {
+  def globalNorm[T: TF : IsDecimal](
+      inputs: Seq[OutputLike[T]],
+      name: String = "GlobalNorm"
+  ): Output[T] = {
+    Op.nameScope(name) {
       val values = inputs.map {
-        case o: Output => o
-        case o: OutputIndexedSlices => o.values
-        case o: SparseOutput => o.values
+        case o: Output[T] => o
+        case o: OutputIndexedSlices[T] => o.values
+        case o: SparseOutput[T] => o.values
       }
       val halfSquaredNorms = values.filter(_ != null).map(v => Op.colocateWith(Set(v.op), ignoreExisting = true) {
         NN.l2Loss(v)
       })
       val halfSquaredNorm = Math.sum(Basic.stack(halfSquaredNorms))
-      Math.sqrt(halfSquaredNorm * 2)
+      val two = Basic.constant(2).castTo[T]
+      Math.sqrt(halfSquaredNorm * two)
     }
   }
 
@@ -115,20 +160,21 @@ private[ops] trait Clip {
     * @param  name       Name prefix for created ops.
     * @return Tuple containing the clipped tensors as well as the global norm that was used for the clipping.
     */
-  def clipByGlobalNorm(
-      inputs: Seq[OutputLike],
-      clipNorm: Output,
-      globalNorm: Output = null,
+  def clipByGlobalNorm[T: TF : IsDecimal](
+      inputs: Seq[OutputLike[T]],
+      clipNorm: Output[T],
+      globalNorm: Output[T] = null,
       name: String = "ClipByGlobalNorm"
-  ): (Seq[OutputLike], Output) = {
-    Op.createWithNameScope(name) {
+  ): (Seq[OutputLike[T]], Output[T]) = {
+    Op.nameScope(name) {
       val norm = if (globalNorm != null) globalNorm else this.globalNorm(inputs)
+      val one = Basic.ones[T](Shape())
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.
-      val scale = clipNorm * Math.minimum(Math.divide(1, norm), Math.divide(1, clipNorm))
+      val scale = clipNorm * Math.minimum(Math.divide(one, norm), Math.divide(one, clipNorm))
       val values = inputs.map {
-        case o: Output => o
-        case o: OutputIndexedSlices => o.values
-        case o: SparseOutput => o.values
+        case o: Output[T] => o
+        case o: OutputIndexedSlices[T] => o.values
+        case o: SparseOutput[T] => o.values
       }
       val clippedValues = values.map(value => {
         if (value == null)
@@ -137,9 +183,9 @@ private[ops] trait Clip {
           Op.colocateWith(Set(value.op), ignoreExisting = true)(Basic.identity(value * scale))
       })
       val result = inputs.zip(clippedValues).map {
-        case (_: Output, c: Output) => c
-        case (i: OutputIndexedSlices, c: Output) => OutputIndexedSlices(i.indices, c, i.denseShape)
-        case (i: SparseOutput, c: Output) => SparseOutput(i.indices, c, i.denseShape)
+        case (_: Output[T], c: Output[T]) => c
+        case (i: OutputIndexedSlices[T], c: Output[T]) => OutputIndexedSlices(i.indices, c, i.denseShape)
+        case (i: SparseOutput[T], c: Output[T]) => SparseOutput(i.indices, c, i.denseShape)
         case _ => null // Impossible case.
       }
       (result, norm)
@@ -148,69 +194,63 @@ private[ops] trait Clip {
 }
 
 object Clip extends Clip {
-  case class ClipOps(output: Output) {
-    /** $OpDocClipClipByValue
-      *
-      * @group ClipOps
-      * @param  clipValueMin 0-D (scalar) tensor, or a tensor with the same shape as this tensor, specifying the minimum
-      *                      value to clip by.
-      * @param  clipValueMax 0-D (scalar) tensor, or a tensor with the same shape as this tensor, specifying the maximum
-      *                      value to clip by.
-      * @param  name         Name prefix for created ops.
-      * @return Created op output.
-      */
-    def clipByValue(clipValueMin: Output, clipValueMax: Output, name: String = "ClipByValue"): Output = {
-      Clip.clipByValue(output, clipValueMin, clipValueMax, name)
+  private[ops] trait Implicits {
+    implicit def outputConvertibleToClipOps[T: TF, OC](
+        value: OC
+    )(implicit f: OC => Output[T]): ClipOps[T] = {
+      new ClipOps(f(value))
     }
 
-    /** $OpDocClipClipByNorm
-      *
-      * @group ClipOps
-      * @param  clipNorm 0-D (scalar) tensor > 0, specifying the maximum clipping value.
-      * @param  axes     1-D (vector) `INT32` tensor containing the dimensions to use for computing the l2-norm. If
-      *                  `null` (the default), all dimensions are used.
-      * @param  name     Name prefix for created ops.
-      * @return Created op output.
-      */
-    def clipByNorm(clipNorm: Output, axes: Output = null, name: String = "ClipByNorm"): Output = {
-      Clip.clipByNorm(output, clipNorm, axes, name)
-    }
+    implicit class ClipOps[T: TF](val output: Output[T]) {
+      /** $OpDocClipClipByValue
+        *
+        * @group ClipOps
+        * @param  clipValueMin 0-D (scalar) tensor, or a tensor with the same shape as this tensor, specifying the minimum
+        *                      value to clip by.
+        * @param  clipValueMax 0-D (scalar) tensor, or a tensor with the same shape as this tensor, specifying the maximum
+        *                      value to clip by.
+        * @param  name         Name prefix for created ops.
+        * @return Created op output.
+        */
+      def clipByValue(
+          clipValueMin: Output[T],
+          clipValueMax: Output[T],
+          name: String = "ClipByValue"
+      )(implicit ev: IsNotQuantized[T]): Output[T] = {
+        Clip.clipByValue(output, clipValueMin, clipValueMax, name)
+      }
 
-    /** $OpDocClipClipByAverageNorm
-      *
-      * @group ClipOps
-      * @param  clipNorm 0-D (scalar) tensor > 0, specifying the maximum clipping value.
-      * @param  name     Name prefix for created ops.
-      * @return Created op output.
-      */
-    def clipByAverageNorm(input: Output, clipNorm: Output, name: String = "ClipByAverageNorm"): Output = {
-      Clip.clipByAverageNorm(output, clipNorm, name)
-    }
-  }
+      /** $OpDocClipClipByNorm
+        *
+        * @group ClipOps
+        * @param  clipNorm 0-D (scalar) tensor > 0, specifying the maximum clipping value.
+        * @param  axes     1-D (vector) tensor containing the dimensions to use for computing the l2-norm. If
+        *                  `null` (the default), all dimensions are used.
+        * @param  name     Name prefix for created ops.
+        * @return Created op output.
+        */
+      def clipByNorm[I: IntDefault : TF : IsInt32OrInt64](
+          clipNorm: Output[T],
+          axes: Output[I] = null,
+          name: String = "ClipByNorm"
+      )(implicit ev: IsNotQuantized[T]): Output[T] = {
+        Clip.clipByNorm(output, clipNorm, axes, name)
+      }
 
-  private[ops] object Gradients {
-    GradientsRegistry.register("ClipByValue", clipByValueGradient)
-
-    private[this] def clipByValueGradient(op: Op, outputGradients: Seq[OutputLike]): Seq[OutputLike] = {
-      val x = op.inputs(0)
-      val y = op.inputs(1)
-      val z = op.inputs(2)
-      val xShape = Basic.shape(x)
-      val yShape = Basic.shape(y)
-      val zShape = Basic.shape(z)
-      val outputGradient = outputGradients.head.toOutput
-      val zeros = Basic.zerosLike(outputGradient)
-      val xyMask = Math.less(x, y)
-      val xzMask = Math.greater(x, z)
-      val xGradient = Math.select(Math.logicalOr(xyMask, xzMask), zeros, outputGradient)
-      val yGradient = Math.select(xyMask, outputGradient, zeros)
-      val zGradient = Math.select(xzMask, outputGradient, zeros)
-      val (_, ry) = Basic.broadcastGradientArguments(xShape, yShape)
-      val (rx, rz) = Basic.broadcastGradientArguments(xShape, zShape)
-      Seq(
-        Math.sum(xGradient, rx).reshape(xShape),
-        Math.sum(yGradient, ry).reshape(yShape),
-        Math.sum(zGradient, rz).reshape(zShape))
+      /** $OpDocClipClipByAverageNorm
+        *
+        * @group ClipOps
+        * @param  clipNorm 0-D (scalar) tensor > 0, specifying the maximum clipping value.
+        * @param  name     Name prefix for created ops.
+        * @return Created op output.
+        */
+      def clipByAverageNorm(
+          input: Output[T],
+          clipNorm: Output[T],
+          name: String = "ClipByAverageNorm"
+      )(implicit ev: IsNotQuantized[T]): Output[T] = {
+        Clip.clipByAverageNorm(output, clipNorm, name)
+      }
     }
   }
 

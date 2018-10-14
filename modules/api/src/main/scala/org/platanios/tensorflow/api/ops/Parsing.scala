@@ -16,12 +16,10 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.Gradients.{Registry => GradientsRegistry}
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32, INT32, INT64, STRING, UINT8}
 
 import scala.collection.immutable.ListMap
-import scala.collection.mutable
 
 /** Contains functions for constructing ops related to parsing data.
   *
@@ -35,56 +33,68 @@ trait Parsing {
     * @param  name   Name for the created op.
     * @return Created op output.
     */
-  def encodeTensor(tensor: Output, name: String = "EncodeTensor"): Output = {
-    Op.Builder(opType = "SerializeTensor", name = name)
-        .addInput(tensor)
-        .build().outputs(0)
+  def encodeTensor[T: TF](
+      tensor: Output[T],
+      name: String = "EncodeTensor"
+  ): Output[String] = {
+    Op.Builder[Output[T], Output[String]](
+      opType = "SerializeTensor",
+      name = name,
+      input = tensor
+    ).build().output
   }
 
   /** $OpDocParsingDecodeTensor
     *
     * @group ParsingOps
-    * @param  data     [[STRING]] tensor containing a serialized `TensorProto` proto.
-    * @param  dataType Data type of the serialized tensor. The provided data type must match the data type of the
-    *                  serialized tensor and no implicit conversion will take place.
-    * @param  name     Name for the created op.
+    * @param  data Tensor containing a serialized `TensorProto` proto.
+    * @param  name Name for the created op.
+    * @tparam T Data type of the serialized tensor. The provided data type must match the data type of the
+    *           serialized tensor and no implicit conversion will take place.
     * @return Created op output.
-    * @throws IllegalArgumentException If `data` is not a [[STRING]] tensor.
     */
-  @throws[IllegalArgumentException]
-  def decodeTensor(data: Output, dataType: DataType, name: String = "DecodeTensor"): Output = {
-    require(data.dataType == STRING, s"Tensor data type was ${data.dataType}, while STRING was expected.")
-    Op.Builder(opType = "ParseTensor", name = name)
-        .addInput(data)
-        .setAttribute("out_type", dataType)
-        .build().outputs(0)
+  def decodeTensor[T: TF](
+      data: Output[String],
+      name: String = "DecodeTensor"
+  ): Output[T] = {
+    Op.Builder[Output[String], Output[T]](
+      opType = "ParseTensor",
+      name = name,
+      input = data
+    ).setAttribute("out_type", TF[T].dataType)
+        .build().output
   }
 
   /** $OpDocParsingDecodeRaw
     *
     * @group ParsingOps
-    * @param  bytes        [[STRING]] tensor interpreted as raw bytes. All the elements must have the same length.
-    * @param  dataType     Output tensor data type.
+    * @param  bytes        Tensor interpreted as raw bytes. All the elements must have the same length.
     * @param  littleEndian Boolean value indicating whether the input `bytes` are stored in little-endian order. Ignored
     *                      for `dataType` values that are stored in a single byte, like [[UINT8]].
     * @param  name         Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
-    * @throws IllegalArgumentException If `bytes` is not a [[STRING]] tensor.
     */
-  @throws[IllegalArgumentException]
-  def decodeRaw(bytes: Output, dataType: DataType, littleEndian: Boolean = true, name: String = "DecodeRaw"): Output = {
-    require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
-    Op.Builder(opType = "DecodeRaw", name = name)
-        .addInput(bytes)
-        .setAttribute("out_type", dataType)
+  def decodeRaw[T: TF](
+      bytes: Output[String],
+      littleEndian: Boolean = true,
+      name: String = "DecodeRaw"
+  ): Output[T] = {
+    Op.Builder[Output[String], Output[T]](
+      opType = "DecodeRaw",
+      name = name,
+      input = bytes
+    ).setAttribute("out_type", TF[T].dataType)
         .setAttribute("little_endian", littleEndian)
-        .build().outputs(0)
+        .build().output
   }
+
+  // TODO: [OPS|TYPES|PARSING] Use tuples instead of sequences for parsing CSVs.
 
   /** $OpDocParsingDecodeCSV
     *
     * @group ParsingOps
-    * @param  records            [[STRING]] tensor where each string is a record/row in the csv and all records should
+    * @param  records            Tensor where each string is a record/row in the csv and all records should
     *                            have the same format.
     * @param  recordDefaults     One tensor per column of the input record, with either a scalar default value for that
     *                            column or empty if the column is required.
@@ -94,84 +104,89 @@ trait Parsing {
     *                            string fields (ignoring RFC 4180, Section 2, Bullet 5).
     * @param  name               Name for the created op.
     * @return Created op outputs.
-    * @throws IllegalArgumentException If `records` is not a [[STRING]] tensor.
     */
-  @throws[IllegalArgumentException]
-  def decodeCSV(
-      records: Output, recordDefaults: Seq[Output], dataTypes: Seq[DataType], delimiter: String = ",",
-      useQuoteDelimiters: Boolean = true, name: String = "DecodeCSV"): Seq[Output] = {
-    require(records.dataType == STRING, s"Tensor data type was ${records.dataType}, while STRING was expected.")
-    Op.Builder(opType = "DecodeCSV", name = name)
-        .addInput(records)
-        .addInputList(recordDefaults)
-        .setAttribute("OUT_TYPE", dataTypes.toArray)
+  def decodeCSV[T: TF](
+      records: Output[String],
+      recordDefaults: Seq[Output[T]],
+      dataTypes: Seq[DataType[T]],
+      delimiter: String = ",",
+      useQuoteDelimiters: Boolean = true,
+      name: String = "DecodeCSV"
+  ): Seq[Output[T]] = {
+    Op.Builder[(Output[String], Seq[Output[T]]), Seq[Output[T]]](
+      opType = "DecodeCSV",
+      name = name,
+      input = (records, recordDefaults)
+    ).setAttribute("OUT_TYPE", dataTypes.map(_.asInstanceOf[DataType[Any]]).toArray[DataType[Any]])
         .setAttribute("field_delim", delimiter)
         .setAttribute("use_quote_delim", useQuoteDelimiters)
-        .build().outputs.toSeq
+        .build().output
   }
 
   /** $OpDocParsingStringToNumber
     *
     * @group ParsingOps
-    * @param  data     [[STRING]] tensor containing string representations of numbers.
-    * @param  dataType Output tensor data type.
-    * @param  name     Name for the created op.
+    * @param  data Tensor containing string representations of numbers.
+    * @param  name Name for the created op.
+    * @tparam T Tensor data type.
     * @return Created op output.
-    * @throws IllegalArgumentException If `data` is not a [[STRING]] tensor.
     */
-  @throws[IllegalArgumentException]
-  def stringToNumber(data: Output, dataType: DataType, name: String = "StringToNumber"): Output = {
-    require(data.dataType == STRING, s"Tensor data type was ${data.dataType}, while STRING was expected.")
-    Op.Builder(opType = "StringToNumber", name = name)
-        .addInput(data)
-        .setAttribute("out_type", dataType)
-        .build().outputs(0)
+  def stringToNumber[T: TF](
+      data: Output[String],
+      name: String = "StringToNumber"
+  ): Output[T] = {
+    Op.Builder[Output[String], Output[T]](
+      opType = "StringToNumber",
+      name = name,
+      input = data
+    ).setAttribute("out_type", TF[T].dataType)
+        .build().output
   }
 
   /** $OpDocParsingDecodeJSONExample
     *
     * @group ParsingOps
-    * @param  jsonExamples [[STRING]] tensor where each string is a JSON object serialized according to the JSON mapping
+    * @param  jsonExamples Tensor where each string is a JSON object serialized according to the JSON mapping
     *                      of the `Example` proto.
     * @param  name         Name for the created op.
     * @return Created op output.
-    * @throws IllegalArgumentException If `jsonExamples` is not a [[STRING]] tensor.
     */
-  @throws[IllegalArgumentException]
-  def decodeJSONExample(jsonExamples: Output, name: String = "DecodeJSONExample"): Output = {
-    require(
-      jsonExamples.dataType == STRING, s"Tensor data type was ${jsonExamples.dataType}, while STRING was expected.")
-    Op.Builder(opType = "DecodeJSONExample", name = name)
-        .addInput(jsonExamples)
-        .build().outputs(0)
+  def decodeJSONExample(
+      jsonExamples: Output[String],
+      name: String = "DecodeJSONExample"
+  ): Output[String] = {
+    Op.Builder[Output[String], Output[String]](
+      opType = "DecodeJSONExample",
+      name = name,
+      input = jsonExamples
+    ).build().output
   }
 }
 
-private[ops] object Parsing extends Parsing {
+object Parsing extends Parsing {
   sealed trait Feature
 
   /** Configuration for parsing a variable-length input feature.
     *
     * @param  dataType Data type of the input feature.
     */
-  case class VariableLengthFeature(dataType: DataType) extends Feature
+  case class VariableLengthFeature(dataType: DataType[_]) extends Feature
 
   /** Configuration for parsing a fixed-length input feature.
     *
     * To treat sparse input as dense, provide a `defaultValue`. Otherwise, the parsing functions will fail on any
     * examples missing this feature.
     *
-    * @param  dataType     Data type of the input feature.
     * @param  shape        Shape of the input feature.
     * @param  defaultValue Value to be used if an example is missing this feature. It must match the specified `shape`.
+    * @tparam T Data type of the input feature.
     */
-  case class FixedLengthFeature[D <: DataType](
-      dataType: D,
+  case class FixedLengthFeature[T: TF](
       shape: Shape,
-      defaultValue: Tensor[D] = null
+      defaultValue: Tensor[T] = null
   ) extends Feature {
     require(defaultValue == null || defaultValue.shape == shape,
-            s"The default value shape (${defaultValue.shape}) does not match the expected $shape.")
+      s"The default value shape (${defaultValue.shape}) does not match the expected $shape.")
   }
 
   /** Configuration for parsing a fixed-length sequence input feature.
@@ -184,19 +199,18 @@ private[ops] object Parsing extends Parsing {
     * To treat sparse input as dense, set `allowMissing` to `true`. Otherwise, the parsing functions will fail on any
     * examples missing this feature.
     *
-    * @param  dataType     Data type of the input feature.
     * @param  shape        Shape of the input feature.
     * @param  allowMissing Boolean value specifying whether to allow this feature to be missing from a feature list
     *                      item. It is available only for parsing `SequenceExample`s, but not for parsing `Example`s.
     * @param  defaultValue Scalar value to be used to pad multiple `Example`s to their maximum length. It is irrelevant
     *                      for parsing a single `Example` or `SequenceExample`. Defaults to `""` for data type
     *                      [[STRING]] and to `0` otherwise.
+    * @tparam T Data type of the input feature.
     */
-  case class FixedLengthSequenceFeature[D <: DataType](
-      dataType: DataType,
+  case class FixedLengthSequenceFeature[T: TF](
       shape: Shape,
       allowMissing: Boolean = false,
-      defaultValue: Tensor[D]= null
+      defaultValue: Tensor[T] = null
   ) extends Feature
 
   /** Configuration for parsing a sparse input feature.
@@ -244,17 +258,16 @@ private[ops] object Parsing extends Parsing {
     *                       be [[INT64]] and its length must always match the rank of the `valueKey` feature's value.
     * @param  valueKey      Name of the value feature. The underlying feature's type must be `dataType` and its rank
     *                       must always match that of all the `indexKey`s' features.
-    * @param  dataType      Data type of the `valueKey` feature.
     * @param  size          Sequence of integers specifying the dense shape of the [[SparseTensor]]. The length of this
     *                       sequence must be equal to the length of the `indexKey` sequence. For each entry `i`, all
     *                       values in the `indexKey(i)`-th feature must be in the interval `[0, size(i))`.
     * @param  alreadySorted Boolean value specifying whether the values in `valueKey` are already sorted by their index
     *                       position. If so, we skip sorting.
+    * @tparam T Data type of the `valueKey` feature.
     */
-  case class SparseFeature(
+  case class SparseFeature[T: TF](
       indexKey: Seq[String],
       valueKey: String,
-      dataType: DataType,
       size: Seq[Int],
       alreadySorted: Boolean = false
   ) extends Feature
@@ -263,279 +276,270 @@ private[ops] object Parsing extends Parsing {
     * [[ListMap]] for `denseDefaults` because ignoring the ordering would cause graph equality to fail in some tests. */
   private[this] case class RawParameters(
       sparseKeys: Seq[String],
-      sparseTypes: Seq[DataType],
+      sparseTypes: Seq[DataType[_]],
       denseKeys: Seq[String],
-      denseTypes: Seq[DataType],
+      denseTypes: Seq[DataType[_]],
       denseShapes: Seq[Shape],
-      denseDefaults: ListMap[String, Tensor[DataType]])
+      denseDefaults: ListMap[String, Tensor[_]])
 
-  /** Converts the provides features into a [[RawParameters]] object to be fed into the parsing ops. */
-  @throws[IllegalArgumentException]
-  private[this] def featuresToRawParameters(features: Map[String, Feature]): RawParameters = {
-    val sparseKeys = mutable.ListBuffer.empty[String]
-    val sparseTypes = mutable.ListBuffer.empty[DataType]
-    val denseKeys = mutable.ListBuffer.empty[String]
-    val denseTypes = mutable.ListBuffer.empty[DataType]
-    val denseShapes = mutable.ListBuffer.empty[Shape]
-    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor[DataType])]
-    // We iterate over sorted keys to keep things deterministic.
-    features.toSeq.sortBy(_._1).foreach({
-      case (key, VariableLengthFeature(dataType)) =>
-        sparseKeys.append(key)
-        sparseTypes.append(dataType)
-      case (key, FixedLengthFeature(dataType, shape, defaultValue)) =>
-        if (!shape.isFullyDefined)
-          throw new IllegalArgumentException(
-            s"All dimensions of shape for feature '$key' need to be known, but received $shape.")
-        denseKeys.append(key)
-        denseTypes.append(dataType)
-        denseShapes.append(shape)
-        if (defaultValue != null)
-          denseDefaults.append((key, defaultValue))
-      case (key, FixedLengthSequenceFeature(dataType, shape, allowMissing, defaultValue)) =>
-        denseKeys.append(key)
-        denseTypes.append(dataType)
-        denseShapes.append(shape)
-        if (allowMissing || defaultValue != null)
-          denseDefaults.append((key, defaultValue))
-      case (_, SparseFeature(indexKey, valueKey, dataType, _, _)) =>
-        indexKey.sorted.foreach(k => {
-          if (sparseKeys.contains(k)) {
-            val dType = sparseTypes(sparseKeys.indexOf(k))
-            if (dType != INT64)
-              throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $k.")
-          } else {
-            sparseKeys.append(k)
-            sparseTypes.append(INT64)
-          }
-        })
-        if (sparseKeys.contains(valueKey)) {
-          val dType = sparseTypes(sparseKeys.indexOf(valueKey))
-          if (dType != INT64)
-            throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $valueKey.")
-        } else {
-          sparseKeys.append(valueKey)
-          sparseTypes.append(dataType)
-        }
-    })
-    RawParameters(
-      sparseKeys.toList, sparseTypes.toList, denseKeys.toList, denseTypes.toList, denseShapes.toList,
-      ListMap(denseDefaults: _*))
-  }
-
-//  private[this] def sparseFeaturesToSparseTensors(
-//      features: Map[String, Feature], tensors: Map[String, TensorLike]): Map[String, TensorLike] = {
-//    val updatedTensors = mutable.ListMap(tensors.toSeq: _*)
+//  /** Converts the provides features into a [[RawParameters]] object to be fed into the parsing ops. */
+//  @throws[IllegalArgumentException]
+//  private def featuresToRawParameters(
+//      features: Map[String, Feature]
+//  ): RawParameters = {
+//    val sparseKeys = mutable.ListBuffer.empty[String]
+//    val sparseTypes = mutable.ListBuffer.empty[DataType[_]]
+//    val denseKeys = mutable.ListBuffer.empty[String]
+//    val denseTypes = mutable.ListBuffer.empty[DataType[_]]
+//    val denseShapes = mutable.ListBuffer.empty[Shape]
+//    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor[_])]
 //    // We iterate over sorted keys to keep things deterministic.
 //    features.toSeq.sortBy(_._1).foreach({
+//      case (key, VariableLengthFeature(dataType)) =>
+//        sparseKeys.append(key)
+//        sparseTypes.append(dataType)
+//      case (key, FixedLengthFeature(dataType, shape, defaultValue)) =>
+//        if (!shape.isFullyDefined)
+//          throw new IllegalArgumentException(
+//            s"All dimensions of shape for feature '$key' need to be known, but received $shape.")
+//        denseKeys.append(key)
+//        denseTypes.append(dataType)
+//        denseShapes.append(shape)
+//        if (defaultValue != null)
+//          denseDefaults.append((key, defaultValue))
+//      case (key, FixedLengthSequenceFeature(dataType, shape, allowMissing, defaultValue)) =>
+//        denseKeys.append(key)
+//        denseTypes.append(dataType)
+//        denseShapes.append(shape)
+//        if (allowMissing || defaultValue != null)
+//          denseDefaults.append((key, defaultValue))
 //      case (_, SparseFeature(indexKey, valueKey, dataType, _, _)) =>
-//        val sparseIndices = indexKey.map(updatedTensors)
-//        val sparseValues = updatedTensors(valueKey)
-//
+//        indexKey.sorted.foreach(k => {
+//          if (sparseKeys.contains(k)) {
+//            val dType = sparseTypes(sparseKeys.indexOf(k))
+//            if (dType != INT64)
+//              throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $k.")
+//          } else {
+//            sparseKeys.append(k)
+//            sparseTypes.append(INT64)
+//          }
+//        })
+//        if (sparseKeys.contains(valueKey)) {
+//          val dType = sparseTypes(sparseKeys.indexOf(valueKey))
+//          if (dType != INT64)
+//            throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $valueKey.")
+//        } else {
+//          sparseKeys.append(valueKey)
+//          sparseTypes.append(dataType)
+//        }
 //    })
-//
+//    RawParameters(
+//      sparseKeys.toList, sparseTypes.toList, denseKeys.toList, denseTypes.toList, denseShapes.toList,
+//      ListMap(denseDefaults: _*))
 //  }
-
-  /** Creates an op that transforms a vector of `Example` protos (represented as strings) into typed tensors.
-    *
-    * @param  bytes         [[STRING]] tensor containing containing a batch of binary serialized `Example` protos.
-    * @param  sparseKeys    [[STRING]] rank-0 tensors containing the keys expected in the `Example` features associated
-    *                       with sparse values.
-    * @param  sparseTypes   Data types of the `Example` features associated with sparse values.
-    * @param  denseKeys     [[STRING]] rank-0 tensors containing the keys expected in the `Example` features associated
-    *                       with dense values.
-    * @param  denseShapes   Rank-1 tensors containing the shapes of the values in each feature given in `denseKeys`. The
-    *                       number of elements in the feature corresponding to `denseKeys(j)` must always be equal to
-    *                       `denseShapes(j).size`. If `denseShapes(j) == (D0, D1, ..., DN)` then the shape of the output
-    *                       tensor `denseValues(j)` will be `(|bytes|, D0, D1, ..., DN)`: the dense outputs are just the
-    *                       inputs row-stacked by batch. This works for `denseShapes(j) = (-1, D1, ..., DN)`. In this
-    *                       case, the shape of the output tensor `denseValues(j)` will be `(|bytes|, M, D1, .., DN)`,
-    *                       where `M` is the maximum number of blocks of elements of length `D1 * .... * DN`, across all
-    *                       minibatch entries in the input. Any minibatch entry with less than `M` blocks of elements of
-    *                       length `D1 * ... * DN` will be padded with the corresponding `denseDefaults` scalar element
-    *                       along the second dimension.
-    * @param  denseDefaults Tensors (some of which may be empty) containing default dense values. `denseDefaults(j)`
-    *                       provides default values when the example's feature map lacks `denseKeys(j)`. If an empty
-    *                       tensor is provided for `denseDefaults(j)`, then the feature `denseKeys(j)` is required. The
-    *                       input type is inferred from `denseDefaults(j)`, even when it's empty. If `denseDefaults(j)`
-    *                       is not empty, and `denseShapes(j)` is fully defined, then the shape of `denseDefaults(j)`
-    *                       must match that of `denseShapes(j)`. If `denseShapes(j)` has an undefined major dimension
-    *                       (variable strides dense feature), `denseDefaults(j)` must contain a single element: the
-    *                       padding element.
-    * @param  debugNames    [[STRING]] rank-1 tensor containing the names of the serialized protos. May contain, for
-    *                       example, table key (descriptive) names for the corresponding serialized protos. These are
-    *                       purely useful for debugging purposes, and the presence of values here has no effect on the
-    *                       output. May also be an empty vector if no names are available. If non-empty, this vector
-    *                       must have the same length as `bytes`.
-    * @param  name          Name for the created op.
-    * @return Tuple containing:
-    *         1. Sparse tensor indices.
-    *         2. Sparse tensor values.
-    *         3. Sparse tensor shapes.
-    *         4. Dense tensor values.
-    * @throws IllegalArgumentException If any of the input arguments has invalid data type or size.
-    */
-  @throws[IllegalArgumentException]
-  private[Parsing] def parseExample(
-      bytes: Output, sparseKeys: Seq[Output], sparseTypes: Seq[DataType], denseKeys: Seq[Output],
-      denseShapes: Seq[Shape], denseDefaults: Seq[Output], debugNames: Output,
-      name: String = "ParseExample"): (Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
-    require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
-    require(!sparseKeys.exists(_.dataType == STRING), "The sparse keys must all be STRING tensors.")
-    require(!denseKeys.exists(_.dataType == STRING), "The dense keys must all be STRING tensors.")
-    require(sparseKeys.length == sparseTypes.length, "The number of sparse keys does not match that of sparse types.")
-    require(denseKeys.length == denseShapes.length, "The number of dense keys does not match that of dense shapes.")
-    require(denseKeys.length == denseDefaults.length, "The number of dense keys does not match that of dense defaults.")
-    require(debugNames.dataType == STRING, s"Tensor data type was ${debugNames.dataType}, while STRING was expected.")
-    val numSparse = sparseKeys.length
-    val numDense = denseKeys.length
-    val outputs = Op.Builder(opType = "ParseExample", name = name)
-        .addInput(bytes)
-        .addInput(debugNames)
-        .addInputList(sparseKeys)
-        .addInputList(denseKeys)
-        .addInputList(denseDefaults)
-        .setAttribute("sparse_types", sparseTypes.toArray)
-        .setAttribute("dense_shapes", denseShapes.toArray)
-        .build().outputs
-    val sparseIndices = outputs.take(numSparse)
-    val sparseValues = outputs.slice(numSparse, 2 * numSparse)
-    val sparseShapes = outputs.slice(2 * numSparse, 3 * numSparse)
-    val denseValues = outputs.takeRight(numDense)
-    (sparseIndices, sparseValues, sparseShapes, denseValues)
-  }
-
-  /** Creates an op that transforms a scalar `SequenceExample` protos (represented as strings) into typed tensors.
-    *
-    * @param  bytes                               [[STRING]] tensor containing containing the binary serialized
-    *                                             `SequenceExample` proto.
-    * @param  contextSparseKeys                   [[STRING]] rank-0 tensors containing the keys expected in the
-    *                                             `SequenceExample` features associated with context sparse values.
-    * @param  contextSparseTypes                  Data types of the `SequenceExample` features associated with context
-    *                                             sparse values.
-    * @param  contextDenseKeys                    [[STRING]] rank-0 tensors containing the keys expected in the
-    *                                             `SequenceExample` features associated with context dense values.
-    * @param  contextDenseShapes                  Rank-1 tensors containing the shapes of the values in each context
-    *                                             feature given in `contextDenseKeys`. The  number of elements in the
-    *                                             feature corresponding to `contextDenseKeys(j)` must always be equal to
-    *                                             `contextDenseShapes(j).size`. The shape of `contextDenseValues(j)`
-    *                                             will match `contextDenseShapes(j)`.
-    * @param  contextDenseDefaults                Tensors (some of which may be empty) containing default context dense
-    *                                             values. `contextDenseDefaults(j)` provides default values when the
-    *                                             sequence example's feature map lacks `contextDenseKeys(j)`. If an
-    *                                             empty tensor is provided for `contextDenseDefaults(j)`, then the
-    *                                             feature `contextDenseKeys(j)` is required. The input type is inferred
-    *                                             from `contextDenseDefaults(j)`, even when it's empty. If
-    *                                             `contextDenseDefaults(j)` is not empty, its shape must match
-    *                                             `contextDenseShapes(j)`.
-    * @param  featureListSparseKeys               [[STRING]] rank-0 tensors containing the keys expected in the
-    *                                             `FeatureList`s associated with sparse values.
-    * @param  featureListSparseTypes              Data types of data in each `FeatureList` given in
-    *                                             `featureListSparseKeys`.
-    * @param  featureListDenseKeys                [[STRING]] rank-0 tensors containing the keys expected in the
-    *                                             `SequenceExample` feature lists associated with lists of dense values.
-    * @param  featureListDenseShapes              Rank-1 tensors containing the shapes of the values in each feature
-    *                                             list given in `featureListDenseKeys`. The  number of elements in the
-    *                                             feature corresponding to `featureListDenseKeys(j)` must always be
-    *                                             equal to `featureListDenseShapes(j).size`. The shape of
-    *                                             `featureListDenseValues(j)` will match `featureListDenseShapes(j)`.
-    * @param  featureListDenseMissingAssumedEmpty [[STRING]] rank-1 tensor containing the `FeatureList` keys which may
-    *                                             be missing from the `SequenceExample`. If the associated `FeatureList`
-    *                                             is missing, it is treated as empty. By default, any `FeatureList` not
-    *                                             listed in this vector must exist in the `SequenceExample`.
-    * @param  debugName                           [[STRING]] rank-0 tensor containing the name of the serialized proto.
-    *                                             May contain, for example, a table key (descriptive) name for the
-    *                                             corresponding serialized proto. This is purely useful for debugging
-    *                                             purposes, and the presence of values here has no effect on the output.
-    *                                             May also be an empty scalar if no name is available.
-    * @param  name                                Name for the created op.
-    * @return Tuple containing:
-    *         1. Context sparse tensor indices.
-    *         2. Context sparse tensor values.
-    *         3. Context sparse tensor shapes.
-    *         4. Context dense tensor values.
-    *         5. Feature list sparse tensor indices.
-    *         6. Feature list sparse tensor values.
-    *         7. Feature list sparse tensor shapes.
-    *         8. Feature list dense tensor values.
-    * @throws IllegalArgumentException If any of the input arguments has invalid data type or size.
-    */
-  private[Parsing] def parseSingleSequenceExample(
-      bytes: Output,
-      contextSparseKeys: Seq[Output], contextSparseTypes: Seq[DataType],
-      contextDenseKeys: Seq[Output], contextDenseShapes: Seq[Shape], contextDenseDefaults: Seq[Output],
-      featureListSparseKeys: Seq[Output], featureListSparseTypes: Seq[DataType],
-      featureListDenseKeys: Seq[Output], featureListDenseShapes: Seq[Shape],
-      featureListDenseMissingAssumedEmpty: Output, debugName: Output, name: String = "ParseSingleSequenceExample"):
-  (Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
-    require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
-    require(!contextSparseKeys.exists(_.dataType == STRING), "The context sparse keys must all be STRING tensors.")
-    require(!contextDenseKeys.exists(_.dataType == STRING), "The context dense keys must all be STRING tensors.")
-    require(!featureListSparseKeys.exists(_.dataType == STRING),
-            "The feature list sparse keys must all be STRING tensors.")
-    require(!featureListDenseKeys.exists(_.dataType == STRING),
-            "The feature list dense keys must all be STRING tensors.")
-    require(contextSparseKeys.length == contextSparseTypes.length,
-            "The number of context sparse keys does not match that of context sparse types.")
-    require(contextDenseKeys.length == featureListDenseShapes.length,
-            "The number of context dense keys does not match that of context dense shapes.")
-    require(contextDenseKeys.length == contextDenseDefaults.length,
-            "The number of context dense keys does not match that of context dense defaults.")
-    require(featureListSparseKeys.length == featureListSparseTypes.length,
-            "The number of feature list sparse keys does not match that of feature list sparse types.")
-    require(featureListDenseKeys.length == featureListDenseShapes.length,
-            "The number of feature list dense keys does not match that of feature list dense shapes.")
-    require(featureListDenseMissingAssumedEmpty.dataType == STRING,
-            s"Tensor data type was ${featureListDenseMissingAssumedEmpty.dataType}, while STRING was expected.")
-    require(debugName.dataType == STRING, s"Tensor data type was ${debugName.dataType}, while STRING was expected.")
-    val numContextSparse = contextSparseKeys.length
-    val numContextDense = contextDenseKeys.length
-    val numFeatureListSparse = featureListSparseKeys.length
-    val numFeatureListDense = featureListDenseKeys.length
-    val outputs = Op.Builder(opType = "ParseSingleSequenceExample", name = name)
-        .addInput(bytes)
-        .addInput(featureListDenseMissingAssumedEmpty)
-        .addInputList(contextSparseKeys)
-        .addInputList(contextDenseKeys)
-        .addInputList(featureListSparseKeys)
-        .addInputList(featureListDenseKeys)
-        .addInputList(contextDenseDefaults)
-        .addInput(debugName)
-        .setAttribute("context_sparse_types", contextSparseTypes.toArray)
-        .setAttribute("context_dense_shapes", contextDenseShapes.toArray)
-        .setAttribute("feature_list_sparse_types", featureListSparseTypes.toArray)
-        .setAttribute("feature_list_dense_shapes", featureListDenseShapes.toArray)
-        .build().outputs
-    var index = 0
-    val contextSparseIndices = outputs.take(index + numContextSparse)
-    index += numContextSparse
-    val contextSparseValues = outputs.slice(index, index + numContextSparse)
-    index += numContextSparse
-    val contextSparseShapes = outputs.slice(index, index + numContextSparse)
-    index += numContextSparse
-    val contextDenseValues = outputs.slice(index, index + numContextDense)
-    index += numContextDense
-    val featureListSparseIndices = outputs.slice(index, index + numFeatureListSparse)
-    index += numFeatureListSparse
-    val featureListSparseValues = outputs.slice(index, index + numFeatureListSparse)
-    index += numFeatureListSparse
-    val featureListSparseShapes = outputs.slice(index, index + numFeatureListSparse)
-    index += numFeatureListSparse
-    val featureListDenseValues = outputs.slice(index, index + numFeatureListDense)
-    (contextSparseIndices, contextSparseValues, contextSparseShapes, contextDenseValues,
-        featureListSparseIndices, featureListSparseValues, featureListSparseShapes, featureListDenseValues)
-  }
-
-  private[ops] object Gradients {
-    GradientsRegistry.registerNonDifferentiable("SerializeTensor")
-    GradientsRegistry.registerNonDifferentiable("ParseTensor")
-    GradientsRegistry.registerNonDifferentiable("DecodeRaw")
-    GradientsRegistry.registerNonDifferentiable("DecodeCSV")
-    GradientsRegistry.registerNonDifferentiable("ParseExample")
-    GradientsRegistry.registerNonDifferentiable("ParseSingleSequenceExample")
-    GradientsRegistry.registerNonDifferentiable("StringToNumber")
-    GradientsRegistry.registerNonDifferentiable("DecodeJSONExample")
-  }
+//
+//  /** Creates an op that transforms a vector of `Example` protos (represented as strings) into typed tensors.
+//    *
+//    * @param  bytes         Tensor containing containing a batch of binary serialized `Example` protos.
+//    * @param  sparseKeys    Rank-0 tensors containing the keys expected in the `Example` features associated
+//    *                       with sparse values.
+//    * @param  sparseTypes   Data types of the `Example` features associated with sparse values.
+//    * @param  denseKeys     Rank-0 tensors containing the keys expected in the `Example` features associated
+//    *                       with dense values.
+//    * @param  denseShapes   Rank-1 tensors containing the shapes of the values in each feature given in `denseKeys`. The
+//    *                       number of elements in the feature corresponding to `denseKeys(j)` must always be equal to
+//    *                       `denseShapes(j).size`. If `denseShapes(j) == (D0, D1, ..., DN)` then the shape of the output
+//    *                       tensor `denseValues(j)` will be `(|bytes|, D0, D1, ..., DN)`: the dense outputs are just the
+//    *                       inputs row-stacked by batch. This works for `denseShapes(j) = (-1, D1, ..., DN)`. In this
+//    *                       case, the shape of the output tensor `denseValues(j)` will be `(|bytes|, M, D1, .., DN)`,
+//    *                       where `M` is the maximum number of blocks of elements of length `D1 * .... * DN`, across all
+//    *                       minibatch entries in the input. Any minibatch entry with less than `M` blocks of elements of
+//    *                       length `D1 * ... * DN` will be padded with the corresponding `denseDefaults` scalar element
+//    *                       along the second dimension.
+//    * @param  denseDefaults Tensors (some of which may be empty) containing default dense values. `denseDefaults(j)`
+//    *                       provides default values when the example's feature map lacks `denseKeys(j)`. If an empty
+//    *                       tensor is provided for `denseDefaults(j)`, then the feature `denseKeys(j)` is required. The
+//    *                       input type is inferred from `denseDefaults(j)`, even when it's empty. If `denseDefaults(j)`
+//    *                       is not empty, and `denseShapes(j)` is fully defined, then the shape of `denseDefaults(j)`
+//    *                       must match that of `denseShapes(j)`. If `denseShapes(j)` has an undefined major dimension
+//    *                       (variable strides dense feature), `denseDefaults(j)` must contain a single element: the
+//    *                       padding element.
+//    * @param  debugNames    [[STRING]] rank-1 tensor containing the names of the serialized protos. May contain, for
+//    *                       example, table key (descriptive) names for the corresponding serialized protos. These are
+//    *                       purely useful for debugging purposes, and the presence of values here has no effect on the
+//    *                       output. May also be an empty vector if no names are available. If non-empty, this vector
+//    *                       must have the same length as `bytes`.
+//    * @param  name          Name for the created op.
+//    * @return Tuple containing:
+//    *         1. Sparse tensor indices.
+//    *         2. Sparse tensor values.
+//    *         3. Sparse tensor shapes.
+//    *         4. Dense tensor values.
+//    * @throws IllegalArgumentException If any of the input arguments has invalid data type or size.
+//    */
+//  @throws[IllegalArgumentException]
+//  private[Parsing] def parseExample(
+//      bytes: Output[String],
+//      sparseKeys: Seq[Output[String]],
+//      sparseTypes: Seq[DataType[_]],
+//      denseKeys: Seq[Output[String]],
+//      denseShapes: Seq[Shape],
+//      denseDefaults: Seq[Output[_]],
+//      debugNames: Output[String],
+//      name: String = "ParseExample"
+//  ): (Seq[Output[Long]], Seq[Output[_]], Seq[Output[Long]], Seq[Output[_]]) = {
+//    require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
+//    require(!sparseKeys.exists(_.dataType == STRING), "The sparse keys must all be STRING tensors.")
+//    require(!denseKeys.exists(_.dataType == STRING), "The dense keys must all be STRING tensors.")
+//    require(sparseKeys.length == sparseTypes.length, "The number of sparse keys does not match that of sparse types.")
+//    require(denseKeys.length == denseShapes.length, "The number of dense keys does not match that of dense shapes.")
+//    require(denseKeys.length == denseDefaults.length, "The number of dense keys does not match that of dense defaults.")
+//    require(debugNames.dataType == STRING, s"Tensor data type was ${debugNames.dataType}, while STRING was expected.")
+//    val numSparse = sparseKeys.length
+//    val numDense = denseKeys.length
+//    val outputs = Op.Builder(opType = "ParseExample", name = name)
+//        .addInput(bytes)
+//        .addInput(debugNames)
+//        .addInputList(sparseKeys)
+//        .addInputList(denseKeys)
+//        .addInputList(denseDefaults)
+//        .setAttribute("sparse_types", sparseTypes.toArray)
+//        .setAttribute("dense_shapes", denseShapes.toArray)
+//        .build().outputs
+//    val sparseIndices = outputs.take(numSparse)
+//    val sparseValues = outputs.slice(numSparse, 2 * numSparse)
+//    val sparseShapes = outputs.slice(2 * numSparse, 3 * numSparse)
+//    val denseValues = outputs.takeRight(numDense)
+//    (sparseIndices, sparseValues, sparseShapes, denseValues)
+//  }
+//
+//  /** Creates an op that transforms a scalar `SequenceExample` protos (represented as strings) into typed tensors.
+//    *
+//    * @param  bytes                               [[STRING]] tensor containing containing the binary serialized
+//    *                                             `SequenceExample` proto.
+//    * @param  contextSparseKeys                   [[STRING]] rank-0 tensors containing the keys expected in the
+//    *                                             `SequenceExample` features associated with context sparse values.
+//    * @param  contextSparseTypes                  Data types of the `SequenceExample` features associated with context
+//    *                                             sparse values.
+//    * @param  contextDenseKeys                    [[STRING]] rank-0 tensors containing the keys expected in the
+//    *                                             `SequenceExample` features associated with context dense values.
+//    * @param  contextDenseShapes                  Rank-1 tensors containing the shapes of the values in each context
+//    *                                             feature given in `contextDenseKeys`. The  number of elements in the
+//    *                                             feature corresponding to `contextDenseKeys(j)` must always be equal to
+//    *                                             `contextDenseShapes(j).size`. The shape of `contextDenseValues(j)`
+//    *                                             will match `contextDenseShapes(j)`.
+//    * @param  contextDenseDefaults                Tensors (some of which may be empty) containing default context dense
+//    *                                             values. `contextDenseDefaults(j)` provides default values when the
+//    *                                             sequence example's feature map lacks `contextDenseKeys(j)`. If an
+//    *                                             empty tensor is provided for `contextDenseDefaults(j)`, then the
+//    *                                             feature `contextDenseKeys(j)` is required. The input type is inferred
+//    *                                             from `contextDenseDefaults(j)`, even when it's empty. If
+//    *                                             `contextDenseDefaults(j)` is not empty, its shape must match
+//    *                                             `contextDenseShapes(j)`.
+//    * @param  featureListSparseKeys               [[STRING]] rank-0 tensors containing the keys expected in the
+//    *                                             `FeatureList`s associated with sparse values.
+//    * @param  featureListSparseTypes              Data types of data in each `FeatureList` given in
+//    *                                             `featureListSparseKeys`.
+//    * @param  featureListDenseKeys                [[STRING]] rank-0 tensors containing the keys expected in the
+//    *                                             `SequenceExample` feature lists associated with lists of dense values.
+//    * @param  featureListDenseShapes              Rank-1 tensors containing the shapes of the values in each feature
+//    *                                             list given in `featureListDenseKeys`. The  number of elements in the
+//    *                                             feature corresponding to `featureListDenseKeys(j)` must always be
+//    *                                             equal to `featureListDenseShapes(j).size`. The shape of
+//    *                                             `featureListDenseValues(j)` will match `featureListDenseShapes(j)`.
+//    * @param  featureListDenseMissingAssumedEmpty [[STRING]] rank-1 tensor containing the `FeatureList` keys which may
+//    *                                             be missing from the `SequenceExample`. If the associated `FeatureList`
+//    *                                             is missing, it is treated as empty. By default, any `FeatureList` not
+//    *                                             listed in this vector must exist in the `SequenceExample`.
+//    * @param  debugName                           [[STRING]] rank-0 tensor containing the name of the serialized proto.
+//    *                                             May contain, for example, a table key (descriptive) name for the
+//    *                                             corresponding serialized proto. This is purely useful for debugging
+//    *                                             purposes, and the presence of values here has no effect on the output.
+//    *                                             May also be an empty scalar if no name is available.
+//    * @param  name                                Name for the created op.
+//    * @return Tuple containing:
+//    *         1. Context sparse tensor indices.
+//    *         2. Context sparse tensor values.
+//    *         3. Context sparse tensor shapes.
+//    *         4. Context dense tensor values.
+//    *         5. Feature list sparse tensor indices.
+//    *         6. Feature list sparse tensor values.
+//    *         7. Feature list sparse tensor shapes.
+//    *         8. Feature list dense tensor values.
+//    * @throws IllegalArgumentException If any of the input arguments has invalid data type or size.
+//    */
+//  private[Parsing] def parseSingleSequenceExample(
+//      bytes: Output,
+//      contextSparseKeys: Seq[Output],
+//      contextSparseTypes: Seq[DataType[_]],
+//      contextDenseKeys: Seq[Output],
+//      contextDenseShapes: Seq[Shape],
+//      contextDenseDefaults: Seq[Output],
+//      featureListSparseKeys: Seq[Output],
+//      featureListSparseTypes: Seq[DataType[_]],
+//      featureListDenseKeys: Seq[Output],
+//      featureListDenseShapes: Seq[Shape],
+//      featureListDenseMissingAssumedEmpty: Output,
+//      debugName: Output,
+//      name: String = "ParseSingleSequenceExample"
+//  ): (Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
+//    require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
+//    require(!contextSparseKeys.exists(_.dataType == STRING), "The context sparse keys must all be STRING tensors.")
+//    require(!contextDenseKeys.exists(_.dataType == STRING), "The context dense keys must all be STRING tensors.")
+//    require(!featureListSparseKeys.exists(_.dataType == STRING),
+//      "The feature list sparse keys must all be STRING tensors.")
+//    require(!featureListDenseKeys.exists(_.dataType == STRING),
+//      "The feature list dense keys must all be STRING tensors.")
+//    require(contextSparseKeys.length == contextSparseTypes.length,
+//      "The number of context sparse keys does not match that of context sparse types.")
+//    require(contextDenseKeys.length == featureListDenseShapes.length,
+//      "The number of context dense keys does not match that of context dense shapes.")
+//    require(contextDenseKeys.length == contextDenseDefaults.length,
+//      "The number of context dense keys does not match that of context dense defaults.")
+//    require(featureListSparseKeys.length == featureListSparseTypes.length,
+//      "The number of feature list sparse keys does not match that of feature list sparse types.")
+//    require(featureListDenseKeys.length == featureListDenseShapes.length,
+//      "The number of feature list dense keys does not match that of feature list dense shapes.")
+//    require(featureListDenseMissingAssumedEmpty.dataType == STRING,
+//      s"Tensor data type was ${featureListDenseMissingAssumedEmpty.dataType}, while STRING was expected.")
+//    require(debugName.dataType == STRING, s"Tensor data type was ${debugName.dataType}, while STRING was expected.")
+//    val numContextSparse = contextSparseKeys.length
+//    val numContextDense = contextDenseKeys.length
+//    val numFeatureListSparse = featureListSparseKeys.length
+//    val numFeatureListDense = featureListDenseKeys.length
+//    val outputs = Op.Builder(opType = "ParseSingleSequenceExample", name = name)
+//        .addInput(bytes)
+//        .addInput(featureListDenseMissingAssumedEmpty)
+//        .addInputList(contextSparseKeys)
+//        .addInputList(contextDenseKeys)
+//        .addInputList(featureListSparseKeys)
+//        .addInputList(featureListDenseKeys)
+//        .addInputList(contextDenseDefaults)
+//        .addInput(debugName)
+//        .setAttribute("context_sparse_types", contextSparseTypes.toArray)
+//        .setAttribute("context_dense_shapes", contextDenseShapes.toArray)
+//        .setAttribute("feature_list_sparse_types", featureListSparseTypes.toArray)
+//        .setAttribute("feature_list_dense_shapes", featureListDenseShapes.toArray)
+//        .build().outputs
+//    var index = 0
+//    val contextSparseIndices = outputs.take(index + numContextSparse)
+//    index += numContextSparse
+//    val contextSparseValues = outputs.slice(index, index + numContextSparse)
+//    index += numContextSparse
+//    val contextSparseShapes = outputs.slice(index, index + numContextSparse)
+//    index += numContextSparse
+//    val contextDenseValues = outputs.slice(index, index + numContextDense)
+//    index += numContextDense
+//    val featureListSparseIndices = outputs.slice(index, index + numFeatureListSparse)
+//    index += numFeatureListSparse
+//    val featureListSparseValues = outputs.slice(index, index + numFeatureListSparse)
+//    index += numFeatureListSparse
+//    val featureListSparseShapes = outputs.slice(index, index + numFeatureListSparse)
+//    index += numFeatureListSparse
+//    val featureListDenseValues = outputs.slice(index, index + numFeatureListDense)
+//    (contextSparseIndices, contextSparseValues, contextSparseShapes, contextDenseValues,
+//        featureListSparseIndices, featureListSparseValues, featureListSparseShapes, featureListDenseValues)
+//  }
 
   /** @define OpDocParsingEncodeTensor
     *   The `encodeTensor` op transforms a tensor into a serialized `TensorProto` proto.
@@ -555,7 +559,7 @@ private[ops] object Parsing extends Parsing {
     * @define OpDocParsingStringToNumber
     *   The `stringToNumber` op converts each string in the input tensor to the specified numeric type,
     *
-    *   '''NOTE:''' [[INT32]] overflow results in an error while [[FLOAT32]] overflow results in a rounded value.
+    *   '''NOTE:''' Int overflow results in an error while [[FLOAT32]] overflow results in a rounded value.
     *
     * @define OpDocParsingDecodeJSONExample
     *   The `decodeJSONExample` op converts JSON-encoded `Example` records to binary protocol buffer strings.

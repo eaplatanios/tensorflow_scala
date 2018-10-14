@@ -15,12 +15,12 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 /** Creates a dynamic RNN layer.
   *
@@ -36,47 +36,61 @@ import org.platanios.tensorflow.api.types.DataType
   *                            `[batch, time, depth]`).
   * @param  parallelIterations Number of RNN loop iterations allowed to run in parallel.
   * @param  swapMemory         If `true`, GPU-CPU memory swapping support is enabled for the RNN loop.
-  * @param  sequenceLengths    Optional `INT32` tensor with shape `[batchSize]` containing the sequence lengths for
+  * @param  sequenceLengths    Optional tensor with shape `[batchSize]` containing the sequence lengths for
   *                            each row in the batch.
   *
   * @author Emmanouil Antonios Platanios
   */
-class RNN[O, OS, S, SS](
+class RNN[O, S](
     override val name: String,
-    val cell: RNNCell[O, OS, S, SS],
+    val cell: RNNCell[O, S],
     val initialState: () => S = null,
     val timeMajor: Boolean = false,
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
-    val sequenceLengths: Tensor[DataType] = null
+    val sequenceLengths: Tensor[Int] = null
 )(implicit
-    evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
-    evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
+    protected val evStructureO: NestedStructure[O],
+    protected val evStructureS: NestedStructure[S],
+    protected val evZeroO: Zero[O]
 ) extends Layer[O, Tuple[O, S]](name) {
+  protected implicit val evStructureOAux: NestedStructure.Aux[O, evStructureO.V, evStructureO.D, evStructureO.S] = {
+    evStructureO.asAux()
+  }
+
+  protected implicit val evStructureSAux: NestedStructure.Aux[S, evStructureS.V, evStructureS.D, evStructureS.S] = {
+    evStructureS.asAux()
+  }
+
+  protected implicit val evZeroOAux: Zero.Aux[O, evStructureO.S] = {
+    evZeroO.asInstanceOf[Zero.Aux[O, evStructureO.S]]
+  }
+
   override val layerType: String = "RNN"
 
   override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) null.asInstanceOf[S] else initialState()
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val createdCell = cell.createCell(mode, evO.fromShapes(input, evO.outputs(input).map(_.shape)))
+    val createdCell = cell.createCell(mode, evStructureO.shapeFromOutput(input))
     ops.rnn.RNN.dynamicRNN(
-      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, name)(evO, evS)
+      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, name)
   }
 }
 
 object RNN {
-  def apply[O, OS, S, SS](
+  def apply[O, S](
       variableScope: String,
-      cell: RNNCell[O, OS, S, SS],
+      cell: RNNCell[O, S],
       initialState: () => S = null,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
-      sequenceLengths: Tensor[DataType] = null
+      sequenceLengths: Tensor[Int] = null
   )(implicit
-      evO: ops.control_flow.WhileLoopVariable.Aux[O, OS],
-      evS: ops.control_flow.WhileLoopVariable.Aux[S, SS]
-  ): RNN[O, OS, S, SS] = {
-    new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)(evO, evS)
+      evStructureO: NestedStructure[O],
+      evStructureS: NestedStructure[S],
+      evZeroO: Zero[O]
+  ): RNN[O, S] = {
+    new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)
   }
 }

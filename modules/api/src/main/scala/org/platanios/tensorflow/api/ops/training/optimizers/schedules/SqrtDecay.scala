@@ -15,7 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Math, Op, Output}
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -41,7 +43,7 @@ class SqrtDecay protected (
     val decayThreshold: Float = 1.0f,
     val startStep: Long = 0L,
     val name: String = "SqrtDecay"
-) extends Schedule {
+) extends Schedule[Float] {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
     *
@@ -51,17 +53,20 @@ class SqrtDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply(value: Output, step: Option[Variable]): Output = {
+  override def apply[I: TF : IsInt32OrInt64](
+      value: Output[Float],
+      step: Option[Variable[I]]
+  ): Output[Float] = {
     if (step.isEmpty)
       throw new IllegalArgumentException("A step needs to be provided for square-root decay.")
-    Op.createWithNameScope(name, Set(value.op, step.get.op)) {
-      val stepValue = Cast.cast(step.get.value, value.dataType)
-      val decayFactorValue = Basic.constant(decayFactor, value.dataType)
-      val decayThresholdValue = Basic.constant(decayThreshold, value.dataType)
+    Op.nameScope(name) {
+      val stepValue = step.get.value.castTo[Float]
+      val decayFactorValue = Basic.constant(decayFactor).castTo[Float]
+      val decayThresholdValue = Basic.constant(decayThreshold).castTo[Float]
       if (startStep == 0L) {
         decay(value, stepValue, decayFactorValue, decayThresholdValue)
       } else {
-        val startStepValue = Basic.constant(startStep, value.dataType)
+        val startStepValue = Basic.constant(startStep).castTo[Float]
         ControlFlow.cond(
           stepValue < startStepValue,
           () => value,
@@ -70,7 +75,12 @@ class SqrtDecay protected (
     }
   }
 
-  private[this] def decay(initialValue: Output, step: Output, decayFactor: Output, decayThreshold: Output): Output = {
+  private def decay(
+      initialValue: Output[Float],
+      step: Output[Float],
+      decayFactor: Output[Float],
+      decayThreshold: Output[Float]
+  ): Output[Float] = {
     decayFactor / Math.sqrt(Math.maximum(step, decayThreshold))
   }
 }

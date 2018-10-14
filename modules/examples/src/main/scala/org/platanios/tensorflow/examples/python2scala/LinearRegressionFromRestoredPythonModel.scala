@@ -4,10 +4,10 @@ import java.io._
 import java.nio.file.Paths
 
 import com.typesafe.scalalogging.Logger
+import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.FeedMap
-import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.{FLOAT64, Op, Session, Shape, Tensor, tf}
+import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.MetaGraphDef
 
@@ -80,9 +80,8 @@ object LinearRegressionFromRestoredPythonModel {
     }
   }
 
-
-  // UTILIY METHODS
-  def batch(batchSize: Int): (Tensor[FLOAT64], Tensor[FLOAT64]) = {
+  // UTILITY METHODS
+  def batch(batchSize: Int): (Tensor[Any], Tensor[Any]) = {
     val inputs = ArrayBuffer.empty[Double]
     val outputs = ArrayBuffer.empty[Double]
     for (_ <- 0 until batchSize) {
@@ -90,10 +89,20 @@ object LinearRegressionFromRestoredPythonModel {
       inputs += input
       outputs += weight * input
     }
-    (Tensor(inputs).reshape(Shape(-1, 1)), Tensor(outputs).reshape(Shape(-1, 1)))
+    (tfi.reshape[Double, Int](tfi.stack[Double](inputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)),
+        tfi.reshape[Double, Int](tfi.stack[Double](outputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)))
   }
 
-  def printRestoredNodesAndOperations(session: Session, input: Output, output: Output, weight: Output, bias: Output, prediction: Output, loss: Output, trainOp: Op): Unit = {
+  def printRestoredNodesAndOperations(
+      session: Session,
+      input: Output[Any],
+      output: Output[Any],
+      weight: Output[Any],
+      bias: Output[Any],
+      prediction: Output[Any],
+      loss: Output[Any],
+      trainOp: UntypedOp
+  ): Unit = {
     // ---------- PRINT RESTORED OUTPUT AND OPERATIONS ------------
     println(" *" * 60)
     myPrintln("Trained weight value: " + session.run(fetches = weight).scalar, 90)

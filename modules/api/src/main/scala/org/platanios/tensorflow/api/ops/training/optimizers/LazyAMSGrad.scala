@@ -1,7 +1,24 @@
+/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+
 package org.platanios.tensorflow.api.ops.training.optimizers
 
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OutputIndexedSlices}
+import org.platanios.tensorflow.api.ops.{Basic, Math, OutputIndexedSlices, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -64,7 +81,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   */
 class LazyAMSGrad protected (
     override val learningRate: Float = 0.001f,
-    override val decay: Schedule = FixedSchedule,
+    override val decay: Schedule[Float] = FixedSchedule[Float](),
     override val beta1: Float = 0.9f,
     override val beta2: Float = 0.999f,
     override val useNesterov: Boolean = false,
@@ -73,26 +90,34 @@ class LazyAMSGrad protected (
     override val learningRateSummaryTag: String = null,
     override val name: String = "LazyAMSGrad"
 ) extends AMSGrad(
-  learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name
+  learningRate, decay, beta1, beta2, useNesterov,
+  epsilon, useLocking, learningRateSummaryTag, name
 ) {
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    val m = getSlot("M", variable)
-    val v = getSlot("V", variable)
-    val vHat = getSlot("Vhat", variable)
+  override val ignoreDuplicateSparseIndices: Boolean = true
+
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
+    val m = getSlot[T, T]("M", variable)
+    val v = getSlot[T, T]("V", variable)
+    val vHat = getSlot[T, T]("Vhat", variable)
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
     val beta1 = getBeta1(variable)
     val beta2 = getBeta2(variable)
     val epsilon = getEpsilon(variable)
     var learningRate = getLearningRate(variable, iteration)
-    learningRate = learningRate * Math.sqrt(1 - beta2Power.cast(variable.dataType))
-    learningRate = learningRate / (1 - beta1Power.cast(variable.dataType))
+    val one = Basic.ones[T](Shape())
+    learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
+    learningRate = learningRate / (one - beta1Power.value.castTo[T])
 
     // m_t = beta1 * m + (1 - beta1) * gradient
-    val mTSlice = beta1 * Basic.gather(m.value, gradient.indices) + (1 - beta1) * gradient.values
+    val mTSlice = beta1 * Basic.gather(m.value, gradient.indices, axis = 0) + (one - beta1) * gradient.values
     val mT = m.assignScatter(gradient.indices, mTSlice)
 
     // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-    val vTSlice = beta2 * Basic.gather(v.value, gradient.indices) + (1 - beta2) * Math.square(gradient.values)
+    val vTSlice = beta2 * Basic.gather(v.value, gradient.indices, axis = 0) + (one - beta2) * Math.square(gradient.values)
     val vT = v.assignScatter(gradient.indices, vTSlice)
 
     val vHatTSlice = Math.maximum(vTSlice, vHat.gather(gradient.indices))
@@ -110,7 +135,7 @@ class LazyAMSGrad protected (
 object LazyAMSGrad {
   def apply(
       learningRate: Float = 0.001f,
-      decay: Schedule = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
       useNesterov: Boolean = false,
@@ -119,6 +144,8 @@ object LazyAMSGrad {
       learningRateSummaryTag: String = null,
       name: String = "LazyAMSGrad"
   ): LazyAMSGrad = {
-    new LazyAMSGrad(learningRate, decay, beta1, beta2, useNesterov, epsilon, useLocking, learningRateSummaryTag, name)
+    new LazyAMSGrad(
+      learningRate, decay, beta1, beta2, useNesterov,
+      epsilon, useLocking, learningRateSummaryTag, name)
   }
 }

@@ -22,10 +22,14 @@ import org.platanios.tensorflow.api.ops.Op
   * @author Emmanouil Antonios Platanios
   */
 case class VariableScopeStore private[api]() {
-  private[api] var scope: VariableScope = VariableScope(CreateNewOnly)
+  private[api] var scope: VariableScope = {
+    VariableScope(CreateNewOnly)
+  }
 
   /** Map with variable scope names as keys and the corresponding use counts as values. */
-  private[api] var variableScopeCounts: Map[String, Int] = Map.empty[String, Int]
+  private[api] var variableScopeCounts: Map[String, Int] = {
+    Map.empty[String, Int]
+  }
 
   private[api] def enterVariableScope(scope: String): Unit = {
     variableScopeCounts += scope -> (variableScopeCounts.getOrElse(scope, 0) + 1)
@@ -40,9 +44,13 @@ case class VariableScopeStore private[api]() {
     * @param  scope Variable scope name.
     * @return Number of usages of the provided variable scope name, in this variable store.
     */
-  private[api] def variableScopeCount(scope: String): Int = variableScopeCounts.getOrElse(scope, 0)
+  private[api] def variableScopeCount(scope: String): Int = {
+    variableScopeCounts.getOrElse(scope, 0)
+  }
 }
 
 object VariableScopeStore {
-  def current: VariableScopeStore = Op.currentGraph.variableScopeStore.value
+  def current: VariableScopeStore = {
+    Op.currentGraph.variableScopeStore.value
+  }
 }

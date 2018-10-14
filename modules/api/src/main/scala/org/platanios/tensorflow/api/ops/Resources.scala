@@ -16,40 +16,31 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.core.types.Resource
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{BOOLEAN, STRING}
 
 /** Represents a TensorFlow resource.
   *
   * @param  handle        Handle to the resource.
   * @param  initializeOp  Op that initializes the resource.
-  * @param  isInitialized [[BOOLEAN]] scalar tensor denoting whether this resource has been initialized.
+  * @param  isInitialized Scalar tensor denoting whether this resource has been initialized.
   *
   * @author Emmanouil Antonios Platanios
   */
-case class Resource(handle: Output, initializeOp: Op, isInitialized: Output)
+case class ResourceWrapper(
+    handle: Output[Resource],
+    initializeOp: UntypedOp,
+    isInitialized: Output[Boolean])
 
 trait Resources {
   /** Returns the set of all shared resources used by the current graph which need to be initialized once per cluster. */
-  def sharedResources: Set[Resource] = Op.currentGraph.sharedResources
+  def sharedResources: Set[ResourceWrapper] = {
+    Op.currentGraph.sharedResources
+  }
 
   /** Returns the set of all local resources used by the current graph which need to be initialized once per cluster. */
-  def localResources: Set[Resource] = Op.currentGraph.localResources
-
-  /** Returns an initializer op for all provided resources. */
-  def resourcesInitializer(resources: Set[Resource], name: String = "ResourcesInitializer"): Op = {
-    Resources.initializer(resources, name)
-  }
-
-  /** Returns an initializer op for all shared resources that have been created in the current graph. */
-  def sharedResourcesInitializer(name: String = "SharedResourcesInitializer"): Op = {
-    Resources.initializer(sharedResources, name)
-  }
-
-  /** Returns an initializer op for all local resources that have been created in the current graph. */
-  def localResourcesInitializer(name: String = "LocalResourcesInitializer"): Op = {
-    Resources.initializer(localResources, name)
+  def localResources: Set[ResourceWrapper] = {
+    Op.currentGraph.localResources
   }
 }
 
@@ -63,24 +54,15 @@ object Resources extends Resources {
     *                  the local resource collection.
     * @param  graph    Graph to register the resource in.
     */
-  def register(resource: Resource, isShared: Boolean = true, graph: Graph = Op.currentGraph): Unit = {
+  def register(
+      resource: ResourceWrapper,
+      isShared: Boolean = true,
+      graph: Graph = Op.currentGraph
+  ): Unit = {
     if (isShared)
-      graph.addToCollection(resource, Graph.Keys.SHARED_RESOURCES)
+      graph.addToCollection(Graph.Keys.SHARED_RESOURCES)(resource)
     else
-      graph.addToCollection(resource, Graph.Keys.LOCAL_RESOURCES)
-  }
-
-  /** Creates an op that initializes the provided resources.
-    *
-    * @param  resources Resources to initialize.
-    * @param  name      Name for the created op.
-    * @return Created op.
-    */
-  def initializer(resources: Set[Resource], name: String = "ResourcesInitializer"): Op = {
-    if (resources.isEmpty)
-      ControlFlow.noOp(name)
-    else
-      ControlFlow.group(resources.map(_.initializeOp), name)
+      graph.addToCollection(Graph.Keys.LOCAL_RESOURCES)(resource)
   }
 
   /** Creates an op that returns a tensor containing the names of all uninitialized resources in `resources`.
@@ -94,21 +76,21 @@ object Resources extends Resources {
     *         initialized.
     */
   def uninitializedResources(
-      resources: Set[Resource] = sharedResources ++ localResources,
+      resources: Set[ResourceWrapper] = sharedResources ++ localResources,
       name: String = "UninitializedResources"
-  ): Output = {
+  ): Output[String] = {
     // Run all operations on the CPU.
     Op.createWith(nameScope = name, device = "/CPU:0") {
       if (resources.isEmpty) {
         // Return an empty tensor so we only need to check for the returned tensor size being 0 as an indication of
         // model readiness.
-        Basic.constant(Tensor(STRING))
+        Basic.constant(Tensor.empty[String])
       } else {
         // Get a 1-D boolean tensor listing whether each resource is initialized.
         val resourcesMask = Math.logicalNot(Basic.stack(resources.map(_.isInitialized).toSeq))
         // Get a 1-D string tensor containing all the resource names.
         val resourcesList = resources.map(_.handle.name).toSeq
-        val resourceNames = Basic.constant(Tensor(resourcesList.head, resourcesList.tail: _*))
+        val resourceNames = Basic.constant(resourcesList: Tensor[String])
         // Return a 1-D tensor containing the names of all uninitialized resources.
         Basic.booleanMask(resourceNames, resourcesMask)
       }

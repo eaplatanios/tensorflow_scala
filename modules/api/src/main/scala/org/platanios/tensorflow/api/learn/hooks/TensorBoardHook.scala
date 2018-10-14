@@ -32,7 +32,7 @@ import scala.util.Try
   * @author Emmanouil Antonios Platanios
   */
 private[learn] class TensorBoardHook protected (val tensorBoardConfig: TensorBoardConfig) extends Hook {
-  private[this] var tensorBoardProcess: Option[Process] = None
+  private var tensorBoardProcess: Option[Process] = None
 
   override protected def begin(): Unit = tensorBoardProcess = {
     Option(tensorBoardConfig).flatMap(config => {

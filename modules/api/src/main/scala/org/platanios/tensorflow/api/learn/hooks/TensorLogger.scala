@@ -16,9 +16,8 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -47,26 +46,27 @@ class TensorLogger protected (
     val tensors: Map[String, String],
     val trigger: HookTrigger = StepHookTrigger(1),
     val triggerAtEnd: Boolean = true,
-    val formatter: Map[String, Tensor[DataType]] => String = null
+    val formatter: Map[String, Tensor[_]] => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd) {
-  private[this] val tensorTags : Seq[String] = tensors.keys.toSeq
-  private[this] val tensorNames: Seq[String] = tensors.values.toSeq
-  private[this] var outputs    : Seq[Output] = _
+  protected val tensorTags : Seq[String]      = tensors.keys.toSeq
+  protected val tensorNames: Seq[String]      = tensors.values.toSeq
+  protected var outputs    : Seq[Output[Any]] = _
 
   override protected def begin(): Unit = {
     // Convert tensor names to op outputs.
     outputs = tensorNames.map(t => Op.currentGraph.getOutputByName(t))
   }
 
-  override protected def fetches: Seq[Output] = outputs
+  override protected def fetches: Seq[Output[Any]] = outputs
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
-    val tensors = tensorTags.zip(runResult.values.tail)
+    val tensors = tensorTags.zip(runResult.result.tail)
     if (formatter != null) {
       TensorLogger.logger.info(formatter(tensors.toMap))
     } else {
@@ -89,7 +89,7 @@ object TensorLogger {
       tensors: Map[String, String],
       trigger: HookTrigger = StepHookTrigger(1),
       triggerAtEnd: Boolean = true,
-      formatter: Map[String, Tensor[DataType]] => String = null
+      formatter: Map[String, Tensor[_]] => String = null
   ): TensorLogger = {
     new TensorLogger(tensors, trigger, triggerAtEnd, formatter)
   }

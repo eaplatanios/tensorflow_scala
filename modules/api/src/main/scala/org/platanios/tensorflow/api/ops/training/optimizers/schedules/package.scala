@@ -20,7 +20,8 @@ package org.platanios.tensorflow.api.ops.training.optimizers
   */
 package object schedules {
   private[optimizers] trait API {
-    type Schedule = schedules.Schedule
+    type Schedule[T] = schedules.Schedule[T]
+    type FixedSchedule[T] = schedules.FixedSchedule[T]
     type CosineDecay = schedules.CosineDecay
     type CycleLinear10xDecay = schedules.CycleLinear10xDecay
     type ExponentialDecay = schedules.ExponentialDecay

@@ -16,6 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.ops.variables.Variable
 
 import org.scalatest._
 
@@ -24,18 +25,19 @@ import org.scalatest._
   */
 class GradientDescentSpec extends FlatSpec with Matchers {
   "Gradient descent" must "work for dense updates to resource-based variables" in {
-    for (dataType <- Set[DataType](FLOAT32, FLOAT64)) {
-      val value0 = Tensor(dataType, 1.0, 2.0)
-      val value1 = Tensor(dataType, 3.0, 4.0)
-      val updatedValue0 = Tensor(dataType, 1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)
-      val updatedValue1 = Tensor(dataType, 3.0 - 3.0 * 0.01, 4.0 - 3.0 * 0.01)
+      val value0 = Tensor[Double](1.0, 2.0)
+      val value1 = Tensor[Double](3.0, 4.0)
+      val updatedValue0 = Tensor[Double](1.0 - 3.0 * 0.1, 2.0 - 3.0 * 0.1)
+      val updatedValue1 = Tensor[Double](3.0 - 3.0 * 0.01, 4.0 - 3.0 * 0.01)
       val graph = Graph()
       val (variable0, variable1, gdOp) = tf.createWith(graph) {
-        val variable0 = tf.variable("v0", dataType, Shape(2), tf.ConstantInitializer(Tensor(1, 2)))
-        val variable1 = tf.variable("v1", dataType, Shape(2), tf.ConstantInitializer(Tensor(3, 4)))
-        val gradient0 = tf.constant(Tensor(0.1, 0.1), dataType = dataType)
-        val gradient1 = tf.constant(Tensor(0.01, 0.01), dataType = dataType)
-        val gdOp = GradientDescent(3.0f).applyGradients(Seq((gradient0, variable0), (gradient1, variable1)))
+        val variable0 = tf.variable[Double]("v0", Shape(2), tf.ConstantInitializer(Tensor(1, 2)))
+        val variable1 = tf.variable[Double]("v1", Shape(2), tf.ConstantInitializer(Tensor(3, 4)))
+        val gradient0 = tf.constant(Tensor[Double](0.1, 0.1))
+        val gradient1 = tf.constant(Tensor[Double](0.01, 0.01))
+        val gdOp = GradientDescent(3.0f).applyGradients(Seq(
+          (gradient0, variable0.asInstanceOf[Variable[Any]]),
+          (gradient1, variable1.asInstanceOf[Variable[Any]])))
         (variable0, variable1, gdOp)
       }
       val session = Session(graph)
@@ -50,6 +52,5 @@ class GradientDescentSpec extends FlatSpec with Matchers {
       variable1Value = session.run(fetches = variable1.value)
       // assert(variable0Value === updatedValue0 +- 1e-6)
       // assert(variable1Value === updatedValue1 +- 1e-6)
-    }
   }
 }

@@ -16,22 +16,22 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
-import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Basic.BasicOps
-import org.platanios.tensorflow.api.ops.Op.{createWith, getGraphFromInputs}
-import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Math => TensorMath}
-import org.platanios.tensorflow.api.types._
+import org.platanios.tensorflow.api.tensors.{Tensor, TensorOps}
+import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Cast => TensorCast, Math => TensorMath}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
 
-/** Trait representing outputs of an [[Op]]'s computation.
+/** Trait representing outputs of an op's computation.
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputLike extends OutputConvertible {
+sealed trait OutputLike[T] {
+  protected implicit val evTTF: TF[T] = {
+    TF.fromDataType(dataType)
+  }
+
   /** Graph where the op belongs. */
   def graph: Graph
 
@@ -39,19 +39,19 @@ sealed trait OutputLike extends OutputConvertible {
   def name: String
 
   /** Data type of this op output. */
-  def dataType: DataType
+  def dataType: DataType[T]
 
   /** Device on which this op output will be placed. */
   def device: String
 
   /** Op that generates this output. */
-  def op: Op
+  def op: Op[Seq[Output[Any]], Seq[Output[Any]]]
 
   /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
-  def consumers: Array[Input]
+  def consumers: Array[Input[Any]]
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  override def toOutput: Output
+  def toOutput: Output[T]
 
   /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     *
@@ -59,67 +59,22 @@ sealed trait OutputLike extends OutputConvertible {
     *                  shape of this tensor at graph creation time (instead of execution time), if known.
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
-  def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices
+  def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T]
 }
 
-/** Type trait for defining functions operating on and returning op outputs. */
-private[ops] trait OutputOps[T] {
-  /** Applies a unary function to the provided output and returns the result.
-    *
-    * @param  outputLike Output-like object to apply the unary function on.
-    * @param  opFunction Unary function to apply.
-    * @return Resulting output-like object that matches the type of `outputLike`.
-    */
-  @inline
-  def applyUnary(outputLike: T, opFunction: Output => Output): T
-}
-
-/** Companion object that defines supported [[OutputOps]] implicit values. */
-private[ops] object OutputOps {
-  implicit val outputOps: OutputOps[Output] = new OutputOps[Output] {
-    @inline
-    override def applyUnary(outputLike: Output, opFunction: (Output) => Output): Output = opFunction(outputLike)
-  }
-
-  implicit val outputIndexedSlicesOps: OutputOps[OutputIndexedSlices] = new OutputOps[OutputIndexedSlices] {
-    @inline
-    override def applyUnary(outputLike: OutputIndexedSlices, opFunction: Output => Output): OutputIndexedSlices = {
-      outputLike.copy(values = opFunction(outputLike.values))
-    }
-  }
-
-  implicit val sparseOutputOps: OutputOps[SparseOutput] = new OutputOps[SparseOutput] {
-    @inline
-    override def applyUnary(outputLike: SparseOutput, opFunction: Output => Output): SparseOutput = {
-      outputLike.copy(values = opFunction(outputLike.values))
-    }
-  }
-
-  implicit val outputLikeOps: OutputOps[OutputLike] = new OutputOps[OutputLike] {
-    @inline
-    override def applyUnary(outputLike: OutputLike, opFunction: (Output) => Output): OutputLike = {
-      outputLike match {
-        case o: Output => opFunction(o)
-        case o: OutputIndexedSlices => o.copy(values = opFunction(o.values))
-        case o: SparseOutput => o.copy(values = opFunction(o.values))
-      }
-    }
-  }
-}
-
-/** Representation of one of the outputs of an [[Op]]'s computation.
+/** Representation of one of the outputs of an op's computation.
   *
-  * An `Output` is a symbolic handle to one of the outputs of an [[Op]]. It does not hold the values of that op's
-  * output, but instead provides a means of computing those values in a TensorFlow [[Session]].
+  * An `Output` is a symbolic handle to one of the outputs of an op. It does not hold the values of that op's
+  * output, but instead provides a means of computing those values in a TensorFlow `Session`.
   *
   * This class has two primary purposes:
   *
-  *   1. An [[Output]] can be passed as input to another [[Op]]. This builds a dataflow connection between ops, which
-  *      enables TensorFlow to execute an entire [[Graph]] that represents a large, multi-step computation.
-  *   2. After the graph has been launched in a [[Session]], the value of an [[Output]] can be computed by passing
-  *      it to [[Session.run]].
+  *   1. An `Output` can be passed as input to another op. This builds a dataflow connection between ops, which
+  *      enables TensorFlow to execute an entire graph that represents a large, multi-step computation.
+  *   2. After the graph has been launched in a `Session`, the value of an `Output` can be computed by passing
+  *      it to `Session.run`.
   *   3. `Output.evaluate` can also be used to compute the value of an [[Output]] If no session is provided,
-  * then the default session is used.
+  *      then the default session is used.
   *
   * In the following example, `c`, `d`, and `e` are symbolic [[Output]] objects, whereas `result` is a Scala array
   * that stores a concrete value:
@@ -135,45 +90,75 @@ private[ops] object OutputOps {
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Output private(op: Op, index: Int) extends OutputLike {
+final case class Output[T] private(
+    op: Op[Seq[Output[Any]], Seq[Output[Any]]],
+    index: Int
+) extends OutputLike[T] {
   /** Graph where the op belongs. */
-  override def graph: Graph = op.graph
+  override def graph: Graph = {
+    op.graph
+  }
 
   /** Name of this op output. This is simply set to `"<op.name>:<index>"`. */
-  override def name: String = s"${op.name}:$index"
+  override def name: String = {
+    s"${op.name}:$index"
+  }
 
   /** Data type of this op output. */
-  override def dataType: DataType = using(graph.reference) { r =>
-    DataType.fromCValue[DataType](NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index))
+  override def dataType: DataType[T] = {
+    using(graph.reference) { r =>
+      DataType.fromCValue(
+        NativeOp.outputDataType(r.nativeHandle, op.nativeHandle, index)
+      ).asInstanceOf[DataType[T]]
+    }
   }
 
   /** Device on which this op output will be placed. */
-  override def device: String = op.device
+  override def device: String = {
+    op.device
+  }
 
   /** Consumers of this op output (i.e., ops that use this op output as one of their inputs). */
-  override def consumers: Array[Input] = using(graph.reference) { _ =>
-    val array = NativeOp.consumers(op.nativeHandle, index)
-    if (array == null) {
-      Array.empty[Input]
-    } else {
-      array.map(jniOutput => {
-        val op = graph.opsCache.getOrElseUpdate(jniOutput.opHandle, Op(graph, jniOutput.opHandle))
-        Input(op = op, index = index)
-      })
+  override def consumers: Array[Input[Any]] = {
+    using(graph.reference) { _ =>
+      val array = NativeOp.consumers(op.nativeHandle, index)
+      if (array == null) {
+        Array.empty[Input[Any]]
+      } else {
+        array.map(jniOutput => {
+          val op = graph.opsCache.getOrElseUpdate(
+            jniOutput.opHandle,
+            Op[Seq[Output[Any]], Seq[Output[Any]]](
+              graph = graph,
+              originalInput = None,
+              nativeHandle = jniOutput.opHandle))
+          Input[Any](op = op, index = index)
+        })
+      }
     }
   }
 
   /** Shape of the tensor that this op output represents. */
   def shape: Shape = {
-    val s = using(op.graph.reference)(r => NativeOp.shape(r.nativeHandle, op.nativeHandle, index))
-    if (s == null) Shape.unknown() else Shape.fromSeq(s.map(_.toInt))
+    val s = using(op.graph.reference)(r => {
+      NativeOp.shape(r.nativeHandle, op.nativeHandle, index)
+    })
+    if (s == null) {
+      Shape.unknown()
+    } else {
+      Shape.fromSeq(s.map(_.toInt))
+    }
   }
 
   /** Rank of the tensor that this op output represents. */
-  def rank: Int = shape.rank
+  def rank: Int = {
+    shape.rank
+  }
 
   /** Size of the tensor that this op output represents. */
-  def size: Long = shape.numElements
+  def size: Long = {
+    shape.numElements
+  }
 
   /** Sets the shape of this op output to the provided shape.
     *
@@ -182,28 +167,18 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     *
     * @param  shape Shape to use.
     */
-  def setShape(shape: Shape): Unit = if (shape.rank != -1) {
-    using(op.graph.reference) { r =>
-      NativeOp.setShape(r.nativeHandle, op.nativeHandle, index, shape.asArray.map(_.toLong), shape.rank)
+  def setShape(shape: Shape): Unit = {
+    if (shape.rank != -1) {
+      using(op.graph.reference) { r =>
+        NativeOp.setShape(
+          r.nativeHandle,
+          op.nativeHandle,
+          index,
+          shape.asArray.map(_.toLong),
+          shape.rank)
+      }
     }
   }
-
-  // /** Evaluates this op output.
-  //   *
-  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
-  //   * op output.
-  //   *
-  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-  //   * the evaluation.
-  //   *
-  //   * @param  feeds   Tensors to feed into the session for this evaluation.
-  //   * @param  session Optional session to use for the evaluation.
-  //   * @return Value of this op output, for this evaluation.
-  //   */
-  // def evaluate(feeds: Map[Output, Tensor] = Map.empty, session: Session = null): Tensor = {
-  //   val effectiveSession = if (session == null) graph.defaultSession else session
-  //   effectiveSession.run(feeds, this)
-  // }
 
   //region Slicing
 
@@ -215,7 +190,12 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     * @param  otherIndexers Rest of the indexers to use.
     * @return Created op.
     */
-  def apply(firstIndexer: Indexer, otherIndexers: Indexer*): Output = this.slice(firstIndexer, otherIndexers: _*)
+  def apply(
+      firstIndexer: Indexer,
+      otherIndexers: Indexer*
+  ): Output[T] = {
+    this.slice(firstIndexer, otherIndexers: _*)
+  }
 
   /** Creates an op that slices this op according to the provided indexers.
     *
@@ -225,40 +205,65 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
     * @param  otherIndexers Rest of the indexers to use.
     * @return Created op.
     */
-  def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Output = {
-    BasicOps(this).slice(firstIndexer, otherIndexers: _*)
+  def slice(
+      firstIndexer: Indexer,
+      otherIndexers: Indexer*
+  ): Output[T] = {
+    val stridedSlice = Indexer.toStridedSlice(firstIndexer, otherIndexers: _*)
+    val beginTensor: Output[Int] = stridedSlice._1
+    val endTensor: Output[Int] = stridedSlice._2
+    val stridesTensor: Output[Int] = stridedSlice._3
+    Basic.stridedSlice(
+      this, beginTensor, endTensor, stridesTensor, stridedSlice._4,
+      stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8
+    )(TF.fromDataType(dataType), TF[Int], IsInt32OrInt64[Int])
   }
 
   //endregion Slicing
 
-  /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  override def toOutput: Output = this
+  /** Returns this output. */
+  override def toOutput: Output[T] = {
+    this
+  }
 
-  /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
+  /** Returns the output indexed slices object that has the same value as this output.
     *
     * @param  optimize Boolean flag indicating whether to optimize this conversion by using a constant op with the
     *                  shape of this tensor at graph creation time (instead of execution time), if known.
-    * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
+    * @return Output indexed slices object that has the same value as this output.
     */
-  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = {
-    val denseShape = Basic.shape(this, dataType = INT32, optimize = optimize)
-    val indices = Math.range(Basic.constant(0), denseShape(0))
-    OutputIndexedSlices(indices = indices, values = this, denseShape = denseShape)
+  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = {
+    val denseShape = Basic.shape(this, optimize = optimize)(TF.fromDataType(dataType))
+    val indices = Math.range(Basic.constant(0L), denseShape(0))
+    OutputIndexedSlices(
+      indices = indices,
+      values = this,
+      denseShape = denseShape)
   }
 
   override def toString: String = {
-    if (device != "")
-      s"Output(name = $name, shape = $shape, dataType = $dataType, device = $device)"
-    else
-      s"Output(name = $name, shape = $shape, dataType = $dataType)"
+    if (device != "") {
+      s"Output[" +
+          s"name = $name, " +
+          s"dataType = $dataType, " +
+          s"shape = $shape, " +
+          s"device = $device]"
+    } else {
+      s"Output[" +
+          s"name = $name, " +
+          s"dataType = $dataType, " +
+          s"shape = $shape]"
+    }
   }
 
   override def equals(that: Any): Boolean = that match {
-    case that: Output => this.op == that.op && this.index == that.index
+    // TODO: !!! [OPS] Find a better way to do this.
+    case that: Output[_] => this.op == that.op && this.index == that.index
     case _ => false
   }
 
   override def hashCode(): Int = {
+    // TODO: !!! [OPS] Find a better way to do this.
     val prime = 31
     var result = 1
     result = prime * result + op.hashCode
@@ -268,100 +273,101 @@ final case class Output private(op: Op, index: Int) extends OutputLike {
 }
 
 object Output {
-  private[ops] trait API {
-    type OutputLike = ops.OutputLike
-    type Output = ops.Output
-    type OutputIndexedSlices = ops.OutputIndexedSlices
-    type SparseOutput = ops.SparseOutput
-  }
-
   /** Returns the constant value of the given tensor, if efficiently calculable. */
-  private[api] def constantValue(tensor: Output): Option[Tensor[DataType]] = {
-    val value = using(tensor.graph.reference)(r => {
-      val result = NativeOp.tryEvaluateConstant(r.nativeHandle, tensor.op.nativeHandle, tensor.index)
+  private[api] def constantValue[T](output: Output[T]): Option[Tensor[T]] = {
+    val value = using(output.graph.reference)(r => {
+      val result = NativeOp.tryEvaluateConstant(
+        r.nativeHandle, output.op.nativeHandle, output.index)
       if (result == 0L)
         None
       else
         Some(Tensor.fromNativeHandle(result))
-    }).orElse(tensor.op.opType match {
-      case "Const" => Option(tensor.op.tensorAttribute("value")) // TODO: !!! Make more robust.
+    }).orElse(output.op.opType match {
+      case "Const" => Option(output.op.tensorAttribute("value")) // TODO: !!! Make more robust.
       case "Shape" =>
-        val inputShape = tensor.op.inputs(0).shape
-        if (inputShape.isFullyDefined)
-          Some(inputShape.toTensor(tensor.dataType))
+        val inputShape = output.op.inputsSeq(0).shape
+        if (inputShape.isFullyDefined) {
+          Some(inputShape.toTensor.castTo[T](TF.fromDataType(output.dataType)))
+        }
         None
       case "Size" =>
-        val inputShape = tensor.op.inputs(0).shape
+        val inputShape = output.op.inputsSeq(0).shape
         if (inputShape.isFullyDefined)
-          Some(Tensor(INT32, inputShape.asArray.product))
+          Some(Tensor(inputShape.asArray.product))
         None
       case "Rank" =>
-        val inputShape = tensor.op.inputs(0).shape
+        val inputShape = output.op.inputsSeq(0).shape
         if (inputShape.numElements != -1)
-          Some(Tensor(INT32, inputShape.numElements.toInt))
+          Some(Tensor(inputShape.numElements.toInt))
         None
       case "Range" =>
-        constantValue(tensor.op.inputs(0))
-            .flatMap(start => constantValue(tensor.op.inputs(1))
-                .flatMap(limit => constantValue(tensor.op.inputs(2))
-                    .map(delta => TensorMath.range(
-                      start.asInstanceOf[Tensor[NumericDataType]],
-                      limit.asInstanceOf[Tensor[NumericDataType]],
-                      delta.asInstanceOf[Tensor[NumericDataType]]))))
+        constantValue[Int](output.op.inputsSeq(0).asInstanceOf[Output[Int]])
+            .flatMap(start => constantValue[Int](output.op.inputsSeq(1).asInstanceOf[Output[Int]])
+                .flatMap(limit => constantValue[Int](output.op.inputsSeq(2).asInstanceOf[Output[Int]])
+                    .map(delta => TensorMath.range(start, limit, delta))))
       case "Cast" =>
-        constantValue(tensor.op.inputs(0)).map(preCast => {
-          preCast.cast(tensor.op.dataTypeAttribute("DstT"))
+        constantValue(output.op.inputsSeq(0)).map(preCast => {
+          TensorCast.cast[Any, Any, Tensor](preCast)(
+            TF.fromDataType(output.op.dataTypeAttribute("DstT")),
+            implicitly[TensorOps.Aux[Tensor, Any]])
         })
       case "Concat" =>
-        constantValue(tensor.op.inputs(0)).flatMap(axis => {
-          val values = tensor.op.inputs.tail.map(constantValue)
-          if (values.contains(None))
+        constantValue(output.op.inputsSeq(0)).flatMap(axis => {
+          val values = output.op.inputsSeq.tail.map(constantValue)
+          if (values.contains(None)) {
             None
-          else
-            Some(TensorBasic.concatenate(values.map(_.get), axis.asInstanceOf[Tensor[INT32]]))
+          } else {
+            Some(TensorBasic.concatenate(
+              inputs = values.map(_.get),
+              axis = axis.asInstanceOf[Tensor[Int]]
+            )(TF.fromDataType(values.head.get.dataType)))
+          }
         })
       case "ConcatV2" =>
-        constantValue(tensor.op.inputs(tensor.op.numInputs - 1)).flatMap(axis => {
-          val values = tensor.op.inputs.dropRight(1).map(constantValue)
-          if (values.contains(None))
+        constantValue(output.op.inputsSeq(output.op.numInputs - 1)).flatMap(axis => {
+          val values = output.op.inputsSeq.dropRight(1).map(constantValue)
+          if (values.contains(None)) {
             None
-          else
-            Some(TensorBasic.concatenate(values.map(_.get), axis.asInstanceOf[Tensor[INT32]]))
+          } else {
+            Some(TensorBasic.concatenate(
+              inputs = values.map(_.get),
+              axis = axis.asInstanceOf[Tensor[Int]]
+            )(TF.fromDataType(values.head.get.dataType)))
+          }
         })
       case "Pack" =>
-        val values = tensor.op.inputs.map(constantValue)
+        val values = output.op.inputsSeq.map(constantValue)
         if (values.contains(None)) {
           None
         } else {
-          Some(TensorBasic.stack(values.map(_.get)))
+          Some(TensorBasic.stack(
+            inputs = values.map(_.get)
+          )(TF.fromDataType(values.head.get.dataType)))
         }
       case "Fill" =>
-        val fillShape = tensor.shape
-        val fillValue = constantValue(tensor.op.inputs(0))
+        val fillShape = output.shape
+        val fillValue = constantValue(output.op.inputsSeq(0))
         if (fillShape.isFullyDefined && fillValue.isDefined) {
-          val value = fillValue.get
-          Some(Tensor.fill(value.dataType, fillShape)(value.scalar)(value.dataType.evSupportedType))
+          val value = fillValue.get.asInstanceOf[Tensor[T]]
+          Some(Tensor.fill[T](fillShape)(value.scalar)(TF.fromDataType(output.dataType)))
         } else {
           None
         }
-      case "Equal" =>
-        constantValue(tensor.op.inputs(0))
-            .flatMap(value1 => constantValue(tensor.op.inputs(1))
-                .map(value2 => TensorMath.equal(
-                  value1.asInstanceOf[Tensor[ReducibleDataType]],
-                  value2.asInstanceOf[Tensor[ReducibleDataType]])))
-      case "NotEqual" =>
-        constantValue(tensor.op.inputs(0))
-            .flatMap(value1 => constantValue(tensor.op.inputs(1))
-                .map(value2 => TensorMath.notEqual(
-                  value1.asInstanceOf[Tensor[ReducibleDataType]],
-                  value2.asInstanceOf[Tensor[ReducibleDataType]])))
+      // TODO: [OPS] The following two only work for numeric data types.
+      //      case "Equal" =>
+      //        constantValue(output.op.inputsSeq(0))
+      //            .flatMap(value1 => constantValue(output.op.inputsSeq(1))
+      //                .map(value2 => TensorMath.equal(value1, value2)))
+      //      case "NotEqual" =>
+      //        constantValue(output.op.inputsSeq(0))
+      //            .flatMap(value1 => constantValue(output.op.inputsSeq(1))
+      //                .map(value2 => TensorMath.notEqual(value1, value2)))
       case _ => None
     })
     // If defined, the caller may now depend on the constant value, and so we prevent 'tensor' from being fed.
     if (value.isDefined)
-      tensor.graph.preventFeeding(tensor)
-    value
+      output.graph.preventFeeding(output)
+    value.map(_.asInstanceOf[Tensor[T]])
   }
 
   /** Version of [[constantValue]] that returns a [[Shape]].
@@ -371,9 +377,9 @@ object Output {
     * represent unknown dimensions. In contrast, [[constantValue]] is all-or-nothing.
     *
     * @param  tensor One-dimensional tensor to be evaluated.
-    * @return [[Shape]] based on the constant value of `tensor`.
+    * @return Shape based on the constant value of `tensor`.
     */
-  private[api] def constantValueAsShape(tensor: Output): Option[Shape] = {
+  private[api] def constantValueAsShape[T](tensor: Output[T]): Option[Shape] = {
     if (tensor.rank == 0) {
       // TODO: Handle this better.
       Some(Shape(-1))
@@ -382,14 +388,18 @@ object Output {
     } else {
       tensor.op.opType match {
         case "Shape" =>
-          val inputShape = tensor.op.inputs(0).shape
+          val inputShape = tensor.op.inputsSeq(0).shape
           if (inputShape.rank > -1)
-            Some(tensor.op.inputs(0).shape)
+            Some(tensor.op.inputsSeq(0).shape)
           else
             None
         case "Pack" =>
           // 'i' must be a scalar. Attempt to evaluate it.
-          val values = tensor.op.inputs.map(i => constantValue(i).map(v => Shape(v.scalar.asInstanceOf[Int])))
+          val values = tensor.op.inputsSeq.map(i => {
+            constantValue(i).map(v => {
+              Shape(v.scalar.asInstanceOf[Int])
+            })
+          })
           if (values.forall(_.isDefined))
             Some(values.map(_.get).foldLeft(Shape.scalar())((shape, value) => shape.concatenateWith(value)))
           else
@@ -398,7 +408,7 @@ object Output {
           // We assume that 'tensor.op.inputs(0)' evaluates to 0, as this is the only legal value when concatenating
           // vectors, and it will have been checked by a previous shape function.
           // 'i' must be a vector. Attempt to evaluate it as a shape.
-          val values = tensor.op.inputs.tail.map(i => constantValueAsShape(i))
+          val values = tensor.op.inputsSeq.tail.map(constantValueAsShape)
           if (values.forall(_.isDefined))
             Some(values.map(_.get).foldLeft(Shape.scalar())((shape, value) => shape.concatenateWith(value)))
           else
@@ -407,47 +417,49 @@ object Output {
           // We assume that 'tensor.op.inputs(-1)' evaluates to 0, as this is the only legal value when concatenating
           // vectors, and it will have been checked by a previous shape function.
           // 'i' must be a vector. Attempt to evaluate it as a shape.
-          val values = tensor.op.inputs.dropRight(1).map(i => constantValueAsShape(i))
+          val values = tensor.op.inputsSeq.dropRight(1).map(constantValueAsShape)
           if (values.forall(_.isDefined))
             Some(values.map(_.get).foldLeft(Shape.scalar())((shape, value) => shape.concatenateWith(value)))
           else
             None
         case "StridedSlice" =>
-          constantValue(tensor.op.inputs(0))
-              .flatMap(begin => constantValue(tensor.op.inputs(1))
-                  .flatMap(end => constantValue(tensor.op.inputs(2))
-                      .flatMap(strides => {
-                        val b = begin(0).scalar.asInstanceOf[Int]
-                        val e = end(0).scalar.asInstanceOf[Int]
-                        val s = strides(0).scalar.asInstanceOf[Int]
-                        val beginMask = tensor.op.longAttribute("begin_mask")
-                        val endMask = tensor.op.longAttribute("end_mask")
-                        val ellipsisMask = tensor.op.longAttribute("ellipsis_mask")
-                        val newAxisMask = tensor.op.longAttribute("new_axis_mask")
-                        val shrinkAxisMask = tensor.op.longAttribute("shrink_axis_mask")
-                        if (beginMask == 1 ||
-                            endMask == 1 ||
-                            ellipsisMask == 1 ||
-                            newAxisMask == 1 ||
-                            shrinkAxisMask == 1 ||
-                            (beginMask != 1 && beginMask > 0) ||
-                            (endMask != 1 && endMask > 0)) {
-                          None
-                        } else {
-                          val previousShape = constantValueAsShape(tensor.op.inputs(0))
-                          previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.toInt).toArray))
-                        }
-                      })))
+          constantValue(tensor.op.inputsSeq(0)).flatMap(begin => {
+            constantValue(tensor.op.inputsSeq(1)).flatMap(end => {
+              constantValue(tensor.op.inputsSeq(2)).flatMap(strides => {
+                val b = begin(0).scalar.asInstanceOf[Int]
+                val e = end(0).scalar.asInstanceOf[Int]
+                val s = strides(0).scalar.asInstanceOf[Int]
+                val beginMask = tensor.op.longAttribute("begin_mask")
+                val endMask = tensor.op.longAttribute("end_mask")
+                val ellipsisMask = tensor.op.longAttribute("ellipsis_mask")
+                val newAxisMask = tensor.op.longAttribute("new_axis_mask")
+                val shrinkAxisMask = tensor.op.longAttribute("shrink_axis_mask")
+                if (beginMask == 1 ||
+                    endMask == 1 ||
+                    ellipsisMask == 1 ||
+                    newAxisMask == 1 ||
+                    shrinkAxisMask == 1 ||
+                    (beginMask != 1 && beginMask > 0) ||
+                    (endMask != 1 && endMask > 0)) {
+                  None
+                } else {
+                  val previousShape = constantValueAsShape(tensor.op.inputsSeq(0))
+                  previousShape.map(t => Shape(t(b :: s :: e).entriesIterator.map(_.toInt).toArray))
+                }
+              })
+            })
+          })
         case _ if tensor.rank == -1 =>
           None
         case _ =>
           var returnShape = Shape.unknown(tensor.shape(0))
           val valueOption = constantValue(tensor)
           if (valueOption.isDefined) {
-            val value = valueOption.get.toInt32
+            implicit val evTF: TF[T] = TF.fromDataType(valueOption.get.dataType)
+            val value = valueOption.get.castTo[Int]
             require(value.rank == 1, "Only rank-1 tensors can be converted to shapes.")
             val shape = Shape(
-              (0 until value.size.toInt).map(value.getElementAtFlattenedIndex(_)): _*)
+              (0 until value.size.toInt).map(value.getElementAtFlattenedIndex): _*)
             returnShape = returnShape.mergeWith(shape)
           }
           if (returnShape.rank > -1)
@@ -480,32 +492,47 @@ object Output {
   *
   * Note that this is different than [[SparseOutput]] which uses multi-dimensional indices and scalar values.
   *
-  * @param  indices    Indices along the first dimension of the corresponding dense [[Output]].
+  * @param  indices    Indices along the first dimension of the corresponding dense output.
   * @param  values     Values corresponding to the provided indices.
-  * @param  denseShape Shape of the corresponding dense [[Output]].
+  * @param  denseShape Shape of the corresponding dense output.
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class OutputIndexedSlices(indices: Output, values: Output, denseShape: Output = null)
-    extends OutputLike {
-  /** Graph that contains `values`, `indices`, and `denseShape`. */
-  override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
+final case class OutputIndexedSlices[T](
+    indices: Output[Long],
+    values: Output[T],
+    denseShape: Output[Long] = null
+) extends OutputLike[T] {
+  /** Graph that contains `indices`, `values`, and `denseShape`. */
+  override def graph: Graph = {
+    Op.getGraphFromInputs(Set(values.op, indices.op, denseShape.op))
+  }
 
   /** Name of this op output indexed slices. */
-  override def name: String = s"${values.name}[${indices.name}]" +
-      (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
+  override def name: String = {
+    s"${values.name}[${indices.name}]" +
+        (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
+  }
 
   /** Data type of these op output indexed slices. */
-  override def dataType: DataType = values.dataType
+  override def dataType: DataType[T] = {
+    values.dataType
+  }
 
   /** Device on which these op output indexed slices will be placed. */
-  override def device: String = values.device
+  override def device: String = {
+    values.device
+  }
 
   /** Op that outputs these indexed slices. */
-  override def op: Op = values.op
+  override def op: Op[Seq[Output[Any]], Seq[Output[Any]]] = {
+    values.op
+  }
 
   /** Consumers of these indexed slices (i.e., ops that use this op output as one of their inputs). */
-  override def consumers: Array[Input] = values.consumers
+  override def consumers: Array[Input[Any]] = {
+    values.consumers
+  }
 
   /** Gets the [[Shape]] corresponding to the shape of the dense tensor that these indexed slices represent.
     *
@@ -513,40 +540,35 @@ final case class OutputIndexedSlices(indices: Output, values: Output, denseShape
     */
   def shape: Shape = Output.constantValueAsShape(denseShape).get
 
-  // /** Evaluates these indexed slices.
-  //   *
-  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of these
-  //   * indexed slices.
-  //   *
-  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-  //   * the evaluation.
-  //   *
-  //   * @param  feeds   Tensors to feed into the session for this evaluation.
-  //   * @param  session Optional session to use for the evaluation.
-  //   * @return Value of these indexed slices, for this evaluation.
-  //   */
-  // def value(feeds: FeedMap = FeedMap.empty, session: Session = null): TensorIndexedSlices = {
-  //   val effectiveSession = if (session == null) graph.defaultSession else session
-  //   effectiveSession.run(feeds, this)
-  // }
-
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  override def toOutput: Output = {
-    if (denseShape == null)
+  override def toOutput: Output[T] = {
+    if (denseShape == null) {
       throw new IllegalStateException(
         s"Conversion of 'OutputIndexedSlices', '$this', " +
             s"which has no dense shape information available, is not possible.")
+    }
+
     val denseShapeValue = Output.constantValueAsShape(denseShape)
-    if (denseShapeValue.isEmpty)
+
+    if (denseShapeValue.isEmpty) {
       logger.warn(
         "Converting sparse 'OutputIndexedSlices' to a dense 'Output' of unknown shape. " +
             "This may consume a large amount of memory.")
-    else if (denseShapeValue.get.numElements >= LARGE_SPARSE_TENSOR_SIZE)
+    } else if (denseShapeValue.get.numElements >= LARGE_SPARSE_TENSOR_SIZE) {
       logger.warn(
-        s"Converting sparse 'OutputIndexedSlices' to a dense 'Output' with ${denseShapeValue.get.numElements} " +
-            "elements. This may consume a large amount of memory.")
-    createWith(nameScope = s"${values.op.name}/ToOutput") {
-      Math.unsortedSegmentSum(data = values, segmentIndices = indices, segmentsNumber = denseShape.gather(0))
+        s"Converting sparse 'OutputIndexedSlices' to a dense 'Output' with " +
+            s"${denseShapeValue.get.numElements} elements. This may consume a " +
+            s"large amount of memory.")
+    }
+
+    // TODO: [TYPES] !!! Super hacky. Remove in the future.
+    implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+
+    Op.nameScope(s"${values.op.name}/ToOutput") {
+      Math.unsortedSegmentSum(
+        data = values,
+        segmentIndices = indices,
+        segmentsNumber = denseShape.gather(0))
     }
   }
 
@@ -556,11 +578,23 @@ final case class OutputIndexedSlices(indices: Output, values: Output, denseShape
     *                  shape of this tensor at graph creation time (instead of execution time), if known.
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
-  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = this
+  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = {
+    this
+  }
 
   override def toString: String = {
-    s"OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
-        s"device = $device)}"
+    if (device != "") {
+      s"OutputIndexedSlices[" +
+          s"indices = ${indices.name}, " +
+          s"values = ${values.name}, " +
+          s"denseShape = ${denseShape.name}, " +
+          s"device = $device]"
+    } else {
+      s"OutputIndexedSlices[" +
+          s"indices = ${indices.name}, " +
+          s"values = ${values.name}, " +
+          s"denseShape = ${denseShape.name}]"
+    }
   }
 }
 
@@ -574,7 +608,7 @@ final case class OutputIndexedSlices(indices: Output, values: Output, denseShape
   * Concretely, the sparse tensor `SparseOutput(indices, values, denseShape)` comprises the following components,
   * where `N` and `rank` are the number of values and number of dimensions in the [[SparseOutput]], respectively:
   *
-  *   - `indices`: Two-dimensional [[INT64]] tensor with shape `[N, rank]`, which specifies the indices of the elements
+  *   - `indices`: Two-dimensional tensor with shape `[N, rank]`, which specifies the indices of the elements
   *     in the sparse tensor that have nonzero values (elements are zero-indexed). For example,
   *     `indices = [[1, 3], [2, 4]]` specifies that the elements with indexes `[1, 3]` and `[2, 4]` have nonzero
   *     values.
@@ -601,65 +635,63 @@ final case class OutputIndexedSlices(indices: Output, values: Output, denseShape
   * For example, the sparse tensor `SparseOutput(indices = [[0, 0], [1, 2]], values = [1, 2], denseShape = [3, 4])`,
   * represents the dense tensor `[[1, 0, 0, 0], [0, 0, 2, 0], [0, 0, 0, 0]]`.
   *
-  * @param  indices    Two-dimensional [[INT32]] or [[INT64]] tensor with shape `[N, rank]`.
+  * @param  indices    Two-dimensional tensor with shape `[N, rank]`.
   * @param  values     One-dimensional tensor with shape `[N]`.
-  * @param  denseShape One-dimensional [[INT32]] or [[INT64]] tensor with shape `[rank]`.
+  * @param  denseShape One-dimensional tensor with shape `[rank]`.
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class SparseOutput(indices: Output, values: Output, denseShape: Output) extends OutputLike {
-  require(indices.dataType == INT32 || indices.dataType == INT64,
-          s"Indices cannot have '${indices.dataType}' data type. They have to be 'INT32' or 'INT64'.")
-  require(denseShape.dataType == INT32 || denseShape.dataType == INT64,
-          s"Dense shape cannot have '${denseShape.dataType}' data type. They have to be 'INT32' or 'INT64'.")
-
+final case class SparseOutput[T](
+    indices: Output[Long],
+    values: Output[T],
+    denseShape: Output[Long] = null
+) extends OutputLike[T] {
   Shape(indices.shape.withRank(2)(0)).assertIsCompatibleWith(Shape(values.shape.withRank(1)(0)))
   Shape(indices.shape.withRank(2)(1)).assertIsCompatibleWith(Shape(denseShape.shape.withRank(1)(0)))
 
-  /** Graph that contains `values`, `indices`, and `denseShape`. */
-  override def graph: Graph = getGraphFromInputs(Set(values, indices, denseShape))
+  /** Graph that contains `indices`, `values`, and `denseShape`. */
+  override def graph: Graph = {
+    Op.getGraphFromInputs(Set(values.op, indices.op, denseShape.op))
+  }
 
   /** Name of this sparse op output. */
-  override def name: String = s"${values.name}[${indices.name}]" +
-      (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
+  override def name: String = {
+    s"${values.name}[${indices.name}]" +
+        (if (denseShape != null) s"(shape = ${denseShape.name})" else "")
+  }
 
   /** Data type of this sparse op output. */
-  override def dataType: DataType = values.dataType
+  override def dataType: DataType[T] = {
+    values.dataType
+  }
 
   /** Device on which this sparse op output will be placed. */
-  override def device: String = values.device
+  override def device: String = {
+    values.device
+  }
 
   /** Op that outputs this sparse tensor. */
-  override def op: Op = values.op
+  override def op: Op[Seq[Output[Any]], Seq[Output[Any]]] = {
+    values.op
+  }
 
   /** Consumers of these indexed slices (i.e., ops that use this op output as one of their inputs). */
-  override def consumers: Array[Input] = values.consumers
+  override def consumers: Array[Input[Any]] = {
+    values.consumers
+  }
 
   /** Gets the [[Shape]] corresponding to the shape of the dense tensor that this sparse tensor represents.
     *
     * @return Dense tensor shape.
     */
-  def shape: Shape = Output.constantValueAsShape(denseShape).get
-
-  // /** Evaluates this sparse op output.
-  //   *
-  //   * If `feeds` is non-empty, then the provided feed values are fed into the session for computing the value of this
-  //   * sparse output.
-  //   *
-  //   * If `session` is `null` (i.e., not provided), then the default session is used. Otherwise, `session` is used for
-  //   * the evaluation.
-  //   *
-  //   * @param  feeds   Tensors to feed into the session for this evaluation.
-  //   * @param  session Optional session to use for the evaluation.
-  //   * @return Value of this sparse op output, for this evaluation.
-  //   */
-  // def value(feeds: FeedMap = FeedMap.empty, session: Session = null): SparseTensor = {
-  //   val effectiveSession = if (session == null) graph.defaultSession else session
-  //   effectiveSession.run(feeds, this)
-  // }
+  def shape: Shape = {
+    Output.constantValueAsShape(denseShape).get
+  }
 
   /** Returns the [[Output]] that this [[OutputLike]] object represents. */
-  override def toOutput: Output = toOutput()
+  override def toOutput: Output[T] = {
+    toOutput()
+  }
 
   /** Converts this sparse tensor to a dense tensor.
     *
@@ -689,17 +721,17 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
     * @return Created op output, with the same data type as `input.values` and shape `input.denseShape`.
     */
   def toOutput(
-      defaultValue: Output = 0,
+      defaultValue: Output[T] = null,
       validateIndices: Boolean = true,
       name: String = s"${values.op.name}/ToOutput"
-  ): Output = {
-    Op.Builder(opType = "SparseToDense", name = name)
-        .addInput(indices)
-        .addInput(denseShape)
-        .addInput(values)
-        .addInput(defaultValue)
-        .setAttribute("validate_indices", validateIndices)
-        .build().outputs(0)
+  ): Output[T] = {
+    val default = if (defaultValue == null) Basic.zeros(dataType, Shape()) else defaultValue
+    Op.Builder[(Output[Long], Output[Long], Output[T], Output[T]), Output[T]](
+      opType = "SparseToDense",
+      name = name,
+      input = (indices, denseShape, values, default)
+    ).setAttribute("validate_indices", validateIndices)
+        .build().output
   }
 
   /** Returns an [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
@@ -709,12 +741,23 @@ final case class SparseOutput(indices: Output, values: Output, denseShape: Outpu
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
   @throws[UnsupportedOperationException]
-  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices = {
-    throw new UnsupportedOperationException(s"Cannot convert sparse output '$this' to output indexed slices.")
+  override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = {
+    throw new UnsupportedOperationException(
+      s"Cannot convert sparse output '$this' to output indexed slices.")
   }
 
   override def toString: String = {
-    s"OutputIndexedSlices(values = ${values.name}, indices = ${indices.name}, denseShape = ${denseShape.name}, " +
-        s"device = $device)}"
+    if (device != "") {
+      s"SparseOutput[" +
+          s"indices = ${indices.name}, " +
+          s"values = ${values.name}, " +
+          s"denseShape = ${denseShape.name}, " +
+          s"device = $device]"
+    } else {
+      s"SparseOutput[" +
+          s"indices = ${indices.name}, " +
+          s"values = ${values.name}, " +
+          s"denseShape = ${denseShape.name}]"
+    }
   }
 }

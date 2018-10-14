@@ -15,10 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.rnn
 
-import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.ops.{Op, Output, OutputConvertible}
-import org.platanios.tensorflow.api.ops.control_flow.WhileLoopVariable
-import org.platanios.tensorflow.api.types.DataType
+import org.platanios.tensorflow.api.ops.Output
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -30,80 +27,35 @@ package object cell {
     def apply[O, S](output: O, state: S): Tuple[O, S] = new Tuple(output, state)
   }
 
-  type BasicTuple = Tuple[Output, Output]
+  type BasicTuple[T] = Tuple[Output[T], Output[T]]
 
   /** LSTM state tuple.
     *
     * @param  c Memory state tensor (i.e., previous output).
     * @param  m State tensor.
     */
-  case class LSTMState(c: Output, m: Output)
+  case class LSTMState[T](c: Output[T], m: Output[T])
 
-  object LSTMState {
-    implicit def lstmStateWhileLoopVariable(implicit
-        evOutput: WhileLoopVariable.Aux[Output, Shape]
-    ): WhileLoopVariable.Aux[LSTMState, (Shape, Shape)] = {
-      new WhileLoopVariable[LSTMState] {
-        override type ShapeType = (Shape, Shape)
+  type LSTMTuple[T] = Tuple[Output[T], LSTMState[T]]
 
-        override def zero(
-            batchSize: Output,
-            dataType: DataType,
-            shape: (Shape, Shape),
-            name: String = "Zero"
-        ): LSTMState = Op.createWithNameScope(name) {
-          LSTMState(
-            evOutput.zero(batchSize, dataType, shape._1, "Output"),
-            evOutput.zero(batchSize, dataType, shape._2, "State"))
-        }
-
-        override def size(value: LSTMState): Int = evOutput.size(value.c) + evOutput.size(value.m)
-        override def outputs(value: LSTMState): Seq[Output] = evOutput.outputs(value.c) ++ evOutput.outputs(value.m)
-        override def shapes(shape: (Shape, Shape)): Seq[Shape] = evOutput.shapes(shape._1) ++ evOutput.shapes(shape._2)
-
-        override def segmentOutputs(value: LSTMState, values: Seq[Output]): (LSTMState, Seq[Output]) = {
-          (LSTMState(values(0), values(1)), values.drop(2))
-        }
-
-        override def segmentShapes(value: LSTMState, shapes: Seq[Shape]): ((Shape, Shape), Seq[Shape]) = {
-          ((shapes(0), shapes(1)), shapes.drop(2))
-        }
-
-        override def map(value: LSTMState, mapFn: OutputConvertible => OutputConvertible): LSTMState = {
-          LSTMState(
-            evOutput.map(value.c, mapFn),
-            evOutput.map(value.m, mapFn))
-        }
-
-        override def mapWithShape(
-            value: LSTMState,
-            shape: (Shape, Shape),
-            mapFn: (OutputConvertible, Shape) => OutputConvertible
-        ): LSTMState = {
-          LSTMState(
-            evOutput.mapWithShape(value.c, shape._1, mapFn),
-            evOutput.mapWithShape(value.m, shape._2, mapFn))
-        }
-      }
-    }
+  def LSTMTuple[T](
+      output: Output[T],
+      state: LSTMState[T]
+  ): LSTMTuple[T] = {
+    Tuple(output, state)
   }
 
-  type LSTMTuple = Tuple[Output, LSTMState]
-
-  def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = Tuple(output, state)
-
   private[rnn] trait API {
-    type RNNCell[O, OS, S, SS] = cell.RNNCell[O, OS, S, SS]
-    type BasicRNNCell = cell.BasicRNNCell
-    type GRUCell = cell.GRUCell
-    type BasicLSTMCell = cell.BasicLSTMCell
-    type LSTMCell = cell.LSTMCell
-    type DeviceWrapper[O, OS, S, SS] = cell.DeviceWrapper[O, OS, S, SS]
-    type DropoutWrapper[O, OS, S, SS] = cell.DropoutWrapper[O, OS, S, SS]
-    type ResidualWrapper[O, OS, S, SS] = cell.ResidualWrapper[O, OS, S, SS]
-    type MultiCell[O, OS, S, SS] = cell.MultiCell[O, OS, S, SS]
+    type RNNCell[O, S] = cell.RNNCell[O, S]
+    type BasicRNNCell[T] = cell.BasicRNNCell[T]
+    type GRUCell[T] = cell.GRUCell[T]
+    type BasicLSTMCell[T] = cell.BasicLSTMCell[T]
+    type LSTMCell[T] = cell.LSTMCell[T]
+    type DeviceWrapper[O, S] = cell.DeviceWrapper[O, S]
+    type DropoutWrapper[O, S] = cell.DropoutWrapper[O, S]
+    type ResidualWrapper[O, S] = cell.ResidualWrapper[O, S]
+    type MultiCell[O, S] = cell.StackedCell[O, S]
 
-    val RNNCell        : cell.RNNCell.type         = cell.RNNCell
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell
     val BasicLSTMCell  : cell.BasicLSTMCell.type   = cell.BasicLSTMCell
@@ -111,18 +63,20 @@ package object cell {
     val DeviceWrapper  : cell.DeviceWrapper.type   = cell.DeviceWrapper
     val DropoutWrapper : cell.DropoutWrapper.type  = cell.DropoutWrapper
     val ResidualWrapper: cell.ResidualWrapper.type = cell.ResidualWrapper
-    val MultiCell      : cell.MultiCell.type       = cell.MultiCell
+    val MultiCell      : cell.StackedCell.type     = cell.StackedCell
+
+    type LSTMState[T] = cell.LSTMState[T]
+
+    val LSTMState: cell.LSTMState.type = cell.LSTMState
 
     type RNNTuple[O, S] = cell.Tuple[O, S]
-    type BasicTuple = cell.Tuple[Output, Output]
-    type LSTMTuple = cell.Tuple[Output, LSTMState]
+    type BasicTuple[T] = cell.Tuple[Output[T], Output[T]]
+    type LSTMTuple[T] = cell.Tuple[Output[T], LSTMState[T]]
 
     val RNNTuple: cell.Tuple.type = cell.Tuple
 
-    def LSTMTuple(output: Output, state: LSTMState): LSTMTuple = cell.Tuple(output, state)
-
-    type LSTMState = cell.LSTMState
-
-    val LSTMState: cell.LSTMState.type = cell.LSTMState
+    def LSTMTuple[T](output: Output[T], state: LSTMState[T]): LSTMTuple[T] = {
+      cell.Tuple(output, state)
+    }
   }
 }

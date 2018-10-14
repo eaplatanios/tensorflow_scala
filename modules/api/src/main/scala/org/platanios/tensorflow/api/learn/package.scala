@@ -56,10 +56,10 @@ package object learn {
     val ClipGradientsByGlobalNorm : learn.ClipGradientsByGlobalNorm.type  = learn.ClipGradientsByGlobalNorm
 
     type Model = learn.Model
-    type InferenceModel[IT, IO, ID, IS, I] = learn.InferenceModel[IT, IO, ID, IS, I]
-    type TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI] = learn.TrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, EI]
-    type SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T] = learn.SupervisedTrainableModel[IT, IO, ID, IS, I, TT, TO, TD, TS, T]
-    type UnsupervisedTrainableModel[IT, IO, ID, IS, I] = learn.UnsupervisedTrainableModel[IT, IO, ID, IS, I]
+    type InferenceModel[In, Out] = learn.InferenceModel[In, Out]
+    type TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn] = learn.TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn]
+    type SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = learn.SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss]
+    type UnsupervisedTrainableModel[In, Out, Loss] = learn.UnsupervisedTrainableModel[In, Out, Loss]
 
     val Model: learn.Model.type = learn.Model
   }

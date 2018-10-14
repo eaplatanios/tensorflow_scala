@@ -17,16 +17,19 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
+import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, TensorArray}
-import org.platanios.tensorflow.api.ops.control_flow.{ControlFlow, WhileLoopVariable}
+import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, INT32}
+import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 import scala.language.postfixOps
+
+// TODO: [TYPES] !!! Remove the million type arguments.
 
 /** Basic sampling Recurrent Neural Network (RNN) decoder.
   *
@@ -39,53 +42,67 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicDecoder[O, OS, S, SS](
-    override val cell: RNNCell[O, OS, S, SS],
-    val initialCellState: S,
-    val helper: BasicDecoder.Helper[O, S],
-    val outputLayer: O => O = (o: O) => o,
+class BasicDecoder[Out, Sample, State](
+    override val cell: RNNCell[Out, State],
+    val initialCellState: State,
+    val helper: BasicDecoder.Helper[Out, Sample, State],
+    val outputLayer: Out => Out = (o: Out) => o,
     override val name: String = "BasicRNNDecoder"
-)(implicit
-    evO: WhileLoopVariable.Aux[O, OS],
-    evS: WhileLoopVariable.Aux[S, SS]
 ) extends Decoder[
-    O, OS, S, SS,
-    BasicDecoder.Output[O, OS], (OS, OS), S, SS,
-    BasicDecoder.Output[O, OS], S](cell, name) {
-  /** Scalar `INT32` tensor representing the batch size of the input values. */
-  override val batchSize: Output = helper.batchSize
+    Out, State,
+    BasicDecoder.DecoderOutput[Out, Sample], State,
+    BasicDecoder.DecoderOutput[Out, Sample], State](cell, name) {
+  /** Scalar tensor representing the batch size of the input values. */
+  override val batchSize: Output[Int] = {
+    helper.batchSize
+  }
 
-  override def zeroOutput(): BasicDecoder.Output[O, OS] = {
-    val dataType = evS.outputs(initialCellState).head.dataType
-    val zOutput = evO.zero(batchSize, dataType, cell.outputShape, "ZeroOutput")
+  override def zeroOutput[OV, OD, OS]()(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evZeroO: Zero.Aux[Out, OS]
+  ): BasicDecoder.DecoderOutput[Out, Sample] = {
+    val zOutput = evZeroO.zero(batchSize, cell.outputShape, "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
-    BasicDecoder.Output(outputLayer(zOutput), zSample)
+    BasicDecoder.DecoderOutput(
+      modelOutput = outputLayer(zOutput),
+      sample = zSample)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
     *
-    * @return Tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished,
+    * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  override def initialize(): (Output, O, S) = Op.createWithNameScope(s"$name/Initialize") {
-    val helperInitialize = helper.initialize()
-    (helperInitialize._1, helperInitialize._2, initialCellState)
+  override def initialize[OV, OD, OS, SV, SD, SS]()(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
+  ): (Output[Boolean], Out, State) = {
+    Op.nameScope(s"$name/Initialize") {
+      val helperInitialize = helper.initialize()
+      (helperInitialize._1, helperInitialize._2, initialCellState)
+    }
   }
 
   /** This method is called once per step of decoding (but only once for dynamic decoding).
     *
-    * @return Tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether sampling has finished, and
-    *         (ii) the next RNN cell tuple.
+    * @return Tuple containing: (i) the decoder output, (ii) the next state, (iii) the next inputs, and (iv) a scalar
+    *         tensor specifying whether sampling has finished.
     */
-  override def next(time: Output, input: O, state: S): (BasicDecoder.Output[O, OS], S, O, Output) = {
-    val inputs = evO.outputs(input)
-    val states = evS.outputs(state)
-    Op.createWithNameScope(s"$name/Next", Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet) {
-      val nextTuple = cell(Tuple(input, state))
+  override def next[OV, OD, OS, SV, SD, SS, DSV, DSD, DSS](
+      time: Output[Int],
+      input: Out,
+      state: State
+  )(implicit
+      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDS: NestedStructure.Aux[State, DSV, DSD, DSS]
+  ): (BasicDecoder.DecoderOutput[Out, Sample], State, Out, Output[Boolean]) = {
+    Op.nameScope(s"$name/Next") {
+      val nextTuple = cell(Tuple(input, state))(evStructureO, evStructureS)
       val nextTupleOutput = outputLayer(nextTuple.output)
       val sample = helper.sample(time, nextTupleOutput, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTupleOutput, nextTuple.state, sample)
-      (BasicDecoder.Output(nextTupleOutput, sample), nextState, nextInputs, finished)
+      (BasicDecoder.DecoderOutput(nextTupleOutput, sample), nextState, nextInputs, finished)
     }
   }
 
@@ -95,181 +112,184 @@ class BasicDecoder[O, OS, S, SS](
     * @param  state  Final state after decoding.
     * @return Finalized output and state to return from the decoding process.
     */
-  override def finalize(
-      output: BasicDecoder.Output[O, OS],
-      state: S,
-      sequenceLengths: Output
-  ): (BasicDecoder.Output[O, OS], S, Output) = {
+  override def finalize[SV, SD, SS, DOV, DOD, DOS, DSV, DSD, DSS](
+      output: BasicDecoder.DecoderOutput[Out, Sample],
+      state: State,
+      sequenceLengths: Output[Int]
+  )(implicit
+      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
+      evStructureDO: NestedStructure.Aux[BasicDecoder.DecoderOutput[Out, Sample], DOV, DOD, DOS],
+      evStructureDS: NestedStructure.Aux[State, DSV, DSD, DSS]
+  ): (BasicDecoder.DecoderOutput[Out, Sample], State, Output[Int]) = {
     (output, state, sequenceLengths)
   }
 }
 
 object BasicDecoder {
-  def apply[O, OS, S, SS](
-      cell: RNNCell[O, OS, S, SS],
-      initialCellState: S,
-      helper: BasicDecoder.Helper[O, S],
-      outputLayer: O => O = (o: O) => o,
+  def apply[Out, Sample, State](
+      cell: RNNCell[Out, State],
+      initialCellState: State,
+      helper: BasicDecoder.Helper[Out, Sample, State],
+      outputLayer: Out => Out = (o: Out) => o,
       name: String = "BasicRNNDecoder"
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
-  ): BasicDecoder[O, OS, S, SS] = {
-    new BasicDecoder[O, OS, S, SS](cell, initialCellState, helper, outputLayer, name)
+      evStructureO: NestedStructure[Out],
+      evStructureS: NestedStructure[Sample],
+      evStructureDS: NestedStructure[State],
+      evZeroOut: Zero[Out]
+  ): BasicDecoder[Out, Sample, State] = {
+    new BasicDecoder(cell, initialCellState, helper, outputLayer, name)
   }
 
-  case class Output[O, OS](rnnOutput: O, sample: O)(implicit whileLoopEvO: WhileLoopVariable.Aux[O, OS])
-
-  object Output {
-    implicit def outputWhileLoopVariable[O, OS](implicit
-        whileLoopEvO: WhileLoopVariable.Aux[O, OS]
-    ): WhileLoopVariable.Aux[Output[O, OS], (OS, OS)] = new WhileLoopVariable[Output[O, OS]] {
-      override type ShapeType = (OS, OS)
-
-      override def zero(batchSize: ops.Output, dataType: DataType, shape: (OS, OS), name: String): Output[O, OS] = {
-        Output(whileLoopEvO.zero(batchSize, dataType, shape._1), whileLoopEvO.zero(batchSize, dataType, shape._2))
-      }
-
-      override def size(output: Output[O, OS]): Int = {
-        whileLoopEvO.size(output.rnnOutput) + whileLoopEvO.size(output.sample)
-      }
-
-      override def outputs(output: Output[O, OS]): Seq[ops.Output] = {
-        whileLoopEvO.outputs(output.rnnOutput) ++ whileLoopEvO.outputs(output.sample)
-      }
-
-      override def shapes(shape: (OS, OS)): Seq[Shape] = {
-        whileLoopEvO.shapes(shape._1) ++ whileLoopEvO.shapes(shape._2)
-      }
-
-      override def segmentOutputs(output: Output[O, OS], values: Seq[ops.Output]): (Output[O, OS], Seq[ops.Output]) = {
-        val (rnnOutput, sampleAndTail) = whileLoopEvO.segmentOutputs(output.rnnOutput, values)
-        val (sample, tail) = whileLoopEvO.segmentOutputs(output.sample, sampleAndTail)
-        (Output(rnnOutput, sample), tail)
-      }
-
-      override def segmentShapes(output: Output[O, OS], values: Seq[Shape]): ((OS, OS), Seq[Shape]) = {
-        val (rnnOutput, sampleAndTail) = whileLoopEvO.segmentShapes(output.rnnOutput, values)
-        val (sample, tail) = whileLoopEvO.segmentShapes(output.sample, sampleAndTail)
-        ((rnnOutput, sample), tail)
-      }
-
-      override def map(value: Output[O, OS], mapFn: ops.OutputConvertible => ops.OutputConvertible): Output[O, OS] = {
-        Output(
-          whileLoopEvO.map(value.rnnOutput, mapFn),
-          whileLoopEvO.map(value.sample, mapFn))
-      }
-
-      override def mapWithShape(
-          value: Output[O, OS],
-          shape: (OS, OS),
-          mapFn: (ops.OutputConvertible, Shape) => ops.OutputConvertible
-      ): Output[O, OS] = {
-        Output(
-          whileLoopEvO.mapWithShape(value.rnnOutput, shape._1, mapFn),
-          whileLoopEvO.mapWithShape(value.sample, shape._2, mapFn))
-      }
-    }
-  }
+  case class DecoderOutput[Out, Sample](modelOutput: Out, sample: Sample)
 
   /** Interface for implementing sampling helpers in sequence-to-sequence decoders. */
-  trait Helper[O, S] {
-    /** Scalar `INT32` tensor representing the batch size of a tensor returned by `sample()`. */
-    val batchSize: ops.Output
+  trait Helper[Out, Sample, State] {
+    /** Scalar tensor representing the batch size of a tensor returned by `sample()`. */
+    val batchSize: Output[Int]
 
     /** Returns a zero-valued sample for this helper. */
-    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): O
+    def zeroSample(
+        batchSize: Output[Int],
+        name: String = "ZeroSample"
+    ): Sample
 
-    /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
+    /** Returns a tuple containing: (i) a scalar tensor specifying whether initialization has finished, and
       * (ii) the next input. */
-    def initialize(): (ops.Output, O)
+    def initialize(): (Output[Boolean], Out)
 
     /** Returns a sample for the provided time, input, and state. */
-    def sample(time: ops.Output, input: O, state: S): O
+    def sample(
+        time: Output[Int],
+        input: Out,
+        state: State
+    ): Sample
 
-    /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether sampling has finished, and
+    /** Returns a tuple containing: (i) a scalar tensor specifying whether sampling has finished, and
       * (ii) the next inputs, and (iii) the next state. */
-    def next(time: ops.Output, input: O, state: S, sample: O): (ops.Output, O, S)
+    def next(
+        time: Output[Int],
+        input: Out,
+        state: State,
+        sample: Sample
+    ): (Output[Boolean], Out, State)
   }
 
   /** RNN decoder helper to be used while training. It only reads inputs and the returned sample indexes are the argmax
     * over the RNN output logits. */
-  case class TrainingHelper[O, OS, S, SS](
-      input: O,
-      sequenceLengths: ops.Output,
+  case class TrainingHelper[Out, OutTensorType, OutDataType, OutShape, State, StateTensorType, StateDataType, StateShape](
+      input: Out,
+      sequenceLengths: Output[Int],
       timeMajor: Boolean = false,
       name: String = "RNNDecoderTrainingHelper"
   )(implicit
-      evO: WhileLoopVariable.Aux[O, OS],
-      evS: WhileLoopVariable.Aux[S, SS]
-  ) extends Helper[O, S] {
+      evStructureO: NestedStructure.Aux[Out, OutTensorType, OutDataType, OutShape],
+      evStructureS: NestedStructure.Aux[State, StateTensorType, StateDataType, StateShape],
+      evZeroO: Zero.Aux[Out, OutShape]
+  ) extends Helper[Out, Out, State] {
     if (sequenceLengths.rank != 1)
       throw InvalidShapeException(s"'sequenceLengths' (shape = ${sequenceLengths.shape}) must have rank 1.")
 
-    private[this] var inputs           : Seq[ops.Output]  = evO.outputs(input)
-    private[this] val inputTensorArrays: Seq[TensorArray] = Op.createWithNameScope(name, inputs.map(_.op).toSet) {
-      if (!timeMajor) {
-        // [B, T, D] => [T, B, D]
-        inputs = inputs.map(RNN.transposeBatchTime)
+    private var inputs: Seq[Output[Any]] = evStructureO.outputs(input)
+
+    private val inputTensorArrays: Seq[TensorArray[Any]] = {
+      Op.nameScope(name) {
+        if (!timeMajor) {
+          // [B, T, D] => [T, B, D]
+          inputs = inputs.map(i => {
+            RNN.transposeBatchTime(i)(TF.fromDataType(i.dataType))
+          })
+        }
+        inputs.map(input => {
+          TensorArray.create(
+            size = Basic.shape(input)(TF.fromDataType(input.dataType)).castTo[Int].slice(0),
+            elementShape = input.shape(1 ::)
+          )(TF.fromDataType(input.dataType)).unstack(input)
+        })
       }
-      inputs.map(input => {
-        TensorArray.create(Basic.shape(input)(0), input.dataType, elementShape = input.shape(1 ::)).unstack(input)
-      })
     }
 
-    private[this] val zeroInputs: Seq[ops.Output] = Op.createWithNameScope(name, inputs.map(_.op).toSet) {
-      inputs.map(input => Basic.zerosLike(input.gather(0)))
+    private val zeroInputs: Seq[Output[Any]] = {
+      Op.nameScope(name) {
+        inputs.map(input => {
+          Basic.zerosLike(
+            Basic.gather(
+              input = input,
+              indices = 0
+            )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int], IntDefault[Int], TF[Int], IsInt32OrInt64[Int])
+          )(TF.fromDataType(input.dataType))
+        })
+      }
     }
 
-    /** Scalar `INT32` tensor representing the batch size of a tensor returned by `sample()`. */
-    override val batchSize: ops.Output = Op.createWithNameScope(name, Set(sequenceLengths.op)) {
-      Basic.size(sequenceLengths)
+    /** Scalar tensor representing the batch size of a tensor returned by `sample()`. */
+    override val batchSize: Output[Int] = {
+      Op.nameScope(name) {
+        Basic.size(sequenceLengths).castTo[Int]
+      }
     }
 
     /** Returns a zero-valued sample for this helper. */
-    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): O = {
-      evO.zero(batchSize, INT32, evO.fromShapes(input, evO.outputs(input).map(_ => Shape.scalar())))
+    def zeroSample(
+        batchSize: Output[Int],
+        name: String = "ZeroSample"
+    ): Out = {
+      val shapes = evStructureO.outputs(input).map(_ => Shape.scalar())
+      val shape = evStructureO.decodeShapeFromOutput(input, shapes)._1
+      evZeroO.zero(batchSize, shape)
     }
 
-    /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
+    /** Returns a tuple containing: (i) a scalar tensor specifying whether initialization has finished, and
       * (ii) the next input. */
-    override def initialize(): (ops.Output, O) = {
-      Op.createWithNameScope(s"$name/Initialize") {
+    override def initialize(): (Output[Boolean], Out) = {
+      Op.nameScope(s"$name/Initialize") {
         val finished = Math.equal(0, sequenceLengths)
         val nextInputs = ControlFlow.cond(
           Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(0)))
-        (finished, evO.fromOutputs(input, nextInputs))
+        (finished, evStructureO.decodeOutputFromOutput(input, nextInputs)._1)
       }
     }
 
     /** Returns a sample for the provided time, input, and state. */
-    override def sample(time: ops.Output, input: O, state: S): O = {
-      val outputs = evO.outputs(input)
-      Op.createWithNameScope(s"$name/Sample", Set(time.op) ++ outputs.map(_.op).toSet) {
-        evO.fromOutputs(input, outputs.map(output => Math.argmax(output, axes = -1, outputDataType = INT32)))
+    override def sample(
+        time: Output[Int],
+        input: Out,
+        state: State
+    ): Out = {
+      val outputs = evStructureO.outputs(input)
+      Op.nameScope(s"$name/Sample") {
+        evStructureO.decodeOutputFromOutput(input, outputs.map(output => {
+
+          // TODO: [TYPES] !!! Super hacky. Remove in the future.
+          val ev: IsNotQuantized[Any] = new IsNotQuantized[Any] {}
+
+          Math.argmax(
+            output,
+            axes = -1,
+            outputDataType = Int
+          )(TF.fromDataType(output.dataType), ev, TF[Int], IsInt32OrInt64[Int], TF[Int])
+        }))._1
       }
     }
 
-    /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether sampling has finished, and
+    /** Returns a tuple containing: (i) a scalar tensor specifying whether sampling has finished, and
       * (ii) the next inputs, and (iii) the next state. */
     override def next(
-        time: ops.Output, input: O, state: S, sample: O): (ops.Output, O, S) = {
-      val inputs = evO.outputs(input)
-      val states = evS.outputs(state)
-      val samples = evO.outputs(sample)
-      Op.createWithNameScope(
-        s"$name/NextInputs",
-        Set(time.op) ++ inputs.map(_.op).toSet ++ states.map(_.op).toSet ++ samples.map(_.op).toSet
-      ) {
+        time: Output[Int],
+        input: Out,
+        state: State,
+        sample: Out
+    ): (Output[Boolean], Out, State) = {
+      Op.nameScope(s"$name/NextInputs") {
         val nextTime = time + 1
         val finished = Math.greaterEqual(nextTime, sequenceLengths)
         val nextInputs = ControlFlow.cond(
           Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(nextTime)))
-        (finished, evO.fromOutputs(input, nextInputs), state)
+        (finished, evStructureO.decodeOutputFromOutput(input, nextInputs)._1, state)
       }
     }
   }
@@ -277,66 +297,83 @@ object BasicDecoder {
   /** RNN decoder helper to be used while performing inference. It uses the argmax over the RNN output logits and passes
     * the result through an embedding layer to get the next input.
     *
-    * @param  embeddingFn Function that takes an `INT32` vector of IDs and returns the corresponding embedded values
+    * @param  embeddingFn Function that takes an vector of IDs and returns the corresponding embedded values
     *                     that will be passed to the decoder input.
-    * @param  beginTokens `INT32` vector with length equal to the batch size, which contains the begin-of-sequence
-    *                      token IDs.
-    * @param  endToken    `INT32` scalar containing the end-of-sequence token ID (i.e., token ID which marks the end of
+    * @param  beginTokens Vector with length equal to the batch size, which contains the begin-of-sequence token IDs.
+    * @param  endToken    Scalar containing the end-of-sequence token ID (i.e., token ID which marks the end of
     *                     decoding).
     */
-  case class GreedyEmbeddingHelper[S](
-      embeddingFn: ops.Output => ops.Output,
-      beginTokens: ops.Output,
-      endToken: ops.Output,
+  case class GreedyEmbeddingHelper[T, State](
+      embeddingFn: Output[Int] => Output[T],
+      beginTokens: Output[Int],
+      endToken: Output[Int],
       name: String = "RNNDecoderGreedyEmbeddingHelper"
-  ) extends Helper[ops.Output, S] {
+  ) extends Helper[Output[T], Output[Int], State] {
     if (beginTokens.rank != 1)
       throw InvalidShapeException(s"'beginTokens' (shape = ${beginTokens.shape}) must have rank 1.")
     if (endToken.rank != 0)
       throw InvalidShapeException(s"'endToken' (shape = ${endToken.shape}) must have rank 0.")
 
-    private[this] val beginInputs: ops.Output = Op.createWithNameScope(name, Set(beginTokens.op)) {
-      embeddingFn(beginTokens)
+    private val beginInputs: Output[T] = {
+      Op.nameScope(name) {
+        embeddingFn(beginTokens)
+      }
     }
 
-    /** Scalar `INT32` tensor representing the batch size of a tensor returned by `sample()`. */
-    override val batchSize: ops.Output = Op.createWithNameScope(name, Set(beginTokens.op)) {
-      Basic.size(beginTokens)
+    /** Scalar tensor representing the batch size of a tensor returned by `sample()`. */
+    override val batchSize: Output[Int] = {
+      Op.nameScope(name) {
+        Basic.size(beginTokens).castTo[Int]
+      }
     }
 
     /** Returns a zero-valued sample for this helper. */
-    def zeroSample(batchSize: ops.Output, name: String = "ZeroSample"): ops.Output = Op.createWithNameScope(name) {
-      Basic.fill(endToken.dataType, batchSize.expandDims(0))(0, name)
+    def zeroSample(
+        batchSize: Output[Int],
+        name: String = "ZeroSample"
+    ): Output[Int] = {
+      Op.nameScope(name) {
+        Basic.fill[Int, Int](batchSize.expandDims(0))(0)
+      }
     }
 
-    /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether initialization has finished, and
+    /** Returns a tuple containing: (i) a scalar tensor specifying whether initialization has finished, and
       * (ii) the next input. */
-    override def initialize(): (ops.Output, ops.Output) = {
-      Op.createWithNameScope(s"$name/Initialize") {
+    override def initialize(): (Output[Boolean], Output[T]) = {
+      Op.nameScope(s"$name/Initialize") {
         (Basic.tile(Tensor(false), batchSize.expandDims(0)), beginInputs)
       }
     }
 
     /** Returns a sample for the provided time, input, and state. */
-    override def sample(time: ops.Output, input: ops.Output, state: S): ops.Output = {
-      Op.createWithNameScope(s"$name/Sample", Set(time.op, input.op)) {
+    override def sample(
+        time: Output[Int],
+        input: Output[T],
+        state: State
+    ): Output[Int] = {
+      Op.nameScope(s"$name/Sample") {
+
+        // TODO: [TYPES] !!! Super hacky. Remove in the future.
+        implicit val ev: IsNotQuantized[T] = new IsNotQuantized[T] {}
+        implicit val evTF: TF[T] = TF.fromDataType(input.dataType)
+
         Math.argmax(input, axes = -1, outputDataType = endToken.dataType)
       }
     }
 
-    /** Returns a tuple containing: (i) a scalar `BOOLEAN` tensor specifying whether sampling has finished, and
+    /** Returns a tuple containing: (i) a scalar tensor specifying whether sampling has finished, and
       * (ii) the next RNN cell tuple. */
     override def next(
-        time: ops.Output,
-        input: ops.Output,
-        state: S,
-        sample: ops.Output
-    ): (ops.Output, ops.Output, S) = {
-      Op.createWithNameScope(s"$name/NextInputs", Set(time.op, input.op, sample.op)) {
+        time: Output[Int],
+        input: Output[T],
+        state: State,
+        sample: Output[Int]
+    ): (Output[Boolean], Output[T], State) = {
+      Op.nameScope(s"$name/NextInputs") {
         val finished = Math.equal(sample, endToken)
         val nextInputs = ControlFlow.cond(
           Math.all(finished),
-          // If we are finished, the next inputs value does not matter
+          // If we are finished, the next inputs value does not matter.
           () => beginInputs,
           () => embeddingFn(sample))
         (finished, nextInputs, state)

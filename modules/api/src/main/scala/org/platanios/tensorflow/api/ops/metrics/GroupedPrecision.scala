@@ -18,11 +18,10 @@ package org.platanios.tensorflow.api.ops.metrics
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.{Math, Op, Output}
+import org.platanios.tensorflow.api.ops.{Math, Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.metrics.Metric._
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.FLOAT32
 
 /** Grouped precision metric.
   *
@@ -48,18 +47,18 @@ import org.platanios.tensorflow.api.types.FLOAT32
   */
 class GroupedPrecision(
     val nameScope: String,
-    protected val defaultWeights: Option[Tensor[FLOAT32]] = None,
-    val labelID: Option[Int] = None,
-    val variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-    val valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-    val updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-    val resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
-) extends Metric[(Output, Output), Output] {
+    protected val defaultWeights: Option[Tensor[Float]] = None,
+    val labelID: Option[Long] = None,
+    val variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+    val valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+    val updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+    val resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
+) extends Metric[(Output[Long], Output[Long]), Output[Float]] {
   /** Name of this metric. */
   override def name: String = nameScope
 
   /** Weights to multiply the provided values with when computing the value of this metric. */
-  override def weights: Option[Tensor[FLOAT32]] = defaultWeights
+  override def weights: Option[Tensor[Float]] = defaultWeights
 
   /** Computes the value of this metric for the provided predictions and targets, optionally weighted by `weights`.
     *
@@ -69,24 +68,21 @@ class GroupedPrecision(
     * @return Created output containing the metric value.
     */
   override def compute(
-      values: (Output, Output),
-      weights: Option[Output] = None,
+      values: (Output[Long], Output[Long]),
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Compute"
-  ): Output = {
+  ): Output[Float] = {
     val (predictions, targets) = values
-    var ops = Set(predictions.op, targets.op)
     val computedWeights = getWeights(weights)
-    computedWeights.foreach(ops += _.op)
-    Op.createWithNameScope(name, ops) {
+    Op.nameScope(name) {
       val reshapedTargets = Metric.maybeExpandTargets(predictions, targets)
-      val predictedIndices = predictions.toInt64
       val truePositives = Math.sum(sparseTruePositives(
-        reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
+        reshapedTargets, predictions, labelID.map(_.toTensor.toOutput), computedWeights))
       val falsePositives = Math.sum(sparseFalsePositives(
-        reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
+        reshapedTargets, predictions, labelID.map(_.toTensor.toOutput), computedWeights))
       // TODO: [DISTRIBUTE] Add support for aggregation across towers.
       val value = safeDiv(truePositives, truePositives + falsePositives, name = "Value")
-      valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
+      valuesCollections.foreach(Op.currentGraph.addToCollection(_)(value))
       value
     }
   }
@@ -101,22 +97,19 @@ class GroupedPrecision(
     *         its current value and obtain the new value, and (iii) an op used to reset its value.
     */
   override def streaming(
-      values: (Output, Output),
-      weights: Option[Output] = None,
+      values: (Output[Long], Output[Long]),
+      weights: Option[Output[Float]] = None,
       name: String = s"$name/Streaming"
-  ): Metric.StreamingInstance[Output] = {
+  ): Metric.StreamingInstance[Output[Float]] = {
     val (predictions, targets) = values
-    var ops = Set(predictions.op, targets.op)
     val computedWeights = getWeights(weights)
-    computedWeights.foreach(ops += _.op)
     VariableScope.scope(name) {
-      Op.createWithNameScope(name, ops) {
+      Op.nameScope(name) {
         val reshapedTargets = Metric.maybeExpandTargets(predictions, targets)
-        val predictedIndices = predictions.toInt64
         val truePositives = VariableScope.scope(name)(streamingSparseTruePositives(
-          reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
+          reshapedTargets, predictions, labelID.map(_.toTensor.toOutput), computedWeights))
         val falsePositives = VariableScope.scope(name)(streamingSparseFalsePositives(
-          reshapedTargets, predictedIndices, labelID.map(_.toTensor.toOutput), computedWeights))
+          reshapedTargets, predictions, labelID.map(_.toTensor.toOutput), computedWeights))
         val tp = truePositives.value
         val fp = falsePositives.value
         val tpUpdate = truePositives.update
@@ -129,9 +122,9 @@ class GroupedPrecision(
         val value = safeDiv(tp, tp + fp, name = "Value")
         val update = safeDiv(tpUpdate, tpUpdate + fpUpdate, name = "Update")
         val reset = ControlFlow.group(Set(tpReset, fpReset), name = "Reset")
-        valuesCollections.foreach(Op.currentGraph.addToCollection(value, _))
-        updatesCollections.foreach(Op.currentGraph.addToCollection(update, _))
-        resetsCollections.foreach(Op.currentGraph.addToCollection(reset, _))
+        valuesCollections.foreach(Op.currentGraph.addToCollection(_)(value))
+        updatesCollections.foreach(Op.currentGraph.addToCollection(_)(update))
+        resetsCollections.foreach(Op.currentGraph.addToCollection(_)(reset))
         Metric.StreamingInstance(value, update, reset, tpVariables ++ fpVariables)
       }
     }
@@ -152,15 +145,15 @@ object GroupedPrecision {
     */
   def apply(
       nameScope: String,
-      defaultWeights: Option[Tensor[FLOAT32]] = None,
-      labelID: Option[Int] = None,
-      variablesCollections: Set[Graph.Key[Variable]] = Set(METRIC_VARIABLES),
-      valuesCollections: Set[Graph.Key[Output]] = Set(METRIC_VALUES),
-      updatesCollections: Set[Graph.Key[Output]] = Set(METRIC_UPDATES),
-      resetsCollections: Set[Graph.Key[Op]] = Set(METRIC_RESETS)
+      defaultWeights: Option[Tensor[Float]] = None,
+      labelID: Option[Long] = None,
+      variablesCollections: Set[Graph.Key[Variable[Any]]] = Set(METRIC_VARIABLES),
+      valuesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_VALUES),
+      updatesCollections: Set[Graph.Key[Output[Any]]] = Set(METRIC_UPDATES),
+      resetsCollections: Set[Graph.Key[UntypedOp]] = Set(METRIC_RESETS)
   ): GroupedPrecision = {
     new GroupedPrecision(
-      nameScope, defaultWeights, labelID, variablesCollections, valuesCollections, updatesCollections,
-      resetsCollections)
+      nameScope, defaultWeights, labelID, variablesCollections,
+      valuesCollections, updatesCollections, resetsCollections)
   }
 }

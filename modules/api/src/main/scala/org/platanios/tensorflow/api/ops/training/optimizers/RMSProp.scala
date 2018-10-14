@@ -15,9 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
+import org.platanios.tensorflow.api.core.types.{Resource, TF, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.{DynamicConstantInitializer, OnesInitializer, Variable}
-import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output, OutputIndexedSlices, Summary}
 
 /** Optimizer that implements the RMSProp optimization algorithm.
   *
@@ -59,7 +61,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Cast, Op, Output, OutputIndexedS
   */
 class RMSProp protected (
     val learningRate: Float = 0.01f,
-    val decay: Schedule = FixedSchedule,
+    val decay: Schedule[Float] = FixedSchedule[Float](),
     val rho: Float = 0.9f,
     val momentum: Float = 0.0f,
     val epsilon: Float = 1e-10f,
@@ -69,46 +71,63 @@ class RMSProp protected (
     val learningRateSummaryTag: String = null,
     val name: String = "RMSProp"
 ) extends Optimizer {
-  protected var learningRateTensor: Output = _
-  protected var rhoTensor         : Output = _
-  protected var momentumTensor    : Output = _
-  protected var epsilonTensor     : Output = _
+  protected var learningRateTensor: Output[Float] = _
+  protected var rhoTensor         : Output[Float] = _
+  protected var momentumTensor    : Output[Float] = _
+  protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate(variable: Variable, iteration: Option[Variable]): Output = {
+  protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
+      variable: Variable[V],
+      iteration: Option[Variable[I]]
+  ): Output[V] = {
     if (learningRateTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    learningRateTensor.cast(variable.dataType).toOutput
+    learningRateTensor.castTo[V].toOutput
   }
 
-  protected def getRho(variable: Variable): Output = {
+  protected def getRho[V: TF](
+      variable: Variable[V]
+  ): Output[V] = {
     if (rhoTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    rhoTensor.cast(variable.dataType).toOutput
+    rhoTensor.castTo[V].toOutput
   }
 
-  protected def getMomentum(variable: Variable): Output = {
+  protected def getMomentum[V: TF](
+      variable: Variable[V]
+  ): Output[V] = {
     if (momentumTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    momentumTensor.cast(variable.dataType).toOutput
+    momentumTensor.castTo[V].toOutput
   }
 
-  protected def getEpsilon(variable: Variable): Output = {
+  protected def getEpsilon[V: TF](
+      variable: Variable[V]
+  ): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
-    epsilonTensor.cast(variable.dataType).toOutput
+    epsilonTensor.castTo[V].toOutput
   }
 
-  override def createSlots(variables: Seq[Variable]): Unit = {
+  override def createSlots(variables: Seq[Variable[Any]]): Unit = {
     variables.foreach(v => {
-      val rmsInit = if (v.shape.isFullyDefined) OnesInitializer else DynamicConstantInitializer(Basic.onesLike(v))
-      getSlot("AccumulatorRMS", v, rmsInit, v.shape, v.dataType, name)
+      val evTF = TF.fromDataType(v.dataType)
+      val rmsInit = {
+        if (v.shape.isFullyDefined)
+          OnesInitializer
+        else
+          DynamicConstantInitializer(Basic.onesLike(v.value)(evTF))(evTF)
+      }
+      getSlot("AccumulatorRMS", v, v.dataType, rmsInit, v.shape, name)(evTF, evTF)
       if (centered)
-        zerosSlot("AccumulatorMeanGradient", v, name)
-      zerosSlot("AccumulatorMomentum", v, name)
+        zerosSlot("AccumulatorMeanGradient", v, name)(evTF)
+      zerosSlot("AccumulatorMomentum", v, name)(evTF)
     })
   }
 
-  override def prepare(iteration: Option[Variable]): Unit = {
+  override def prepare[I: TF : IsInt32OrInt64](
+      iteration: Option[Variable[I]]
+  ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
@@ -117,46 +136,93 @@ class RMSProp protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense(gradient: Output, variable: Variable, iteration: Option[Variable]): Op = {
-    val accumulatorMeanGradient = if (centered) getSlot("AccumulatorMeanGradient", variable) else null
-    val accumulatorRMS = getSlot("AccumulatorRMS", variable)
-    val accumulatorMomentum = getSlot("AccumulatorMomentum", variable)
-    RMSProp.resourceApplyDense(
-      variable = variable,
-      accumulatorMeanGradient = accumulatorMeanGradient,
-      accumulatorRMS = accumulatorRMS,
-      accumulatorMomentum = accumulatorMomentum,
-      learningRate = getLearningRate(variable, iteration),
-      decay = getRho(variable),
-      momentum = getMomentum(variable),
-      epsilon = getEpsilon(variable),
-      gradient = gradient,
-      useLocking = useLocking)
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: Output[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
+    val accumulatorMeanGradient = if (centered) getSlot[T, T]("AccumulatorMeanGradient", variable) else null
+    val accumulatorRMS = getSlot[T, T]("AccumulatorRMS", variable)
+    val accumulatorMomentum = getSlot[T, T]("AccumulatorMomentum", variable)
+    if (accumulatorMeanGradient != null) {
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
+        opType = "ResourceApplyCenteredRMSProp",
+        name = s"$name/ApplyDense",
+        input = (variable.handle,
+            accumulatorMeanGradient.handle,
+            accumulatorRMS.handle,
+            accumulatorMomentum.handle,
+            getLearningRate(variable, iteration),
+            getRho(variable),
+            getMomentum(variable),
+            getEpsilon(variable),
+            gradient)
+      ).setAttribute("use_locking", useLocking)
+          .build()
+    } else {
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
+        opType = "ResourceApplyRMSProp",
+        name = s"$name/ApplyDense",
+        input = (variable.handle,
+            accumulatorRMS.handle,
+            accumulatorMomentum.handle,
+            getLearningRate(variable, iteration),
+            getRho(variable),
+            getMomentum(variable),
+            getEpsilon(variable),
+            gradient)
+      ).setAttribute("use_locking", useLocking)
+          .build()
+    }
   }
 
-  override def applySparse(gradient: OutputIndexedSlices, variable: Variable, iteration: Option[Variable]): Op = {
-    val accumulatorMeanGradient = if (centered) getSlot("AccumulatorMeanGradient", variable) else null
-    val accumulatorRMS = getSlot("AccumulatorRMS", variable)
-    val accumulatorMomentum = getSlot("AccumulatorMomentum", variable)
-    RMSProp.resourceApplySparse(
-      variable = variable,
-      accumulatorMeanGradient = accumulatorMeanGradient,
-      accumulatorRMS = accumulatorRMS,
-      accumulatorMomentum = accumulatorMomentum,
-      learningRate = getLearningRate(variable, iteration),
-      decay = getRho(variable),
-      momentum = getMomentum(variable),
-      epsilon = getEpsilon(variable),
-      gradient = gradient.values,
-      indices = gradient.indices,
-      useLocking = useLocking)
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+      gradient: OutputIndexedSlices[T],
+      variable: Variable[T],
+      iteration: Option[Variable[I]]
+  ): UntypedOp = {
+    val accumulatorMeanGradient = if (centered) getSlot[T, T]("AccumulatorMeanGradient", variable) else null
+    val accumulatorRMS = getSlot[T, T]("AccumulatorRMS", variable)
+    val accumulatorMomentum = getSlot[T, T]("AccumulatorMomentum", variable)
+    if (accumulatorMeanGradient != null) {
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
+        opType = "ResourceSparseApplyCenteredRMSProp",
+        name = s"$name/ApplySparse",
+        input = (variable.handle,
+            accumulatorMeanGradient.handle,
+            accumulatorRMS.handle,
+            accumulatorMomentum.handle,
+            getLearningRate(variable, iteration),
+            getRho(variable),
+            getMomentum(variable),
+            getEpsilon(variable),
+            gradient.values,
+            gradient.indices)
+      ).setAttribute("use_locking", useLocking)
+          .build()
+    } else {
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[Long]), Unit](
+        opType = "ResourceSparseApplyRMSProp",
+        name = s"$name/ApplySparse",
+        input = (variable.handle,
+            accumulatorRMS.handle,
+            accumulatorMomentum.handle,
+            getLearningRate(variable, iteration),
+            getRho(variable),
+            getMomentum(variable),
+            getEpsilon(variable),
+            gradient.values,
+            gradient.indices)
+      ).setAttribute("use_locking", useLocking)
+          .build()
+    }
   }
 }
 
 object RMSProp {
   def apply(
       learningRate: Float = 0.01f,
-      decay: Schedule = FixedSchedule,
+      decay: Schedule[Float] = FixedSchedule[Float](),
       rho: Float = 0.9f,
       momentum: Float = 0.0f,
       epsilon: Float = 1e-10f,
@@ -167,161 +233,8 @@ object RMSProp {
       name: String = "RMSProp"
   ): RMSProp = {
     new RMSProp(
-      learningRate, decay, rho, momentum, epsilon, centered, ignoreDuplicateSparseIndices, useLocking,
+      learningRate, decay, rho, momentum, epsilon, centered,
+      ignoreDuplicateSparseIndices, useLocking,
       learningRateSummaryTag, name)
-  }
-
-  /** Creates an op that updates `variable` by applying the RMSProp algorithm update to it.
-    *
-    * The RMSProp update is as follows:
-    * {{{
-    *   rmsAcc = decay * rmsAcc + (1 - decay) * (gradient ^ 2)
-    *   momAcc = momentum * momAcc + learningRate * gradient / sqrt(rmsAcc + epsilon)
-    *   variable -= momAcc
-    * }}}
-    *
-    * This implementation of RMSProp uses plain momentum, not Nesterov momentum.
-    *
-    * If `accumulatorMeanGradient` is provided, then the centered version is used, which additionally maintains a moving
-    * (discounted) average of the gradients, and uses that average to estimate the variance:
-    * {{{
-    *   meanGradAcc = decay * rmsAcc + (1 - decay) * gradient
-    *   rmsAcc = decay * rmsAcc + (1 - decay) * (gradient ^ 2)
-    *   momAcc = momentum * momAcc + learningRate * gradient / sqrt(rmsAcc - (meanGradAcc ^ 2) + epsilon)
-    *   variable -= momAcc
-    * }}}
-    *
-    * @param  variable                Variable whose value to update.
-    * @param  accumulatorMeanGradient RMSProp mean gradient accumulator variable.
-    * @param  accumulatorRMS          RMSProp RMS accumulator variable.
-    * @param  accumulatorMomentum     RMSProp momentum accumulator variable.
-    * @param  learningRate            Step size to use for the RMSProp update.
-    * @param  decay                   RMSProp decay factor.
-    * @param  momentum                RMSProp momentum factor.
-    * @param  epsilon                 RMSProp constant factor.
-    * @param  gradient                Gradient to apply.
-    * @param  useLocking              If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is
-    *                                 undefined, but may exhibit less contention.
-    * @param  name                    Name for the created op.
-    * @return Created op.
-    */
-  private[optimizers] def resourceApplyDense(
-      variable: Variable,
-      accumulatorMeanGradient: Variable,
-      accumulatorRMS: Variable,
-      accumulatorMomentum: Variable,
-      learningRate: Output,
-      decay: Output,
-      momentum: Output,
-      epsilon: Output,
-      gradient: Output,
-      useLocking: Boolean = false,
-      name: String = "ResourceApplyRMSProp"
-  ): Op = {
-    if (accumulatorMeanGradient != null) {
-      Op.Builder(opType = "ResourceApplyCenteredRMSProp", name = name)
-          .addInput(variable.handle)
-          .addInput(accumulatorMeanGradient.handle)
-          .addInput(accumulatorRMS.handle)
-          .addInput(accumulatorMomentum.handle)
-          .addInput(learningRate)
-          .addInput(decay)
-          .addInput(momentum)
-          .addInput(epsilon)
-          .addInput(gradient)
-          .setAttribute("use_locking", useLocking)
-          .build()
-    } else {
-      Op.Builder(opType = "ResourceApplyRMSProp", name = name)
-          .addInput(variable.handle)
-          .addInput(accumulatorRMS.handle)
-          .addInput(accumulatorMomentum.handle)
-          .addInput(learningRate)
-          .addInput(decay)
-          .addInput(momentum)
-          .addInput(epsilon)
-          .addInput(gradient)
-          .setAttribute("use_locking", useLocking)
-          .build()
-    }
-  }
-
-  /** Creates an op that applies sparse updates to `variable` by applying the RMSProp algorithm update to it.
-    *
-    * That is for rows that we have a gradient for, the RMSProp update is as follows:
-    * {{{
-    *   rmsAcc = decay * rmsAcc + (1 - decay) * (gradient ^ 2)
-    *   momAcc = momentum * momAcc + learningRate * gradient / sqrt(rmsAcc + epsilon)
-    *   variable -= momAcc
-    * }}}
-    *
-    * This implementation of RMSProp uses plain momentum, not Nesterov momentum.
-    *
-    * If `accumulatorMeanGradient` is provided, then the centered version is used, which additionally maintains a moving
-    * (discounted) average of the gradients, and uses that average to estimate the variance:
-    * {{{
-    *   meanGradAcc = decay * rmsAcc + (1 - decay) * gradient
-    *   rmsAcc = decay * rmsAcc + (1 - decay) * (gradient ^ 2)
-    *   momAcc = momentum * momAcc + learningRate * gradient / sqrt(rmsAcc - (meanGradAcc ^ 2) + epsilon)
-    *   variable -= momAcc
-    * }}}
-    *
-    * @param  variable                Variable whose value to update.
-    * @param  accumulatorMeanGradient RMSProp mean gradient accumulator variable.
-    * @param  accumulatorRMS          RMSProp RMS accumulator variable.
-    * @param  accumulatorMomentum     RMSProp momentum accumulator variable.
-    * @param  learningRate            Step size to use for the RMSProp update.
-    * @param  decay                   RMSProp decay factor.
-    * @param  momentum                RMSProp momentum factor.
-    * @param  epsilon                 RMSProp constant factor.
-    * @param  gradient                Gradient to apply.
-    * @param  indices                 Vector of indices into the first dimension of `variable` and `accumulator`.
-    * @param  useLocking              If `true`, the subtraction will be protected by a lock. Otherwise, the behavior is
-    *                                 undefined, but may exhibit less contention.
-    * @param  name                    Name for the created op.
-    * @return Created op.
-    */
-  private[optimizers] def resourceApplySparse(
-      variable: Variable,
-      accumulatorMeanGradient: Variable,
-      accumulatorRMS: Variable,
-      accumulatorMomentum: Variable,
-      learningRate: Output,
-      decay: Output,
-      momentum: Output,
-      epsilon: Output,
-      gradient: Output,
-      indices: Output,
-      useLocking: Boolean = false,
-      name: String = "ResourceSparseApplyRMSProp"
-  ): Op = {
-    if (accumulatorMeanGradient != null) {
-      Op.Builder(opType = "ResourceSparseApplyCenteredRMSProp", name = name)
-          .addInput(variable.handle)
-          .addInput(accumulatorMeanGradient.handle)
-          .addInput(accumulatorRMS.handle)
-          .addInput(accumulatorMomentum.handle)
-          .addInput(learningRate)
-          .addInput(decay)
-          .addInput(momentum)
-          .addInput(epsilon)
-          .addInput(gradient)
-          .addInput(indices)
-          .setAttribute("use_locking", useLocking)
-          .build()
-    } else {
-      Op.Builder(opType = "ResourceSparseApplyRMSProp", name = name)
-          .addInput(variable.handle)
-          .addInput(accumulatorRMS.handle)
-          .addInput(accumulatorMomentum.handle)
-          .addInput(learningRate)
-          .addInput(decay)
-          .addInput(momentum)
-          .addInput(epsilon)
-          .addInput(gradient)
-          .addInput(indices)
-          .setAttribute("use_locking", useLocking)
-          .build()
-    }
   }
 }

@@ -81,7 +81,7 @@ lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples, site)
+    .aggregate(jni, api, data, examples, horovod, site)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
@@ -176,7 +176,6 @@ lazy val api = (project in file("./modules/api"))
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= Seq(
-        "org.typelevel" %% "spire" % "0.14.1",
         "org.tensorflow" % "proto" % tensorFlowVersion,
         "com.chuusai" %% "shapeless" % "2.3.3",
         compilerPlugin("com.github.ghik" %% "silencer-plugin" % "0.6"),
@@ -366,7 +365,7 @@ lazy val publishSettings = Seq(
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    releaseStepCommandAndRemaining("publishSigned"),
+    releaseStepCommandAndRemaining("+publishSigned"),
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),

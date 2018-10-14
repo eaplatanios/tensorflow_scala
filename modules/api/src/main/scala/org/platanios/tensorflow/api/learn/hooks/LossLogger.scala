@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{DataType, FLOAT32}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -50,25 +50,26 @@ class LossLogger protected (
     val triggerAtEnd: Boolean = true,
     val formatter: (Option[Double], Long, Float) => String = null
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]
+    with ModelDependentHook[Any, Any, Any, Any, Any, Any]
     with SummaryWriterHookAddOn {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
 
-  private[this] var loss: Output = _
+  protected var loss: Output[Float] = _
 
   override protected def begin(): Unit = {
-    loss = modelInstance.loss.map(_.cast(FLOAT32)).orNull
+    loss = modelInstance.loss.map(_.castTo[Float]).orNull
   }
 
-  override protected def fetches: Seq[Output] = Seq(loss)
+  override protected def fetches: Seq[Output[Any]] = Seq(loss)
+  override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def onTrigger(
       step: Long,
       elapsed: Option[(Double, Int)],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]],
       session: Session
   ): Unit = {
-    val loss = runResult.values(0).scalar.asInstanceOf[Float]
+    val loss = runResult.result.head.scalar.asInstanceOf[Float]
     val log = {
       if (formatter != null) {
         formatter(elapsed.map(_._1), step, loss)

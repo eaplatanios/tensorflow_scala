@@ -17,9 +17,10 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.types.{INT32, FLOAT64}
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64, INT32}
 import org.platanios.tensorflow.api.utilities.using
 
 import org.scalatest.junit.JUnitSuite
@@ -87,7 +88,7 @@ class GradientsSuite extends JUnitSuite {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
-    val gradients = Gradients.gradients(Array(output), inputs)
+    val gradients = Op.createWith(graph)(Gradients.gradients(Seq(output), inputs, FLOAT64))
     val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
@@ -99,7 +100,7 @@ class GradientsSuite extends JUnitSuite {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
-    val gradients = Gradients.ccGradients(Array(output), inputs)
+    val gradients = Op.createWith(graph)(Gradients.ccGradients(Array(output), inputs))
     val expectedGradients = buildExpectedCCGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
@@ -109,26 +110,26 @@ class GradientsSuite extends JUnitSuite {
 
   @Test def testGradients(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val input = Basic.constant(1.0, FLOAT64, Shape(32, 100), name = "Input")
-      val w = Basic.constant(1.0, FLOAT64, Shape(100, 10), name = "W")
-      val b = Basic.constant(1.0, FLOAT64, Shape(10), name = "b")
+      val input = Basic.constant(1.0, Shape(32, 100), name = "Input")
+      val w = Basic.constant(1.0, Shape(100, 10), name = "W")
+      val b = Basic.constant(1.0, Shape(10), name = "b")
       val xw = Math.matmul(input, w, name = "xW")
       val h = NN.addBias(xw, b, name = "h")
-      val gradient = Gradients.gradients(Seq(h), Seq(w))(0)
+      val gradient = Gradients.gradients(Seq(h), Seq(w), FLOAT64).head
       assert(gradient.op.opType === "MatMul")
       assert(gradient.op.booleanAttribute("transpose_a"))
       assert(!gradient.op.booleanAttribute("transpose_b"))
     }
   }
 
-  @Test def testUnusedOutput(): Unit = using(Graph()) { graph =>
+  @Test def testUnusedOutput[Any](): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val w = Basic.constant(1.0, FLOAT64, Shape(2, 2))
-      val x = Basic.constant(1.0, FLOAT64, Shape(2, 2))
+      val w = Basic.constant(1.0, Shape(2, 2))
+      val x = Basic.constant(1.0, Shape(2, 2))
       val wx = Math.matmul(w, x)
       val wxSplit = Basic.splitEvenly(wx, 2, axis = 0)
       val c = Math.sum(wxSplit(1))
-      val gradient = Gradients.gradients(Seq(c), Seq(w))(0)
+      val gradient = Gradients.gradients(Seq(c), Seq(w), FLOAT64).head
       assert(gradient.op.opType === "MatMul")
     }
   }
@@ -140,8 +141,8 @@ class GradientsSuite extends JUnitSuite {
       val c = Basic.constant(1.0)
       val x = Basic.identity(c)
       val y = Math.add(x, 1.0)
-      val z = Math.add(y, 1)
-      val gradients = Gradients.gradients(Seq(z), Seq(x))
+      val z = Math.add(y, 1.0)
+      val gradients = Gradients.gradients(Seq(z), Seq(x), FLOAT64)
       assert(!gradients.contains(null))
     }
   }
@@ -152,7 +153,7 @@ class GradientsSuite extends JUnitSuite {
       val x = Basic.constant(1.0)
       val y = Math.multiply(x, 2.0)
       val z = Math.multiply(y, 3.0)
-      val gradients = Gradients.gradients(Seq(z), Seq(x, y))
+      val gradients = Gradients.gradients(Seq(z), Seq(x, y), FLOAT64)
       assert(!gradients.contains(null))
       val session = Session()
       assert(session.run(fetches = gradients.head.toOutput).scalar.asInstanceOf[Double] === 6.0)
@@ -161,33 +162,33 @@ class GradientsSuite extends JUnitSuite {
 
   @Test def testNonDifferentiableSwitchInWhileLoop(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val v = Basic.placeholder(FLOAT32, Shape.scalar())
+      val v = Basic.placeholder[Float](Shape.scalar())
       val lv = ControlFlow.whileLoop(
-        (lv: (Output, Output, TensorArray)) => Math.less(lv._1, 4),
-        (lv: (Output, Output, TensorArray)) => {
-          val a = Math.add(lv._2, Cast.cast(v, INT32))
+        (lv: (Output[Int], Output[Int], TensorArray[Int])) => Math.less(lv._1, 4),
+        (lv: (Output[Int], Output[Int], TensorArray[Int])) => {
+          val a = Math.add(lv._2, v.castTo[Int])
           (Math.add(lv._1, 1), a, lv._3.write(lv._1, a))
         },
-        (Basic.constant(0, INT32), Basic.constant(0, INT32), TensorArray.create(4, INT32)))
+        (Basic.constant(0), Basic.constant(0), TensorArray.create[Int](4)))
       val target = lv._3.read(lv._1 - 1)
-      val gradient = Gradients.gradients(Seq(target), Seq(v))(0)
+      val gradient = Gradients.gradients(Seq(target), Seq(v), INT32).head
       assert(gradient === null)
     }
   }
 
   /** Returns the ops reached when going from `sourceOps` to `destinationOps`. */
-  private[this] def opsBetween(sourceOps: Set[Op], destinationOps: Set[Op]): Seq[Op] = {
-    val reached = mutable.Set[Op](destinationOps.toSeq: _*)
-    val reachedQueue = mutable.Queue[Op](sourceOps.toSeq: _*)
+  private[this] def opsBetween(sourceOps: Set[UntypedOp], destinationOps: Set[UntypedOp]): Seq[UntypedOp] = {
+    val reached = mutable.Set[UntypedOp](destinationOps.toSeq: _*)
+    val reachedQueue = mutable.Queue[UntypedOp](sourceOps.toSeq: _*)
     while (reachedQueue.nonEmpty) {
       val op = reachedQueue.dequeue()
       if (!reached.contains(op)) {
         reached += op
-        op.outputs.foreach(o => reachedQueue.enqueue(o.consumers.map(_.op): _*))
+        op.outputsSeq.foreach(o => reachedQueue.enqueue(o.consumers.map(_.op): _*))
       }
     }
     // Collect all inputs of `destinationOps` that are in `reached`.
-    val inputs = mutable.ArrayBuffer.empty[Op]
+    val inputs = mutable.ArrayBuffer.empty[UntypedOp]
     reachedQueue.clear()
     reachedQueue.enqueue(destinationOps.toSeq: _*)
     while (reachedQueue.nonEmpty) {
@@ -196,21 +197,21 @@ class GradientsSuite extends JUnitSuite {
         inputs += op
         // Remove the op from `reached` so we won't add the inputs again.
         reached -= op
-        op.inputs.foreach(reachedQueue.enqueue(_))
+        op.inputsSeq.foreach(i => reachedQueue.enqueue(i.op))
       }
     }
     inputs
   }
 
-  private[this] def assertOpSeqEqual(opSeq1: Seq[Op], opSeq2: Seq[Op]): Unit = {
+  private[this] def assertOpSeqEqual(opSeq1: Seq[UntypedOp], opSeq2: Seq[UntypedOp]): Unit = {
     assert(opSeq1.map(_.name).toSet === opSeq2.map(_.name).toSet)
   }
 
-  private[this] def noGradientOp(input: Output, name: String = "NoGradientOp"): Output = {
+  private[this] def noGradientOp(input: Output[Any], name: String = "NoGradientOp"): Output[Any] = {
     ???
   }
 
-  private[this] def buildErrorGraph(graph: Graph): (Output, Output) = {
+  private[this] def buildErrorGraph(graph: Graph): (Output[Any], Output[Any]) = {
     Op.createWith(graph) {
       val constant = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val noGradient = noGradientOp(constant)
@@ -239,12 +240,12 @@ class GradientsSuite extends JUnitSuite {
     * @param  graph Graph in which to place the newly constructed ops.
     * @return Tuple containing the input and output tensors, respectively.
     */
-  private[this] def buildSuccessGraph(graph: Graph): (Array[Output], Output) = {
+  private[this] def buildSuccessGraph(graph: Graph): (Array[Output[Double]], Output[Double]) = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
-      (Array[Output](constant0, constant1), matmul)
+      (Array[Output[Double]](constant0, constant1), matmul)
     }
   }
 
@@ -284,22 +285,25 @@ class GradientsSuite extends JUnitSuite {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
+  private[this] def buildExpectedGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output[Any]] = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
-      Op.createWithNameScope("Gradients") {
+      Op.nameScope("Gradients") {
         val constant2 = {
-          if (gradientInputsProvided)
+          if (gradientInputsProvided) {
             Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
-          else
-            Basic.ones(matmul.dataType, matmul.shape, name = "Gradients_0")
+          } else {
+            Op.nameScope("Gradients_0") {
+              Basic.ones[Double](matmul.shape)
+            }
+          }
         }
-        Op.createWithNameScope("MatMulGradient") {
+        Op.nameScope("MatMulGradient") {
           val matmul1 = Math.matmul(constant2, constant1, transposeA = false, transposeB = true, name = "MatMul")
           val matmul2 = Math.matmul(constant0, constant2, transposeA = true, transposeB = false, name = "MatMul_1")
-          Array[Output](matmul1, matmul2)
+          Array[Output[Any]](matmul1, matmul2)
         }
       }
     }
@@ -341,12 +345,12 @@ class GradientsSuite extends JUnitSuite {
     *                                pre-existing values. If `false`, they are initialized with ones.
     * @return Array containing the gradient tensors.
     */
-  private[this] def buildExpectedCCGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output] = {
+  private[this] def buildExpectedCCGraph(graph: Graph, gradientInputsProvided: Boolean): Array[Output[Any]] = {
     Op.createWith(graph) {
       val constant0 = Basic.constant(Tensor(Tensor(1.0, 2.0), Tensor(3.0, 4.0)), name = "Constant_0")
       val constant1 = Basic.constant(Tensor(Tensor(1.0, 0.0), Tensor(0.0, 1.0)), name = "Constant_1")
       val matmul = Math.matmul(constant0, constant1, name = "MatMul")
-      Op.createWithNameScope("gradients") {
+      Op.nameScope("gradients") {
         val constant2 = {
           if (gradientInputsProvided)
             Basic.constant(Tensor(Tensor(1.0, 1.0), Tensor(1.0, 1.0)), name = "GradientInputs")
@@ -355,7 +359,7 @@ class GradientsSuite extends JUnitSuite {
         }
         val matmul1 = Math.matmul(constant2, constant1, transposeB = true, name = "MatMul")
         val matmul2 = Math.matmul(constant0, constant2, transposeA = true, name = "MatMul_1")
-        Array[Output](matmul1, matmul2)
+        Array[Output[Any]](matmul1, matmul2)
       }
     }
   }

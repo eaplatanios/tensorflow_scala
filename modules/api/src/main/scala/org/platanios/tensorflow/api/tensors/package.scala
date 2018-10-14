@@ -26,7 +26,7 @@ package object tensors {
   private[api] val executionContext: DynamicVariable[Context] = {
     val sessionConfig = sys.env.get("TF_CUDA_VISIBLE_DEVICES")
         .map(devices => SessionConfig(gpuVisibleDevices = Some(devices.split(',').map(_.toInt))))
-   new DynamicVariable[Context](Context(sessionConfig))
+    new DynamicVariable[Context](Context(sessionConfig))
   }
 
   private[api] trait API

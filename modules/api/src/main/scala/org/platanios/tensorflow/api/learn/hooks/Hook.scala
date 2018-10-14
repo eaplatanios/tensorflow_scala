@@ -15,12 +15,12 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.core.client.{Executable, FeedMap, Fetchable, Session}
+import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
+import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionWrapper}
-import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
 
@@ -118,7 +118,7 @@ import org.tensorflow.framework.{RunMetadata, RunOptions}
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Hook {
+trait Hook {
   private[learn] val priority: Int = 0
 
   /** Called once before creating the session. When called, the default graph is the one that will be launched in the
@@ -138,9 +138,13 @@ abstract class Hook {
     *
     * @param  session The session that has been created.
     */
-  protected def afterSessionCreation(session: Session): Unit = ()
+  protected def afterSessionCreation(session: Session): Unit = {
+    ()
+  }
 
-  private[learn] def internalAfterSessionCreation(session: Session): Unit = afterSessionCreation(session)
+  private[learn] def internalAfterSessionCreation(session: Session): Unit = {
+    afterSessionCreation(session)
+  }
 
   /** Called before each call to `Session.run()`. You can return from this call a [[Hook.SessionRunArgs]] object
     * indicating ops or tensors to add to the upcoming run call. These ops/tensors will be run together with the
@@ -155,15 +159,21 @@ abstract class Hook {
     * @param  runContext Provides information about the upcoming run call (i.e., the originally requested ops/tensors,
     *                    the session, etc.).
     */
-  protected def beforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[DataType]]]] = None
+  protected def beforeSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV]
+  )(implicit
+      evStructureC: NestedStructure.Aux[C, CV, _, _]
+  ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
+    None
+  }
 
-  private[learn] def internalBeforeSessionRun[F, E, R](runContext: Hook.SessionRunContext[F, E, R])(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Option[Hook.SessionRunArgs[Seq[Output], Traversable[Op], Seq[Tensor[DataType]]]] = beforeSessionRun(runContext)
+  private[learn] def internalBeforeSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV]
+  )(implicit
+      evStructureC: NestedStructure.Aux[C, CV, _, _]
+  ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
+    beforeSessionRun(runContext)
+  }
 
   /** Called after each call to `Session.run()`.
     *
@@ -181,21 +191,19 @@ abstract class Hook {
     * @param  runResult  Result of the `Session.run()` call that includes the fetched values for the tensors requested
     *                    by `beforeSessionRun()`.
     */
-  protected def afterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]]
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Unit = ()
+  protected def afterSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
+  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+    ()
+  }
 
-  private[learn] def internalAfterSessionRun[F, E, R](
-      runContext: Hook.SessionRunContext[F, E, R],
-      runResult: Hook.SessionRunResult[Seq[Output], Seq[Tensor[DataType]]]
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  ): Unit = afterSessionRun(runContext, runResult)(executableEv, fetchableEv)
+  private[learn] def internalAfterSessionRun[C, CV](
+      runContext: Hook.SessionRunContext[C, CV],
+      runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
+  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+    afterSessionRun(runContext, runResult)
+  }
 
   /** Called at the end of the session usage (i.e., `Session.run()` will not be invoked again after this call).
     *
@@ -208,9 +216,13 @@ abstract class Hook {
     *
     * @param  session Session that will not be used again after this call.
     */
-  protected def end(session: Session): Unit = ()
+  protected def end(session: Session): Unit = {
+    ()
+  }
 
-  private[learn] def internalEnd(session: Session): Unit = end(session)
+  private[learn] def internalEnd(session: Session): Unit = {
+    end(session)
+  }
 }
 
 /** Contains helper classes for the [[Hook]] class. */
@@ -222,11 +234,11 @@ object Hook {
     * @param  args    Arguments to the original request to `Session.run()`.
     * @param  session Session that will execute the run request.
     */
-  case class SessionRunContext[F, E, R](args: SessionRunArgs[F, E, R], session: SessionWrapper)(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
+  case class SessionRunContext[S, V](
+      args: SessionRunArgs[S, V],
+      session: SessionWrapper
   ) {
-    private[this] var _stopRequested: Boolean = false
+    private var _stopRequested: Boolean = false
 
     /** Returns a boolean value representing whether a stop has been requested or not. */
     def stopRequested: Boolean = _stopRequested
@@ -237,19 +249,24 @@ object Hook {
   }
 
   /** Represents a complete set of arguments passed to `Session.run()`. */
-  case class SessionRunArgs[F, E, R](
+  case class SessionRunArgs[S, V](
       feeds: FeedMap = FeedMap.empty,
-      fetches: F = Seq.empty[Output],
-      targets: E = Traversable.empty[Op],
+      fetches: S = (),
+      targets: Set[UntypedOp] = Set.empty,
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
-  )(implicit
-      executableEv: Executable[E],
-      fetchableEv: Fetchable.Aux[F, R]
-  )
+  )(implicit val evStructureS: NestedStructure.Aux[S, V, _, _]) {
+    private[learn] def flatFetches: Seq[Output[Any]] = {
+      evStructureS.outputs(fetches)
+    }
+
+    private[learn] def decodeResults(results: Seq[Tensor[Any]]): V = {
+      evStructureS.decodeTensorFromOutput(fetches, results)._1
+    }
+  }
 
   /** Represents the results of a call to `Session.run()`. */
-  case class SessionRunResult[F, R](values: R, runMetadata: Option[RunMetadata])(implicit
-      fetchableEv: Fetchable.Aux[F, R]
-  )
+  case class SessionRunResult[R](
+      result: R,
+      runMetadata: Option[RunMetadata])
 }

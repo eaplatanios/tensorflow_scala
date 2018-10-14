@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
+import org.platanios.tensorflow.api.core.types.{IsFloat16OrFloat32OrFloat64, TF}
 import org.platanios.tensorflow.api.ops.Output
 
 /**
@@ -22,23 +23,29 @@ import org.platanios.tensorflow.api.ops.Output
   */
 package object core {
   private[layers] trait API {
-    def MLP(
+    def MLP[T: TF : IsFloat16OrFloat32OrFloat64](
         name: String,
         hiddenLayers: Seq[Int],
         outputSize: Int,
-        activation: String => Layer[Output, Output] = (name: String) => ReLU(name, 0.1f),
+        activation: String => Layer[Output[T], Output[T]] = null,
         dropout: Float = 0.0f
-    ): Layer[Output, Output] = {
+    ): Layer[Output[T], Output[T]] = {
       if (hiddenLayers.isEmpty) {
         Linear(s"$name/Linear", outputSize)
       } else {
+        val activationWithDefault = {
+          if (activation == null)
+            (name: String) => ReLU[T](name, 0.1f)
+          else
+            activation
+        }
         val size = hiddenLayers.head
-        var layer = Linear(s"$name/Layer0/Linear", size) >> activation(s"$name/Layer0/Activation")
+        var layer = Linear(s"$name/Layer0/Linear", size) >> activationWithDefault(s"$name/Layer0/Activation")
         hiddenLayers.zipWithIndex.tail.foreach(s => {
           layer = layer >>
               Linear(s"$name/Layer${s._2}/Linear", s._1) >>
               Dropout(s"$name/Layer${s._2}/Dropout", 1 - dropout) >>
-              activation(s"$name/Layer${s._2}/Activation")
+              activationWithDefault(s"$name/Layer${s._2}/Activation")
         })
         layer >> Linear("OutputLayer/Linear", outputSize)
       }

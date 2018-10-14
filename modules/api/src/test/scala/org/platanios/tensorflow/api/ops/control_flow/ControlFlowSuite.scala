@@ -17,12 +17,12 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.GradientDescent
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, OnesInitializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.{FLOAT32, FLOAT64, INT32}
 import org.platanios.tensorflow.api.utilities.using
 
 import com.google.protobuf.TextFormat
@@ -38,7 +38,13 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 class ControlFlowSuite extends JUnitSuite with Matchers {
-  private[this] def withNewGraph[T](fn: => T): T = using(Graph())(graph => Op.createWith(graph)(fn))
+  private[this] def withNewGraph[T](fn: => T): T = {
+    using(Graph())(graph => {
+      Op.createWith(graph) {
+        fn
+      }
+    })
+  }
 
   private[this] def stripNodeDef(nodeDef: NodeDef): NodeDef = {
     val nodeDefBuilder = NodeDef.newBuilder()
@@ -58,21 +64,21 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   //region withDependencies
 
   @Test def testWithDependencies(): Unit = withNewGraph {
-    val cnt = Variable.getVariable("cnt", INT32, shape = Shape(), initializer = ZerosInitializer)
+    val cnt = Variable.getVariable[Int]("cnt", Shape(), ZerosInitializer)
     val incrementCnt = cnt.assignAdd(1)
     val constWithDependencies = ControlFlow.withControlDependencies(
       Set(incrementCnt.op, Basic.constant(42).op), Basic.constant(7))
     val session = Session()
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
-    assert(session.run(fetches = cnt.value).scalar === 0)
-    assert(session.run(fetches = constWithDependencies).scalar === 7)
-    assert(session.run(fetches = cnt.value).scalar === 1)
+    assert(session.run(fetches = cnt.value).scalar == 0)
+    assert(session.run(fetches = constWithDependencies).scalar == 7)
+    assert(session.run(fetches = cnt.value).scalar == 1)
   }
 
   @Test def testWithDependenciesShapeInference(): Unit = withNewGraph {
     val t = Basic.constant(Tensor(1.0, 2.0))
-    assert(Shape(2) === t.shape)
-    assert(Shape(2) === ControlFlow.withControlDependencies(Set(Basic.constant(1.0)), t).shape)
+    assert(Shape(2) == t.shape)
+    assert(Shape(2) == ControlFlow.withControlDependencies(Set(Basic.constant(1.0)), t).shape)
   }
 
   //endregion withDependencies
@@ -162,7 +168,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val switchTrue = session.run(fetches = switch._2)
     session.close()
-    assert(switchTrue === Tensor(0, 1))
+    assert(switchTrue == Tensor(0, 1))
   }
 
   @Test def testSwitchWithOutputIndexedSlicesWithDenseShape(): Unit = withNewGraph {
@@ -174,21 +180,21 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val switchTrue = session.run(fetches = switch._2)
     session.close()
-    assert(switchTrue.indices === Tensor(0L, 1L))
-    assert(switchTrue.values === Tensor(1, 2, 3))
+    assert(switchTrue.indices == Tensor(0L, 1L))
+    assert(switchTrue.values == Tensor(1, 2, 3))
   }
 
   @Test def testGradientThroughSingleBranchOutsideOfContext(): Unit = withNewGraph {
     val p = Basic.constant(true)
     val x = Basic.constant(2.0)
     val (xFalse, xTrue) = ControlFlow.switch(x, p)
-    val xFalseGradient = Gradients.gradients(Seq(xFalse), Seq(x))(0).toOutput
-    val xTrueGradient = Gradients.gradients(Seq(xTrue), Seq(x))(0).toOutput
+    val xFalseGradient = Gradients.gradients(Seq(xFalse), Seq(x), FLOAT64).head.toOutput
+    val xTrueGradient = Gradients.gradients(Seq(xTrue), Seq(x), FLOAT64).head.toOutput
     val session = Session()
     val (xFG, xTG) = session.run(fetches = (xFalseGradient, xTrueGradient))
     session.close()
-    assert(xFG.scalar === 0.0)
-    assert(xTG.scalar === 1.0)
+    assert(xFG.scalar == 0.0)
+    assert(xTG.scalar == 1.0)
   }
 
   //endregion switch
@@ -201,14 +207,14 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val b1 = Basic.constant(1, name = "B")
     val b2 = Basic.constant(3, name = "TestScope/B")
     val values = mutable.Set("A", "B")
-    val externalValues = mutable.Map("A" -> b1)
+    val externalValues = mutable.Map("A" -> b1.asInstanceOf[Output[Any]])
     val toProto = Context.toValuesDef(values, externalValues)
     val importedWithScope = Context.fromValuesDef(toProto, importScope = "TestScope")
     assert(importedWithScope._1 == Set("TestScope/A", "TestScope/B"))
     assert(importedWithScope._2 == Map("TestScope/A" -> b2))
     val fromProto = Context.toValuesDef(importedWithScope._1, importedWithScope._2, "TestScope")
-    assert(toProto.getValuesList.asScala.toSet === fromProto.getValuesList.asScala.toSet)
-    assert(toProto.getExternalValuesMap.asScala === fromProto.getExternalValuesMap.asScala)
+    assert(toProto.getValuesList.asScala.toSet == fromProto.getValuesList.asScala.toSet)
+    assert(toProto.getExternalValuesMap.asScala == fromProto.getExternalValuesMap.asScala)
   }
 
   @Test def testCondContextDef(): Unit = withNewGraph {
@@ -223,32 +229,32 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
               .newBuilder(CondContext.fromCondContextDef(toProto.asInstanceOf[CondContextDef]).toCondContextDef())
               .setContextName(toProto.asInstanceOf[CondContextDef].getContextName)
               .build()
-        assert(toProto.toString === fromProto.toString)
+        assert(toProto.toString == fromProto.toString)
       })
     })
   }
 
   @Test def testWhileLoopContextDef(): Unit = withNewGraph {
     val i = Basic.constant(0)
-    val c = (i: Output) => Math.less(i, 10)
-    val b = (i: Output) => Math.add(i, 1)
+    val c = (i: Output[Int]) => Math.less(i, 10)
+    val b = (i: Output[Int]) => Math.add(i, 1)
     ControlFlow.whileLoop(c, b, i)
     Op.currentGraph.ops.foreach(op => {
       op.controlFlowContext.foreach(c => {
         val toProto = c.toProto.asInstanceOf[WhileContextDef]
         val fromProto = WhileLoopContext.fromWhileContextDef(toProto).toProto.asInstanceOf[WhileContextDef]
-        assert(toProto.getBackProp === fromProto.getBackProp)
-        assert(toProto.getSwapMemory === fromProto.getSwapMemory)
-        assert(toProto.getParallelIterations === fromProto.getParallelIterations)
-        assert(toProto.getPivotName === fromProto.getPivotName)
-        assert(toProto.getPivotForBodyName === fromProto.getPivotForBodyName)
-        assert(toProto.getPivotForPredName === fromProto.getPivotForPredName)
-        assert(toProto.getLoopEnterNamesList.asScala.toSet === fromProto.getLoopEnterNamesList.asScala.toSet)
-        assert(toProto.getLoopExitNamesList.asScala.toSet === fromProto.getLoopExitNamesList.asScala.toSet)
+        assert(toProto.getBackProp == fromProto.getBackProp)
+        assert(toProto.getSwapMemory == fromProto.getSwapMemory)
+        assert(toProto.getParallelIterations == fromProto.getParallelIterations)
+        assert(toProto.getPivotName == fromProto.getPivotName)
+        assert(toProto.getPivotForBodyName == fromProto.getPivotForBodyName)
+        assert(toProto.getPivotForPredName == fromProto.getPivotForPredName)
+        assert(toProto.getLoopEnterNamesList.asScala.toSet == fromProto.getLoopEnterNamesList.asScala.toSet)
+        assert(toProto.getLoopExitNamesList.asScala.toSet == fromProto.getLoopExitNamesList.asScala.toSet)
         val toProtoValuesDef = toProto.getValuesDef
         val fromProtoValuesDef = fromProto.getValuesDef
-        assert(toProtoValuesDef.getValuesList.asScala.toSet === fromProtoValuesDef.getValuesList.asScala.toSet)
-        assert(toProtoValuesDef.getExternalValuesMap.asScala === fromProtoValuesDef.getExternalValuesMap.asScala)
+        assert(toProtoValuesDef.getValuesList.asScala.toSet == fromProtoValuesDef.getValuesList.asScala.toSet)
+        assert(toProtoValuesDef.getExternalValuesMap.asScala == fromProtoValuesDef.getExternalValuesMap.asScala)
       })
     })
   }
@@ -264,7 +270,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val result = session.run(fetches = z)
     session.close()
-    assert(result.scalar === 34)
+    assert(result.scalar == 34)
   }
 
   @Test def testCondFalse(): Unit = withNewGraph {
@@ -274,16 +280,16 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val result = session.run(fetches = z)
     session.close()
-    assert(result.scalar === 24)
+    assert(result.scalar == 24)
   }
 
   @Test def testCondModifyPredicate(): Unit = withNewGraph {
-    val x = Variable.getVariable("Predicate", initializer = ConstantInitializer(true))
+    val x = Variable.getVariable[Boolean]("Predicate", Shape(), initializer = ConstantInitializer(true))
     val c = ControlFlow.cond(x, () => x.assign(false), () => Basic.constant(true))
     val session = Session()
     session.run(targets = x.initializer)
-    assert(session.run(fetches = c).scalar === false)
-    assert(session.run(fetches = c).scalar === true)
+    assert(session.run(fetches = c).scalar == false)
+    assert(session.run(fetches = c).scalar == true)
     session.close()
   }
 
@@ -295,23 +301,23 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val result = session.run(fetches = r)
     session.close()
-    assert(result.scalar === false)
+    assert(!result.scalar)
   }
 
   @Test def testCondWithOutputSequence(): Unit = withNewGraph {
     val p = Basic.constant(0) < 10
-    val t = () => Seq(Basic.constant(true), Basic.constant(1))
-    val f = () => Seq(Basic.constant(false), Basic.constant(0))
+    val t = () => (Basic.constant(true), Basic.constant(1))
+    val f = () => (Basic.constant(false), Basic.constant(0))
     val r = ControlFlow.cond(p, t, f)
     val session = Session()
     val result = session.run(fetches = r)
     session.close()
-    assert(result(0).scalar === true)
-    assert(result(1).scalar === 1)
+    assert(result._1.scalar == true)
+    assert(result._2.scalar == 1)
   }
 
   @Test def testCondGradientWithSingleOutput(): Unit = withNewGraph {
-    val x = Variable.getVariable("x", shape = Shape(5, 5), initializer = OnesInitializer)
+    val x = Variable.getVariable[Float]("x", shape = Shape(5, 5), initializer = OnesInitializer)
     val p = Basic.constant(true)
     val t = () => (x.value * 2f).sum()
     val f = () => Basic.constant(0.0f)
@@ -331,33 +337,41 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
 
   @Test def testWhileLoopWithSingleOutput(): Unit = withNewGraph {
     val i = Basic.constant(0)
-    val p = (i: Output) => i < 10
-    val b = (i: Output) => i + 1
+    val p = (i: Output[Int]) => i < 10
+    val b = (i: Output[Int]) => i + 1
     val r = ControlFlow.whileLoop(p, b, i, None, 1, enableBackPropagation = false)
     val session = Session()
     val result = session.run(fetches = r)
     session.close()
-    assert(result.scalar === 10)
+    assert(result.scalar == 10)
   }
 
   @Test def testWhileLoopResourceRead(): Unit = withNewGraph {
-    val embeddingMatrix = Variable.getVariable(
-      "EmbeddingMatrix", initializer = ConstantInitializer(Tensor(Tensor(2.0f), Tensor(3.0f))))
-    val p = (v: (Output, Output)) => v._1 < 5
-    val b = (v: (Output, Output)) => (v._1 + 1, v._2 + Embedding.embeddingLookup(embeddingMatrix.value, 0).sum())
-    val (_, r) = ControlFlow.whileLoop(p, b, (Basic.constant(0, INT32), Basic.constant(0.0f)))
+    val embeddingMatrix = Variable.getVariable[Double](
+      "EmbeddingMatrix", Shape(2, 1), initializer = ConstantInitializer(Tensor(Tensor(2.0f), Tensor(3.0f))))
+    val p = (v: (Output[Int], Output[Double])) => {
+      v._1 < 5
+    }
+    val b = (v: (Output[Int], Output[Double])) => {
+      (v._1 + 1, v._2 + Embedding.embeddingLookup(embeddingMatrix.value, 0).sum())
+    }
+    val (_, r) = ControlFlow.whileLoop(p, b, (Basic.constant(0), Basic.constant(0.0)))
     val session = Session()
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
     val result = session.run(fetches = r)
     session.close()
-    assert(result.scalar === 10)
+    assert(result.scalar == 10)
   }
 
   @Test def testWhileLoopGradientWithOutput(): Unit = withNewGraph {
-    val x = Variable.getVariable("x", shape = Shape(5, 5), initializer = OnesInitializer)
-    val p = (v: (Output, Output)) => v._1 < 5
-    val b = (v: (Output, Output)) => (v._1 + 1, v._2 + (x.value * 2.0f).sum())
-    val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0, INT32), Basic.constant(0.0f)))
+    val x = Variable.getVariable[Double]("x", Shape(5, 5), initializer = OnesInitializer)
+    val p = (v: (Output[Int], Output[Double])) => {
+      v._1 < 5
+    }
+    val b = (v: (Output[Int], Output[Double])) => {
+      (v._1 + 1, v._2 + (x.value * 2.0).sum())
+    }
+    val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0), Basic.constant(0.0)))
     val optimizer = GradientDescent(0.1f)
     val trainOp = optimizer.minimize(loss)
     val session = Session()
@@ -368,11 +382,16 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testWhileLoopWithOutputIndexedSlicesGradient(): Unit = withNewGraph {
-    val embeddingMatrix = Variable.getVariable("EmbeddingMatrix", shape = Shape(5, 5), initializer = OnesInitializer)
+    val embeddingMatrix = Variable.getVariable[Double](
+      "EmbeddingMatrix", shape = Shape(5, 5), initializer = OnesInitializer)
     val (_, loss) = ControlFlow.whileLoop(
-      (v: (Output, Output)) => v._1 < 5,
-      (v: (Output, Output)) => (v._1 + 1, v._2 + 2.0f * Embedding.embeddingLookup(embeddingMatrix, 0).sum()),
-      (Basic.constant(0, INT32), Basic.constant(0.0f)))
+      (v: (Output[Int], Output[Double])) => {
+        v._1 < 5
+      },
+      (v: (Output[Int], Output[Double])) => {
+        (v._1 + 1, v._2 + 2.0 * Embedding.embeddingLookup(embeddingMatrix, 0).sum())
+      },
+      (Basic.constant(0), Basic.constant(0.0)))
     val optimizer = GradientDescent(0.1f)
     val trainOp = optimizer.minimize(loss)
     val session = Session()
@@ -383,124 +402,127 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testWhileLoopWithNestedCondWithOutputIndexedSlicesGradient(): Unit = withNewGraph {
-    val embeddingMatrix = Variable.getVariable(
+    val embeddingMatrix = Variable.getVariable[Double](
       "EmbeddingMatrix", shape = Shape(5, 5), initializer = OnesInitializer)
-    val p = (v: (Output, Output)) => v._1 < 5
-    val b = (v: (Output, Output)) => v match {
-      case (i, l) =>
-        val nextI = i + 1
-        val nextL = ControlFlow.cond(
-          Math.equal(i, 3),
-          () => Math.square(l),
-          () => l + Embedding.embeddingLookup(embeddingMatrix, 0).sum())
-        (nextI, nextL)
+    val p = (v: (Output[Int], Output[Double])) => {
+      v._1 < 5
     }
-    val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0, INT32), Basic.constant(0.0f)))
-    val dynamicGradients = Gradients.gradients(Seq(loss), Seq(embeddingMatrix.handle))(0).toOutput
+    val b = (v: (Output[Int], Output[Double])) => {
+      v match {
+        case (i, l) =>
+          val nextI = i + 1
+          val nextL = ControlFlow.cond(
+            Math.equal(i, 3),
+            () => Math.square(l),
+            () => l + Embedding.embeddingLookup(embeddingMatrix, 0).sum())
+          (nextI, nextL)
+      }
+    }
+    val (_, loss) = ControlFlow.whileLoop(p, b, (Basic.constant(0), Basic.constant(0.0)))
+    val dynamicGradients = Gradients.gradients(Seq(loss), Seq(embeddingMatrix.handle), FLOAT64).head.toOutput
     val embedding = Embedding.embeddingLookup(embeddingMatrix, 0)
     val embeddingSum = embedding.sum()
-    val staticLoss = (3 * embeddingSum).square + embeddingSum
-    val staticGradients = Gradients.gradients(Seq(staticLoss), Seq(embeddingMatrix.handle))(0).toOutput
+    val staticLoss = (3.0 * embeddingSum).square + embeddingSum
+    val staticGradients = Gradients.gradients(Seq(staticLoss), Seq(embeddingMatrix.handle), FLOAT64).head.toOutput
     val session = Session()
     session.run(targets = Op.currentGraph.globalVariablesInitializer())
     val dG = session.run(fetches = dynamicGradients)
     val sG = session.run(fetches = staticGradients)
     session.close()
-    assert(dG === sG)
+    assert(dG == sG)
   }
 
   @Test def testWhileLoopWithOutputIndexedSlicesWithStaticShapeGradient(): Unit = {
     val numIterations = 9
-    for (dataType <- Set(FLOAT32, FLOAT64)) {
-      withNewGraph {
-        val inputs = Basic.placeholder(dataType, Shape(numIterations))
-        val initialI = Basic.constant(0, INT32)
-        val initialOutputs = TensorArray.create(numIterations, dataType)
-        val p = (v: (Output, TensorArray)) => v._1 < numIterations
-        val b = (v: (Output, TensorArray)) => v match {
-          case (i, o) => (i + 1, o.write(i, Basic.gather(inputs, i)))
-        }
-        val (_, outputs) = ControlFlow.whileLoop(p, b, (initialI, initialOutputs))
-        val outputsSum = outputs.stack().sum()
-        val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs))(0).toOutput
-        val session = Session()
-        val (os, g) = session.run(
-          feeds = inputs -> Tensor(dataType, 4, 6, 0, 7, 0, 0, 1, 2, 0),
-          fetches = (outputsSum, gradients))
-        assert(os.scalar === 20)
-        assert(g === Tensor.ones(dataType, Shape(numIterations)))
+    withNewGraph {
+      val inputs = Basic.placeholder[Float](Shape(numIterations))
+      val initialI = Basic.constant(0)
+      val initialOutputs = TensorArray.create[Float](numIterations)
+      val p = (v: (Output[Int], TensorArray[Float])) => v._1 < numIterations
+      val b = (v: (Output[Int], TensorArray[Float])) => v match {
+        case (i, o) => (i + 1, o.write(i, Basic.gather(inputs, i, axis = 0)))
       }
+      val (_, outputs) = ControlFlow.whileLoop(p, b, (initialI, initialOutputs))
+      val outputsSum = outputs.stack().sum()
+      val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs), FLOAT32).head.toOutput
+      val session = Session()
+      val (os, g) = session.run(
+        feeds = inputs -> Tensor[Int](4, 6, 0, 7, 0, 0, 1, 2, 0).castTo[Float],
+        fetches = (outputsSum, gradients))
+      assert(os.scalar == 20)
+      assert(g == Tensor.ones[Float](Shape(numIterations)))
     }
   }
 
   @Test def testWhileLoopWithOutputIndexedSlicesWithDynamicShapeGradient(): Unit = {
-    for (dataType <- Set(FLOAT32, FLOAT64)) {
-      withNewGraph {
-        val inputs = Basic.placeholder(dataType)
-        val initialI = Basic.constant(0, INT32)
-        val initialOutputs = TensorArray.create(1, dataType, dynamicSize = true)
-        val p = (v: (Output, TensorArray)) => v._1 < Basic.size(inputs)
-        val b = (v: (Output, TensorArray)) => v match {
-          case (i, o) => (i + 1, o.write(i, Basic.gather(inputs, i)))
-        }
-        val (_, outputs) = ControlFlow.whileLoop(p, b, (initialI, initialOutputs))
-        val outputsSum = outputs.stack().sum()
-        val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs))(0).toOutput
-        val session = Session()
-        val (os, g) = session.run(
-          feeds = inputs -> Tensor(dataType, 1, 2, 3),
-          fetches = (outputsSum, gradients))
-        assert(os.scalar === 6)
-        assert(g === Tensor.ones(dataType, Shape(3)))
+    withNewGraph {
+      val inputs = Basic.placeholder[Float]()
+      val initialI = Basic.constant(0)
+      val initialOutputs = TensorArray.create[Float](1, dynamicSize = true)
+      val p = (v: (Output[Int], TensorArray[Float])) => v._1 < Basic.size(inputs).castTo[Int]
+      val b = (v: (Output[Int], TensorArray[Float])) => v match {
+        case (i, o) => (i + 1, o.write(i, Basic.gather(inputs, i, axis = 0)))
       }
+      val (_, outputs) = ControlFlow.whileLoop(p, b, (initialI, initialOutputs))
+      val outputsSum = outputs.stack().sum()
+      val gradients = Gradients.gradients(Seq(outputsSum), Seq(inputs), FLOAT32).head.toOutput
+      val session = Session()
+      val (os, g) = session.run(
+        feeds = inputs -> Tensor[Int](1, 2, 3).castTo[Float],
+        fetches = (outputsSum, gradients))
+      assert(os.scalar == 6)
+      assert(g == Tensor.ones[Float](Shape(3)))
     }
   }
 
   @Test def testWhileLoopWithNestedCondUsingExternalValuesGradient(): Unit = {
     withNewGraph {
-      val input = Basic.placeholder(FLOAT32, Shape(-1, -1))
-      val w = Variable.getVariable("w", FLOAT32, Shape.scalar(), OnesInitializer)
+      val input = Basic.placeholder[Float](Shape(-1, -1))
+      val w = Variable.getVariable[Float]("w", Shape.scalar(), OnesInitializer)
       val (_, finalOutput) = ControlFlow.whileLoop(
-        (v: (Output, Output)) => v._1 < 5,
-        (v: (Output, Output)) => {
+        (v: (Output[Int], Output[Float])) => v._1 < 5,
+        (v: (Output[Int], Output[Float])) => {
           val nextOutput = ControlFlow.cond(
             v._1 < 3,
             () => input,
             () => v._2 + 2.0f * w.value)
           (v._1 + 1, nextOutput)
         },
-        (Basic.constant(0, INT32), Basic.zerosLike(input)))
+        (Basic.constant(0), Basic.zerosLike(input)))
       val loss = finalOutput.sum()
       val optimizer = GradientDescent(0.1f)
       val trainOp = optimizer.minimize(loss)
       val session = Session()
       session.run(targets = Op.currentGraph.globalVariablesInitializer())
       (0 until 100).foreach(i => {
-        session.run(feeds = Map(input -> Tensor.ones(FLOAT32, Shape(10, 10))), targets = trainOp)
+        session.run(feeds = Map(input -> Tensor.ones[Float](Shape(10, 10))), targets = trainOp)
       })
-      val finalLoss = session.run(feeds = Map(input -> Tensor.ones(FLOAT32, Shape(10, 10))), fetches = loss)
-      assert(finalLoss.scalar.asInstanceOf[Float] === -1599500.0f +- 1e-7f)
+      val finalLoss = session.run(feeds = Map(input -> Tensor.ones[Float](Shape(10, 10))), fetches = loss)
+      assert(finalLoss.scalar === -1599500.0f +- 1e-7f)
     }
   }
 
   @Test def testCondGradientInNestedWhileLoops(): Unit = {
     val (i, x) = ControlFlow.whileLoop(
-      (outerV: (Output, Output)) => outerV._1 < 3,
-      (outerV: (Output, Output)) => {
+      (outerV: (Output[Int], Output[Float])) => outerV._1 < 3,
+      (outerV: (Output[Int], Output[Float])) => {
         val (_, x) = ControlFlow.whileLoop(
-          (v: (Output, Output)) => v._1 < 3,
-          (v: (Output, Output)) => {
-            val y = ControlFlow.cond(Math.less(v._2, 1), () => 2 * v._2, () => v._2)
-            (v._1 + 1, Gradients.gradients(Seq(y), Seq(v._2)).head.toOutput)
+          (v: (Output[Int], Output[Float])) => v._1 < 3,
+          (v: (Output[Int], Output[Float])) => {
+            val y = ControlFlow.cond(
+              Math.less(v._2, 1.0f),
+              () => 2.0f * v._2,
+              () => v._2)
+            (v._1 + 1, Gradients.gradients(Seq(y), Seq(v._2), FLOAT32).head.toOutput)
           },
-          (Basic.constant(0, INT32), Basic.constant(0.0, FLOAT32)))
+          (Basic.constant(0), Basic.constant(0.0f)))
         (outerV._1 + 1, x)
       },
-      (Basic.constant(0, INT32), Basic.constant(0.0, FLOAT32)))
+      (Basic.constant(0), Basic.constant(0.0f)))
     val session = Session()
     val (iValue, xValue) = session.run(fetches = (i, x))
-    assert(iValue.scalar.asInstanceOf[Int] === 3)
-    assert(xValue.scalar.asInstanceOf[Float] === 1.0f)
+    assert(iValue.scalar.asInstanceOf[Int] == 3)
+    assert(xValue.scalar.asInstanceOf[Float] == 1.0f)
   }
 
   //endregion whileLoop

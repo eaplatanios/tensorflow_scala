@@ -15,15 +15,16 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.types.{INT32, STRING}
 
 /** Contains functions for constructing ops related to checks and assertions.
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Checks {
+trait Checks {
   /** $OpDocCheckAssert
     *
     * @group CheckOps
@@ -33,25 +34,32 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assert(condition: Output, data: Seq[Output], summarize: Int = 3, name: String = "Assert"): Op = {
+  def assert(
+      condition: Output[Boolean],
+      data: Seq[Output[Any]],
+      summarize: Int = 3,
+      name: String = "Assert"
+  ): Op[Seq[Output[Any]], Unit] = {
     if (data.forall(d => d.dataType == STRING || d.dataType == INT32)) {
-      // As a simple heuristic, we assume that STRING and INT32 tensors are on host memory to avoid the need to use
+      // As a simple heuristic, we assume that STRING and Int tensors are on host memory to avoid the need to use
       // `cond`. If that is not case, we will pay the price copying the tensor to host memory.
-      Op.Builder("Assert", name)
-          .addInput(condition)
-          .addInputList(data)
-          .setAttribute("summarize", summarize)
-          .build()
+      Op.Builder[(Output[Boolean], Seq[Output[Any]]), Unit](
+        opType = "Assert",
+        name = name,
+        input = (condition, data)
+      ).setAttribute("summarize", summarize)
+          .build().asInstanceOf[Op[Seq[Output[Any]], Unit]]
     } else {
-      Op.createWithNameScope(name) {
+      Op.nameScope(name) {
         ControlFlow.cond(
           condition,
-          () => ControlFlow.noOp(),
-          () => Op.Builder("Assert", name)
-              .addInput(condition)
-              .addInputList(data)
-              .setAttribute("summarize", summarize)
-              .build(),
+          () => ControlFlow.noOp().asInstanceOf[Op[Seq[Output[Any]], Unit]],
+          () => Op.Builder[(Output[Boolean], Seq[Output[Any]]), Unit](
+            opType = "Assert",
+            name = name,
+            input = (condition, data)
+          ).setAttribute("summarize", summarize)
+              .build().asInstanceOf[Op[Seq[Output[Any]], Unit]],
           name = "AssertGuard")
       }
     }
@@ -68,12 +76,17 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertEqual(
-      x: Output, y: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertEqual"): Op = {
-    Op.createWithNameScope(name) {
+  def assertEqual[T: TF : IsNumeric](
+      x: Output[T],
+      y: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertEqual"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -97,12 +110,17 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNoneEqual(
-      x: Output, y: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertNoneEqual"): Op = {
-    Op.createWithNameScope(name) {
+  def assertNoneEqual[T: TF : IsNumeric](
+      x: Output[T],
+      y: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertNoneEqual"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -128,12 +146,19 @@ private[api] trait Checks {
     * @param  name         Name for the created op.
     * @return Created op.
     */
-  def assertNear(
-      x: Output, y: Output, relTolerance: Output = 0.00001f, absTolerance: Output = 0.00001f,
-      message: Output = null, data: Seq[Output] = null, summarize: Int = 3, name: String = "AssertNear"): Op = {
-    Op.createWithNameScope(name) {
+  def assertNear[T: TF : IsReal](
+      x: Output[T],
+      y: Output[T],
+      relTolerance: Output[Float] = 0.00001f,
+      absTolerance: Output[Float] = 0.00001f,
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertNear"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -147,7 +172,7 @@ private[api] trait Checks {
         }
         if (message != null) message +: d else d
       }
-      val tolerance = absTolerance + relTolerance * Math.abs(y)
+      val tolerance = absTolerance.castTo[T] + relTolerance.castTo[T] * Math.abs(y)
       val difference = Math.abs(x - y)
       assert(Math.all(Math.less(difference, tolerance)), processedData, summarize)
     }
@@ -164,12 +189,17 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertLess(
-      x: Output, y: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertLess"): Op = {
-    Op.createWithNameScope(name) {
+  def assertLess[T: TF : IsNumeric](
+      x: Output[T],
+      y: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertLess"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -193,12 +223,17 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertLessEqual(
-      x: Output, y: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertLessEqual"): Op = {
-    Op.createWithNameScope(name) {
+  def assertLessEqual[T: TF : IsNumeric](
+      x: Output[T],
+      y: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertLessEqual"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -222,12 +257,17 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertGreater(
-      x: Output, y: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertGreater"): Op = {
-    Op.createWithNameScope(name) {
+  def assertGreater[T: TF : IsNumeric](
+      x: Output[T],
+      y: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertGreater"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -251,12 +291,17 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertGreaterEqual(
-      x: Output, y: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertGreaterEqual"): Op = {
-    Op.createWithNameScope(name) {
+  def assertGreaterEqual[T: TF : IsNumeric](
+      x: Output[T],
+      y: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertGreaterEqual"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -279,12 +324,16 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertPositive(
-      input: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertPositive"): Op = {
-    Op.createWithNameScope(name) {
+  def assertPositive[T: TF : IsNumeric](
+      input: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertPositive"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -293,7 +342,7 @@ private[api] trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLess(0, input, data = processedData, summarize = summarize)
+      assertLess(Basic.zeros[T](Shape()), input, data = processedData, summarize = summarize)
     }
   }
 
@@ -307,12 +356,16 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNegative(
-      input: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertNegative"): Op = {
-    Op.createWithNameScope(name) {
+  def assertNegative[T: TF : IsNumeric](
+      input: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertNegative"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -321,7 +374,7 @@ private[api] trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLess(input, 0, data = processedData, summarize = summarize)
+      assertLess(input, Basic.zeros[T](Shape()), data = processedData, summarize = summarize)
     }
   }
 
@@ -335,12 +388,16 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNonPositive(
-      input: Output, message: Output = null, data: Seq[Output] = null, summarize: Int = 3,
-      name: String = "AssertNonPositive"): Op = {
-    Op.createWithNameScope(name) {
+  def assertNonPositive[T: TF : IsNumeric](
+      input: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
+      summarize: Int = 3,
+      name: String = "AssertNonPositive"
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -349,7 +406,7 @@ private[api] trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLessEqual(input, 0, data = processedData, summarize = summarize)
+      assertLessEqual(input, Basic.zeros[T](Shape()), data = processedData, summarize = summarize)
     }
   }
 
@@ -363,16 +420,16 @@ private[api] trait Checks {
     * @param  name      Name for the created op.
     * @return Created op.
     */
-  def assertNonNegative(
-      input: Output,
-      message: Output = null,
-      data: Seq[Output] = null,
+  def assertNonNegative[T: TF : IsNumeric](
+      input: Output[T],
+      message: Output[String] = null,
+      data: Seq[Output[Any]] = null,
       summarize: Int = 3,
       name: String = "AssertNonNegative"
-  ): Op = {
-    Op.createWithNameScope(name) {
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           if (data != null) {
             data
           } else {
@@ -381,7 +438,7 @@ private[api] trait Checks {
         }
         if (message != null) message +: d else d
       }
-      assertLessEqual(0, input, data = processedData, summarize = summarize)
+      assertLessEqual(Basic.zeros[T](Shape()), input, data = processedData, summarize = summarize)
     }
   }
 
@@ -396,18 +453,18 @@ private[api] trait Checks {
     * @return Created op.
     */
   def assertAtMostNTrue(
-      predicates: Seq[Output],
+      predicates: Seq[Output[Boolean]],
       n: Int,
-      message: Output = null,
+      message: Output[String] = null,
       summarize: Int = 3,
       name: String = "AssertAtMostNTrue"
-  ): Op = {
-    Op.createWithNameScope(name) {
+  ): Op[Seq[Output[Any]], Unit] = {
+    Op.nameScope(name) {
       val stackedPredicates = Basic.stack(predicates, name = "StackPredicates")
-      val numTrue = Math.sum(Cast.cast(stackedPredicates, INT32), "NumTrue")
+      val numTrue = Math.sum(stackedPredicates.castTo[Int], name = "NumTrue")
       val condition = Math.lessEqual(numTrue, Basic.constant(n, name = "NumTrueConditionsLimit"))
       val processedData = {
-        val d: Seq[Output] = {
+        val d: Seq[Output[Any]] = {
           val predicateNames = predicates.map(p => s"'${p.name}'").mkString(", ")
           Seq(s"More than $n conditions ($predicateNames) evaluated as `true`.", stackedPredicates)
         }
@@ -416,7 +473,9 @@ private[api] trait Checks {
       assert(condition, processedData, summarize)
     }
   }
+}
 
+object Checks extends Checks {
   /** @define OpDocCheckAssert
     *   The `assert` op asserts that the provided condition is true.
     *
@@ -578,5 +637,3 @@ private[api] trait Checks {
     */
   private[ops] trait Documentation
 }
-
-private[api] object Checks extends Checks

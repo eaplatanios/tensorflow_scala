@@ -18,7 +18,6 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.types.DataType
 
 import org.tensorflow.framework.{HistogramProto, Summary}
 
@@ -43,7 +42,7 @@ trait SummaryWriterHookAddOn extends Hook {
     super.internalEnd(session)
   }
 
-  protected def writeSummary(step: Long, tag: String, value: Tensor[_ <: DataType]): Unit = {
+  protected def writeSummary(step: Long, tag: String, value: Tensor[_]): Unit = {
     summaryWriter.foreach(_.writeSummary(
       Summary.newBuilder()
           .addValue(Summary.Value.newBuilder()
