@@ -458,6 +458,10 @@ case class Variable[T] private (
     }
   }
 
+  override def asUntyped: Variable[Any] = {
+    this.asInstanceOf[Variable[Any]]
+  }
+
   override def toString: String = {
     op.toString
   }

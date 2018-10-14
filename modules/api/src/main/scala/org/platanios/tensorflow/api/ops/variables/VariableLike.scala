@@ -225,4 +225,8 @@ trait VariableLike[T] {
   def toOutput: Output[T] = {
     value
   }
+
+  def asUntyped: VariableLike[Any] = {
+    this.asInstanceOf[VariableLike[Any]]
+  }
 }

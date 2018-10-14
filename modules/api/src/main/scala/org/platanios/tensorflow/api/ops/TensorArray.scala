@@ -348,7 +348,13 @@ case class TensorArray[T] private (
   }
 
   /** Converts this tensor array to an output (i.e., dense symbolic tensor), by stacking it. */
-  def toOutput: Output[T] = stack()
+  def toOutput: Output[T] = {
+    stack()
+  }
+
+  def asUntyped: TensorArray[Any] = {
+    this.asInstanceOf[TensorArray[Any]]
+  }
 
   /** Returns an op that deletes this tensor array from its resource container.
     *

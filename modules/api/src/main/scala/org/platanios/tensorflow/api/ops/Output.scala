@@ -60,6 +60,10 @@ sealed trait OutputLike[T] {
     * @return [[OutputIndexedSlices]] that has the same value as this [[OutputLike]].
     */
   def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T]
+
+  def asUntyped: OutputLike[Any] = {
+    this.asInstanceOf[OutputLike[Any]]
+  }
 }
 
 /** Representation of one of the outputs of an op's computation.
@@ -239,6 +243,10 @@ final case class Output[T] private(
       indices = indices,
       values = this,
       denseShape = denseShape)
+  }
+
+  override def asUntyped: Output[Any] = {
+    this.asInstanceOf[Output[Any]]
   }
 
   override def toString: String = {
@@ -582,6 +590,10 @@ final case class OutputIndexedSlices[T](
     this
   }
 
+  override def asUntyped: OutputIndexedSlices[Any] = {
+    this.asInstanceOf[OutputIndexedSlices[Any]]
+  }
+
   override def toString: String = {
     if (device != "") {
       s"OutputIndexedSlices[" +
@@ -744,6 +756,10 @@ final case class SparseOutput[T](
   override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = {
     throw new UnsupportedOperationException(
       s"Cannot convert sparse output '$this' to output indexed slices.")
+  }
+
+  override def asUntyped: SparseOutput[Any] = {
+    this.asInstanceOf[SparseOutput[Any]]
   }
 
   override def toString: String = {

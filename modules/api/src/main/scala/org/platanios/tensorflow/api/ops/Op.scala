@@ -494,6 +494,10 @@ final case class Op[I: Op.OpInput, O: Op.OpOutput] private (
 
   //endregion Serialization
 
+  def asUntyped: UntypedOp = {
+    this.asInstanceOf[UntypedOp]
+  }
+
   override def toString: String = {
     name
   }

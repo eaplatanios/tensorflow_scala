@@ -91,7 +91,9 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
       evaluateOps = Op.nameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
-      datasetInitializers = datasets.map(d => (d._1, evaluateOps.inputIterator.createInitializer(d._2()): UntypedOp))
+      datasetInitializers = datasets.map(d => {
+        (d._1, evaluateOps.inputIterator.createInitializer(d._2()).asUntyped)
+      })
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
         sessionScaffold = SessionScaffold(),
