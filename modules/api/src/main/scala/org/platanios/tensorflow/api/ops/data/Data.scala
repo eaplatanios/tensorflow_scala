@@ -268,8 +268,8 @@ trait Data extends Experimental {
           opType = "RandomDataset",
           name = name,
           input = (
-              Basic.constant(graphSeed.getOrElse(0L), name = s"$name/Seed1"),
-              Basic.constant(opSeed.getOrElse(0L), name = s"$name/Seed2"))
+              Basic.constant(graphSeed.getOrElse(0).toLong, name = s"$name/Seed1"),
+              Basic.constant(opSeed.getOrElse(0).toLong, name = s"$name/Seed2"))
         ).setAttribute("output_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
