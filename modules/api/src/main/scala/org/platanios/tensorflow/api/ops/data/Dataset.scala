@@ -673,11 +673,14 @@ trait Dataset[T] { outer =>
 
   /** Creates a new dataset that combines consecutive elements of this dataset into batches.
     *
-    * @param  batchSize Batch size.
+    * @param  batchSize     Batch size.
+    * @param  dropRemainder Boolean indicating whether to drop the last batch in the dataset if it's size is less than
+    *                       `batchSize`.
     * @return Created dataset.
     */
   def batch(
-      batchSize: Long
+      batchSize: Long,
+      dropRemainder: Boolean = false
   ): Dataset[T] = {
     new Dataset[T] {
       override val name: String = s"${outer.name}/Batch"
@@ -685,10 +688,11 @@ trait Dataset[T] { outer =>
       override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
         val bs = Op.nameScope(name)(Basic.constant(batchSize))
         Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
-          opType = "BatchDataset",
+          opType = "BatchDatasetV2",
           name = name,
           input = (outer.createHandle(), bs)
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
+        ).setAttribute("drop_remainder", dropRemainder)
+            .setAttribute("output_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
       }
