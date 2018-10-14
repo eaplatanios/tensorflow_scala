@@ -50,7 +50,7 @@ object LinearRegression {
       val trainLoss = session.run(feeds = feeds, fetches = loss, targets = trainOp)
       if (i % 1 == 0)
         logger.info(s"Train loss at iteration $i = ${trainLoss.scalar} " +
-                        s"(weight = ${session.run(fetches = weights.value).scalar})")
+            s"(weight = ${session.run(fetches = weights.value).scalar})")
     }
 
     logger.info(s"Trained weight value: ${session.run(fetches = weights.value).scalar}")

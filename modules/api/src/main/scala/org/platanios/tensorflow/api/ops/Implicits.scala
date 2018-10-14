@@ -65,7 +65,7 @@ private[api] trait Implicits
     if (value == null) null else Basic.stack(value.toSeq)
   }
 
-  implicit def outputFromTraversable[T: TF](
+  implicit def outputFromSeq[T: TF](
       value: Seq[Output[T]]
   ): Output[T] = {
     if (value == null) null else Basic.stack(value)

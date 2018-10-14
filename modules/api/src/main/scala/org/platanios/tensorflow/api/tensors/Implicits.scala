@@ -52,7 +52,7 @@ private[api] trait Implicits
     if (value == null) null else Basic.stack(value.toSeq)
   }
 
-  implicit def tensorFromTraversable[T: TF](
+  implicit def tensorFromSeq[T: TF](
       value: Seq[Tensor[T]]
   ): Tensor[T] = {
     if (value == null) null else Basic.stack(value)
@@ -69,7 +69,7 @@ private[tensors] trait Priority3Implicits extends Priority2Implicits {
     if (value == null) null else Basic.stack(value.toSeq.map(f))
   }
 
-  implicit def tensorFromConvertibleTraversable[T, V](
+  implicit def tensorFromConvertibleSeq[T, V](
       value: Seq[V]
   )(implicit
       f: V => Tensor[T],
