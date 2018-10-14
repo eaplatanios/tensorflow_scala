@@ -121,4 +121,12 @@ object TensorToOutput {
       override type O = PO
     }
   }
+
+  implicit def fromNestedStructure[T, V, D, S](implicit
+      evStructure: NestedStructure.Aux[T, V, D, S]
+  ): TensorToOutput.Aux[V, T] = {
+    new TensorToOutput[V] {
+      override type O = T
+    }
+  }
 }

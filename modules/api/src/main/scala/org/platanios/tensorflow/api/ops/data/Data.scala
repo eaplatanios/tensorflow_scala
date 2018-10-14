@@ -541,7 +541,7 @@ trait Data extends Experimental {
     def generatorMapFn(iteratorId: Output[Long]): T = {
       /** Scala callback function that will be called to invoke the iterator. */
       @throws[OutOfRangeException]
-      def generatorScalaCallback(iteratorId: Tensor[Long]): Seq[Tensor[Any]] = {
+      def generatorScalaCallback(iteratorId: Tensor[Long]): V = {
         val iterator = generatorState.getIterator(iteratorId.scalar)
         val element = {
           if (iterator.hasNext)
@@ -562,10 +562,11 @@ trait Data extends Experimental {
               s"The generator yielded an element with shape ${tensor.shape} " +
                   s"where an element with shape $shape was expected.")
         })
-        flatTensors
+        element
       }
 
-      val flatValues = Callback.callback(generatorScalaCallback, iteratorId, flatDataTypes, stateful = true)
+      val values = Callback.callback(generatorScalaCallback, iteratorId, outputDataType, stateful = true)
+      val flatValues = evStructure.outputs(values)
       // The Scala callback op drops the inferred shapes, so we add them back in here.
       if (outputShape != null) {
         flatValues.zip(flatShapes).foreach(p => {

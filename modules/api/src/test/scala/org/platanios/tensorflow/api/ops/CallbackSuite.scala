@@ -30,18 +30,18 @@ import org.scalatest.junit.JUnitSuite
   * @author Emmanouil Antonios Platanios
   */
 class CallbackSuite extends JUnitSuite {
-  def square[T: IsNotQuantized : TF](input: Tensor[T]): Tensor[T] = {
+  def square(input: Tensor[Float]): Tensor[Float] = {
     input.square
   }
 
-  def add[T: IsNumeric : TF](inputs: Seq[Tensor[T]]): Tensor[T] = {
+  def add(inputs: Seq[Tensor[Float]]): Tensor[Float] = {
     TensorMath.addN(inputs)
   }
 
   @Test def testIdentitySingleInputSingleOutputCallback(): Unit = using(Graph()) { graph =>
     val (input, output) = Op.createWith(graph) {
       val input = Basic.placeholder[Float]()
-      val output = Callback.callback(square[Float], input, FLOAT32)
+      val output = Callback.callback(square, input, FLOAT32)
       (input, output)
     }
     val session = Session(graph = graph)
@@ -54,21 +54,21 @@ class CallbackSuite extends JUnitSuite {
 
   @Test def testIdentityMultipleInputSingleOutputCallback(): Unit = using(Graph()) { graph =>
     val (input1, input2, input3, output) = Op.createWith(graph) {
-      val input1 = Basic.placeholder[Double]()
-      val input2 = Basic.placeholder[Double]()
-      val input3 = Basic.placeholder[Double]()
-      val output = Callback.callback(add[Double], Seq(input1, input2, input3), FLOAT64)
+      val input1 = Basic.placeholder[Float]()
+      val input2 = Basic.placeholder[Float]()
+      val input3 = Basic.placeholder[Float]()
+      val output = Callback.callback(add, Seq(input1, input2, input3), FLOAT32)
       (input1, input2, input3, output)
     }
     val session = Session(graph = graph)
     val outputValue = session.run(Map(
-      input1 -> Tensor(2.0, 5.0),
-      input2 -> Tensor(-1.3, 3.1),
-      input3 -> Tensor(8.9, -4.1)
+      input1 -> Tensor(2.0f, 5.0f),
+      input2 -> Tensor(-1.3f, 3.1f),
+      input3 -> Tensor(8.9f, -4.1f)
     ), output)
-    assert(outputValue.dataType == FLOAT64)
+    assert(outputValue.dataType == FLOAT32)
     assert(outputValue.shape == Shape(2))
-    assert(outputValue(0).scalar == 9.6)
-    assert(outputValue(1).scalar == 4.0)
+    assert(outputValue(0).scalar == 9.6f)
+    assert(outputValue(1).scalar == 4.0f)
   }
 }
