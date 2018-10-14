@@ -81,7 +81,7 @@ lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples, site)
+    .aggregate(jni, api, data, examples, horovod, site)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
@@ -370,6 +370,9 @@ lazy val publishSettings = Seq(
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
     pushChanges),
+  // The following 2 lines are needed to get around this: https://github.com/sbt/sbt/issues/4275
+  publishConfiguration := publishConfiguration.value.withOverwrite(true),
+  publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   // For Travis CI - see http://www.cakesolutions.net/teamblogs/publishing-artefacts-to-oss-sonatype-nexus-using-sbt-and-travis-ci
   credentials ++= (for {
     username <- Option(System.getenv().get("SONATYPE_USERNAME"))
