@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
 import org.platanios.tensorflow.api.ops.{Op, Output, Basic => OutputBasic}
-import org.platanios.tensorflow.api.tensors.ops.{Basic, Math}
+import org.platanios.tensorflow.api.tensors.ops.{Basic, Cast, Math}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
@@ -61,6 +61,10 @@ sealed trait TensorLike[T] {
 
   /** Returns the tensor indexed slices that has the same value as this tensor-like object. */
   def toTensorIndexedSlices: TensorIndexedSlices[T]
+
+  def asUntyped: TensorLike[Any] = {
+    this.asInstanceOf[TensorLike[Any]]
+  }
 }
 
 /** Tensor (i.e., multi-dimensional array).
@@ -290,7 +294,100 @@ class Tensor[T] protected (
       stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8
     )(TF.fromDataType(dataType), TF[Int], IsInt32OrInt64[Int])
   }
+  
+  //region Casting
 
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R: TF]: Tensor[R] = {
+    Cast.cast[T, R, Tensor](this)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @param  dataType Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R](dataType: DataType[R]): Tensor[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.cast[T, R, Tensor](this)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R: TF](truncate: Boolean): Tensor[R] = {
+    Cast.cast[T, R, Tensor](this, truncate)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @param  dataType Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R](dataType: DataType[R], truncate: Boolean): Tensor[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.cast[T, R, Tensor](this, truncate)
+  }
+
+  /** $OpDocCastBitcast
+    *
+    * @group CastOps
+    *
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def bitcastTo[R: TF](implicit ev: IsNumeric[T]): Tensor[R] = {
+    Cast.bitcast[T, R, Tensor](this)
+  }
+
+  /** $OpDocCastBitcast
+    *
+    * @group CastOps
+    *
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): Tensor[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.bitcast[T, R, Tensor](this)
+  }
+
+  def toStringTensor: Tensor[String] = castTo[String]
+  def toBoolean: Tensor[Boolean] = castTo[Boolean]
+  def toHalf: Tensor[Half] = castTo[Half]
+  def toFloat: Tensor[Float] = castTo[Float]
+  def toDouble: Tensor[Double] = castTo[Double]
+  def toTruncatedHalf: Tensor[TruncatedHalf] = castTo[TruncatedHalf]
+  def toComplexFloat: Tensor[ComplexFloat] = castTo[ComplexFloat]
+  def toComplexDouble: Tensor[ComplexDouble] = castTo[ComplexDouble]
+  def toByte: Tensor[Byte] = castTo[Byte]
+  def toShort: Tensor[Short] = castTo[Short]
+  def toInt: Tensor[Int] = castTo[Int]
+  def toLong: Tensor[Long] = castTo[Long]
+  def toUByte: Tensor[UByte] = castTo[UByte]
+  def toUShort: Tensor[UShort] = castTo[UShort]
+  def toUInt: Tensor[UInt] = castTo[UInt]
+  def toULong: Tensor[ULong] = castTo[ULong]
+  def toQByte: Tensor[QByte] = castTo[QByte]
+  def toQShort: Tensor[QShort] = castTo[QShort]
+  def toQInt: Tensor[QInt] = castTo[QInt]
+  def toQUByte: Tensor[QUByte] = castTo[QUByte]
+  def toQUShort: Tensor[QUShort] = castTo[QUShort]
+  def toResource: Tensor[Resource] = castTo[Resource]
+  def toVariant: Tensor[Variant] = castTo[Variant]
+
+  //endregion Casting
+  
   /** Returns a summary of the contents of this tensor.
     *
     * @param  maxEntries  Maximum number of entries to show for each axis/dimension. If the size of an axis exceeds
@@ -375,6 +472,10 @@ class Tensor[T] protected (
     * replace the file, if it already exists. */
   def writeNPY(file: Path, fortranOrder: Boolean = false): Unit = {
     NPY.write(this, file, fortranOrder)(TF.fromDataType(dataType))
+  }
+
+  override def asUntyped: Tensor[Any] = {
+    this.asInstanceOf[Tensor[Any]]
   }
 
   override def toString: String = {
@@ -886,6 +987,99 @@ final case class TensorIndexedSlices[T](
   override val device: String = {
     values.device
   }
+  
+  //region Casting
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R: TF]: TensorIndexedSlices[R] = {
+    Cast.cast[T, R, TensorIndexedSlices](this)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @param  dataType Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R](dataType: DataType[R]): TensorIndexedSlices[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.cast[T, R, TensorIndexedSlices](this)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R: TF](truncate: Boolean): TensorIndexedSlices[R] = {
+    Cast.cast[T, R, TensorIndexedSlices](this, truncate)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @param  dataType Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R](dataType: DataType[R], truncate: Boolean): TensorIndexedSlices[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.cast[T, R, TensorIndexedSlices](this, truncate)
+  }
+
+  /** $OpDocCastBitcast
+    *
+    * @group CastOps
+    *
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def bitcastTo[R: TF](implicit ev: IsNumeric[T]): TensorIndexedSlices[R] = {
+    Cast.bitcast[T, R, TensorIndexedSlices](this)
+  }
+
+  /** $OpDocCastBitcast
+    *
+    * @group CastOps
+    *
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): TensorIndexedSlices[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.bitcast[T, R, TensorIndexedSlices](this)
+  }
+
+  def toStringTensor: TensorIndexedSlices[String] = castTo[String]
+  def toBoolean: TensorIndexedSlices[Boolean] = castTo[Boolean]
+  def toHalf: TensorIndexedSlices[Half] = castTo[Half]
+  def toFloat: TensorIndexedSlices[Float] = castTo[Float]
+  def toDouble: TensorIndexedSlices[Double] = castTo[Double]
+  def toTruncatedHalf: TensorIndexedSlices[TruncatedHalf] = castTo[TruncatedHalf]
+  def toComplexFloat: TensorIndexedSlices[ComplexFloat] = castTo[ComplexFloat]
+  def toComplexDouble: TensorIndexedSlices[ComplexDouble] = castTo[ComplexDouble]
+  def toByte: TensorIndexedSlices[Byte] = castTo[Byte]
+  def toShort: TensorIndexedSlices[Short] = castTo[Short]
+  def toInt: TensorIndexedSlices[Int] = castTo[Int]
+  def toLong: TensorIndexedSlices[Long] = castTo[Long]
+  def toUByte: TensorIndexedSlices[UByte] = castTo[UByte]
+  def toUShort: TensorIndexedSlices[UShort] = castTo[UShort]
+  def toUInt: TensorIndexedSlices[UInt] = castTo[UInt]
+  def toULong: TensorIndexedSlices[ULong] = castTo[ULong]
+  def toQByte: TensorIndexedSlices[QByte] = castTo[QByte]
+  def toQShort: TensorIndexedSlices[QShort] = castTo[QShort]
+  def toQInt: TensorIndexedSlices[QInt] = castTo[QInt]
+  def toQUByte: TensorIndexedSlices[QUByte] = castTo[QUByte]
+  def toQUShort: TensorIndexedSlices[QUShort] = castTo[QUShort]
+  def toResource: TensorIndexedSlices[Resource] = castTo[Resource]
+  def toVariant: TensorIndexedSlices[Variant] = castTo[Variant]
+
+  //endregion Casting
 
   /** Returns the [[Tensor]] that this [[TensorLike]] object represents. */
   @throws[IllegalStateException]
@@ -914,6 +1108,10 @@ final case class TensorIndexedSlices[T](
     */
   override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
     this
+  }
+
+  override def asUntyped: TensorIndexedSlices[Any] = {
+    this.asInstanceOf[TensorIndexedSlices[Any]]
   }
 
   override def toString: String = {
@@ -994,6 +1192,99 @@ final case class SparseTensor[T](
   override val device: String = {
     values.device
   }
+  
+  //region Casting
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R: TF]: SparseTensor[R] = {
+    Cast.cast[T, R, SparseTensor](this)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @param  dataType Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R](dataType: DataType[R]): SparseTensor[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.cast[T, R, SparseTensor](this)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R: TF](truncate: Boolean): SparseTensor[R] = {
+    Cast.cast[T, R, SparseTensor](this, truncate)
+  }
+
+  /** $OpDocCastCast
+    *
+    * @group CastOps
+    * @param  dataType Target data type.
+    * @return Result as a new tensor.
+    */
+  def castTo[R](dataType: DataType[R], truncate: Boolean): SparseTensor[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.cast[T, R, SparseTensor](this, truncate)
+  }
+
+  /** $OpDocCastBitcast
+    *
+    * @group CastOps
+    *
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def bitcastTo[R: TF](implicit ev: IsNumeric[T]): SparseTensor[R] = {
+    Cast.bitcast[T, R, SparseTensor](this)
+  }
+
+  /** $OpDocCastBitcast
+    *
+    * @group CastOps
+    *
+    * @tparam R Target data type.
+    * @return Result as a new tensor.
+    */
+  def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): SparseTensor[R] = {
+    implicit val evRTF: TF[R] = TF.fromDataType(dataType)
+    Cast.bitcast[T, R, SparseTensor](this)
+  }
+
+  def toStringTensor: SparseTensor[String] = castTo[String]
+  def toBoolean: SparseTensor[Boolean] = castTo[Boolean]
+  def toHalf: SparseTensor[Half] = castTo[Half]
+  def toFloat: SparseTensor[Float] = castTo[Float]
+  def toDouble: SparseTensor[Double] = castTo[Double]
+  def toTruncatedHalf: SparseTensor[TruncatedHalf] = castTo[TruncatedHalf]
+  def toComplexFloat: SparseTensor[ComplexFloat] = castTo[ComplexFloat]
+  def toComplexDouble: SparseTensor[ComplexDouble] = castTo[ComplexDouble]
+  def toByte: SparseTensor[Byte] = castTo[Byte]
+  def toShort: SparseTensor[Short] = castTo[Short]
+  def toInt: SparseTensor[Int] = castTo[Int]
+  def toLong: SparseTensor[Long] = castTo[Long]
+  def toUByte: SparseTensor[UByte] = castTo[UByte]
+  def toUShort: SparseTensor[UShort] = castTo[UShort]
+  def toUInt: SparseTensor[UInt] = castTo[UInt]
+  def toULong: SparseTensor[ULong] = castTo[ULong]
+  def toQByte: SparseTensor[QByte] = castTo[QByte]
+  def toQShort: SparseTensor[QShort] = castTo[QShort]
+  def toQInt: SparseTensor[QInt] = castTo[QInt]
+  def toQUByte: SparseTensor[QUByte] = castTo[QUByte]
+  def toQUShort: SparseTensor[QUShort] = castTo[QUShort]
+  def toResource: SparseTensor[Resource] = castTo[Resource]
+  def toVariant: SparseTensor[Variant] = castTo[Variant]
+
+  //endregion Casting
 
   /** Returns the tensor that this [[TensorLike]] object represents. */
   override def toTensor: Tensor[T] = {
@@ -1044,6 +1335,10 @@ final case class SparseTensor[T](
   override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
     throw new UnsupportedOperationException(
       s"Cannot convert sparse tensor '$this' to tensor indexed slices.")
+  }
+
+  override def asUntyped: SparseTensor[Any] = {
+    this.asInstanceOf[SparseTensor[Any]]
   }
 
   override def toString: String = {

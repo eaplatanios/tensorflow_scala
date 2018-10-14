@@ -30,7 +30,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Created op output.
     */
-  private[api] def cast[T, R: TF, OL[TT] <: OutputLike[TT]](
+  private[ops] def cast[T, R: TF, OL[TT] <: OutputLike[TT]](
       input: OL[T],
       truncate: Boolean = false
   )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
@@ -77,7 +77,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Created op output.
     */
-  private[api] def bitcast[T: IsNumeric, R: TF, OL[TT] <: OutputLike[TT]](
+  private[ops] def bitcast[T: IsNumeric, R: TF, OL[TT] <: OutputLike[TT]](
       input: OL[T]
   )(implicit ev: OutputOps.Aux[OL, T]): OL[R] = {
     val dataType = TF[R].dataType
@@ -95,117 +95,6 @@ trait Cast {
 }
 
 object Cast extends Cast {
-  private[ops] trait Implicits {
-    // This implicit helps the Scala 2.11 compiler.
-    implicit def outputToCastOps[T](
-        value: Output[T]
-    ): CastOps[T, Output] = {
-      new CastOps(value)
-    }
-
-    implicit def outputConvertibleToCastOps[T: TF, OC, OL[TT] <: OutputLike[TT]](
-        value: OC
-    )(implicit
-        f: OC => OL[T],
-        ev: OutputOps.Aux[OL, T]
-    ): CastOps[T, OL] = {
-      new CastOps(f(value))
-    }
-
-    implicit class CastOps[T, OL[TT] <: OutputLike[TT]](
-        val output: OL[T]
-    )(implicit evOps: OutputOps.Aux[OL, T]) {
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R: TF]: OL[R] = {
-        Cast.cast[T, R, OL](output)
-      }
-
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @param  dataType Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R](dataType: DataType[R]): OL[R] = {
-        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.cast[T, R, OL](output)
-      }
-
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R: TF](truncate: Boolean): OL[R] = {
-        Cast.cast[T, R, OL](output, truncate)
-      }
-
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @param  dataType Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R](dataType: DataType[R], truncate: Boolean): OL[R] = {
-        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.cast[T, R, OL](output, truncate)
-      }
-
-      /** $OpDocCastBitcast
-        *
-        * @group CastOps
-        *
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def bitcastTo[R: TF](implicit ev: IsNumeric[T]): OL[R] = {
-        Cast.bitcast[T, R, OL](output)
-      }
-
-      /** $OpDocCastBitcast
-        *
-        * @group CastOps
-        *
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): OL[R] = {
-        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.bitcast[T, R, OL](output)
-      }
-
-      def toStringTensor: OL[String] = output.castTo[String]
-      def toBoolean: OL[Boolean] = output.castTo[Boolean]
-      def toHalf: OL[Half] = output.castTo[Half]
-      def toFloat: OL[Float] = output.castTo[Float]
-      def toDouble: OL[Double] = output.castTo[Double]
-      def toTruncatedHalf: OL[TruncatedHalf] = output.castTo[TruncatedHalf]
-      def toComplexFloat: OL[ComplexFloat] = output.castTo[ComplexFloat]
-      def toComplexDouble: OL[ComplexDouble] = output.castTo[ComplexDouble]
-      def toByte: OL[Byte] = output.castTo[Byte]
-      def toShort: OL[Short] = output.castTo[Short]
-      def toInt: OL[Int] = output.castTo[Int]
-      def toLong: OL[Long] = output.castTo[Long]
-      def toUByte: OL[UByte] = output.castTo[UByte]
-      def toUShort: OL[UShort] = output.castTo[UShort]
-      def toUInt: OL[UInt] = output.castTo[UInt]
-      def toULong: OL[ULong] = output.castTo[ULong]
-      def toQByte: OL[QByte] = output.castTo[QByte]
-      def toQShort: OL[QShort] = output.castTo[QShort]
-      def toQInt: OL[QInt] = output.castTo[QInt]
-      def toQUByte: OL[QUByte] = output.castTo[QUByte]
-      def toQUShort: OL[QUShort] = output.castTo[QUShort]
-      def toResource: OL[Resource] = output.castTo[Resource]
-      def toVariant: OL[Variant] = output.castTo[Variant]
-    }
-  }
-
   /** @define OpDocCastCast
     *   The `cast` op casts a tensor to a new data type.
     *

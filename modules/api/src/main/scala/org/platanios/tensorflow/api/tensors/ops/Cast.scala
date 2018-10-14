@@ -32,7 +32,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Result as a new tensor.
     */
-  private[api] def cast[T, R: TF, TL[TT] <: TensorLike[TT]](
+  private[tensors] def cast[T, R: TF, TL[TT] <: TensorLike[TT]](
       input: TL[T],
       truncate: Boolean = false
   )(implicit ev: TensorOps.Aux[TL, T]): TL[R] = {
@@ -57,7 +57,7 @@ trait Cast {
     * @tparam R Target data type.
     * @return Result as a new tensor.
     */
-  private[api] def bitcast[T: IsNumeric, R: TF, TL[TT] <: TensorLike[TT]](
+  private[tensors] def bitcast[T: IsNumeric, R: TF, TL[TT] <: TensorLike[TT]](
       input: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[R] = {
     val dataType = implicitly[TF[R]].dataType
@@ -68,114 +68,4 @@ trait Cast {
   }
 }
 
-object Cast extends Cast {
-  private[tensors] trait Implicits {
-    // This implicit helps the Scala 2.11 compiler.
-    implicit def tensorToCastOps[T](
-        value: Tensor[T]
-    ): CastOps[T, Tensor] = {
-      new CastOps(value)
-    }
-
-    implicit def tensorConvertibleToCastOps[T: TF, TC, TL[TT] <: TensorLike[TT]](
-        value: TC
-    )(implicit
-        f: TC => TL[T],
-        ev: TensorOps.Aux[TL, T]
-    ): CastOps[T, TL] = {
-      new CastOps(f(value))
-    }
-
-    implicit class CastOps[T, TL[TT] <: TensorLike[TT]](
-        val tensor: TL[T]
-    )(implicit evOps: TensorOps.Aux[TL, T]) {
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R: TF]: TL[R] = {
-        Cast.cast[T, R, TL](tensor)
-      }
-
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @param  dataType Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R](dataType: DataType[R]): TL[R] = {
-        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.cast[T, R, TL](tensor)
-      }
-
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R: TF](truncate: Boolean): TL[R] = {
-        Cast.cast[T, R, TL](tensor, truncate)
-      }
-
-      /** $OpDocCastCast
-        *
-        * @group CastOps
-        * @param  dataType Target data type.
-        * @return Result as a new tensor.
-        */
-      def castTo[R](dataType: DataType[R], truncate: Boolean): TL[R] = {
-        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.cast[T, R, TL](tensor, truncate)
-      }
-
-      /** $OpDocCastBitcast
-        *
-        * @group CastOps
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def bitcastTo[R: TF](implicit ev: IsNumeric[T]): TL[R] = {
-        Cast.bitcast[T, R, TL](tensor)
-      }
-
-      /** $OpDocCastBitcast
-        *
-        * @group CastOps
-        *
-        * @tparam R Target data type.
-        * @return Result as a new tensor.
-        */
-      def bitcastTo[R](dataType: DataType[R])(implicit ev: IsNumeric[T]): TL[R] = {
-        implicit val evRTF: TF[R] = TF.fromDataType(dataType)
-        Cast.bitcast[T, R, TL](tensor)
-      }
-
-      def toStringTensor: TL[String] = tensor.castTo[String]
-      def toBoolean: TL[Boolean] = tensor.castTo[Boolean]
-      def toHalf: TL[Half] = tensor.castTo[Half]
-      def toFloat: TL[Float] = tensor.castTo[Float]
-      def toDouble: TL[Double] = tensor.castTo[Double]
-      def toTruncatedHalf: TL[TruncatedHalf] = tensor.castTo[TruncatedHalf]
-      def toComplexFloat: TL[ComplexFloat] = tensor.castTo[ComplexFloat]
-      def toComplexDouble: TL[ComplexDouble] = tensor.castTo[ComplexDouble]
-      def toByte: TL[Byte] = tensor.castTo[Byte]
-      def toShort: TL[Short] = tensor.castTo[Short]
-      def toInt: TL[Int] = tensor.castTo[Int]
-      def toLong: TL[Long] = tensor.castTo[Long]
-      def toUByte: TL[UByte] = tensor.castTo[UByte]
-      def toUShort: TL[UShort] = tensor.castTo[UShort]
-      def toUInt: TL[UInt] = tensor.castTo[UInt]
-      def toULong: TL[ULong] = tensor.castTo[ULong]
-      def toQByte: TL[QByte] = tensor.castTo[QByte]
-      def toQShort: TL[QShort] = tensor.castTo[QShort]
-      def toQInt: TL[QInt] = tensor.castTo[QInt]
-      def toQUByte: TL[QUByte] = tensor.castTo[QUByte]
-      def toQUShort: TL[QUShort] = tensor.castTo[QUShort]
-      def toResource: TL[Resource] = tensor.castTo[Resource]
-      def toVariant: TL[Variant] = tensor.castTo[Variant]
-    }
-  }
-}
+object Cast extends Cast
