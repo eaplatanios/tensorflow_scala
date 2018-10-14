@@ -28,11 +28,11 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-trait TensorToOutput[T] {
+sealed trait TensorToOutput[T] {
   type O
 }
 
-object TensorToOutput {
+object TensorToOutput extends TensorToOutputNormalPriority {
   type Aux[T, OO] = TensorToOutput[T] {
     type O = OO
   }
@@ -60,65 +60,32 @@ object TensorToOutput {
       override type O = SparseOutput[T]
     }
   }
+}
 
-  implicit def fromOption[T, OO](implicit ev: Aux[T, OO]): Aux[Option[T], Option[OO]] = {
+trait TensorToOutputNormalPriority extends TensorToOutputLowPriority {
+  implicit def fromOption[T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Option[T], Option[OO]] = {
     new TensorToOutput[Option[T]] {
       override type O = Option[OO]
     }
   }
 
   implicit def fromArray[T: ClassTag, OO: ClassTag](implicit
-      ev: Aux[T, OO]
-  ): Aux[Array[T], Array[OO]] = {
+      ev: TensorToOutput.Aux[T, OO]
+  ): TensorToOutput.Aux[Array[T], Array[OO]] = {
     new TensorToOutput[Array[T]] {
       override type O = Array[OO]
     }
   }
 
-  implicit def fromSeq[T, OO](implicit ev: Aux[T, OO]): Aux[Seq[T], Seq[OO]] = {
+  implicit def fromSeq[T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Seq[T], Seq[OO]] = {
     new TensorToOutput[Seq[T]] {
       override type O = Seq[OO]
     }
   }
 
-  implicit def fromMap[K, T, OO](implicit ev: Aux[T, OO]): Aux[Map[K, T], Map[K, OO]] = {
+  implicit def fromMap[K, T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Map[K, T], Map[K, OO]] = {
     new TensorToOutput[Map[K, T]] {
       override type O = Map[K, OO]
-    }
-  }
-
-  implicit val fromHNil: Aux[HNil, HNil] = {
-    new TensorToOutput[HNil] {
-      override type O = HNil
-    }
-  }
-
-  implicit def fromHList[HT, HO, TT <: HList, TO <: HList](implicit
-      evH: Strict[Aux[HT, HO]],
-      evT: Aux[TT, TO]
-  ): Aux[HT :: TT, HO :: TO] = {
-    new TensorToOutput[HT :: TT] {
-      override type O = HO :: TO
-    }
-  }
-
-  implicit def fromCoproduct[HT, HO, TT <: Coproduct, TO <: Coproduct](implicit
-      evH: Strict[Aux[HT, HO]],
-      evT: Aux[TT, TO]
-  ): Aux[HT :+: TT, HO :+: TO] = {
-    new TensorToOutput[HT :+: TT] {
-      override type O = HO :+: TO
-    }
-  }
-
-  implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
-      genT: Generic.Aux[PT, HT],
-      evT: Aux[HT, HO],
-      tuplerO: Tupler.Aux[HO, PO],
-      genO: Generic.Aux[PO, HO]
-  ): Aux[PT, PO] = {
-    new TensorToOutput[PT] {
-      override type O = PO
     }
   }
 
@@ -127,6 +94,45 @@ object TensorToOutput {
   ): TensorToOutput.Aux[V, T] = {
     new TensorToOutput[V] {
       override type O = T
+    }
+  }
+}
+
+trait TensorToOutputLowPriority extends TensorToOutputLowestPriority {
+  implicit val fromHNil: TensorToOutput.Aux[HNil, HNil] = {
+    new TensorToOutput[HNil] {
+      override type O = HNil
+    }
+  }
+
+  implicit def fromHList[HT, HO, TT <: HList, TO <: HList](implicit
+      evH: Strict[TensorToOutput.Aux[HT, HO]],
+      evT: TensorToOutput.Aux[TT, TO]
+  ): TensorToOutput.Aux[HT :: TT, HO :: TO] = {
+    new TensorToOutput[HT :: TT] {
+      override type O = HO :: TO
+    }
+  }
+
+  implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
+      genT: Generic.Aux[PT, HT],
+      evT: TensorToOutput.Aux[HT, HO],
+      tuplerO: Tupler.Aux[HO, PO],
+      genO: Generic.Aux[PO, HO]
+  ): TensorToOutput.Aux[PT, PO] = {
+    new TensorToOutput[PT] {
+      override type O = PO
+    }
+  }
+}
+
+trait TensorToOutputLowestPriority {
+  implicit def fromCoproduct[HT, HO, TT <: Coproduct, TO <: Coproduct](implicit
+      evH: Strict[TensorToOutput.Aux[HT, HO]],
+      evT: TensorToOutput.Aux[TT, TO]
+  ): TensorToOutput.Aux[HT :+: TT, HO :+: TO] = {
+    new TensorToOutput[HT :+: TT] {
+      override type O = HO :+: TO
     }
   }
 }

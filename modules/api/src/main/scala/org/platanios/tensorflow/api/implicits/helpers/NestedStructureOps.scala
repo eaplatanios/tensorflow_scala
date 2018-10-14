@@ -45,7 +45,7 @@ sealed trait NestedStructureOps[T] {
   def ops(executable: T): Set[UntypedOp]
 }
 
-object NestedStructureOps {
+object NestedStructureOps extends NestedStructureOpsNormalPriority {
   def apply[T: NestedStructureOps]: NestedStructureOps[T] = implicitly[NestedStructureOps[T]]
 
   implicit val fromUnit: NestedStructureOps[Unit] = {
@@ -72,7 +72,9 @@ object NestedStructureOps {
       }
     }
   }
+}
 
+trait NestedStructureOpsNormalPriority extends NestedStructureOpsLowPriority {
   implicit def fromOption[T: NestedStructureOps]: NestedStructureOps[Option[T]] = {
     new NestedStructureOps[Option[T]] {
       override def ops(executable: Option[T]): Set[UntypedOp] = {
@@ -104,7 +106,9 @@ object NestedStructureOps {
       }
     }
   }
+}
 
+trait NestedStructureOpsLowPriority extends NestedStructureOpsLowestPriority {
   implicit val fromHNil: NestedStructureOps[HNil] = {
     new NestedStructureOps[HNil] {
       override def ops(executable: HNil): Set[UntypedOp] = {
@@ -125,6 +129,19 @@ object NestedStructureOps {
     }
   }
 
+  implicit def fromProduct[P <: Product, L <: HList](implicit
+      gen: Generic.Aux[P, L],
+      executableL: NestedStructureOps[L]
+  ): NestedStructureOps[P] = {
+    new NestedStructureOps[P] {
+      override def ops(executable: P): Set[UntypedOp] = {
+        executableL.ops(gen.to(executable))
+      }
+    }
+  }
+}
+
+trait NestedStructureOpsLowestPriority {
   implicit def fromCoproduct[H, T <: Coproduct](implicit
       evH: Strict[NestedStructureOps[H]],
       evT: NestedStructureOps[T]
@@ -135,17 +152,6 @@ object NestedStructureOps {
           case Inl(h) => evH.value.ops(h)
           case Inr(t) => evT.ops(t)
         }
-      }
-    }
-  }
-
-  implicit def fromProduct[P <: Product, L <: HList](implicit
-      gen: Generic.Aux[P, L],
-      executableL: NestedStructureOps[L]
-  ): NestedStructureOps[P] = {
-    new NestedStructureOps[P] {
-      override def ops(executable: P): Set[UntypedOp] = {
-        executableL.ops(gen.to(executable))
       }
     }
   }

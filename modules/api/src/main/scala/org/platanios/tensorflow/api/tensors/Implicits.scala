@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.tensors
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types._
-import org.platanios.tensorflow.api.tensors.ops.{Basic, Cast, Math, NN}
+import org.platanios.tensorflow.api.tensors.ops.{Basic, Math, NN}
 
 /** Groups together all implicits related to tensors.
   *

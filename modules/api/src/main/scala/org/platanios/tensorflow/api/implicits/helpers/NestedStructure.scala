@@ -52,7 +52,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-trait NestedStructure[T] {
+sealed trait NestedStructure[T] {
   type V // Tensor value
   type D // Data type
   type S // Shape
@@ -92,7 +92,7 @@ trait NestedStructure[T] {
   ): T
 }
 
-object NestedStructure {
+object NestedStructure extends NestedStructureNormalPriority {
   type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
   type SparseShape = (Shape, Shape, Shape)
 
@@ -112,13 +112,6 @@ object NestedStructure {
 
   def apply[T](implicit ev: NestedStructure[T]): NestedStructure.Aux[T, ev.V, ev.D, ev.S] = {
     ev.asAux()
-  }
-
-  implicit def fromTensorStructure[T, V, D, S](implicit
-      evTensorToOutput: TensorToOutput.Aux[V, T],
-      evStructure: NestedStructure.Aux[T, V, D, S]
-  ): NestedStructure.Aux[T, V, D, S] = {
-    evStructure
   }
 
   implicit val fromUnit: Aux[Unit, Unit, Unit, Unit] = {
@@ -850,10 +843,12 @@ object NestedStructure {
       }
     }
   }
+}
 
+trait NestedStructureNormalPriority extends NestedStructureLowPriority {
   implicit def fromOption[T, VV, DD, SS](implicit
-      ev: Aux[T, VV, DD, SS]
-  ): Aux[Option[T], Option[VV], Option[DD], Option[SS]] = {
+      ev: NestedStructure.Aux[T, VV, DD, SS]
+  ): NestedStructure.Aux[Option[T], Option[VV], Option[DD], Option[SS]] = {
     new NestedStructure[Option[T]] {
       override type V = Option[VV]
       override type D = Option[DD]
@@ -990,7 +985,7 @@ object NestedStructure {
       override def map(
           value: Option[T],
           shape: Option[Option[SS]],
-          converter: Converter
+          converter: NestedStructure.Converter
       ): Option[T] = {
         (value, shape) match {
           case (Some(v), Some(s)) => Some(ev.map(v, s, converter))
@@ -1001,8 +996,8 @@ object NestedStructure {
   }
 
   implicit def fromArray[T: ClassTag, VV: ClassTag, DD: ClassTag, SS: ClassTag](implicit
-      ev: Aux[T, VV, DD, SS]
-  ): Aux[Array[T], Array[VV], Array[DD], Array[SS]] = {
+      ev: NestedStructure.Aux[T, VV, DD, SS]
+  ): NestedStructure.Aux[Array[T], Array[VV], Array[DD], Array[SS]] = {
     new NestedStructure[Array[T]] {
       override type V = Array[VV]
       override type D = Array[DD]
@@ -1118,7 +1113,7 @@ object NestedStructure {
       override def map(
           value: Array[T],
           shape: Option[Array[SS]],
-          converter: Converter
+          converter: NestedStructure.Converter
       ): Array[T] = {
         val shapes = shape.map(_.map(Option(_))).getOrElse(value.map(_ => None))
         value.zip(shapes).map(p => ev.map(p._1, p._2, converter))
@@ -1127,8 +1122,8 @@ object NestedStructure {
   }
 
   implicit def fromSeq[T, VV, DD, SS](implicit
-      ev: Aux[T, VV, DD, SS]
-  ): Aux[Seq[T], Seq[VV], Seq[DD], Seq[SS]] = {
+      ev: NestedStructure.Aux[T, VV, DD, SS]
+  ): NestedStructure.Aux[Seq[T], Seq[VV], Seq[DD], Seq[SS]] = {
     new NestedStructure[Seq[T]] {
       override type V = Seq[VV]
       override type D = Seq[DD]
@@ -1251,7 +1246,7 @@ object NestedStructure {
       override def map(
           value: Seq[T],
           shape: Option[Seq[SS]],
-          converter: Converter
+          converter: NestedStructure.Converter
       ): Seq[T] = {
         val shapes = shape.map(_.map(Option(_))).getOrElse(value.map(_ => None))
         value.zip(shapes).map(p => ev.map(p._1, p._2, converter))
@@ -1260,8 +1255,8 @@ object NestedStructure {
   }
 
   implicit def fromMap[K, T, VV, DD, SS](implicit
-      ev: Aux[T, VV, DD, SS]
-  ): Aux[Map[K, T], Map[K, VV], Map[K, DD], Map[K, SS]] = {
+      ev: NestedStructure.Aux[T, VV, DD, SS]
+  ): NestedStructure.Aux[Map[K, T], Map[K, VV], Map[K, DD], Map[K, SS]] = {
     new NestedStructure[Map[K, T]] {
       override type V = Map[K, VV]
       override type D = Map[K, DD]
@@ -1391,15 +1386,17 @@ object NestedStructure {
       override def map(
           value: Map[K, T],
           shape: Option[Map[K, SS]],
-          converter: Converter
+          converter: NestedStructure.Converter
       ): Map[K, T] = {
         val shapes = shape.map(_.mapValues(Option(_))).getOrElse(value.mapValues(_ => None))
         (value.keys ++ shapes.keys).map(k => k -> ev.map(value(k), shapes(k), converter)).toMap
       }
     }
   }
+}
 
-  implicit val fromHNil: Aux[HNil, HNil, HNil, HNil] = {
+trait NestedStructureLowPriority extends NestedStructureLowestPriority {
+  implicit val fromHNil: NestedStructure.Aux[HNil, HNil, HNil, HNil] = {
     new NestedStructure[HNil] {
       override type V = HNil
       override type D = HNil
@@ -1501,7 +1498,7 @@ object NestedStructure {
       override def map(
           value: HNil,
           shape: Option[HNil],
-          converter: Converter
+          converter: NestedStructure.Converter
       ): HNil = {
         HNil
       }
@@ -1509,9 +1506,9 @@ object NestedStructure {
   }
 
   implicit def fromHList[HT, HV, HD, HS, TT <: HList, TV <: HList, TD <: HList, TS <: HList](implicit
-      evH: Strict[Aux[HT, HV, HD, HS]],
-      evT: Aux[TT, TV, TD, TS]
-  ): Aux[HT :: TT, HV :: TV, HD :: TD, HS :: TS] = {
+      evH: Strict[NestedStructure.Aux[HT, HV, HD, HS]],
+      evT: NestedStructure.Aux[TT, TV, TD, TS]
+  ): NestedStructure.Aux[HT :: TT, HV :: TV, HD :: TD, HS :: TS] = {
     new NestedStructure[HT :: TT] {
       override type V = HV :: TV
       override type D = HD :: TD
@@ -1638,7 +1635,7 @@ object NestedStructure {
       override def map(
           value: HT :: TT,
           shape: Option[HS :: TS],
-          converter: Converter
+          converter: NestedStructure.Converter
       ): HT :: TT = {
         evH.value.map(value.head, shape.map(_.head), converter) ::
             evT.map(value.tail, shape.map(_.tail), converter)
@@ -1646,10 +1643,137 @@ object NestedStructure {
     }
   }
 
+  implicit def fromProduct[PT <: Product, PV <: Product, PD <: Product, PS <: Product, HT <: HList, HV <: HList, HD <: HList, HS <: HList](implicit
+      genT: Generic.Aux[PT, HT],
+      evT: NestedStructure.Aux[HT, HV, HD, HS],
+      tuplerV: Tupler.Aux[HV, PV],
+      tuplerD: Tupler.Aux[HD, PD],
+      tuplerS: Tupler.Aux[HS, PS],
+      genV: Generic.Aux[PV, HV],
+      genD: Generic.Aux[PD, HD],
+      genS: Generic.Aux[PS, HS]
+  ): NestedStructure.Aux[PT, PV, PD, PS] = {
+    new NestedStructure[PT] {
+      override type V = PV
+      override type D = PD
+      override type S = PS
+
+      override def sizeFromOutput(output: PT): Int = {
+        evT.sizeFromOutput(genT.to(output))
+      }
+
+      override def sizeFromDataType(dataType: PD): Int = {
+        evT.sizeFromDataType(genD.to(dataType))
+      }
+
+      override def dataTypeFromOutput(output: PT): PD = {
+        tuplerD(evT.dataTypeFromOutput(genT.to(output)))
+      }
+
+      override def shapeFromOutput(output: PT): PS = {
+        tuplerS(evT.shapeFromOutput(genT.to(output)))
+      }
+
+      override def outputFromTensor(tensor: PV): PT = {
+        genT.from(evT.outputFromTensor(genV.to(tensor)))
+      }
+
+      override def dataTypeFromTensor(tensor: PV): PD = {
+        tuplerD(evT.dataTypeFromTensor(genV.to(tensor)))
+      }
+
+      override def shapeFromTensor(tensor: PV): PS = {
+        tuplerS(evT.shapeFromTensor(genV.to(tensor)))
+      }
+
+      override def outputs(output: PT): Seq[Output[Any]] = {
+        evT.outputs(genT.to(output))
+      }
+
+      override def tensors(tensor: PV): Seq[Tensor[Any]] = {
+        evT.tensors(genV.to(tensor))
+      }
+
+      override def dataTypes(dataType: PD): Seq[DataType[Any]] = {
+        evT.dataTypes(genD.to(dataType))
+      }
+
+      override def shapes(shape: PS): Seq[Shape] = {
+        evT.shapes(genS.to(shape))
+      }
+
+      override def decodeOutputFromOutput(
+          output: PT,
+          outputs: Seq[Output[Any]]
+      ): (PT, Seq[Output[Any]]) = {
+        val (out, remaining) = evT.decodeOutputFromOutput(genT.to(output), outputs)
+        (genT.from(out), remaining)
+      }
+
+      override def decodeTensorFromOutput(
+          output: PT,
+          tensors: Seq[Tensor[Any]]
+      ): (PV, Seq[Tensor[Any]]) = {
+        val (out, remaining) = evT.decodeTensorFromOutput(genT.to(output), tensors)
+        (tuplerV(out), remaining)
+      }
+
+      override def decodeDataTypeFromOutput(
+          output: PT,
+          dataTypes: Seq[DataType[Any]]
+      ): (PD, Seq[DataType[Any]]) = {
+        val (out, remaining) = evT.decodeDataTypeFromOutput(genT.to(output), dataTypes)
+        (genD.from(out), remaining)
+      }
+
+      override def decodeShapeFromOutput(
+          output: PT,
+          shapes: Seq[Shape]
+      ): (PS, Seq[Shape]) = {
+        val (out, remaining) = evT.decodeShapeFromOutput(genT.to(output), shapes)
+        (genS.from(out), remaining)
+      }
+
+      override def decodeOutputFromDataType(
+          dataType: PD,
+          outputs: Seq[Output[Any]]
+      ): (PT, Seq[Output[Any]]) = {
+        val (out, remaining) = evT.decodeOutputFromDataType(genD.to(dataType), outputs)
+        (genT.from(out), remaining)
+      }
+
+      override def decodeDataTypeFromDataType(
+          dataType: PD,
+          dataTypes: Seq[DataType[Any]]
+      ): (PD, Seq[DataType[Any]]) = {
+        val (out, remaining) = evT.decodeDataTypeFromDataType(genD.to(dataType), dataTypes)
+        (tuplerD(out), remaining)
+      }
+
+      override def decodeShapeFromDataType(
+          dataType: PD,
+          shapes: Seq[Shape]
+      ): (PS, Seq[Shape]) = {
+        val (out, remaining) = evT.decodeShapeFromDataType(genD.to(dataType), shapes)
+        (tuplerS(out), remaining)
+      }
+
+      override def map(
+          value: PT,
+          shape: Option[PS],
+          converter: NestedStructure.Converter
+      ): PT = {
+        genT.from(evT.map(genT.to(value), shape.map(genS.to), converter))
+      }
+    }
+  }
+}
+
+trait NestedStructureLowestPriority {
   implicit def fromCoproduct[HT, HV, HD, HS, TT <: Coproduct, TV <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
-      evH: Strict[Aux[HT, HV, HD, HS]],
-      evT: Aux[TT, TV, TD, TS]
-  ): Aux[HT :+: TT, HV :+: TV, HD :+: TD, HS :+: TS] = {
+      evH: Strict[NestedStructure.Aux[HT, HV, HD, HS]],
+      evT: NestedStructure.Aux[TT, TV, TD, TS]
+  ): NestedStructure.Aux[HT :+: TT, HV :+: TV, HD :+: TD, HS :+: TS] = {
     new NestedStructure[HT :+: TT] {
       override type V = HV :+: TV
       override type D = HD :+: TD
@@ -1833,138 +1957,13 @@ object NestedStructure {
       override def map(
           value: HT :+: TT,
           shape: Option[HS :+: TS],
-          converter: Converter
+          converter: NestedStructure.Converter
       ): HT :+: TT = {
         value match {
           case Inl(hv) => Inl(evH.value.map(hv, shape.map(_.asInstanceOf[Inl[HS, TS]].head), converter))
           case Inr(tv) => Inr(evT.map(tv, shape.map(_.asInstanceOf[Inr[HS, TS]].tail), converter))
           case _ => throw new IllegalStateException("Something went wrong while deriving implicit evidence.")
         }
-      }
-    }
-  }
-
-  implicit def fromProduct[PT <: Product, PV <: Product, PD <: Product, PS <: Product, HT <: HList, HV <: HList, HD <: HList, HS <: HList](implicit
-      genT: Generic.Aux[PT, HT],
-      evT: Aux[HT, HV, HD, HS],
-      tuplerV: Tupler.Aux[HV, PV],
-      tuplerD: Tupler.Aux[HD, PD],
-      tuplerS: Tupler.Aux[HS, PS],
-      genV: Generic.Aux[PV, HV],
-      genD: Generic.Aux[PD, HD],
-      genS: Generic.Aux[PS, HS]
-  ): Aux[PT, PV, PD, PS] = {
-    new NestedStructure[PT] {
-      override type V = PV
-      override type D = PD
-      override type S = PS
-
-      override def sizeFromOutput(output: PT): Int = {
-        evT.sizeFromOutput(genT.to(output))
-      }
-
-      override def sizeFromDataType(dataType: PD): Int = {
-        evT.sizeFromDataType(genD.to(dataType))
-      }
-
-      override def dataTypeFromOutput(output: PT): PD = {
-        tuplerD(evT.dataTypeFromOutput(genT.to(output)))
-      }
-
-      override def shapeFromOutput(output: PT): PS = {
-        tuplerS(evT.shapeFromOutput(genT.to(output)))
-      }
-
-      override def outputFromTensor(tensor: PV): PT = {
-        genT.from(evT.outputFromTensor(genV.to(tensor)))
-      }
-
-      override def dataTypeFromTensor(tensor: PV): PD = {
-        tuplerD(evT.dataTypeFromTensor(genV.to(tensor)))
-      }
-
-      override def shapeFromTensor(tensor: PV): PS = {
-        tuplerS(evT.shapeFromTensor(genV.to(tensor)))
-      }
-
-      override def outputs(output: PT): Seq[Output[Any]] = {
-        evT.outputs(genT.to(output))
-      }
-
-      override def tensors(tensor: PV): Seq[Tensor[Any]] = {
-        evT.tensors(genV.to(tensor))
-      }
-
-      override def dataTypes(dataType: PD): Seq[DataType[Any]] = {
-        evT.dataTypes(genD.to(dataType))
-      }
-
-      override def shapes(shape: PS): Seq[Shape] = {
-        evT.shapes(genS.to(shape))
-      }
-
-      override def decodeOutputFromOutput(
-          output: PT,
-          outputs: Seq[Output[Any]]
-      ): (PT, Seq[Output[Any]]) = {
-        val (out, remaining) = evT.decodeOutputFromOutput(genT.to(output), outputs)
-        (genT.from(out), remaining)
-      }
-
-      override def decodeTensorFromOutput(
-          output: PT,
-          tensors: Seq[Tensor[Any]]
-      ): (PV, Seq[Tensor[Any]]) = {
-        val (out, remaining) = evT.decodeTensorFromOutput(genT.to(output), tensors)
-        (tuplerV(out), remaining)
-      }
-
-      override def decodeDataTypeFromOutput(
-          output: PT,
-          dataTypes: Seq[DataType[Any]]
-      ): (PD, Seq[DataType[Any]]) = {
-        val (out, remaining) = evT.decodeDataTypeFromOutput(genT.to(output), dataTypes)
-        (genD.from(out), remaining)
-      }
-
-      override def decodeShapeFromOutput(
-          output: PT,
-          shapes: Seq[Shape]
-      ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evT.decodeShapeFromOutput(genT.to(output), shapes)
-        (genS.from(out), remaining)
-      }
-
-      override def decodeOutputFromDataType(
-          dataType: PD,
-          outputs: Seq[Output[Any]]
-      ): (PT, Seq[Output[Any]]) = {
-        val (out, remaining) = evT.decodeOutputFromDataType(genD.to(dataType), outputs)
-        (genT.from(out), remaining)
-      }
-
-      override def decodeDataTypeFromDataType(
-          dataType: PD,
-          dataTypes: Seq[DataType[Any]]
-      ): (PD, Seq[DataType[Any]]) = {
-        val (out, remaining) = evT.decodeDataTypeFromDataType(genD.to(dataType), dataTypes)
-        (tuplerD(out), remaining)
-      }
-
-      override def decodeShapeFromDataType(
-          dataType: PD,
-          shapes: Seq[Shape]
-      ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evT.decodeShapeFromDataType(genD.to(dataType), shapes)
-        (tuplerS(out), remaining)
-      }
-
-      override def map(
-          value: PT,
-          shape: Option[PS],
-          converter: Converter
-      ): PT = {
-        genT.from(evT.map(genT.to(value), shape.map(genS.to), converter))
       }
     }
   }

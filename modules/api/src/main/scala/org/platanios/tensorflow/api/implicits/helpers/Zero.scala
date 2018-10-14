@@ -29,7 +29,7 @@ import scala.reflect.ClassTag
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Zero[T] {
+sealed trait Zero[T] {
   type S // Shape type
 
   /** Generates a zero value of type `T`. */
@@ -40,7 +40,7 @@ trait Zero[T] {
   ): T
 }
 
-object Zero {
+object Zero extends ZeroNormalPriority {
   def apply[T, S](implicit ev: Zero.Aux[T, S]): Zero.Aux[T, S] = {
     ev
   }
@@ -85,10 +85,12 @@ object Zero {
       }
     }
   }
+}
 
+trait ZeroNormalPriority extends ZeroLowPriority {
   implicit def fromOption[T, SS](implicit
-      ev: Aux[T, SS]
-  ): Aux[Option[T], Option[SS]] = {
+      ev: Zero.Aux[T, SS]
+  ): Zero.Aux[Option[T], Option[SS]] = {
     new Zero[Option[T]] {
       override type S = Option[SS]
 
@@ -105,8 +107,8 @@ object Zero {
   }
 
   implicit def fromArray[T: ClassTag, SS: ClassTag](implicit
-      ev: Aux[T, SS]
-  ): Aux[Array[T], Array[SS]] = {
+      ev: Zero.Aux[T, SS]
+  ): Zero.Aux[Array[T], Array[SS]] = {
     new Zero[Array[T]] {
       override type S = Array[SS]
 
@@ -123,8 +125,8 @@ object Zero {
   }
 
   implicit def fromSeq[T, SS](implicit
-      ev: Aux[T, SS]
-  ): Aux[Seq[T], Seq[SS]] = {
+      ev: Zero.Aux[T, SS]
+  ): Zero.Aux[Seq[T], Seq[SS]] = {
     new Zero[Seq[T]] {
       override type S = Seq[SS]
 
@@ -141,8 +143,8 @@ object Zero {
   }
 
   implicit def fromMap[K, T, SS](implicit
-      ev: Aux[T, SS]
-  ): Aux[Map[K, T], Map[K, SS]] = {
+      ev: Zero.Aux[T, SS]
+  ): Zero.Aux[Map[K, T], Map[K, SS]] = {
     new Zero[Map[K, T]] {
       override type S = Map[K, SS]
 
@@ -157,8 +159,10 @@ object Zero {
       }
     }
   }
+}
 
-  implicit val fromHNil: Aux[HNil, HNil] = {
+trait ZeroLowPriority extends ZeroLowestPriority {
+  implicit val fromHNil: Zero.Aux[HNil, HNil] = {
     new Zero[HNil] {
       override type S = HNil
 
@@ -173,9 +177,9 @@ object Zero {
   }
 
   implicit def fromHList[H, HS, T <: HList, TS <: HList](implicit
-      evH: Strict[Aux[H, HS]],
-      evT: Aux[T, TS]
-  ): Aux[H :: T, HS :: TS] = {
+      evH: Strict[Zero.Aux[H, HS]],
+      evT: Zero.Aux[T, TS]
+  ): Zero.Aux[H :: T, HS :: TS] = {
     new Zero[H :: T] {
       override type S = HS :: TS
 
@@ -192,10 +196,31 @@ object Zero {
     }
   }
 
+  implicit def fromProduct[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
+      genP: Generic.Aux[P, L],
+      evL: Zero.Aux[L, LS],
+      tuplerS: Tupler.Aux[LS, PS],
+      genS: Generic.Aux[PS, LS]
+  ): Zero.Aux[P, PS] = {
+    new Zero[P] {
+      override type S = PS
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: PS,
+          name: String = "Zero"
+      ): P = {
+        genP.from(evL.zero(batchSize, genS.to(shape), name))
+      }
+    }
+  }
+}
+
+trait ZeroLowestPriority {
   implicit def fromCoproduct[H, HS, T <: Coproduct, TS <: Coproduct](implicit
-      evH: Strict[Aux[H, HS]],
-      evT: Aux[T, TS]
-  ): Aux[H :+: T, HS :+: TS] = {
+      evH: Strict[Zero.Aux[H, HS]],
+      evT: Zero.Aux[T, TS]
+  ): Zero.Aux[H :+: T, HS :+: TS] = {
     new Zero[H :+: T] {
       override type S = HS :+: TS
 
@@ -208,25 +233,6 @@ object Zero {
           case Inl(h) => Inl(evH.value.zero(batchSize, h, name))
           case Inr(t) => Inr(evT.zero(batchSize, t, name))
         }
-      }
-    }
-  }
-
-  implicit def fromProduct[P <: Product, PS <: Product, L <: HList, LS <: HList](implicit
-      genP: Generic.Aux[P, L],
-      evL: Aux[L, LS],
-      tuplerS: Tupler.Aux[LS, PS],
-      genS: Generic.Aux[PS, LS]
-  ): Aux[P, PS] = {
-    new Zero[P] {
-      override type S = PS
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: PS,
-          name: String = "Zero"
-      ): P = {
-        genP.from(evL.zero(batchSize, genS.to(shape), name))
       }
     }
   }
