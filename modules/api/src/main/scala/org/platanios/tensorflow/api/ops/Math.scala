@@ -4624,7 +4624,11 @@ object Math extends Math {
       new ComplexDoubleMathOps(f(value))
     }
 
-    implicit class MathOps[T: TF](val output: Output[T]) {
+    implicit class MathOps[T](val output: Output[T]) {
+      protected implicit val evTTF: TF[T] = {
+        TF.fromDataType(output.dataType)
+      }
+
       /** $OpDocMathSelect
         *
         * @group MathOps

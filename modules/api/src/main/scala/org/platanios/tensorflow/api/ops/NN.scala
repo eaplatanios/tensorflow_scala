@@ -1692,7 +1692,11 @@ object NN extends NN {
       new NNOps(f(value))
     }
 
-    implicit class NNOps[T: TF](val output: Output[T]) {
+    implicit class NNOps[T](val output: Output[T]) {
+      protected implicit val evTTF: TF[T] = {
+        TF.fromDataType(output.dataType)
+      }
+
       //region Core Ops
 
       /** $OpDocNNAddBias

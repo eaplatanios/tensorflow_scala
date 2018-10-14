@@ -2131,7 +2131,11 @@ object Math extends Math {
       new ComplexDoubleMathOps(f(value))
     }
 
-    implicit class MathOps[T: TF](val tensor: Tensor[T]) {
+    implicit class MathOps[T](val tensor: Tensor[T]) {
+      protected implicit val evTTF: TF[T] = {
+        TF.fromDataType(tensor.dataType)
+      }
+
       /** $OpDocMathSelect
         *
         * @group MathOps

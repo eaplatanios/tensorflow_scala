@@ -169,7 +169,11 @@ object Statistics extends Statistics {
       new StatisticsOps(f(value))
     }
 
-    implicit class StatisticsOps[T: TF](val output: Output[T]) {
+    implicit class StatisticsOps[T](val output: Output[T]) {
+      protected implicit val evTTF: TF[T] = {
+        TF.fromDataType(output.dataType)
+      }
+
       /** $OpDocStatisticsSufficientStatistics
         *
         * @group StatisticsOps

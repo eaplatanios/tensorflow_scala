@@ -76,7 +76,11 @@ object Sparse extends Sparse {
       new SparseOps(f(value))
     }
 
-    implicit class SparseOps[T: TF](val sparseOutput: SparseOutput[T]) {
+    implicit class SparseOps[T](val sparseOutput: SparseOutput[T]) {
+      protected implicit val evTTF: TF[T] = {
+        TF.fromDataType(sparseOutput.dataType)
+      }
+
       def +(other: SparseOutput[T])(implicit ev: IsNumeric[T]): SparseOutput[T] = {
         add(other, threshold = 0)
       }

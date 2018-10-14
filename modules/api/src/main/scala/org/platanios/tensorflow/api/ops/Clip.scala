@@ -201,7 +201,11 @@ object Clip extends Clip {
       new ClipOps(f(value))
     }
 
-    implicit class ClipOps[T: TF](val output: Output[T]) {
+    implicit class ClipOps[T](val output: Output[T]) {
+      protected implicit val evTTF: TF[T] = {
+        TF.fromDataType(output.dataType)
+      }
+
       /** $OpDocClipClipByValue
         *
         * @group ClipOps

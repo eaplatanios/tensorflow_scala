@@ -344,7 +344,11 @@ object Basic extends Basic {
       new BasicOps(f(value))
     }
 
-    implicit class BasicOps[T: TF](val output: Output[T]) {
+    implicit class BasicOps[T](val output: Output[T]) {
+      protected implicit val evTTF: TF[T] = {
+        TF.fromDataType(output.dataType)
+      }
+
       //region Tensor Manipulation Ops
 
       /** $OpDocBasicIdentity
