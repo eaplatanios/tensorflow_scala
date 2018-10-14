@@ -247,6 +247,44 @@ trait Data extends Experimental {
     }
   }
 
+  /** Creates a new dataset that contains pseudorandom integers.
+    *
+    * @param  seed Optional random seed, used to generate a random seed pair for the random number generator, when
+    *              combined with the graph-level seed.
+    * @param  name Name for this dataset.
+    * @return Created dataset.
+    */
+  def randomDataset(
+      seed: Option[Int] = None,
+      name: String = "RandomDataset"
+  ): Dataset[Output[Long]] = {
+    val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
+    val datasetName = name
+    new Dataset[Output[Long]] {
+      override val name: String = datasetName
+
+      override def createHandle[V, D, S]()(implicit evOutputLong: NestedStructure.Aux[Output[Long], V, D, S]): Output[Variant] = {
+        Op.Builder[(Output[Long], Output[Long]), Output[Variant]](
+          opType = "RandomDataset",
+          name = name,
+          input = (
+              Basic.constant(graphSeed.getOrElse(0L), name = s"$name/Seed1"),
+              Basic.constant(opSeed.getOrElse(0L), name = s"$name/Seed2"))
+        ).setAttribute("output_types", flatOutputDataTypes.toArray)
+            .setAttribute("output_shapes", flatOutputShapes.toArray)
+            .build().output
+      }
+
+      override def outputDataTypes[V, D, S](implicit evOutputLong: NestedStructure.Aux[Output[Long], V, D, S]): D = {
+        INT64.asInstanceOf[D]
+      }
+
+      override def outputShapes[V, D, S](implicit evOutputLong: NestedStructure.Aux[Output[Long], V, D, S]): S = {
+        Shape().asInstanceOf[S]
+      }
+    }
+  }
+
   /** Creates a dataset with elements read from binary files.
     *
     * @param  filenames      Names of the files to be read.
