@@ -375,6 +375,49 @@ trait Data extends Experimental {
     }
   }
 
+  /** Creates a dataset with elements read from text files (each line in each file corresponds to an element).
+    *
+    * **Note:** New-line characters are stripped from the output.
+    *
+    * @param  filenames       Names of the files to be read.
+    * @param  compressionType Compression type for the files.
+    * @param  bufferSize      Number of bytes to buffer while reading from files.
+    * @param  name            Name for this dataset.
+    * @return Created dataset.
+    */
+  def datasetFromDynamicTextFiles(
+      filenames: Output[String],
+      compressionType: CompressionType = NoCompression,
+      bufferSize: Long = 256 * 1024,
+      name: String = "TextLinesDataset"
+  ): Dataset[Output[String]] = {
+    val datasetName = name
+    new Dataset[Output[String]] {
+      override val name: String = datasetName
+
+      override def createHandle[V, D, S]()(implicit evOutputString: NestedStructure.Aux[Output[String], V, D, S]): Output[Variant] = {
+        Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
+          opType = "TextLineDataset",
+          name = name,
+          input = (
+              filenames,
+              Basic.constant(compressionType.name, name = s"$name/CompressionType"),
+              Basic.constant(bufferSize, name = s"$name/BufferSize"))
+        ).setAttribute("output_types", flatOutputDataTypes.toArray)
+            .setAttribute("output_shapes", flatOutputShapes.toArray)
+            .build().output
+      }
+
+      override def outputDataTypes[V, D, S](implicit evOutputString: NestedStructure.Aux[Output[String], V, D, S]): D = {
+        STRING.asInstanceOf[D]
+      }
+
+      override def outputShapes[V, D, S](implicit evOutputString: NestedStructure.Aux[Output[String], V, D, S]): S = {
+        Shape().asInstanceOf[S]
+      }
+    }
+  }
+
   /** Creates a dataset with elements read from files that contain TensorFlow records.
     *
     * @param  filenames       Names of the files to be read.
