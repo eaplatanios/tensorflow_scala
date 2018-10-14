@@ -919,7 +919,7 @@ trait Basic {
 
 object Basic extends Basic {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToBasicOps[T: TF, TC](
+    implicit def tensorConvertibleToBasicOps[T, TC](
         value: TC
     )(implicit f: TC => Tensor[T]): BasicOps[T] = {
       new BasicOps(f(value))

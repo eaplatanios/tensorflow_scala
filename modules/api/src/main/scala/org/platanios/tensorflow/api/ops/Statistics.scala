@@ -163,7 +163,7 @@ trait Statistics {
 
 object Statistics extends Statistics {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToStatisticsOps[T: TF, OC](
+    implicit def outputConvertibleToStatisticsOps[T, OC](
         value: OC
     )(implicit f: OC => Output[T]): StatisticsOps[T] = {
       new StatisticsOps(f(value))

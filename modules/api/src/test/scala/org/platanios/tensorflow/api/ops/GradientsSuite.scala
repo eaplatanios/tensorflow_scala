@@ -172,7 +172,7 @@ class GradientsSuite extends JUnitSuite {
         (Basic.constant(0), Basic.constant(0), TensorArray.create[Int](4)))
       val target = lv._3.read(lv._1 - 1)
       val gradient = Gradients.gradients(Seq(target), Seq(v), INT32).head
-      assert(gradient === null)
+      assert(gradient == null)
     }
   }
 

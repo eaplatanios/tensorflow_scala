@@ -195,7 +195,7 @@ trait Clip {
 
 object Clip extends Clip {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToClipOps[T: TF, OC](
+    implicit def outputConvertibleToClipOps[T, OC](
         value: OC
     )(implicit f: OC => Output[T]): ClipOps[T] = {
       new ClipOps(f(value))

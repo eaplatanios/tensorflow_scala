@@ -70,7 +70,7 @@ trait Sparse {
 
 object Sparse extends Sparse {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToSparseOps[T: TF, OC](
+    implicit def outputConvertibleToSparseOps[T, OC](
         value: OC
     )(implicit f: OC => SparseOutput[T]): SparseOps[T] = {
       new SparseOps(f(value))

@@ -338,7 +338,7 @@ trait Basic extends basic.API {
 
 object Basic extends Basic {
   private[ops] trait Implicits {
-    implicit def outputConvertibleToBasicOps[T: TF, OC](
+    implicit def outputConvertibleToBasicOps[T, OC](
         value: OC
     )(implicit f: OC => Output[T]): BasicOps[T] = {
       new BasicOps(f(value))

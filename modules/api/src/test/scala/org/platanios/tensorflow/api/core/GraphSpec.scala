@@ -133,7 +133,7 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'outputByName'" must "return an existing op output in a graph" in {
     val (graph, ops) = prepareGraph()
-    assert(graph.getOutputByName("C_2:0") === ops(1).outputsSeq(0))
+    assert(graph.getOutputByName("C_2:0") == ops(1).outputsSeq(0))
   }
 
   it must "throw an 'InvalidArgumentException' exception with an informative message " +
@@ -158,7 +158,7 @@ class GraphSpec extends FlatSpec with Matchers {
   "'graphElementByName'" must "return an existing element in a graph" in {
     val (graph, ops) = prepareGraph()
     assert(graph.getByName("C_2").left.get === ops(1))
-    assert(graph.getByName("C_2:0").right.get === ops(1).outputsSeq(0))
+    assert(graph.getByName("C_2:0").right.get == ops(1).outputsSeq(0))
   }
 
   it must "throw an 'InvalidArgumentException' exception with an informative message " +

@@ -2101,7 +2101,7 @@ trait Math {
 
 object Math extends Math {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToMathOps[T: TF, TC](value: TC)(implicit
+    implicit def tensorConvertibleToMathOps[T, TC](value: TC)(implicit
         f: TC => Tensor[T]
     ): MathOps[T] = {
       new MathOps(f(value))
