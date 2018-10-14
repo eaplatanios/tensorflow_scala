@@ -371,7 +371,9 @@ object Estimator {
         Data.datasetFromTensors(value)
       }
 
-      override def convertFetched(iterator: Iterator[(InV, OutV)]): OutV = iterator.next()._2
+      override def convertFetched(iterator: Iterator[(InV, OutV)]): OutV = {
+        iterator.next()._2
+      }
     }
   }
 }

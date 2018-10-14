@@ -252,34 +252,27 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
       stopHook.reset(session)
       session.enableHooks()
       session.resetShouldStop()
-      try {
-        ev.convertFetched(new Iterator[(InV, OutV)] {
-          override def hasNext: Boolean = !session.shouldStop
-          override def next(): (InV, OutV) = {
-            try {
-              // TODO: !!! There might be an issue with the stop criteria here.
-              session.removeHooks(currentTrainHooks ++ evaluateHooks)
-              val output = session.run(fetches = (inferenceOps.input, inferenceOps.output))
-              session.addHooks(currentTrainHooks ++ evaluateHooks)
-              output
-            } catch {
-              case _: OutOfRangeException =>
-                session.setShouldStop(true)
-                // TODO: !!! Do something to avoid this null pair.
-                (null.asInstanceOf[InV], null.asInstanceOf[OutV])
-              case t: Throwable =>
-                stopHook.updateCriteria(stopCriteria)
-                session.closeWithoutHookEnd()
-                throw t
-            }
+      ev.convertFetched(new Iterator[(InV, OutV)] {
+        override def hasNext: Boolean = !session.shouldStop
+        override def next(): (InV, OutV) = {
+          try {
+            // TODO: !!! There might be an issue with the stop criteria here.
+            session.removeHooks(currentTrainHooks ++ evaluateHooks)
+            val output = session.run(fetches = (inferenceOps.input, inferenceOps.output))
+            session.addHooks(currentTrainHooks ++ evaluateHooks)
+            output
+          } catch {
+            case _: OutOfRangeException =>
+              session.setShouldStop(true)
+              // TODO: !!! Do something to avoid this null pair.
+              (null.asInstanceOf[InV], null.asInstanceOf[OutV])
+            case t: Throwable =>
+              stopHook.updateCriteria(stopCriteria)
+              session.closeWithoutHookEnd()
+              throw t
           }
-        })
-      } catch {
-        case t: Throwable =>
-          stopHook.updateCriteria(stopCriteria)
-          session.closeWithoutHookEnd()
-          throw t
-      }
+        }
+      })
     }
     stopHook.updateCriteria(stopCriteria)
     session.addHooks(currentTrainHooks ++ evaluateHooks)

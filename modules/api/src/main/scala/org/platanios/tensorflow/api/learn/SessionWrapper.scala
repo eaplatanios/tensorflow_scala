@@ -232,7 +232,13 @@ class SessionWrapper private[learn](
   }
 
   /** Resets the `shouldStop` flag of this session wrapper to `false`. */
-  def resetShouldStop(): Unit = _shouldStop = false
+  def resetShouldStop(): Unit = {
+    _shouldStop = false
+    session match {
+      case s: SessionWrapper => s.resetShouldStop()
+      case _ => ()
+    }
+  }
 
   /** Overridable method that returns `true` if this session should not be used anymore. */
   private[learn] def checkStop: Boolean = _shouldStop
