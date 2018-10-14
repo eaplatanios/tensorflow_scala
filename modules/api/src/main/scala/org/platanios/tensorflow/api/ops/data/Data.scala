@@ -37,7 +37,7 @@ import scala.language.postfixOps
 /**
   * @author Emmanouil Antonios Platanios
   */
-trait Data {
+trait Data extends Experimental {
   //region Dataset Constructors
 
   /** Creates a dataset with a single element.

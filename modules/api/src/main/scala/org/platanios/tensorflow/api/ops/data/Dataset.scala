@@ -769,8 +769,8 @@ trait Dataset[T] { outer =>
     * @param  paddedShapes  Shape to which the respective component of each input element should be padded prior to
     *                       batching. Any unknown dimensions (e.g., equal to `-1`) will be padded to the maximum size of
     *                       that dimension in each batch.
-    * @param  paddingValues Scalar tensor structure representing the padding values to use for the respective components.
-    *                       Defaults to zero for numeric types and the empty string for string types.
+    * @param  paddingValues Scalar tensor structure representing the padding values to use for the respective
+    *                       components. Defaults to zero for numeric types and the empty string for string types.
     * @param  name          Name for this dataset.
     * @return Created dataset.
     */
