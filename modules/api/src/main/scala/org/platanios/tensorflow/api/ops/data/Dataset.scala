@@ -687,12 +687,11 @@ trait Dataset[T] { outer =>
 
       override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
         val bs = Op.nameScope(name)(Basic.constant(batchSize))
-        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
+        Op.Builder[(Output[Variant], Output[Long], Output[Boolean]), Output[Variant]](
           opType = "BatchDatasetV2",
           name = name,
-          input = (outer.createHandle(), bs)
-        ).setAttribute("drop_remainder", dropRemainder)
-            .setAttribute("output_types", flatOutputDataTypes.toArray)
+          input = (outer.createHandle(), bs, dropRemainder)
+        ).setAttribute("output_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
       }
@@ -719,18 +718,17 @@ trait Dataset[T] { outer =>
     */
   def dynamicBatch(
       batchSize: Output[Long],
-      dropRemainder: Boolean = false
+      dropRemainder: Output[Boolean] = false
   ): Dataset[T] = {
     new Dataset[T] {
       override val name: String = s"${outer.name}/Batch"
 
       override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
-        Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
+        Op.Builder[(Output[Variant], Output[Long], Output[Boolean]), Output[Variant]](
           opType = "BatchDatasetV2",
           name = name,
-          input = (outer.createHandle(), batchSize)
-        ).setAttribute("drop_remainder", dropRemainder)
-            .setAttribute("output_types", flatOutputDataTypes.toArray)
+          input = (outer.createHandle(), batchSize, dropRemainder)
+        ).setAttribute("output_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
       }
