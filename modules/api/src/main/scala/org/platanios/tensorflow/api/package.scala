@@ -89,6 +89,7 @@ package object api extends implicits.Implicits with Documentation {
   val SparseTensor       : tensors.SparseTensor.type        = tensors.SparseTensor
 
   type Op[I, O] = ops.Op[I, O]
+  type UntypedOp = ops.UntypedOp
 
   type OutputLike[T] = ops.OutputLike[T]
   type Output[T] = ops.Output[T]
@@ -102,6 +103,9 @@ package object api extends implicits.Implicits with Documentation {
   val OutputIndexedSlices: ops.OutputIndexedSlices.type = ops.OutputIndexedSlices
   val SparseOutput       : ops.SparseOutput.type        = ops.SparseOutput
   val TensorArray        : ops.TensorArray.type         = ops.TensorArray
+
+  type VariableLike[T] = ops.variables.VariableLike[T]
+  type Variable[T] = ops.variables.Variable[T]
 
   //region Data Types API
 

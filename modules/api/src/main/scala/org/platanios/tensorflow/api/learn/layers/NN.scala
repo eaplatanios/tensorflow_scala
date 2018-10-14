@@ -22,7 +22,6 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.NN._
 import org.platanios.tensorflow.api.ops.Output
-import org.platanios.tensorflow.api.ops.variables._
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -56,12 +55,12 @@ case class BatchNormalization[T: TF : IsDecimal](
     epsilon: Float = 1e-3f,
     center: Boolean = true,
     scale: Boolean = true,
-    betaInitializer: Initializer = ZerosInitializer,
-    gammaInitializer: Initializer = OnesInitializer,
-    movingMeanInitializer: Initializer = ZerosInitializer,
-    movingVarianceInitializer: Initializer = OnesInitializer,
-    betaRegularizer: Regularizer = null,
-    gammaRegularizer: Regularizer = null,
+    betaInitializer: tf.VariableInitializer = tf.ZerosInitializer,
+    gammaInitializer: tf.VariableInitializer = tf.OnesInitializer,
+    movingMeanInitializer: tf.VariableInitializer = tf.ZerosInitializer,
+    movingVarianceInitializer: tf.VariableInitializer = tf.OnesInitializer,
+    betaRegularizer: tf.VariableRegularizer = null,
+    gammaRegularizer: tf.VariableRegularizer = null,
     renorm: Boolean = false, // TODO: [LAYERS] Renorm clipping
     renormMomentum: Float = 0.9f,
     fused: Boolean = true
@@ -105,10 +104,10 @@ case class BatchNormalization[T: TF : IsDecimal](
 
     val renormVariables = Option(renorm).collect {
       case true =>
-        val renormMean = tf.variable[Float]("RenormMean", parametersShape, ZerosInitializer, trainable = false)
-        val renormMeanWeight = tf.variable[Float]("RenormMeanWeight", Shape(), ZerosInitializer, trainable = false)
-        val renormStdDev = tf.variable[Float]("RenormStdDev", parametersShape, ZerosInitializer, trainable = false)
-        val renormStdDevWeight = tf.variable[Float]("RenormStdDevWeight", Shape(), ZerosInitializer, trainable = false)
+        val renormMean = tf.variable[Float]("RenormMean", parametersShape, tf.ZerosInitializer, trainable = false)
+        val renormMeanWeight = tf.variable[Float]("RenormMeanWeight", Shape(), tf.ZerosInitializer, trainable = false)
+        val renormStdDev = tf.variable[Float]("RenormStdDev", parametersShape, tf.ZerosInitializer, trainable = false)
+        val renormStdDevWeight = tf.variable[Float]("RenormStdDevWeight", Shape(), tf.ZerosInitializer, trainable = false)
         ???
     }
 
@@ -263,7 +262,7 @@ case class Conv2D[T: TF : IsDecimal](
     dataFormat: CNNDataFormat = CNNDataFormat.default,
     dilations: (Int, Int, Int, Int) = (1, 1, 1, 1),
     useCuDNNOnGPU: Boolean = true,
-    weightsInitializer: Initializer = RandomNormalInitializer()
+    weightsInitializer: tf.VariableInitializer = tf.RandomNormalInitializer()
 ) extends Layer[Output[T], Output[T]](name) {
   override val layerType: String = s"Conv2D[${filterShape.asArray.mkString(",")}]"
 
