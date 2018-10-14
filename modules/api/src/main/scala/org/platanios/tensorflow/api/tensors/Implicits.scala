@@ -19,8 +19,6 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.ops.{Basic, Cast, Math, NN}
 
-import scala.collection.{TraversableLike, breakOut}
-
 /** Groups together all implicits related to tensors.
   *
   * @author Emmanouil Antonios Platanios
@@ -54,10 +52,10 @@ private[api] trait Implicits
     if (value == null) null else Basic.stack(value.toSeq)
   }
 
-  implicit def tensorFromTraversable[T: TF, CC[A] <: TraversableLike[A, CC[A]]](
-      value: CC[Tensor[T]]
+  implicit def tensorFromTraversable[T: TF](
+      value: Seq[Tensor[T]]
   ): Tensor[T] = {
-    if (value == null) null else Basic.stack(value.toSeq)
+    if (value == null) null else Basic.stack(value)
   }
 }
 
@@ -71,13 +69,13 @@ private[tensors] trait Priority3Implicits extends Priority2Implicits {
     if (value == null) null else Basic.stack(value.toSeq.map(f))
   }
 
-  implicit def tensorFromConvertibleTraversable[T, V, CC[A] <: TraversableLike[A, CC[A]]](
-      value: CC[V]
+  implicit def tensorFromConvertibleTraversable[T, V](
+      value: Seq[V]
   )(implicit
       f: V => Tensor[T],
       evTF: TF[T]
   ): Tensor[T] = {
-    if (value == null) null else Basic.stack(value.map(f)(breakOut))
+    if (value == null) null else Basic.stack(value.map(f))
   }
 }
 

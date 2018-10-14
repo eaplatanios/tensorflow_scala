@@ -69,7 +69,7 @@ object LinearRegressionFromRestoredPythonModel {
       // TRAINING LOOP
       for (i <- 0 to 50) {
         val (one, two) = batch(10000)
-        val feedsMap = FeedMap(Map(input -> one, output -> two))
+        val feedsMap = FeedMap(Map(input -> one.asInstanceOf[Tensor[Any]], output -> two.asInstanceOf[Tensor[Any]]))
         val fetchesSeq = Seq(loss, weight, bias)
         val trainFetches = session.run(feeds = feedsMap, fetches = fetchesSeq, targets = trainOp)
         val trainLoss = trainFetches(0)
@@ -81,7 +81,7 @@ object LinearRegressionFromRestoredPythonModel {
   }
 
   // UTILITY METHODS
-  def batch(batchSize: Int): (Tensor[Any], Tensor[Any]) = {
+  def batch(batchSize: Int): (Tensor[Double], Tensor[Double]) = {
     val inputs = ArrayBuffer.empty[Double]
     val outputs = ArrayBuffer.empty[Double]
     for (_ <- 0 until batchSize) {
@@ -89,8 +89,8 @@ object LinearRegressionFromRestoredPythonModel {
       inputs += input
       outputs += weight * input
     }
-    (tfi.reshape[Double, Int](tfi.stack[Double](inputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)),
-        tfi.reshape[Double, Int](tfi.stack[Double](outputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)))
+    (tfi.reshape(tfi.stack[Double](inputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)),
+        tfi.reshape(tfi.stack[Double](outputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)))
   }
 
   def printRestoredNodesAndOperations(

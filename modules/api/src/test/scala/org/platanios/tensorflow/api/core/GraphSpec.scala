@@ -203,8 +203,8 @@ class GraphSpec extends FlatSpec with Matchers {
       val output = add(input, offset, name = "AddOffset")
 
       // Add input and output tensors to graph collections.
-      graph.addToCollection(INPUTS)(input)
-      graph.addToCollection(OUTPUTS)(output)
+      graph.addToCollection(INPUTS)(input.asInstanceOf[Output[Any]])
+      graph.addToCollection(OUTPUTS)(output.asInstanceOf[Output[Any]])
 
       val outputValue = session.run(Map(input -> Tensor(-10f)), output)
       assert(outputValue.scalar == 32)
