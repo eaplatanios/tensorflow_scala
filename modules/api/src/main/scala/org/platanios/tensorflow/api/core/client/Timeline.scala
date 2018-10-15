@@ -17,8 +17,7 @@ package org.platanios.tensorflow.api.core.client
 
 import com.typesafe.scalalogging.Logger
 import io.circe._
-import io.circe.generic.auto._
-import io.circe.syntax._
+import io.circe.generic.semiauto._
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.StepStats
 
@@ -34,6 +33,17 @@ import scala.util.matching.Regex
   * @author Emmanouil Antonios Platanios
   */
 object Timeline {
+  implicit val encodeLong                      : Encoder[Long]                                              = Encoder[Long]
+  implicit val encodeString                    : Encoder[String]                                            = Encoder[String]
+  implicit val encodeMapString                 : Encoder[Map[String, String]]                               = Encoder[Map[String, String]]
+  implicit val encodeOptionInt                 : Encoder[Option[Int]]                                       = Encoder[Option[Int]]
+  implicit val encodeOptionLong                : Encoder[Option[Long]]                                      = Encoder[Option[Long]]
+  implicit val encodeOptionString              : Encoder[Option[String]]                                    = Encoder[Option[String]]
+  implicit val encodeOptionMapString           : Encoder[Option[Map[String, Json]]]                         = Encoder[Option[Map[String, Json]]]
+  implicit val encodeChromeTraceEvent          : Encoder[ChromeTraceEvent]                                  = deriveEncoder
+  implicit val encodeChromeTraceEventListBuffer: Encoder[mutable.ListBuffer[ChromeTraceEvent]]              = deriveEncoder
+  implicit val encodeTrace                     : Encoder[Map[String, mutable.ListBuffer[ChromeTraceEvent]]] = Encoder[Map[String, mutable.ListBuffer[ChromeTraceEvent]]]
+
   protected[Timeline] val logger = Logger(LoggerFactory.getLogger("Core / Timeline"))
 
   protected[Timeline] val opLabelRegex: Regex = """(.*) = (.*)\((.*)\)""".r
@@ -137,7 +147,7 @@ object Timeline {
                   "Tensor", outputName, startTime, tensorsPID, threadID, tensor.objectID)
                 chromeTraceFormatter.emitObjectSnapshot(
                   "Tensor", tensor.name, endTime - 1, tensorsPID, threadID, tensor.objectID,
-                  snapshot = Map("tensor_description" -> tensorDescription).asJson)
+                  snapshot = encodeMapString(Map("tensor_description" -> tensorDescription)))
               }
           }
       }
@@ -177,8 +187,8 @@ object Timeline {
               (nodeName, op, inputs)
             }
           }
-          val arguments = Map("name" -> name.asJson, "op" -> op.asJson) ++
-              inputs.zipWithIndex.map(i => s"input${i._2}" -> i._1.asJson)
+          val arguments = Map("name" -> encodeString(name), "op" -> encodeString(op)) ++
+              inputs.zipWithIndex.map(i => s"input${i._2}" -> encodeString(i._1))
           chromeTraceFormatter.emitRegion("Op", op, startTime, duration, devicePID, threadID, arguments)
 
           // Visualize the computation activity.
@@ -251,23 +261,23 @@ object Timeline {
     chromeTraceFormatter.toJsonString(prettyJson)
   }
 
+  case class ChromeTraceEvent(
+      name: String,
+      ph: String,
+      cat: Option[String] = None,
+      pid: Option[Int] = None,
+      tid: Option[Int] = None,
+      ts: Option[Long] = None,
+      dur: Option[Long] = None,
+      id: Option[Int] = None,
+      args: Option[Map[String, Json]] = None)
+
   /** Helper class used for generating traces in the Chrome trace format.
     *
     * For details on the file format, please refer to
     * [[https://github.com/catapult-project/catapult/blob/master/tracing/README.md]].
     */
   private[Timeline] case class ChromeTraceFormatter() {
-    case class ChromeTraceEvent(
-        name: String,
-        ph: String,
-        cat: Option[String] = None,
-        pid: Option[Int] = None,
-        tid: Option[Int] = None,
-        ts: Option[Long] = None,
-        dur: Option[Long] = None,
-        id: Option[Int] = None,
-        args: Option[Map[String, Json]] = None)
-
     private val events  : mutable.ListBuffer[ChromeTraceEvent] = mutable.ListBuffer.empty
     private val metadata: mutable.ListBuffer[ChromeTraceEvent] = mutable.ListBuffer.empty
 
@@ -282,7 +292,7 @@ object Timeline {
         name = "process_name",
         ph = "M",
         pid = Some(processID),
-        args = Some(Map("name" -> name.asJson)))
+        args = Some(Map("name" -> encodeString(name))))
       this
     }
 
@@ -299,7 +309,7 @@ object Timeline {
         ph = "M",
         pid = Some(processID),
         tid = Some(threadID),
-        args = Some(Map("name" -> name.asJson)))
+        args = Some(Map("name" -> encodeString(name))))
       this
     }
 
@@ -510,7 +520,7 @@ object Timeline {
         pid = Some(processID),
         tid = Some(0),
         ts = Some(timestamp),
-        args = Some(Map(counterName -> counterValue.asJson)))
+        args = Some(Map(counterName -> encodeLong(counterValue))))
       this
     }
 
@@ -537,7 +547,7 @@ object Timeline {
         pid = Some(processID),
         tid = Some(0),
         ts = Some(timestamp),
-        args = Some(counters.mapValues(_.asJson)))
+        args = Some(counters.mapValues(encodeLong(_))))
       this
     }
 
@@ -549,9 +559,9 @@ object Timeline {
     def toJsonString(pretty: Boolean = false): String = {
       val trace = Map("traceEvents" -> (metadata ++ events))
       if (pretty)
-        trace.asJson.spaces4
+        encodeTrace(trace).spaces4
       else
-        trace.asJson.noSpaces
+        encodeTrace(trace).noSpaces
     }
   }
 
