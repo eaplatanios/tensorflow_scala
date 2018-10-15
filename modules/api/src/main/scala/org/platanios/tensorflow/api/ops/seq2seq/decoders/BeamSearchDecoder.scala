@@ -314,7 +314,7 @@ class BeamSearchDecoder[T, State](
       evStructureDS: NestedStructure.Aux[BeamSearchDecoder.DecoderState[State], DSV, DSD, DSS]
   ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.DecoderState[State], Output[Int]) = {
     // Get the maximum sequence length across all search states for each batch
-    val maxSequenceLengths = state.sequenceLengths.max(Tensor(1)).castTo[Int]
+    val maxSequenceLengths = state.sequenceLengths.max(Tensor[Int](1)).castTo[Int]
     val predictedIDs = BeamSearchDecoder.gatherTree(
       output.predictedIDs, output.parentIDs, maxSequenceLengths, endToken)
     val finalOutput = BeamSearchDecoder.FinalOutput(predictedIDs, output)
@@ -697,9 +697,11 @@ object BeamSearchDecoder {
               Math.equal(shape(1), batchSize),
               Math.equal(shape(2), beamWidth)))
       },
-      data = Seq("Tensor array reordering expects elements to be reshapable to '[batchSize, beamSize, -1]' which is " +
-          s"incompatible with the dynamic shape of '${tensor.name}' elements. Consider setting `reorderTensorArrays` " +
-          "to `false` to disable tensor array reordering during the beam search."))
+      data = Seq(Tensor(
+        "Tensor array reordering expects elements to be reshapable to '[batchSize, beamSize, -1]' which is " +
+            s"incompatible with the dynamic shape of '${tensor.name}' elements. Consider setting " +
+            "`reorderTensorArrays` to `false` to disable tensor array reordering during the beam search."
+      ).toOutput))
   }
 
   /** Maybe sorts the search states within a tensor array. The input tensor array corresponds to the symbol to be
@@ -757,7 +759,7 @@ object BeamSearchDecoder {
 
           // Use `beamWidth + 1` to mark the end of the beam.
           val maskedSearchStateIndices = (searchStateIndices * mask) + (1 - mask) * (beamWidth + 1)
-          val maxSequenceLengths = sequenceLengths.max(Tensor(1)).castTo[Int]
+          val maxSequenceLengths = sequenceLengths.max(Tensor[Int](1)).castTo[Int]
           var sortedSearchStateIndices = gatherTree(
             maskedSearchStateIndices, parentIDs, maxSequenceLengths, beamWidth + 1)
 

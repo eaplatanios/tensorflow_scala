@@ -40,7 +40,7 @@ sealed trait Zero[T] {
   ): T
 }
 
-object Zero extends ZeroNormalPriority {
+object Zero {
   def apply[T, S](implicit ev: Zero.Aux[T, S]): Zero.Aux[T, S] = {
     ev
   }
@@ -85,9 +85,7 @@ object Zero extends ZeroNormalPriority {
       }
     }
   }
-}
 
-trait ZeroNormalPriority extends ZeroLowPriority {
   implicit def fromOption[T, SS](implicit
       ev: Zero.Aux[T, SS]
   ): Zero.Aux[Option[T], Option[SS]] = {
@@ -159,9 +157,7 @@ trait ZeroNormalPriority extends ZeroLowPriority {
       }
     }
   }
-}
 
-trait ZeroLowPriority extends ZeroLowestPriority {
   implicit val fromHNil: Zero.Aux[HNil, HNil] = {
     new Zero[HNil] {
       override type S = HNil
@@ -214,9 +210,7 @@ trait ZeroLowPriority extends ZeroLowestPriority {
       }
     }
   }
-}
 
-trait ZeroLowestPriority {
   implicit def fromCoproduct[H, HS, T <: Coproduct, TS <: Coproduct](implicit
       evH: Strict[Zero.Aux[H, HS]],
       evT: Zero.Aux[T, TS]

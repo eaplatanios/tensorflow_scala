@@ -507,7 +507,7 @@ private[optimizers] object Optimizer {
   private[Optimizer] def deDuplicateOutputIndexedSlices[T: TF : IsNumeric](
       input: OutputIndexedSlices[T]
   ): OutputIndexedSlices[T] = {
-    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Tensor(0), indicesDataType = Int)
+    val (uniqueIndices, newIndexPositions) = Basic.unique(input.indices, Output[Int](0), indicesDataType = Int)
     val summedValues = Math.unsortedSegmentSum(
       data = input.values,
       segmentIndices = newIndexPositions,

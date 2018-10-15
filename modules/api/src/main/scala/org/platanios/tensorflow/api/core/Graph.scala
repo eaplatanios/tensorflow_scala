@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
 import org.platanios.tensorflow.api.core.types.Resource
+import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.metrics.Metric
@@ -1249,7 +1250,7 @@ object Graph {
         val kind = collectionDef.getKindCase
         if (kind != CollectionDef.KindCase.INT64_LIST)
           throw new IllegalArgumentException(s"The '$name' collection should be stored as an INT64 list.")
-        collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(this)(v.toInt))
+        collectionDef.getInt64List.getValueList.asScala.foreach(v => graph.addToCollection(this)(Long2long(v).toInt))
       }
     }
 

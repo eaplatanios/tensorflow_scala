@@ -2288,11 +2288,11 @@ trait Math {
     }
   }
 
-  protected def safeShapeDiv[T: TF : IsNotQuantized](
-      x: Output[T],
-      y: Output[T]
-  ): Output[T] = {
-    truncateDivide(x, maximum(y, Basic.ones(y.dataType, Shape())))
+  protected def safeShapeDiv(
+      x: Output[Int],
+      y: Output[Int]
+  ): Output[Int] = {
+    truncateDivide[Int](x, maximum[Int](y, Basic.ones[Int](Tensor.empty[Long])))
   }
 
   /** $OpDocMathSum
@@ -2397,8 +2397,8 @@ trait Math {
       if (inputSize != -1 && outputSize != -1) {
         Basic.constant(inputSize / scala.math.max(outputSize, 1)).castTo[T]
       } else {
-        val inputShape = Basic.shape(op.input._1)
-        val outputShape = Basic.shape(op.output)
+        val inputShape = Basic.shape(op.input._1).toInt
+        val outputShape = Basic.shape(op.output).toInt
         safeShapeDiv(prod(inputShape), prod(outputShape)).castTo[T]
       }
     }

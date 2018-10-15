@@ -798,10 +798,10 @@ trait Dataset[T] { outer =>
       private def flatPaddingValues: Seq[Output[Any]] = {
         if (paddingValues != null) {
           evStructureT.tensors(paddingValues).map(v => {
-            Basic.constant(v)(TF.fromDataType(v.dataType))
+            Basic.constant(v)
           })
         } else {
-          flatOutputDataTypes.map(Basic.zeros(_, Shape()))
+          flatOutputDataTypes.map(Basic.zeros[Any](_, Tensor.empty[Long]))
         }
       }
 

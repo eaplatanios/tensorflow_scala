@@ -84,12 +84,12 @@ private[api] trait ControlFlow {
         } else {
           // 2-level tree. The root node is the returned no-op node.
           // `dependencies` contains 1 NoOp node for each device.
-          val dependencies: Seq[UntypedOp] = inputsByDevice.toSeq.sortBy(_._1).map {
+          val dependencies = inputsByDevice.toSeq.sortBy(_._1).map {
             case (device, ops) =>
               if (device != null)
-                Op.createWith(device = device, controlDependencies = ops)(noOp(name))
+                Op.createWith(device = device, controlDependencies = ops)(noOp(name).asUntyped)
               else
-                Op.createWith(controlDependencies = ops)(noOp(name))
+                Op.createWith(controlDependencies = ops)(noOp(name).asUntyped)
           }
           Op.createWith(controlDependencies = dependencies.toSet)(noOp(name))
         }
@@ -630,10 +630,10 @@ private[api] object ControlFlow extends ControlFlow {
     val numTrue = Math.sum(stacked.castTo[Int], name = "NumTruePredicates")
     val atMostOneTrue = Math.less(numTrue, Basic.constant(2, name = "TwoTruePredicates"))
     val errorData =
-      Seq(
-        Basic.constant(Tensor(
+      Seq[Output[Any]](
+        Basic.constant[String](
           "More than one condition evaluated as 'true' but 'exclusive = true'. " +
-              s"Conditions: (${predicates.map(_.name).mkString(", ")}), Values: ")),
+              s"Conditions: (${predicates.map(_.name).mkString(", ")}), Values: "),
         stacked)
     Checks.assert(atMostOneTrue, errorData, summarize = predicates.size)
   }
@@ -1004,16 +1004,17 @@ private[api] object ControlFlow extends ControlFlow {
           // within only one branch.
           // TODO: !!! This may be inefficient. What if one branch of the switch is not differentiable?
           val zeros = gradientTakenBranch match {
-            case o: Output[_] => Basic.zerosLike(o)(TF.fromDataType(o.dataType))
-            case o: OutputIndexedSlices[_] =>
-              OutputIndexedSlices(
+            case o: Output[T] =>
+              Basic.zerosLike[Any](o)
+            case o: OutputIndexedSlices[T] =>
+              OutputIndexedSlices[Any](
                 Basic.zeros[Long](Shape(1)),
-                Basic.zeros(o.values.dataType, Shape(1, o.values.shape(1))),
+                Basic.zeros[T](o.values.dataType, Shape(1, o.values.shape(1))),
                 o.denseShape)
-            case o: SparseOutput[_] =>
-              SparseOutput(
+            case o: SparseOutput[T] =>
+              SparseOutput[Any](
                 Basic.zeros[Long](Shape(1, o.indices.shape(1))),
-                Basic.zeros(o.values.dataType, Shape(1)),
+                Basic.zeros[T](o.values.dataType, Shape(1)),
                 o.denseShape)
           }
           val zeroGradient = opContext.branch.other.selectSwitchResult(
@@ -1053,7 +1054,7 @@ private[api] object ControlFlow extends ControlFlow {
             gradientContext
                 .flatMap(_.gradientLoopState)
                 .map(_.switchMap)
-                .foreach(_ += (op: UntypedOp) -> mergeGradient)
+                .foreach(_ += op.asUntyped -> mergeGradient.asUntyped)
             (mergeGradient, null)
           case _ =>
             // This is the first time this switch node is visited. It comes from the identity branch. Such a switch

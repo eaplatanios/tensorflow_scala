@@ -90,10 +90,14 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'x' == 'y' did not hold element-wise: x (${x.name}) = ", x, s" y (${y.name}) = ", y)
+            Seq(
+              Basic.constant(s"Condition 'x' == 'y' did not hold element-wise: x (${x.name}) = ").asUntyped,
+              x.asUntyped,
+              Basic.constant(s" y (${y.name}) = ").asUntyped,
+              y.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assert(Math.all(Math.equal(x, y)), processedData, summarize)
     }
@@ -124,10 +128,14 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'x' != 'y' did not hold element-wise: x (${x.name}) = ", x, s" y (${y.name}) = ", y)
+            Seq(
+              Basic.constant(s"Condition 'x' != 'y' did not hold element-wise: x (${x.name}) = ").asUntyped,
+              x.asUntyped,
+              Basic.constant(s" y (${y.name}) = ").asUntyped,
+              y.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assert(Math.all(Math.notEqual(x, y)), processedData, summarize)
     }
@@ -163,14 +171,14 @@ trait Checks {
             data
           } else {
             Seq(
-              s"'x' and 'y' are not nearly equal element-wise:",
-              s" x (${x.name}) = ", x,
-              s" y (${y.name}) = ", y,
-              s" relative tolerance (${relTolerance.name}) = ", relTolerance,
-              s" absolute tolerance (${absTolerance.name}) = ", absTolerance)
+              Basic.constant(s"'x' and 'y' are not nearly equal element-wise:").asUntyped,
+              Basic.constant(s" x (${x.name}) = ").asUntyped, x.asUntyped,
+              Basic.constant(s" y (${y.name}) = ").asUntyped, y.asUntyped,
+              Basic.constant(s" relative tolerance (${relTolerance.name}) = ").asUntyped, relTolerance.asUntyped,
+              Basic.constant(s" absolute tolerance (${absTolerance.name}) = ").asUntyped, absTolerance.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       val tolerance = absTolerance.castTo[T] + relTolerance.castTo[T] * Math.abs(y)
       val difference = Math.abs(x - y)
@@ -203,10 +211,14 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'x' < 'y' did not hold element-wise: x (${x.name}) = ", x, s" y (${y.name}) = ", y)
+            Seq(
+              Basic.constant(s"Condition 'x' < 'y' did not hold element-wise: x (${x.name}) = ").asUntyped,
+              x.asUntyped,
+              Basic.constant(s" y (${y.name}) = ").asUntyped,
+              y.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assert(Math.all(Math.less(x, y)), processedData, summarize)
     }
@@ -237,10 +249,14 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'x' <= 'y' did not hold element-wise: x (${x.name}) = ", x, s" y (${y.name}) = ", y)
+            Seq(
+              Basic.constant(s"Condition 'x' <= 'y' did not hold element-wise: x (${x.name}) = ").asUntyped,
+              x.asUntyped,
+              Basic.constant(s" y (${y.name}) = ").asUntyped,
+              y.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assert(Math.all(Math.lessEqual(x, y)), processedData, summarize)
     }
@@ -271,10 +287,14 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'x' > 'y' did not hold element-wise: x (${x.name}) = ", x, s" y (${y.name}) = ", y)
+            Seq(
+              Basic.constant(s"Condition 'x' > 'y' did not hold element-wise: x (${x.name}) = ").asUntyped,
+              x.asUntyped,
+              Basic.constant(s" y (${y.name}) = ").asUntyped,
+              y.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assert(Math.all(Math.greater(x, y)), processedData, summarize)
     }
@@ -305,10 +325,14 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'x' >= 'y' did not hold element-wise: x (${x.name}) = ", x, s" y (${y.name}) = ", y)
+            Seq(
+              Basic.constant(s"Condition 'x' >= 'y' did not hold element-wise: x (${x.name}) = ").asUntyped,
+              x.asUntyped,
+              Basic.constant(s" y (${y.name}) = ").asUntyped,
+              y.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assert(Math.all(Math.greaterEqual(x, y)), processedData, summarize)
     }
@@ -337,10 +361,12 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'input' > 0 did not hold element-wise: input (${input.name}) = ", input)
+            Seq(
+              Basic.constant(s"Condition 'input' > 0 did not hold element-wise: input (${input.name}) = ").asUntyped,
+              input.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assertLess(Basic.zeros[T](Shape()), input, data = processedData, summarize = summarize)
     }
@@ -369,10 +395,12 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'input' < 0 did not hold element-wise: input (${input.name}) = ", input)
+            Seq(
+              Basic.constant(s"Condition 'input' < 0 did not hold element-wise: input (${input.name}) = ").asUntyped,
+              input.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assertLess(input, Basic.zeros[T](Shape()), data = processedData, summarize = summarize)
     }
@@ -401,10 +429,12 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'input' <= 0 did not hold element-wise: input (${input.name}) = ", input)
+            Seq(
+              Basic.constant(s"Condition 'input' <= 0 did not hold element-wise: input (${input.name}) = ").asUntyped,
+              input.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assertLessEqual(input, Basic.zeros[T](Shape()), data = processedData, summarize = summarize)
     }
@@ -433,10 +463,12 @@ trait Checks {
           if (data != null) {
             data
           } else {
-            Seq(s"Condition 'input' >= 0 did not hold element-wise: input (${input.name}) = ", input)
+            Seq(
+              Basic.constant(s"Condition 'input' >= 0 did not hold element-wise: input (${input.name}) = ").asUntyped,
+              input.asUntyped)
           }
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assertLessEqual(Basic.zeros[T](Shape()), input, data = processedData, summarize = summarize)
     }
@@ -466,9 +498,11 @@ trait Checks {
       val processedData = {
         val d: Seq[Output[Any]] = {
           val predicateNames = predicates.map(p => s"'${p.name}'").mkString(", ")
-          Seq(s"More than $n conditions ($predicateNames) evaluated as `true`.", stackedPredicates)
+          Seq(
+            Basic.constant(s"More than $n conditions ($predicateNames) evaluated as `true`.").asUntyped,
+            stackedPredicates.asUntyped)
         }
-        if (message != null) message +: d else d
+        if (message != null) message.asUntyped +: d else d
       }
       assert(condition, processedData, summarize)
     }

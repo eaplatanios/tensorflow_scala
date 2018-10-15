@@ -291,9 +291,9 @@ object Context {
         val switch = condContext.branch.other.selectSwitchResult(
           ControlFlow.switch(op.inputsSeq(0), condContext.predicate)(TF.fromDataType(dataType)))
         Basic.zeros(dataType, Basic.shape(switch, optimize = false)(TF.fromDataType(dataType)))
-      }).getOrElse(Basic.zerosLike(op.outputsSeq(index), optimize = false)(TF.fromDataType(dataType)))
+      }).getOrElse(Basic.zerosLike(op.outputsSeq(index), optimize = false))
     } else {
-      Basic.zerosLike(op.outputsSeq(index), optimize = false)(TF.fromDataType(dataType))
+      Basic.zerosLike(op.outputsSeq(index), optimize = false)
     }
   }
 }

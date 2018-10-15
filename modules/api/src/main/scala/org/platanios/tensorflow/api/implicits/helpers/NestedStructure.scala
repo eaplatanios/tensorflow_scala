@@ -92,7 +92,7 @@ sealed trait NestedStructure[T] {
   ): T
 }
 
-object NestedStructure extends NestedStructureNormalPriority {
+object NestedStructure {
   type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
   type SparseShape = (Shape, Shape, Shape)
 
@@ -843,9 +843,7 @@ object NestedStructure extends NestedStructureNormalPriority {
       }
     }
   }
-}
 
-trait NestedStructureNormalPriority extends NestedStructureLowPriority {
   implicit def fromOption[T, VV, DD, SS](implicit
       ev: NestedStructure.Aux[T, VV, DD, SS]
   ): NestedStructure.Aux[Option[T], Option[VV], Option[DD], Option[SS]] = {
@@ -1393,9 +1391,7 @@ trait NestedStructureNormalPriority extends NestedStructureLowPriority {
       }
     }
   }
-}
 
-trait NestedStructureLowPriority extends NestedStructureLowestPriority {
   implicit val fromHNil: NestedStructure.Aux[HNil, HNil, HNil, HNil] = {
     new NestedStructure[HNil] {
       override type V = HNil
@@ -1767,9 +1763,7 @@ trait NestedStructureLowPriority extends NestedStructureLowestPriority {
       }
     }
   }
-}
 
-trait NestedStructureLowestPriority {
   implicit def fromCoproduct[HT, HV, HD, HS, TT <: Coproduct, TV <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
       evH: Strict[NestedStructure.Aux[HT, HV, HD, HS]],
       evT: NestedStructure.Aux[TT, TV, TD, TS]

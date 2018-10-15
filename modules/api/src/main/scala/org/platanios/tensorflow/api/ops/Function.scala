@@ -414,7 +414,7 @@ class FunctionGraph(
           reuse = reuse,
           collections = collections,
           cachingDevice = cachingDevice)
-        extraVars.append(variable)
+        extraVars.append(variable.value)
         variable
       }
     }

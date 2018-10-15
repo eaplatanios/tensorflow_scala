@@ -32,7 +32,7 @@ sealed trait TensorToOutput[T] {
   type O
 }
 
-object TensorToOutput extends TensorToOutputNormalPriority {
+object TensorToOutput {
   type Aux[T, OO] = TensorToOutput[T] {
     type O = OO
   }
@@ -60,9 +60,7 @@ object TensorToOutput extends TensorToOutputNormalPriority {
       override type O = SparseOutput[T]
     }
   }
-}
 
-trait TensorToOutputNormalPriority extends TensorToOutputLowPriority {
   implicit def fromOption[T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Option[T], Option[OO]] = {
     new TensorToOutput[Option[T]] {
       override type O = Option[OO]
@@ -96,9 +94,7 @@ trait TensorToOutputNormalPriority extends TensorToOutputLowPriority {
       override type O = T
     }
   }
-}
 
-trait TensorToOutputLowPriority extends TensorToOutputLowestPriority {
   implicit val fromHNil: TensorToOutput.Aux[HNil, HNil] = {
     new TensorToOutput[HNil] {
       override type O = HNil
@@ -124,9 +120,7 @@ trait TensorToOutputLowPriority extends TensorToOutputLowestPriority {
       override type O = PO
     }
   }
-}
 
-trait TensorToOutputLowestPriority {
   implicit def fromCoproduct[HT, HO, TT <: Coproduct, TO <: Coproduct](implicit
       evH: Strict[TensorToOutput.Aux[HT, HO]],
       evT: TensorToOutput.Aux[TT, TO]

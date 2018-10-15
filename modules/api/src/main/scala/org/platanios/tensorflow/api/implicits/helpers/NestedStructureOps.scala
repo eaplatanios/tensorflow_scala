@@ -45,7 +45,7 @@ sealed trait NestedStructureOps[T] {
   def ops(executable: T): Set[UntypedOp]
 }
 
-object NestedStructureOps extends NestedStructureOpsNormalPriority {
+object NestedStructureOps {
   def apply[T: NestedStructureOps]: NestedStructureOps[T] = implicitly[NestedStructureOps[T]]
 
   implicit val fromUnit: NestedStructureOps[Unit] = {
@@ -72,9 +72,7 @@ object NestedStructureOps extends NestedStructureOpsNormalPriority {
       }
     }
   }
-}
 
-trait NestedStructureOpsNormalPriority extends NestedStructureOpsLowPriority {
   implicit def fromOption[T: NestedStructureOps]: NestedStructureOps[Option[T]] = {
     new NestedStructureOps[Option[T]] {
       override def ops(executable: Option[T]): Set[UntypedOp] = {
@@ -106,9 +104,7 @@ trait NestedStructureOpsNormalPriority extends NestedStructureOpsLowPriority {
       }
     }
   }
-}
 
-trait NestedStructureOpsLowPriority extends NestedStructureOpsLowestPriority {
   implicit val fromHNil: NestedStructureOps[HNil] = {
     new NestedStructureOps[HNil] {
       override def ops(executable: HNil): Set[UntypedOp] = {
@@ -139,9 +135,7 @@ trait NestedStructureOpsLowPriority extends NestedStructureOpsLowestPriority {
       }
     }
   }
-}
 
-trait NestedStructureOpsLowestPriority {
   implicit def fromCoproduct[H, T <: Coproduct](implicit
       evH: Strict[NestedStructureOps[H]],
       evT: NestedStructureOps[T]

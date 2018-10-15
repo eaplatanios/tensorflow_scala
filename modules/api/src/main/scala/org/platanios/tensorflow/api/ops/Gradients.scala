@@ -113,8 +113,8 @@ object Gradients {
     * @param name
     * @return
     */
-  def gradients[T: TF, I: AnyDefault, O: AnyDefault](
-      ys: Seq[Output[O]],
+  def gradients[T: TF, I: AnyDefault](
+      ys: Seq[Output[Any]],
       xs: Seq[Output[I]],
       dataType: DataType[T],
       dys: Seq[OutputLike[T]] = null,

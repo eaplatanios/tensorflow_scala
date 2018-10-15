@@ -79,7 +79,8 @@ class CycleLinear10xDecay protected (
       cycleSteps: Output[Float]
   ): Output[Float] = {
     // Cycle the rate linearly by 10x every `cycleSteps`, up and down.
-    val cyclePosition = 1.0f - Math.abs(((step % (2 * cycleSteps)) - cycleSteps).castTo[Float] / cycleSteps)
+    val cyclePosition = 1.0f - Math.abs[Float, Output](
+      ((step % (Output[Float](2) * Output[Float](cycleSteps))) - cycleSteps).castTo[Float] / cycleSteps)
     (0.1f + cyclePosition) * 3.0f // 10x difference in each cycle (0.3 - 3).
   }
 }

@@ -374,6 +374,114 @@ final case class Output[T] private(
 }
 
 object Output {
+  //region Constructors
+
+  def empty[T: TF]: Output[T] = {
+    Basic.empty[T](Output.zeros[Int](Shape()))
+  }
+
+  def apply[T: TF](): Output[T] = {
+    empty[T]
+  }
+
+  def apply[T: TF](outputs: Output[T]*): Output[T] = {
+    Basic.stack(outputs, axis = 0)
+  }
+
+  def constant[T: TF](
+      tensor: Tensor[T],
+      shape: Shape = null,
+      name: String = "Constant"
+  ): Output[T] = {
+    Basic.constant(tensor, shape, name)
+  }
+
+  def guaranteeConstant[T: TF](
+      input: Output[T],
+      name: String = "GuaranteeConstant"
+  ): Output[T] = {
+    Basic.guaranteeConstant(input, name)
+  }
+
+  def immutableConstant[T: TF](
+      shape: Shape,
+      memoryRegionName: String,
+      name: String = "ImmutableConstant"
+  ): Output[T] = {
+    Basic.immutableConstant(shape, memoryRegionName, name)
+  }
+
+  def zeros[T: TF](shape: Output[Long]): Output[T] = {
+    Basic.zeros[T](shape)
+  }
+
+  def zeros[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+    Basic.zeros[T](dataType, shape)
+  }
+
+  def zerosLike[T](
+      output: Output[T],
+      optimize: Boolean = true,
+      name: String = "ZerosLike"
+  ): Output[T] = {
+    Basic.zerosLike[T](output, optimize, name)
+  }
+
+  def ones[T: TF](shape: Output[Long]): Output[T] = {
+    Basic.ones[T](shape)
+  }
+
+  def ones[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+    Basic.ones[T](dataType, shape)
+  }
+
+  def onesLike[T](
+      output: Output[T],
+      optimize: Boolean = true,
+      name: String = "OnesLike"
+  ): Output[T] = {
+    Basic.onesLike[T](output, optimize, name)
+  }
+
+  def fill[T: TF, I: TF : IsInt32OrInt64](shape: Output[I])(
+      value: Output[T]
+  ): Output[T] = {
+    Basic.fill[T, I](shape)(value)
+  }
+
+  def fill[T, I: TF : IsInt32OrInt64](
+      dataType: DataType[T],
+      shape: Output[I]
+  )(
+      value: Output[T]
+  ): Output[T] = {
+    Basic.fill[T, I](dataType, shape)(value)
+  }
+
+  def placeholder[T: TF](
+      shape: Shape = null,
+      name: String = "Placeholder"
+  ): Output[T] = {
+    Basic.placeholder[T](shape, name)
+  }
+
+  def placeholderWithDefault[T: TF](
+      default: Output[T],
+      shape: Shape,
+      name: String = "PlaceholderWithDefault"
+  ): Output[T] = {
+    Basic.placeholderWithDefault(default, shape, name)
+  }
+
+  def sparsePlaceholder[T: TF](
+      shape: Shape = null,
+      name: String = "SparsePlaceholder"
+  ): SparseOutput[T] = {
+    Basic.sparsePlaceholder(shape, name)
+  }
+
+  //endregion Constructors
+
   /** Returns the constant value of the given tensor, if efficiently calculable. */
   private[api] def constantValue[T](output: Output[T]): Option[Tensor[T]] = {
     val value = using(output.graph.reference)(r => {
@@ -1014,7 +1122,7 @@ final case class SparseOutput[T](
       validateIndices: Boolean = true,
       name: String = s"${values.op.name}/ToOutput"
   ): Output[T] = {
-    val default = if (defaultValue == null) Basic.zeros(dataType, Shape()) else defaultValue
+    val default = if (defaultValue == null) Basic.zeros[T](dataType, Shape()) else defaultValue
     Op.Builder[(Output[Long], Output[Long], Output[T], Output[T]), Output[T]](
       opType = "SparseToDense",
       name = name,

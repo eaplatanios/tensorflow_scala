@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits
-    extends Priority3Implicits
+    extends Priority5Implicits
         with control_flow.Implicits
         with Basic.Implicits
         with Clip.Implicits
@@ -50,7 +50,9 @@ private[api] trait Implicits
   implicit def outputFromOutputLike[T: TF](value: OutputLike[T]): Output[T] = {
     if (value == null) null else value.toOutput
   }
+}
 
+private[ops] trait Priority5Implicits extends Priority4Implicits {
   implicit def outputFromTensorArray[T: TF](value: TensorArray[T]): Output[T] = {
     if (value == null) null else value.toOutput
   }
@@ -58,7 +60,9 @@ private[api] trait Implicits
   implicit def outputFromVariable[T: TF](value: Variable[T]): Output[T] = {
     if (value == null) null else value.toOutput
   }
+}
 
+private[ops] trait Priority4Implicits extends Priority3Implicits {
   implicit def outputFromArray[T: TF](
       value: Array[Output[T]]
   ): Output[T] = {

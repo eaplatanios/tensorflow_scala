@@ -451,7 +451,7 @@ private[api] case class WhileLoopContext private[control_flow] (
         val acc: Output[T] = {
           if (shape.isFullyDefined) {
             outerContext.foreach(_.enter())
-            val acc = Basic.zerosLike(g, name = "BackwardAccumulator")(TF.fromDataType(g.dataType))
+            val acc = Basic.zerosLike(g, name = "BackwardAccumulator")
             outerContext.foreach(_.exit())
             acc
           } else {
@@ -468,14 +468,14 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
                 context.enter()
                 val realShape = outerGradientLoopState.addBackwardAccumulatedValue(historyZerosShape, zerosShape)
-                val acc = Basic.zeros(g.dataType, realShape)
+                val acc = Basic.zeros[T](g.dataType, realShape)
                 context.exit()
                 acc.setShape(g.shape)
                 acc
               case _ =>
                 outerContext.foreach(_.enter())
                 val zerosShape = resourceSafeShape(value)(TF.fromDataType(value.dataType))
-                val acc = Basic.zeros(g.dataType, zerosShape)
+                val acc = Basic.zeros[T](g.dataType, zerosShape)
                 outerContext.foreach(_.exit())
                 // TODO: [CONTROL_FLOW] Figure out if this is necessary.
                 // acc.setShape(g.shape)
@@ -508,11 +508,11 @@ private[api] case class WhileLoopContext private[control_flow] (
         // statically, we will have to get the shape dynamically from the forward inference. Getting the shape right for
         // the zeros is only needed for the base case when the loop exits without running any iterations.
         outerContext.foreach(_.enter())
-        val indicesAcc = Basic.zeros(g.dataType, Shape(1))
+        val indicesAcc = Output.zeros[T](g.dataType, Output[Long](1))
         val valuesAcc = {
           if (g.values.shape.isFullyDefined) {
-            val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*)
-            Basic.zeros(g.dataType, zerosShape)
+            val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*).toOutput
+            Output.zeros[T](g.dataType, zerosShape)
           } else {
             val value = op.inputsSeq(0)
             // TODO: !!! [CONTROL_FLOW] Is this even necessary for obtaining the shape?
@@ -531,7 +531,7 @@ private[api] case class WhileLoopContext private[control_flow] (
                 val historyZerosShape = outerGradientLoopState.addForwardAccumulator(zerosShape)
                 context.enter()
                 val realShape = outerGradientLoopState.addBackwardAccumulatedValue(historyZerosShape, zerosShape)
-                val acc = Basic.zeros(g.dataType, realShape)
+                val acc = Basic.zeros[T](g.dataType, realShape)
                 context.exit()
                 // TODO: [CONTROL_FLOW] Figure out if this is necessary.
                 // acc.setShape(g.values.shape)

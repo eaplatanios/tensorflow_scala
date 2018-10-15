@@ -73,7 +73,7 @@ package object types {
     @inline def dataType: org.platanios.tensorflow.api.core.types.DataType[T]
   }
 
-  object TF {
+  object TF extends TFLowPriority {
     def apply[T: TF]: TF[T] = {
       implicitly[TF[T]]
     }
@@ -87,29 +87,35 @@ package object types {
       }
     }
 
-    implicit val stringEvTF       : TF[String]        = fromDataType(STRING)
-    implicit val booleanEvTF      : TF[Boolean]       = fromDataType(BOOLEAN)
-    implicit val halfEvTF         : TF[Half]          = fromDataType(FLOAT16)
-    implicit val floatEvTF        : TF[Float]         = fromDataType(FLOAT32)
-    implicit val doubleEvTF       : TF[Double]        = fromDataType(FLOAT64)
-    implicit val truncatedHalfEvTF: TF[TruncatedHalf] = fromDataType(BFLOAT16)
-    implicit val complexFloatEvTF : TF[ComplexFloat]  = fromDataType(COMPLEX64)
-    implicit val complexDoubleEvTF: TF[ComplexDouble] = fromDataType(COMPLEX128)
-    implicit val byteEvTF         : TF[Byte]          = fromDataType(INT8)
-    implicit val shortEvTF        : TF[Short]         = fromDataType(INT16)
-    implicit val intEvTF          : TF[Int]           = fromDataType(INT32)
-    implicit val longEvTF         : TF[Long]          = fromDataType(INT64)
-    implicit val uByteEvTF        : TF[UByte]         = fromDataType(UINT8)
-    implicit val uShortEvTF       : TF[UShort]        = fromDataType(UINT16)
-    implicit val uIntEvTF         : TF[UInt]          = fromDataType(UINT32)
-    implicit val uLongEvTF        : TF[ULong]         = fromDataType(UINT64)
-    implicit val qByteEvTF        : TF[QByte]         = fromDataType(QINT8)
-    implicit val qShortEvTF       : TF[QShort]        = fromDataType(QINT16)
-    implicit val qIntEvTF         : TF[QInt]          = fromDataType(QINT32)
-    implicit val qUByteEvTF       : TF[QUByte]        = fromDataType(QUINT8)
-    implicit val qUShortEvTF      : TF[QUShort]       = fromDataType(QUINT16)
-    implicit val resourceEvTF     : TF[Resource]      = fromDataType(RESOURCE)
-    implicit val variantEvTF      : TF[Variant]       = fromDataType(VARIANT)
+    implicit val stringEvTF : TF[String]  = fromDataType(STRING)
+    implicit val booleanEvTF: TF[Boolean] = fromDataType(BOOLEAN)
+    implicit val floatEvTF  : TF[Float]   = fromDataType(FLOAT32)
+    implicit val intEvTF    : TF[Int]     = fromDataType(INT32)
+    implicit val longEvTF   : TF[Long]    = fromDataType(INT64)
+  }
+
+  trait TFLowPriority extends TFLowestPriority {
+    implicit val doubleEvTF: TF[Double] = TF.fromDataType(FLOAT64)
+    implicit val byteEvTF  : TF[Byte]   = TF.fromDataType(INT8)
+    implicit val shortEvTF : TF[Short]  = TF.fromDataType(INT16)
+  }
+
+  trait TFLowestPriority {
+    implicit val halfEvTF         : TF[Half]          = TF.fromDataType(FLOAT16)
+    implicit val truncatedHalfEvTF: TF[TruncatedHalf] = TF.fromDataType(BFLOAT16)
+    implicit val complexFloatEvTF : TF[ComplexFloat]  = TF.fromDataType(COMPLEX64)
+    implicit val complexDoubleEvTF: TF[ComplexDouble] = TF.fromDataType(COMPLEX128)
+    implicit val uByteEvTF        : TF[UByte]         = TF.fromDataType(UINT8)
+    implicit val uShortEvTF       : TF[UShort]        = TF.fromDataType(UINT16)
+    implicit val uIntEvTF         : TF[UInt]          = TF.fromDataType(UINT32)
+    implicit val uLongEvTF        : TF[ULong]         = TF.fromDataType(UINT64)
+    implicit val qByteEvTF        : TF[QByte]         = TF.fromDataType(QINT8)
+    implicit val qShortEvTF       : TF[QShort]        = TF.fromDataType(QINT16)
+    implicit val qIntEvTF         : TF[QInt]          = TF.fromDataType(QINT32)
+    implicit val qUByteEvTF       : TF[QUByte]        = TF.fromDataType(QUINT8)
+    implicit val qUShortEvTF      : TF[QUShort]       = TF.fromDataType(QUINT16)
+    implicit val resourceEvTF     : TF[Resource]      = TF.fromDataType(RESOURCE)
+    implicit val variantEvTF      : TF[Variant]       = TF.fromDataType(VARIANT)
   }
 
   //  type Float32OrFloat64 = Float | Double
@@ -118,13 +124,13 @@ package object types {
   //  type BFloat16OrFloat16OrFloat32 = TruncatedHalf | Half | Float
   //  type Decimal = TruncatedHalf | Half | Float | Double
   //  type Int32OrInt64 = Int | Long
-//    type SignedInteger = Byte | Short | Int | Long | UByte | UShort | UInt | ULong
-//    type UnsignedInteger = UByte | UShort | UInt | ULong
-//    type Integer = SignedInteger | UnsignedInteger
+  //    type SignedInteger = Byte | Short | Int | Long | UByte | UShort | UInt | ULong
+  //    type UnsignedInteger = UByte | UShort | UInt | ULong
+  //    type Integer = SignedInteger | UnsignedInteger
   //  type Real = TruncatedHalf | Half | Float | Double | Byte | Short | Int | Long | UByte | UShort | UInt | ULong
   //  type Complex = ComplexFloat | ComplexDouble
-//    type NotQuantized = TruncatedHalf | Half | Float | Double | Byte | Short | Int | Long | UByte | UShort | UInt | ULong | ComplexFloat | ComplexDouble
-//    type Quantized = QByte | QShort | QInt | QUByte | QUShort
+  //    type NotQuantized = TruncatedHalf | Half | Float | Double | Byte | Short | Int | Long | UByte | UShort | UInt | ULong | ComplexFloat | ComplexDouble
+  //    type Quantized = QByte | QShort | QInt | QUByte | QUShort
 
   //  type IsFloat32OrFloat64[T] = Union.IsSubtype[T, Float32OrFloat64]
   //  type IsFloat16OrFloat32OrFloat64[T] = Union.IsSubtype[T, Float16OrFloat32OrFloat64]

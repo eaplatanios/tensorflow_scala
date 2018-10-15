@@ -216,8 +216,7 @@ object BasicDecoder {
             Basic.gather(
               input = input,
               indices = 0
-            )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int], IntDefault[Int], TF[Int], IsInt32OrInt64[Int])
-          )(TF.fromDataType(input.dataType))
+            )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int], IntDefault[Int], TF[Int], IsInt32OrInt64[Int]))
         })
       }
     }

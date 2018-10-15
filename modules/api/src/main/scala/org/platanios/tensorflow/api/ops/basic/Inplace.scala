@@ -62,7 +62,7 @@ trait Inplace {
     i match {
       case Some(index) if index.rank == 0 =>
         // Single 0-dim update.
-        val reshapedIndex = Basic.reshape(index, Tensor(1))
+        val reshapedIndex = Basic.reshape(index, Tensor[Int](1))
         val reshapedValues = Basic.expandDims(v, axis = 0)
         Op.Builder[(Output[T], Output[Int], Output[T]), Output[T]](
           opType = opType,
@@ -77,9 +77,9 @@ trait Inplace {
         ).build().output
       case None =>
         // Full tensor.
-        val reshapedInput = Basic.reshape(x, Tensor(1, -1))
-        val reshapedValue = Basic.reshape(v, Tensor(1, -1))
-        val indices = Tensor(0)
+        val reshapedInput = Basic.reshape(x, Tensor[Int](1, -1))
+        val reshapedValue = Basic.reshape(v, Tensor[Int](1, -1))
+        val indices = Tensor[Int](0)
         val result = Op.Builder[(Output[T], Output[Int], Output[T]), Output[T]](
           opType = opType,
           name = name,

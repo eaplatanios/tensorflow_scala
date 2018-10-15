@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops.basic
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.{DataType, IsInt32OrInt64, IsNumeric, TF}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -36,11 +35,8 @@ trait Constructors {
     * @param  name   Name for the created op.
     * @tparam T Tensor data type.
     * @return Created op output.
-    * @throws InvalidShapeException If `shape != null`, `verifyShape == true`, and the shape of values does not match
-    *                               the provided `shape`.
     */
-  @throws[InvalidShapeException]
-  def constant[T: TF](
+  def constant[T](
       tensor: Tensor[T],
       shape: Shape = null,
       name: String = "Constant"
@@ -66,7 +62,7 @@ trait Constructors {
     * @tparam T Tensor data type.
     * @return Created op output which is equal to the input tensor.
     */
-  def guaranteeConstant[T: TF](
+  def guaranteeConstant[T](
       input: Output[T],
       name: String = "GuaranteeConstant"
   ): Output[T] = {
@@ -74,7 +70,7 @@ trait Constructors {
       opType = "GuaranteeConst",
       name = name,
       input = input
-    ).setGradientFn(Manipulation.identityGradient(_, _)(TF[T]))
+    ).setGradientFn(Manipulation.identityGradient(_, _)(TF.fromDataType(input.dataType)))
         .build().output
   }
 
@@ -224,7 +220,7 @@ trait Constructors {
     * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def zerosLike[T: TF](
+  def zerosLike[T](
       input: Output[T],
       optimize: Boolean = true,
       name: String = "ZerosLike"
@@ -314,7 +310,7 @@ trait Constructors {
     * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def onesLike[T: TF](
+  def onesLike[T](
       input: Output[T],
       optimize: Boolean = true,
       name: String = "OnesLike"

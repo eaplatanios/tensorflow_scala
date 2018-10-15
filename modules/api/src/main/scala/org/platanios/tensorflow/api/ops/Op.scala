@@ -2643,7 +2643,7 @@ object Op {
         NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = scope.controlFlowContext
         op._inputs.map(_.op).foreach(ControlFlow.checkInputFromValidContext(op, _))
-        op.controlFlowContext.foreach(_.add(op))
+        op.controlFlowContext.foreach(_.add(op.asUntyped))
         built = true
         op
       }

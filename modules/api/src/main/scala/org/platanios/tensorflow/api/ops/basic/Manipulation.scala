@@ -454,9 +454,9 @@ trait Manipulation {
           if (shapes.length > 16) {
             // Extract the size of each input along the concatenation axis.
             val sizes = squeeze(slice(
-              stack(shapes, 1),
+              stack[Int](shapes, 1),
               stack[Int](Seq(nonNegativeConcatenationAxis, 0)),
-              Tensor(1, -1)))
+              Tensor[Int](1, -1)))
             split(g, sizes, nonNegativeConcatenationAxis)
           } else {
             val offset = concatenateOffset(nonNegativeConcatenationAxis, shapes)
@@ -671,7 +671,7 @@ trait Manipulation {
         (gradient, concatenate(Seq(Constructors.ones[I](Shape()), splitShape(1 ::)), axis = 0))
       case g => (g, splitShape)
     }
-    val inputGradient = Math.sum(reshape(gradient, processedSplitShape), axes)
+    val inputGradient = Math.sum[T, Int](reshape[T, I](gradient, processedSplitShape), axes)
     // Fix shape inference.
     inputGradient.setShape(op.input._1.shape)
     (inputGradient, null)
@@ -760,8 +760,7 @@ trait Manipulation {
         paddings: Output[I],
         name: String
     ): Output[T] = {
-      val constantValues = value.map(Basic.constant(_).castTo(input.dataType))
-          .getOrElse(Basic.zeros(input.dataType, Shape()))
+      val constantValues = value.map(Output.constant[V](_).castTo[T]).getOrElse(Output.zeros[T](Shape()))
       Op.Builder[(Output[T], Output[I], Output[T]), Output[T]](
         opType = "PadV2",
         name = name,
@@ -901,7 +900,7 @@ trait Manipulation {
     val x = op.input._1
     val a = op.input._2 // == [rank(x), 2]
     // Take a slice of 'a' (the 1st column: [rank(x), 1]).
-    val padBefore = slice(a, Tensor(0, 0), stack[Int](Seq(rank(x), 1)))
+    val padBefore = slice(a, Tensor[Int](0, 0), stack[Int](Seq[Output[Int]](rank(x), 1)))
     // Make it a one-dimensional tensor and return it.
     val xGradient = slice(outputGradient, reshape(padBefore, Shape(-1)), shape(x).castTo[I])
     (xGradient, null, null)

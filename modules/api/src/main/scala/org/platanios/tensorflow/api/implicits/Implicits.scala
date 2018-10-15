@@ -16,7 +16,9 @@
 package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.{core, learn, ops, tensors}
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Groups together all the implicits of the API and takes care of their priorities.
   *
@@ -40,6 +42,44 @@ private[api] trait Implicits
 
 private[api] trait LowPriorityImplicits
     extends ops.Implicits
-        with learn.Implicits
+        with learn.Implicits {
+  implicit def tensorAsUntyped[T](tensor: Tensor[T]): Tensor[Any] = {
+    tensor.asInstanceOf[Tensor[Any]]
+  }
+
+  implicit def opAsUntyped[I, O](op: Op[I, O]): UntypedOp = {
+    op.asInstanceOf[UntypedOp]
+  }
+
+  implicit def opUntypedOutputAsOutputLike[I, O](
+      op: Op[Seq[Output[Any]], Seq[Output[Any]]]
+  ): Op[Seq[OutputLike[Any]], Seq[OutputLike[Any]]] = {
+    op.asInstanceOf[Op[Seq[OutputLike[Any]], Seq[OutputLike[Any]]]]
+  }
+
+  implicit def outputAsUntyped[T](output: Output[T]): Output[Any] = {
+    output.asInstanceOf[Output[Any]]
+  }
+
+  implicit def outputLikeAsUntyped[T](outputLike: OutputLike[T]): OutputLike[Any] = {
+    outputLike.asInstanceOf[OutputLike[Any]]
+  }
+
+  implicit def tensorArrayAsUntyped[T](tensorArray: TensorArray[T]): TensorArray[Any] = {
+    tensorArray.asInstanceOf[TensorArray[Any]]
+  }
+
+  implicit def variableAsUntyped[T](variable: Variable[T]): Variable[Any] = {
+    variable.asInstanceOf[Variable[Any]]
+  }
+
+  implicit def opSetAsUntyped[I, O](ops: Set[Op[I, O]]): Set[UntypedOp] = {
+    ops.asInstanceOf[Set[UntypedOp]]
+  }
+
+  implicit def outputSeqAsUntyped[T](outputs: Seq[Output[T]]): Seq[Output[Any]] = {
+    outputs.asInstanceOf[Seq[Output[Any]]]
+  }
+}
 
 private[api] object Implicits extends Implicits

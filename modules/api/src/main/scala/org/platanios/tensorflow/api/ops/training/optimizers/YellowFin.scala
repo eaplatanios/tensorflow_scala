@@ -225,8 +225,8 @@ class YellowFin protected (
         // substitution (http://mathworld.wolfram.com/VietasSubstitution.html) to compute the root. There is only one real
         // solution y (which is in [0, 1]).
         val p = Math.square(distAvg) * Math.square(hMin) / (gradVar * 2.0f)
-        val w3 = (-Math.sqrt(Math.square(p) + Math.pow(p, 3.0f) * 4.0f / 27.0f) - p) / 2.0f
-        val w = Math.sign(w3) * Math.pow(Math.abs(w3), 1.0f / 3.0f)
+        val w3 = (-Math.sqrt(Math.square(p) + Math.pow(p, Output[Float](3.0f)) * Output[Float](4.0f / 27.0f)) - p) / Output[Float](2.0f)
+        val w = Math.sign(w3) * Math.pow(Math.abs(w3), Output[Float](1.0f / 3.0f))
         val y = w - p / (w * 3.0f)
         val cubicRoot = y + 1.0f
         val dr = hMax / hMin
@@ -284,13 +284,14 @@ class YellowFin protected (
       sparsityAvg: Option[Output[Float]]
   ): (Output[Float], Output[Float]) = {
     Op.nameScope("CurvatureRange") {
-      val windowWidthTensor = Basic.constant(curvatureWindowWidth)
+      val windowWidthTensor = Output.constant[Int](curvatureWindowWidth)
       // We use log-smoothing for the curvature range.
       val updatedCurvatureWindow = curvatureWindow.assignScatter(
         step.value % windowWidthTensor, Math.log(gradNormSquaredSum))
       // Note here that the steps start from 0.
       val validWindow = Basic.slice(
-        updatedCurvatureWindow, Tensor(0), Math.minimum(windowWidthTensor, step.value + 1).slice(NewAxis))
+        updatedCurvatureWindow, Output[Int](0),
+        Math.minimum[Int](windowWidthTensor, step.value + 1).slice(NewAxis))
       val hMinT = Math.min(validWindow)
       val hMaxT = Math.max(validWindow)
       Op.createWith(controlDependencies = Set(hMinT.op, hMaxT.op)) {

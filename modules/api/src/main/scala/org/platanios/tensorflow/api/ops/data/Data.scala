@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{INT64, STRING, Variant}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, TensorToOutput}
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -53,7 +53,10 @@ trait Data extends Experimental {
   def datasetFromTensors[T, V, D, S](
       data: V,
       name: String = "TensorDataset"
-  )(implicit evStructureT: NestedStructure.Aux[T, V, D, S]): Dataset[T] = {
+  )(implicit
+      evTensorToOutput: TensorToOutput.Aux[V, T],
+      evStructureT: NestedStructure.Aux[T, V, D, S]
+  ): Dataset[T] = {
     val datasetName = name
     new Dataset[T] {
       override val name: String = datasetName
@@ -132,7 +135,10 @@ trait Data extends Experimental {
   def datasetFromTensorSlices[T, V, D, S](
       data: V,
       name: String = "TensorSlicesDataset"
-  )(implicit evStructureT: NestedStructure.Aux[T, V, D, S]): Dataset[T] = {
+  )(implicit
+      evTensorToOutput: TensorToOutput.Aux[V, T],
+      evStructureT: NestedStructure.Aux[T, V, D, S]
+  ): Dataset[T] = {
     val datasetName = name
     new Dataset[T] {
       override val name: String = datasetName
@@ -513,6 +519,7 @@ trait Data extends Experimental {
       outputDataType: D,
       outputShape: S = null
   )(implicit
+      evTensorToOutput: TensorToOutput.Aux[V, T],
       evStructure: NestedStructure.Aux[T, V, D, S]
   ): Dataset[T] = {
     val outputShapeWithDefault: S = {

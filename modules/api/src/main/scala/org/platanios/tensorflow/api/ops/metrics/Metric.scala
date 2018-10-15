@@ -226,11 +226,12 @@ object Metric {
             () => isScalar,
             () => weightsHaveValidNonScalarShape(valuesRank, valuesShape, weightsRank, weightsShape),
             name = "IsValidShape")
-          Checks.assert(isValidShape, Seq(
-            "'weights' can not be broadcasted to 'values'. ",
-            "values.shape = ", values.name, valuesShape,
-            "weights.shape = ", weights.name, weightsShape,
-            "isScalar = ", isScalar), name = "IsValidShapeAssertion")
+          Checks.assert(isValidShape, Seq[Output[Any]](
+            Basic.constant[String]("'weights' can not be broadcasted to 'values'. "),
+            Basic.constant[String]("values.shape = "), Basic.constant[String](values.name), valuesShape,
+            Basic.constant[String]("weights.shape = "), Basic.constant[String](weights.name), weightsShape,
+            Basic.constant[String]("isScalar = "), isScalar),
+            name = "IsValidShapeAssertion")
       }
     }
   }

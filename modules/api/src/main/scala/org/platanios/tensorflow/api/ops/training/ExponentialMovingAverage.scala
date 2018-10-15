@@ -115,10 +115,11 @@ class ExponentialMovingAverage protected (
 ) {
   protected val decayTensor: Output[Float] = {
     Op.nameScope(name) {
-      var decayTensor = Basic.constant(decay, name = "Decay")
+      var decayTensor = Output.constant[Float](decay, name = "Decay")
       numUpdates.foreach(n => {
-        val numUpdatesTensor = Basic.constant(n.toFloat, name = "NumUpdates")
-        decayTensor = Math.minimum(decayTensor, (1.0f + numUpdatesTensor) / (10.0f + numUpdatesTensor))
+        val numUpdatesTensor = Op.nameScope("NumUpdates")(Output[Float](n))
+        val threshold = (Output[Float](1.0f) + numUpdatesTensor) / (Output[Float](10.0f) + numUpdatesTensor)
+        decayTensor = Math.minimum[Float](decayTensor, threshold)
       })
       decayTensor
     }
@@ -289,7 +290,7 @@ object ExponentialMovingAverage {
   ): Output[T] = {
     Op.createWith(nameScope = name) {
       Op.colocateWith(Set(variable.op), ignoreExisting = true) {
-        val one = Basic.ones(decay.dataType, Shape())
+        val one = Output.ones[Float](Shape())
         val processedDecay = (one - decay).castTo(variable.dataType)
         val updateDelta = {
           if (zeroDebias)
@@ -342,7 +343,7 @@ object ExponentialMovingAverage {
         Op.createWith(controlDependencies = Set(biasedUpdate.op, localStepUpdate.op)) {
           // This function gets `1 - decay`, and so we use `1.0 - decay` in the exponent.
           val one = Basic.ones[T](Shape())
-          unbiasedVariable - (biased.read() / (one - Math.pow(one - decay, localStep.read())))
+          unbiasedVariable - (biased.read() / (one - Math.pow[T](one - decay, localStep.read())))
         }
       }
     }

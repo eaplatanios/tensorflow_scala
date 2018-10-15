@@ -60,8 +60,8 @@ trait Basic {
   def size[T <: TensorLike[_]](input: T): Tensor[Long] = {
     input match {
       case t: Tensor[_] => Tensor.fill[Long](Shape())(t.size)
-      case t: TensorIndexedSlices[_] => Math.prod(t.denseShape, Array(0))
-      case t: SparseTensor[_] => Math.prod(t.denseShape, Array(0))
+      case t: TensorIndexedSlices[_] => Math.prod(t.denseShape, Tensor(0))
+      case t: SparseTensor[_] => Math.prod(t.denseShape, Tensor(0))
     }
   }
 
@@ -583,13 +583,13 @@ trait Basic {
   ): Tensor[T] = {
     val maskShape = mask.shape
     val maskRank = maskShape.rank
-    val leadingSize = reshape(Math.prod(input.shape(0 :: maskRank), Seq(0)), Shape(1))
+    val leadingSize = reshape(Math.prod(input.shape(0 :: maskRank), Tensor(0)), Shape(1))
     val reshapedInput = reshape(
       input,
       concatenate(
         Seq(leadingSize, input.shape(maskRank ::).toTensor),
         axis = 0))
-    gather(reshapedInput, squeeze(where(reshape(mask, Seq(-1))), axes = Seq(1)), axis = 0)
+    gather(reshapedInput, squeeze(where(reshape(mask, Tensor(-1))), axes = Seq(1)), axis = 0)
   }
 
   /** $OpDocBasicSequenceMask

@@ -206,9 +206,7 @@ trait Embedding {
         // Reshape weights to allow broadcasting.
         val weightsStaticShape = weights.shape
         val weightsDynamicShape = Basic.shape(weights)
-        val ones = Basic.ones(
-          dataType = weightsDynamicShape.dataType,
-          shape = Basic.expandDims(Basic.rank(embeddings) - 1, 0))
+        val ones = Output.ones[Long](Basic.expandDims(Basic.rank(embeddings) - 1, 0).toLong)
         val broadcastedWeightsShape = Basic.concatenate(
           Seq(weightsDynamicShape, ones), axis = 0)
         val reshapedWeights = weights.reshape(broadcastedWeightsShape)
