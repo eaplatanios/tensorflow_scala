@@ -99,10 +99,10 @@ class LSTMCell[T: TF : IsNotQuantized] protected (
       // Parameters of gates are concatenated into one multiply for efficiency.
       val lstmMatrix = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, input.state.m), axis = 1), kernel), bias)
       // i = input gate, j = new input, f = forget gate, o = output gate
-      val lstmMatrixBlocks = Basic.splitEvenly(lstmMatrix, 4, axis = one)
+      val lstmMatrixBlocks = Basic.splitEvenly[T](lstmMatrix, 4, axis = one)
       val (i, j, f, o) = (lstmMatrixBlocks(0), lstmMatrixBlocks(1), lstmMatrixBlocks(2), lstmMatrixBlocks(3))
       // Diagonal connections
-      val forgetBiasTensor = Basic.constant(forgetBias).castTo[T]
+      val forgetBiasTensor = Basic.constant[Float](forgetBias).castTo[T]
       var firstTerm = f + forgetBiasTensor
       if (wfDiag != null)
         firstTerm = firstTerm + Math.multiply(wfDiag, input.state.c)

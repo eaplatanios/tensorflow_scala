@@ -282,7 +282,37 @@ trait CondArg[T] {
   def decodeOutputFromOutput(output: T, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
 }
 
-object CondArg {
+object CondArg extends CondArgLowPriority {
+  implicit val evCondArgString: CondArg[Output[String]] = {
+    fromNestedStructure[Output[String]]
+  }
+
+  implicit val evCondArgLong: CondArg[Output[Long]] = {
+    fromNestedStructure[Output[Long]]
+  }
+
+  implicit val evCondArgFloat: CondArg[Output[Float]] = {
+    fromNestedStructure[Output[Float]]
+  }
+
+  implicit val evCondArgUntyped: CondArg[Output[Any]] = {
+    fromNestedStructure[Output[Any]]
+  }
+
+  implicit val evCondArgSeqUntyped: CondArg[Seq[Output[Any]]] = {
+    fromNestedStructure[Seq[Output[Any]]]
+  }
+
+  implicit val evCondArgOptionSeqUntyped: CondArg[Option[Seq[Output[Any]]]] = {
+    fromNestedStructure[Option[Seq[Output[Any]]]]
+  }
+
+  def apply[T: CondArg]: CondArg[T] = {
+    implicitly[CondArg[T]]
+  }
+}
+
+trait CondArgLowPriority {
   implicit def fromNestedStructure[T](implicit ev: NestedStructure[T]): CondArg[T] = {
     new CondArg[T] {
       override def outputs(

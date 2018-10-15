@@ -841,13 +841,13 @@ trait NN {
 
 object NN extends NN {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToNNOps[T, TC](
+    implicit def tensorConvertibleToTensorNNOps[T, TC](
         value: TC
-    )(implicit f: TC => Tensor[T]): NNOps[T] = {
-      new NNOps(f(value))
+    )(implicit f: TC => Tensor[T]): TensorNNOps[T] = {
+      new TensorNNOps(f(value))
     }
 
-    implicit class NNOps[T](val tensor: Tensor[T]) {
+    implicit class TensorNNOps[T](val tensor: Tensor[T]) {
       protected implicit val evTTF: TF[T] = {
         TF.fromDataType(tensor.dataType)
       }

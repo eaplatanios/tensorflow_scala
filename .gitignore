@@ -19,6 +19,9 @@ src_managed/
 project/boot/
 project/plugins/project/
 
+# Bloop Specific
+.bloop
+
 # Metals Specific
 .metals
 

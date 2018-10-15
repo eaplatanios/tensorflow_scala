@@ -121,7 +121,7 @@ object DropoutWrapper {
     override def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = {
 
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
+      val ev: IsFloat16OrFloat32OrFloat64[T] = null
 
       NN.dynamicDropout(
         value,

@@ -139,7 +139,7 @@ case class RandomUniformInitializer(
   ): Output[T] = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
+    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
 
     Random.randomUniform(
       shape = shape,
@@ -162,7 +162,7 @@ case class RandomNormalInitializer(
   ): Output[T] = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
+    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
 
     Random.randomNormal(
       shape = shape,
@@ -185,7 +185,7 @@ case class RandomTruncatedNormalInitializer(
   ): Output[T] = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
+    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
 
     Random.randomTruncatedNormal(
       shape = shape,
@@ -298,7 +298,7 @@ object VarianceScalingInitializer {
     ): Output[T] = {
 
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
+      implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
 
       Random.randomTruncatedNormal(
         shape = shape,
@@ -316,7 +316,7 @@ object VarianceScalingInitializer {
     ): Output[T] = {
 
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      implicit val ev: IsFloat16OrFloat32OrFloat64[T] = new IsFloat16OrFloat32OrFloat64[T] {}
+      implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
 
       val limit = Math.sqrt(3.0f * scale)
       Random.randomUniform(

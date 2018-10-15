@@ -378,10 +378,10 @@ object Metric {
     *                                `[D1, ..., DN]`.
     */
   @throws[ShapeMismatchException]
-  def maybeExpandTargets[P: TF, T: TF](
-      predictions: Output[P],
-      targets: Output[T]
-  ): Output[T] = {
+  def maybeExpandTargets(
+      predictions: Output[Long],
+      targets: Output[Long]
+  ): Output[Long] = {
     // TODO: [SPARSE] Support sparse `targets`.
     Op.nameScope("MaybeExpandTargets") {
       if (predictions.rank > -1 && targets.rank > -1) {

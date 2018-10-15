@@ -319,7 +319,7 @@ object RNN extends RNN {
         case (tensorArray, output) =>
           tensorArray.write(time, output)
       })
-      (time + 1, nextOutputTensorArrays, nextState)
+      (time + Output[Int](1), nextOutputTensorArrays, nextState)
     }
 
     // Make sure that we run at least 1 step, if necessary, to ensure that the tensor arrays pick up the dynamic shape.

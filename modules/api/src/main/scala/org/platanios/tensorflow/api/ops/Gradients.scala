@@ -620,7 +620,7 @@ object Gradients {
         gradientUID: Option[String] = None
     ): OutputLike[T] = {
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+      implicit val ev: IsNumeric[T] = null
 
       if (gradients.forall(_.isInstanceOf[Output[T]])) {
         // This function adds op outputs from potentially different devices.
@@ -679,7 +679,7 @@ object Gradients {
         gradientUID: Option[String] = None
     ): OutputLike[T] = {
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+      implicit val ev: IsNumeric[T] = null
 
       if (gradients.forall(_.isInstanceOf[Output[T]])) {
         Math.accumulateN(gradients.map(_.asInstanceOf[Output[T]]))

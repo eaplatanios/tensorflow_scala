@@ -387,7 +387,167 @@ class Tensor[T] protected (
   def toVariant: Tensor[Variant] = castTo[Variant]
 
   //endregion Casting
-  
+
+  //region Operators
+
+  /** $OpDocMathLogicalNot
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def unary_!(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+    Math.logicalNot(this.asInstanceOf[Tensor[Boolean]])
+  }
+
+  /** $OpDocMathLogicalAnd
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def &&(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+    Math.logicalAnd(this.asInstanceOf[Tensor[Boolean]], other)
+  }
+
+  /** $OpDocMathLogicalOr
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def ||(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
+    Math.logicalOr(this.asInstanceOf[Tensor[Boolean]], other)
+  }
+
+  /** $OpDocMathEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def ===(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+    Math.equal(this, other)
+  }
+
+  /** $OpDocMathNotEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def =!=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+    Math.notEqual(this, other)
+  }
+
+  /** $OpDocMathLess
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def <(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+    Math.less(this, other)
+  }
+
+  /** $OpDocMathLessEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def <=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+    Math.lessEqual(this, other)
+  }
+
+  /** $OpDocMathGreater
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def >(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+    Math.greater(this, other)
+  }
+
+  /** $OpDocMathGreaterEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def >=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
+    Math.greaterEqual(this, other)
+  }
+
+  /** $OpDocMathNegate
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def unary_-(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    Math.negate(this)
+  }
+
+  /** $OpDocMathAdd
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def +(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    Math.add(this, other)
+  }
+
+  /** $OpDocMathSubtract
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def -(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    Math.subtract(this, other)
+  }
+
+  /** $OpDocMathMultiply
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def *(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    Math.multiply(this, other)
+  }
+
+  /** $OpDocMathDivide
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def /(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    if (dataType.isFloatingPoint || dataType.isComplex)
+      Math.divide(this, other)
+    else
+      Math.truncateDivide(this, other)
+  }
+
+  /** $OpDocMathMod
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def %(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    Math.mod(this, other)
+  }
+
+  /** $OpDocMathPow
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def **(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    Math.pow(this, other)
+  }
+
+  /** $OpDocMathPow
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def ^(other: Tensor[T])(implicit ev: IsNotQuantized[T]): Tensor[T] = {
+    Math.pow(this, other)
+  }
+
+  //endregion Operators
+
   /** Returns a summary of the contents of this tensor.
     *
     * @param  maxEntries  Maximum number of entries to show for each axis/dimension. If the size of an axis exceeds
@@ -1094,7 +1254,7 @@ final case class TensorIndexedSlices[T](
             "(may consume too much memory).")
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+    implicit val ev: IsNumeric[T] = null
 
     Math.unsortedSegmentSum(
       data = values,

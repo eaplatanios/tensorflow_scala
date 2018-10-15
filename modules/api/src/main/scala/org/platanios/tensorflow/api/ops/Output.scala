@@ -318,6 +318,172 @@ final case class Output[T] private(
 
   //endregion Casting
 
+  //region Operators
+
+  /** $OpDocMathLogicalNot
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def unary_!(implicit ev: T =:= Boolean): Output[Boolean] = {
+    Math.logicalNot(this.asInstanceOf[Output[Boolean]])
+  }
+
+  /** $OpDocMathLogicalAnd
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def &&(other: Output[Boolean])(implicit ev: T =:= Boolean): Output[Boolean] = {
+    Math.logicalAnd(this.asInstanceOf[Output[Boolean]], other)
+  }
+
+  /** $OpDocMathLogicalOr
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def ||(other: Output[Boolean])(implicit ev: T =:= Boolean): Output[Boolean] = {
+    Math.logicalOr(this.asInstanceOf[Output[Boolean]], other)
+  }
+
+  /** $OpDocMathEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def ===(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+    Math.equal(this, other)
+  }
+
+  /** $OpDocMathNotEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def =!=(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+    Math.notEqual(this, other)
+  }
+
+  /** $OpDocMathLess
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def <(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+    Math.less(this, other)
+  }
+
+  /** $OpDocMathLessEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def <=(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+    Math.lessEqual(this, other)
+  }
+
+  /** $OpDocMathGreater
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def >(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+    Math.greater(this, other)
+  }
+
+  /** $OpDocMathGreaterEqual
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def >=(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
+    Math.greaterEqual(this, other)
+  }
+  /** $OpDocMathNegate
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def unary_-(implicit ev: IsNotQuantized[T]): Output[T] = {
+    Math.negate(this)
+  }
+
+  /** $OpDocMathAdd
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def +(other: Output[T])(implicit ev: IsNotQuantized[T]): Output[T] = {
+    Math.add(this, other)
+  }
+
+  /** $OpDocMathSubtract
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def -(other: Output[T])(implicit ev: IsNotQuantized[T]): Output[T] = {
+    Math.subtract(this, other)
+  }
+
+  /** $OpDocMathMultiply
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def *(other: Output[T])(implicit ev: IsNotQuantized[T]): Output[T] = {
+    Math.multiply(this, other)
+  }
+
+  private def divHelper(
+      x: Output[T],
+      y: Output[T]
+  )(implicit ev: IsNotQuantized[T]): Output[T] = {
+    if (x.dataType.isFloatingPoint || x.dataType.isComplex)
+      Math.divide(x, y)
+    else
+      Math.truncateDivide(x, y)
+  }
+
+  /** $OpDocMathDivide
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def /(other: Output[T])(implicit ev: IsNotQuantized[T]): Output[T] = {
+    divHelper(this, other)
+  }
+
+  /** $OpDocMathMod
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def %(other: Output[T])(implicit ev: IsNotQuantized[T]): Output[T] = {
+    Math.mod(this, other)
+  }
+
+  /** $OpDocMathPow
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def **(other: Output[T])(implicit ev: IsNotQuantized[T]): Output[T] = {
+    Math.pow(this, other)
+  }
+
+  /** $OpDocMathPow
+    *
+    * @group MathOps
+    * @return Result as a new tensor.
+    */
+  def ^(other: Output[T])(implicit ev: IsNotQuantized[T]): Output[T] = {
+    Math.pow(this, other)
+  }
+
+  //endregion Operators
+
   /** Returns this output. */
   override def toOutput: Output[T] = {
     this
@@ -862,7 +1028,7 @@ final case class OutputIndexedSlices[T](
     }
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+    implicit val ev: IsNumeric[T] = null
 
     Op.nameScope(s"${values.op.name}/ToOutput") {
       Math.unsortedSegmentSum(

@@ -375,7 +375,7 @@ trait Constructors {
   ): (Output[I], Output[T]) = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+    implicit val ev: IsNumeric[T] = null
 
     (null, Math.sum(outputGradient))
   }

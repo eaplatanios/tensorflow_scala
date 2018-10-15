@@ -2101,37 +2101,37 @@ trait Math {
 
 object Math extends Math {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToMathOps[T, TC](value: TC)(implicit
+    implicit def tensorConvertibleToTensorMathOps[T, TC](value: TC)(implicit
         f: TC => Tensor[T]
-    ): MathOps[T] = {
-      new MathOps(f(value))
+    ): TensorMathOps[T] = {
+      new TensorMathOps(f(value))
     }
 
-    implicit def tensorConvertibleToFloatMathOps[TC](
+    implicit def tensorConvertibleToFloatTensorMathOps[TC](
         value: TC
-    )(implicit f: TC => Tensor[Float]): FloatMathOps = {
-      new FloatMathOps(f(value))
+    )(implicit f: TC => Tensor[Float]): FloatTensorMathOps = {
+      new FloatTensorMathOps(f(value))
     }
 
-    implicit def tensorConvertibleToDoubleMathOps[TC](
+    implicit def tensorConvertibleToDoubleTensorMathOps[TC](
         value: TC
-    )(implicit f: TC => Tensor[Double]): DoubleMathOps = {
-      new DoubleMathOps(f(value))
+    )(implicit f: TC => Tensor[Double]): DoubleTensorMathOps = {
+      new DoubleTensorMathOps(f(value))
     }
 
-    implicit def tensorConvertibleToComplexFloatMathOps[TC](
+    implicit def tensorConvertibleToComplexFloatTensorMathOps[TC](
         value: TC
-    )(implicit f: TC => Tensor[ComplexFloat]): ComplexFloatMathOps = {
-      new ComplexFloatMathOps(f(value))
+    )(implicit f: TC => Tensor[ComplexFloat]): ComplexFloatTensorMathOps = {
+      new ComplexFloatTensorMathOps(f(value))
     }
 
-    implicit def tensorConvertibleToComplexDoubleMathOps[TC](
+    implicit def tensorConvertibleToComplexDoubleTensorMathOps[TC](
         value: TC
-    )(implicit f: TC => Tensor[ComplexDouble]): ComplexDoubleMathOps = {
-      new ComplexDoubleMathOps(f(value))
+    )(implicit f: TC => Tensor[ComplexDouble]): ComplexDoubleTensorMathOps = {
+      new ComplexDoubleTensorMathOps(f(value))
     }
 
-    implicit class MathOps[T](val tensor: Tensor[T]) {
+    implicit class TensorMathOps[T](val tensor: Tensor[T]) {
       protected implicit val evTTF: TF[T] = {
         TF.fromDataType(tensor.dataType)
       }
@@ -2150,182 +2150,6 @@ object Math extends Math {
       )(implicit ev: T =:= Boolean): Tensor[R] = {
         Math.select(tensor.asInstanceOf[Tensor[Boolean]], x, y)
       }
-
-      //region Operators
-
-      /** $OpDocMathLogicalNot
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def unary_!(implicit ev: T =:= Boolean): Tensor[Boolean] = {
-        logicalNot
-      }
-
-      /** $OpDocMathLogicalAnd
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def &&(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
-        logicalAnd(other)
-      }
-
-      /** $OpDocMathLogicalOr
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def ||(other: Tensor[Boolean])(implicit ev: T =:= Boolean): Tensor[Boolean] = {
-        logicalOr(other)
-      }
-
-      /** $OpDocMathEqual
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def ===(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
-        Math.equal(tensor, other)
-      }
-
-      /** $OpDocMathNotEqual
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def =!=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
-        Math.notEqual(tensor, other)
-      }
-
-      /** $OpDocMathLess
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def <(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
-        Math.less(tensor, other)
-      }
-
-      /** $OpDocMathLessEqual
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def <=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
-        Math.lessEqual(tensor, other)
-      }
-
-      /** $OpDocMathGreater
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def >(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
-        Math.greater(tensor, other)
-      }
-
-      /** $OpDocMathGreaterEqual
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def >=(other: Tensor[T])(implicit ev: IsNumeric[T]): Tensor[Boolean] = {
-        Math.greaterEqual(tensor, other)
-      }
-
-      /** $OpDocMathNegate
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def unary_-(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        Math.negate(tensor.castTo[T])
-      }
-
-      /** $OpDocMathAdd
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def +(other: Tensor[T])(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        Math.add(tensor, other)
-      }
-
-      /** $OpDocMathSubtract
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def -(other: Tensor[T])(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        Math.subtract(tensor, other)
-      }
-
-      /** $OpDocMathMultiply
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def *(other: Tensor[T])(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        Math.multiply(tensor, other)
-      }
-
-      /** $OpDocMathDivide
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def /(other: Tensor[T])(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        if (tensor.dataType.isFloatingPoint || tensor.dataType.isComplex)
-          Math.divide(tensor, other)
-        else
-          Math.truncateDivide(tensor, other)
-      }
-
-      /** $OpDocMathMod
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def %(other: Tensor[T])(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        Math.mod(tensor, other)
-      }
-
-      /** $OpDocMathPow
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def **(other: Tensor[T])(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        Math.pow(tensor, other)
-      }
-
-      /** $OpDocMathPow
-        *
-        * @group MathOps
-        * @return Result as a new tensor.
-        */
-      def ^(other: Tensor[T])(implicit
-          ev: IsNotQuantized[T]
-      ): Tensor[T] = {
-        Math.pow(tensor, other)
-      }
-
-      //endregion Operators
 
       //region Unary Ops
 
@@ -3510,7 +3334,7 @@ object Math extends Math {
       //endregion Other Ops
     }
 
-    implicit class FloatMathOps(val tensor: Tensor[Float]) {
+    implicit class FloatTensorMathOps(val tensor: Tensor[Float]) {
       /** Creates a new complex number with the provided imaginary part.
         *
         * @param  imag Imaginary part.
@@ -3521,7 +3345,7 @@ object Math extends Math {
       }
     }
 
-    implicit class DoubleMathOps(val tensor: Tensor[Double]) {
+    implicit class DoubleTensorMathOps(val tensor: Tensor[Double]) {
       /** Creates a new complex number with the provided imaginary part.
         *
         * @param  imag Imaginary part.
@@ -3532,7 +3356,7 @@ object Math extends Math {
       }
     }
 
-    implicit class ComplexFloatMathOps(val tensor: Tensor[ComplexFloat]) {
+    implicit class ComplexFloatTensorMathOps(val tensor: Tensor[ComplexFloat]) {
       /** $OpDocMathReal
         *
         * @group MathOps
@@ -3570,7 +3394,7 @@ object Math extends Math {
       }
     }
 
-    implicit class ComplexDoubleMathOps(val tensor: Tensor[ComplexDouble]) {
+    implicit class ComplexDoubleTensorMathOps(val tensor: Tensor[ComplexDouble]) {
       /** $OpDocMathReal
         *
         * @group MathOps

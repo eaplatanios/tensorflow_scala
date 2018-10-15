@@ -22,8 +22,6 @@ import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexed
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.reflect.ClassTag
-
 /** Type trait used to map structures of tensors to structures of symbolic tensors.
   *
   * @author Emmanouil Antonios Platanios
@@ -64,14 +62,6 @@ object TensorToOutput {
   implicit def fromOption[T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Option[T], Option[OO]] = {
     new TensorToOutput[Option[T]] {
       override type O = Option[OO]
-    }
-  }
-
-  implicit def fromArray[T: ClassTag, OO: ClassTag](implicit
-      ev: TensorToOutput.Aux[T, OO]
-  ): TensorToOutput.Aux[Array[T], Array[OO]] = {
-    new TensorToOutput[Array[T]] {
-      override type O = Array[OO]
     }
   }
 

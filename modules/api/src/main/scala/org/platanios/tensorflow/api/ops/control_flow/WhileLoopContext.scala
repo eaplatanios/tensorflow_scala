@@ -492,7 +492,7 @@ private[api] case class WhileLoopContext private[control_flow] (
           val switchAcc = ControlFlow.switch(mergeAcc, pivot)
 
           // TODO: [TYPES] !!! Super hacky. Remove in the future.
-          implicit val ev: IsNotQuantized[T] = new IsNotQuantized[T] {}
+          implicit val ev: IsNotQuantized[T] = null
 
           val addAcc = Math.add(switchAcc._2, g)
           val nextAcc = ControlFlow.nextIteration(addAcc)

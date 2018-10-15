@@ -24,7 +24,7 @@ import org.platanios.tensorflow.api.tensors.ops.{Basic, Math, NN}
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits
-    extends Priority5Implicits
+    extends Priority4Implicits
         with Basic.Implicits
         with Math.Implicits
         with NN.Implicits {
@@ -37,9 +37,7 @@ private[api] trait Implicits
   ): Tensor[T] = {
     if (value == null) null else value.toTensor
   }
-}
 
-private[tensors] trait Priority5Implicits extends Priority4Implicits {
   implicit def tensorFromShape(shape: Shape): Tensor[Long] = {
     if (shape == null) null else shape.toTensor
   }

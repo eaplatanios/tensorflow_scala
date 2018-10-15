@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.core.types.{IsDecimal, IsReal, TF}
+import org.platanios.tensorflow.api.core.types.{IsDecimal, IsReal, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.Output
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Activation[T: TF : IsReal](
+abstract class Activation[T: TF](
     override val name: String
 ) extends Layer[Output[T], Output[T]](name)
 
@@ -54,7 +54,7 @@ object Activation {
   object API extends API
 }
 
-case class Sigmoid[T: TF : IsReal](
+case class Sigmoid[T: TF : IsNotQuantized](
     override val name: String
 ) extends Activation(name) {
   override val layerType: String = "Sigmoid"

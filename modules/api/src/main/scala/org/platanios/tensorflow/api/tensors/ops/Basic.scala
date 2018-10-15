@@ -919,13 +919,13 @@ trait Basic {
 
 object Basic extends Basic {
   private[tensors] trait Implicits {
-    implicit def tensorConvertibleToBasicOps[T, TC](
+    implicit def tensorConvertibleToTensorBasicOps[T, TC](
         value: TC
-    )(implicit f: TC => Tensor[T]): BasicOps[T] = {
-      new BasicOps(f(value))
+    )(implicit f: TC => Tensor[T]): TensorBasicOps[T] = {
+      new TensorBasicOps(f(value))
     }
 
-    implicit class BasicOps[T](tensor: Tensor[T]) {
+    implicit class TensorBasicOps[T](tensor: Tensor[T]) {
       protected implicit val evTTF: TF[T] = {
         TF.fromDataType(tensor.dataType)
       }

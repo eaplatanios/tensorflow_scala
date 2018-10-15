@@ -180,8 +180,8 @@ trait Checks {
         }
         if (message != null) message.asUntyped +: d else d
       }
-      val tolerance = absTolerance.castTo[T] + relTolerance.castTo[T] * Math.abs(y)
-      val difference = Math.abs(x - y)
+      val tolerance = absTolerance.castTo[T] + relTolerance.castTo[T] * Math.abs[T, Output](y)
+      val difference = Math.abs[T, Output](x - y)
       assert(Math.all(Math.less(difference, tolerance)), processedData, summarize)
     }
   }

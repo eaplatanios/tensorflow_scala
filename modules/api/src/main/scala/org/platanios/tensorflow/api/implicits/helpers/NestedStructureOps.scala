@@ -45,9 +45,21 @@ sealed trait NestedStructureOps[T] {
   def ops(executable: T): Set[UntypedOp]
 }
 
-object NestedStructureOps {
-  def apply[T: NestedStructureOps]: NestedStructureOps[T] = implicitly[NestedStructureOps[T]]
+object NestedStructureOps extends NestedStructureOpsLowPriority {
+  implicit val evStructureUntypedOp: NestedStructureOps[UntypedOp] = {
+    fromOp[Seq[Output[Any]], Seq[Output[Any]]]
+  }
 
+  implicit val evStructureSetUntypedOps: NestedStructureOps[Set[UntypedOp]] = {
+    fromSet[Op[Seq[Output[Any]], Seq[Output[Any]]]]
+  }
+
+  def apply[T: NestedStructureOps]: NestedStructureOps[T] = {
+    implicitly[NestedStructureOps[T]]
+  }
+}
+
+trait NestedStructureOpsLowPriority {
   implicit val fromUnit: NestedStructureOps[Unit] = {
     new NestedStructureOps[Unit] {
       /** Target ops to execute. */

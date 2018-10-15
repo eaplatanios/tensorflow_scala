@@ -776,7 +776,7 @@ object Basic extends Basic {
         *           `dataType` are provided, `dataType` will default to the `FLOAT32` data type.
         * @return Created op output.
         */
-      def oneHot[R : TF](
+      def oneHot[R: TF](
           depth: Output[Int],
           onValue: Output[R] = null,
           offValue: Output[R] = null,

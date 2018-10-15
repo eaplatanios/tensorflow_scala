@@ -76,7 +76,7 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedArray = Session.processFetches(Array(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
+      val processedArray = Session.processFetches(Seq(Basic.constant(1.0), Basic.constant(2.0), Basic.constant(3.0)))
       assert(processedArray._1.length === 3)
       assert(processedArray._1(0).name === "Constant:0")
       assert(processedArray._1(1).name === "Constant_1:0")
@@ -166,7 +166,7 @@ class FetchableSuite extends JUnitSuite {
   @Test def testFetchableNestedSeqArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val processedSeq = Session.processFetches(
-        Seq(Array(Basic.constant(1.0)), Array(Basic.constant(2.0), Basic.constant(3.0))))
+        Seq(Seq(Basic.constant(1.0)), Seq(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedSeq._1.length === 3)
       assert(processedSeq._1(0).name === "Constant:0")
       assert(processedSeq._1(1).name === "Constant_1:0")
@@ -243,13 +243,13 @@ class FetchableSuite extends JUnitSuite {
 
   @Test def testFetchableNestedTupleArray(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val processedTuple = Session.processFetches((Basic.constant(1.0), Array(Basic.constant(2.0), Basic.constant(3.0))))
+      val processedTuple = Session.processFetches((Basic.constant(1.0), Seq(Basic.constant(2.0), Basic.constant(3.0))))
       assert(processedTuple._1.length === 3)
       assert(processedTuple._1(0).name === "Constant:0")
       assert(processedTuple._1(1).name === "Constant_1:0")
       assert(processedTuple._1(2).name === "Constant_2:0")
       val results = processedTuple._2(Seq.fill(3)(Tensor[Double](0)))
-      assert(results.isInstanceOf[(Tensor[_], Array[_])])
+      assert(results.isInstanceOf[(Tensor[_], Seq[_])])
     }
   }
 

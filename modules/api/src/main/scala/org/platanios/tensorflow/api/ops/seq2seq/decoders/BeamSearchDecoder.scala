@@ -206,7 +206,7 @@ class BeamSearchDecoder[T, State](
       // Calculate the total log probabilities for the new hypotheses (final shape = [batchSize, beamWidth, vocabSize]).
       val stepLogProbabilities = BeamSearchDecoder.maskLogProbabilities(
         NN.logSoftmax(nextTupleOutput.castTo[Float]), endToken, previouslyFinished)
-      val totalLogProbabilities = state.logProbabilities.expandDims(2) + stepLogProbabilities
+      val totalLogProbabilities = state.logProbabilities.expandDims(Output[Int](2)) + stepLogProbabilities
 
       // Calculate the continuation lengths by adding to all continuing search states.
       val vocabSize = {

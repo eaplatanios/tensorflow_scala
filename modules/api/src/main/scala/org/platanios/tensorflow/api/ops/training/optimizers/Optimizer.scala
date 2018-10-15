@@ -129,7 +129,7 @@ trait Optimizer {
       throw new IllegalArgumentException("There are no variables to optimize.")
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
+    implicit val ev: IsFloat32OrFloat64[Any] = null
 
     val variableProcessors = collectedVariables.map(v => {
       getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
@@ -191,7 +191,7 @@ trait Optimizer {
       for ((g, v) <- gradientsAndVariables if g != null) {
 
         // TODO: [TYPES] !!! Super hacky. Remove in the future.
-        implicit val ev: IsFloat32OrFloat64[Any] = new IsFloat32OrFloat64[Any] {}
+        implicit val ev: IsFloat32OrFloat64[Any] = null
 
         val p = getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
         // We colocate all ops created for variable application on the same device as the variable.

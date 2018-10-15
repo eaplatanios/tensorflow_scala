@@ -262,7 +262,7 @@ object BasicDecoder {
         evStructureO.decodeOutputFromOutput(input, outputs.map(output => {
 
           // TODO: [TYPES] !!! Super hacky. Remove in the future.
-          val ev: IsNotQuantized[Any] = new IsNotQuantized[Any] {}
+          val ev: IsNotQuantized[Any] = null
 
           Math.argmax(
             output,
@@ -353,7 +353,7 @@ object BasicDecoder {
       Op.nameScope(s"$name/Sample") {
 
         // TODO: [TYPES] !!! Super hacky. Remove in the future.
-        implicit val ev: IsNotQuantized[T] = new IsNotQuantized[T] {}
+        implicit val ev: IsNotQuantized[T] = null
         implicit val evTF: TF[T] = TF.fromDataType(input.dataType)
 
         Math.argmax(input, axes = -1, outputDataType = endToken.dataType)

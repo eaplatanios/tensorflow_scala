@@ -659,7 +659,7 @@ trait Manipulation {
     val axes = Math.range(0, size(splitShape).castTo[Int], 2)
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+    implicit val ev: IsNumeric[T] = null
 
     // Sum reduces grad along the first dimension for indexed slices.
     val (gradient, processedSplitShape) = outputGradient match {
@@ -1482,7 +1482,7 @@ trait Manipulation {
       val numSegments = inputShape.gather(axis)
 
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      implicit val ev: IsNumeric[T] = new IsNumeric[T] {}
+      implicit val ev: IsNumeric[T] = null
 
       val inputGradient = Math.unsortedSegmentSum(valuesTranspose, reshapedIndices, numSegments)
       // We now invert the above transpose by moving dimension 0 back to its original position.

@@ -23,8 +23,6 @@ import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
-import scala.reflect.ClassTag
-
 /** Represents types that have a "zero" value (e.g., RNN states).
   *
   * @author Emmanouil Antonios Platanios
@@ -97,24 +95,6 @@ object Zero {
           shape: Option[SS],
           name: String
       ): Option[T] = {
-        Op.nameScope(name) {
-          shape.map(ev.zero(batchSize, _))
-        }
-      }
-    }
-  }
-
-  implicit def fromArray[T: ClassTag, SS: ClassTag](implicit
-      ev: Zero.Aux[T, SS]
-  ): Zero.Aux[Array[T], Array[SS]] = {
-    new Zero[Array[T]] {
-      override type S = Array[SS]
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: Array[SS],
-          name: String
-      ): Array[T] = {
         Op.nameScope(name) {
           shape.map(ev.zero(batchSize, _))
         }

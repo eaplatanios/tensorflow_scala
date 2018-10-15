@@ -158,7 +158,7 @@ class ExponentialMovingAverage protected (
     })
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsNotQuantized[Any] = new IsNotQuantized[Any] {}
+    implicit val ev: IsNotQuantized[Any] = null
 
     Op.nameScope(name) {
       val updates = variables.map(v => {
@@ -203,7 +203,7 @@ class ExponentialMovingAverage protected (
     })
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsNotQuantized[Any] = new IsNotQuantized[Any] {}
+    implicit val ev: IsNotQuantized[Any] = null
 
     Op.nameScope(name) {
       val updates = values.map(v => {
