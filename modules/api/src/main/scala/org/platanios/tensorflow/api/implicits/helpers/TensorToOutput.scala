@@ -59,19 +59,25 @@ object TensorToOutput {
     }
   }
 
-  implicit def fromOption[T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Option[T], Option[OO]] = {
+  implicit def fromOption[T, OO](implicit
+      ev: TensorToOutput.Aux[T, OO]
+  ): TensorToOutput.Aux[Option[T], Option[OO]] = {
     new TensorToOutput[Option[T]] {
       override type O = Option[OO]
     }
   }
 
-  implicit def fromSeq[T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Seq[T], Seq[OO]] = {
+  implicit def fromSeq[T, OO](implicit
+      ev: TensorToOutput.Aux[T, OO]
+  ): TensorToOutput.Aux[Seq[T], Seq[OO]] = {
     new TensorToOutput[Seq[T]] {
       override type O = Seq[OO]
     }
   }
 
-  implicit def fromMap[K, T, OO](implicit ev: TensorToOutput.Aux[T, OO]): TensorToOutput.Aux[Map[K, T], Map[K, OO]] = {
+  implicit def fromMap[K, T, OO](implicit
+      ev: TensorToOutput.Aux[T, OO]
+  ): TensorToOutput.Aux[Map[K, T], Map[K, OO]] = {
     new TensorToOutput[Map[K, T]] {
       override type O = Map[K, OO]
     }

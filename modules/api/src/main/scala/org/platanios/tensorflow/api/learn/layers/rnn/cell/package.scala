@@ -49,7 +49,7 @@ package object cell {
     type DeviceWrapper[O, S] = cell.DeviceWrapper[O, S]
     type DropoutWrapper[O, S] = cell.DropoutWrapper[O, S]
     type ResidualWrapper[O, S] = cell.ResidualWrapper[O, S]
-    type MultiCell[O, S] = cell.StackedCell[O, S]
+    type StackedCell[O, S] = cell.StackedCell[O, S]
 
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell
@@ -58,7 +58,7 @@ package object cell {
     val DeviceWrapper  : cell.DeviceWrapper.type   = cell.DeviceWrapper
     val DropoutWrapper : cell.DropoutWrapper.type  = cell.DropoutWrapper
     val ResidualWrapper: cell.ResidualWrapper.type = cell.ResidualWrapper
-    val MultiCell      : cell.StackedCell.type     = cell.StackedCell
+    val StackedCell    : cell.StackedCell.type     = cell.StackedCell
 
     type RNNTuple[O, S] = cell.Tuple[O, S]
     type BasicTuple[T] = cell.BasicTuple[T]

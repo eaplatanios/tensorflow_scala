@@ -70,7 +70,7 @@ object Input {
       dataType: D,
       shape: S,
       name: String = "Input"
-  )(implicit 
+  )(implicit
       evDataTypeToOutput: DataTypeToOutput.Aux[D, T],
       evStructure: NestedStructure.Aux[T, V, D, S]
   ): Input[T] = {

@@ -46,19 +46,25 @@ object DataTypeToOutput {
     }
   }
 
-  implicit def fromOption[D, OO](implicit ev: DataTypeToOutput.Aux[D, OO]): DataTypeToOutput.Aux[Option[D], Option[OO]] = {
+  implicit def fromOption[D, OO](implicit
+      ev: DataTypeToOutput.Aux[D, OO]
+  ): DataTypeToOutput.Aux[Option[D], Option[OO]] = {
     new DataTypeToOutput[Option[D]] {
       override type O = Option[OO]
     }
   }
 
-  implicit def fromSeq[D, OO](implicit ev: DataTypeToOutput.Aux[D, OO]): DataTypeToOutput.Aux[Seq[D], Seq[OO]] = {
+  implicit def fromSeq[D, OO](implicit
+      ev: DataTypeToOutput.Aux[D, OO]
+  ): DataTypeToOutput.Aux[Seq[D], Seq[OO]] = {
     new DataTypeToOutput[Seq[D]] {
       override type O = Seq[OO]
     }
   }
 
-  implicit def fromMap[K, D, OO](implicit ev: DataTypeToOutput.Aux[D, OO]): DataTypeToOutput.Aux[Map[K, D], Map[K, OO]] = {
+  implicit def fromMap[K, D, OO](implicit
+      ev: DataTypeToOutput.Aux[D, OO]
+  ): DataTypeToOutput.Aux[Map[K, D], Map[K, OO]] = {
     new DataTypeToOutput[Map[K, D]] {
       override type O = Map[K, OO]
     }
