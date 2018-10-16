@@ -118,27 +118,43 @@ package object types {
     implicit val variantEvTF      : TF[Variant]       = TF.fromDataType(VARIANT)
   }
 
-  import UnionTypes._
+  //region Union Types Support
 
-  type Float32OrFloat64 = Union[Float]#or[Double]
-  type Float16OrFloat32OrFloat64 = Union[Half]#or[Float]#or[Double]
-  type BFloat16OrFloat32OrFloat64 = Union[TruncatedHalf]#or[Float]#or[Double]
-  type BFloat16OrFloat16OrFloat32 = Union[TruncatedHalf]#or[Half]#or[Float]
-  type Decimal = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]
-  type Int32OrInt64 = Union[Int]#or[Long]
-  type Int32OrInt64OrFloat32OrFloat64 = Union[Int]#or[Long]#or[Float]#or[Double]
-  type Int32OrInt64OrFloat16OrFloat32OrFloat64 = Union[Int]#or[Long]#or[Half]#or[Float]#or[Double]
-  type Int32OrInt64OrUInt8 = Union[Int]#or[Long]#or[UByte]
-  type SignedInteger = Union[Byte]#or[Short]#or[Int]#or[Long]
-  type UnsignedInteger = Union[UByte]#or[UShort]#or[UInt]#or[ULong]
-  type Integer = Union[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]
-  type StringOrInteger = Union[String]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]
-  type Real = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]
-  type Complex = Union[ComplexFloat]#or[ComplexDouble]
-  type NotQuantized = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]
-  type Quantized = Union[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]
-  type Numeric = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]
-  type BooleanOrNumeric = Union[Boolean]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]
+  type ![A] = A => Nothing
+  type !![A] = ![![A]]
+
+  trait Disjunction[T] {
+    type or[S] = Disjunction[T with ![S]]
+    type create = ![T]
+  }
+
+  type Union[T] = {
+    type or[S] = Disjunction[![T]]#or[S]
+  }
+
+  type Contains[S, T] = !![S] <:< T
+
+  //endregion Union Types Support
+
+  type Float32OrFloat64 = Union[Float]#or[Double]#create
+  type Float16OrFloat32OrFloat64 = Union[Half]#or[Float]#or[Double]#create
+  type BFloat16OrFloat32OrFloat64 = Union[TruncatedHalf]#or[Float]#or[Double]#create
+  type BFloat16OrFloat16OrFloat32 = Union[TruncatedHalf]#or[Half]#or[Float]#create
+  type Decimal = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#create
+  type Int32OrInt64 = Union[Int]#or[Long]#create
+  type Int32OrInt64OrFloat32OrFloat64 = Union[Int]#or[Long]#or[Float]#or[Double]#create
+  type Int32OrInt64OrFloat16OrFloat32OrFloat64 = Union[Int]#or[Long]#or[Half]#or[Float]#or[Double]#create
+  type Int32OrInt64OrUInt8 = Union[Int]#or[Long]#or[UByte]#create
+  type SignedInteger = Union[Byte]#or[Short]#or[Int]#or[Long]#create
+  type UnsignedInteger = Union[UByte]#or[UShort]#or[UInt]#or[ULong]#create
+  type Integer = Union[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
+  type StringOrInteger = Union[String]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
+  type Real = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
+  type Complex = Union[ComplexFloat]#or[ComplexDouble]#create
+  type NotQuantized = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#create
+  type Quantized = Union[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
+  type Numeric = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
+  type BooleanOrNumeric = Union[Boolean]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
 
   type IsFloat32OrFloat64[T] = Contains[T, Float32OrFloat64]
   type IsFloat16OrFloat32OrFloat64[T] = Contains[T, Float16OrFloat32OrFloat64]
