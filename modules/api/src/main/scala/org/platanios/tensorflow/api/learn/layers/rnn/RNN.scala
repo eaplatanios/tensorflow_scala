@@ -52,7 +52,8 @@ class RNN[O, S](
 )(implicit
     protected val evStructureO: NestedStructure[O],
     protected val evStructureS: NestedStructure[S],
-    protected val evZeroO: Zero[O]
+    protected val evZeroO: Zero[O],
+    protected val evZeroS: Zero[S]
 ) extends Layer[O, Tuple[O, S]](name) {
   protected implicit val evStructureOAux: NestedStructure.Aux[O, evStructureO.V, evStructureO.D, evStructureO.S] = {
     evStructureO.asAux()
@@ -66,10 +67,14 @@ class RNN[O, S](
     evZeroO.asInstanceOf[Zero.Aux[O, evStructureO.S]]
   }
 
+  protected implicit val evZeroSAux: Zero.Aux[S, evStructureS.S] = {
+    evZeroS.asInstanceOf[Zero.Aux[S, evStructureS.S]]
+  }
+
   override val layerType: String = "RNN"
 
   override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, S] = {
-    val state = if (initialState == null) null.asInstanceOf[S] else initialState()
+    val state = if (initialState == null) None else Some(initialState())
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val createdCell = cell.createCell(mode, evStructureO.shapeFromOutput(input))
     ops.rnn.RNN.dynamicRNN(
@@ -89,7 +94,8 @@ object RNN {
   )(implicit
       evStructureO: NestedStructure[O],
       evStructureS: NestedStructure[S],
-      evZeroO: Zero[O]
+      evZeroO: Zero[O],
+      evZeroS: Zero[S]
   ): RNN[O, S] = {
     new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)
   }

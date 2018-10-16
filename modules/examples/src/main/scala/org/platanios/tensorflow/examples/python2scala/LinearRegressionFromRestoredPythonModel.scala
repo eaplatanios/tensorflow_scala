@@ -25,13 +25,13 @@ import scala.util.Random
   * @author Luca Tagliabue
   */
 object LinearRegressionFromRestoredPythonModel {
-  private[this] val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
-  private[this] val random = new Random(22)
-  private[this] val weight = random.nextFloat()
+  private val logger = Logger(LoggerFactory.getLogger("Examples / Linear Regression"))
+  private val random = new Random(22)
+  private val weight = random.nextFloat()
 
-  private[this] val checkpoint = "examples/src/main/resources/python2scala/linear-regression"
-  private[this] val meta = new File(getClass.getClassLoader.getResource("python2scala/linear-regression.meta").getFile)
-  private[this] val metaGraphDefFile = new File(getClass.getClassLoader.getResource("python2scala/MetaGraphDef.txt").getFile)
+  private val checkpoint = "examples/src/main/resources/python2scala/linear-regression"
+  private val meta = new File(getClass.getClassLoader.getResource("python2scala/linear-regression.meta").getFile)
+  private val metaGraphDefFile = new File(getClass.getClassLoader.getResource("python2scala/MetaGraphDef.txt").getFile)
 
   def main(args: Array[String]): Unit = {
     val metaGraphDefInputStream = new BufferedInputStream(new FileInputStream(meta))

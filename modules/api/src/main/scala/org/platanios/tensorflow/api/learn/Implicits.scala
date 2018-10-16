@@ -63,21 +63,21 @@ private[api] trait Implicits {
     UnsupervisedModelFunction(function)
   }
 
-  implicit def supervisedTrainableModelToModelFunction[In, TrainIn, TrainOut, Out, Loss](
-      model: SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss]
-  ): SupervisedModelFunction[In, TrainIn, TrainOut, Out, Loss] = {
+  implicit def supervisedTrainableModelToModelFunction[In, TrainIn, Out, TrainOut, Loss](
+      model: SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss]
+  ): SupervisedModelFunction[In, TrainIn, Out, TrainOut, Loss] = {
     SupervisedModelFunction((_: Configuration) => model)
   }
 
-  implicit def supervisedTrainableModelUnitFunctionToModelFunction[In, TrainIn, TrainOut, Out, Loss](
-      function: () => SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss]
-  ): SupervisedModelFunction[In, TrainIn, TrainOut, Out, Loss] = {
+  implicit def supervisedTrainableModelUnitFunctionToModelFunction[In, TrainIn, Out, TrainOut, Loss](
+      function: () => SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss]
+  ): SupervisedModelFunction[In, TrainIn, Out, TrainOut, Loss] = {
     SupervisedModelFunction((_: Configuration) => function())
   }
 
-  implicit def supervisedTrainableModelUnaryRunConfigFunctionToModelFunction[In, TrainIn, TrainOut, Out, Loss](
-      function: Configuration => SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss]
-  ): SupervisedModelFunction[In, TrainIn, TrainOut, Out, Loss] = {
+  implicit def supervisedTrainableModelUnaryRunConfigFunctionToModelFunction[In, TrainIn, Out, TrainOut, Loss](
+      function: Configuration => SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss]
+  ): SupervisedModelFunction[In, TrainIn, Out, TrainOut, Loss] = {
     SupervisedModelFunction(function)
   }
 }

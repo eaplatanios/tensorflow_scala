@@ -58,7 +58,7 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
+class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] protected (
     val log: Boolean = true,
     val summaryDir: Path = null,
     val datasets: Seq[(String, () => Dataset[TrainIn])],
@@ -71,16 +71,16 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
 )(implicit
   evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends TriggeredHook(trigger, triggerAtEnd)
-    with ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, InEval] {
+    with ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, InEval] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
   require(Op.checkNameScope(name), "Invalid evaluator name.")
 
   override private[learn] val priority: Int = -1000
 
-  protected var graph              : Graph                           = _
-  protected var sessionCreator     : SessionCreator                  = _
-  protected var datasetInitializers: Seq[(String, UntypedOp)]        = _
-  protected var evaluateOps        : Model.EvaluateOps[TrainIn, Out] = _
+  protected var graph              : Graph                       = _
+  protected var sessionCreator     : SessionCreator              = _
+  protected var datasetInitializers: Seq[(String, UntypedOp)]    = _
+  protected var evaluateOps        : Model.EvalOps[TrainIn, Out] = _
 
   override protected def fetches: Seq[Output[Any]] = Seq.empty
   override protected def targets: Set[UntypedOp] = Set.empty
@@ -89,7 +89,7 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
     graph = Graph()
     Op.createWith(graph, nameScope = name) {
       randomSeed.foreach(graph.setRandomSeed)
-      evaluateOps = Op.nameScope("Model")(modelInstance.model.buildEvaluateOps(metrics))
+      evaluateOps = Op.nameScope("Model")(modelInstance.model.buildEvalOps(metrics))
       datasetInitializers = datasets.map(d => {
         (d._1, evaluateOps.inputIterator.createInitializer(d._2()).asUntyped)
       })
@@ -197,7 +197,7 @@ class Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] protected (
 object Evaluator {
   private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
 
-  def apply[In, TrainIn, TrainOut, Out, Loss, InEval](
+  def apply[In, TrainIn, Out, TrainOut, Loss, InEval](
       log: Boolean = true,
       summaryDir: Path = null,
       datasets: Seq[(String, () => Dataset[TrainIn])],
@@ -209,7 +209,7 @@ object Evaluator {
       name: String = "Evaluator"
   )(implicit
       evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
-  ): Evaluator[In, TrainIn, TrainOut, Out, Loss, InEval] = {
+  ): Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] = {
     new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }
 }

@@ -33,10 +33,10 @@ object MNIST {
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))
-    val trainImages = tf.data.datasetFromTensorSlices(dataSet.trainImages)
-    val trainLabels = tf.data.datasetFromTensorSlices(dataSet.trainLabels)
-    val testImages = tf.data.datasetFromTensorSlices(dataSet.testImages)
-    val testLabels = tf.data.datasetFromTensorSlices(dataSet.testLabels)
+    val trainImages = tf.data.datasetFromTensorSlices(dataSet.trainImages).map(_.toFloat)
+    val trainLabels = tf.data.datasetFromTensorSlices(dataSet.trainLabels).map(_.toLong)
+    val testImages = tf.data.datasetFromTensorSlices(dataSet.testImages).map(_.toFloat)
+    val testLabels = tf.data.datasetFromTensorSlices(dataSet.testLabels).map(_.toLong)
     val trainData =
       trainImages.zip(trainLabels)
           .repeat()
@@ -48,34 +48,31 @@ object MNIST {
 
     logger.info("Building the logistic regression model.")
 
-    val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
-    val trainInput = tf.learn.Input(UINT8, Shape(-1))
-    val layer = tf.learn.Flatten[UByte]("Input/Flatten") >>
-        tf.learn.Cast[UByte, Float]("Input/Cast") >>
+    val input = tf.learn.Input(FLOAT32, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2)))
+    val trainInput = tf.learn.Input(INT64, Shape(-1))
+    val layer = tf.learn.Flatten[Float]("Input/Flatten") >>
         tf.learn.Linear[Float]("Layer_0/Linear", 128) >> tf.learn.ReLU[Float]("Layer_0/ReLU", 0.1f) >>
         tf.learn.Linear[Float]("Layer_1/Linear", 64) >> tf.learn.ReLU[Float]("Layer_1/ReLU", 0.1f) >>
         tf.learn.Linear[Float]("Layer_2/Linear", 32) >> tf.learn.ReLU[Float]("Layer_2/ReLU", 0.1f) >>
         tf.learn.Linear[Float]("OutputLayer/Linear", 10)
-    val trainInputLayer = tf.learn.Cast[UByte, Int]("TrainInput/Cast")
-    val loss = tf.learn.SparseSoftmaxCrossEntropy[Float, Int, Float]("Loss/CrossEntropy") >>
+    val loss = tf.learn.SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss/CrossEntropy") >>
         tf.learn.Mean[Float]("Loss/Mean") >>
         tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
     val optimizer = tf.train.YellowFin()
 
-    val model = tf.learn.Model.supervised(
-      input = input,
-      layer = layer,
-      trainInput = trainInput,
-      trainInputLayer = trainInputLayer,
-      loss = loss,
+    val model = tf.learn.Model.simpleSupervised(
+      input = input,  
+      trainInput = trainInput, 
+      layer = layer, 
+      loss = loss, 
       optimizer = optimizer,
       clipGradients = ClipGradientsByGlobalNorm(5.0f))
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/mnist-mlp")
     val accMetric = tf.metrics.MapMetric(
-      (v: (Output[Float], Output[Int])) => {
-        (tf.argmax(v._1, -1, INT64).toFloat, v._2.toFloat)
+      (v: (Output[Float], (Output[Float], Output[Int]))) => {
+        (tf.argmax(v._1, -1, INT64).toFloat, v._2._2.toFloat)
       }, tf.metrics.Accuracy("Accuracy"))
     val estimator = tf.learn.InMemoryEstimator(
       model,
@@ -93,7 +90,7 @@ object MNIST {
     estimator.train(() => trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
     def accuracy(images: Tensor[UByte], labels: Tensor[UByte]): Float = {
-      val predictions = estimator.infer(() => images)
+      val predictions = estimator.infer(() => images.toFloat)
       predictions
           .argmax(1).toUByte
           .equal(labels).toFloat

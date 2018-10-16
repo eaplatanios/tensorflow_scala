@@ -29,7 +29,7 @@ import java.nio.file.Paths
   * @author Emmanouil Antonios Platanios
   */
 object RNNTutorialUsingPTB {
-  private[this] val logger = Logger(LoggerFactory.getLogger("Tutorials / RNN-PTB"))
+  private val logger = Logger(LoggerFactory.getLogger("Tutorials / RNN-PTB"))
 
   val batchSize   : Int = 20
   val numSteps    : Int = 20
@@ -60,7 +60,7 @@ object RNNTutorialUsingPTB {
     // Slightly better results can be obtained with forget gate biases initialized to 1 but the hyper-parameters of the
     // model would need to be different than those reported in the paper.
     val rnnCell = DropoutWrapper("DropoutCell", BasicLSTMCell[Float]("LSTMCell", numHidden, tf.tanh(_), forgetBias = 0.0f), 0.00001f)
-    // TODO: Add multi-RNN cell.
+    // TODO: Add stacked-RNN cell.
     val rnn = RNN("RNN", rnnCell, timeMajor = false)
     val layer = tf.learn.Embedding[Float]("Embedding", vocabularySize, numHidden) >>
         tf.learn.Dropout("Embedding/Dropout", dropoutKeepProbability) >>
@@ -74,7 +74,13 @@ object RNNTutorialUsingPTB {
         tf.learn.Sum[Float]("Loss/Sum") >>
         tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
     val optimizer = tf.train.GradientDescent(1.0f)
-    tf.learn.Model.supervised(input, layer, trainInput, loss, optimizer, tf.learn.ClipGradientsByGlobalNorm(5.0f))
+    tf.learn.Model.simpleSupervised(
+      input = input, 
+      trainInput = trainInput, 
+      layer = layer, 
+      loss = loss, 
+      optimizer = optimizer, 
+      clipGradients = tf.learn.ClipGradientsByGlobalNorm(5.0f))
   }
 
   def main(args: Array[String]): Unit = {

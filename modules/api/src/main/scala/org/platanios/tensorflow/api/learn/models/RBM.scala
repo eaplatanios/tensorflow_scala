@@ -19,12 +19,12 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.Indexer.NewAxis
 import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64OrFloat16OrFloat32OrFloat64, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.learn.{Counter, Model, UnsupervisedTrainableModel}
+import org.platanios.tensorflow.api.learn.{Counter, Model, TrainableModel}
 import org.platanios.tensorflow.api.learn.layers.Input
+import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
 import org.platanios.tensorflow.api.ops.variables.{RandomNormalInitializer, Variable, ZerosInitializer}
-import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output, Random}
 
 import scala.collection.mutable
 
@@ -36,19 +36,16 @@ class RBM[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
     val meanFieldCD: Boolean = false,
     val cdSteps: Int = 1,
     val optimizer: Optimizer,
+    val colocateGradientsWithOps: Boolean = false,
     val name: String = "RBM"
-) extends UnsupervisedTrainableModel[Output[T], Output[T], Float] {
-  type InferOps = Model.InferOps[Output[T], Output[T]]
-  type TrainOps = Model.UnsupervisedTrainOps[Output[T], Output[T], Float]
-  type EvalOps = Model.EvaluateOps[Output[T], Output[T]]
-
+) extends TrainableModel[Output[T], Output[T], Output[T], Output[T], Float, Output[T]] {
   val numInputs: Int = input.shape.apply(1)
 
-  protected val nextInputCache: mutable.Map[Graph, Output[T]]                               = mutable.Map.empty
-  protected val variablesCache: mutable.Map[Graph, (Variable[T], Variable[T], Variable[T])] = mutable.Map.empty
-  protected val inferOpsCache : mutable.Map[Graph, InferOps]                                = mutable.Map.empty
-  protected val trainOpsCache : mutable.Map[Graph, TrainOps]                                = mutable.Map.empty
-  protected val evalOpsCache  : mutable.Map[Graph, EvalOps]                                 = mutable.Map.empty
+  protected val nextInputCache: mutable.Map[Graph, Output[T]]                                   = mutable.Map.empty
+  protected val variablesCache: mutable.Map[Graph, (Variable[T], Variable[T], Variable[T])]     = mutable.Map.empty
+  protected val inferOpsCache : mutable.Map[Graph, Model.InferOps[Output[T], Output[T]]]        = mutable.Map.empty
+  protected val trainOpsCache : mutable.Map[Graph, Model.TrainOps[Output[T], Output[T], Float]] = mutable.Map.empty
+  protected val evalOpsCache  : mutable.Map[Graph, Model.EvalOps[Output[T], Output[T]]]         = mutable.Map.empty
 
   override def buildInferOps(): Model.InferOps[Output[T], Output[T]] = {
     inferOpsCache.getOrElseUpdate(Op.currentGraph, {
@@ -78,7 +75,7 @@ class RBM[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
     })
   }
 
-  override def buildTrainOps(): Model.UnsupervisedTrainOps[Output[T], Output[T], Float] = {
+  override def buildTrainOps(): Model.TrainOps[Output[T], Output[T], Float] = {
     trainOpsCache.getOrElseUpdate(Op.currentGraph, {
       val inferOps = buildInferOps()
       val (vb, hb, w) = variables()
@@ -91,19 +88,23 @@ class RBM[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
         loss,
         colocateGradientsWithOps = colocateGradientsWithOps)
       val trainOp = optimizer.applyGradients(gradientsAndVariables, Some(step))
-      Model.UnsupervisedTrainOps(
-        inferOps.inputIterator, inferOps.input, inferOps.output,
-        loss, gradientsAndVariables, trainOp)
+      Model.TrainOps(
+        inputIterator = inferOps.inputIterator,
+        input = inferOps.input,
+        output = inferOps.output,
+        loss = loss,
+        gradientsAndVariables = gradientsAndVariables,
+        trainOp = trainOp)
     })
   }
 
-  override def buildEvaluateOps(
+  override def buildEvalOps(
       metrics: Seq[Metric[Output[T], Output[Float]]]
-  ): Model.EvaluateOps[Output[T], Output[T]] = {
+  ): Model.EvalOps[Output[T], Output[T]] = {
     evalOpsCache.getOrElseUpdate(Op.currentGraph, {
       val inferOps = buildInferOps()
       val streamingInstances = metrics.map(_.streaming(inferOps.output))
-      Model.EvaluateOps(
+      Model.EvalOps(
         inferOps.inputIterator, inferOps.input, inferOps.output,
         streamingInstances.map(_.value), streamingInstances.map(_.update),
         streamingInstances.map(_.reset).toSet)
@@ -148,9 +149,12 @@ object RBM {
       meanFieldCD: Boolean = false,
       cdSteps: Int = 1,
       optimizer: Optimizer,
+      colocateGradientsWithOps: Boolean = false,
       name: String = "RBM"
   ): RBM[T] = {
-    new RBM[T](input, numHidden, meanField, numSamples, meanFieldCD, cdSteps, optimizer, name)
+    new RBM[T](
+      input, numHidden, meanField, numSamples, meanFieldCD, cdSteps, 
+      optimizer, colocateGradientsWithOps, name)
   }
 
   private[RBM] def conditionalHGivenV[T: TF : IsNotQuantized](

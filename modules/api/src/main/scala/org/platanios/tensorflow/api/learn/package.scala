@@ -57,8 +57,8 @@ package object learn {
 
     type Model = learn.Model
     type InferenceModel[In, Out] = learn.InferenceModel[In, Out]
-    type TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn] = learn.TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn]
-    type SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = learn.SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss]
+    type TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn] = learn.TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn]
+    type SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss] = learn.SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss]
     type UnsupervisedTrainableModel[In, Out, Loss] = learn.UnsupervisedTrainableModel[In, Out, Loss]
 
     val Model: learn.Model.type = learn.Model

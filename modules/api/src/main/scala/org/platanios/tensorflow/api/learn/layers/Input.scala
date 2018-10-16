@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToOutput, NestedStructure}
 import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.Op
@@ -70,7 +70,10 @@ object Input {
       dataType: D,
       shape: S,
       name: String = "Input"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Input[T] = {
+  )(implicit 
+      evDataTypeToOutput: DataTypeToOutput.Aux[D, T],
+      evStructure: NestedStructure.Aux[T, V, D, S]
+  ): Input[T] = {
     new Input[T](dataType, shape, name)
   }
 

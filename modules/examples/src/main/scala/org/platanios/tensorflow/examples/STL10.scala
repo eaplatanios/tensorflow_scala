@@ -33,8 +33,8 @@ object STL10 {
 
   def main(args: Array[String]): Unit = {
     val dataSet = STL10Loader.load(Paths.get("datasets/STL10"), loadUnlabeled = false)
-    val trainImages = () => tf.data.datasetFromTensorSlices(dataSet.trainImages)
-    val trainLabels = () => tf.data.datasetFromTensorSlices(dataSet.trainLabels)
+    val trainImages = () => tf.data.datasetFromTensorSlices(dataSet.trainImages).map(_.toFloat)
+    val trainLabels = () => tf.data.datasetFromTensorSlices(dataSet.trainLabels).map(_.toLong)
     val trainData = () =>
       trainImages().zip(trainLabels())
           .repeat()
@@ -43,10 +43,9 @@ object STL10 {
           .prefetch(10)
 
     logger.info("Building the logistic regression model.")
-    val input = tf.learn.Input(UINT8, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2), dataSet.trainImages.shape(3)))
-    val trainInput = tf.learn.Input(UINT8, Shape(-1))
-    val layer = tf.learn.Cast[UByte, Float]("Input/Cast") >>
-        tf.learn.Conv2D[Float]("Layer_0/Conv2D", Shape(5, 5, 3, 32), 1, 1, SameConvPadding) >>
+    val input = tf.learn.Input(FLOAT32, Shape(-1, dataSet.trainImages.shape(1), dataSet.trainImages.shape(2), dataSet.trainImages.shape(3)))
+    val trainInput = tf.learn.Input(INT64, Shape(-1))
+    val layer = tf.learn.Conv2D[Float]("Layer_0/Conv2D", Shape(5, 5, 3, 32), 1, 1, SameConvPadding) >>
         tf.learn.AddBias[Float]("Layer_0/Bias") >>
         tf.learn.ReLU[Float]("Layer_0/ReLU", 0.1f) >>
         tf.learn.MaxPool[Float]("Layer_0/MaxPool", Seq(1, 2, 2, 1), 1, 1, SameConvPadding) >>
@@ -57,12 +56,17 @@ object STL10 {
         tf.learn.Flatten[Float]("Layer_2/Flatten") >>
         tf.learn.Linear[Float]("Layer_2/Linear", 256) >> tf.learn.ReLU("Layer_2/ReLU", 0.1f) >>
         tf.learn.Linear[Float]("OutputLayer/Linear", 10)
-    val trainingInputLayer = tf.learn.Cast[UByte, Long]("TrainInput/Cast")
     val loss = tf.learn.SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss/CrossEntropy") >>
         tf.learn.Mean[Float]("Loss/Mean") >>
         tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
     val optimizer = tf.train.AdaGrad(0.1f)
-    val model = tf.learn.Model.supervised(input, layer, trainInput, trainingInputLayer, loss, optimizer)
+    
+    val model = tf.learn.Model.simpleSupervised(
+      input = input,  
+      trainInput = trainInput, 
+      layer = layer, 
+      loss = loss, 
+      optimizer = optimizer)
 
     logger.info("Training the linear regression model.")
     val summariesDir = Paths.get("temp/cnn-stl10")
@@ -78,13 +82,13 @@ object STL10 {
     estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(10000)))
 
     def accuracy(images: Tensor[UByte], labels: Tensor[UByte]): Float = {
-      val imageBatches = images.splitEvenly(100)
-      val labelBatches = labels.splitEvenly(100)
+      val imageBatches = images.toFloat.splitEvenly(100)
+      val labelBatches = labels.toLong.splitEvenly(100)
       var accuracy = 0.0f
       (0 until 100).foreach(i => {
         val predictions = estimator.infer(() => imageBatches(i))
         accuracy += predictions
-            .argmax(1).toUByte
+            .argmax(1).toLong
             .equal(labelBatches(i)).toFloat
             .sum().scalar
       })

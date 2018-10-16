@@ -60,7 +60,8 @@ class BidirectionalRNN[O, S](
 )(implicit
     protected val evStructureO: NestedStructure[O],
     protected val evStructureS: NestedStructure[S],
-    protected val evZeroO: Zero[O]
+    protected val evZeroO: Zero[O],
+    protected val evZeroS: Zero[S]
 ) extends Layer[O, (Tuple[O, S], Tuple[O, S])](name) {
   protected implicit val evStructureOAux: NestedStructure.Aux[O, evStructureO.V, evStructureO.D, evStructureO.S] = {
     evStructureO.asAux()
@@ -74,11 +75,15 @@ class BidirectionalRNN[O, S](
     evZeroO.asInstanceOf[Zero.Aux[O, evStructureO.S]]
   }
 
+  protected implicit val evZeroSAux: Zero.Aux[S, evStructureS.S] = {
+    evZeroS.asInstanceOf[Zero.Aux[S, evStructureS.S]]
+  }
+
   override val layerType: String = "BidirectionalRNN"
 
   override def forwardWithoutContext(input: O)(implicit mode: Mode): (Tuple[O, S], Tuple[O, S]) = {
-    val stateFw = if (initialStateFw == null) null.asInstanceOf[S] else initialStateFw()
-    val stateBw = if (initialStateBw == null) null.asInstanceOf[S] else initialStateBw()
+    val stateFw = if (initialStateFw == null) None else Some(initialStateFw())
+    val stateBw = if (initialStateBw == null) None else Some(initialStateBw())
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
     val inputShape = evStructureO.shapeFromOutput(input)
     val createdCellFw = cellFw.createCell(mode, inputShape)
@@ -118,7 +123,8 @@ object BidirectionalRNN {
   )(implicit
       evStructureO: NestedStructure[O],
       evStructureS: NestedStructure[S],
-      evZeroO: Zero[O]
+      evZeroO: Zero[O],
+      evZeroS: Zero[S]
   ): BidirectionalRNN[O, S] = {
     new BidirectionalRNN(
       variableScope, cellFw, cellBw, initialStateFw, initialStateBw,

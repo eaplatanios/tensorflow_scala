@@ -61,8 +61,8 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
-    override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn],
+class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+    override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
     val trainHooks: Set[Hook] = Set.empty,
@@ -74,7 +74,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
 )(implicit
     evIn: NestedStructure.Aux[In, _, _, _],
     evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
-) extends Estimator[In, TrainIn, TrainOut, Out, Loss, EvalIn](modelFunction, configurationBase) {
+) extends Estimator[In, TrainIn, Out, TrainOut, Loss, EvalIn](modelFunction, configurationBase) {
   if (trainHooks.exists(_.isInstanceOf[Stopper])
       || trainChiefOnlyHooks.exists(_.isInstanceOf[Stopper])
       || inferHooks.exists(_.isInstanceOf[Stopper])
@@ -83,7 +83,7 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
 
   protected val graph: Graph = Graph()
 
-  protected val model: TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn] = modelFunction(configuration)
+  protected val model: TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn] = modelFunction(configuration)
 
   protected val stopHook              : Stopper                 = Stopper(stopCriteria)
   protected var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + stopHook
@@ -105,31 +105,38 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
       }
       val inferOps = Op.nameScope("Infer/Model")(model.buildInferOps())
       val (evaluateOps, evalUpdateOps) = Op.nameScope("Evaluate") {
-        val evaluateOps = Op.nameScope("Model")(model.buildEvaluateOps(evaluationMetrics))
+        val evaluateOps = Op.nameScope("Model")(model.buildEvalOps(evaluationMetrics))
         val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
         val evalStepUpdate = evalStep.assignAdd(1L)
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
         (evaluateOps, evalUpdateOps)
       }
-      val trainModelInstance = ModelInstance(
-        model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
-        Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
+      val modelInstance = ModelInstance[In, TrainIn, Out, TrainOut, Loss, EvalIn](
+        model = model,
+        configuration = configuration,
+        trainInputIterator = Some(trainOps.inputIterator),
+        trainInput = Some(trainOps.input),
+        output = Some(inferOps.output),
+        trainOutput = Some(trainOps.output),
+        loss =  Some(trainOps.loss),
+        gradientsAndVariables = Some(trainOps.gradientsAndVariables),
+        trainOp = Some(trainOps.trainOp))
       trainHooks.foreach {
-        case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
-          hook.setModelInstance(trainModelInstance)
+        case hook: ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, EvalIn] =>
+          hook.setModelInstance(modelInstance)
         case _ => ()
       }
       val inferModelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None)
       inferHooks.foreach {
-        case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+        case hook: ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, EvalIn] =>
           hook.setModelInstance(inferModelInstance)
         case _ => ()
       }
-      val evaluateModelInstance = ModelInstance[In, TrainIn, TrainOut, Out, Loss, EvalIn](
+      val evaluateModelInstance = ModelInstance[In, TrainIn, Out, TrainOut, Loss, EvalIn](
         model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
         None, None)
       evaluateHooks.foreach {
-        case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+        case hook: ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, EvalIn] =>
           hook.setModelInstance(evaluateModelInstance)
         case _ => ()
       }
@@ -378,8 +385,8 @@ class InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat6
 object InMemoryEstimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / In-Memory Estimator"))
 
-  def apply[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, EvalIn](
-      modelFunction: Estimator.ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn],
+  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn](
+      modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),
       trainHooks: Set[Hook] = Set.empty,
@@ -391,7 +398,7 @@ object InMemoryEstimator {
   )(implicit
       evIn: NestedStructure.Aux[In, _, _, _],
       evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
-  ): InMemoryEstimator[In, TrainIn, TrainOut, Out, Loss, EvalIn] = {
+  ): InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss, EvalIn] = {
     new InMemoryEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,
       tensorBoardConfig, evaluationMetrics)

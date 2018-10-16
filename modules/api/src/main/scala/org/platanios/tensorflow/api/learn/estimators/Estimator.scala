@@ -74,8 +74,8 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Estimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
-    protected val modelFunction: Estimator.ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn],
+abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+    protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     protected val configurationBase: Configuration = null
 ) {
   /** Run configuration used for this estimator. */
@@ -254,25 +254,25 @@ abstract class Estimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
 object Estimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / Estimator"))
 
-  class ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn](
-      val function: Configuration => TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn]) {
-    def apply(configuration: Configuration): TrainableModel[In, TrainIn, TrainOut, Out, Loss, EvalIn] = {
+  class ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn](
+      val function: Configuration => TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn]) {
+    def apply(configuration: Configuration): TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn] = {
       function(configuration)
     }
   }
 
   case class UnsupervisedModelFunction[In, Out, Loss](
       override val function: Configuration => UnsupervisedTrainableModel[In, Out, Loss]
-  ) extends ModelFunction[In, In, Unit, Out, Loss, Out](function) {
+  ) extends ModelFunction[In, In, Out, Out, Loss, Out](function) {
     override def apply(configuration: Configuration): UnsupervisedTrainableModel[In, Out, Loss] = {
       function(configuration)
     }
   }
 
-  case class SupervisedModelFunction[In, TrainIn, TrainOut, Out, Loss](
-      override val function: Configuration => SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss]
-  ) extends ModelFunction[In, (In, TrainIn), TrainOut, Out, Loss, (Out, TrainOut)](function) {
-    override def apply(configuration: Configuration): SupervisedTrainableModel[In, TrainIn, TrainOut, Out, Loss] = {
+  case class SupervisedModelFunction[In, TrainIn, Out, TrainOut, Loss](
+      override val function: Configuration => SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss]
+  ) extends ModelFunction[In, (In, TrainIn), Out, TrainOut, Loss, (Out, (In, TrainIn))](function) {
+    override def apply(configuration: Configuration): SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss] = {
       function(configuration)
     }
   }

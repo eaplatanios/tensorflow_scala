@@ -65,8 +65,8 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
-    override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn],
+class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+    override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
     val trainHooks: Set[Hook] = Set.empty,
@@ -78,7 +78,7 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
 )(implicit
     evIn: NestedStructure.Aux[In, _, _, _],
     evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
-) extends Estimator[In, TrainIn, TrainOut, Out, Loss, EvalIn](modelFunction, configurationBase) {
+) extends Estimator[In, TrainIn, Out, TrainOut, Loss, EvalIn](modelFunction, configurationBase) {
   /** Trains the model managed by this estimator.
     *
     * @param  data         Training dataset. Each element is a tuple over input and training inputs (i.e.,
@@ -153,11 +153,17 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
           val trainOps = Op.nameScope("Model")(model.buildTrainOps())
           graph.addToCollection(Graph.Keys.LOSSES)(trainOps.loss)
           allHooks += NaNChecker(Set(trainOps.loss.name))
-          val modelInstance = ModelInstance(
-            model, configuration, Some(trainOps.inputIterator), Some(trainOps.input), Some(trainOps.output),
-            Some(trainOps.loss), Some(trainOps.gradientsAndVariables), Some(trainOps.trainOp))
+          val modelInstance = ModelInstance[In, TrainIn, Out, TrainOut, Loss, EvalIn](
+            model = model,
+            configuration = configuration,
+            trainInputIterator = Some(trainOps.inputIterator),
+            trainInput = Some(trainOps.input),
+            trainOutput = Some(trainOps.output),
+            loss = Some(trainOps.loss),
+            gradientsAndVariables = Some(trainOps.gradientsAndVariables),
+            trainOp = Some(trainOps.trainOp))
           allHooks.foreach {
-            case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+            case hook: ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, EvalIn] =>
               hook.setModelInstance(modelInstance)
             case _ => ()
           }
@@ -274,9 +280,12 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
         Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val inferOps = Op.nameScope("Model")(model.buildInferOps())
-        val modelInstance = ModelInstance(model, configuration, None, None, Some(inferOps.output), None, None, None)
+        val modelInstance = ModelInstance[In, TrainIn, Out, TrainOut, Loss, EvalIn](
+          model = model,
+          configuration = configuration,
+          output = Some(inferOps.output))
         hooks.foreach {
-          case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+          case hook: ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, EvalIn] =>
             hook.setModelInstance(modelInstance)
           case _ => ()
         }
@@ -407,7 +416,7 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
       val graph = Graph()
       Op.createWith(graph) {
         randomSeed.foreach(graph.setRandomSeed)
-        val evaluateOps = Op.nameScope("Model")(model.buildEvaluateOps(metrics))
+        val evaluateOps = Op.nameScope("Model")(model.buildEvalOps(metrics))
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
         val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
         val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
@@ -419,7 +428,7 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
           model, configuration, Some(evaluateOps.inputIterator), Some(evaluateOps.input), Some(evaluateOps.output),
           None, None, None)
         allHooks.foreach {
-          case hook: ModelDependentHook[In, TrainIn, TrainOut, Out, Loss, EvalIn] =>
+          case hook: ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, EvalIn] =>
             hook.setModelInstance(modelInstance)
           case _ => ()
         }
@@ -470,8 +479,8 @@ class FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat
 object FileBasedEstimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / File-based Estimator"))
 
-  def apply[In, TrainIn, TrainOut, Out, Loss: TF : IsFloat32OrFloat64, EvalIn](
-      modelFunction: Estimator.ModelFunction[In, TrainIn, TrainOut, Out, Loss, EvalIn],
+  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn](
+      modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),
       trainHooks: Set[Hook] = Set.empty,
@@ -483,7 +492,7 @@ object FileBasedEstimator {
   )(implicit
       evIn: NestedStructure.Aux[In, _, _, _],
       evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
-  ): FileBasedEstimator[In, TrainIn, TrainOut, Out, Loss, EvalIn] = {
+  ): FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss, EvalIn] = {
     new FileBasedEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,
       tensorBoardConfig, evaluationMetrics)
