@@ -57,6 +57,10 @@ scalacOptions in ThisBuild ++= Seq(
   // "-P:splain:boundsimplicits:false"
 )
 
+val scalacProfilingEnabled: SettingKey[Boolean] =
+  settingKey[Boolean]("Flag specifying whether to enable profiling for the Scala compiler.")
+
+scalacProfilingEnabled in ThisBuild := false
 nativeCrossCompilationEnabled in ThisBuild := false
 
 lazy val loggingSettings = Seq(
@@ -185,7 +189,26 @@ lazy val api = (project in file("./modules/api"))
         "io.circe" %% "circe-generic",
         "io.circe" %% "circe-parser"
       ).map(_ % circeVersion),
-      // Protobuf settings
+      // Scalac Profiling Settings
+      libraryDependencies ++= {
+        if (scalacProfilingEnabled.value)
+          Seq(compilerPlugin("ch.epfl.scala" %% "scalac-profiling" % "1.0.0"))
+        else
+          Seq.empty
+      },
+      scalacOptions ++= {
+        if (scalacProfilingEnabled.value) {
+          Seq(
+            "-Ystatistics:typer",
+            // Scala profiler plugin options
+            "-P:scalac-profiling:no-profiledb",
+            "-P:scalac-profiling:show-profiles",
+            "-P:scalac-profiling:show-concrete-implicit-tparams")
+        } else {
+          Seq.empty
+        }
+      },
+      // Protobuf Settings
       version in ProtobufConfig := "3.5.1",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),

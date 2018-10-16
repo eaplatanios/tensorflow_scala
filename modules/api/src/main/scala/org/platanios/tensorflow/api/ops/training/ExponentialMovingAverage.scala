@@ -117,8 +117,8 @@ class ExponentialMovingAverage protected (
     Op.nameScope(name) {
       var decayTensor = Output.constant[Float](decay, name = "Decay")
       numUpdates.foreach(n => {
-        val numUpdatesTensor = Op.nameScope("NumUpdates")(Output[Float](n))
-        val threshold = (Output[Float](1.0f) + numUpdatesTensor) / (Output[Float](10.0f) + numUpdatesTensor)
+        val numUpdatesTensor = Op.nameScope("NumUpdates")(Output.constant[Float](n))
+        val threshold = (Output.constant[Float](1.0f) + numUpdatesTensor) / (Output.constant[Float](10.0f) + numUpdatesTensor)
         decayTensor = Math.minimum[Float](decayTensor, threshold)
       })
       decayTensor

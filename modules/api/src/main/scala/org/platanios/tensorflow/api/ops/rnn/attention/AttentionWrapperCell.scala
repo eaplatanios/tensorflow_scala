@@ -23,8 +23,6 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
 
-// TODO: [TYPES] !!! Remove the million type arguments.
-
 /** RNN cell that wraps another RNN cell and adds support for attention to it.
   *
   * @param  cell                   RNN cell being wrapped.

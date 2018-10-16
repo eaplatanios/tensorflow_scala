@@ -62,7 +62,7 @@ trait RNN {
   def dynamicRNN[O, OV, OD, OS, S, SV, SD, SS](
       cell: RNNCell[O, S],
       input: O,
-      initialState: S,
+      initialState: Option[S] = None,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
@@ -71,7 +71,8 @@ trait RNN {
   )(implicit
       evStructureO: NestedStructure.Aux[O, OV, OD, OS],
       evStructureS: NestedStructure.Aux[S, SV, SD, SS],
-      evZeroO: Zero.Aux[O, OS]
+      evZeroO: Zero.Aux[O, OS],
+      evZeroS: Zero.Aux[S, SS]
   ): Tuple[O, S] = {
     Op.nameScope(name) {
       // Create a new variable scope in which the caching device is either determined by the parent scope, or is set to
@@ -166,8 +167,8 @@ trait RNN {
       cellFw: RNNCell[O, S],
       cellBw: RNNCell[O, S],
       input: O,
-      initialStateFw: S = null.asInstanceOf[S],
-      initialStateBw: S = null.asInstanceOf[S],
+      initialStateFw: Option[S] = None,
+      initialStateBw: Option[S] = None,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
@@ -176,7 +177,8 @@ trait RNN {
   )(implicit
       evStructureO: NestedStructure.Aux[O, OV, OD, OS],
       evStructureS: NestedStructure.Aux[S, SV, SD, SS],
-      evZeroO: Zero.Aux[O, OS]
+      evZeroO: Zero.Aux[O, OS],
+      evZeroS: Zero.Aux[S, SS]
   ): (Tuple[O, S], Tuple[O, S]) = {
     Op.nameScope(name) {
       VariableScope.scope(name) {
@@ -237,14 +239,15 @@ object RNN extends RNN {
   private[RNN] def dynamicRNNLoop[O, OV, OD, OS, S, SV, SD, SS](
       cell: RNNCell[O, S],
       input: O,
-      initialState: S,
+      initialState: Option[S],
       parallelIterations: Int,
       swapMemory: Boolean,
       sequenceLengths: Output[Int] = null
   )(implicit
       evStructureO: NestedStructure.Aux[O, OV, OD, OS],
       evStructureS: NestedStructure.Aux[S, SV, SD, SS],
-      evZeroO: Zero.Aux[O, OS]
+      evZeroO: Zero.Aux[O, OS],
+      evZeroS: Zero.Aux[S, SS]
   ): Tuple[O, S] = {
     // Construct an initial output.
     val inputs = evStructureO.outputs(input)
@@ -319,7 +322,7 @@ object RNN extends RNN {
         case (tensorArray, output) =>
           tensorArray.write(time, output)
       })
-      (time + Output[Int](1), nextOutputTensorArrays, nextState)
+      (time + Output.constant[Int](1), nextOutputTensorArrays, nextState)
     }
 
     // Make sure that we run at least 1 step, if necessary, to ensure that the tensor arrays pick up the dynamic shape.
@@ -327,7 +330,7 @@ object RNN extends RNN {
     val (_, finalOutputTensorArrays, finalState) = ControlFlow.whileLoop(
       (loopVariables: LoopVariables) => Math.less(loopVariables._1, loopBound),
       (loopVariables: LoopVariables) => timeStep(loopVariables),
-      (time, outputTensorArrays, initialState),
+      (time, outputTensorArrays, initialState.getOrElse(cell.zeroState(batchSize, cell.stateShape))),
       parallelIterations = parallelIterations,
       swapMemory = swapMemory,
       maximumIterations = timeSteps)

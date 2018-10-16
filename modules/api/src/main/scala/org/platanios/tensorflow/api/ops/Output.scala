@@ -559,14 +559,14 @@ object Output {
       shape: Shape = null,
       name: String = "Constant"
   ): Output[T] = {
-    Basic.constant(tensor, shape, name)
+    Basic.constant[T](tensor, shape, name)
   }
 
   def guaranteeConstant[T: TF](
       input: Output[T],
       name: String = "GuaranteeConstant"
   ): Output[T] = {
-    Basic.guaranteeConstant(input, name)
+    Basic.guaranteeConstant[T](input, name)
   }
 
   def immutableConstant[T: TF](
@@ -574,7 +574,7 @@ object Output {
       memoryRegionName: String,
       name: String = "ImmutableConstant"
   ): Output[T] = {
-    Basic.immutableConstant(shape, memoryRegionName, name)
+    Basic.immutableConstant[T](shape, memoryRegionName, name)
   }
 
   def zeros[T: TF](shape: Output[Long]): Output[T] = {

@@ -225,8 +225,8 @@ class YellowFin protected (
         // substitution (http://mathworld.wolfram.com/VietasSubstitution.html) to compute the root. There is only one real
         // solution y (which is in [0, 1]).
         val p = Math.square(distAvg) * Math.square(hMin) / (gradVar * 2.0f)
-        val w3 = (-Math.sqrt(Math.square(p) + Math.pow(p, Output[Float](3.0f)) * Output[Float](4.0f / 27.0f)) - p) / Output[Float](2.0f)
-        val w = Math.sign(w3) * Math.pow(Math.abs(w3), Output[Float](1.0f / 3.0f))
+        val w3 = (-Math.sqrt(Math.square(p) + Math.pow(p, Output.constant[Float](3.0f)) * Output.constant[Float](4.0f / 27.0f)) - p) / Output.constant[Float](2.0f)
+        val w = Math.sign(w3) * Math.pow(Math.abs(w3), Output.constant[Float](1.0f / 3.0f))
         val y = w - p / (w * 3.0f)
         val cubicRoot = y + 1.0f
         val dr = hMax / hMin

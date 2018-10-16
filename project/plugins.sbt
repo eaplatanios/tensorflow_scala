@@ -22,6 +22,8 @@ libraryDependencies ++= Seq(
   "org.ow2.asm" % "asm" % "6.2.1",
   "org.tensorflow" % "proto" % tensorFlowVersion)
 
+addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.0.0")
+
 // addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC4")
 // addSbtPlugin("org.scalameta" % "sbt-metals" % "0.1.0-M1+267-28b92d0a")
 

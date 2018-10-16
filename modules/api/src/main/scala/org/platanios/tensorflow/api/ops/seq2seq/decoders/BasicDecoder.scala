@@ -29,8 +29,6 @@ import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 import scala.language.postfixOps
 
-// TODO: [TYPES] !!! Remove the million type arguments.
-
 /** Basic sampling Recurrent Neural Network (RNN) decoder.
   *
   * @param  cell             RNN cell to use for decoding.
