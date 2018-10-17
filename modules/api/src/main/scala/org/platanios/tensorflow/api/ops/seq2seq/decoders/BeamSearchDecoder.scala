@@ -454,9 +454,7 @@ object BeamSearchDecoder {
     }
   }
 
-  private[BeamSearchDecoder] case class TileBatchConverter(
-      multiplier: Int
-  ) extends NestedStructure.Converter {
+  case class TileBatchConverter(multiplier: Int) extends NestedStructure.Converter {
     @throws[InvalidArgumentException]
     override def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = {
       implicit val evTF: TF[T] = TF.fromDataType(value.dataType)

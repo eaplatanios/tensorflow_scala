@@ -175,15 +175,14 @@ object BasicDecoder {
 
   /** RNN decoder helper to be used while training. It only reads inputs and the returned sample indexes are the argmax
     * over the RNN output logits. */
-  case class TrainingHelper[Out, OutTensorType, OutDataType, OutShape, State, StateTensorType, StateDataType, StateShape](
+  case class TrainingHelper[Out, State](
       input: Out,
       sequenceLengths: Output[Int],
       timeMajor: Boolean = false,
       name: String = "RNNDecoderTrainingHelper"
   )(implicit
-      evStructureO: NestedStructure.Aux[Out, OutTensorType, OutDataType, OutShape],
-      evStructureS: NestedStructure.Aux[State, StateTensorType, StateDataType, StateShape],
-      evZeroO: Zero.Aux[Out, OutShape]
+      evStructureO: NestedStructure[Out],
+      evZeroO: Zero[Out]
   ) extends Helper[Out, Out, State] {
     if (sequenceLengths.rank != 1)
       throw InvalidShapeException(s"'sequenceLengths' (shape = ${sequenceLengths.shape}) must have rank 1.")
@@ -233,7 +232,7 @@ object BasicDecoder {
     ): Out = {
       val shapes = evStructureO.outputs(input).map(_ => Shape.scalar())
       val shape = evStructureO.decodeShapeFromOutput(input, shapes)._1
-      evZeroO.zero(batchSize, shape)
+      evZeroO.zero(batchSize, shape.asInstanceOf[evZeroO.S])
     }
 
     /** Returns a tuple containing: (i) a scalar tensor specifying whether initialization has finished, and
