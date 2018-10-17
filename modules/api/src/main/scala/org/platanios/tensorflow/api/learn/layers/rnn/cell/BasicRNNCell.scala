@@ -41,10 +41,10 @@ class BasicRNNCell[T: TF : IsNotQuantized](
 ) extends RNNCell[Output[T], Output[T]](name) {
   override val layerType: String = "BasicRNNCell"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): ops.rnn.cell.BasicRNNCell[T] = {
+  )(implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): ops.rnn.cell.BasicRNNCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + numUnits, numUnits), kernelInitializer)
     val bias = getParameter[T](BIAS_NAME, Shape(numUnits), biasInitializer)

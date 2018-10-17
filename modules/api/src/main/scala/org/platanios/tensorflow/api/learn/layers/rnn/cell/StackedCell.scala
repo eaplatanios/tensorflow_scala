@@ -33,16 +33,15 @@ class StackedCell[O, S](
     override val name: String,
     val cells: Seq[RNNCell[O, S]]
 )(implicit
-    evStructureBaseS: NestedStructure[S],
-    override protected val evStructureO: NestedStructure[O],
-    override protected val evStructureS: NestedStructure[Seq[S]]
+    override protected val evStructureO: NestedStructure.Aux[O, _, _, _],
+    protected val evStructureS: NestedStructure.Aux[S, _, _, _]
 ) extends RNNCell[O, Seq[S]](name) {
   override val layerType: String = "StackedCell"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureOAux: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, Seq[S]] = {
+  )(implicit evStructureOAux: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, Seq[S]] = {
     val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[O, S]])((seq, cell) => {
       VariableScope.scope(s"Cell${cell._2}") {
         if (seq.isEmpty)
@@ -60,9 +59,8 @@ object StackedCell {
       variableScope: String,
       cells: Seq[RNNCell[O, S]]
   )(implicit
-      evStructureO: NestedStructure[O],
-      evStructureS: NestedStructure[S],
-      evStructureSeqS: NestedStructure[Seq[S]]
+      evStructureO: NestedStructure.Aux[O, _, _, _],
+      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): StackedCell[O, S] = {
     new StackedCell(variableScope, cells)
   }

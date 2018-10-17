@@ -56,7 +56,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BeamSearchDecoder[T, State](
+class BeamSearchDecoder[T: TF, State](
     override val cell: RNNCell[Output[T], State],
     val initialCellState: State,
     val embeddingFn: Output[Int] => Output[T],
@@ -67,12 +67,20 @@ class BeamSearchDecoder[T, State](
     val outputLayer: Output[T] => Output[T] = (o: Output[T]) => o,
     val reorderTensorArrays: Boolean = true,
     override val name: String = "BeamSearchRNNDecoder"
+)(implicit
+    // evZeroOut: Zero.Aux[Output[T], _, _, _],
+    evStructureState: NestedStructure.Aux[State, _, _, _],
+    // These implicits help the Scala 2.11 compiler.
+//    evScala211DecOutZeroHelper: Zero.Aux[BeamSearchDecoder.DecoderOutput, _, _, _],
+    // evScala211DecOutStructureHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchDecoderOutput, _, _, _]
+//    evScala211DecStateHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchDecoderState[State], _, _, _],
+//    evScala211DecFinalOutHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchFinalOutput, _, _, _]
 ) extends Decoder[
     Output[T], State,
-    BeamSearchDecoder.DecoderOutput,
-    BeamSearchDecoder.DecoderState[State],
-    BeamSearchDecoder.FinalOutput,
-    BeamSearchDecoder.DecoderState[State]](cell, name) {
+    BeamSearchDecoder.BeamSearchDecoderOutput,
+    BeamSearchDecoder.BeamSearchDecoderState[State],
+    BeamSearchDecoder.BeamSearchFinalOutput,
+    BeamSearchDecoder.BeamSearchDecoderState[State]](cell, name) {
   // TODO: [SEQ2SEQ] !!! Handle the tiling inside the decoder itself.
   // evS.map(initialCellState, BeamSearchDecoder.tileBatch(_, beamWidth))
   private val tiledInitialCellState: State = initialCellState
@@ -89,15 +97,13 @@ class BeamSearchDecoder[T, State](
     }
   }
 
-  private def processedInitialCellState[SV, SD, SS](implicit
-      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
-  ): State = {
-    if (evStructureS.outputs(tiledInitialCellState).exists(_.rank == -1))
+  private def processedInitialCellState: State = {
+    if (evStructureState.outputs(tiledInitialCellState).exists(_.rank == -1))
       throw InvalidArgumentException("All tensors in the state need to have known rank for the beam search decoder.")
     Op.nameScope(name) {
-      evStructureS.map(
+      evStructureState.map(
         tiledInitialCellState,
-        Some(cell.stateShape),
+        Some(cell.stateShape[evStructureState.S](evStructureState)),
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)))
     }
@@ -128,15 +134,12 @@ class BeamSearchDecoder[T, State](
     true
   }
 
-  override def zeroOutput[OV, OD, OS]()(implicit
-      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
-      evZeroO: Zero.Aux[Output[T], OS]
-  ): BeamSearchDecoder.DecoderOutput = {
+  override def zeroOutput: BeamSearchDecoder.BeamSearchDecoderOutput = {
     // We assume the data type of the cell is the same as the initial cell state's first component tensor data type.
-    val zScores = Zero[Output[Float], Shape].zero(batchSize, Shape(beamWidth), "ZeroScores")
-    val zPredictedIDs = Zero[Output[Int], Shape].zero(batchSize, Shape(beamWidth), "ZeroPredictedIDs")
-    val zParentIDs = Zero[Output[Int], Shape].zero(batchSize, Shape(beamWidth), "ZeroParentIDs")
-    BeamSearchDecoder.DecoderOutput(zScores, zPredictedIDs, zParentIDs)
+    val zScores = Zero[Output[Float]].zero(batchSize, Shape(beamWidth), "ZeroScores")
+    val zPredictedIDs = Zero[Output[Int]].zero(batchSize, Shape(beamWidth), "ZeroPredictedIDs")
+    val zParentIDs = Zero[Output[Int]].zero(batchSize, Shape(beamWidth), "ZeroParentIDs")
+    BeamSearchDecoder.BeamSearchDecoderOutput(zScores, zPredictedIDs, zParentIDs)
   }
 
   /** This method is called before any decoding iterations. It computes the initial input values and the initial state.
@@ -144,17 +147,14 @@ class BeamSearchDecoder[T, State](
     * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  override def initialize[OV, OD, OS, SV, SD, SS]()(implicit
-      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
-      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
-  ): (Output[Boolean], Output[T], BeamSearchDecoder.DecoderState[State]) = {
+  override def initialize(): (Output[Boolean], Output[T], BeamSearchDecoder.BeamSearchDecoderState[State]) = {
     Op.nameScope(s"$name/Initialize") {
       val finished = Basic.oneHot[Boolean, Int](
         indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
         depth = beamWidth,
         onValue = false,
         offValue = true)
-      val initialState = BeamSearchDecoder.DecoderState[State](
+      val initialState = BeamSearchDecoder.BeamSearchDecoderState[State](
         modelState = processedInitialCellState,
         logProbabilities = Basic.oneHot[Float, Int](
           indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
@@ -172,27 +172,22 @@ class BeamSearchDecoder[T, State](
     * @return Tuple containing: (i) the decoder output, (ii) the next state, (iii) the next inputs, and (iv) a scalar
     *         tensor specifying whether sampling has finished.
     */
-  override def next[OV, OD, OS, SV, SD, SS, DSV, DSD, DSS](
+  override def next(
       time: Output[Int],
       input: Output[T],
-      state: BeamSearchDecoder.DecoderState[State]
-  )(implicit
-      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
-      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
-      evStructureDS: NestedStructure.Aux[BeamSearchDecoder.DecoderState[State], DSV, DSD, DSS]
-  ): (BeamSearchDecoder.DecoderOutput, BeamSearchDecoder.DecoderState[State], Output[T], Output[Boolean]) = {
-    implicit val evTF: TF[T] = TF.fromDataType(input.dataType)
+      state: BeamSearchDecoder.BeamSearchDecoderState[State]
+  ): (BeamSearchDecoder.BeamSearchDecoderOutput, BeamSearchDecoder.BeamSearchDecoderState[State], Output[T], Output[Boolean]) = {
     Op.nameScope(s"$name/Next") {
       val mergedInput = BeamSearchDecoder.MergeBatchBeamsConverter(batchSize, beamWidth)(input, Some(input.shape(2 ::)))
-      val mergedCellState = evStructureS.map(
-        state.modelState, Some(cell.stateShape),
+      val mergedCellState = evStructureState.map(
+        state.modelState, Some(cell.stateShape[evStructureState.S](evStructureState)),
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.MergeBatchBeamsConverter(batchSize, beamWidth)))
       val mergedNextTuple = cell(Tuple(mergedInput, mergedCellState))
       val nextTupleOutput = BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)(
         mergedNextTuple.output, Some(mergedNextTuple.output.shape(1 ::)))
-      val nextTupleState = evStructureS.map(
-        mergedNextTuple.state, Some(cell.stateShape),
+      val nextTupleState = evStructureState.map(
+        mergedNextTuple.state, Some(cell.stateShape[evStructureState.S](evStructureState)),
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)))
 
@@ -278,16 +273,16 @@ class BeamSearchDecoder[T, State](
       // Pick out the cell state according to the next search state parent IDs. We use a different gather shape here
       // because the cell state tensors (i.e., the tensors that would be gathered from) all have rank greater than two
       // and we need to preserve those dimensions.
-      val gatheredNextTupleState = evStructureS.map(
+      val gatheredNextTupleState = evStructureState.map(
         nextTupleState, None,
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.GatherConverter(
             nextParentIDs, batchSize, beamWidth, Seq(batchSize * beamWidth, -1),
             name = "NextBeamStateGather")))
 
-      val nextState = BeamSearchDecoder.DecoderState[State](
+      val nextState = BeamSearchDecoder.BeamSearchDecoderState[State](
         gatheredNextTupleState, nextBeamLogProbabilities, nextPredictionLengths, nextFinished)
-      val output = BeamSearchDecoder.DecoderOutput(nextBeamScores, nextPredictedIDs, nextParentIDs)
+      val output = BeamSearchDecoder.BeamSearchDecoderOutput(nextBeamScores, nextPredictedIDs, nextParentIDs)
 
       val nextInput = ControlFlow.cond(
         nextFinished.all(),
@@ -304,23 +299,19 @@ class BeamSearchDecoder[T, State](
     * @param  state  Final state after decoding.
     * @return Finalized output and state to return from the decoding process.
     */
-  override def finalize[SV, SD, SS, DOV, DOD, DOS, DSV, DSD, DSS](
-      output: BeamSearchDecoder.DecoderOutput,
-      state: BeamSearchDecoder.DecoderState[State],
+  override def finalize(
+      output: BeamSearchDecoder.BeamSearchDecoderOutput,
+      state: BeamSearchDecoder.BeamSearchDecoderState[State],
       sequenceLengths: Output[Int]
-  )(implicit
-      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
-      evStructureDO: NestedStructure.Aux[BeamSearchDecoder.DecoderOutput, DOV, DOD, DOS],
-      evStructureDS: NestedStructure.Aux[BeamSearchDecoder.DecoderState[State], DSV, DSD, DSS]
-  ): (BeamSearchDecoder.FinalOutput, BeamSearchDecoder.DecoderState[State], Output[Int]) = {
+  ): (BeamSearchDecoder.BeamSearchFinalOutput, BeamSearchDecoder.BeamSearchDecoderState[State], Output[Int]) = {
     // Get the maximum sequence length across all search states for each batch
     val maxSequenceLengths = state.sequenceLengths.max(Tensor[Int](1)).castTo[Int]
     val predictedIDs = BeamSearchDecoder.gatherTree(
       output.predictedIDs, output.parentIDs, maxSequenceLengths, endToken)
-    val finalOutput = BeamSearchDecoder.FinalOutput(predictedIDs, output)
+    val finalOutput = BeamSearchDecoder.BeamSearchFinalOutput(predictedIDs, output)
     var finalState = state
     if (reorderTensorArrays)
-      finalState = state.copy[State](modelState = evStructureS.map(
+      finalState = state.copy[State](modelState = evStructureState.map(
         state.modelState, None,
         BeamSearchDecoder.MaybeSortTensorArrayBeamsConverter(
           state.sequenceLengths, output.parentIDs, batchSize, beamWidth)))
@@ -331,7 +322,7 @@ class BeamSearchDecoder[T, State](
 object BeamSearchDecoder {
   protected[BeamSearchDecoder] val logger = Logger(LoggerFactory.getLogger("Ops / Beam Search Decoder"))
 
-  def apply[T, State](
+  def apply[T: TF, State](
       cell: RNNCell[Output[T], State],
       initialCellState: State,
       embeddingFn: Output[Int] => Output[T],
@@ -343,19 +334,25 @@ object BeamSearchDecoder {
       reorderTensorArrays: Boolean = true,
       name: String = "BeamSearchRNNDecoder"
   )(implicit
-      evStructureS: NestedStructure[State]
+      // evZeroOut: Zero.Aux[Output[T], _, _, _],
+      evStructureState: NestedStructure.Aux[State, _, _, _]
+      // These implicits help the Scala 2.11 compiler.
+      //    evScala211DecOutZeroHelper: Zero.Aux[BeamSearchDecoder.DecoderOutput, _, _, _],
+      //    evScala211DecOutStructureHelper: NestedStructure.Aux[BeamSearchDecoder.DecoderOutput, _, _, _],
+      //    evScala211DecStateHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchDecoderState[State], _, _, _],
+      //    evScala211DecFinalOutHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchFinalOutput, _, _, _]
   ): BeamSearchDecoder[T, State] = {
     new BeamSearchDecoder[T, State](
       cell, initialCellState, embeddingFn, beginTokens, endToken,
       beamWidth, lengthPenalty, outputLayer, reorderTensorArrays, name)
   }
 
-  case class DecoderOutput(
+  case class BeamSearchDecoderOutput(
       scores: Output[Float],
       predictedIDs: Output[Int],
       parentIDs: Output[Int])
 
-  case class DecoderState[State](
+  case class BeamSearchDecoderState[State](
       modelState: State,
       logProbabilities: Output[Float],
       sequenceLengths: Output[Int],
@@ -368,9 +365,9 @@ object BeamSearchDecoder {
     *                      ordered from best to worst.
     * @param  output       State of the beam search at the end of decoding.
     */
-  case class FinalOutput(
+  case class BeamSearchFinalOutput(
       predictedIDs: Output[Int],
-      output: DecoderOutput)
+      output: BeamSearchDecoderOutput)
 
   /** Masks log probabilities. The result is that finished search states allocate all probability mass to `endToken` and
     * unfinished search states remain unchanged.

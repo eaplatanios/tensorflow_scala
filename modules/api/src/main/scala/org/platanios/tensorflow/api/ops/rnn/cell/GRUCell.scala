@@ -45,21 +45,16 @@ class GRUCell[T: TF : IsNotQuantized] protected (
     val activation: Output[T] => Output[T],
     val name: String = "GRUCell"
 ) extends RNNCell[Output[T], Output[T]] {
-  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): OS = {
+  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): OS = {
     candidateBias.shape.asInstanceOf[OS]
   }
 
-  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[Output[T], SV, SD, SS]): SS = {
+  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[Output[T], _, _, SS]): SS = {
     candidateBias.shape.asInstanceOf[SS]
   }
 
   @throws[IllegalArgumentException]
-  override def forward[OV, OD, OS, SV, SD, SS](
-      input: BasicTuple[T]
-  )(implicit
-      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
-      evStructureS: NestedStructure.Aux[Output[T], SV, SD, SS]
-  ): BasicTuple[T] = {
+  override def forward(input: Tuple[Output[T], Output[T]]): BasicTuple[T] = {
     Op.nameScope(name) {
       val output = input.output
       val state = input.state

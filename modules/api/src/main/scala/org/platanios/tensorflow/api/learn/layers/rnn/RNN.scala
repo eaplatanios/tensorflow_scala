@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
+import org.platanios.tensorflow.api.implicits.helpers.Zero
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
@@ -50,33 +50,15 @@ class RNN[O, S](
     val swapMemory: Boolean = false,
     val sequenceLengths: Tensor[Int] = null
 )(implicit
-    protected val evStructureO: NestedStructure[O],
-    protected val evStructureS: NestedStructure[S],
-    protected val evZeroO: Zero[O],
-    protected val evZeroS: Zero[S]
+    protected val evZeroO: Zero.Aux[O, _, _, _],
+    protected val evZeroS: Zero.Aux[S, _, _, _]
 ) extends Layer[O, Tuple[O, S]](name) {
-  protected implicit val evStructureOAux: NestedStructure.Aux[O, evStructureO.V, evStructureO.D, evStructureO.S] = {
-    evStructureO.asAux()
-  }
-
-  protected implicit val evStructureSAux: NestedStructure.Aux[S, evStructureS.V, evStructureS.D, evStructureS.S] = {
-    evStructureS.asAux()
-  }
-
-  protected implicit val evZeroOAux: Zero.Aux[O, evStructureO.S] = {
-    evZeroO.asInstanceOf[Zero.Aux[O, evStructureO.S]]
-  }
-
-  protected implicit val evZeroSAux: Zero.Aux[S, evStructureS.S] = {
-    evZeroS.asInstanceOf[Zero.Aux[S, evStructureS.S]]
-  }
-
   override val layerType: String = "RNN"
 
   override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) None else Some(initialState())
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val createdCell = cell.createCell(mode, evStructureO.shapeFromOutput(input))
+    val createdCell = cell.createCell(mode, evZeroO.structure.shapeFromOutput(input))(evZeroO.structure)
     ops.rnn.RNN.dynamicRNN(
       createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, name)
   }
@@ -92,10 +74,8 @@ object RNN {
       swapMemory: Boolean = false,
       sequenceLengths: Tensor[Int] = null
   )(implicit
-      evStructureO: NestedStructure[O],
-      evStructureS: NestedStructure[S],
-      evZeroO: Zero[O],
-      evZeroS: Zero[S]
+      evZeroO: Zero.Aux[O, _, _, _],
+      evZeroS: Zero.Aux[S, _, _, _]
   ): RNN[O, S] = {
     new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)
   }

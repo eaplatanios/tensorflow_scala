@@ -56,8 +56,8 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
     val storeAlignmentsHistory: Boolean = false,
     val name: String = "AttentionWrapperCell"
 )(implicit
-    evCellState: NestedStructure[CellState],
-    evAttentionState: NestedStructure[AttentionState]
+    evCellState: NestedStructure.Aux[CellState, _, _, _],
+    evAttentionState: NestedStructure.Aux[AttentionState, _, _, _]
 ) extends RNNCell[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] {
   private val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
@@ -115,8 +115,8 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
     }
   }
 
-  override def outputShape[OV, OD, OS](implicit
-      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]
+  override def outputShape[OS](implicit
+      evStructureO: NestedStructure.Aux[Output[T], _, _, OS]
   ): OS = {
     if (outputAttention)
       Shape(attentionLayersSize).asInstanceOf[OS]
@@ -124,10 +124,10 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
       cell.outputShape
   }
 
-  override def stateShape[SV, SD, SS](implicit
-      evStructureS: NestedStructure.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], SV, SD, SS]
+  override def stateShape[SS](implicit
+      evStructureS: NestedStructure.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], _, _, SS]
   ): SS = {
-    (cell.stateShape(evCellState.asAux), Shape(1), Shape(attentionLayersSize),
+    (cell.stateShape, Shape(1), Shape(attentionLayersSize),
         attentions.map(a => {
           Output.constantValueAsShape(a.alignmentSize.expandDims(0))
               .getOrElse(Shape.unknown())
@@ -140,7 +140,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
             Shape.scalar()
           }
         }),
-        attentions.map(_.stateSize(evAttentionState.asAux))
+        attentions.map(_.stateSize(evAttentionState))
     ).asInstanceOf[SS]
   }
 
@@ -151,24 +151,19 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
     *  - Step 3: Score the cell's output with `attentionMechanism`.
     *  - Step 4: Calculate the alignments by passing the score through the `normalizer`.
     *  - Step 5: Calculate the context vector as the inner product between the alignments and the attention mechanism's
-    * values (memory).
+    *    values (memory).
     *  - Step 6: Calculate the attention output by concatenating the cell output and context through the attention layer
     * (a linear layer with `attentionLayerWeights.shape(-1)` outputs).
     *
     * @param  input Input tuple to the attention wrapper cell.
     * @return Next tuple.
     */
-  override def forward[OV, OD, OS, SV, SD, SS](
+  override def forward(
       input: Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]]
-  )(implicit
-      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
-      evStructureS: NestedStructure.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], SV, SD, SS]
   ): Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] = {
     // Step 1: Calculate the true inputs to the cell based on the previous attention value.
     val cellInput = cellInputFn(input.output, input.state.attention)
-    val nextTuple = cell.forward(
-      Tuple(cellInput, input.state.cellState)
-    )(NestedStructure[Output[T]], evCellState.asAux)
+    val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
     val output = nextTuple.output
     val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentions.map(_ => null)
     val (allAttentions, allAlignments, allStates) = (attentions, input.state.attentionState, weights).zipped.map {
@@ -220,8 +215,8 @@ object AttentionWrapperCell {
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"
   )(implicit
-      evCellState: NestedStructure[CellState],
-      evAttentionState: NestedStructure[AttentionState]
+      evCellState: NestedStructure.Aux[CellState, _, _, _],
+      evAttentionState: NestedStructure.Aux[AttentionState, _, _, _]
   ): AttentionWrapperCell[T, CellState, AttentionState] = {
     new AttentionWrapperCell[T, CellState, AttentionState](
       cell, attentions, attentionLayerWeights, cellInputFn,

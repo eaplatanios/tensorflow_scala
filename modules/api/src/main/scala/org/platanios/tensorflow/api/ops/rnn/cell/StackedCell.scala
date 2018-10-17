@@ -34,26 +34,23 @@ import org.platanios.tensorflow.api.ops.Op
 class StackedCell[O, S] protected (
     val cells: Seq[RNNCell[O, S]],
     val name: String = "StackedCell"
-)(implicit evStructureS: NestedStructure[S]) extends RNNCell[O, Seq[S]] {
-  override def outputShape[OV, OD, OS](implicit evO: NestedStructure.Aux[O, OV, OD, OS]): OS = {
+)(implicit
+    evStructureS: NestedStructure.Aux[S, _, _, _]
+) extends RNNCell[O, Seq[S]] {
+  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
     cells.last.outputShape
   }
 
-  override def stateShape[SV, SD, SS](implicit evS: NestedStructure.Aux[Seq[S], SV, SD, SS]): SS = {
-    cells.map(_.stateShape(evStructureS.asAux)).asInstanceOf[SS]
+  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[Seq[S], _, _, SS]): SS = {
+    cells.map(_.stateShape(this.evStructureS)).asInstanceOf[SS]
   }
 
-  override def forward[OV, OD, OS, SV, SD, SS](
-      input: Tuple[O, Seq[S]]
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
-      evStructureSeqS: NestedStructure.Aux[Seq[S], SV, SD, SS]
-  ): Tuple[O, Seq[S]] = {
+  override def forward(input: Tuple[O, Seq[S]]): Tuple[O, Seq[S]] = {
     Op.nameScope(name) {
       var currentInput = input.output
       val state = cells.zip(input.state).map {
         case (cell, s) =>
-          val nextTuple = cell(Tuple(currentInput, s))(evStructureO, evStructureS.asAux)
+          val nextTuple = cell(Tuple(currentInput, s))
           currentInput = nextTuple.output
           nextTuple.state
       }
@@ -67,7 +64,7 @@ object StackedCell {
       cells: Seq[RNNCell[O, S]],
       name: String = "StackedCell"
   )(implicit
-      evStructureS: NestedStructure[S]
+      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): StackedCell[O, S] = {
     new StackedCell(cells, name)
   }

@@ -23,34 +23,27 @@ import org.platanios.tensorflow.api.ops.Output
   * @author Emmanouil Antonios Platanios
   */
 abstract class RNNCell[O, S] {
-  def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): OS
-  def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[S, SV, SD, SS]): SS
+  def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS
+  def stateShape[SS](implicit evStructureS: NestedStructure.Aux[S, _, _, SS]): SS
 
-  def zeroState[SV, SD, SS](
+  def zeroOutput(
       batchSize: Output[Int],
-      shape: SS,
+      name: String = "ZeroOutput"
+  )(implicit evZeroO: Zero.Aux[O, _, _, _]): O = {
+    evZeroO.zero(batchSize, outputShape(evZeroO.structure).asInstanceOf[evZeroO.S], name)
+  }
+
+  def zeroState(
+      batchSize: Output[Int],
       name: String = "ZeroState"
-  )(implicit
-      evStructureS: NestedStructure.Aux[S, SV, SD, SS],
-      evZeroS: Zero.Aux[S, SS]
-  ): S = {
-    evZeroS.zero(batchSize, shape, name)
+  )(implicit evZeroS: Zero.Aux[S, _, _, _]): S = {
+    evZeroS.zero(batchSize, stateShape(evZeroS.structure).asInstanceOf[evZeroS.S], name)
   }
 
   @throws[IllegalArgumentException]
-  def forward[OV, OD, OS, SV, SD, SS](
-      input: Tuple[O, S]
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
-      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
-  ): Tuple[O, S]
+  def forward(input: Tuple[O, S]): Tuple[O, S]
 
-  def apply[OV, OD, OS, SV, SD, SS](
-      input: Tuple[O, S]
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
-      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
-  ): Tuple[O, S] = {
+  def apply(input: Tuple[O, S]): Tuple[O, S] = {
     forward(input)
   }
 }

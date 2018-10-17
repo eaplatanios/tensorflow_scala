@@ -41,10 +41,10 @@ class GRUCell[T: TF : IsNotQuantized](
 ) extends RNNCell[Output[T], Output[T]](name) {
   override val layerType: String = "GRUCell"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): ops.rnn.cell.GRUCell[T] = {
+  )(implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): ops.rnn.cell.GRUCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val gateKernel = getParameter[T](
       s"Gate/$KERNEL_NAME",

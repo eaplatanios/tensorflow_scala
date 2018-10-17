@@ -47,8 +47,8 @@ class DropoutWrapper[O, S](
     val stateKeepProbability: Float = 1.0f,
     val seed: Option[Int] = None
 )(implicit
-    override protected val evStructureO: NestedStructure[O],
-    override protected val evStructureS: NestedStructure[S]
+    override protected val evStructureO: NestedStructure.Aux[O, _, _, _],
+    protected val evStructureS: NestedStructure.Aux[S, _, _, _]
 ) extends RNNCell[O, S](name) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
@@ -59,10 +59,10 @@ class DropoutWrapper[O, S](
 
   override val layerType: String = "DropoutWrapper"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
+  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     mode match {
       case TRAINING =>
@@ -86,8 +86,8 @@ object DropoutWrapper {
       stateKeepProbability: Float = 1.0f,
       seed: Option[Int] = None
   )(implicit
-      evStructureO: NestedStructure[O],
-      evStructureS: NestedStructure[S]
+      evStructureO: NestedStructure.Aux[O, _, _, _],
+      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): DropoutWrapper[O, S] = {
     new DropoutWrapper(
       variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)

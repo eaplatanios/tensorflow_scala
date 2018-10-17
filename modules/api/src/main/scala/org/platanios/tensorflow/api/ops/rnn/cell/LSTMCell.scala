@@ -68,14 +68,14 @@ class LSTMCell[T: TF : IsNotQuantized] protected (
 ) extends RNNCell[Output[T], LSTMState[T]] {
   private val numUnits = bias.shape(0) / 4
 
-  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): OS = {
+  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): OS = {
     if (projectionKernel != null)
       Shape(projectionKernel.shape(1)).asInstanceOf[OS]
     else
       Shape(numUnits).asInstanceOf[OS]
   }
 
-  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]): SS = {
+  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[LSTMState[T], _, _, SS]): SS = {
     if (projectionKernel != null)
       (Shape(numUnits), Shape(projectionKernel.shape(1))).asInstanceOf[SS]
     else
@@ -83,12 +83,7 @@ class LSTMCell[T: TF : IsNotQuantized] protected (
   }
 
   @throws[IllegalArgumentException]
-  override def forward[OV, OD, OS, SV, SD, SS](
-      input: LSTMTuple[T]
-  )(implicit
-      evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS],
-      evStructureS: NestedStructure.Aux[LSTMState[T], SV, SD, SS]
-  ): LSTMTuple[T] = {
+  override def forward(input: Tuple[Output[T], LSTMState[T]]): Tuple[Output[T], LSTMState[T]] = {
     Op.nameScope(name) {
       val output = input.output
       if (output.rank != 2)

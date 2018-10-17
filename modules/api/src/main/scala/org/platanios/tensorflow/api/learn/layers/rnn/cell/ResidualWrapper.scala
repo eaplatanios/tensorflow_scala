@@ -33,15 +33,14 @@ class ResidualWrapper[O, S](
     val cell: RNNCell[O, S],
     val residualFn: (O, O) => O
 )(implicit
-    override protected val evStructureO: NestedStructure[O],
-    override protected val evStructureS: NestedStructure[S]
+    override protected val evStructureO: NestedStructure.Aux[O, _, _, _]
 ) extends RNNCell[O, S](name) {
   override val layerType: String = "ResidualWrapper"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
+  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     ops.rnn.cell.ResidualWrapper(createdCell, residualFn)
   }
@@ -53,8 +52,7 @@ object ResidualWrapper {
       cell: RNNCell[O, S],
       residualFn: (O, O) => O
   )(implicit
-      evStructureO: NestedStructure[O],
-      evStructureS: NestedStructure[S]
+      evStructureO: NestedStructure.Aux[O, _, _, _]
   ): ResidualWrapper[O, S] = {
     new ResidualWrapper(variableScope, cell, residualFn)
   }

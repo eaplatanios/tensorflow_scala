@@ -35,15 +35,14 @@ class DeviceWrapper[O, S](
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
 )(implicit
-    override protected val evStructureO: NestedStructure[O],
-    override protected val evStructureS: NestedStructure[S]
+    override protected val evStructureO: NestedStructure.Aux[O, _, _, _]
 ) extends RNNCell[O, S](name) {
   override val layerType: String = "DeviceWrapper"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): ops.rnn.cell.RNNCell[O, S] = {
+  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S] = {
     Op.createWith(device = device, deviceFunction = deviceFunction) {
       ops.rnn.cell.DeviceWrapper(cell.createCellWithoutContext(mode, inputShape), device, deviceFunction)
     }

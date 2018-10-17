@@ -43,10 +43,10 @@ class BasicLSTMCell[T: TF : IsNotQuantized](
 ) extends RNNCell[Output[T], LSTMState[T]](name) {
   override val layerType: String = "BasicLSTMCell"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): ops.rnn.cell.BasicLSTMCell[T] = {
+  )(implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): ops.rnn.cell.BasicLSTMCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + numUnits, 4 * numUnits), kernelInitializer)
     val bias = getParameter[T](BIAS_NAME, Shape(4 * numUnits), biasInitializer)

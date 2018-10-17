@@ -91,7 +91,10 @@ sealed trait NestedStructure[T] {
   ): T
 }
 
-object NestedStructure extends NestedStructureLowPriority {
+object NestedStructure {
+  type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
+  type SparseShape = (Shape, Shape, Shape)
+
   trait Converter {
     def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = value
     def apply[T](value: OutputIndexedSlices[T], shape: Option[SparseShape]): OutputIndexedSlices[T] = value
@@ -863,11 +866,6 @@ object NestedStructure extends NestedStructureLowPriority {
       }
     }
   }
-}
-
-trait NestedStructureLowPriority {
-  type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
-  type SparseShape = (Shape, Shape, Shape)
 
   implicit def fromOption[T, VV, DD, SS](implicit
       ev: NestedStructure.Aux[T, VV, DD, SS]
@@ -1859,5 +1857,11 @@ trait NestedStructureLowPriority {
         }
       }
     }
+  }
+
+  implicit def fromZero[T, V, D, S](implicit
+      ev: Zero.Aux[T, V, D, S]
+  ): NestedStructure.Aux[T, V, D, S] = {
+    ev.structure
   }
 }

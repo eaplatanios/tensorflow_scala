@@ -55,21 +55,19 @@ class DropoutWrapper[O, S] protected (
     val stateKeepProbability: Output[Float] = 1.0f,
     val seed: Option[Int] = None,
     val name: String = "DropoutWrapper"
+)(implicit
+    evStructureO: NestedStructure.Aux[O, _, _, _],
+    evStructureS: NestedStructure.Aux[S, _, _, _]
 ) extends RNNCell[O, S]() {
-  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): OS = {
+  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
     cell.outputShape
   }
 
-  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[S, SV, SD, SS]): SS = {
+  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[S, _, _, SS]): SS = {
     cell.stateShape
   }
 
-  override def forward[OV, OD, OS, SV, SD, SS](
-      input: Tuple[O, S]
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
-      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
-  ): Tuple[O, S] = {
+  override def forward(input: Tuple[O, S]): Tuple[O, S] = {
     Op.nameScope(name) {
       val dropoutInput = evStructureO.map(
         input.output, None, DropoutWrapper.DropoutConverter(inputKeepProbability, "input", seed))
@@ -91,6 +89,9 @@ object DropoutWrapper {
       stateKeepProbability: Output[Float] = 1.0f,
       seed: Option[Int] = None,
       name: String = "DropoutWrapper"
+  )(implicit
+      evStructureO: NestedStructure.Aux[O, _, _, _],
+      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): DropoutWrapper[O, S] = {
     new DropoutWrapper(
       cell, inputKeepProbability, outputKeepProbability,

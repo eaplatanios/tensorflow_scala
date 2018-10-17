@@ -46,6 +46,15 @@ class BasicDecoder[Out, Sample, State](
     val helper: BasicDecoder.Helper[Out, Sample, State],
     val outputLayer: Out => Out = (o: Out) => o,
     override val name: String = "BasicRNNDecoder"
+)(implicit
+    evZeroOut: Zero.Aux[Out, _, _, _],
+    evZeroSample: Zero.Aux[Sample, _, _, _],
+    // evStructureOut: NestedStructure.Aux[Out, _, _, _],
+    // evStructureSample: NestedStructure.Aux[Sample, _, _, _],
+    evStructureState: NestedStructure.Aux[State, _, _, _]
+    // This implicit helps the Scala 2.11 compiler.
+//    evScala211ZeroHelper: Zero.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _],
+//    evScala211StructureHelper: NestedStructure.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _]
 ) extends Decoder[
     Out, State,
     BasicDecoder.DecoderOutput[Out, Sample], State,
@@ -55,11 +64,8 @@ class BasicDecoder[Out, Sample, State](
     helper.batchSize
   }
 
-  override def zeroOutput[OV, OD, OS]()(implicit
-      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
-      evZeroO: Zero.Aux[Out, OS]
-  ): BasicDecoder.DecoderOutput[Out, Sample] = {
-    val zOutput = evZeroO.zero(batchSize, cell.outputShape, "ZeroOutput")
+  override def zeroOutput: BasicDecoder.DecoderOutput[Out, Sample] = {
+    val zOutput = evZeroOut.zero(batchSize, cell.outputShape(evZeroOut.structure), "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
     BasicDecoder.DecoderOutput(
       modelOutput = outputLayer(zOutput),
@@ -71,10 +77,7 @@ class BasicDecoder[Out, Sample, State](
     * @return Tuple containing: (i) a scalar tensor specifying whether initialization has finished,
     *         (ii) the next input, and (iii) the initial decoder state.
     */
-  override def initialize[OV, OD, OS, SV, SD, SS]()(implicit
-      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
-      evStructureS: NestedStructure.Aux[State, SV, SD, SS]
-  ): (Output[Boolean], Out, State) = {
+  override def initialize(): (Output[Boolean], Out, State) = {
     Op.nameScope(s"$name/Initialize") {
       val helperInitialize = helper.initialize()
       (helperInitialize._1, helperInitialize._2, initialCellState)
@@ -86,17 +89,13 @@ class BasicDecoder[Out, Sample, State](
     * @return Tuple containing: (i) the decoder output, (ii) the next state, (iii) the next inputs, and (iv) a scalar
     *         tensor specifying whether sampling has finished.
     */
-  override def next[OV, OD, OS, SV, SD, SS, DSV, DSD, DSS](
+  override def next(
       time: Output[Int],
       input: Out,
       state: State
-  )(implicit
-      evStructureO: NestedStructure.Aux[Out, OV, OD, OS],
-      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
-      evStructureDS: NestedStructure.Aux[State, DSV, DSD, DSS]
   ): (BasicDecoder.DecoderOutput[Out, Sample], State, Out, Output[Boolean]) = {
     Op.nameScope(s"$name/Next") {
-      val nextTuple = cell(Tuple(input, state))(evStructureO, evStructureS)
+      val nextTuple = cell(Tuple(input, state))
       val nextTupleOutput = outputLayer(nextTuple.output)
       val sample = helper.sample(time, nextTupleOutput, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTupleOutput, nextTuple.state, sample)
@@ -110,14 +109,10 @@ class BasicDecoder[Out, Sample, State](
     * @param  state  Final state after decoding.
     * @return Finalized output and state to return from the decoding process.
     */
-  override def finalize[SV, SD, SS, DOV, DOD, DOS, DSV, DSD, DSS](
+  override def finalize(
       output: BasicDecoder.DecoderOutput[Out, Sample],
       state: State,
       sequenceLengths: Output[Int]
-  )(implicit
-      evStructureS: NestedStructure.Aux[State, SV, SD, SS],
-      evStructureDO: NestedStructure.Aux[BasicDecoder.DecoderOutput[Out, Sample], DOV, DOD, DOS],
-      evStructureDS: NestedStructure.Aux[State, DSV, DSD, DSS]
   ): (BasicDecoder.DecoderOutput[Out, Sample], State, Output[Int]) = {
     (output, state, sequenceLengths)
   }
@@ -131,10 +126,14 @@ object BasicDecoder {
       outputLayer: Out => Out = (o: Out) => o,
       name: String = "BasicRNNDecoder"
   )(implicit
-      evStructureO: NestedStructure[Out],
-      evStructureS: NestedStructure[Sample],
-      evStructureDS: NestedStructure[State],
-      evZeroOut: Zero[Out]
+      evZeroOut: Zero.Aux[Out, _, _, _],
+      evZeroSample: Zero.Aux[Sample, _, _, _],
+      // evStructureOut: NestedStructure.Aux[Out, _, _, _],
+      // evStructureSample: NestedStructure.Aux[Sample, _, _, _],
+      evStructureState: NestedStructure.Aux[State, _, _, _]
+      // This implicit helps the Scala 2.11 compiler.
+      //    evScala211ZeroHelper: Zero.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _],
+      //    evScala211StructureHelper: NestedStructure.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _]
   ): BasicDecoder[Out, Sample, State] = {
     new BasicDecoder(cell, initialCellState, helper, outputLayer, name)
   }
@@ -180,14 +179,13 @@ object BasicDecoder {
       sequenceLengths: Output[Int],
       timeMajor: Boolean = false,
       name: String = "RNNDecoderTrainingHelper"
-  )(implicit
-      evStructureO: NestedStructure[Out],
-      evZeroO: Zero[Out]
-  ) extends Helper[Out, Out, State] {
+  )(implicit evZeroO: Zero.Aux[Out, _, _, _]) extends Helper[Out, Out, State] {
     if (sequenceLengths.rank != 1)
       throw InvalidShapeException(s"'sequenceLengths' (shape = ${sequenceLengths.shape}) must have rank 1.")
 
-    private var inputs: Seq[Output[Any]] = evStructureO.outputs(input)
+    private var inputs: Seq[Output[Any]] = {
+      evZeroO.structure.outputs(input)
+    }
 
     private val inputTensorArrays: Seq[TensorArray[Any]] = {
       Op.nameScope(name) {
@@ -230,8 +228,8 @@ object BasicDecoder {
         batchSize: Output[Int],
         name: String = "ZeroSample"
     ): Out = {
-      val shapes = evStructureO.outputs(input).map(_ => Shape.scalar())
-      val shape = evStructureO.decodeShapeFromOutput(input, shapes)._1
+      val shapes = evZeroO.structure.outputs(input).map(_ => Shape.scalar())
+      val shape = evZeroO.structure.decodeShapeFromOutput(input, shapes)._1
       evZeroO.zero(batchSize, shape.asInstanceOf[evZeroO.S])
     }
 
@@ -244,7 +242,7 @@ object BasicDecoder {
           Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(0)))
-        (finished, evStructureO.decodeOutputFromOutput(input, nextInputs)._1)
+        (finished, evZeroO.structure.decodeOutputFromOutput(input, nextInputs)._1)
       }
     }
 
@@ -254,9 +252,9 @@ object BasicDecoder {
         input: Out,
         state: State
     ): Out = {
-      val outputs = evStructureO.outputs(input)
+      val outputs = evZeroO.structure.outputs(input)
       Op.nameScope(s"$name/Sample") {
-        evStructureO.decodeOutputFromOutput(input, outputs.map(output => {
+        evZeroO.structure.decodeOutputFromOutput(input, outputs.map(output => {
 
           // TODO: [TYPES] !!! Super hacky. Remove in the future.
           val ev: IsNotQuantized[Any] = null
@@ -285,7 +283,7 @@ object BasicDecoder {
           Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(nextTime)))
-        (finished, evStructureO.decodeOutputFromOutput(input, nextInputs)._1, state)
+        (finished, evZeroO.structure.decodeOutputFromOutput(input, nextInputs)._1, state)
       }
     }
   }

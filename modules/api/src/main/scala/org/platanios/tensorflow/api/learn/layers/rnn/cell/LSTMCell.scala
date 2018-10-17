@@ -52,10 +52,10 @@ class LSTMCell[T: TF : IsNotQuantized](
 ) extends RNNCell[Output[T], LSTMState[T]](name) {
   override val layerType: String = "LSTMCell"
 
-  override def createCellWithoutContext[OV, OD, OS](
+  override def createCellWithoutContext[OS](
       mode: Mode,
       inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[Output[T], OV, OD, OS]): ops.rnn.cell.LSTMCell[T] = {
+  )(implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): ops.rnn.cell.LSTMCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val hiddenDepth = if (projectionSize != -1) projectionSize else numUnits
     val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + hiddenDepth, 4 * numUnits), kernelInitializer)

@@ -31,33 +31,24 @@ class DeviceWrapper[O, S] protected (
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
 ) extends RNNCell[O, S]() {
-  override def outputShape[OV, OD, OS](implicit evStructureO: NestedStructure.Aux[O, OV, OD, OS]): OS = {
+  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
     cell.outputShape
   }
 
-  override def stateShape[SV, SD, SS](implicit evStructureS: NestedStructure.Aux[S, SV, SD, SS]): SS = {
+  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[S, _, _, SS]): SS = {
     cell.stateShape
   }
 
-  override def zeroState[SV, SD, SS](
+  override def zeroState(
       batchSize: Output[Int],
-      shape: SS,
-      name: String = "ZeroState"
-  )(implicit
-      evS: NestedStructure.Aux[S, SV, SD, SS],
-      evZeroS: Zero.Aux[S, SS]
-  ): S = {
+      name: String
+  )(implicit evZeroS: Zero.Aux[S, _, _, _]): S = {
     Op.device(device, deviceFunction) {
-      super.zeroState(batchSize, shape, name)
+      super.zeroState(batchSize, name)
     }
   }
 
-  override def forward[OV, OD, OS, SV, SD, SS](
-      input: Tuple[O, S]
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS],
-      evStructureS: NestedStructure.Aux[S, SV, SD, SS]
-  ): Tuple[O, S] = {
+  override def forward(input: Tuple[O, S]): Tuple[O, S] = {
     Op.device(device, deviceFunction) {
       cell.forward(input)
     }
