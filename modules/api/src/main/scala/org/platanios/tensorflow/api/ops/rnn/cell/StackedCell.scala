@@ -31,18 +31,16 @@ import org.platanios.tensorflow.api.ops.Op
   *
   * @author Emmanouil Antonios Platanios
   */
-class StackedCell[O, S] protected (
+class StackedCell[O, S: NestedStructure] protected (
     val cells: Seq[RNNCell[O, S]],
     val name: String = "StackedCell"
-)(implicit
-    evStructureS: NestedStructure.Aux[S, _, _, _]
 ) extends RNNCell[O, Seq[S]] {
   override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
     cells.last.outputShape
   }
 
   override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[Seq[S], _, _, SS]): SS = {
-    cells.map(_.stateShape(this.evStructureS)).asInstanceOf[SS]
+    cells.map(_.stateShape(NestedStructure[S])).asInstanceOf[SS]
   }
 
   override def forward(input: Tuple[O, Seq[S]]): Tuple[O, Seq[S]] = {
@@ -60,11 +58,9 @@ class StackedCell[O, S] protected (
 }
 
 object StackedCell {
-  def apply[O, S](
+  def apply[O, S: NestedStructure](
       cells: Seq[RNNCell[O, S]],
       name: String = "StackedCell"
-  )(implicit
-      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): StackedCell[O, S] = {
     new StackedCell(cells, name)
   }

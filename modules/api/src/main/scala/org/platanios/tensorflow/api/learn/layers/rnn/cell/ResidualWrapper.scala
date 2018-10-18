@@ -28,12 +28,10 @@ import org.platanios.tensorflow.api.ops
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[O, S](
+class ResidualWrapper[O: NestedStructure, S](
     override val name: String,
     val cell: RNNCell[O, S],
     val residualFn: (O, O) => O
-)(implicit
-    override protected val evStructureO: NestedStructure.Aux[O, _, _, _]
 ) extends RNNCell[O, S](name) {
   override val layerType: String = "ResidualWrapper"
 
@@ -47,12 +45,10 @@ class ResidualWrapper[O, S](
 }
 
 object ResidualWrapper {
-  def apply[O, S](
+  def apply[O: NestedStructure, S](
       variableScope: String,
       cell: RNNCell[O, S],
       residualFn: (O, O) => O
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, _, _, _]
   ): ResidualWrapper[O, S] = {
     new ResidualWrapper(variableScope, cell, residualFn)
   }

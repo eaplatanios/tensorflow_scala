@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
-import org.platanios.tensorflow.api.core.types.{DataType, TF}
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
@@ -25,7 +25,6 @@ import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.RNN
 import org.platanios.tensorflow.api.ops.rnn.cell.RNNCell
 import org.platanios.tensorflow.api.ops.variables.VariableScope
-import org.platanios.tensorflow.api.tensors.Tensor
 
 import scala.language.postfixOps
 
@@ -49,13 +48,8 @@ abstract class Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState]
 )(implicit
     evZeroOut: Zero.Aux[Out, _, _, _],
     evZeroDecOut: Zero.Aux[DecOut, _, _, _],
-    // evStructureOut: NestedStructure.Aux[Out, _, _, _],
-    // evStructureState: NestedStructure.Aux[State, _, _, _],
-    // evStructureDecOut: NestedStructure.Aux[DecOut, _, _, _],
     evStructureDecState: NestedStructure.Aux[DecState, _, _, _],
     evStructureDecFinalOut: NestedStructure.Aux[DecFinalOut, _, _, _]
-    // This implicit helps the Scala 2.11 compiler.
-    // evScala211Helper: NestedStructure.Aux[(Output[Int], Seq[TensorArray[Any]], DecState, Out, Output[Boolean], Output[Int]), _, _, _]
 ) {
   /** Scalar tensor representing the batch size of the input values. */
   val batchSize: Output[Int]

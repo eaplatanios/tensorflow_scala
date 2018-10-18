@@ -198,12 +198,12 @@ private[api] case class WhileLoopContext private[control_flow] (
   }
 
   /** Adds the loop termination condition and the loop body to the graph. */
-  private[control_flow] def buildLoop[T, V, D, S](
+  private[control_flow] def buildLoop[T, S](
       predicateFn: T => Output[Boolean],
       bodyFn: T => T,
       loopVariables: T,
       shapeInvariants: Option[S]
-  )(implicit evStructureT: NestedStructure.Aux[T, V, D, S]): T = {
+  )(implicit evStructureT: NestedStructure.Aux[T, _, _, S]): T = {
     try {
       // Enter the frame for this loop.
       enter()

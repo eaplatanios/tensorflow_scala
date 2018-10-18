@@ -41,7 +41,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-class RNN[O, S](
+class RNN[O: Zero, S: Zero](
     override val name: String,
     val cell: RNNCell[O, S],
     val initialState: () => S = null,
@@ -49,23 +49,21 @@ class RNN[O, S](
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
     val sequenceLengths: Tensor[Int] = null
-)(implicit
-    protected val evZeroO: Zero.Aux[O, _, _, _],
-    protected val evZeroS: Zero.Aux[S, _, _, _]
 ) extends Layer[O, Tuple[O, S]](name) {
   override val layerType: String = "RNN"
 
   override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, S] = {
     val state = if (initialState == null) None else Some(initialState())
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val createdCell = cell.createCell(mode, evZeroO.structure.shapeFromOutput(input))(evZeroO.structure)
+    val createdCell = cell.createCell(mode, Zero[O].structure.shapeFromOutput(input))(Zero[O].structure)
     ops.rnn.RNN.dynamicRNN(
-      createdCell, input, state, timeMajor, parallelIterations, swapMemory, lengths, name)
+      createdCell, input, state, timeMajor, parallelIterations,
+      swapMemory, lengths, name)(Zero[O], Zero[S])
   }
 }
 
 object RNN {
-  def apply[O, S](
+  def apply[O: Zero, S: Zero](
       variableScope: String,
       cell: RNNCell[O, S],
       initialState: () => S = null,
@@ -73,9 +71,6 @@ object RNN {
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       sequenceLengths: Tensor[Int] = null
-  )(implicit
-      evZeroO: Zero.Aux[O, _, _, _],
-      evZeroS: Zero.Aux[S, _, _, _]
   ): RNN[O, S] = {
     new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)
   }

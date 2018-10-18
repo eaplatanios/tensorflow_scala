@@ -29,13 +29,11 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
   *
   * @author Emmanouil Antonios Platanios
   */
-class DeviceWrapper[O, S](
+class DeviceWrapper[O: NestedStructure, S](
     override val name: String,
     val cell: RNNCell[O, S],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
-)(implicit
-    override protected val evStructureO: NestedStructure.Aux[O, _, _, _]
 ) extends RNNCell[O, S](name) {
   override val layerType: String = "DeviceWrapper"
 

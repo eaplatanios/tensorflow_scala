@@ -41,7 +41,7 @@ object TensorToOutput {
     }
   }
 
-  implicit def fromTensor[T: TF]: Aux[Tensor[T], Output[T]] = {
+  implicit def fromTensor[T]: Aux[Tensor[T], Output[T]] = {
     new TensorToOutput[Tensor[T]] {
       override type O = Output[T]
     }
@@ -59,32 +59,32 @@ object TensorToOutput {
     }
   }
 
-  implicit def fromOption[T, OO](implicit
-      ev: TensorToOutput.Aux[T, OO]
-  ): TensorToOutput.Aux[Option[T], Option[OO]] = {
+  implicit def fromOption[T](implicit
+      ev: TensorToOutput[T]
+  ): TensorToOutput.Aux[Option[T], Option[ev.O]] = {
     new TensorToOutput[Option[T]] {
-      override type O = Option[OO]
+      override type O = Option[ev.O]
     }
   }
 
-  implicit def fromSeq[T, OO](implicit
-      ev: TensorToOutput.Aux[T, OO]
-  ): TensorToOutput.Aux[Seq[T], Seq[OO]] = {
+  implicit def fromSeq[T](implicit
+      ev: TensorToOutput[T]
+  ): TensorToOutput.Aux[Seq[T], Seq[ev.O]] = {
     new TensorToOutput[Seq[T]] {
-      override type O = Seq[OO]
+      override type O = Seq[ev.O]
     }
   }
 
-  implicit def fromMap[K, T, OO](implicit
-      ev: TensorToOutput.Aux[T, OO]
-  ): TensorToOutput.Aux[Map[K, T], Map[K, OO]] = {
+  implicit def fromMap[K, T](implicit
+      ev: TensorToOutput[T]
+  ): TensorToOutput.Aux[Map[K, T], Map[K, ev.O]] = {
     new TensorToOutput[Map[K, T]] {
-      override type O = Map[K, OO]
+      override type O = Map[K, ev.O]
     }
   }
 
-  implicit def fromNestedStructure[T, V, D, S](implicit
-      evStructure: NestedStructure.Aux[T, V, D, S]
+  implicit def fromNestedStructure[T, V](implicit
+      evStructure: NestedStructure.Aux[T, V, _, _]
   ): TensorToOutput.Aux[V, T] = {
     new TensorToOutput[V] {
       override type O = T

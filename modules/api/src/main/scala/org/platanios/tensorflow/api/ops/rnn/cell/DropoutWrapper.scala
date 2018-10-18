@@ -48,16 +48,13 @@ import java.security.MessageDigest
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O, S] protected (
+class DropoutWrapper[O: NestedStructure, S: NestedStructure] protected (
     val cell: RNNCell[O, S],
     val inputKeepProbability: Output[Float] = 1.0f,
     val outputKeepProbability: Output[Float] = 1.0f,
     val stateKeepProbability: Output[Float] = 1.0f,
     val seed: Option[Int] = None,
     val name: String = "DropoutWrapper"
-)(implicit
-    evStructureO: NestedStructure.Aux[O, _, _, _],
-    evStructureS: NestedStructure.Aux[S, _, _, _]
 ) extends RNNCell[O, S]() {
   override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
     cell.outputShape
@@ -69,12 +66,12 @@ class DropoutWrapper[O, S] protected (
 
   override def forward(input: Tuple[O, S]): Tuple[O, S] = {
     Op.nameScope(name) {
-      val dropoutInput = evStructureO.map(
+      val dropoutInput = NestedStructure[O].map(
         input.output, None, DropoutWrapper.DropoutConverter(inputKeepProbability, "input", seed))
       val nextTuple = cell(Tuple(dropoutInput, input.state))
-      val nextState = evStructureS.map(
+      val nextState = NestedStructure[S].map(
         nextTuple.state, None, DropoutWrapper.DropoutConverter(stateKeepProbability, "state", seed))
-      val nextOutput = evStructureO.map(
+      val nextOutput = NestedStructure[O].map(
         nextTuple.output, None, DropoutWrapper.DropoutConverter(outputKeepProbability, "output", seed))
       Tuple(nextOutput, nextState)
     }
@@ -82,16 +79,13 @@ class DropoutWrapper[O, S] protected (
 }
 
 object DropoutWrapper {
-  def apply[O, S](
+  def apply[O: NestedStructure, S: NestedStructure](
       cell: RNNCell[O, S],
       inputKeepProbability: Output[Float] = 1.0f,
       outputKeepProbability: Output[Float] = 1.0f,
       stateKeepProbability: Output[Float] = 1.0f,
       seed: Option[Int] = None,
       name: String = "DropoutWrapper"
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, _, _, _],
-      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): DropoutWrapper[O, S] = {
     new DropoutWrapper(
       cell, inputKeepProbability, outputKeepProbability,

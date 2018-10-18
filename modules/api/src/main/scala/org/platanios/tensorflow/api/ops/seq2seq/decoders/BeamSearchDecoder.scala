@@ -68,13 +68,7 @@ class BeamSearchDecoder[T: TF, State](
     val reorderTensorArrays: Boolean = true,
     override val name: String = "BeamSearchRNNDecoder"
 )(implicit
-    // evZeroOut: Zero.Aux[Output[T], _, _, _],
-    evStructureState: NestedStructure.Aux[State, _, _, _],
-    // These implicits help the Scala 2.11 compiler.
-//    evScala211DecOutZeroHelper: Zero.Aux[BeamSearchDecoder.DecoderOutput, _, _, _],
-    // evScala211DecOutStructureHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchDecoderOutput, _, _, _]
-//    evScala211DecStateHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchDecoderState[State], _, _, _],
-//    evScala211DecFinalOutHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchFinalOutput, _, _, _]
+    evStructureState: NestedStructure.Aux[State, _, _, _]
 ) extends Decoder[
     Output[T], State,
     BeamSearchDecoder.BeamSearchDecoderOutput,
@@ -311,7 +305,7 @@ class BeamSearchDecoder[T: TF, State](
     val finalOutput = BeamSearchDecoder.BeamSearchFinalOutput(predictedIDs, output)
     var finalState = state
     if (reorderTensorArrays)
-      finalState = state.copy[State](modelState = evStructureState.map(
+      finalState = state.copy[State](modelState = NestedStructure[State].map(
         state.modelState, None,
         BeamSearchDecoder.MaybeSortTensorArrayBeamsConverter(
           state.sequenceLengths, output.parentIDs, batchSize, beamWidth)))
@@ -322,7 +316,7 @@ class BeamSearchDecoder[T: TF, State](
 object BeamSearchDecoder {
   protected[BeamSearchDecoder] val logger = Logger(LoggerFactory.getLogger("Ops / Beam Search Decoder"))
 
-  def apply[T: TF, State](
+  def apply[T: TF, State: NestedStructure](
       cell: RNNCell[Output[T], State],
       initialCellState: State,
       embeddingFn: Output[Int] => Output[T],
@@ -333,14 +327,6 @@ object BeamSearchDecoder {
       outputLayer: Output[T] => Output[T] = (o: Output[T]) => o,
       reorderTensorArrays: Boolean = true,
       name: String = "BeamSearchRNNDecoder"
-  )(implicit
-      // evZeroOut: Zero.Aux[Output[T], _, _, _],
-      evStructureState: NestedStructure.Aux[State, _, _, _]
-      // These implicits help the Scala 2.11 compiler.
-      //    evScala211DecOutZeroHelper: Zero.Aux[BeamSearchDecoder.DecoderOutput, _, _, _],
-      //    evScala211DecOutStructureHelper: NestedStructure.Aux[BeamSearchDecoder.DecoderOutput, _, _, _],
-      //    evScala211DecStateHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchDecoderState[State], _, _, _],
-      //    evScala211DecFinalOutHelper: NestedStructure.Aux[BeamSearchDecoder.BeamSearchFinalOutput, _, _, _]
   ): BeamSearchDecoder[T, State] = {
     new BeamSearchDecoder[T, State](
       cell, initialCellState, embeddingFn, beginTokens, endToken,

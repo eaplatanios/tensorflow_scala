@@ -47,7 +47,7 @@ sealed trait Zero[T] {
   ): T
 }
 
-object Zero {
+object Zero extends ZeroLowPriority {
   type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
   type SparseShape = (Shape, Shape, Shape)
 
@@ -112,21 +112,21 @@ object Zero {
 
   // TODO: [TYPES] !!! What about OutputIndexedSlices and TensorIndexedSlices?
 
-  implicit def fromOption[T, VV, DD, SS](implicit
-      ev: Zero.Aux[T, VV, DD, SS]
-  ): Zero.Aux[Option[T], Option[VV], Option[DD], Option[SS]] = {
+  implicit def fromOption[T](implicit
+      ev: Zero[T]
+  ): Zero.Aux[Option[T], Option[ev.V], Option[ev.D], Option[ev.S]] = {
     new Zero[Option[T]] {
-      override type V = Option[VV]
-      override type D = Option[DD]
-      override type S = Option[SS]
+      override type V = Option[ev.V]
+      override type D = Option[ev.D]
+      override type S = Option[ev.S]
 
-      override val structure: NestedStructure.Aux[Option[T], Option[VV], Option[DD], Option[SS]] = {
-        NestedStructure.fromOption[T, VV, DD, SS](ev.structure)
+      override val structure: NestedStructure.Aux[Option[T], Option[ev.V], Option[ev.D], Option[ev.S]] = {
+        NestedStructure.fromOption[T](ev.structure)
       }
 
       override def zero(
           batchSize: Output[Int],
-          shape: Option[SS],
+          shape: Option[ev.S],
           name: String
       ): Option[T] = {
         Op.nameScope(name) {
@@ -136,21 +136,21 @@ object Zero {
     }
   }
 
-  implicit def fromSeq[T, VV, DD, SS](implicit
-      ev: Zero.Aux[T, VV, DD, SS]
-  ): Zero.Aux[Seq[T], Seq[VV], Seq[DD], Seq[SS]] = {
+  implicit def fromSeq[T](implicit
+      ev: Zero[T]
+  ): Zero.Aux[Seq[T], Seq[ev.V], Seq[ev.D], Seq[ev.S]] = {
     new Zero[Seq[T]] {
-      override type V = Seq[VV]
-      override type D = Seq[DD]
-      override type S = Seq[SS]
+      override type V = Seq[ev.V]
+      override type D = Seq[ev.D]
+      override type S = Seq[ev.S]
 
-      override val structure: NestedStructure.Aux[Seq[T], Seq[VV], Seq[DD], Seq[SS]] = {
-        NestedStructure.fromSeq[T, VV, DD, SS](ev.structure)
+      override val structure: NestedStructure.Aux[Seq[T], Seq[ev.V], Seq[ev.D], Seq[ev.S]] = {
+        NestedStructure.fromSeq[T](ev.structure)
       }
 
       override def zero(
           batchSize: Output[Int],
-          shape: Seq[SS],
+          shape: Seq[ev.S],
           name: String
       ): Seq[T] = {
         Op.nameScope(name) {
@@ -160,21 +160,21 @@ object Zero {
     }
   }
 
-  implicit def fromMap[K, T, VV, DD, SS](implicit
-      ev: Zero.Aux[T, VV, DD, SS]
-  ): Zero.Aux[Map[K, T], Map[K, VV], Map[K, DD], Map[K, SS]] = {
+  implicit def fromMap[K, T](implicit
+      ev: Zero[T]
+  ): Zero.Aux[Map[K, T], Map[K, ev.V], Map[K, ev.D], Map[K, ev.S]] = {
     new Zero[Map[K, T]] {
-      override type V = Map[K, VV]
-      override type D = Map[K, DD]
-      override type S = Map[K, SS]
+      override type V = Map[K, ev.V]
+      override type D = Map[K, ev.D]
+      override type S = Map[K, ev.S]
 
-      override val structure: NestedStructure.Aux[Map[K, T], Map[K, VV], Map[K, DD], Map[K, SS]] = {
-        NestedStructure.fromMap[K, T, VV, DD, SS](ev.structure)
+      override val structure: NestedStructure.Aux[Map[K, T], Map[K, ev.V], Map[K, ev.D], Map[K, ev.S]] = {
+        NestedStructure.fromMap[K, T](ev.structure)
       }
 
       override def zero(
           batchSize: Output[Int],
-          shape: Map[K, SS],
+          shape: Map[K, ev.S],
           name: String
       ): Map[K, T] = {
         Op.nameScope(name) {
@@ -263,7 +263,9 @@ object Zero {
       }
     }
   }
+}
 
+trait ZeroLowPriority {
   implicit def fromCoproduct[HT, HV, HD, HS, TT <: Coproduct, TV <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
       evH: Strict[Zero.Aux[HT, HV, HD, HS]],
       evT: Zero.Aux[TT, TV, TD, TS]

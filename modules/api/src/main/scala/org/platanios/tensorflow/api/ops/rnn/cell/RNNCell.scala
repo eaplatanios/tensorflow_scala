@@ -29,15 +29,15 @@ abstract class RNNCell[O, S] {
   def zeroOutput(
       batchSize: Output[Int],
       name: String = "ZeroOutput"
-  )(implicit evZeroO: Zero.Aux[O, _, _, _]): O = {
-    evZeroO.zero(batchSize, outputShape(evZeroO.structure).asInstanceOf[evZeroO.S], name)
+  )(implicit evZeroO: Zero[O]): O = {
+    evZeroO.zero(batchSize, outputShape(evZeroO.structure), name)
   }
 
   def zeroState(
       batchSize: Output[Int],
       name: String = "ZeroState"
-  )(implicit evZeroS: Zero.Aux[S, _, _, _]): S = {
-    evZeroS.zero(batchSize, stateShape(evZeroS.structure).asInstanceOf[evZeroS.S], name)
+  )(implicit evZeroS: Zero[S]): S = {
+    evZeroS.zero(batchSize, stateShape(evZeroS.structure), name)
   }
 
   @throws[IllegalArgumentException]

@@ -44,7 +44,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] private[attention] (
+class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: NestedStructure, AttentionState: NestedStructure] private[attention] (
     val cell: RNNCell[Output[T], CellState],
     val attentions: Seq[Attention[T, AttentionState]], // TODO: [TYPES] Allow for varying supported types in the sequence.
     val attentionLayerWeights: Seq[Output[T]] = null,
@@ -55,9 +55,6 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
     val outputAttention: Boolean = true,
     val storeAlignmentsHistory: Boolean = false,
     val name: String = "AttentionWrapperCell"
-)(implicit
-    evCellState: NestedStructure.Aux[CellState, _, _, _],
-    evAttentionState: NestedStructure.Aux[AttentionState, _, _, _]
 ) extends RNNCell[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] {
   private val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
@@ -84,7 +81,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
       null
     } else {
       Op.nameScope(s"$name/InitialState") {
-        val state = evCellState.outputs(initialCellState).last.asInstanceOf[Output[T]]
+        val state = NestedStructure[CellState].outputs(initialCellState).last.asInstanceOf[Output[T]]
         val batchSize = {
           if (state.rank != -1 && state.shape(0) != -1)
             Basic.constant(state.shape(0))
@@ -121,13 +118,13 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
     if (outputAttention)
       Shape(attentionLayersSize).asInstanceOf[OS]
     else
-      cell.outputShape
+      cell.outputShape(evStructureO)
   }
 
   override def stateShape[SS](implicit
       evStructureS: NestedStructure.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], _, _, SS]
   ): SS = {
-    (cell.stateShape, Shape(1), Shape(attentionLayersSize),
+    (cell.stateShape(NestedStructure[CellState]), Shape(1), Shape(attentionLayersSize),
         attentions.map(a => {
           Output.constantValueAsShape(a.alignmentSize.expandDims(0))
               .getOrElse(Shape.unknown())
@@ -140,7 +137,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
             Shape.scalar()
           }
         }),
-        attentions.map(_.stateSize(evAttentionState))
+        attentions.map(_.stateSize(NestedStructure[AttentionState]))
     ).asInstanceOf[SS]
   }
 
@@ -203,7 +200,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState, AttentionState] pr
 }
 
 object AttentionWrapperCell {
-  def apply[T: TF : IsNotQuantized, CellState, AttentionState](
+  def apply[T: TF : IsNotQuantized, CellState: NestedStructure, AttentionState: NestedStructure](
       cell: RNNCell[Output[T], CellState],
       attentions: Seq[Attention[T, AttentionState]],
       attentionLayerWeights: Seq[Output[T]] = null,
@@ -214,9 +211,6 @@ object AttentionWrapperCell {
       outputAttention: Boolean = true,
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"
-  )(implicit
-      evCellState: NestedStructure.Aux[CellState, _, _, _],
-      evAttentionState: NestedStructure.Aux[AttentionState, _, _, _]
   ): AttentionWrapperCell[T, CellState, AttentionState] = {
     new AttentionWrapperCell[T, CellState, AttentionState](
       cell, attentions, attentionLayerWeights, cellInputFn,

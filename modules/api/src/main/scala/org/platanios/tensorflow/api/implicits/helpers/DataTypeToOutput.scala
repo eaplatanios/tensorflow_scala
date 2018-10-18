@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.implicits.helpers
 
-import org.platanios.tensorflow.api.core.types.{DataType, TF}
+import org.platanios.tensorflow.api.core.types.DataType
 import org.platanios.tensorflow.api.ops.Output
 
 import shapeless._
@@ -40,40 +40,40 @@ object DataTypeToOutput {
     }
   }
 
-  implicit def fromDataType[T: TF]: Aux[DataType[T], Output[T]] = {
+  implicit def fromDataType[T]: Aux[DataType[T], Output[T]] = {
     new DataTypeToOutput[DataType[T]] {
       override type O = Output[T]
     }
   }
 
-  implicit def fromOption[D, OO](implicit
-      ev: DataTypeToOutput.Aux[D, OO]
-  ): DataTypeToOutput.Aux[Option[D], Option[OO]] = {
+  implicit def fromOption[D](implicit
+      ev: DataTypeToOutput[D]
+  ): DataTypeToOutput.Aux[Option[D], Option[ev.O]] = {
     new DataTypeToOutput[Option[D]] {
-      override type O = Option[OO]
+      override type O = Option[ev.O]
     }
   }
 
-  implicit def fromSeq[D, OO](implicit
-      ev: DataTypeToOutput.Aux[D, OO]
-  ): DataTypeToOutput.Aux[Seq[D], Seq[OO]] = {
+  implicit def fromSeq[D](implicit
+      ev: DataTypeToOutput[D]
+  ): DataTypeToOutput.Aux[Seq[D], Seq[ev.O]] = {
     new DataTypeToOutput[Seq[D]] {
-      override type O = Seq[OO]
+      override type O = Seq[ev.O]
     }
   }
 
-  implicit def fromMap[K, D, OO](implicit
-      ev: DataTypeToOutput.Aux[D, OO]
-  ): DataTypeToOutput.Aux[Map[K, D], Map[K, OO]] = {
+  implicit def fromMap[K, D](implicit
+      ev: DataTypeToOutput[D]
+  ): DataTypeToOutput.Aux[Map[K, D], Map[K, ev.O]] = {
     new DataTypeToOutput[Map[K, D]] {
-      override type O = Map[K, OO]
+      override type O = Map[K, ev.O]
     }
   }
 
-  implicit def fromNestedStructure[T, V, D, S](implicit
-      evStructure: NestedStructure.Aux[T, V, D, S]
-  ): DataTypeToOutput.Aux[D, T] = {
-    new DataTypeToOutput[D] {
+  implicit def fromNestedStructure[T](implicit
+      evStructure: NestedStructure[T]
+  ): DataTypeToOutput.Aux[evStructure.D, T] = {
+    new DataTypeToOutput[evStructure.D] {
       override type O = T
     }
   }

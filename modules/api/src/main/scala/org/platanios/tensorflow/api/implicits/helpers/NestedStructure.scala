@@ -91,10 +91,7 @@ sealed trait NestedStructure[T] {
   ): T
 }
 
-object NestedStructure {
-  type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
-  type SparseShape = (Shape, Shape, Shape)
-
+object NestedStructure extends NestedStructureLowPriority {
   trait Converter {
     def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = value
     def apply[T](value: OutputIndexedSlices[T], shape: Option[SparseShape]): OutputIndexedSlices[T] = value
@@ -126,17 +123,19 @@ object NestedStructure {
   }
 
   implicit val evStructureSeqUntyped: Aux[Seq[Output[Any]], Seq[Tensor[Any]], Seq[DataType[Any]], Seq[Shape]] = {
-    fromSeq[Output[Any], Tensor[Any], DataType[Any], Shape]
+    fromSeq[Output[Any]]
   }
 
   implicit val evStructureOptionSeqUntyped: Aux[Option[Seq[Output[Any]]], Option[Seq[Tensor[Any]]], Option[Seq[DataType[Any]]], Option[Seq[Shape]]] = {
-    fromOption[Seq[Output[Any]], Seq[Tensor[Any]], Seq[DataType[Any]], Seq[Shape]]
+    fromOption[Seq[Output[Any]]](fromSeq[Output[Any]])
   }
 
   def apply[T](implicit ev: NestedStructure[T]): NestedStructure.Aux[T, ev.V, ev.D, ev.S] = {
     ev.asAux()
   }
+}
 
+trait NestedStructureLowPriority extends NestedStructureLowestPriority {
   implicit val fromUnit: NestedStructure.Aux[Unit, Unit, Unit, Unit] = {
     new NestedStructure[Unit] {
       override type V = Unit
@@ -752,8 +751,8 @@ object NestedStructure {
     }
   }
 
-  implicit def fromDataset[T, V, D, S](implicit
-      evT: NestedStructure.Aux[T, V, D, S]
+  implicit def fromDataset[T](implicit
+      evT: NestedStructure[T]
   ): NestedStructure.Aux[Dataset[T], Unit, DataType[Variant], Shape] = {
     new NestedStructure[Dataset[T]] {
       override type V = Unit
@@ -789,7 +788,7 @@ object NestedStructure {
       }
 
       override def outputs(arg: Dataset[T]): Seq[Output[Any]] = {
-        Seq(arg.createHandle()(evT))
+        Seq(arg.createHandle()(evT.asAux()))
       }
 
       override def tensors(tensor: Unit): Seq[Tensor[Any]] = {
@@ -810,8 +809,8 @@ object NestedStructure {
       ): (Dataset[T], Seq[Output[Any]]) = {
         (VariantDataset[T](
           handle = outputs.head.asInstanceOf[Output[Variant]],
-          _outputDataTypes = output.outputDataTypes(evT),
-          _outputShapes = output.outputShapes(evT)
+          _outputDataTypes = output.outputDataTypes(evT.asAux()),
+          _outputShapes = output.outputShapes(evT.asAux())
         ), outputs.drop(1))
       }
 
@@ -859,7 +858,7 @@ object NestedStructure {
 
       override def map(
           value: Dataset[T],
-          shape: Option[S],
+          shape: Option[Shape],
           converter: NestedStructure.Converter
       ): Dataset[T] = {
         converter[T](value, shape)
@@ -867,55 +866,55 @@ object NestedStructure {
     }
   }
 
-  implicit def fromOption[T, VV, DD, SS](implicit
-      ev: NestedStructure.Aux[T, VV, DD, SS]
-  ): NestedStructure.Aux[Option[T], Option[VV], Option[DD], Option[SS]] = {
+  implicit def fromOption[T](implicit
+      ev: NestedStructure[T]
+  ): NestedStructure.Aux[Option[T], Option[ev.V], Option[ev.D], Option[ev.S]] = {
     new NestedStructure[Option[T]] {
-      override type V = Option[VV]
-      override type D = Option[DD]
-      override type S = Option[SS]
+      override type V = Option[ev.V]
+      override type D = Option[ev.D]
+      override type S = Option[ev.S]
 
       override def sizeFromOutput(output: Option[T]): Int = {
         output.map(ev.sizeFromOutput).sum
       }
 
-      override def sizeFromDataType(dataType: Option[DD]): Int = {
+      override def sizeFromDataType(dataType: Option[ev.D]): Int = {
         dataType.map(ev.sizeFromDataType).sum
       }
 
-      override def dataTypeFromOutput(output: Option[T]): Option[DD] = {
-        output.map(ev.dataTypeFromOutput)
+      override def dataTypeFromOutput(output: Option[T]): Option[ev.D] = {
+        output.map(o => ev.dataTypeFromOutput(o))
       }
 
-      override def shapeFromOutput(output: Option[T]): Option[SS] = {
-        output.map(ev.shapeFromOutput)
+      override def shapeFromOutput(output: Option[T]): Option[ev.S] = {
+        output.map(o => ev.shapeFromOutput(o))
       }
 
-      override def outputFromTensor(tensor: Option[VV]): Option[T] = {
-        tensor.map(ev.outputFromTensor)
+      override def outputFromTensor(tensor: Option[ev.V]): Option[T] = {
+        tensor.map(t => ev.outputFromTensor(t))
       }
 
-      override def dataTypeFromTensor(tensor: Option[VV]): Option[DD] = {
-        tensor.map(ev.dataTypeFromTensor)
+      override def dataTypeFromTensor(tensor: Option[ev.V]): Option[ev.D] = {
+        tensor.map(t => ev.dataTypeFromTensor(t))
       }
 
-      override def shapeFromTensor(tensor: Option[VV]): Option[SS] = {
-        tensor.map(ev.shapeFromTensor)
+      override def shapeFromTensor(tensor: Option[ev.V]): Option[ev.S] = {
+        tensor.map(t => ev.shapeFromTensor(t))
       }
 
       override def outputs(output: Option[T]): Seq[Output[Any]] = {
         output.toSeq.flatMap(ev.outputs)
       }
 
-      override def tensors(tensor: Option[VV]): Seq[Tensor[Any]] = {
+      override def tensors(tensor: Option[ev.V]): Seq[Tensor[Any]] = {
         tensor.toSeq.flatMap(ev.tensors)
       }
 
-      override def dataTypes(dataType: Option[DD]): Seq[DataType[Any]] = {
+      override def dataTypes(dataType: Option[ev.D]): Seq[DataType[Any]] = {
         dataType.toSeq.flatMap(ev.dataTypes)
       }
 
-      override def shapes(shape: Option[SS]): Seq[Shape] = {
+      override def shapes(shape: Option[ev.S]): Seq[Shape] = {
         shape.toSeq.flatMap(ev.shapes)
       }
 
@@ -934,7 +933,7 @@ object NestedStructure {
       override def decodeTensorFromOutput(
           output: Option[T],
           tensors: Seq[Tensor[Any]]
-      ): (Option[VV], Seq[Tensor[Any]]) = {
+      ): (Option[ev.V], Seq[Tensor[Any]]) = {
         output match {
           case Some(o) =>
             val (result, remaining) = ev.decodeTensorFromOutput(o, tensors)
@@ -946,7 +945,7 @@ object NestedStructure {
       override def decodeDataTypeFromOutput(
           output: Option[T],
           dataTypes: Seq[DataType[Any]]
-      ): (Option[DD], Seq[DataType[Any]]) = {
+      ): (Option[ev.D], Seq[DataType[Any]]) = {
         output match {
           case Some(o) =>
             val (result, remaining) = ev.decodeDataTypeFromOutput(o, dataTypes)
@@ -958,7 +957,7 @@ object NestedStructure {
       override def decodeShapeFromOutput(
           output: Option[T],
           shapes: Seq[Shape]
-      ): (Option[SS], Seq[Shape]) = {
+      ): (Option[ev.S], Seq[Shape]) = {
         output match {
           case Some(o) =>
             val (result, remaining) = ev.decodeShapeFromOutput(o, shapes)
@@ -968,7 +967,7 @@ object NestedStructure {
       }
 
       override def decodeOutputFromDataType(
-          dataType: Option[DD],
+          dataType: Option[ev.D],
           outputs: Seq[Output[Any]]
       ): (Option[T], Seq[Output[Any]]) = {
         dataType match {
@@ -980,9 +979,9 @@ object NestedStructure {
       }
 
       override def decodeDataTypeFromDataType(
-          dataType: Option[DD],
+          dataType: Option[ev.D],
           dataTypes: Seq[DataType[Any]]
-      ): (Option[DD], Seq[DataType[Any]]) = {
+      ): (Option[ev.D], Seq[DataType[Any]]) = {
         dataType match {
           case Some(d) =>
             val (result, remaining) = ev.decodeDataTypeFromDataType(d, dataTypes)
@@ -992,9 +991,9 @@ object NestedStructure {
       }
 
       override def decodeShapeFromDataType(
-          dataType: Option[DD],
+          dataType: Option[ev.D],
           shapes: Seq[Shape]
-      ): (Option[SS], Seq[Shape]) = {
+      ): (Option[ev.S], Seq[Shape]) = {
         dataType match {
           case Some(d) =>
             val (result, remaining) = ev.decodeShapeFromDataType(d, shapes)
@@ -1005,7 +1004,7 @@ object NestedStructure {
 
       override def map(
           value: Option[T],
-          shape: Option[Option[SS]],
+          shape: Option[Option[ev.S]],
           converter: NestedStructure.Converter
       ): Option[T] = {
         (value, shape) match {
@@ -1016,55 +1015,55 @@ object NestedStructure {
     }
   }
 
-  implicit def fromSeq[T, VV, DD, SS](implicit
-      ev: NestedStructure.Aux[T, VV, DD, SS]
-  ): NestedStructure.Aux[Seq[T], Seq[VV], Seq[DD], Seq[SS]] = {
+  implicit def fromSeq[T](implicit
+      ev: NestedStructure[T]
+  ): NestedStructure.Aux[Seq[T], Seq[ev.V], Seq[ev.D], Seq[ev.S]] = {
     new NestedStructure[Seq[T]] {
-      override type V = Seq[VV]
-      override type D = Seq[DD]
-      override type S = Seq[SS]
+      override type V = Seq[ev.V]
+      override type D = Seq[ev.D]
+      override type S = Seq[ev.S]
 
       override def sizeFromOutput(output: Seq[T]): Int = {
         output.map(ev.sizeFromOutput).sum
       }
 
-      override def sizeFromDataType(dataType: Seq[DD]): Int = {
+      override def sizeFromDataType(dataType: Seq[ev.D]): Int = {
         dataType.map(ev.sizeFromDataType).sum
       }
 
-      override def dataTypeFromOutput(output: Seq[T]): Seq[DD] = {
-        output.map(ev.dataTypeFromOutput)
+      override def dataTypeFromOutput(output: Seq[T]): Seq[ev.D] = {
+        output.map(o => ev.dataTypeFromOutput(o))
       }
 
-      override def shapeFromOutput(output: Seq[T]): Seq[SS] = {
-        output.map(ev.shapeFromOutput)
+      override def shapeFromOutput(output: Seq[T]): Seq[ev.S] = {
+        output.map(o => ev.shapeFromOutput(o))
       }
 
-      override def outputFromTensor(tensor: Seq[VV]): Seq[T] = {
-        tensor.map(ev.outputFromTensor)
+      override def outputFromTensor(tensor: Seq[ev.V]): Seq[T] = {
+        tensor.map(t => ev.outputFromTensor(t))
       }
 
-      override def dataTypeFromTensor(tensor: Seq[VV]): Seq[DD] = {
-        tensor.map(ev.dataTypeFromTensor)
+      override def dataTypeFromTensor(tensor: Seq[ev.V]): Seq[ev.D] = {
+        tensor.map(t => ev.dataTypeFromTensor(t))
       }
 
-      override def shapeFromTensor(tensor: Seq[VV]): Seq[SS] = {
-        tensor.map(ev.shapeFromTensor)
+      override def shapeFromTensor(tensor: Seq[ev.V]): Seq[ev.S] = {
+        tensor.map(t => ev.shapeFromTensor(t))
       }
 
       override def outputs(output: Seq[T]): Seq[Output[Any]] = {
         output.flatMap(ev.outputs)
       }
 
-      override def tensors(tensor: Seq[VV]): Seq[Tensor[Any]] = {
+      override def tensors(tensor: Seq[ev.V]): Seq[Tensor[Any]] = {
         tensor.flatMap(ev.tensors)
       }
 
-      override def dataTypes(dataType: Seq[DD]): Seq[DataType[Any]] = {
+      override def dataTypes(dataType: Seq[ev.D]): Seq[DataType[Any]] = {
         dataType.flatMap(ev.dataTypes)
       }
 
-      override def shapes(shape: Seq[SS]): Seq[Shape] = {
+      override def shapes(shape: Seq[ev.S]): Seq[Shape] = {
         shape.flatMap(ev.shapes)
       }
 
@@ -1081,7 +1080,7 @@ object NestedStructure {
       override def decodeTensorFromOutput(
           output: Seq[T],
           tensors: Seq[Tensor[Any]]
-      ): (Seq[VV], Seq[Tensor[Any]]) = {
+      ): (Seq[ev.V], Seq[Tensor[Any]]) = {
         val n = sizeFromOutput(output)
         (output
             .zip(Collections.segment(tensors.take(n), output.map(ev.sizeFromOutput)))
@@ -1091,7 +1090,7 @@ object NestedStructure {
       override def decodeDataTypeFromOutput(
           output: Seq[T],
           dataTypes: Seq[DataType[Any]]
-      ): (Seq[DD], Seq[DataType[Any]]) = {
+      ): (Seq[ev.D], Seq[DataType[Any]]) = {
         val n = sizeFromOutput(output)
         (output
             .zip(Collections.segment(dataTypes.take(n), output.map(ev.sizeFromOutput)))
@@ -1101,7 +1100,7 @@ object NestedStructure {
       override def decodeShapeFromOutput(
           output: Seq[T],
           shapes: Seq[Shape]
-      ): (Seq[SS], Seq[Shape]) = {
+      ): (Seq[ev.S], Seq[Shape]) = {
         val n = sizeFromOutput(output)
         (output
             .zip(Collections.segment(shapes.take(n), output.map(ev.sizeFromOutput)))
@@ -1109,7 +1108,7 @@ object NestedStructure {
       }
 
       override def decodeOutputFromDataType(
-          dataType: Seq[DD],
+          dataType: Seq[ev.D],
           outputs: Seq[Output[Any]]
       ): (Seq[T], Seq[Output[Any]]) = {
         val n = sizeFromDataType(dataType)
@@ -1119,9 +1118,9 @@ object NestedStructure {
       }
 
       override def decodeDataTypeFromDataType(
-          dataType: Seq[DD],
+          dataType: Seq[ev.D],
           dataTypes: Seq[DataType[Any]]
-      ): (Seq[DD], Seq[DataType[Any]]) = {
+      ): (Seq[ev.D], Seq[DataType[Any]]) = {
         val n = sizeFromDataType(dataType)
         (dataType
             .zip(Collections.segment(dataTypes.take(n), dataType.map(ev.sizeFromDataType)))
@@ -1129,9 +1128,9 @@ object NestedStructure {
       }
 
       override def decodeShapeFromDataType(
-          dataType: Seq[DD],
+          dataType: Seq[ev.D],
           shapes: Seq[Shape]
-      ): (Seq[SS], Seq[Shape]) = {
+      ): (Seq[ev.S], Seq[Shape]) = {
         val n = sizeFromDataType(dataType)
         (dataType
             .zip(Collections.segment(shapes.take(n), dataType.map(ev.sizeFromDataType)))
@@ -1140,7 +1139,7 @@ object NestedStructure {
 
       override def map(
           value: Seq[T],
-          shape: Option[Seq[SS]],
+          shape: Option[Seq[ev.S]],
           converter: NestedStructure.Converter
       ): Seq[T] = {
         val shapes = shape.map(_.map(Option(_))).getOrElse(value.map(_ => None))
@@ -1149,55 +1148,55 @@ object NestedStructure {
     }
   }
 
-  implicit def fromMap[K, T, VV, DD, SS](implicit
-      ev: NestedStructure.Aux[T, VV, DD, SS]
-  ): NestedStructure.Aux[Map[K, T], Map[K, VV], Map[K, DD], Map[K, SS]] = {
+  implicit def fromMap[K, T](implicit
+      ev: NestedStructure[T]
+  ): NestedStructure.Aux[Map[K, T], Map[K, ev.V], Map[K, ev.D], Map[K, ev.S]] = {
     new NestedStructure[Map[K, T]] {
-      override type V = Map[K, VV]
-      override type D = Map[K, DD]
-      override type S = Map[K, SS]
+      override type V = Map[K, ev.V]
+      override type D = Map[K, ev.D]
+      override type S = Map[K, ev.S]
 
       override def sizeFromOutput(output: Map[K, T]): Int = {
         output.values.map(ev.sizeFromOutput).sum
       }
 
-      override def sizeFromDataType(dataType: Map[K, DD]): Int = {
+      override def sizeFromDataType(dataType: Map[K, ev.D]): Int = {
         dataType.values.map(ev.sizeFromDataType).sum
       }
 
-      override def dataTypeFromOutput(output: Map[K, T]): Map[K, DD] = {
-        output.mapValues(ev.dataTypeFromOutput)
+      override def dataTypeFromOutput(output: Map[K, T]): Map[K, ev.D] = {
+        output.mapValues(o => ev.dataTypeFromOutput(o))
       }
 
-      override def shapeFromOutput(output: Map[K, T]): Map[K, SS] = {
-        output.mapValues(ev.shapeFromOutput)
+      override def shapeFromOutput(output: Map[K, T]): Map[K, ev.S] = {
+        output.mapValues(o => ev.shapeFromOutput(o))
       }
 
-      override def outputFromTensor(tensor: Map[K, VV]): Map[K, T] = {
-        tensor.mapValues(ev.outputFromTensor)
+      override def outputFromTensor(tensor: Map[K, ev.V]): Map[K, T] = {
+        tensor.mapValues(t => ev.outputFromTensor(t))
       }
 
-      override def dataTypeFromTensor(tensor: Map[K, VV]): Map[K, DD] = {
-        tensor.mapValues(ev.dataTypeFromTensor)
+      override def dataTypeFromTensor(tensor: Map[K, ev.V]): Map[K, ev.D] = {
+        tensor.mapValues(t => ev.dataTypeFromTensor(t))
       }
 
-      override def shapeFromTensor(tensor: Map[K, VV]): Map[K, SS] = {
-        tensor.mapValues(ev.shapeFromTensor)
+      override def shapeFromTensor(tensor: Map[K, ev.V]): Map[K, ev.S] = {
+        tensor.mapValues(t => ev.shapeFromTensor(t))
       }
 
       override def outputs(output: Map[K, T]): Seq[Output[Any]] = {
         output.values.flatMap(ev.outputs).toSeq
       }
 
-      override def tensors(tensor: Map[K, VV]): Seq[Tensor[Any]] = {
+      override def tensors(tensor: Map[K, ev.V]): Seq[Tensor[Any]] = {
         tensor.values.flatMap(ev.tensors).toSeq
       }
 
-      override def dataTypes(dataType: Map[K, DD]): Seq[DataType[Any]] = {
+      override def dataTypes(dataType: Map[K, ev.D]): Seq[DataType[Any]] = {
         dataType.values.flatMap(ev.dataTypes).toSeq
       }
 
-      override def shapes(shape: Map[K, SS]): Seq[Shape] = {
+      override def shapes(shape: Map[K, ev.S]): Seq[Shape] = {
         shape.values.flatMap(ev.shapes).toSeq
       }
 
@@ -1215,7 +1214,7 @@ object NestedStructure {
       override def decodeTensorFromOutput(
           output: Map[K, T],
           tensors: Seq[Tensor[Any]]
-      ): (Map[K, VV], Seq[Tensor[Any]]) = {
+      ): (Map[K, ev.V], Seq[Tensor[Any]]) = {
         val n = sizeFromOutput(output)
         (output.keys.zip(
           output.values
@@ -1226,7 +1225,7 @@ object NestedStructure {
       override def decodeDataTypeFromOutput(
           output: Map[K, T],
           dataTypes: Seq[DataType[Any]]
-      ): (Map[K, DD], Seq[DataType[Any]]) = {
+      ): (Map[K, ev.D], Seq[DataType[Any]]) = {
         val n = sizeFromOutput(output)
         (output.keys.zip(
           output.values
@@ -1237,7 +1236,7 @@ object NestedStructure {
       override def decodeShapeFromOutput(
           output: Map[K, T],
           shapes: Seq[Shape]
-      ): (Map[K, SS], Seq[Shape]) = {
+      ): (Map[K, ev.S], Seq[Shape]) = {
         val n = sizeFromOutput(output)
         (output.keys.zip(
           output.values
@@ -1246,7 +1245,7 @@ object NestedStructure {
       }
 
       override def decodeOutputFromDataType(
-          dataType: Map[K, DD],
+          dataType: Map[K, ev.D],
           outputs: Seq[Output[Any]]
       ): (Map[K, T], Seq[Output[Any]]) = {
         val n = sizeFromDataType(dataType)
@@ -1257,9 +1256,9 @@ object NestedStructure {
       }
 
       override def decodeDataTypeFromDataType(
-          dataType: Map[K, DD],
+          dataType: Map[K, ev.D],
           dataTypes: Seq[DataType[Any]]
-      ): (Map[K, DD], Seq[DataType[Any]]) = {
+      ): (Map[K, ev.D], Seq[DataType[Any]]) = {
         val n = sizeFromDataType(dataType)
         (dataType.keys.zip(
           dataType.values
@@ -1268,9 +1267,9 @@ object NestedStructure {
       }
 
       override def decodeShapeFromDataType(
-          dataType: Map[K, DD],
+          dataType: Map[K, ev.D],
           shapes: Seq[Shape]
-      ): (Map[K, SS], Seq[Shape]) = {
+      ): (Map[K, ev.S], Seq[Shape]) = {
         val n = sizeFromDataType(dataType)
         (dataType.keys.zip(
           dataType.values
@@ -1280,7 +1279,7 @@ object NestedStructure {
 
       override def map(
           value: Map[K, T],
-          shape: Option[Map[K, SS]],
+          shape: Option[Map[K, ev.S]],
           converter: NestedStructure.Converter
       ): Map[K, T] = {
         val shapes = shape.map(_.mapValues(Option(_))).getOrElse(value.mapValues(_ => None))
@@ -1660,6 +1659,11 @@ object NestedStructure {
       }
     }
   }
+}
+
+trait NestedStructureLowestPriority {
+  type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
+  type SparseShape = (Shape, Shape, Shape)
 
   implicit def fromCoproduct[HT, HV, HD, HS, TT <: Coproduct, TV <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
       evH: Strict[NestedStructure.Aux[HT, HV, HD, HS]],
@@ -1859,9 +1863,7 @@ object NestedStructure {
     }
   }
 
-  implicit def fromZero[T, V, D, S](implicit
-      ev: Zero.Aux[T, V, D, S]
-  ): NestedStructure.Aux[T, V, D, S] = {
+  implicit def fromZero[T](implicit ev: Zero[T]): NestedStructure.Aux[T, ev.V, ev.D, ev.S] = {
     ev.structure
   }
 }

@@ -26,10 +26,8 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[O, S](
+abstract class RNNCell[O: NestedStructure, S](
     override val name: String
-)(implicit
-  protected val evStructureO: NestedStructure.Aux[O, _, _, _]
 ) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
   def createCellWithoutContext[OS](
       mode: Mode,
@@ -52,6 +50,6 @@ abstract class RNNCell[O, S](
   override final def forwardWithoutContext(
       input: Tuple[O, S]
   )(implicit mode: Mode): Tuple[O, S] = {
-    createCellWithoutContext(mode, evStructureO.shapeFromOutput(input.output))(evStructureO).forward(input)
+    createCellWithoutContext(mode, NestedStructure[O].shapeFromOutput(input.output))(NestedStructure[O]).forward(input)
   }
 }

@@ -42,7 +42,7 @@ class DeviceWrapper[O, S] protected (
   override def zeroState(
       batchSize: Output[Int],
       name: String
-  )(implicit evZeroS: Zero.Aux[S, _, _, _]): S = {
+  )(implicit evZeroS: Zero[S]): S = {
     Op.device(device, deviceFunction) {
       super.zeroState(batchSize, name)
     }

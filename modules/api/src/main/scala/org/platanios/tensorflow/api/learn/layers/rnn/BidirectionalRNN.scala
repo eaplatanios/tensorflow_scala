@@ -47,7 +47,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-class BidirectionalRNN[O, S](
+class BidirectionalRNN[O: Zero, S: Zero](
     override val name: String,
     val cellFw: RNNCell[O, S],
     val cellBw: RNNCell[O, S],
@@ -57,9 +57,6 @@ class BidirectionalRNN[O, S](
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
     val sequenceLengths: Tensor[Int] = null
-)(implicit
-    protected val evZeroO: Zero.Aux[O, _, _, _],
-    protected val evZeroS: Zero.Aux[S, _, _, _]
 ) extends Layer[O, (Tuple[O, S], Tuple[O, S])](name) {
   override val layerType: String = "BidirectionalRNN"
 
@@ -67,9 +64,9 @@ class BidirectionalRNN[O, S](
     val stateFw = if (initialStateFw == null) None else Some(initialStateFw())
     val stateBw = if (initialStateBw == null) None else Some(initialStateBw())
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val inputShape = evZeroO.structure.shapeFromOutput(input)
-    val createdCellFw = cellFw.createCell(mode, inputShape)(evZeroO.structure)
-    val createdCellBw = cellBw.createCell(mode, inputShape)(evZeroO.structure)
+    val inputShape = Zero[O].structure.shapeFromOutput(input)
+    val createdCellFw = cellFw.createCell(mode, inputShape)(Zero[O].structure)
+    val createdCellBw = cellBw.createCell(mode, inputShape)(Zero[O].structure)
     ops.rnn.RNN.bidirectionalDynamicRNN(
       createdCellFw, createdCellBw, input, stateFw, stateBw,
       timeMajor, parallelIterations, swapMemory, lengths, name)
@@ -81,9 +78,9 @@ class BidirectionalRNN[O, S](
 
       override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, (S, S)] = {
         val raw = BidirectionalRNN.this (input)
-        val output = evZeroO.structure.decodeOutputFromOutput(
+        val output = Zero[O].structure.decodeOutputFromOutput(
           raw._1.output,
-          evZeroO.structure.outputs(raw._1.output).zip(evZeroO.structure.outputs(raw._2.output)).map(o => {
+          Zero[O].structure.outputs(raw._1.output).zip(Zero[O].structure.outputs(raw._2.output)).map(o => {
             Basic.concatenate(Seq(o._1, o._2), -1)(TF.fromDataType(o._1.dataType))
           }))._1
         Tuple(output, (raw._1.state, raw._2.state))
@@ -93,7 +90,7 @@ class BidirectionalRNN[O, S](
 }
 
 object BidirectionalRNN {
-  def apply[O, S](
+  def apply[O: Zero, S: Zero](
       variableScope: String,
       cellFw: RNNCell[O, S],
       cellBw: RNNCell[O, S],
@@ -103,9 +100,6 @@ object BidirectionalRNN {
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       sequenceLengths: Tensor[Int] = null
-  )(implicit
-      evZeroO: Zero.Aux[O, _, _, _],
-      evZeroS: Zero.Aux[S, _, _, _]
   ): BidirectionalRNN[O, S] = {
     new BidirectionalRNN(
       variableScope, cellFw, cellBw, initialStateFw, initialStateBw,

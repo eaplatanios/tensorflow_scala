@@ -29,12 +29,9 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-class StackedCell[O, S](
+class StackedCell[O: NestedStructure, S: NestedStructure](
     override val name: String,
     val cells: Seq[RNNCell[O, S]]
-)(implicit
-    override protected val evStructureO: NestedStructure.Aux[O, _, _, _],
-    protected val evStructureS: NestedStructure.Aux[S, _, _, _]
 ) extends RNNCell[O, Seq[S]](name) {
   override val layerType: String = "StackedCell"
 
@@ -55,12 +52,9 @@ class StackedCell[O, S](
 }
 
 object StackedCell {
-  def apply[O, S](
+  def apply[O: NestedStructure, S: NestedStructure](
       variableScope: String,
       cells: Seq[RNNCell[O, S]]
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, _, _, _],
-      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): StackedCell[O, S] = {
     new StackedCell(variableScope, cells)
   }

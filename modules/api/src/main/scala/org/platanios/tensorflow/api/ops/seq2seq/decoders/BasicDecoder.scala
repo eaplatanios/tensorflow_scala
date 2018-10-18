@@ -49,25 +49,24 @@ class BasicDecoder[Out, Sample, State](
 )(implicit
     evZeroOut: Zero.Aux[Out, _, _, _],
     evZeroSample: Zero.Aux[Sample, _, _, _],
-    // evStructureOut: NestedStructure.Aux[Out, _, _, _],
-    // evStructureSample: NestedStructure.Aux[Sample, _, _, _],
     evStructureState: NestedStructure.Aux[State, _, _, _]
-    // This implicit helps the Scala 2.11 compiler.
-//    evScala211ZeroHelper: Zero.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _],
-//    evScala211StructureHelper: NestedStructure.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _]
 ) extends Decoder[
-    Out, State,
-    BasicDecoder.DecoderOutput[Out, Sample], State,
-    BasicDecoder.DecoderOutput[Out, Sample], State](cell, name) {
+    /* Out      */ Out,
+    /* State    */ State,
+    /* DecOut   */ BasicDecoder.BasicDecoderOutput[Out, Sample], State,
+    /* DecState */ BasicDecoder.BasicDecoderOutput[Out, Sample], State](
+  cell = cell,
+  name = name
+) {
   /** Scalar tensor representing the batch size of the input values. */
   override val batchSize: Output[Int] = {
     helper.batchSize
   }
 
-  override def zeroOutput: BasicDecoder.DecoderOutput[Out, Sample] = {
-    val zOutput = evZeroOut.zero(batchSize, cell.outputShape(evZeroOut.structure), "ZeroOutput")
+  override def zeroOutput: BasicDecoder.BasicDecoderOutput[Out, Sample] = {
+    val zOutput = Zero[Out].zero(batchSize, cell.outputShape(Zero[Out].structure), "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
-    BasicDecoder.DecoderOutput(
+    BasicDecoder.BasicDecoderOutput(
       modelOutput = outputLayer(zOutput),
       sample = zSample)
   }
@@ -93,13 +92,13 @@ class BasicDecoder[Out, Sample, State](
       time: Output[Int],
       input: Out,
       state: State
-  ): (BasicDecoder.DecoderOutput[Out, Sample], State, Out, Output[Boolean]) = {
+  ): (BasicDecoder.BasicDecoderOutput[Out, Sample], State, Out, Output[Boolean]) = {
     Op.nameScope(s"$name/Next") {
       val nextTuple = cell(Tuple(input, state))
       val nextTupleOutput = outputLayer(nextTuple.output)
       val sample = helper.sample(time, nextTupleOutput, nextTuple.state)
       val (finished, nextInputs, nextState) = helper.next(time, nextTupleOutput, nextTuple.state, sample)
-      (BasicDecoder.DecoderOutput(nextTupleOutput, sample), nextState, nextInputs, finished)
+      (BasicDecoder.BasicDecoderOutput(nextTupleOutput, sample), nextState, nextInputs, finished)
     }
   }
 
@@ -110,35 +109,26 @@ class BasicDecoder[Out, Sample, State](
     * @return Finalized output and state to return from the decoding process.
     */
   override def finalize(
-      output: BasicDecoder.DecoderOutput[Out, Sample],
+      output: BasicDecoder.BasicDecoderOutput[Out, Sample],
       state: State,
       sequenceLengths: Output[Int]
-  ): (BasicDecoder.DecoderOutput[Out, Sample], State, Output[Int]) = {
+  ): (BasicDecoder.BasicDecoderOutput[Out, Sample], State, Output[Int]) = {
     (output, state, sequenceLengths)
   }
 }
 
 object BasicDecoder {
-  def apply[Out, Sample, State](
+  def apply[Out: Zero, Sample: Zero, State: NestedStructure](
       cell: RNNCell[Out, State],
       initialCellState: State,
       helper: BasicDecoder.Helper[Out, Sample, State],
       outputLayer: Out => Out = (o: Out) => o,
       name: String = "BasicRNNDecoder"
-  )(implicit
-      evZeroOut: Zero.Aux[Out, _, _, _],
-      evZeroSample: Zero.Aux[Sample, _, _, _],
-      // evStructureOut: NestedStructure.Aux[Out, _, _, _],
-      // evStructureSample: NestedStructure.Aux[Sample, _, _, _],
-      evStructureState: NestedStructure.Aux[State, _, _, _]
-      // This implicit helps the Scala 2.11 compiler.
-      //    evScala211ZeroHelper: Zero.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _],
-      //    evScala211StructureHelper: NestedStructure.Aux[BasicDecoder.DecoderOutput[Out, Sample], _, _, _]
   ): BasicDecoder[Out, Sample, State] = {
     new BasicDecoder(cell, initialCellState, helper, outputLayer, name)
   }
 
-  case class DecoderOutput[Out, Sample](modelOutput: Out, sample: Sample)
+  case class BasicDecoderOutput[Out, Sample](modelOutput: Out, sample: Sample)
 
   /** Interface for implementing sampling helpers in sequence-to-sequence decoders. */
   trait Helper[Out, Sample, State] {

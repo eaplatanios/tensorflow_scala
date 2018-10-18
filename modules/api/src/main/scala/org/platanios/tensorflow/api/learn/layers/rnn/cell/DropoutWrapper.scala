@@ -39,16 +39,13 @@ import org.platanios.tensorflow.api.ops.Basic
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O, S](
+class DropoutWrapper[O: NestedStructure, S: NestedStructure](
     override val name: String,
     val cell: RNNCell[O, S],
     val inputKeepProbability: Float = 1.0f,
     val outputKeepProbability: Float = 1.0f,
     val stateKeepProbability: Float = 1.0f,
     val seed: Option[Int] = None
-)(implicit
-    override protected val evStructureO: NestedStructure.Aux[O, _, _, _],
-    protected val evStructureS: NestedStructure.Aux[S, _, _, _]
 ) extends RNNCell[O, S](name) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
@@ -78,16 +75,13 @@ class DropoutWrapper[O, S](
 }
 
 object DropoutWrapper {
-  def apply[O, S](
+  def apply[O: NestedStructure, S: NestedStructure](
       variableScope: String,
       cell: RNNCell[O, S],
       inputKeepProbability: Float = 1.0f,
       outputKeepProbability: Float = 1.0f,
       stateKeepProbability: Float = 1.0f,
       seed: Option[Int] = None
-  )(implicit
-      evStructureO: NestedStructure.Aux[O, _, _, _],
-      evStructureS: NestedStructure.Aux[S, _, _, _]
   ): DropoutWrapper[O, S] = {
     new DropoutWrapper(
       variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)
