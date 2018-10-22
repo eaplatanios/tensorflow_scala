@@ -40,16 +40,12 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicDecoder[Out, Sample, State](
+class BasicDecoder[Out: Zero, Sample: Zero, State: NestedStructure](
     override val cell: RNNCell[Out, State],
     val initialCellState: State,
     val helper: BasicDecoder.Helper[Out, Sample, State],
     val outputLayer: Out => Out = (o: Out) => o,
     override val name: String = "BasicRNNDecoder"
-)(implicit
-    evZeroOut: Zero.Aux[Out, _, _, _],
-    evZeroSample: Zero.Aux[Sample, _, _, _],
-    evStructureState: NestedStructure.Aux[State, _, _, _]
 ) extends Decoder[
     /* Out      */ Out,
     /* State    */ State,

@@ -132,7 +132,7 @@ final case class Output[T] private(
         array.map(jniOutput => {
           val op = graph.opsCache.getOrElseUpdate(
             jniOutput.opHandle,
-            Op[Seq[Output[Any]], Seq[Output[Any]]](
+            new Op[Seq[Output[Any]], Seq[Output[Any]]](
               graph = graph,
               originalInput = None,
               nativeHandle = jniOutput.opHandle))

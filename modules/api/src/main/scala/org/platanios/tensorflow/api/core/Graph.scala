@@ -473,7 +473,7 @@ class Graph private[api](
         None
       else
         Some(opsCache.getOrElseUpdate(opHandle, {
-          Op[Seq[Output[Any]], Seq[Output[Any]]](this, None, opHandle)
+          new Op[Seq[Output[Any]], Seq[Output[Any]]](this, None, opHandle)
         }))
     }
   }
@@ -487,7 +487,7 @@ class Graph private[api](
     NativeHandleLock.synchronized {
       NativeGraph.ops(nativeHandle).map(handle => {
         opsCache.getOrElseUpdate(handle, {
-          Op[Seq[Output[Any]], Seq[Output[Any]]](this, None, handle)
+          new Op[Seq[Output[Any]], Seq[Output[Any]]](this, None, handle)
         })
       })
     }

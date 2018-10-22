@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
-import org.platanios.tensorflow.api.core.exception.{AbortedException, UnavailableException}
 import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, NestedStructureOps}
 import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}

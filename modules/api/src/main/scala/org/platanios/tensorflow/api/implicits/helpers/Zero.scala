@@ -47,7 +47,7 @@ sealed trait Zero[T] {
   ): T
 }
 
-object Zero extends ZeroLowPriority {
+object Zero extends ZeroHelpers {
   type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
   type SparseShape = (Shape, Shape, Shape)
 
@@ -263,9 +263,7 @@ object Zero extends ZeroLowPriority {
       }
     }
   }
-}
 
-trait ZeroLowPriority {
   implicit def fromCoproduct[HT, HV, HD, HS, TT <: Coproduct, TV <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
       evH: Strict[Zero.Aux[HT, HV, HD, HS]],
       evT: Zero.Aux[TT, TV, TD, TS]
@@ -291,6 +289,80 @@ trait ZeroLowPriority {
           case Inl(h) => Inl(evH.value.zero(batchSize, h, name))
           case Inr(t) => Inr(evT.zero(batchSize, t, name))
         }
+      }
+    }
+  }
+}
+
+trait ZeroHelpers {
+  implicit def fromHListHelper[HT, TT <: HList](implicit
+      evH: Strict[Zero[HT]],
+      evT: Zero[TT]
+  ): Zero[HT :: TT] = {
+    new Zero[HT :: TT] {
+      override type V = HList
+      override type D = HList
+      override type S = HList
+
+      override val structure: NestedStructure.Aux[HT :: TT, HList, HList, HList] = {
+        ???
+      }
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: HList,
+          name: String = "Zero"
+      ): HT :: TT = {
+        ???
+      }
+    }
+  }
+
+  implicit def fromProductHelper[PT <: Product, HT <: HList](implicit
+      genT: Generic.Aux[PT, HT],
+      evZeroH: Zero[HT]
+  ): Zero[PT] = {
+    new Zero[PT] {
+      override type V = Product
+      override type D = Product
+      override type S = Product
+
+      override val structure: NestedStructure.Aux[PT, Product, Product, Product] = {
+        NestedStructure.fromProductHelper[PT, HT].asInstanceOf[NestedStructure.Aux[PT, Product, Product, Product]]
+      }
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: S,
+          name: String = "Zero"
+      ): PT = {
+        ???
+      }
+    }
+  }
+
+  implicit def fromCoproductHelper[HT, TT <: Coproduct](implicit
+      evH: Strict[Zero[HT]],
+      evT: Zero[TT]
+  ): Zero[HT :+: TT] = {
+    new Zero[HT :+: TT] {
+      override type V = Coproduct
+      override type D = Coproduct
+      override type S = Coproduct
+
+      override val structure: NestedStructure.Aux[HT :+: TT, Coproduct, Coproduct, Coproduct] = {
+        NestedStructure.fromCoproductHelper[HT, TT](
+          Strict(evH.value.structure),
+          evT.structure
+        ).asInstanceOf[NestedStructure.Aux[HT :+: TT, Coproduct, Coproduct, Coproduct]]
+      }
+
+      override def zero(
+          batchSize: Output[Int],
+          shape: Coproduct,
+          name: String
+      ): HT :+: TT = {
+        ???
       }
     }
   }

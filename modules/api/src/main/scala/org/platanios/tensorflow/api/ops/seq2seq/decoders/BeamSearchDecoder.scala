@@ -56,7 +56,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BeamSearchDecoder[T: TF, State](
+class BeamSearchDecoder[T: TF, State: NestedStructure](
     override val cell: RNNCell[Output[T], State],
     val initialCellState: State,
     val embeddingFn: Output[Int] => Output[T],
@@ -67,8 +67,6 @@ class BeamSearchDecoder[T: TF, State](
     val outputLayer: Output[T] => Output[T] = (o: Output[T]) => o,
     val reorderTensorArrays: Boolean = true,
     override val name: String = "BeamSearchRNNDecoder"
-)(implicit
-    evStructureState: NestedStructure.Aux[State, _, _, _]
 ) extends Decoder[
     Output[T], State,
     BeamSearchDecoder.BeamSearchDecoderOutput,
@@ -92,6 +90,7 @@ class BeamSearchDecoder[T: TF, State](
   }
 
   private def processedInitialCellState: State = {
+    val evStructureState = NestedStructure[State]
     if (evStructureState.outputs(tiledInitialCellState).exists(_.rank == -1))
       throw InvalidArgumentException("All tensors in the state need to have known rank for the beam search decoder.")
     Op.nameScope(name) {
@@ -171,6 +170,7 @@ class BeamSearchDecoder[T: TF, State](
       input: Output[T],
       state: BeamSearchDecoder.BeamSearchDecoderState[State]
   ): (BeamSearchDecoder.BeamSearchDecoderOutput, BeamSearchDecoder.BeamSearchDecoderState[State], Output[T], Output[Boolean]) = {
+    val evStructureState = NestedStructure[State]
     Op.nameScope(s"$name/Next") {
       val mergedInput = BeamSearchDecoder.MergeBatchBeamsConverter(batchSize, beamWidth)(input, Some(input.shape(2 ::)))
       val mergedCellState = evStructureState.map(

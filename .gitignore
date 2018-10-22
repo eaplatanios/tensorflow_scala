@@ -25,6 +25,9 @@ project/plugins/project/
 # Metals Specific
 .metals
 
+# Hydra Specific
+.hydra
+
 **/src/main/native/lib/**/*
 **/src/main/generated/**/*
 

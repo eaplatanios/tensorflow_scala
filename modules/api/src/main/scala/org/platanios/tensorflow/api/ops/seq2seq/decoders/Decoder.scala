@@ -42,14 +42,9 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState](
+abstract class Decoder[Out: Zero, State, DecOut: Zero, DecState: NestedStructure, DecFinalOut: NestedStructure, DecFinalState](
     val cell: RNNCell[Out, State],
     val name: String = "RNNDecoder"
-)(implicit
-    evZeroOut: Zero.Aux[Out, _, _, _],
-    evZeroDecOut: Zero.Aux[DecOut, _, _, _],
-    evStructureDecState: NestedStructure.Aux[DecState, _, _, _],
-    evStructureDecFinalOut: NestedStructure.Aux[DecFinalOut, _, _, _]
 ) {
   /** Scalar tensor representing the batch size of the input values. */
   val batchSize: Output[Int]
@@ -111,6 +106,10 @@ abstract class Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState]
       swapMemory: Boolean = false,
       name: String = s"$name/DynamicRNNDecode"
   ): (DecFinalOut, DecFinalState, Output[Int]) = {
+    val evZeroDecOut = Zero[DecOut]
+    val evStructureDecState = NestedStructure[DecState]
+    val evStructureDecFinalOut = NestedStructure[DecFinalOut]
+
     if (maximumIterations != null && maximumIterations.rank != 0) {
       throw InvalidShapeException(
         s"'maximumIterations' (shape = ${maximumIterations.shape}) must be a scalar.")
@@ -199,6 +198,9 @@ abstract class Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState]
         (time + 1, nextOutputTensorArrays, nextState, nextInput, nextFinished, nextSequenceLengths)
       }
 
+      // The following implicit is a helper for Scala 2.11 support.
+      val ev211Helper = implicitly[NestedStructure[(Output[Int], Seq[TensorArray[Any]], DecState, Out, Output[Boolean], Output[Int])]]
+
       val (_, finalOutputTensorArrays, preFinalState, _, _, preFinalSequenceLengths): LoopVariables =
         ControlFlow.whileLoop(
           (loopVariables: LoopVariables) => condition(loopVariables),
@@ -206,7 +208,7 @@ abstract class Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState]
           (initialTime, initialOutputTensorArrays, initialState,
               initialInput, initialFinished, initialSequenceLengths),
           parallelIterations = parallelIterations,
-          swapMemory = swapMemory)
+          swapMemory = swapMemory)(ev211Helper.asAux())
 
       var (finalOutput, finalState, finalSequenceLengths) = finalize(
         evZeroDecOut.structure.decodeOutputFromOutput(zeroOutput, finalOutputTensorArrays.map(_.stack()))._1,

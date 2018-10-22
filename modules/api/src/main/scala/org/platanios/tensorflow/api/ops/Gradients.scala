@@ -757,7 +757,7 @@ object Gradients {
     val jniGradients = NativeGraph.addGradients(graph.nativeHandle, yJNI, xJNI, dxJNI)
     jniGradients.map(o => {
       val op = graph.opsCache.getOrElseUpdate(o.opHandle, {
-        Op[Seq[Output[Any]], Seq[Output[Any]]](graph, None, o.opHandle)
+        new Op[Seq[Output[Any]], Seq[Output[Any]]](graph, None, o.opHandle)
       })
       Output[T](op, o.outputIndex)
     })

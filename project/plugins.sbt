@@ -13,6 +13,8 @@
  * the License.
  */
 
+import sbt.Defaults.sbtPluginExtra
+
 logLevel := Level.Warn
 
 val tensorFlowVersion = "1.11.0"
@@ -41,3 +43,25 @@ addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.3")
 
 // Generally useful plugins
 // addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.1.0-M4") // Provides fast dependency resolution.
+
+// If enabled, add the Hydra compiler plugin.
+val useHydra = Option(System.getenv().get("SBT_USE_HYDRA") == "1").getOrElse(false)
+
+resolvers ++= {
+  if (useHydra) {
+    Seq(Resolver.url("Triplequote Plugins Releases",
+      url("https://repo.triplequote.com/artifactory/sbt-plugins-release/"))(Resolver.ivyStylePatterns))
+  } else {
+    Seq.empty
+  }
+}
+
+libraryDependencies ++= {
+  if (useHydra) {
+    val sbtV = (sbtBinaryVersion in pluginCrossBuild).value
+    val scalaV = (scalaBinaryVersion in update).value
+    Seq(sbtPluginExtra("com.triplequote" % "sbt-hydra" % "1.1.1", sbtV, scalaV))
+  } else {
+    Seq.empty
+  }
+}

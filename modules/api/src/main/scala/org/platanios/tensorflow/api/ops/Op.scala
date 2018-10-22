@@ -16,7 +16,6 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
-import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.DataType
 import org.platanios.tensorflow.api.implicits.Implicits._
@@ -53,8 +52,8 @@ import scala.util.Try
   *
   * @author Emmanouil Antonios Platanios
   */
-final case class Op[I: Op.OpInput, O: Op.OpOutput] private (
-    graph: Graph,
+final class Op[I: Op.OpInput, O: Op.OpOutput] private[api] (
+    val graph: Graph,
     private[ops] val originalInput: Option[I],
     private[api] val nativeHandle: Long
 ) {
@@ -152,7 +151,7 @@ final case class Op[I: Op.OpInput, O: Op.OpOutput] private (
       NativeOp.inputs(nativeHandle).map(i => {
         val op = graph.opsCache.getOrElseUpdate(
           i.opHandle,
-          Op[Seq[Output[Any]], Seq[Output[Any]]](
+          new Op[Seq[Output[Any]], Seq[Output[Any]]](
             graph = graph,
             originalInput = None,
             nativeHandle = i.opHandle))
@@ -172,7 +171,7 @@ final case class Op[I: Op.OpInput, O: Op.OpOutput] private (
       NativeOp.controlInputs(nativeHandle).map(handle => {
         graph.opsCache.getOrElseUpdate(
           handle,
-          Op[Seq[Output[Any]], Seq[Output[Any]]](
+          new Op[Seq[Output[Any]], Seq[Output[Any]]](
             graph = graph,
             originalInput = None,
             nativeHandle = handle))
@@ -253,7 +252,7 @@ final case class Op[I: Op.OpInput, O: Op.OpOutput] private (
     controlOutputHandles.map(handle => {
       graph.opsCache.getOrElseUpdate(
         handle,
-        Op[Seq[Output[Any]], Seq[Output[Any]]](
+        new Op[Seq[Output[Any]], Seq[Output[Any]]](
           graph = graph,
           originalInput = None,
           nativeHandle = handle))
@@ -2638,7 +2637,7 @@ object Op {
         // TODO: !!! Set the "container" attribute when necessary. Need a way to check for statefulness.
 
         // Build the op and set its requested placement device.
-        val op = Op[I, O](graph, Some(input), NativeOp.finish(nativeHandle))
+        val op = new Op[I, O](graph, Some(input), NativeOp.finish(nativeHandle))
         op.gradientFn = gradientFn
         NativeLibrary.setRequestedDevice(r.nativeHandle, op.nativeHandle, opDevice)
         op.controlFlowContext = scope.controlFlowContext
