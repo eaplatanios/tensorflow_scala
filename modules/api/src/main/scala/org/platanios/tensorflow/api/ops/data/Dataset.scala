@@ -1029,16 +1029,24 @@ trait Dataset[T] { outer =>
 
       private var mostSpecificFlattenedShapes: Option[Seq[Shape]] = None
 
+      private def initializeMostSpecificFlattenedShapes[V, D, S]()(implicit
+          evT: NestedStructure.Aux[T, V, D, S]
+      ): Seq[Shape] = {
+        if (mostSpecificFlattenedShapes.isEmpty) {
+          mostSpecificFlattenedShapes = Some(
+            outer.flatOutputShapes.zip(other.flatOutputShapes).map(p => {
+              Shape.fromSeq(p._1.asArray.zip(p._2.asArray).map {
+                case (d1, d2) if d1 == d2 => d1
+                case (d1, d2) if d1 == -1 => d2
+                case (d1, d2) if d2 == -1 => d1
+                case _ => -1
+              })
+            }))
+        }
+        mostSpecificFlattenedShapes.get
+      }
+
       override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
-        mostSpecificFlattenedShapes = Some(
-          outer.flatOutputShapes.zip(other.flatOutputShapes).map(p => {
-            Shape.fromSeq(p._1.asArray.zip(p._2.asArray).map {
-              case (d1, d2) if d1 == d2 => d1
-              case (d1, d2) if d1 == -1 => d2
-              case (d1, d2) if d2 == -1 => d1
-              case _ => -1
-            })
-          }))
         Op.Builder[(Output[Variant], Output[Variant]), Output[Variant]](
           opType = "CacheDataset",
           name = name,
@@ -1055,7 +1063,7 @@ trait Dataset[T] { outer =>
       override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
         evT.decodeShapeFromDataType(
           outputDataTypes,
-          mostSpecificFlattenedShapes.get
+          initializeMostSpecificFlattenedShapes()
         )._1
       }
     }
