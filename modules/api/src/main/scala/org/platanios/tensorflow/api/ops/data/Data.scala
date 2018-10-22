@@ -323,9 +323,7 @@ trait Data extends Experimental {
               Basic.constant(headerNumBytes, name = s"$name/HeaderNumBytes"),
               Basic.constant(footerNumBytes, name = s"$name/FooterNumBytes"),
               Basic.constant(bufferSize, name = s"$name/BufferSize"))
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
-            .setAttribute("output_shapes", flatOutputShapes.toArray)
-            .build().output
+        ).build().output
       }
 
       override def outputDataTypes[V, D, S](implicit evOutputString: NestedStructure.Aux[Output[String], V, D, S]): D = {
@@ -366,9 +364,7 @@ trait Data extends Experimental {
               Basic.constant(filenames, name = s"$name/FileNames"),
               Basic.constant(compressionType.name, name = s"$name/CompressionType"),
               Basic.constant(bufferSize, name = s"$name/BufferSize"))
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
-            .setAttribute("output_shapes", flatOutputShapes.toArray)
-            .build().output
+        ).build().output
       }
 
       override def outputDataTypes[V, D, S](implicit evOutputString: NestedStructure.Aux[Output[String], V, D, S]): D = {
@@ -409,9 +405,7 @@ trait Data extends Experimental {
               filenames,
               Basic.constant(compressionType.name, name = s"$name/CompressionType"),
               Basic.constant(bufferSize, name = s"$name/BufferSize"))
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
-            .setAttribute("output_shapes", flatOutputShapes.toArray)
-            .build().output
+        ).build().output
       }
 
       override def outputDataTypes[V, D, S](implicit evOutputString: NestedStructure.Aux[Output[String], V, D, S]): D = {
@@ -450,9 +444,7 @@ trait Data extends Experimental {
               Basic.constant(filenames, name = s"$name/FileNames"),
               Basic.constant(compressionType.name, name = s"$name/CompressionType"),
               Basic.constant(bufferSize, name = s"$name/BufferSize"))
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
-            .setAttribute("output_shapes", flatOutputShapes.toArray)
-            .build().output
+        ).build().output
       }
 
       override def outputDataTypes[V, D, S](implicit evOutputString: NestedStructure.Aux[Output[String], V, D, S]): D = {
