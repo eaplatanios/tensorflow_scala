@@ -376,7 +376,7 @@ trait Dataset[T] { outer =>
         val instantiatedFunction = this.instantiatedFunction.getOrElse(initializeInstantiatedFunction())
         if (numParallelCalls > 1) {
           Op.Builder[(Output[Variant], Seq[Output[Any]], Output[Int]), Output[Variant]](
-            opType = "MapDataset",
+            opType = "ParallelMapDataset",
             name = name,
             input = (
                 outer.createHandle(),
