@@ -44,13 +44,6 @@ private[api] trait Implicits
 
   //region Cached Implicits
 
-  implicit val classTagByte       : ClassTag[Byte]          = classTag[Byte]
-  implicit val classTagShort      : ClassTag[Short]         = classTag[Short]
-  implicit val classTagInt        : ClassTag[Int]           = classTag[Int]
-  implicit val classTagLong       : ClassTag[Long]          = classTag[Long]
-  implicit val classTagShape      : ClassTag[Shape]         = classTag[Shape]
-  implicit val classTagDataTypeAny: ClassTag[DataType[Any]] = classTag[DataType[Any]]
-
   implicit def booleanToTensor(value: Boolean): Tensor[Boolean] = {
     tensorFromSupportedType[Boolean](value)
   }
