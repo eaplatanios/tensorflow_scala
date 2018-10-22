@@ -79,7 +79,7 @@ class YellowFin protected (
   protected var incrementStepOp: UntypedOp                = _
   protected var doTune         : Output[Boolean]          = _
 
-  override protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
+  override protected def getLearningRate[V: TF, I: TF : IsIntOrLong](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
@@ -109,7 +109,7 @@ class YellowFin protected (
     * @param  name                  Name for the created op.
     * @return Created op.
     */
-  override def applyGradients[T: TF, I: LongDefault : TF : IsInt32OrInt64](
+  override def applyGradients[T: TF, I: LongDefault : TF : IsIntOrLong](
       gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
@@ -127,7 +127,7 @@ class YellowFin protected (
     }
   }
 
-  override def prepare[I: TF : IsInt32OrInt64](
+  override def prepare[I: TF : IsIntOrLong](
       iteration: Option[Variable[I]]
   ): Unit = {
     movingAverage = ExponentialMovingAverage(beta, zeroDebias = zeroDebias)
@@ -151,7 +151,7 @@ class YellowFin protected (
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
   }
 
-  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -169,7 +169,7 @@ class YellowFin protected (
         .build()
   }
 
-  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

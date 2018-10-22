@@ -213,7 +213,7 @@ package object horovod {
         *                                    original ops.
         * @return Sequence of gradient-variable pairs.
         */
-      override def computeGradients[T: TF : types.IsFloat32OrFloat64](
+      override def computeGradients[T: TF : types.IsFloatOrDouble](
           loss: Output[T],
           lossGradients: Seq[OutputLike[T]],
           variables: Set[Variable[Any]],
@@ -245,7 +245,7 @@ package object horovod {
         * @param  name                  Name for the created op.
         * @return Created op.
         */
-      override def applyGradients[T: TF, I: LongDefault : TF : types.IsInt32OrInt64](
+      override def applyGradients[T: TF, I: LongDefault : TF : types.IsIntOrLong](
           gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
           iteration: Option[Variable[I]],
           name: String
@@ -261,7 +261,7 @@ package object horovod {
       /** Creates all necessary tensors before applying the gradients. This function is called from within an op
         * creation context that uses as its name scope the name that users have chosen for the application of
         * gradients. */
-      override def prepare[I: TF : types.IsInt32OrInt64](
+      override def prepare[I: TF : types.IsIntOrLong](
           iteration: Option[Variable[I]]
       ): Unit = {
         optimizer.prepare(iteration)
@@ -288,7 +288,7 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override def applyDense[T: TF : types.IsNotQuantized, I: TF : types.IsInt32OrInt64](
+      override def applyDense[T: TF : types.IsNotQuantized, I: TF : types.IsIntOrLong](
           gradient: Output[T],
           variable: Variable[T],
           iteration: Option[Variable[I]]
@@ -308,7 +308,7 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override def applySparse[T: TF : types.IsNotQuantized, I: TF : types.IsInt32OrInt64](
+      override def applySparse[T: TF : types.IsNotQuantized, I: TF : types.IsIntOrLong](
           gradient: OutputIndexedSlices[T],
           variable: Variable[T],
           iteration: Option[Variable[I]]
@@ -336,7 +336,7 @@ package object horovod {
         * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
         * @return Created op that applies the provided gradient to the provided variable.
         */
-      override def applySparseDuplicateIndices[T: TF : types.IsNotQuantized, I: TF : types.IsInt32OrInt64](
+      override def applySparseDuplicateIndices[T: TF : types.IsNotQuantized, I: TF : types.IsIntOrLong](
           gradient: OutputIndexedSlices[T],
           variable: Variable[T],
           iteration: Option[Variable[I]]

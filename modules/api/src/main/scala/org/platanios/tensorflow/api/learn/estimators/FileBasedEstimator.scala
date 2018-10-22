@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.estimators
 import org.platanios.tensorflow.api.config._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.io.CheckpointReader
@@ -65,7 +65,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn] private[estimators] (
     override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
@@ -479,7 +479,7 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat
 object FileBasedEstimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / File-based Estimator"))
 
-  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn](
+  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](
       modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),

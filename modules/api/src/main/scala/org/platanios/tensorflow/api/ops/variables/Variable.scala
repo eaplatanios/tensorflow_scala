@@ -186,7 +186,7 @@ case class Variable[T] private (
     * @return Created op.
     */
   @throws[UnsupportedOperationException]
-  override def gather[I: TF : IsInt32OrInt64](
+  override def gather[I: TF : IsIntOrLong](
       indices: Output[I],
       name: String = "Gather"
   ): Output[T] = {
@@ -273,7 +273,7 @@ case class Variable[T] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatter[I: TF : IsInt32OrInt64](
+  override def assignScatter[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatter"
@@ -295,7 +295,7 @@ case class Variable[T] private (
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterAdd[I: TF : IsInt32OrInt64](
+  override def assignScatterAdd[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterAdd"
@@ -318,7 +318,7 @@ case class Variable[T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterSub[I: TF : IsInt32OrInt64](
+  override def assignScatterSub[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterSub"
@@ -341,7 +341,7 @@ case class Variable[T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMul[I: TF : IsInt32OrInt64](
+  override def assignScatterMul[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterMul"
@@ -364,7 +364,7 @@ case class Variable[T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterDiv[I: TF : IsInt32OrInt64](
+  override def assignScatterDiv[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterDiv"
@@ -387,7 +387,7 @@ case class Variable[T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMin[I: TF : IsInt32OrInt64](
+  override def assignScatterMin[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterMin"
@@ -410,7 +410,7 @@ case class Variable[T] private (
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  override def assignScatterMax[I: TF : IsInt32OrInt64](
+  override def assignScatterMax[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterMax"
@@ -1271,7 +1271,7 @@ private[api] object Variable {
     * @param  name            Name for the created op.
     * @return Created op.
     */
-  private[ops] def gather[T: TF, I: TF : IsInt32OrInt64](
+  private[ops] def gather[T: TF, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       dataType: DataType[T] = null,
@@ -1285,11 +1285,11 @@ private[api] object Variable {
       input = (variable.asInstanceOf[Output[T]], indices)
     ).setAttribute("dtype", if (dataType == null) variable.dataType else dataType)
         .setAttribute("validate_indices", validateIndices)
-        .setGradientFn(gatherGradient(_, _)(TF[T], TF[I], IsInt32OrInt64[I]))
+        .setGradientFn(gatherGradient(_, _)(TF[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
-  protected def gatherGradient[T: TF, I: TF : IsInt32OrInt64](
+  protected def gatherGradient[T: TF, I: TF : IsIntOrLong](
       op: Op[(OutputLike[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (OutputLike[T], Output[I]) = {
@@ -1336,7 +1336,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterUpdate[T: TF, I: TF : IsInt32OrInt64](
+  private[ops] def scatterUpdate[T: TF, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1374,7 +1374,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterAdd[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  private[ops] def scatterAdd[T: TF : IsNumeric, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1412,7 +1412,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterSub[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  private[ops] def scatterSub[T: TF : IsNumeric, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1450,7 +1450,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterMul[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  private[ops] def scatterMul[T: TF : IsNumeric, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1488,7 +1488,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterDiv[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  private[ops] def scatterDiv[T: TF : IsNumeric, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1526,7 +1526,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterMin[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  private[ops] def scatterMin[T: TF : IsNumeric, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],
@@ -1564,7 +1564,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def scatterMax[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  private[ops] def scatterMax[T: TF : IsNumeric, I: TF : IsIntOrLong](
       variable: Output[Resource],
       indices: Output[I],
       updates: Output[T],

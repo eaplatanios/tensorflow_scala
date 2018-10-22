@@ -148,7 +148,7 @@ trait Masking {
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`, from the method description.
     */
-  def listDiff[T: TF, I: TF : IsInt32OrInt64](
+  def listDiff[T: TF, I: TF : IsIntOrLong](
       x: Output[T],
       y: Output[T],
       indicesDataType: DataType[I],

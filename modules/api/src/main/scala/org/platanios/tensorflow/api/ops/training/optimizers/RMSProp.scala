@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers
 
-import org.platanios.tensorflow.api.core.types.{Resource, TF, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{Resource, TF, IsIntOrLong, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
@@ -76,7 +76,7 @@ class RMSProp protected (
   protected var momentumTensor    : Output[Float] = _
   protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: TF : IsIntOrLong](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
@@ -125,7 +125,7 @@ class RMSProp protected (
     })
   }
 
-  override def prepare[I: TF : IsInt32OrInt64](
+  override def prepare[I: TF : IsIntOrLong](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -136,7 +136,7 @@ class RMSProp protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -176,7 +176,7 @@ class RMSProp protected (
     }
   }
 
-  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

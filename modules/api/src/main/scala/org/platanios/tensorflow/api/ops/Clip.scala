@@ -83,7 +83,7 @@ trait Clip {
     * @param  name     Name prefix for created ops.
     * @return Created op output.
     */
-  def clipByNorm[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def clipByNorm[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       clipNorm: Output[T],
       axes: Output[I] = null,
@@ -233,7 +233,7 @@ object Clip extends Clip {
         * @param  name     Name prefix for created ops.
         * @return Created op output.
         */
-      def clipByNorm[I: IntDefault : TF : IsInt32OrInt64](
+      def clipByNorm[I: IntDefault : TF : IsIntOrLong](
           clipNorm: Output[T],
           axes: Output[I] = null,
           name: String = "ClipByNorm"

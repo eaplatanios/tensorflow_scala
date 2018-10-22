@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{Resource, TF, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{Resource, TF, IsIntOrLong, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -90,7 +90,7 @@ class Adam protected (
   protected var beta2Tensor       : Output[Float] = _
   protected var epsilonTensor     : Output[Float] = _
 
-  protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: TF : IsIntOrLong](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
@@ -142,7 +142,7 @@ class Adam protected (
     getOrCreateNonSlotVariable("Beta2Power", beta2, Set(firstVariable.op), ignoreExisting = true)
   }
 
-  override def prepare[I: TF : IsInt32OrInt64](
+  override def prepare[I: TF : IsIntOrLong](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -153,7 +153,7 @@ class Adam protected (
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
   }
 
-  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -179,7 +179,7 @@ class Adam protected (
         .build()
   }
 
-  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

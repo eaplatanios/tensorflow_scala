@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.config.TensorBoardConfig
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
-import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn._
@@ -61,7 +61,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn] private[estimators] (
     override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
@@ -385,7 +385,7 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat6
 object InMemoryEstimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / In-Memory Estimator"))
 
-  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn](
+  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](
       modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),

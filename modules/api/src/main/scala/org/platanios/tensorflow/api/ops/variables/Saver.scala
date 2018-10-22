@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{DeviceSpecification, Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.core.types.{DataType, TF, IsInt32OrInt64}
+import org.platanios.tensorflow.api.core.types.{DataType, TF, IsIntOrLong}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.FileIO
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text, UntypedOp}
@@ -1639,7 +1639,7 @@ abstract class Saveable protected(val saveSpecifications: Seq[SaveSpecification]
     *                         ignored.
     * @return Op that restores the state of this saveable object.
     */
-  private[api] def restore[I: IsInt32OrInt64](
+  private[api] def restore[I: IsIntOrLong](
       restoredTensors: Seq[Output[Any]],
       restoredShapes: Seq[Output[I]] = null
   ): UntypedOp
@@ -1668,7 +1668,7 @@ private[ops] object Saveable {
       Set(variable.op)
     }
 
-    override private[api] def restore[I: IsInt32OrInt64](
+    override private[api] def restore[I: IsIntOrLong](
         restoredTensors: Seq[Output[Any]],
         restoredShapes: Seq[Output[I]] = null
     ): UntypedOp = {
@@ -1679,7 +1679,7 @@ private[ops] object Saveable {
         restoredTensor = Basic.reshape(
           restoredTensors.head,
           restoredShapes.head
-        )(TF.fromDataType(dataType), TF.fromDataType(shapeDataType), IsInt32OrInt64[I])
+        )(TF.fromDataType(dataType), TF.fromDataType(shapeDataType), IsIntOrLong[I])
       }
       // Copy the restored tensor to the variable's device.
       restoredTensor = Op.createWith(device = variableDevice) {

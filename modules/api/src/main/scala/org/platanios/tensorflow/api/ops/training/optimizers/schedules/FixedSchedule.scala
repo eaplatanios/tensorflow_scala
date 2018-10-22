@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
+import org.platanios.tensorflow.api.core.types.{TF, IsIntOrLong}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.Variable
 
@@ -35,7 +35,7 @@ case class FixedSchedule[T]() extends Schedule[T] {
     *                                  empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[I: TF : IsInt32OrInt64](
+  override def apply[I: TF : IsIntOrLong](
       value: Output[T],
       step: Option[Variable[I]]
   ): Output[T] = {

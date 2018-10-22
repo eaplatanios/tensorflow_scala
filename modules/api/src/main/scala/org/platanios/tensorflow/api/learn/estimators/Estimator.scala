@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
@@ -74,7 +74,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn] private[estimators] (
+abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn] private[estimators] (
     protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     protected val configurationBase: Configuration = null
 ) {

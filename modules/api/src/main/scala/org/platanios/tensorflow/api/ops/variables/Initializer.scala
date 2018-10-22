@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
-import org.platanios.tensorflow.api.core.types.{TF, IsFloat16OrFloat32OrFloat64}
+import org.platanios.tensorflow.api.core.types.{TF, IsHalfOrFloatOrDouble}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Random}
 import org.platanios.tensorflow.api.ops.variables.Variable.PartitionInformation
@@ -139,7 +139,7 @@ case class RandomUniformInitializer(
   ): Output[T] = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
+    implicit val ev: IsHalfOrFloatOrDouble[T] = null
 
     Random.randomUniform(
       shape = shape,
@@ -162,7 +162,7 @@ case class RandomNormalInitializer(
   ): Output[T] = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
+    implicit val ev: IsHalfOrFloatOrDouble[T] = null
 
     Random.randomNormal(
       shape = shape,
@@ -185,7 +185,7 @@ case class RandomTruncatedNormalInitializer(
   ): Output[T] = {
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
+    implicit val ev: IsHalfOrFloatOrDouble[T] = null
 
     Random.randomTruncatedNormal(
       shape = shape,
@@ -298,7 +298,7 @@ object VarianceScalingInitializer {
     ): Output[T] = {
 
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
+      implicit val ev: IsHalfOrFloatOrDouble[T] = null
 
       Random.randomTruncatedNormal(
         shape = shape,
@@ -316,7 +316,7 @@ object VarianceScalingInitializer {
     ): Output[T] = {
 
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      implicit val ev: IsFloat16OrFloat32OrFloat64[T] = null
+      implicit val ev: IsHalfOrFloatOrDouble[T] = null
 
       val limit = Math.sqrt(3.0f * scale)
       Random.randomUniform(

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn
 
-import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.ops.{Output, OutputLike, UntypedOp}
 import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -27,7 +27,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-case class ModelInstance[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn](
+case class ModelInstance[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](
     model: TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     configuration: Configuration,
     trainInputIterator: Option[DatasetIterator[TrainIn]] = None,

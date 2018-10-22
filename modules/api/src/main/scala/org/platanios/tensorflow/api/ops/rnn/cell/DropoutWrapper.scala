@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.core.types.{IsFloat16OrFloat32OrFloat64, IsInt32OrInt64, TF}
+import org.platanios.tensorflow.api.core.types.{IsHalfOrFloatOrDouble, IsIntOrLong, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.SparseShape
@@ -116,13 +116,13 @@ object DropoutWrapper {
     override def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = {
 
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
-      val ev: IsFloat16OrFloat32OrFloat64[T] = null
+      val ev: IsHalfOrFloatOrDouble[T] = null
 
       NN.dynamicDropout(
         value,
         keepProbability.castTo[T](TF.fromDataType(value.dataType)),
         seed = generateSeed(saltPrefix, seed, index = 0)
-      )(TF.fromDataType(value.dataType), ev, IntDefault[Int], TF[Int], IsInt32OrInt64[Int])
+      )(TF.fromDataType(value.dataType), ev, IntDefault[Int], TF[Int], IsIntOrLong[Int])
     }
 
     @throws[InvalidArgumentException]

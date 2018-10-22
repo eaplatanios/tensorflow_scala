@@ -47,7 +47,7 @@ trait Embedding {
     * @param  name              Name prefix used for the created op.
     * @return Obtained embeddings for the provided `ids`.
     */
-  def embeddingLookup[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def embeddingLookup[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       parameters: EmbeddingMap[T],
       ids: Output[I],
       partitionStrategy: PartitionStrategy = ModStrategy,
@@ -176,7 +176,7 @@ trait Embedding {
     * @param  name              Name prefix used for the created op.
     * @return Obtained embeddings for the provided `ids`.
     */
-  def sparseEmbeddingLookup[T: TF : IsReal, I: TF : IsInt32OrInt64](
+  def sparseEmbeddingLookup[T: TF : IsReal, I: TF : IsIntOrLong](
       parameters: EmbeddingMap[T],
       sparseIds: SparseOutput[I],
       sparseWeights: SparseOutput[T] = null,
@@ -225,7 +225,7 @@ trait Embedding {
   sealed trait PartitionStrategy {
     /** Transforms the provided ids based on this partition strategy and returns the partition assignments and the
       * new/transformed ids. */
-    def transformIds[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+    def transformIds[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
         ids: Output[I],
         parameters: Seq[EmbeddingParameters[T]],
         numPartitions: Output[I]
@@ -235,7 +235,7 @@ trait Embedding {
   /** Each id is assigned to partition `p = id % parameters.numPartitions`. For instance, 13 ids are split across 5
     * partitions as: `[[0, 5, 10], [1, 6, 11], [2, 7, 12], [3, 8], [4, 9]]`. */
   case object ModStrategy extends PartitionStrategy {
-    override def transformIds[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+    override def transformIds[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
         ids: Output[I],
         parameters: Seq[EmbeddingParameters[T]],
         numPartitions: Output[I]
@@ -249,7 +249,7 @@ trait Embedding {
   /** Ids are assigned to partitions in a contiguous manner. In this case, 13 ids are split across 5 partitions as:
     * `[[0, 1, 2], [3, 4, 5], [6, 7, 8], [9, 10], [11, 12]]`. */
   case object DivStrategy extends PartitionStrategy {
-    override def transformIds[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+    override def transformIds[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
         ids: Output[I],
         parameters: Seq[EmbeddingParameters[T]],
         numPartitions: Output[I]
@@ -286,13 +286,13 @@ trait Embedding {
 
   /** Method for combining sparse embeddings. */
   sealed trait Combiner {
-    @inline def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline def combine[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         indices: Output[I],
         segmentIndices: Output[Int]
     ): Output[T]
 
-    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         weights: Output[T],
         segmentIndices: Output[I]
@@ -301,7 +301,7 @@ trait Embedding {
 
   /** Combines sparse embeddings by using a weighted sum. */
   case object SumCombiner extends Combiner {
-    @inline override def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline override def combine[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         indices: Output[I],
         segmentIndices: Output[Int]
@@ -309,7 +309,7 @@ trait Embedding {
       Math.sparseSegmentSum(parameters, indices, segmentIndices)
     }
 
-    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         weights: Output[T],
         segmentIndices: Output[I]
@@ -320,7 +320,7 @@ trait Embedding {
 
   /** Combines sparse embeddings by using a weighted sum divided by the total weight. */
   case object MeanCombiner extends Combiner {
-    @inline override def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline override def combine[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         indices: Output[I],
         segmentIndices: Output[Int]
@@ -328,7 +328,7 @@ trait Embedding {
       Math.sparseSegmentMean(parameters, indices, segmentIndices)
     }
 
-    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         weights: Output[T],
         segmentIndices: Output[I]
@@ -342,7 +342,7 @@ trait Embedding {
   /** Combines sparse embeddings by using a weighted sum divided by the square root of the sum of the
     * squares of the weights. */
   case object SumSqrtNCombiner extends Combiner {
-    @inline override def combine[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline override def combine[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         indices: Output[I],
         segmentIndices: Output[Int]
@@ -350,7 +350,7 @@ trait Embedding {
       Math.sparseSegmentSumSqrtN(parameters, indices, segmentIndices)
     }
 
-    @inline def combineWeighted[T: TF : IsReal, I: TF : IsInt32OrInt64](
+    @inline def combineWeighted[T: TF : IsReal, I: TF : IsIntOrLong](
         parameters: Output[T],
         weights: Output[T],
         segmentIndices: Output[I]
@@ -390,7 +390,7 @@ object Embedding extends Embedding {
   }
 
   /** If `maxNorm` is not `null`, this method clips `parameters` to a maximum l2-norm of `maxNorm`. */
-  private[Embedding] def clipByNorm[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  private[Embedding] def clipByNorm[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       parameters: Output[T],
       indices: Output[I],
       maxNorm: Output[T] = null,
@@ -424,7 +424,7 @@ object Embedding extends Embedding {
       Basic.shape(parameters)
     }
 
-    override def gather[I: TF : IsInt32OrInt64](
+    override def gather[I: TF : IsIntOrLong](
         indices: Output[I],
         name: String = "Gather"
     ): Output[T] = {
@@ -447,7 +447,7 @@ object Embedding extends Embedding {
       Basic.shape(parameters.value)
     }
 
-    override def gather[I: TF : IsInt32OrInt64](
+    override def gather[I: TF : IsIntOrLong](
         indices: Output[I],
         name: String = "Gather"
     ): Output[T] = {
@@ -526,7 +526,7 @@ trait EmbeddingParameters[T] {
   @inline def dynamicShape: Output[Long]
 
   /** Gathers the embeddings corresponding to `indices` from `parameters`. */
-  def gather[I: TF : IsInt32OrInt64](
+  def gather[I: TF : IsIntOrLong](
       indices: Output[I],
       name: String = "Gather"
   ): Output[T]

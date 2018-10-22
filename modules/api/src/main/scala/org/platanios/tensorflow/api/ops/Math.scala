@@ -100,7 +100,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def linspace[T: TF : IsBFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+  def linspace[T: TF : IsTruncatedHalfOrFloatOrDouble, I: TF : IsIntOrLong](
       start: Output[T],
       stop: Output[T],
       numberOfValues: Output[I],
@@ -976,7 +976,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def logGamma[T: TF : IsFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def logGamma[T: TF : IsFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "LogGamma"
   )(implicit
@@ -987,11 +987,11 @@ trait Math {
         opType = "Lgamma",
         name = name,
         input = o
-      ).setGradientFn(logGammaGradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+      ).setGradientFn(logGammaGradient(_, _)(TF[T], IsFloatOrDouble[T]))
           .build().output)
   }
 
-  protected def logGammaGradient[T: TF : IsFloat32OrFloat64](
+  protected def logGammaGradient[T: TF : IsFloatOrDouble](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1008,7 +1008,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def digamma[T: TF : IsFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def digamma[T: TF : IsFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Digamma"
   )(implicit
@@ -1019,11 +1019,11 @@ trait Math {
         opType = "Digamma",
         name = name,
         input = o
-      ).setGradientFn(digammaGradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+      ).setGradientFn(digammaGradient(_, _)(TF[T], IsFloatOrDouble[T]))
           .build().output)
   }
 
-  def digammaGradient[T: TF : IsFloat32OrFloat64](
+  def digammaGradient[T: TF : IsFloatOrDouble](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1233,7 +1233,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def roundInt[T: TF : IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def roundInt[T: TF : IsHalfOrFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "RoundInt"
   )(implicit
@@ -1254,7 +1254,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def floor[T: TF : IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def floor[T: TF : IsHalfOrFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Floor"
   )(implicit
@@ -1275,7 +1275,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def ceil[T: TF : IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def ceil[T: TF : IsHalfOrFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "Ceil"
   )(implicit
@@ -1296,7 +1296,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def isNaN[T: TF : IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def isNaN[T: TF : IsHalfOrFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "IsNaN"
   )(implicit
@@ -1317,7 +1317,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def isInf[T: TF : IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def isInf[T: TF : IsHalfOrFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "IsInf"
   )(implicit
@@ -1338,7 +1338,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def isFinite[T: TF : IsFloat16OrFloat32OrFloat64, OL[A] <: OutputLike[A]](
+  def isFinite[T: TF : IsHalfOrFloatOrDouble, OL[A] <: OutputLike[A]](
       x: OL[T],
       name: String = "IsFinite"
   )(implicit
@@ -1747,7 +1747,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def igammac[T: TF : IsFloat32OrFloat64](
+  def igammac[T: TF : IsFloatOrDouble](
       a: Output[T],
       x: Output[T],
       name: String = "Igammac"
@@ -1756,11 +1756,11 @@ trait Math {
       opType = "Igammac",
       name = name,
       input = (a, x)
-    ).setGradientFn(igammacGradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+    ).setGradientFn(igammacGradient(_, _)(TF[T], IsFloatOrDouble[T]))
         .build().output
   }
 
-  protected def igammacGradient[T: TF : IsFloat32OrFloat64](
+  protected def igammacGradient[T: TF : IsFloatOrDouble](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1776,7 +1776,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def igamma[T: TF : IsFloat32OrFloat64](
+  def igamma[T: TF : IsFloatOrDouble](
       a: Output[T],
       x: Output[T],
       name: String = "Igamma"
@@ -1785,11 +1785,11 @@ trait Math {
       opType = "Igamma",
       name = name,
       input = (a, x)
-    ).setGradientFn(igammaGradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+    ).setGradientFn(igammaGradient(_, _)(TF[T], IsFloatOrDouble[T]))
         .build().output
   }
 
-  protected def igammaGradient[T: TF : IsFloat32OrFloat64](
+  protected def igammaGradient[T: TF : IsFloatOrDouble](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1819,7 +1819,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def zeta[T: TF : IsFloat32OrFloat64](
+  def zeta[T: TF : IsFloatOrDouble](
       x: Output[T],
       q: Output[T],
       name: String = "Zeta"
@@ -1828,11 +1828,11 @@ trait Math {
       opType = "Zeta",
       name = name,
       input = (x, q)
-    ).setGradientFn(zetaGradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+    ).setGradientFn(zetaGradient(_, _)(TF[T], IsFloatOrDouble[T]))
         .build().output
   }
 
-  protected def zetaGradient[T: TF : IsFloat32OrFloat64](
+  protected def zetaGradient[T: TF : IsFloatOrDouble](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1855,7 +1855,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def polygamma[T: TF : IsFloat32OrFloat64](
+  def polygamma[T: TF : IsFloatOrDouble](
       n: Output[T],
       x: Output[T],
       name: String = "Polygamma"
@@ -1864,11 +1864,11 @@ trait Math {
       opType = "Polygamma",
       name = name,
       input = (n, x)
-    ).setGradientFn(polygammaGradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+    ).setGradientFn(polygammaGradient(_, _)(TF[T], IsFloatOrDouble[T]))
         .build().output
   }
 
-  protected def polygammaGradient[T: TF : IsFloat32OrFloat64](
+  protected def polygammaGradient[T: TF : IsFloatOrDouble](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -1891,7 +1891,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def atan2[T: TF : IsFloat32OrFloat64](
+  def atan2[T: TF : IsFloatOrDouble](
       x: Output[T],
       y: Output[T],
       name: String = "ATan2"
@@ -1900,11 +1900,11 @@ trait Math {
       opType = "Atan2",
       name = name,
       input = (x, y)
-    ).setGradientFn(atan2Gradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+    ).setGradientFn(atan2Gradient(_, _)(TF[T], IsFloatOrDouble[T]))
         .build().output
   }
 
-  protected def atan2Gradient[T: TF : IsFloat32OrFloat64](
+  protected def atan2Gradient[T: TF : IsFloatOrDouble](
       op: Op[(Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T]) = {
@@ -2004,7 +2004,7 @@ trait Math {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def incompleteBeta[T: TF : IsFloat32OrFloat64](
+  def incompleteBeta[T: TF : IsFloatOrDouble](
       a: Output[T],
       b: Output[T],
       x: Output[T],
@@ -2014,11 +2014,11 @@ trait Math {
       opType = "Betainc",
       name = name,
       input = (a, b, x)
-    ).setGradientFn(incompleteBetaGradient(_, _)(TF[T], IsFloat32OrFloat64[T]))
+    ).setGradientFn(incompleteBetaGradient(_, _)(TF[T], IsFloatOrDouble[T]))
         .build().output
   }
 
-  protected def incompleteBetaGradient[T: TF : IsFloat32OrFloat64](
+  protected def incompleteBetaGradient[T: TF : IsFloatOrDouble](
       op: Op[(Output[T], Output[T], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[T], Output[T]) = {
@@ -2263,7 +2263,7 @@ trait Math {
 
   //region Reduction Ops
 
-  protected def reductionAxes[T: TF, I: TF : IsInt32OrInt64, OL[A] <: OutputLike[A]](
+  protected def reductionAxes[T: TF, I: TF : IsIntOrLong, OL[A] <: OutputLike[A]](
       tensor: OL[T],
       axes: Output[I]
   ): Output[I] = {
@@ -2304,7 +2304,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def sum[T: TF : IsNumeric, I: IntDefault : TF : IsInt32OrInt64](
+  def sum[T: TF : IsNumeric, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2318,12 +2318,12 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(sumGradient(_, _)(TF[T], IsNumeric[T], TF[I], IsInt32OrInt64[I]))
+          .setGradientFn(sumGradient(_, _)(TF[T], IsNumeric[T], TF[I], IsIntOrLong[I]))
           .build().output
     }
   }
 
-  protected def sumGradient[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  protected def sumGradient[T: TF : IsNumeric, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2367,7 +2367,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def mean[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def mean[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2381,12 +2381,12 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(meanGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsInt32OrInt64[I]))
+          .setGradientFn(meanGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsIntOrLong[I]))
           .build().output
     }
   }
 
-  protected def meanGradient[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  protected def meanGradient[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2414,7 +2414,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def prod[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def prod[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2428,12 +2428,12 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(prodGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsInt32OrInt64[I]))
+          .setGradientFn(prodGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsIntOrLong[I]))
           .build().output
     }
   }
 
-  def prodGradient[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def prodGradient[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2488,7 +2488,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def min[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def min[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2502,7 +2502,7 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(minOrMaxGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsInt32OrInt64[I]))
+          .setGradientFn(minOrMaxGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsIntOrLong[I]))
           .build().output
     }
   }
@@ -2516,7 +2516,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def max[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def max[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2530,12 +2530,12 @@ trait Math {
         name = name,
         input = (input, reductionAxes(input, axes))
       ).setAttribute("keep_dims", keepDims)
-          .setGradientFn(minOrMaxGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsInt32OrInt64[I]))
+          .setGradientFn(minOrMaxGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsIntOrLong[I]))
           .build().output
     }
   }
 
-  protected def minOrMaxGradient[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  protected def minOrMaxGradient[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2562,7 +2562,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def all[I: IntDefault : TF : IsInt32OrInt64](
+  def all[I: IntDefault : TF : IsIntOrLong](
       input: Output[Boolean],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2589,7 +2589,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def any[I: IntDefault : TF : IsInt32OrInt64](
+  def any[I: IntDefault : TF : IsIntOrLong](
       input: Output[Boolean],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2616,7 +2616,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def logSumExp[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def logSumExp[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2646,7 +2646,7 @@ trait Math {
     * @param  name     Name for the created op.
     * @return Created op output.
     */
-  def countNonZero[T: TF : IsNumeric, I: IntDefault : TF : IsInt32OrInt64](
+  def countNonZero[T: TF : IsNumeric, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I] = null,
       keepDims: Boolean = false,
@@ -2687,7 +2687,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def argmin[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64, R : TF](
+  def argmin[T: TF : IsNotQuantized, I: TF : IsIntOrLong, R : TF](
       input: Output[T],
       axes: Output[I],
       outputDataType: DataType[R],
@@ -2710,7 +2710,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def argmax[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64, R : TF](
+  def argmax[T: TF : IsNotQuantized, I: TF : IsIntOrLong, R : TF](
       input: Output[T],
       axes: Output[I],
       outputDataType: DataType[R],
@@ -2734,7 +2734,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def cumsum[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def cumsum[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       input: Output[T],
       axis: Output[I],
       exclusive: Boolean = false,
@@ -2747,11 +2747,11 @@ trait Math {
       input = (input, axis)
     ).setAttribute("exclusive", exclusive)
         .setAttribute("reverse", reverse)
-        .setGradientFn(cumsumGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsInt32OrInt64[I]))
+        .setGradientFn(cumsumGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
-  protected def cumsumGradient[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  protected def cumsumGradient[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2771,7 +2771,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def cumprod[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def cumprod[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       input: Output[T],
       axis: Output[I],
       exclusive: Boolean = false,
@@ -2784,11 +2784,11 @@ trait Math {
       input = (input, axis)
     ).setAttribute("exclusive", exclusive)
         .setAttribute("reverse", reverse)
-        .setGradientFn(cumprodGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsInt32OrInt64[I]))
+        .setGradientFn(cumprodGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
-  protected def cumprodGradient[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  protected def cumprodGradient[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2819,7 +2819,7 @@ trait Math {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def binCount[T: TF : IsInt32OrInt64OrFloat32OrFloat64](
+  def binCount[T: TF : IsIntOrLongOrFloatOrDouble](
       input: Output[Int],
       dataType: DataType[T],
       weights: Output[T] = null,
@@ -2857,7 +2857,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentSum[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def segmentSum[T: TF : IsNumeric, I: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentSum"
@@ -2866,11 +2866,11 @@ trait Math {
       opType = "SegmentSum",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentSumGradient(_, _)(TF[T], IsNumeric[T], TF[I], IsInt32OrInt64[I]))
+    ).setGradientFn(segmentSumGradient(_, _)(TF[T], IsNumeric[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
-  protected def segmentSumGradient[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  protected def segmentSumGradient[T: TF : IsNumeric, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2885,7 +2885,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentMean[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def segmentMean[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentMean"
@@ -2894,11 +2894,11 @@ trait Math {
       opType = "SegmentMean",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentMeanGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsInt32OrInt64[I]))
+    ).setGradientFn(segmentMeanGradient(_, _)(TF[T], IsNotQuantized[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
-  protected def segmentMeanGradient[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  protected def segmentMeanGradient[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2920,7 +2920,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentProd[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def segmentProd[T: TF : IsNumeric, I: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentProd"
@@ -2942,7 +2942,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentMin[T: TF : IsReal, I: TF : IsInt32OrInt64](
+  def segmentMin[T: TF : IsReal, I: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentMin"
@@ -2951,7 +2951,7 @@ trait Math {
       opType = "SegmentMin",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I], IsInt32OrInt64[I]))
+    ).setGradientFn(segmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
@@ -2963,7 +2963,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def segmentMax[T: TF : IsReal, I: TF : IsInt32OrInt64](
+  def segmentMax[T: TF : IsReal, I: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I],
       name: String = "SegmentMax"
@@ -2972,11 +2972,11 @@ trait Math {
       opType = "SegmentMax",
       name = name,
       input = (data, segmentIndices)
-    ).setGradientFn(segmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I], IsInt32OrInt64[I]))
+    ).setGradientFn(segmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
-  protected def segmentMinOrMaxGradient[T: TF : IsReal, I: TF : IsInt32OrInt64](
+  protected def segmentMinOrMaxGradient[T: TF : IsReal, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
@@ -2994,7 +2994,7 @@ trait Math {
     (select(isSelected, gatheredGradients, zeros), null)
   }
 
-  protected def gatherDropNegatives[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  protected def gatherDropNegatives[T: TF : IsNumeric, I: TF : IsIntOrLong](
       parameters: Output[T],
       indices: Output[I],
       zeroClippedIndices: Output[I] = null,
@@ -3035,7 +3035,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentSum[T: TF : IsNumeric, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentSum[T: TF : IsNumeric, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3045,11 +3045,11 @@ trait Math {
       opType = "UnsortedSegmentSum",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentSumGradient(_, _)(TF[T], IsNumeric[T], TF[I1], IsInt32OrInt64[I1], TF[I2], IsInt32OrInt64[I2]))
+    ).setGradientFn(unsortedSegmentSumGradient(_, _)(TF[T], IsNumeric[T], TF[I1], IsIntOrLong[I1], TF[I2], IsIntOrLong[I2]))
         .build().output
   }
 
-  protected def unsortedSegmentSumGradient[T: TF : IsNumeric, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  protected def unsortedSegmentSumGradient[T: TF : IsNumeric, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
@@ -3064,7 +3064,7 @@ trait Math {
     * @param  segmentsNumber Number of segments.
     * @return Created op output.
     */
-  protected def unsortedSegmentN[T: TF : IsNotQuantized, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  protected def unsortedSegmentN[T: TF : IsNotQuantized, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3091,7 +3091,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentMean[T: TF : IsNotQuantized, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentMean[T: TF : IsNotQuantized, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3114,7 +3114,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentProd[T: TF : IsNotQuantized, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentProd[T: TF : IsNotQuantized, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3124,11 +3124,11 @@ trait Math {
       opType = "UnsortedSegmentProd",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentProdGradient(_, _)(TF[T], IsNotQuantized[T], TF[I1], IsInt32OrInt64[I1], TF[I2], IsInt32OrInt64[I2]))
+    ).setGradientFn(unsortedSegmentProdGradient(_, _)(TF[T], IsNotQuantized[T], TF[I1], IsIntOrLong[I1], TF[I2], IsIntOrLong[I2]))
         .build().output
   }
 
-  protected def unsortedSegmentProdGradient[T: TF : IsNotQuantized, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  protected def unsortedSegmentProdGradient[T: TF : IsNotQuantized, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
@@ -3178,7 +3178,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentMin[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentMin[T: TF : IsReal, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3188,7 +3188,7 @@ trait Math {
       opType = "UnsortedSegmentMin",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1], TF[I2], IsInt32OrInt64[I2]))
+    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1], TF[I2], IsIntOrLong[I2]))
         .build().output
   }
 
@@ -3201,7 +3201,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentMax[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentMax[T: TF : IsReal, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3211,11 +3211,11 @@ trait Math {
       opType = "UnsortedSegmentMax",
       name = name,
       input = (data, segmentIndices, segmentsNumber)
-    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1], TF[I2], IsInt32OrInt64[I2]))
+    ).setGradientFn(unsortedSegmentMinOrMaxGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1], TF[I2], IsIntOrLong[I2]))
         .build().output
   }
 
-  protected def unsortedSegmentMinOrMaxGradient[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  protected def unsortedSegmentMinOrMaxGradient[T: TF : IsReal, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[I2]) = {
@@ -3241,7 +3241,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def unsortedSegmentSqrtN[T: TF : IsNotQuantized, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentSqrtN[T: TF : IsNotQuantized, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Output[T],
       segmentIndices: Output[I1],
       segmentsNumber: Output[I2],
@@ -3263,7 +3263,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def sparseSegmentSum[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+  def sparseSegmentSum[T: TF : IsReal, I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
       data: Output[T],
       indices: Output[I1],
       segmentIndices: Output[Int],
@@ -3275,19 +3275,19 @@ trait Math {
         opType = "SparseSegmentSum",
         name = name,
         input = (data, indices, segmentIndices)
-      ).setGradientFn(sparseSegmentSumGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1]))
+      ).setGradientFn(sparseSegmentSumGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1]))
           .build().output
     } else {
       Op.Builder[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]](
         opType = "SparseSegmentSumWithNumSegments",
         name = name,
         input = (data, indices, segmentIndices, numSegments)
-      ).setGradientFn(sparseSegmentSumWithNumSegmentsGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1], TF[I2], IsInt32OrInt64[I2]))
+      ).setGradientFn(sparseSegmentSumWithNumSegmentsGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1], TF[I2], IsIntOrLong[I2]))
           .build().output
     }
   }
 
-  protected def sparseSegmentSumGradient[T: TF : IsReal, I1: TF : IsInt32OrInt64](
+  protected def sparseSegmentSumGradient[T: TF : IsReal, I1: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int]) = {
@@ -3299,7 +3299,7 @@ trait Math {
     (gradient, null, null)
   }
 
-  protected def sparseSegmentSumWithNumSegmentsGradient[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  protected def sparseSegmentSumWithNumSegmentsGradient[T: TF : IsReal, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int], Output[I2]) = {
@@ -3321,7 +3321,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def sparseSegmentMean[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+  def sparseSegmentMean[T: TF : IsReal, I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
       data: Output[T],
       indices: Output[I1],
       segmentIndices: Output[Int],
@@ -3333,19 +3333,19 @@ trait Math {
         opType = "SparseSegmentMean",
         name = name,
         input = (data, indices, segmentIndices)
-      ).setGradientFn(sparseSegmentMeanGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1]))
+      ).setGradientFn(sparseSegmentMeanGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1]))
           .build().output
     } else {
       Op.Builder[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]](
         opType = "SparseSegmentMeanWithNumSegments",
         name = name,
         input = (data, indices, segmentIndices, numSegments)
-      ).setGradientFn(sparseSegmentMeanWithNumSegmentsGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1], TF[I2], IsInt32OrInt64[I2]))
+      ).setGradientFn(sparseSegmentMeanWithNumSegmentsGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1], TF[I2], IsIntOrLong[I2]))
           .build().output
     }
   }
 
-  protected def sparseSegmentMeanGradient[T: TF : IsReal, I1: TF : IsInt32OrInt64](
+  protected def sparseSegmentMeanGradient[T: TF : IsReal, I1: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int]) = {
@@ -3358,7 +3358,7 @@ trait Math {
     (gradient, null, null)
   }
 
-  protected def sparseSegmentMeanWithNumSegmentsGradient[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  protected def sparseSegmentMeanWithNumSegmentsGradient[T: TF : IsReal, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int], Output[I2]) = {
@@ -3381,7 +3381,7 @@ trait Math {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def sparseSegmentSumSqrtN[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+  def sparseSegmentSumSqrtN[T: TF : IsReal, I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
       data: Output[T],
       indices: Output[I1],
       segmentIndices: Output[Int],
@@ -3393,19 +3393,19 @@ trait Math {
         opType = "SparseSegmentSqrtN",
         name = name,
         input = (data, indices, segmentIndices)
-      ).setGradientFn(sparseSegmentSumSqrtNGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1]))
+      ).setGradientFn(sparseSegmentSumSqrtNGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1]))
           .build().output
     } else {
       Op.Builder[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]](
         opType = "SparseSegmentSqrtNWithNumSegments",
         name = name,
         input = (data, indices, segmentIndices, numSegments)
-      ).setGradientFn(sparseSegmentSumSqrtNWithNumSegmentsGradient(_, _)(TF[T], IsReal[T], TF[I1], IsInt32OrInt64[I1], TF[I2], IsInt32OrInt64[I2]))
+      ).setGradientFn(sparseSegmentSumSqrtNWithNumSegmentsGradient(_, _)(TF[T], IsReal[T], TF[I1], IsIntOrLong[I1], TF[I2], IsIntOrLong[I2]))
           .build().output
     }
   }
 
-  protected def sparseSegmentSumSqrtNGradient[T: TF : IsReal, I1: TF : IsInt32OrInt64](
+  protected def sparseSegmentSumSqrtNGradient[T: TF : IsReal, I1: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[Int]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int]) = {
@@ -3418,7 +3418,7 @@ trait Math {
     (gradient, null, null)
   }
 
-  protected def sparseSegmentSumSqrtNWithNumSegmentsGradient[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  protected def sparseSegmentSumSqrtNWithNumSegmentsGradient[T: TF : IsReal, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I1], Output[Int], Output[I2]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I1], Output[Int], Output[I2]) = {
@@ -3604,7 +3604,7 @@ trait Math {
     * @param  name              Name for the created op.
     * @return Created op output.
     */
-  def matrixBandPart[T: TF, I: TF : IsInt32OrInt64](
+  def matrixBandPart[T: TF, I: TF : IsIntOrLong](
       input: Output[T],
       numSubDiagonals: Output[I],
       numSuperDiagonals: Output[I],
@@ -3614,11 +3614,11 @@ trait Math {
       opType = "MatrixBandPart",
       name = name,
       input = (input, numSubDiagonals, numSuperDiagonals)
-    ).setGradientFn(matrixBandPartGradient(_, _)(TF[T], TF[I], IsInt32OrInt64[I]))
+    ).setGradientFn(matrixBandPartGradient(_, _)(TF[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
-  protected def matrixBandPartGradient[T: TF, I: TF : IsInt32OrInt64](
+  protected def matrixBandPartGradient[T: TF, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I], Output[I]) = {
@@ -4553,7 +4553,7 @@ trait Math {
     * @param  name       Name for the created op.
     * @return Created op output.
     */
-  def bucketize[T: TF : IsInt32OrInt64OrFloat32OrFloat64](
+  def bucketize[T: TF : IsIntOrLongOrFloatOrDouble](
       input: Output[T],
       boundaries: Seq[Float],
       name: String = "Bucketize"
@@ -4849,7 +4849,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def logGamma(implicit ev: IsFloat32OrFloat64[T]): Output[T] = {
+      def logGamma(implicit ev: IsFloatOrDouble[T]): Output[T] = {
         Math.logGamma(output)
       }
 
@@ -4858,7 +4858,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def digamma(implicit ev: IsFloat32OrFloat64[T]): Output[T] = {
+      def digamma(implicit ev: IsFloatOrDouble[T]): Output[T] = {
         Math.digamma(output)
       }
 
@@ -4921,7 +4921,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def roundInt(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[T] = {
+      def roundInt(implicit ev: IsHalfOrFloatOrDouble[T]): Output[T] = {
         Math.roundInt(output)
       }
 
@@ -4930,7 +4930,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def floor(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[T] = {
+      def floor(implicit ev: IsHalfOrFloatOrDouble[T]): Output[T] = {
         Math.floor(output)
       }
 
@@ -4939,7 +4939,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def ceil(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[T] = {
+      def ceil(implicit ev: IsHalfOrFloatOrDouble[T]): Output[T] = {
         Math.ceil(output)
       }
 
@@ -4948,7 +4948,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def isNaN(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[Boolean] = {
+      def isNaN(implicit ev: IsHalfOrFloatOrDouble[T]): Output[Boolean] = {
         Math.isNaN(output)
       }
 
@@ -4957,7 +4957,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def isInf(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[Boolean] = {
+      def isInf(implicit ev: IsHalfOrFloatOrDouble[T]): Output[Boolean] = {
         Math.isInf(output)
       }
 
@@ -4966,7 +4966,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def isFinite(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[Boolean] = {
+      def isFinite(implicit ev: IsHalfOrFloatOrDouble[T]): Output[Boolean] = {
         Math.isFinite(output)
       }
 
@@ -5088,7 +5088,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def igammac(other: Output[T])(implicit ev: IsFloat32OrFloat64[T]): Output[T] = {
+      def igammac(other: Output[T])(implicit ev: IsFloatOrDouble[T]): Output[T] = {
         Math.igammac(output, other)
       }
 
@@ -5097,7 +5097,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def igamma(other: Output[T])(implicit ev: IsFloat32OrFloat64[T]): Output[T] = {
+      def igamma(other: Output[T])(implicit ev: IsFloatOrDouble[T]): Output[T] = {
         Math.igamma(output, other)
       }
 
@@ -5106,7 +5106,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def zeta(other: Output[T])(implicit ev: IsFloat32OrFloat64[T]): Output[T] = {
+      def zeta(other: Output[T])(implicit ev: IsFloatOrDouble[T]): Output[T] = {
         Math.zeta(output, other)
       }
 
@@ -5115,7 +5115,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def polygamma(other: Output[T])(implicit ev: IsFloat32OrFloat64[T]): Output[T] = {
+      def polygamma(other: Output[T])(implicit ev: IsFloatOrDouble[T]): Output[T] = {
         Math.polygamma(output, other)
       }
 
@@ -5124,7 +5124,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def atan2(other: Output[T])(implicit ev: IsFloat32OrFloat64[T]): Output[T] = {
+      def atan2(other: Output[T])(implicit ev: IsFloatOrDouble[T]): Output[T] = {
         Math.atan2(output, other)
       }
 
@@ -5264,7 +5264,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def sum[I: IntDefault : TF : IsInt32OrInt64](
+      def sum[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNumeric[T]): Output[T] = {
@@ -5278,7 +5278,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def mean[I: IntDefault : TF : IsInt32OrInt64](
+      def mean[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5292,7 +5292,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def prod[I: IntDefault : TF : IsInt32OrInt64](
+      def prod[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5306,7 +5306,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def min[I: IntDefault : TF : IsInt32OrInt64](
+      def min[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5320,7 +5320,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def max[I: IntDefault : TF : IsInt32OrInt64](
+      def max[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5334,7 +5334,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def all[I: IntDefault : TF : IsInt32OrInt64](
+      def all[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: T =:= Boolean): Output[Boolean] = {
@@ -5348,7 +5348,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def any[I: IntDefault : TF : IsInt32OrInt64](
+      def any[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: T =:= Boolean): Output[Boolean] = {
@@ -5362,7 +5362,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def logSumExp[I: IntDefault : TF : IsInt32OrInt64](
+      def logSumExp[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5376,7 +5376,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def countNonZero[I: IntDefault : TF : IsInt32OrInt64](
+      def countNonZero[I: IntDefault : TF : IsIntOrLong](
           axes: Output[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNumeric[T]): Output[Long] = {
@@ -5389,7 +5389,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmin[I: TF : IsInt32OrInt64](
+      def argmin[I: TF : IsIntOrLong](
           axes: Output[I]
       )(implicit ev: IsNotQuantized[T]): Output[Long] = {
         Math.argmin(output, axes, outputDataType = INT64)
@@ -5402,7 +5402,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmin[I: TF : IsInt32OrInt64, IR: TF : IsInt32OrInt64](
+      def argmin[I: TF : IsIntOrLong, IR: TF : IsIntOrLong](
           axes: Output[I],
           outputDataType: DataType[IR]
       )(implicit ev: IsNotQuantized[T]): Output[IR] = {
@@ -5415,7 +5415,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmax[I: TF : IsInt32OrInt64](
+      def argmax[I: TF : IsIntOrLong](
           axes: Output[I]
       )(implicit ev: IsNotQuantized[T]): Output[Long] = {
         Math.argmax(output, axes, outputDataType = INT64)
@@ -5428,7 +5428,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmax[I: TF : IsInt32OrInt64, IR: TF : IsInt32OrInt64](
+      def argmax[I: TF : IsIntOrLong, IR: TF : IsIntOrLong](
           axes: Output[I],
           outputDataType: DataType[IR]
       )(implicit ev: IsNotQuantized[T]): Output[IR] = {
@@ -5443,7 +5443,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
         * @return Result as a new tensor.
         */
-      def cumsum[I: TF : IsInt32OrInt64](
+      def cumsum[I: TF : IsIntOrLong](
           axis: Output[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -5459,7 +5459,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
         * @return Result as a new tensor.
         */
-      def cumprod[I: TF : IsInt32OrInt64](
+      def cumprod[I: TF : IsIntOrLong](
           axis: Output[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -5482,7 +5482,7 @@ object Math extends Math {
         *                   ensuring that the output has length at most `maxLength`.
         * @return Created op output.
         */
-      def binCount[R: TF : IsInt32OrInt64OrFloat32OrFloat64](
+      def binCount[R: TF : IsIntOrLongOrFloatOrDouble](
           dataType: DataType[R],
           weights: Output[R] = null,
           minLength: Output[Int] = null,
@@ -5499,7 +5499,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentSum[I: TF : IsInt32OrInt64](
+      def segmentSum[I: TF : IsIntOrLong](
           segmentIndices: Output[I]
       )(implicit ev: IsNumeric[T]): Output[T] = {
         Math.segmentSum(output, segmentIndices)
@@ -5511,7 +5511,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMean[I: TF : IsInt32OrInt64](
+      def segmentMean[I: TF : IsIntOrLong](
           segmentIndices: Output[I]
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
         Math.segmentMean(output, segmentIndices)
@@ -5523,7 +5523,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentProd[I: TF : IsInt32OrInt64](
+      def segmentProd[I: TF : IsIntOrLong](
           segmentIndices: Output[I]
       )(implicit ev: IsNumeric[T]): Output[T] = {
         Math.segmentProd(output, segmentIndices)
@@ -5535,7 +5535,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMin[I: TF : IsInt32OrInt64](
+      def segmentMin[I: TF : IsIntOrLong](
           segmentIndices: Output[I]
       )(implicit ev: IsReal[T]): Output[T] = {
         Math.segmentMin(output, segmentIndices)
@@ -5547,7 +5547,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMax[I: TF : IsInt32OrInt64](
+      def segmentMax[I: TF : IsIntOrLong](
           segmentIndices: Output[I]
       )(implicit ev: IsReal[T]): Output[T] = {
         Math.segmentMax(output, segmentIndices)
@@ -5560,7 +5560,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentSum[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unsortedSegmentSum[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsNumeric[T]): Output[T] = {
@@ -5574,7 +5574,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Created op output.
         */
-      def unsortedSegmentMean[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unsortedSegmentMean[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5588,7 +5588,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Created op output.
         */
-      def unsortedSegmentProd[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unsortedSegmentProd[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -5602,7 +5602,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentMin[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unsortedSegmentMin[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsReal[T]): Output[T] = {
@@ -5616,7 +5616,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentMax[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unsortedSegmentMax[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           segmentIndices: Output[I1],
           segmentsNumber: Output[I2]
       )(implicit ev: IsReal[T]): Output[T] = {
@@ -5631,7 +5631,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSum[I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+      def sparseSegmentSum[I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
           indices: Output[I1],
           segmentIndices: Output[Int],
           numSegments: Output[I2] = null
@@ -5647,7 +5647,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentMean[I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+      def sparseSegmentMean[I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
           indices: Output[I1],
           segmentIndices: Output[Int],
           numSegments: Output[I2] = null
@@ -5663,7 +5663,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSumSqrtN[I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+      def sparseSegmentSumSqrtN[I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
           indices: Output[I1],
           segmentIndices: Output[Int],
           numSegments: Output[I2] = null
@@ -5732,7 +5732,7 @@ object Math extends Math {
         *                           the entire upper triangle is kept.
         * @return Tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
         */
-      def matrixBandPart[I: TF : IsInt32OrInt64](
+      def matrixBandPart[I: TF : IsIntOrLong](
           numSubDiagonals: Output[I],
           numSuperDiagonals: Output[I]
       ): Output[T] = {
@@ -5875,7 +5875,7 @@ object Math extends Math {
         */
       def bucketize(
           boundaries: Seq[Float]
-      )(implicit ev: IsInt32OrInt64OrFloat32OrFloat64[T]): Output[T] = {
+      )(implicit ev: IsIntOrLongOrFloatOrDouble[T]): Output[T] = {
         Math.bucketize(output, boundaries)
       }
 
@@ -6007,7 +6007,7 @@ object Math extends Math {
     * @param  axes       Reduction axes.
     * @return One-dimensional tensor representing the reduction output shape, assuming `keepDims` is `true`.
     */
-  private[api] def reducedShape[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  private[api] def reducedShape[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       inputShape: Output[I1],
       axes: Output[I2]
   ): Output[I1] = {

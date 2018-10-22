@@ -40,7 +40,7 @@ trait Basic extends basic.API {
     * @param  name            Name for the created op.
     * @return Tuple containing `output` and `indices`.
     */
-  def unique[T: TF, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unique[T: TF, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       input: Output[T],
       axis: Output[I1],
       indicesDataType: DataType[I2],
@@ -63,7 +63,7 @@ trait Basic extends basic.API {
     * @param  name            Name for the created op.
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
-  def uniqueWithCounts[T: TF, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def uniqueWithCounts[T: TF, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       input: Output[T],
       axis: Output[I1],
       indicesDataType: DataType[I2],
@@ -148,7 +148,7 @@ trait Basic extends basic.API {
     * @tparam T Data type of the output tensor.
     * @return Created op output.
     */
-  def oneHot[T: TF, I: TF : IsInt32OrInt64OrUInt8](
+  def oneHot[T: TF, I: TF : IsIntOrLongOrUByte](
       indices: Output[I],
       depth: Output[Int],
       onValue: Output[T] = null,
@@ -182,7 +182,7 @@ trait Basic extends basic.API {
     * @param  name   Name for the created op.
     * @return Tuple containing two op outputs, each containing the reduction indices for the corresponding op.
     */
-  def broadcastGradientArguments[I: TF : IsInt32OrInt64](
+  def broadcastGradientArguments[I: TF : IsIntOrLong](
       shape1: Output[I],
       shape2: Output[I],
       name: String = "BroadcastGradientArguments"
@@ -202,7 +202,7 @@ trait Basic extends basic.API {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  def broadcastTo[T: TF, I: TF : IsInt32OrInt64](
+  def broadcastTo[T: TF, I: TF : IsIntOrLong](
       value: Output[T],
       shape: Output[I],
       name: String = "BroadcastTo"
@@ -224,7 +224,7 @@ trait Basic extends basic.API {
     * @param  name   Name for the created op.
     * @return Created op output, which is a one-dimensional integer tensor representing the broadcasted shape.
     */
-  def broadcastShapeDynamic[I: TF : IsInt32OrInt64](
+  def broadcastShapeDynamic[I: TF : IsIntOrLong](
       shape1: Output[I],
       shape2: Output[I],
       name: String = "BroadcastShape"
@@ -413,7 +413,7 @@ object Basic extends Basic {
         * @param  axis       Dimension along which to split the input tensor.
         * @return Result as a new tensor.
         */
-      def split[I: TF : IsInt32OrInt64](
+      def split[I: TF : IsIntOrLong](
           splitSizes: Output[I],
           axis: Output[Int] = 0
       ): Seq[Output[T]] = {
@@ -427,7 +427,7 @@ object Basic extends Basic {
         *                   rank of `input`.
         * @return Result as a new tensor.
         */
-      def tile[I: TF : IsInt32OrInt64](multiples: Output[I]): Output[T] = {
+      def tile[I: TF : IsIntOrLong](multiples: Output[I]): Output[T] = {
         Basic.tile(output, multiples)
       }
 
@@ -438,7 +438,7 @@ object Basic extends Basic {
         * @param  mode     Padding mode to use.
         * @return Result as a new tensor.
         */
-      def pad[I: TF : IsInt32OrInt64](
+      def pad[I: TF : IsIntOrLong](
           paddings: Output[I],
           mode: PaddingMode = ConstantPadding(Some(Tensor(0)))
       ): Output[T] = {
@@ -451,7 +451,7 @@ object Basic extends Basic {
         * @param  shape Shape of the output tensor.
         * @return Result as a new tensor.
         */
-      def reshape[I: TF : IsInt32OrInt64](shape: Output[I]): Output[T] = {
+      def reshape[I: TF : IsIntOrLong](shape: Output[I]): Output[T] = {
         Basic.reshape(output, shape)
       }
 
@@ -462,7 +462,7 @@ object Basic extends Basic {
         * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
         * @return Result as a new tensor.
         */
-      def transpose[I: IntDefault : TF : IsInt32OrInt64](
+      def transpose[I: IntDefault : TF : IsIntOrLong](
           permutation: Output[I] = null,
           conjugate: Boolean = false
       ): Output[T] = {
@@ -484,7 +484,7 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Result as a new tensor.
         */
-      def invertPermutation(implicit ev: IsInt32OrInt64[T]): Output[T] = {
+      def invertPermutation(implicit ev: IsIntOrLong[T]): Output[T] = {
         Basic.invertPermutation(output)
       }
 
@@ -494,7 +494,7 @@ object Basic extends Basic {
         * @param  axes Dimensions of the input tensor to reverse.
         * @return Result as a new tensor which has the same shape as `input`.
         */
-      def reverse[I: TF : IsInt32OrInt64](axes: Output[I]): Output[T] = {
+      def reverse[I: TF : IsIntOrLong](axes: Output[I]): Output[T] = {
         Basic.reverse(output, axes)
       }
 
@@ -507,7 +507,7 @@ object Basic extends Basic {
         * @param  batchAxis       Tensor dimension along which the reversal is performed.
         * @return Result as a new tensor which has the same shape as `input`.
         */
-      def reverseSequence[I: TF : IsInt32OrInt64](
+      def reverseSequence[I: TF : IsIntOrLong](
           sequenceLengths: Output[I],
           sequenceAxis: Int,
           batchAxis: Int = 0
@@ -522,7 +522,7 @@ object Basic extends Basic {
         * @param  paddings  `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def spaceToBatch[I: TF : IsInt32OrInt64](
+      def spaceToBatch[I: TF : IsIntOrLong](
           blockSize: Int,
           paddings: Output[I]
       ): Output[T] = {
@@ -539,7 +539,7 @@ object Basic extends Basic {
         *                    `inputShape(i + 1) + padStart + padEnd`.
         * @return Result as a new tensor.
         */
-      def spaceToBatchND[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def spaceToBatchND[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           blockShape: Output[I1],
           paddings: Output[I2]
       ): Output[T] = {
@@ -553,7 +553,7 @@ object Basic extends Basic {
         * @param  crops     `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def batchToSpace[I: TF : IsInt32OrInt64](
+      def batchToSpace[I: TF : IsIntOrLong](
           blockSize: Int,
           crops: Output[I]
       ): Output[T] = {
@@ -570,7 +570,7 @@ object Basic extends Basic {
         *                    `cropStart(i) + cropEnd(i) <= blockShape(i) * inputShape(i + 1)`.
         * @return Result as a new tensor.
         */
-      def batchToSpaceND[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def batchToSpaceND[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           blockShape: Output[I1],
           crops: Output[I2]
       ): Output[T] = {
@@ -650,7 +650,7 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Tuple containing `output` and `indices`.
         */
-      def unique[I1: TF : IsInt32OrInt64](
+      def unique[I1: TF : IsIntOrLong](
           axis: Output[I1]
       ): (Output[T], Output[Int]) = {
         Basic.unique(output, axis, indicesDataType = Int)
@@ -662,7 +662,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type of the returned indices.
         * @return Tuple containing `output` and `indices`.
         */
-      def unique[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unique[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           axis: Output[I1],
           indicesDataType: DataType[I2]
       ): (Output[T], Output[I2]) = {
@@ -674,7 +674,7 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Tuple containing `output`, `indices`, and `counts`.
         */
-      def uniqueWithCounts[I1: TF : IsInt32OrInt64](
+      def uniqueWithCounts[I1: TF : IsIntOrLong](
           axis: Output[I1]
       ): (Output[T], Output[Int], Output[Int]) = {
         Basic.uniqueWithCounts(output, axis, indicesDataType = Int)
@@ -686,7 +686,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type of the returned indices.
         * @return Tuple containing `output`, `indices`, and `counts`.
         */
-      def uniqueWithCounts[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def uniqueWithCounts[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           axis: Output[I1],
           indicesDataType: DataType[I2]
       ): (Output[T], Output[I2], Output[I2]) = {
@@ -710,7 +710,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type to use for the output indices of this op.
         * @return Tuple containing `output` and `indices`, from the method description.
         */
-      def listDiff[I: TF : IsInt32OrInt64](
+      def listDiff[I: TF : IsIntOrLong](
           other: Output[T],
           indicesDataType: DataType[I]
       ): (Output[T], Output[I]) = {
@@ -728,7 +728,7 @@ object Basic extends Basic {
         * @param  axis    Tensor containing the axis along which to gather.
         * @return Result as a new tensor.
         */
-      def gather[I: TF : IsInt32OrInt64](
+      def gather[I: TF : IsIntOrLong](
           indices: Output[I],
           axis: Output[I] = null
       ): Output[T] = {
@@ -742,7 +742,7 @@ object Basic extends Basic {
         * @return Result as a new tensor which contains the values from `input` gathered from indices given by `indices`,
         *         with shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
         */
-      def gatherND[I: TF : IsInt32OrInt64](indices: Output[I]): Output[T] = {
+      def gatherND[I: TF : IsIntOrLong](indices: Output[I]): Output[T] = {
         Basic.gatherND(output, indices)
       }
 
@@ -781,7 +781,7 @@ object Basic extends Basic {
           onValue: Output[R] = null,
           offValue: Output[R] = null,
           axis: Int = -1
-      )(implicit ev: IsInt32OrInt64OrUInt8[T]): Output[R] = {
+      )(implicit ev: IsIntOrLongOrUByte[T]): Output[R] = {
         Basic.oneHot[R, T](output, depth, onValue, offValue, axis)
       }
 
@@ -795,7 +795,7 @@ object Basic extends Basic {
         * @param  shape Shape to broadcast the provided tensor to.
         * @return Created op output.
         */
-      def broadcastTo[I: TF : IsInt32OrInt64](
+      def broadcastTo[I: TF : IsIntOrLong](
           shape: Output[I]
       ): Output[T] = {
         Basic.broadcastTo(output, shape)

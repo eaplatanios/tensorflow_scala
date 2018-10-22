@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{TF, IsIntOrLong, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, OutputIndexedSlices, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -95,7 +95,7 @@ class LazyAMSGrad protected (
 ) {
   override val ignoreDuplicateSparseIndices: Boolean = true
 
-  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

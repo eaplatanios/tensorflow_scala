@@ -65,7 +65,7 @@ trait Random {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def randomUniform[T: FloatDefault : TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+  def randomUniform[T: FloatDefault : TF : IsIntOrLongOrHalfOrFloatOrDouble, I: TF : IsIntOrLong](
       shape: Output[I],
       minValue: Output[T] = null,
       maxValue: Output[T] = null,
@@ -111,7 +111,7 @@ trait Random {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def randomNormal[T: FloatDefault : TF : IsFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+  def randomNormal[T: FloatDefault : TF : IsHalfOrFloatOrDouble, I: TF : IsIntOrLong](
       shape: Output[I],
       mean: Output[T] = null,
       standardDeviation: Output[T] = null,
@@ -146,7 +146,7 @@ trait Random {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def randomTruncatedNormal[T: FloatDefault : TF : IsFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+  def randomTruncatedNormal[T: FloatDefault : TF : IsHalfOrFloatOrDouble, I: TF : IsIntOrLong](
       shape: Output[I],
       mean: Output[T] = null,
       standardDeviation: Output[T] = null,

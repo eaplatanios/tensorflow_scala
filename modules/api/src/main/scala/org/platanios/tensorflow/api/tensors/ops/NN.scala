@@ -333,7 +333,7 @@ trait NN {
     * @return Result as a new tensor, with the same shape as `labels` and the same data type as `logits`, containing the
     *         softmax cross entropy loss.
     */
-  def sparseSoftmaxCrossEntropy[T: TF : IsDecimal, I: TF : IsInt32OrInt64](
+  def sparseSoftmaxCrossEntropy[T: TF : IsDecimal, I: TF : IsIntOrLong](
       logits: Tensor[T],
       labels: Tensor[I],
       axis: Int = -1
@@ -451,7 +451,7 @@ trait NN {
     * @throws InvalidShapeException If any of `logits`, `labels`, or `weights` has invalid shape.
     */
   @throws[InvalidShapeException]
-  def sequenceLoss[T: TF : IsDecimal, I: TF : IsInt32OrInt64](
+  def sequenceLoss[T: TF : IsDecimal, I: TF : IsIntOrLong](
       logits: Tensor[T],
       labels: Tensor[I],
       weights: Tensor[T] = null,
@@ -527,7 +527,7 @@ trait NN {
     * @param  beta        Exponent.
     * @return Created op output.
     */
-  def lrn[T: TF : IsBFloat16OrFloat16OrFloat32](
+  def lrn[T: TF : IsTruncatedHalfOrHalfOrFloat](
       input: Tensor[T],
       depthRadius: Int = 5,
       bias: Float = 1.0f,
@@ -547,7 +547,7 @@ trait NN {
     * @param  beta        Exponent.
     * @return Created op output.
     */
-  def localResponseNormalization[T: TF : IsBFloat16OrFloat16OrFloat32](
+  def localResponseNormalization[T: TF : IsTruncatedHalfOrHalfOrFloat](
       input: Tensor[T],
       depthRadius: Int = 5,
       bias: Float = 1.0f,
@@ -571,7 +571,7 @@ trait NN {
     *                         generator, when combined with the graph-level seed.
     * @return Result as a new tensor that has the same shape as `input`.
     */
-  def dropout[T: TF : IsFloat16OrFloat32OrFloat64, I: IntDefault : TF : IsInt32OrInt64](
+  def dropout[T: TF : IsHalfOrFloatOrDouble, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       keepProbability: Float,
       scaleOutput: Boolean = true,
@@ -625,7 +625,7 @@ trait NN {
     * @param  k           Scalar tensor containing the number of top elements to look at.
     * @return Result as a new tensor.
     */
-  def inTopK[I: TF : IsInt32OrInt64](
+  def inTopK[I: TF : IsIntOrLong](
       predictions: Tensor[Float],
       targets: Tensor[I],
       k: Tensor[I]
@@ -1003,12 +1003,12 @@ object NN extends NN {
         *                         generator, when combined with the graph-level seed.
         * @return Result as a new tensor that has the same shape as `input`.
         */
-      def dropout[I: IntDefault : TF : IsInt32OrInt64](
+      def dropout[I: IntDefault : TF : IsIntOrLong](
           keepProbability: Float,
           scaleOutput: Boolean = true,
           noiseShape: Tensor[I] = null,
           seed: Option[Int] = None
-      )(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+      )(implicit ev: IsHalfOrFloatOrDouble[T]): Tensor[T] = {
         NN.dropout(tensor, keepProbability, scaleOutput, noiseShape, seed)
       }
 
@@ -1034,7 +1034,7 @@ object NN extends NN {
         * @param  k       Scalar tensor containing the number of top elements to look at.
         * @return Result as a new tensor.
         */
-      def inTopK[I: TF : IsInt32OrInt64](
+      def inTopK[I: TF : IsIntOrLong](
           targets: Tensor[I],
           k: Tensor[I]
       )(implicit ev: T =:= Float): Tensor[Boolean] = {
@@ -1114,7 +1114,7 @@ object NN extends NN {
           alpha: Float = 1.0f,
           beta: Float = 0.5f,
           name: String = "LRN"
-      )(implicit ev: IsBFloat16OrFloat16OrFloat32[T]): Tensor[T] = {
+      )(implicit ev: IsTruncatedHalfOrHalfOrFloat[T]): Tensor[T] = {
         NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
       }
 
@@ -1132,7 +1132,7 @@ object NN extends NN {
           bias: Float = 1.0f,
           alpha: Float = 1.0f,
           beta: Float = 0.5f
-      )(implicit ev: IsBFloat16OrFloat16OrFloat32[T]): Tensor[T] = {
+      )(implicit ev: IsTruncatedHalfOrHalfOrFloat[T]): Tensor[T] = {
         NN.localResponseNormalization(tensor, depthRadius, bias, alpha, beta)
       }
 

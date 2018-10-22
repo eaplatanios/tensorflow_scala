@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.training.optimizers.schedules
 
-import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64}
+import org.platanios.tensorflow.api.core.types.{TF, IsIntOrLong}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -52,7 +52,7 @@ class CycleLinear10xDecay protected (
     * @throws IllegalArgumentException If the decay method requires a value for `step` but the provided option is empty.
     */
   @throws[IllegalArgumentException]
-  override def apply[I: TF : IsInt32OrInt64](
+  override def apply[I: TF : IsIntOrLong](
       value: Output[Float],
       step: Option[Variable[I]]
   ): Output[Float] = {

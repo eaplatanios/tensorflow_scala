@@ -77,7 +77,7 @@ trait Optimizer {
     * @return Created op.
     */
   @throws[IllegalArgumentException]
-  def minimize[T: TF : IsFloat32OrFloat64, I: LongDefault : TF : IsInt32OrInt64](
+  def minimize[T: TF : IsFloatOrDouble, I: LongDefault : TF : IsIntOrLong](
       loss: Output[T],
       lossGradients: Seq[OutputLike[T]] = null,
       variables: Set[Variable[Any]] = null,
@@ -108,7 +108,7 @@ trait Optimizer {
     * @throws IllegalArgumentException If there are no variables to optimize.
     */
   @throws[IllegalArgumentException]
-  def computeGradients[T: TF : IsFloat32OrFloat64](
+  def computeGradients[T: TF : IsFloatOrDouble](
       loss: Output[T],
       lossGradients: Seq[OutputLike[T]] = null,
       variables: Set[Variable[Any]] = null,
@@ -129,7 +129,7 @@ trait Optimizer {
       throw new IllegalArgumentException("There are no variables to optimize.")
 
     // TODO: [TYPES] !!! Super hacky. Remove in the future.
-    implicit val ev: IsFloat32OrFloat64[Any] = null
+    implicit val ev: IsFloatOrDouble[Any] = null
 
     val variableProcessors = collectedVariables.map(v => {
       getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
@@ -162,7 +162,7 @@ trait Optimizer {
     * @return Created op.
     */
   @throws[IllegalArgumentException]
-  def applyGradients[T: TF, I: LongDefault : TF : IsInt32OrInt64](
+  def applyGradients[T: TF, I: LongDefault : TF : IsIntOrLong](
       gradientsAndVariables: Seq[(OutputLike[T], Variable[Any])],
       iteration: Option[Variable[I]] = None,
       name: String = this.name
@@ -191,7 +191,7 @@ trait Optimizer {
       for ((g, v) <- gradientsAndVariables if g != null) {
 
         // TODO: [TYPES] !!! Super hacky. Remove in the future.
-        implicit val ev: IsFloat32OrFloat64[Any] = null
+        implicit val ev: IsFloatOrDouble[Any] = null
 
         val p = getVariableProcessor(v)(TF.fromDataType(v.dataType), ev)
         // We colocate all ops created for variable application on the same device as the variable.
@@ -232,7 +232,7 @@ trait Optimizer {
 
   /** Creates all necessary tensors before applying the gradients. This function is called from within an op creation
     * context that uses as its name scope the name that users have chosen for the application of gradients. */
-  def prepare[I: TF : IsInt32OrInt64](iteration: Option[Variable[I]]): Unit = {
+  def prepare[I: TF : IsIntOrLong](iteration: Option[Variable[I]]): Unit = {
     // No preparation is done by default.
   }
 
@@ -257,7 +257,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def applyDense[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -275,7 +275,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def applySparse[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -301,7 +301,7 @@ trait Optimizer {
     * @param  iteration Option containing current iteration in the optimization loop, if one has been provided.
     * @return Created op that applies the provided gradient to the provided variable.
     */
-  def applySparseDuplicateIndices[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def applySparseDuplicateIndices[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -431,7 +431,7 @@ trait Optimizer {
 
 private[optimizers] object Optimizer {
   /** Gets the appropriate variable processor to use for `variable`. */
-  private[optimizers] def getVariableProcessor[T: TF : IsFloat32OrFloat64](
+  private[optimizers] def getVariableProcessor[T: TF : IsFloatOrDouble](
       variable: Variable[T]
   ): VariableProcessor[T] = {
     variable match {
@@ -451,7 +451,7 @@ private[optimizers] object Optimizer {
     def target: Output[Resource]
 
     /** Returns the update ops for updating this variable using the gradient provided by `gradient`. */
-    def updateOp[I: TF : IsInt32OrInt64](
+    def updateOp[I: TF : IsIntOrLong](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -459,14 +459,14 @@ private[optimizers] object Optimizer {
   }
 
   /** Variable processor for resource-based variables. */
-  private[Optimizer] case class ResourceVariableProcessor[T: TF : IsFloat32OrFloat64](
+  private[Optimizer] case class ResourceVariableProcessor[T: TF : IsFloatOrDouble](
       variable: Variable[T]
   ) extends VariableProcessor[T] {
     override def target: Output[Resource] = {
       variable.handle
     }
 
-    override def updateOp[I: TF : IsInt32OrInt64](
+    override def updateOp[I: TF : IsIntOrLong](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]
@@ -489,7 +489,7 @@ private[optimizers] object Optimizer {
       variable.handle
     }
 
-    override def updateOp[I: TF : IsInt32OrInt64](
+    override def updateOp[I: TF : IsIntOrLong](
         optimizer: Optimizer,
         gradient: OutputLike[T],
         iteration: Option[Variable[I]]

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.core.types.{IsFloat16OrFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.core.types.{IsHalfOrFloatOrDouble, TF}
 import org.platanios.tensorflow.api.ops.Output
 
 /**
@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.Output
   */
 package object core {
   private[layers] trait API {
-    def MLP[T: TF : IsFloat16OrFloat32OrFloat64](
+    def MLP[T: TF : IsHalfOrFloatOrDouble](
         name: String,
         hiddenLayers: Seq[Int],
         outputSize: Int,

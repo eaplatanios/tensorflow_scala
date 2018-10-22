@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.seq2seq.decoders
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
-import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64, IsNotQuantized, TF}
+import org.platanios.tensorflow.api.core.types.{IsIntOrLong, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, TensorArray}
@@ -197,7 +197,7 @@ object BasicDecoder {
             Basic.gather(
               input = input,
               indices = 0
-            )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int], IntDefault[Int], TF[Int], IsInt32OrInt64[Int]))
+            )(TF.fromDataType(input.dataType), TF[Int], IsIntOrLong[Int], IntDefault[Int], TF[Int], IsIntOrLong[Int]))
         })
       }
     }
@@ -249,7 +249,7 @@ object BasicDecoder {
             output,
             axes = -1,
             outputDataType = Int
-          )(TF.fromDataType(output.dataType), ev, TF[Int], IsInt32OrInt64[Int], TF[Int])
+          )(TF.fromDataType(output.dataType), ev, TF[Int], IsIntOrLong[Int], TF[Int])
         }))._1
       }
     }

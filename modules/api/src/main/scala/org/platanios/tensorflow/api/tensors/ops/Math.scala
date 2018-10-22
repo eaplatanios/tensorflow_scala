@@ -75,7 +75,7 @@ trait Math {
     * @param  numberOfValues Rank 0 (i.e., scalar) tensor that contains the number of values in the number sequence.
     * @return Result as a new tensor.
     */
-  def linspace[T: TF : IsBFloat16OrFloat32OrFloat64, I: TF : IsInt32OrInt64](
+  def linspace[T: TF : IsTruncatedHalfOrFloatOrDouble, I: TF : IsIntOrLong](
       start: Tensor[T],
       stop: Tensor[T],
       numberOfValues: Tensor[I]
@@ -423,7 +423,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def logGamma[T: TF : IsFloat32OrFloat64, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def logGamma[T: TF : IsFloatOrDouble, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -437,7 +437,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def digamma[T: TF : IsFloat32OrFloat64, TL[A] <: TensorLike[A]](x: TL[T])(implicit
+  def digamma[T: TF : IsFloatOrDouble, TL[A] <: TensorLike[A]](x: TL[T])(implicit
       ev: TensorOps.Aux[TL, T]
   ): TL[T] = {
     ev.applyUnary(x, t => {
@@ -533,7 +533,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def roundInt[T: TF : IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def roundInt[T: TF : IsHalfOrFloatOrDouble, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(x, t => {
@@ -547,7 +547,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def floor[T: TF : IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def floor[T: TF : IsHalfOrFloatOrDouble, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(x, t => {
@@ -561,7 +561,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def ceil[T: TF : IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def ceil[T: TF : IsHalfOrFloatOrDouble, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[T] = {
     ev.applyUnary(x, t => {
@@ -575,7 +575,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def isNaN[T: TF : IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def isNaN[T: TF : IsHalfOrFloatOrDouble, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[Boolean] = {
     ev.applyUnary(x, t => {
@@ -589,7 +589,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def isInf[T: TF : IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def isInf[T: TF : IsHalfOrFloatOrDouble, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[Boolean] = {
     ev.applyUnary(x, t => {
@@ -603,7 +603,7 @@ trait Math {
     * @param  x Input tensor.
     * @return Result as a new tensor.
     */
-  def isFinite[T: TF : IsFloat16OrFloat32OrFloat64, TL[A] <: TensorLike[A]](
+  def isFinite[T: TF : IsHalfOrFloatOrDouble, TL[A] <: TensorLike[A]](
       x: TL[T]
   )(implicit ev: TensorOps.Aux[TL, T]): TL[Boolean] = {
     ev.applyUnary(x, t => {
@@ -770,7 +770,7 @@ trait Math {
     * @param  x Second input tensor.
     * @return Result as a new tensor.
     */
-  def igammac[T: TF : IsFloat32OrFloat64](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def igammac[T: TF : IsFloatOrDouble](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.igammac(
       executionContext.value.nativeHandle, a.nativeHandle, x.nativeHandle))
   }
@@ -782,7 +782,7 @@ trait Math {
     * @param  x Second input tensor.
     * @return Result as a new tensor.
     */
-  def igamma[T: TF : IsFloat32OrFloat64](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def igamma[T: TF : IsFloatOrDouble](a: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.igamma(
       executionContext.value.nativeHandle, a.nativeHandle, x.nativeHandle))
   }
@@ -794,7 +794,7 @@ trait Math {
     * @param  q Second input tensor.
     * @return Result as a new tensor.
     */
-  def zeta[T: TF : IsFloat32OrFloat64](x: Tensor[T], q: Tensor[T]): Tensor[T] = {
+  def zeta[T: TF : IsFloatOrDouble](x: Tensor[T], q: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.zeta(
       executionContext.value.nativeHandle, x.nativeHandle, q.nativeHandle))
   }
@@ -806,7 +806,7 @@ trait Math {
     * @param  x Second input tensor.
     * @return Result as a new tensor.
     */
-  def polygamma[T: TF : IsFloat32OrFloat64](n: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def polygamma[T: TF : IsFloatOrDouble](n: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.polygamma(
       executionContext.value.nativeHandle, n.nativeHandle, x.nativeHandle))
   }
@@ -818,7 +818,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def atan2[T: TF : IsFloat32OrFloat64](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
+  def atan2[T: TF : IsFloatOrDouble](x: Tensor[T], y: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.atan2(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -857,7 +857,7 @@ trait Math {
     * @param  x Third input tensor.
     * @return Result as a new tensor.
     */
-  def incompleteBeta[T: TF : IsFloat32OrFloat64](a: Tensor[T], b: Tensor[T], x: Tensor[T]): Tensor[T] = {
+  def incompleteBeta[T: TF : IsFloatOrDouble](a: Tensor[T], b: Tensor[T], x: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](NativeTensorOpsMath.betainc(
       executionContext.value.nativeHandle, a.nativeHandle, b.nativeHandle, x.nativeHandle))
   }
@@ -1031,7 +1031,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def sum[T: TF : IsNumeric, I: IntDefault : TF : IsInt32OrInt64](
+  def sum[T: TF : IsNumeric, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1055,7 +1055,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def mean[T: TF : IsNumeric, I: IntDefault : TF : IsInt32OrInt64](
+  def mean[T: TF : IsNumeric, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1079,7 +1079,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def prod[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def prod[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1103,7 +1103,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def min[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def min[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1127,7 +1127,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def max[T: TF : IsNotQuantized, I: IntDefault : TF : IsInt32OrInt64](
+  def max[T: TF : IsNotQuantized, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1151,7 +1151,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def all[I: IntDefault : TF : IsInt32OrInt64](
+  def all[I: IntDefault : TF : IsIntOrLong](
       input: Tensor[Boolean],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1175,7 +1175,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def any[I: IntDefault : TF : IsInt32OrInt64](
+  def any[I: IntDefault : TF : IsIntOrLong](
       input: Tensor[Boolean],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1225,7 +1225,7 @@ trait Math {
     * @param  keepDims If `true`, retain the reduced axes.
     * @return Result as a new tensor.
     */
-  def countNonZero[T: TF : IsNumeric, I: IntDefault : TF : IsInt32OrInt64](
+  def countNonZero[T: TF : IsNumeric, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I] = null,
       keepDims: Boolean = false
@@ -1240,7 +1240,7 @@ trait Math {
     * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @return Result as a new tensor.
     */
-  def argmin[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def argmin[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I]
   ): Tensor[Long] = {
@@ -1255,7 +1255,7 @@ trait Math {
     * @param  outputDataType Data type for the output tensor.
     * @return Result as a new tensor.
     */
-  def argmin[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64, IR: TF : IsInt32OrInt64](
+  def argmin[T: TF : IsNotQuantized, I: TF : IsIntOrLong, IR: TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I],
       outputDataType: DataType[IR]
@@ -1271,7 +1271,7 @@ trait Math {
     * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
     * @return Result as a new tensor.
     */
-  def argmax[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def argmax[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I]
   ): Tensor[Long] = {
@@ -1286,7 +1286,7 @@ trait Math {
     * @param  outputDataType Data type for the output tensor.
     * @return Result as a new tensor.
     */
-  def argmax[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64, IR: TF : IsInt32OrInt64](
+  def argmax[T: TF : IsNotQuantized, I: TF : IsIntOrLong, IR: TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I],
       outputDataType: DataType[IR]
@@ -1304,7 +1304,7 @@ trait Math {
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
     * @return Result as a new tensor.
     */
-  def cumsum[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def cumsum[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       input: Tensor[T],
       axis: Tensor[I],
       exclusive: Boolean = false,
@@ -1323,7 +1323,7 @@ trait Math {
     * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
     * @return Result as a new tensor.
     */
-  def cumprod[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def cumprod[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       input: Tensor[T],
       axis: Tensor[I],
       exclusive: Boolean = false,
@@ -1349,7 +1349,7 @@ trait Math {
     *                   ensuring that the output has length at most `maxLength`.
     * @return Result as a new tensor.
     */
-  def binCount[T: TF : IsInt32OrInt64OrFloat32OrFloat64](
+  def binCount[T: TF : IsIntOrLongOrFloatOrDouble](
       input: Tensor[Int],
       dataType: DataType[T],
       weights: Tensor[T] = null,
@@ -1384,7 +1384,7 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentSum[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def segmentSum[T: TF : IsNumeric, I: TF : IsIntOrLong](
       data: Tensor[T],
       segmentIndices: Tensor[I]
   ): Tensor[T] = {
@@ -1399,7 +1399,7 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMean[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def segmentMean[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       data: Tensor[T],
       segmentIndices: Tensor[I]
   ): Tensor[T] = {
@@ -1414,7 +1414,7 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentProd[T: TF : IsNumeric, I: TF : IsInt32OrInt64](
+  def segmentProd[T: TF : IsNumeric, I: TF : IsIntOrLong](
       data: Tensor[T],
       segmentIndices: Tensor[I]
   ): Tensor[T] = {
@@ -1429,7 +1429,7 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMin[T: TF : IsReal, I: TF : IsInt32OrInt64](
+  def segmentMin[T: TF : IsReal, I: TF : IsIntOrLong](
       data: Tensor[T],
       segmentIndices: Tensor[I]
   ): Tensor[T] = {
@@ -1444,7 +1444,7 @@ trait Math {
     * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
     * @return Result as a new tensor.
     */
-  def segmentMax[T: TF : IsReal, I: TF : IsInt32OrInt64](
+  def segmentMax[T: TF : IsReal, I: TF : IsIntOrLong](
       data: Tensor[T],
       segmentIndices: Tensor[I]
   ): Tensor[T] = {
@@ -1460,7 +1460,7 @@ trait Math {
     * @param  segmentsNumber Number of segments.
     * @return Result as a new tensor.
     */
-  def unsortedSegmentSum[T: TF : IsNumeric, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentSum[T: TF : IsNumeric, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Tensor[T],
       segmentIndices: Tensor[I1],
       segmentsNumber: Tensor[I2]
@@ -1481,7 +1481,7 @@ trait Math {
     * @param  segmentsNumber Number of segments.
     * @return Result as a new tensor.
     */
-  def unsortedSegmentMax[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def unsortedSegmentMax[T: TF : IsReal, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       data: Tensor[T],
       segmentIndices: Tensor[I1],
       segmentsNumber: Tensor[I2]
@@ -1501,7 +1501,7 @@ trait Math {
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSum[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+  def sparseSegmentSum[T: TF : IsReal, I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
       data: Tensor[T],
       indices: Tensor[I1],
       segmentIndices: Tensor[Int],
@@ -1526,7 +1526,7 @@ trait Math {
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentMean[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+  def sparseSegmentMean[T: TF : IsReal, I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
       data: Tensor[T],
       indices: Tensor[I1],
       segmentIndices: Tensor[Int],
@@ -1551,7 +1551,7 @@ trait Math {
     * @param  numSegments    Optional scalar indicating the size of the output tensor.
     * @return Result as a new tensor.
     */
-  def sparseSegmentSumSqrtN[T: TF : IsReal, I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+  def sparseSegmentSumSqrtN[T: TF : IsReal, I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
       data: Tensor[T],
       indices: Tensor[I1],
       segmentIndices: Tensor[Int],
@@ -1639,7 +1639,7 @@ trait Math {
     *                           the entire upper triangle is kept.
     * @return Result as a new tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
     */
-  def matrixBandPart[T: TF, I: TF : IsInt32OrInt64](
+  def matrixBandPart[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       numSubDiagonals: Tensor[I],
       numSuperDiagonals: Tensor[I]
@@ -2072,7 +2072,7 @@ trait Math {
     * @param  boundaries Sorted sequence of numbers specifying the boundaries of the buckets.
     * @return Result as a new tensor.
     */
-  def bucketize[T: TF : IsInt32OrInt64OrFloat32OrFloat64](
+  def bucketize[T: TF : IsIntOrLongOrFloatOrDouble](
       input: Tensor[T],
       boundaries: Seq[Float]
   ): Tensor[T] = {
@@ -2356,7 +2356,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def logGamma(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+      def logGamma(implicit ev: IsFloatOrDouble[T]): Tensor[T] = {
         Math.logGamma(tensor)
       }
 
@@ -2365,7 +2365,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def digamma(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+      def digamma(implicit ev: IsFloatOrDouble[T]): Tensor[T] = {
         Math.digamma(tensor)
       }
 
@@ -2428,7 +2428,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def roundInt(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+      def roundInt(implicit ev: IsHalfOrFloatOrDouble[T]): Tensor[T] = {
         Math.roundInt(tensor)
       }
 
@@ -2437,7 +2437,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def floor(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+      def floor(implicit ev: IsHalfOrFloatOrDouble[T]): Tensor[T] = {
         Math.floor(tensor)
       }
 
@@ -2446,7 +2446,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def ceil(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[T] = {
+      def ceil(implicit ev: IsHalfOrFloatOrDouble[T]): Tensor[T] = {
         Math.ceil(tensor)
       }
 
@@ -2455,7 +2455,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def isNaN(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[Boolean] = {
+      def isNaN(implicit ev: IsHalfOrFloatOrDouble[T]): Tensor[Boolean] = {
         Math.isNaN(tensor)
       }
 
@@ -2464,7 +2464,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def isInf(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[Boolean] = {
+      def isInf(implicit ev: IsHalfOrFloatOrDouble[T]): Tensor[Boolean] = {
         Math.isInf(tensor)
       }
 
@@ -2473,7 +2473,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def isFinite(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Tensor[Boolean] = {
+      def isFinite(implicit ev: IsHalfOrFloatOrDouble[T]): Tensor[Boolean] = {
         Math.isFinite(tensor)
       }
 
@@ -2595,7 +2595,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def igammac(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+      def igammac(other: Tensor[T])(implicit ev: IsFloatOrDouble[T]): Tensor[T] = {
         Math.igammac(tensor, other)
       }
 
@@ -2604,7 +2604,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def igamma(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+      def igamma(other: Tensor[T])(implicit ev: IsFloatOrDouble[T]): Tensor[T] = {
         Math.igamma(tensor, other)
       }
 
@@ -2613,7 +2613,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def zeta(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+      def zeta(other: Tensor[T])(implicit ev: IsFloatOrDouble[T]): Tensor[T] = {
         Math.zeta(tensor, other)
       }
 
@@ -2622,7 +2622,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def polygamma(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+      def polygamma(other: Tensor[T])(implicit ev: IsFloatOrDouble[T]): Tensor[T] = {
         Math.polygamma(tensor, other)
       }
 
@@ -2631,7 +2631,7 @@ object Math extends Math {
         * @group MathOps
         * @return Result as a new tensor.
         */
-      def atan2(other: Tensor[T])(implicit ev: IsFloat32OrFloat64[T]): Tensor[T] = {
+      def atan2(other: Tensor[T])(implicit ev: IsFloatOrDouble[T]): Tensor[T] = {
         Math.atan2(tensor, other)
       }
 
@@ -2771,7 +2771,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def sum[I: IntDefault : TF : IsInt32OrInt64](
+      def sum[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
@@ -2785,7 +2785,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def mean[I: IntDefault : TF : IsInt32OrInt64](
+      def mean[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
@@ -2799,7 +2799,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def prod[I: IntDefault : TF : IsInt32OrInt64](
+      def prod[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
@@ -2813,7 +2813,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def min[I: IntDefault : TF : IsInt32OrInt64](
+      def min[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
@@ -2827,7 +2827,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def max[I: IntDefault : TF : IsInt32OrInt64](
+      def max[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
@@ -2841,7 +2841,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def all[I: IntDefault : TF : IsInt32OrInt64](
+      def all[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: T =:= Boolean): Tensor[Boolean] = {
@@ -2855,7 +2855,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def any[I: IntDefault : TF : IsInt32OrInt64](
+      def any[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: T =:= Boolean): Tensor[Boolean] = {
@@ -2883,7 +2883,7 @@ object Math extends Math {
         * @param  keepDims If `true`, retain the reduced axes.
         * @return Result as a new tensor.
         */
-      def countNonZero[I: IntDefault : TF : IsInt32OrInt64](
+      def countNonZero[I: IntDefault : TF : IsIntOrLong](
           axes: Tensor[I] = null,
           keepDims: Boolean = false
       )(implicit ev: IsNotQuantized[T]): Tensor[Long] = {
@@ -2896,7 +2896,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmin[I: TF : IsInt32OrInt64](
+      def argmin[I: TF : IsIntOrLong](
           axes: Tensor[I]
       )(implicit ev: IsNotQuantized[T]): Tensor[Long] = {
         Math.argmin(tensor, axes)
@@ -2909,7 +2909,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmin[I: TF : IsInt32OrInt64, IR: TF : IsInt32OrInt64](
+      def argmin[I: TF : IsIntOrLong, IR: TF : IsIntOrLong](
           axes: Tensor[I],
           outputDataType: DataType[IR]
       )(implicit ev: IsNotQuantized[T]): Tensor[IR] = {
@@ -2922,7 +2922,7 @@ object Math extends Math {
         * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
         * @return Result as a new tensor.
         */
-      def argmax[I: TF : IsInt32OrInt64](
+      def argmax[I: TF : IsIntOrLong](
           axes: Tensor[I]
       )(implicit ev: IsNotQuantized[T]): Tensor[Long] = {
         Math.argmax(tensor, axes)
@@ -2935,7 +2935,7 @@ object Math extends Math {
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
-      def argmax[I: TF : IsInt32OrInt64, IR: TF : IsInt32OrInt64](
+      def argmax[I: TF : IsIntOrLong, IR: TF : IsIntOrLong](
           axes: Tensor[I],
           outputDataType: DataType[IR]
       )(implicit ev: IsNotQuantized[T]): Tensor[IR] = {
@@ -2950,7 +2950,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative sum.
         * @return Result as a new tensor.
         */
-      def cumsum[I: TF : IsInt32OrInt64](
+      def cumsum[I: TF : IsIntOrLong](
           axis: Tensor[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -2966,7 +2966,7 @@ object Math extends Math {
         * @param  reverse   Boolean value indicating whether to perform a reverse cumulative product.
         * @return Result as a new tensor.
         */
-      def cumprod[I: TF : IsInt32OrInt64](
+      def cumprod[I: TF : IsIntOrLong](
           axis: Tensor[I],
           exclusive: Boolean = false,
           reverse: Boolean = false
@@ -2989,7 +2989,7 @@ object Math extends Math {
         *                   tensor containing the bin counts).
         * @return Result as a new tensor.
         */
-      def binCount[R: TF : IsInt32OrInt64OrFloat32OrFloat64](
+      def binCount[R: TF : IsIntOrLongOrFloatOrDouble](
           dataType: DataType[R],
           weights: Tensor[R] = null,
           minLength: Tensor[Int] = null,
@@ -3006,7 +3006,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentSum[I: TF : IsInt32OrInt64](
+      def segmentSum[I: TF : IsIntOrLong](
           segmentIndices: Tensor[I]
       )(implicit ev: IsNumeric[T]): Tensor[T] = {
         Math.segmentSum(tensor, segmentIndices)
@@ -3018,7 +3018,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMean[I: TF : IsInt32OrInt64](
+      def segmentMean[I: TF : IsIntOrLong](
           segmentIndices: Tensor[I]
       )(implicit ev: IsNotQuantized[T]): Tensor[T] = {
         Math.segmentMean(tensor, segmentIndices)
@@ -3030,7 +3030,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentProd[I: TF : IsInt32OrInt64](
+      def segmentProd[I: TF : IsIntOrLong](
           segmentIndices: Tensor[I]
       )(implicit ev: IsNumeric[T]): Tensor[T] = {
         Math.segmentProd(tensor, segmentIndices)
@@ -3042,7 +3042,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMin[I: TF : IsInt32OrInt64](
+      def segmentMin[I: TF : IsIntOrLong](
           segmentIndices: Tensor[I]
       )(implicit ev: IsReal[T]): Tensor[T] = {
         Math.segmentMin(tensor, segmentIndices)
@@ -3054,7 +3054,7 @@ object Math extends Math {
         * @param  segmentIndices Segment indices. Values should be sorted and can be repeated.
         * @return Result as a new tensor.
         */
-      def segmentMax[I: TF : IsInt32OrInt64](
+      def segmentMax[I: TF : IsIntOrLong](
           segmentIndices: Tensor[I]
       )(implicit ev: IsReal[T]): Tensor[T] = {
         Math.segmentMax(tensor, segmentIndices)
@@ -3067,7 +3067,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentSum[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unsortedSegmentSum[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           segmentIndices: Tensor[I1],
           segmentsNumber: Tensor[I2]
       )(implicit ev: IsNumeric[T]): Tensor[T] = {
@@ -3085,7 +3085,7 @@ object Math extends Math {
         * @param  segmentsNumber Number of segments.
         * @return Result as a new tensor.
         */
-      def unsortedSegmentMax[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def unsortedSegmentMax[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           segmentIndices: Tensor[I1],
           segmentsNumber: Tensor[I2]
       )(implicit ev: IsReal[T]): Tensor[T] = {
@@ -3100,7 +3100,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSum[I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+      def sparseSegmentSum[I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
           indices: Tensor[I1],
           segmentIndices: Tensor[Int],
           numSegments: Tensor[I2] = null
@@ -3116,7 +3116,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentMean[I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+      def sparseSegmentMean[I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
           indices: Tensor[I1],
           segmentIndices: Tensor[Int],
           numSegments: Tensor[I2] = null
@@ -3132,7 +3132,7 @@ object Math extends Math {
         * @param  numSegments    Optional scalar indicating the size of the output tensor.
         * @return Result as a new tensor.
         */
-      def sparseSegmentSumSqrtN[I1: TF : IsInt32OrInt64, I2: IntDefault : TF : IsInt32OrInt64](
+      def sparseSegmentSumSqrtN[I1: TF : IsIntOrLong, I2: IntDefault : TF : IsIntOrLong](
           indices: Tensor[I1],
           segmentIndices: Tensor[Int],
           numSegments: Tensor[I2] = null
@@ -3201,7 +3201,7 @@ object Math extends Math {
         *                           the entire upper triangle is kept.
         * @return Result as a new tensor containing the expected banded tensor and has rank `K` and same shape as `input`.
         */
-      def matrixBandPart[I: TF : IsInt32OrInt64](
+      def matrixBandPart[I: TF : IsIntOrLong](
           numSubDiagonals: Tensor[I],
           numSuperDiagonals: Tensor[I]
       ): Tensor[T] = {
@@ -3314,7 +3314,7 @@ object Math extends Math {
         */
       def bucketize(
           boundaries: Seq[Float]
-      )(implicit ev: IsInt32OrInt64OrFloat32OrFloat64[T]): Tensor[T] = {
+      )(implicit ev: IsIntOrLongOrFloatOrDouble[T]): Tensor[T] = {
         Math.bucketize(tensor, boundaries)
       }
 

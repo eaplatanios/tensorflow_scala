@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.basic
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{DataType, IsInt32OrInt64, IsNumeric, TF}
+import org.platanios.tensorflow.api.core.types.{DataType, IsIntOrLong, IsNumeric, TF}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -170,7 +170,7 @@ trait Constructors {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def zeros[T: TF, I: TF : IsInt32OrInt64](shape: Output[I]): Output[T] = {
+  def zeros[T: TF, I: TF : IsIntOrLong](shape: Output[I]): Output[T] = {
     Op.nameScope("Zeros") {
       fill[T, I](shape)(Tensor.zeros[T](Shape()))
     }
@@ -200,7 +200,7 @@ trait Constructors {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def zeros[T, I: TF : IsInt32OrInt64](
+  def zeros[T, I: TF : IsIntOrLong](
       dataType: DataType[T],
       shape: Output[I]
   ): Output[T] = {
@@ -260,7 +260,7 @@ trait Constructors {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def ones[T: TF, I: TF : IsInt32OrInt64](shape: Output[I]): Output[T] = {
+  def ones[T: TF, I: TF : IsIntOrLong](shape: Output[I]): Output[T] = {
     Op.nameScope("Ones") {
       fill[T, I](shape)(Tensor.ones[T](Shape()))
     }
@@ -290,7 +290,7 @@ trait Constructors {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def ones[T, I: TF : IsInt32OrInt64](
+  def ones[T, I: TF : IsIntOrLong](
       dataType: DataType[T],
       shape: Output[I]
   ): Output[T] = {
@@ -338,14 +338,14 @@ trait Constructors {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def fill[T: TF, I: TF : IsInt32OrInt64](shape: Output[I])(
+  def fill[T: TF, I: TF : IsIntOrLong](shape: Output[I])(
       value: Output[T]
   ): Output[T] = {
     Op.Builder[(Output[I], Output[T]), Output[T]](
       opType = "Fill",
       name = "Fill",
       input = (shape, value)
-    ).setGradientFn(fillGradient(_, _)(TF[T], TF[I], IsInt32OrInt64[I]))
+    ).setGradientFn(fillGradient(_, _)(TF[T], TF[I], IsIntOrLong[I]))
         .build().output
   }
 
@@ -359,7 +359,7 @@ trait Constructors {
     * @tparam I Tensor shape type.
     * @return Created op output.
     */
-  def fill[T, I: TF : IsInt32OrInt64](
+  def fill[T, I: TF : IsIntOrLong](
       dataType: DataType[T],
       shape: Output[I]
   )(
@@ -369,7 +369,7 @@ trait Constructors {
     fill[T, I](shape)(value)
   }
 
-  protected def fillGradient[T: TF, I: TF : IsInt32OrInt64](
+  protected def fillGradient[T: TF, I: TF : IsIntOrLong](
       op: Op[(Output[I], Output[T]), Output[T]],
       outputGradient: Output[T]
   ): (Output[I], Output[T]) = {

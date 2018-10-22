@@ -100,7 +100,7 @@ trait Basic {
     * @param  axis  Dimension index at which to expand the shape of `input`.
     * @return Result as a new tensor.
     */
-  def expandDims[T: TF, I: TF : IsInt32OrInt64](
+  def expandDims[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       axis: Tensor[I]
   ): Tensor[T] = {
@@ -234,7 +234,7 @@ trait Basic {
     * @param  axis       Dimension along which to split the input tensor.
     * @return Result as a new tensor.
     */
-  def split[T: TF, I: TF : IsInt32OrInt64](
+  def split[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       splitSizes: Tensor[I],
       axis: Tensor[Int] = 0
@@ -253,7 +253,7 @@ trait Basic {
     *                   of `input`.
     * @return Result as a new tensor.
     */
-  def tile[T: TF, I: TF : IsInt32OrInt64](
+  def tile[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       multiples: Tensor[I]
   ): Tensor[T] = {
@@ -269,7 +269,7 @@ trait Basic {
     * @param  mode     Padding mode to use.
     * @return Result as a new tensor.
     */
-  def pad[T: TF, I: TF : IsInt32OrInt64](
+  def pad[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       paddings: Tensor[I],
       mode: PaddingMode = ConstantPadding(Some(Tensor(0)))
@@ -284,7 +284,7 @@ trait Basic {
     * @param  shape Shape of the output tensor.
     * @return Result as a new tensor.
     */
-  def reshape[T: TF, I: TF : IsInt32OrInt64](
+  def reshape[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       shape: Tensor[I]
   ): Tensor[T] = {
@@ -300,7 +300,7 @@ trait Basic {
     * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
     * @return Result as a new tensor.
     */
-  def transpose[T: TF, I: IntDefault : TF : IsInt32OrInt64](
+  def transpose[T: TF, I: IntDefault : TF : IsIntOrLong](
       input: Tensor[T],
       permutation: Tensor[I] = null,
       conjugate: Boolean = false
@@ -350,7 +350,7 @@ trait Basic {
     * @param  input One-dimensional input tensor.
     * @return Result as a new tensor.
     */
-  def invertPermutation[I: TF : IsInt32OrInt64](
+  def invertPermutation[I: TF : IsIntOrLong](
       input: Tensor[I]
   ): Tensor[I] = {
     Tensor.fromNativeHandle[I](NativeTensorOpsBasic.invertPermutation(
@@ -364,7 +364,7 @@ trait Basic {
     * @param  axes  Dimensions of the input tensor to reverse.
     * @return Result as a new tensor which has the same shape as `input`.
     */
-  def reverse[T: TF, I: TF : IsInt32OrInt64](
+  def reverse[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       axes: Tensor[I]
   ): Tensor[T] = {
@@ -382,7 +382,7 @@ trait Basic {
     * @param  batchAxis       Tensor dimension along which the reversal is performed.
     * @return Result as a new tensor which has the same shape as `input`.
     */
-  def reverseSequence[T: TF, I: TF : IsInt32OrInt64](
+  def reverseSequence[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       sequenceLengths: Tensor[I],
       sequenceAxis: Int,
@@ -401,7 +401,7 @@ trait Basic {
     * @param  paddings  `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
     * @return Result as a new tensor.
     */
-  def spaceToBatch[T: TF, I: TF : IsInt32OrInt64](
+  def spaceToBatch[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       blockSize: Int,
       paddings: Tensor[I]
@@ -421,7 +421,7 @@ trait Basic {
     *                    `inputShape(i + 1) + padStart + padEnd`.
     * @return Result as a new tensor.
     */
-  def spaceToBatchND[T: TF, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def spaceToBatchND[T: TF, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       input: Tensor[T],
       blockShape: Tensor[I1],
       paddings: Tensor[I2]
@@ -438,7 +438,7 @@ trait Basic {
     * @param  crops     `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
     * @return Result as a new tensor.
     */
-  def batchToSpace[T: TF, I: TF : IsInt32OrInt64](
+  def batchToSpace[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       blockSize: Int,
       crops: Tensor[I]
@@ -458,7 +458,7 @@ trait Basic {
     *                    `cropStart(i) + cropEnd(i) <= blockShape(i) * inputShape(i + 1)`.
     * @return Result as a new tensor.
     */
-  def batchToSpaceND[T: TF, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def batchToSpaceND[T: TF, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       input: Tensor[T],
       blockShape: Tensor[I1],
       crops: Tensor[I2]
@@ -655,7 +655,7 @@ trait Basic {
     * @param  indicesDataType Data type of the returned indices.
     * @return Tuple containing `output` and `indices`.
     */
-  def unique[T: TF, I: TF : IsInt32OrInt64](
+  def unique[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       indicesDataType: DataType[I]
   ): (Tensor[T], Tensor[I]) = {
@@ -671,7 +671,7 @@ trait Basic {
     * @param  indicesDataType Data type of the returned indices.
     * @return Tuple containing `output`, `indices`, and `counts`.
     */
-  def uniqueWithCounts[T: TF, I: TF : IsInt32OrInt64](
+  def uniqueWithCounts[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       indicesDataType: DataType[I]
   ): (Tensor[T], Tensor[I], Tensor[I]) = {
@@ -690,7 +690,7 @@ trait Basic {
     * @param  indicesDataType Data type to use for the output indices of this op.
     * @return Tuple containing `output` and `indices`, from the method description.
     */
-  def listDiff[T: TF, I: TF : IsInt32OrInt64](
+  def listDiff[T: TF, I: TF : IsIntOrLong](
       x: Tensor[T],
       y: Tensor[T],
       indicesDataType: DataType[I]
@@ -711,7 +711,7 @@ trait Basic {
     * @param  indices Tensor containing indices to gather.
     * @return Result as a new tensor.
     */
-  def gather[T: TF, I1: TF : IsInt32OrInt64](
+  def gather[T: TF, I1: TF : IsIntOrLong](
       input: Tensor[T],
       indices: Tensor[I1]
   ): Tensor[T] = {
@@ -726,7 +726,7 @@ trait Basic {
     * @param  axis    Tensor containing the axis along which to gather.
     * @return Result as a new tensor.
     */
-  def gather[T: TF, I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+  def gather[T: TF, I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
       input: Tensor[T],
       indices: Tensor[I1],
       axis: Tensor[I2]
@@ -743,7 +743,7 @@ trait Basic {
     * @return Result as a new tensor which contains the values from `input` gathered from indices given by `indices`,
     *         with shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
     */
-  def gatherND[T: TF, I: TF : IsInt32OrInt64](
+  def gatherND[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       indices: Tensor[I]
   ): Tensor[T] = {
@@ -759,7 +759,7 @@ trait Basic {
     * @param  shape   One-dimensional tensor specifying the shape of the output tensor.
     * @return Result as a new tensor.
     */
-  def scatterND[T: TF, I: TF : IsInt32OrInt64](
+  def scatterND[T: TF, I: TF : IsIntOrLong](
       indices: Tensor[I],
       updates: Tensor[T],
       shape: Tensor[I]
@@ -779,7 +779,7 @@ trait Basic {
     *               slice (i.e., this is equivalent to setting `size(i) = input.shape(i) - begin(i)`).
     * @return Result as a new tensor.
     */
-  private[ops] def slice[T: TF, I: TF : IsInt32OrInt64](
+  private[ops] def slice[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       begin: Tensor[I],
       size: Tensor[I]
@@ -824,7 +824,7 @@ trait Basic {
     *                        tensor with shape `[4, 2]`.
     * @return Result as a new tensor.
     */
-  private[tensors] def stridedSlice[T: TF, I: TF : IsInt32OrInt64](
+  private[tensors] def stridedSlice[T: TF, I: TF : IsIntOrLong](
       input: Tensor[T],
       begin: Tensor[I],
       end: Tensor[I],
@@ -985,7 +985,7 @@ object Basic extends Basic {
         * @param  axis       Dimension along which to split the input tensor.
         * @return Result as a new tensor.
         */
-      def split[I: TF : IsInt32OrInt64](
+      def split[I: TF : IsIntOrLong](
           splitSizes: Tensor[I],
           axis: Tensor[Int] = 0
       ): Seq[Tensor[T]] = {
@@ -999,7 +999,7 @@ object Basic extends Basic {
         *                   rank of `input`.
         * @return Result as a new tensor.
         */
-      def tile[I: TF : IsInt32OrInt64](multiples: Tensor[I]): Tensor[T] = {
+      def tile[I: TF : IsIntOrLong](multiples: Tensor[I]): Tensor[T] = {
         Basic.tile(tensor, multiples)
       }
 
@@ -1010,7 +1010,7 @@ object Basic extends Basic {
         * @param  mode     Padding mode to use.
         * @return Result as a new tensor.
         */
-      def pad[I: TF : IsInt32OrInt64](
+      def pad[I: TF : IsIntOrLong](
           paddings: Tensor[I],
           mode: PaddingMode = ConstantPadding(Some(Tensor(0)))
       ): Tensor[T] = {
@@ -1023,7 +1023,7 @@ object Basic extends Basic {
         * @param  shape Shape of the output tensor.
         * @return Result as a new tensor.
         */
-      def reshape[I: TF : IsInt32OrInt64](shape: Tensor[I]): Tensor[T] = {
+      def reshape[I: TF : IsIntOrLong](shape: Tensor[I]): Tensor[T] = {
         Basic.reshape(tensor, shape)
       }
 
@@ -1034,7 +1034,7 @@ object Basic extends Basic {
         * @param  conjugate   If `true`, then the complex conjugate of the transpose result is returned.
         * @return Result as a new tensor.
         */
-      def transpose[I: IntDefault : TF : IsInt32OrInt64](
+      def transpose[I: IntDefault : TF : IsIntOrLong](
           permutation: Tensor[I] = null,
           conjugate: Boolean = false
       ): Tensor[T] = {
@@ -1056,7 +1056,7 @@ object Basic extends Basic {
         * @group BasicOps
         * @return Result as a new tensor.
         */
-      def invertPermutation(implicit ev: IsInt32OrInt64[T]): Tensor[T] = {
+      def invertPermutation(implicit ev: IsIntOrLong[T]): Tensor[T] = {
         Basic.invertPermutation(tensor)
       }
 
@@ -1066,7 +1066,7 @@ object Basic extends Basic {
         * @param  axes Dimensions of the input tensor to reverse.
         * @return Result as a new tensor which has the same shape as `input`.
         */
-      def reverse[I: TF : IsInt32OrInt64](axes: Tensor[I]): Tensor[T] = {
+      def reverse[I: TF : IsIntOrLong](axes: Tensor[I]): Tensor[T] = {
         Basic.reverse(tensor, axes)
       }
 
@@ -1079,7 +1079,7 @@ object Basic extends Basic {
         * @param  batchAxis       Tensor dimension along which the reversal is performed.
         * @return Result as a new tensor which has the same shape as `input`.
         */
-      def reverseSequence[I: TF : IsInt32OrInt64](
+      def reverseSequence[I: TF : IsIntOrLong](
           sequenceLengths: Tensor[I],
           sequenceAxis: Int,
           batchAxis: Int = 0
@@ -1094,7 +1094,7 @@ object Basic extends Basic {
         * @param  paddings  `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def spaceToBatch[I: TF : IsInt32OrInt64](
+      def spaceToBatch[I: TF : IsIntOrLong](
           blockSize: Int,
           paddings: Tensor[I]
       ): Tensor[T] = {
@@ -1111,7 +1111,7 @@ object Basic extends Basic {
         *                    `inputShape(i + 1) + padStart + padEnd`.
         * @return Result as a new tensor.
         */
-      def spaceToBatchND[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def spaceToBatchND[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           blockShape: Tensor[I1],
           paddings: Tensor[I2]
       ): Tensor[T] = {
@@ -1125,7 +1125,7 @@ object Basic extends Basic {
         * @param  crops     `2`-dimensional tensor containing non-negative integers with shape `[2, 2]`.
         * @return Result as a new tensor.
         */
-      def batchToSpace[I: TF : IsInt32OrInt64](
+      def batchToSpace[I: TF : IsIntOrLong](
           blockSize: Int,
           crops: Tensor[I]
       ): Tensor[T] = {
@@ -1142,7 +1142,7 @@ object Basic extends Basic {
         *                    `cropStart(i) + cropEnd(i) <= blockShape(i) * inputShape(i + 1)`.
         * @return Result as a new tensor.
         */
-      def batchToSpaceND[I1: TF : IsInt32OrInt64, I2: TF : IsInt32OrInt64](
+      def batchToSpaceND[I1: TF : IsIntOrLong, I2: TF : IsIntOrLong](
           blockShape: Tensor[I1],
           crops: Tensor[I2]
       ): Tensor[T] = {
@@ -1232,7 +1232,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type of the returned indices.
         * @return Tuple containing `output` and `indices`.
         */
-      def unique[I: TF : IsInt32OrInt64](
+      def unique[I: TF : IsIntOrLong](
           indicesDataType: DataType[I]
       ): (Tensor[T], Tensor[I]) = {
         Basic.unique(tensor, indicesDataType)
@@ -1253,7 +1253,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type of the returned indices.
         * @return Tuple containing `output`, `indices`, and `counts`.
         */
-      def uniqueWithCounts[I: TF : IsInt32OrInt64](
+      def uniqueWithCounts[I: TF : IsIntOrLong](
           indicesDataType: DataType[I]
       ): (Tensor[T], Tensor[I], Tensor[I]) = {
         Basic.uniqueWithCounts(tensor, indicesDataType)
@@ -1276,7 +1276,7 @@ object Basic extends Basic {
         * @param  indicesDataType Data type to use for the output indices of this op.
         * @return Tuple containing `output` and `indices`, from the method description.
         */
-      def listDiff[I: TF : IsInt32OrInt64](
+      def listDiff[I: TF : IsIntOrLong](
           other: Tensor[T],
           indicesDataType: DataType[I]
       ): (Tensor[T], Tensor[I]) = {
@@ -1294,7 +1294,7 @@ object Basic extends Basic {
         * @param  axis    Tensor containing the axis along which to gather.
         * @return Result as a new tensor.
         */
-      def gather[I: TF : IsInt32OrInt64](
+      def gather[I: TF : IsIntOrLong](
           indices: Tensor[I],
           axis: Tensor[I] = null
       ): Tensor[T] = {
@@ -1308,7 +1308,7 @@ object Basic extends Basic {
         * @return Result as a new tensor which contains the values from `input` gathered from indices given by `indices`,
         *         with shape `indices.shape(::-1) + input.shape(indices.shape(-1)::)`.
         */
-      def gatherND[I: TF : IsInt32OrInt64](indices: Tensor[I]): Tensor[T] = {
+      def gatherND[I: TF : IsIntOrLong](indices: Tensor[I]): Tensor[T] = {
         Basic.gatherND(tensor, indices)
       }
 

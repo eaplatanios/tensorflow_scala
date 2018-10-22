@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
-import org.platanios.tensorflow.api.core.types.{DataType, TF, IsInt32OrInt64, IsNumeric}
+import org.platanios.tensorflow.api.core.types.{DataType, TF, IsIntOrLong, IsNumeric}
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 
 /** Represents objects that can be used as variables (e.g., variables and partitioned variables).
@@ -89,7 +89,7 @@ trait VariableLike[T] {
     * @return Created op.
     */
   @throws[UnsupportedOperationException]
-  def gather[I: TF : IsInt32OrInt64](indices: Output[I], name: String = "Gather"): Output[T]
+  def gather[I: TF : IsIntOrLong](indices: Output[I], name: String = "Gather"): Output[T]
 
   /** Creates an op that assigns the provided value to this variable and returns its value.
     *
@@ -126,7 +126,7 @@ trait VariableLike[T] {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  def assignScatter[I: TF : IsInt32OrInt64](
+  def assignScatter[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatter"
@@ -140,7 +140,7 @@ trait VariableLike[T] {
     * @return Variable value read op, after the addition.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterAdd[I: TF : IsInt32OrInt64](
+  def assignScatterAdd[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterAdd"
@@ -155,7 +155,7 @@ trait VariableLike[T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterSub[I: TF : IsInt32OrInt64](
+  def assignScatterSub[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterSub"
@@ -170,7 +170,7 @@ trait VariableLike[T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterMul[I: TF : IsInt32OrInt64](
+  def assignScatterMul[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterMul"
@@ -185,7 +185,7 @@ trait VariableLike[T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterDiv[I: TF : IsInt32OrInt64](
+  def assignScatterDiv[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterDiv"
@@ -200,7 +200,7 @@ trait VariableLike[T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterMin[I: TF : IsInt32OrInt64](
+  def assignScatterMin[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterMin"
@@ -215,7 +215,7 @@ trait VariableLike[T] {
     * @return Variable value read op, after the subtraction.
     */
   @throws[UnsupportedOperationException]
-  def assignScatterMax[I: TF : IsInt32OrInt64](
+  def assignScatterMax[I: TF : IsIntOrLong](
       indices: Output[I],
       values: Output[T],
       name: String = "AssignScatterMax"

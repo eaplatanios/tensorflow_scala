@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.rnn
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64, TF}
+import org.platanios.tensorflow.api.core.types.{IsIntOrLong, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.Zero
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
@@ -184,13 +184,13 @@ trait RNN {
           var sequence = Zero[O].structure.outputs(input)
           if (sequenceLengths == null)
             sequence = sequence.map(input => {
-              Basic.reverse(input, timeAxis)(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int])
+              Basic.reverse(input, timeAxis)(TF.fromDataType(input.dataType), TF[Int], IsIntOrLong[Int])
             })
           else
             sequence = sequence.map(input => {
               Basic.reverseSequence(
                 input, sequenceLengths, timeAxis, batchAxis
-              )(TF.fromDataType(input.dataType), TF[Int], IsInt32OrInt64[Int])
+              )(TF.fromDataType(input.dataType), TF[Int], IsIntOrLong[Int])
             })
           Zero[O].structure.decodeOutputFromOutput(input, sequence)._1
         }

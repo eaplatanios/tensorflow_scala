@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.core.types.{IsFloat32OrFloat64, TF}
+import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
 import org.platanios.tensorflow.api.learn.layers.{Input, Layer}
 import org.platanios.tensorflow.api.ops._
@@ -38,7 +38,7 @@ abstract class InferenceModel[In, Out](implicit
   def buildInferOps(): Model.InferOps[In, Out]
 }
 
-abstract class TrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64, EvalIn](implicit
+abstract class TrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](implicit
     evStructureIn: NestedStructure.Aux[In, _, _, _],
     evStructureTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends InferenceModel[In, Out] {
@@ -46,7 +46,7 @@ abstract class TrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32Or
   def buildEvalOps(metrics: Seq[Metric[EvalIn, Output[Float]]]): Model.EvalOps[TrainIn, Out]
 }
 
-abstract class SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64](implicit
+abstract class SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble](implicit
     evIn: NestedStructure.Aux[In, _, _, _],
     evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends TrainableModel[In, (In, TrainIn), Out, TrainOut, Loss, (Out, (In, TrainIn))] {
@@ -115,7 +115,7 @@ abstract class SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : I
   }
 }
 
-abstract class UnsupervisedTrainableModel[In, Out, Loss: TF : IsFloat32OrFloat64](implicit
+abstract class UnsupervisedTrainableModel[In, Out, Loss: TF : IsFloatOrDouble](implicit
     evIn: NestedStructure.Aux[In, _, _, _]
 ) extends TrainableModel[In, In, Out, Out, Loss, Out] {
   val input: Input[In]
@@ -184,7 +184,7 @@ object Model {
       input: In,
       output: Out)
 
-  case class TrainOps[TrainIn, TrainOut, Loss: TF : IsFloat32OrFloat64](
+  case class TrainOps[TrainIn, TrainOut, Loss: TF : IsFloatOrDouble](
       inputIterator: DatasetIterator[TrainIn],
       input: TrainIn,
       output: TrainOut,
@@ -200,7 +200,7 @@ object Model {
       metricUpdates: Seq[Output[Float]],
       metricResets: Set[UntypedOp])
 
-  def simpleSupervised[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64](
+  def simpleSupervised[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble](
       input: Input[In],
       trainInput: Input[TrainIn],
       layer: Layer[In, Out],
@@ -251,7 +251,7 @@ object Model {
     }
   }
 
-  def supervised[In, TrainIn, Out, TrainOut, Loss: TF : IsFloat32OrFloat64](
+  def supervised[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble](
       input: Input[In],
       trainInput: Input[TrainIn],
       layer: Layer[In, Out],
@@ -285,7 +285,7 @@ object Model {
     }
   }
 
-  def unsupervised[In, Out, Loss: TF : IsFloat32OrFloat64](
+  def unsupervised[In, Out, Loss: TF : IsFloatOrDouble](
       input: Input[In],
       layer: Layer[In, Out],
       loss: Layer[(In, Out), Output[Loss]],

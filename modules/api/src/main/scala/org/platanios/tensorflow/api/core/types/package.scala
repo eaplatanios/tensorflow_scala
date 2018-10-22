@@ -136,15 +136,15 @@ package object types {
 
   //endregion Union Types Support
 
-  type Float32OrFloat64 = Union[Float]#or[Double]#create
-  type Float16OrFloat32OrFloat64 = Union[Half]#or[Float]#or[Double]#create
-  type BFloat16OrFloat32OrFloat64 = Union[TruncatedHalf]#or[Float]#or[Double]#create
-  type BFloat16OrFloat16OrFloat32 = Union[TruncatedHalf]#or[Half]#or[Float]#create
+  type FloatOrDouble = Union[Float]#or[Double]#create
+  type HalfOrFloatOrDouble = Union[Half]#or[Float]#or[Double]#create
+  type TruncatedHalfOrFloatOrDouble = Union[TruncatedHalf]#or[Float]#or[Double]#create
+  type TruncatedHalfOrHalfOrFloat = Union[TruncatedHalf]#or[Half]#or[Float]#create
   type Decimal = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#create
-  type Int32OrInt64 = Union[Int]#or[Long]#create
-  type Int32OrInt64OrFloat32OrFloat64 = Union[Int]#or[Long]#or[Float]#or[Double]#create
-  type Int32OrInt64OrFloat16OrFloat32OrFloat64 = Union[Int]#or[Long]#or[Half]#or[Float]#or[Double]#create
-  type Int32OrInt64OrUInt8 = Union[Int]#or[Long]#or[UByte]#create
+  type IntOrLong = Union[Int]#or[Long]#create
+  type IntOrLongOrFloatOrDouble = Union[Int]#or[Long]#or[Float]#or[Double]#create
+  type IntOrLongOrHalfOrFloatOrDouble = Union[Int]#or[Long]#or[Half]#or[Float]#or[Double]#create
+  type IntOrLongOrUByte = Union[Int]#or[Long]#or[UByte]#create
   type SignedInteger = Union[Byte]#or[Short]#or[Int]#or[Long]#create
   type UnsignedInteger = Union[UByte]#or[UShort]#or[UInt]#or[ULong]#create
   type Integer = Union[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
@@ -156,15 +156,15 @@ package object types {
   type Numeric = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
   type BooleanOrNumeric = Union[Boolean]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
 
-  type IsFloat32OrFloat64[T] = Contains[T, Float32OrFloat64]
-  type IsFloat16OrFloat32OrFloat64[T] = Contains[T, Float16OrFloat32OrFloat64]
-  type IsBFloat16OrFloat32OrFloat64[T] = Contains[T, BFloat16OrFloat32OrFloat64]
-  type IsBFloat16OrFloat16OrFloat32[T] = Contains[T, BFloat16OrFloat16OrFloat32]
+  type IsFloatOrDouble[T] = Contains[T, FloatOrDouble]
+  type IsHalfOrFloatOrDouble[T] = Contains[T, HalfOrFloatOrDouble]
+  type IsTruncatedHalfOrFloatOrDouble[T] = Contains[T, TruncatedHalfOrFloatOrDouble]
+  type IsTruncatedHalfOrHalfOrFloat[T] = Contains[T, TruncatedHalfOrHalfOrFloat]
   type IsDecimal[T] = Contains[T, Decimal]
-  type IsInt32OrInt64[T] = Contains[T, Int32OrInt64]
-  type IsInt32OrInt64OrFloat32OrFloat64[T] = Contains[T, Int32OrInt64OrFloat32OrFloat64]
-  type IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T] = Contains[T, Int32OrInt64OrFloat16OrFloat32OrFloat64]
-  type IsInt32OrInt64OrUInt8[T] = Contains[T, Int32OrInt64OrUInt8]
+  type IsIntOrLong[T] = Contains[T, IntOrLong]
+  type IsIntOrLongOrFloatOrDouble[T] = Contains[T, IntOrLongOrFloatOrDouble]
+  type IsIntOrLongOrHalfOrFloatOrDouble[T] = Contains[T, IntOrLongOrHalfOrFloatOrDouble]
+  type IsIntOrLongOrUByte[T] = Contains[T, IntOrLongOrUByte]
   type IsIntOrUInt[T] = Contains[T, Integer]
   type IsStringOrIntOrUInt[T] = Contains[T, StringOrInteger]
   type IsReal[T] = Contains[T, Real]
@@ -174,40 +174,40 @@ package object types {
   type IsNumeric[T] = Contains[T, Numeric]
   type IsBooleanOrNumeric[T] = Contains[T, BooleanOrNumeric]
 
-  object IsFloat32OrFloat64 {
-    def apply[T: IsFloat32OrFloat64]: IsFloat32OrFloat64[T] = implicitly[IsFloat32OrFloat64[T]]
+  object IsFloatOrDouble {
+    def apply[T: IsFloatOrDouble]: IsFloatOrDouble[T] = implicitly[IsFloatOrDouble[T]]
   }
 
-  object IsFloat16OrFloat32OrFloat64 {
-    def apply[T: IsFloat16OrFloat32OrFloat64]: IsFloat16OrFloat32OrFloat64[T] = implicitly[IsFloat16OrFloat32OrFloat64[T]]
+  object IsHalfOrFloatOrDouble {
+    def apply[T: IsHalfOrFloatOrDouble]: IsHalfOrFloatOrDouble[T] = implicitly[IsHalfOrFloatOrDouble[T]]
   }
 
-  object IsBFloat16OrFloat32OrFloat64 {
-    def apply[T: IsBFloat16OrFloat32OrFloat64]: IsBFloat16OrFloat32OrFloat64[T] = implicitly[IsBFloat16OrFloat32OrFloat64[T]]
+  object IsTruncatedHalfOrFloatOrDouble {
+    def apply[T: IsTruncatedHalfOrFloatOrDouble]: IsTruncatedHalfOrFloatOrDouble[T] = implicitly[IsTruncatedHalfOrFloatOrDouble[T]]
   }
 
-  object IsBFloat16OrFloat16OrFloat32 {
-    def apply[T: IsBFloat16OrFloat16OrFloat32]: IsBFloat16OrFloat16OrFloat32[T] = implicitly[IsBFloat16OrFloat16OrFloat32[T]]
+  object IsTruncatedHalfOrHalfOrFloat {
+    def apply[T: IsTruncatedHalfOrHalfOrFloat]: IsTruncatedHalfOrHalfOrFloat[T] = implicitly[IsTruncatedHalfOrHalfOrFloat[T]]
   }
 
   object IsDecimal {
     def apply[T: IsDecimal]: IsDecimal[T] = implicitly[IsDecimal[T]]
   }
 
-  object IsInt32OrInt64 {
-    def apply[T: IsInt32OrInt64]: IsInt32OrInt64[T] = implicitly[IsInt32OrInt64[T]]
+  object IsIntOrLong {
+    def apply[T: IsIntOrLong]: IsIntOrLong[T] = implicitly[IsIntOrLong[T]]
   }
 
-  object IsInt32OrInt64OrFloat32OrFloat64 {
-    def apply[T: IsInt32OrInt64OrFloat32OrFloat64]: IsInt32OrInt64OrFloat32OrFloat64[T] = implicitly[IsInt32OrInt64OrFloat32OrFloat64[T]]
+  object IsIntOrLongOrFloatOrDouble {
+    def apply[T: IsIntOrLongOrFloatOrDouble]: IsIntOrLongOrFloatOrDouble[T] = implicitly[IsIntOrLongOrFloatOrDouble[T]]
   }
 
-  object IsInt32OrInt64OrFloat16OrFloat32OrFloat64 {
-    def apply[T: IsInt32OrInt64OrFloat16OrFloat32OrFloat64]: IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T] = implicitly[IsInt32OrInt64OrFloat16OrFloat32OrFloat64[T]]
+  object IsIntOrLongOrHalfOrFloatOrDouble {
+    def apply[T: IsIntOrLongOrHalfOrFloatOrDouble]: IsIntOrLongOrHalfOrFloatOrDouble[T] = implicitly[IsIntOrLongOrHalfOrFloatOrDouble[T]]
   }
 
-  object IsInt32OrInt64OrUInt8 {
-    def apply[T: IsInt32OrInt64OrUInt8]: IsInt32OrInt64OrUInt8[T] = implicitly[IsInt32OrInt64OrUInt8[T]]
+  object IsIntOrLongOrUByte {
+    def apply[T: IsIntOrLongOrUByte]: IsIntOrLongOrUByte[T] = implicitly[IsIntOrLongOrUByte[T]]
   }
 
   object IsIntOrUInt {

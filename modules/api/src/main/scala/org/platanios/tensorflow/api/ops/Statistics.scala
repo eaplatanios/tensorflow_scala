@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.core.types.{TF, IsInt32OrInt64, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{TF, IsIntOrLong, IsNotQuantized}
 
 /** Contains functions for constructing ops related to statistics.
   *
@@ -39,7 +39,7 @@ trait Statistics {
     *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
     *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
     */
-  def sufficientStatistics[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def sufficientStatistics[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       input: Output[T],
       axes: Output[I],
       shift: Output[T] = null,
@@ -188,7 +188,7 @@ object Statistics extends Statistics {
         *         - Variance Sufficient Statistic: The (possibly shifted) sum of squares of the elements in the tensor.
         *         - Shift: The shift by which the mean must be corrected, or `null` if no shift was used.
         */
-      def sufficientStatistics[I: TF : IsInt32OrInt64](
+      def sufficientStatistics[I: TF : IsIntOrLong](
           axes: Output[I],
           shift: Output[T] = null,
           keepDims: Boolean = false

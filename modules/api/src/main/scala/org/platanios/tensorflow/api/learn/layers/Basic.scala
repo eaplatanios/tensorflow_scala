@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64OrUInt8, TF}
+import org.platanios.tensorflow.api.core.types.{IsIntOrLongOrUByte, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
@@ -183,7 +183,7 @@ case class Transpose[T: TF](
   }
 }
 
-case class OneHot[T: TF, I: TF : IsInt32OrInt64OrUInt8](
+case class OneHot[T: TF, I: TF : IsIntOrLongOrUByte](
     override val name: String,
     numberOfLabels: Int
 ) extends Layer[Output[I], Output[T]](name) {

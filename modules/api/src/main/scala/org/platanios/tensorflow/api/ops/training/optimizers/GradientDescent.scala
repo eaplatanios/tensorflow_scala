@@ -53,7 +53,7 @@ class GradientDescent protected (
   protected var learningRateTensor: Output[Float] = _
   protected var momentumTensor    : Output[Float] = _
 
-  protected def getLearningRate[V: TF, I: TF : IsInt32OrInt64](
+  protected def getLearningRate[V: TF, I: TF : IsIntOrLong](
       variable: Variable[V],
       iteration: Option[Variable[I]]
   ): Output[V] = {
@@ -78,7 +78,7 @@ class GradientDescent protected (
     }
   }
 
-  override def prepare[I: TF : IsInt32OrInt64](
+  override def prepare[I: TF : IsIntOrLong](
       iteration: Option[Variable[I]]
   ): Unit = {
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
@@ -88,7 +88,7 @@ class GradientDescent protected (
       momentumTensor = Basic.constant(momentum, name = "Momentum")
   }
 
-  override def applyDense[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applyDense[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: Output[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -117,7 +117,7 @@ class GradientDescent protected (
     }
   }
 
-  override def applySparse[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applySparse[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]
@@ -143,7 +143,7 @@ class GradientDescent protected (
     }
   }
 
-  override def applySparseDuplicateIndices[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  override def applySparseDuplicateIndices[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       gradient: OutputIndexedSlices[T],
       variable: Variable[T],
       iteration: Option[Variable[I]]

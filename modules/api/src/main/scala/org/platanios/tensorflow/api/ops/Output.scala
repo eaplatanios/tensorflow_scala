@@ -220,7 +220,7 @@ final case class Output[T] private(
     Basic.stridedSlice(
       this, beginTensor, endTensor, stridesTensor, stridedSlice._4,
       stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8
-    )(TF.fromDataType(dataType), TF[Int], IsInt32OrInt64[Int])
+    )(TF.fromDataType(dataType), TF[Int], IsIntOrLong[Int])
   }
 
   //endregion Slicing
@@ -609,13 +609,13 @@ object Output {
     Basic.onesLike[T](output, optimize, name)
   }
 
-  def fill[T: TF, I: TF : IsInt32OrInt64](shape: Output[I])(
+  def fill[T: TF, I: TF : IsIntOrLong](shape: Output[I])(
       value: Output[T]
   ): Output[T] = {
     Basic.fill[T, I](shape)(value)
   }
 
-  def fill[T, I: TF : IsInt32OrInt64](
+  def fill[T, I: TF : IsIntOrLong](
       dataType: DataType[T],
       shape: Output[I]
   )(

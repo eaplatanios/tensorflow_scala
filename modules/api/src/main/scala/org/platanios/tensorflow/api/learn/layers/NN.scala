@@ -216,7 +216,7 @@ case class LogSoftmax[T: TF : IsDecimal](
   }
 }
 
-case class LRN[T: TF : IsBFloat16OrFloat16OrFloat32](
+case class LRN[T: TF : IsTruncatedHalfOrHalfOrFloat](
     override val name: String,
     depthRadius: Int = 5,
     bias: Float = 1.0f,
@@ -232,7 +232,7 @@ case class LRN[T: TF : IsBFloat16OrFloat16OrFloat32](
   }
 }
 
-case class Dropout[T: TF : IsFloat16OrFloat32OrFloat64](
+case class Dropout[T: TF : IsHalfOrFloatOrDouble](
     override val name: String,
     keepProbability: Float,
     scaleOutput: Boolean = true,

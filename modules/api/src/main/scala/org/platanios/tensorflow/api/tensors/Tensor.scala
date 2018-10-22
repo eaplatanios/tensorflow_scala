@@ -292,7 +292,7 @@ class Tensor[T] protected (
     ops.Basic.stridedSlice(
       this, beginTensor, endTensor, stridesTensor, stridedSlice._4,
       stridedSlice._5, stridedSlice._6, stridedSlice._7, stridedSlice._8
-    )(TF.fromDataType(dataType), TF[Int], IsInt32OrInt64[Int])
+    )(TF.fromDataType(dataType), TF[Int], IsIntOrLong[Int])
   }
   
   //region Casting
@@ -877,7 +877,7 @@ object Tensor {
     * @tparam I Shape type.
     * @return New random tensor.
     */
-  def rand[T: IsInt32OrInt64OrFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+  def rand[T: IsIntOrLongOrHalfOrFloatOrDouble, I: IsIntOrLong](
       dataType: DataType[T],
       shape: Tensor[I],
       minValue: Tensor[T] = null,
@@ -914,7 +914,7 @@ object Tensor {
     * @tparam I Shape type.
     * @return New random tensor.
     */
-  def randn[T: IsFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+  def randn[T: IsHalfOrFloatOrDouble, I: IsIntOrLong](
       dataType: DataType[T],
       shape: Tensor[I],
       mean: Tensor[T] = null,
@@ -945,7 +945,7 @@ object Tensor {
     * @tparam I Shape type.
     * @return Result as a new tensor.
     */
-  def randTruncN[T: IsFloat16OrFloat32OrFloat64, I: IsInt32OrInt64](
+  def randTruncN[T: IsHalfOrFloatOrDouble, I: IsIntOrLong](
       dataType: DataType[T],
       shape: Tensor[I],
       mean: Tensor[T] = null,
@@ -976,7 +976,7 @@ object Tensor {
     * @tparam I Indices tensor data type.
     * @return Result as a new tensor.
     */
-  def oneHot[T: TF, I: IsInt32OrInt64OrUInt8](
+  def oneHot[T: TF, I: IsIntOrLongOrUByte](
       indices: Tensor[I],
       depth: Tensor[Int],
       onValue: Tensor[T] = null,

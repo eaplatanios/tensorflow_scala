@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
 /**
   * @author Emmanouil Antonios Platanios
   */
-abstract class Loss[T, L: IsFloat32OrFloat64](
+abstract class Loss[T, L: IsFloatOrDouble](
     override val name: String
 ) extends Layer[T, Output[L]](name)
 
@@ -50,7 +50,7 @@ object Loss {
   object API extends API
 }
 
-case class L2Loss[Predictions: TF : IsDecimal : IsNotQuantized, L: TF : IsFloat32OrFloat64](
+case class L2Loss[Predictions: TF : IsDecimal : IsNotQuantized, L: TF : IsFloatOrDouble](
     override val name: String
 ) extends Loss[(Output[Predictions], Output[Predictions]), L](name) {
   override val layerType: String = "L2Loss"
@@ -62,7 +62,7 @@ case class L2Loss[Predictions: TF : IsDecimal : IsNotQuantized, L: TF : IsFloat3
   }
 }
 
-case class SoftmaxCrossEntropy[Predictions: TF : IsDecimal, L: TF : IsFloat32OrFloat64](
+case class SoftmaxCrossEntropy[Predictions: TF : IsDecimal, L: TF : IsFloatOrDouble](
     override val name: String
 ) extends Loss[(Output[Predictions], Output[Predictions]), L](name) {
   override val layerType: String = "SoftmaxCrossEntropy"
@@ -74,7 +74,7 @@ case class SoftmaxCrossEntropy[Predictions: TF : IsDecimal, L: TF : IsFloat32OrF
   }
 }
 
-case class SparseSoftmaxCrossEntropy[Predictions: TF : IsDecimal, Labels: TF : IsInt32OrInt64, L: TF : IsFloat32OrFloat64](
+case class SparseSoftmaxCrossEntropy[Predictions: TF : IsDecimal, Labels: TF : IsIntOrLong, L: TF : IsFloatOrDouble](
     override val name: String
 ) extends Loss[(Output[Predictions], Output[Labels]), L](name) {
   override val layerType: String = "SparseSoftmaxCrossEntropy"
@@ -86,7 +86,7 @@ case class SparseSoftmaxCrossEntropy[Predictions: TF : IsDecimal, Labels: TF : I
   }
 }
 
-case class SigmoidCrossEntropy[Predictions: TF : IsDecimal, L: TF : IsFloat32OrFloat64](
+case class SigmoidCrossEntropy[Predictions: TF : IsDecimal, L: TF : IsFloatOrDouble](
     override val name: String
 ) extends Loss[(Output[Predictions], Output[Predictions]), L](name) {
   override val layerType: String = "SigmoidCrossEntropy"
@@ -98,7 +98,7 @@ case class SigmoidCrossEntropy[Predictions: TF : IsDecimal, L: TF : IsFloat32OrF
   }
 }
 
-case class LogPoissonLoss[Predictions: TF : IsDecimal, L: TF : IsFloat32OrFloat64](
+case class LogPoissonLoss[Predictions: TF : IsDecimal, L: TF : IsFloatOrDouble](
     override val name: String,
     computeFullLoss: Boolean = false
 ) extends Loss[(Output[Predictions], Output[Predictions]), L](name) {
@@ -111,7 +111,7 @@ case class LogPoissonLoss[Predictions: TF : IsDecimal, L: TF : IsFloat32OrFloat6
   }
 }
 
-case class SequenceLoss[Predictions: TF : IsDecimal, Labels: TF, L: TF : IsFloat32OrFloat64](
+case class SequenceLoss[Predictions: TF : IsDecimal, Labels: TF, L: TF : IsFloatOrDouble](
     override val name: String,
     loss: (Output[Predictions], Output[Labels]) => Output[Predictions],
     averageAcrossTimeSteps: Boolean = true,

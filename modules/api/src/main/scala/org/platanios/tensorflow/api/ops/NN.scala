@@ -149,7 +149,7 @@ trait NN {
     * @param  name    Name for the created op.
     * @return Created op output.
     */
-  def l2Normalize[T: TF : IsNotQuantized, I: TF : IsInt32OrInt64](
+  def l2Normalize[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       x: Output[T],
       axes: Output[I],
       epsilon: Float = 1e-12f,
@@ -789,7 +789,7 @@ trait NN {
     * @return Created op output, with the same shape as `labels` and the same data type as `logits`, containing the
     *         softmax cross entropy loss.
     */
-  def sparseSoftmaxCrossEntropy[T: TF : IsDecimal, I: TF : IsInt32OrInt64](
+  def sparseSoftmaxCrossEntropy[T: TF : IsDecimal, I: TF : IsIntOrLong](
       logits: Output[T],
       labels: Output[I],
       axis: Int = -1,
@@ -807,7 +807,7 @@ trait NN {
           opType = "SparseSoftmaxCrossEntropyWithLogits",
           name = name,
           input = (logits, labels)
-        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(TF[T], IsDecimal[T], TF[I], IsInt32OrInt64[I]))
+        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(TF[T], IsDecimal[T], TF[I], IsIntOrLong[I]))
             .build().output._1
       } else {
         // Reshape logits to rank 2 and labels to rank 1.
@@ -819,7 +819,7 @@ trait NN {
           opType = "SparseSoftmaxCrossEntropyWithLogits",
           name = name,
           input = (flatLogits, flatLabels)
-        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(TF[T], IsDecimal[T], TF[I], IsInt32OrInt64[I]))
+        ).setGradientFn(sparseSoftmaxCrossEntropyGradient(_, _)(TF[T], IsDecimal[T], TF[I], IsIntOrLong[I]))
             .build().output._1
         val reshapedOutput = Basic.reshape(output, Basic.shape(labels))
         reshapedOutput.setShape(labels.shape)
@@ -828,7 +828,7 @@ trait NN {
     }
   }
 
-  protected def sparseSoftmaxCrossEntropyGradient[T: TF : IsDecimal, I: TF : IsInt32OrInt64](
+  protected def sparseSoftmaxCrossEntropyGradient[T: TF : IsDecimal, I: TF : IsIntOrLong](
       op: Op[(Output[T], Output[I]), (Output[T], Output[T])],
       outputGradient: (Output[T], Output[T])
   ): (Output[T], Output[I]) = {
@@ -1027,7 +1027,7 @@ trait NN {
   //endregion Loss Ops
 
   /** Returns the `noiseShape` for the provided input, making the best effort possible to deal with unknown sizes. */
-  private[api] def getNoiseShape[T: TF, I: TF : IsInt32OrInt64](
+  private[api] def getNoiseShape[T: TF, I: TF : IsIntOrLong](
       input: Output[T],
       noiseShape: Output[I]
   ): Output[I] = {
@@ -1058,7 +1058,7 @@ trait NN {
     * @throws IllegalArgumentException If `keepProbability` is not in the interval `(0, 1]`.
     */
   @throws[IllegalArgumentException]
-  def dropout[T: TF : IsFloat16OrFloat32OrFloat64, I: IntDefault : TF : IsInt32OrInt64](
+  def dropout[T: TF : IsHalfOrFloatOrDouble, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       keepProbability: Float,
       scaleOutput: Boolean = true,
@@ -1090,7 +1090,7 @@ trait NN {
     * @param  name            Name for the created op.
     * @return Created op output that has the same shape as `input`.
     */
-  def dynamicDropout[T: TF : IsFloat16OrFloat32OrFloat64, I: IntDefault : TF : IsInt32OrInt64](
+  def dynamicDropout[T: TF : IsHalfOrFloatOrDouble, I: IntDefault : TF : IsIntOrLong](
       input: Output[T],
       keepProbability: Output[T],
       scaleOutput: Boolean = true,
@@ -1184,7 +1184,7 @@ trait NN {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def inTopK[I: TF : IsInt32OrInt64](
+  def inTopK[I: TF : IsIntOrLong](
       predictions: Output[Float],
       targets: Output[I],
       k: Output[I],
@@ -1506,7 +1506,7 @@ trait NN {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def lrn[T: TF : IsBFloat16OrFloat16OrFloat32](
+  def lrn[T: TF : IsTruncatedHalfOrHalfOrFloat](
       input: Output[T],
       depthRadius: Int = 5,
       bias: Float = 1.0f,
@@ -1528,7 +1528,7 @@ trait NN {
     * @param  name        Name for the created op.
     * @return Created op output.
     */
-  def localResponseNormalization[T: TF : IsBFloat16OrFloat16OrFloat32](
+  def localResponseNormalization[T: TF : IsTruncatedHalfOrHalfOrFloat](
       input: Output[T],
       depthRadius: Int = 5,
       bias: Float = 1.0f,
@@ -1544,11 +1544,11 @@ trait NN {
         .setAttribute("bias", bias)
         .setAttribute("alpha", alpha)
         .setAttribute("beta", beta)
-        .setGradientFn(lrnGradient(_, _)(TF[T], IsBFloat16OrFloat16OrFloat32[T]))
+        .setGradientFn(lrnGradient(_, _)(TF[T], IsTruncatedHalfOrHalfOrFloat[T]))
         .build().output
   }
 
-  protected def lrnGradient[T: TF : IsBFloat16OrFloat16OrFloat32](
+  protected def lrnGradient[T: TF : IsTruncatedHalfOrHalfOrFloat](
       op: Op[Output[T], Output[T]],
       outputGradient: Output[T]
   ): Output[T] = {
@@ -1738,7 +1738,7 @@ object NN extends NN {
         *                 `norm < sqrt(epsilon)`.
         * @return Created op output.
         */
-      def l2Normalize[I: TF : IsInt32OrInt64](
+      def l2Normalize[I: TF : IsIntOrLong](
           axes: Output[I],
           epsilon: Float = 1e-12f
       )(implicit ev: IsNotQuantized[T]): Output[T] = {
@@ -1848,12 +1848,12 @@ object NN extends NN {
         *                         generator, when combined with the graph-level seed.
         * @return Created op output that has the same shape as `input`.
         */
-      def dropout[I: IntDefault : IsInt32OrInt64 : TF](
+      def dropout[I: IntDefault : IsIntOrLong : TF](
           keepProbability: Float,
           scaleOutput: Boolean = true,
           noiseShape: Output[I] = null,
           seed: Option[Int] = None
-      )(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[T] = {
+      )(implicit ev: IsHalfOrFloatOrDouble[T]): Output[T] = {
         NN.dropout(output, keepProbability, scaleOutput, noiseShape, seed)
       }
 
@@ -1867,12 +1867,12 @@ object NN extends NN {
         *                         generator, when combined with the graph-level seed.
         * @return Created op output that has the same shape as `input`.
         */
-      def dynamicDropout[I: IntDefault : TF : IsInt32OrInt64](
+      def dynamicDropout[I: IntDefault : TF : IsIntOrLong](
           keepProbability: Output[T],
           scaleOutput: Boolean = true,
           noiseShape: Output[I] = null,
           seed: Option[Int] = None
-      )(implicit ev: IsFloat16OrFloat32OrFloat64[T]): Output[T] = {
+      )(implicit ev: IsHalfOrFloatOrDouble[T]): Output[T] = {
         NN.dynamicDropout(output, keepProbability, scaleOutput, noiseShape, seed)
       }
 
@@ -1898,7 +1898,7 @@ object NN extends NN {
         * @param  k       Scalar tensor containing the number of top elements to look at.
         * @return Created op output.
         */
-      def inTopK[I: TF : IsInt32OrInt64](
+      def inTopK[I: TF : IsIntOrLong](
           targets: Output[I],
           k: Output[I]
       )(implicit ev: T =:= Float): Output[Boolean] = {
@@ -1981,7 +1981,7 @@ object NN extends NN {
           alpha: Float = 1.0f,
           beta: Float = 0.5f,
           name: String = "LRN"
-      )(implicit ev: IsBFloat16OrFloat16OrFloat32[T]): Output[T] = {
+      )(implicit ev: IsTruncatedHalfOrHalfOrFloat[T]): Output[T] = {
         NN.localResponseNormalization(output, depthRadius, bias, alpha, beta, name)
       }
 
@@ -2001,7 +2001,7 @@ object NN extends NN {
           alpha: Float = 1.0f,
           beta: Float = 0.5f,
           name: String = "LocalResponseNormalization"
-      )(implicit ev: IsBFloat16OrFloat16OrFloat32[T]): Output[T] = {
+      )(implicit ev: IsTruncatedHalfOrHalfOrFloat[T]): Output[T] = {
         NN.localResponseNormalization(output, depthRadius, bias, alpha, beta, name)
       }
 
@@ -2072,7 +2072,7 @@ object NN extends NN {
   }
 
   /** Creates an op that swaps the axes `axis1` and `axis2` in `input` and ignores all axes after `axis2`. */
-  private[ops] def swapAxes[T: TF, I: TF : IsInt32OrInt64](
+  private[ops] def swapAxes[T: TF, I: TF : IsIntOrLong](
       input: Output[T],
       axis1: Output[I],
       axis2: Output[I],

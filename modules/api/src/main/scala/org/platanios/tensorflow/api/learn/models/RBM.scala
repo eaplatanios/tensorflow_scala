@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.models
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.Indexer.NewAxis
-import org.platanios.tensorflow.api.core.types.{IsInt32OrInt64OrFloat16OrFloat32OrFloat64, IsNotQuantized, TF}
+import org.platanios.tensorflow.api.core.types.{IsIntOrLongOrHalfOrFloatOrDouble, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Counter, Model, TrainableModel}
 import org.platanios.tensorflow.api.learn.layers.Input
@@ -28,7 +28,7 @@ import org.platanios.tensorflow.api.ops.variables.{RandomNormalInitializer, Vari
 
 import scala.collection.mutable
 
-class RBM[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
+class RBM[T: TF : IsIntOrLongOrHalfOrFloatOrDouble](
     val input: Input[Output[T]],
     val numHidden: Int,
     val meanField: Boolean = true,
@@ -141,7 +141,7 @@ class RBM[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
 }
 
 object RBM {
-  def apply[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
+  def apply[T: TF : IsIntOrLongOrHalfOrFloatOrDouble](
       input: Input[Output[T]],
       numHidden: Int,
       meanField: Boolean = true,
@@ -173,7 +173,7 @@ object RBM {
     Math.sigmoid(Math.add(vb.value, Math.matmul(h, w.value, transposeB = true)))
   }
 
-  private[RBM] def sampleBinary[T: TF : IsInt32OrInt64OrFloat16OrFloat32OrFloat64](
+  private[RBM] def sampleBinary[T: TF : IsIntOrLongOrHalfOrFloatOrDouble](
       p: Output[T]
   ): Output[T] = {
     NN.relu(Math.sign(p - Random.randomUniform[T, Long](p.shape)))
