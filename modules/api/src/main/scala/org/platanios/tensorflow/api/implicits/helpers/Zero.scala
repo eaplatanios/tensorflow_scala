@@ -305,7 +305,10 @@ trait ZeroHelpers {
       override type S = HList
 
       override val structure: NestedStructure.Aux[HT :: TT, HList, HList, HList] = {
-        ???
+        NestedStructure.fromHListHelper[HT, TT](
+          Strict(evH.value.structure),
+          evT.structure
+        ).asInstanceOf[NestedStructure.Aux[HT :: TT, HList, HList, HList]]
       }
 
       override def zero(

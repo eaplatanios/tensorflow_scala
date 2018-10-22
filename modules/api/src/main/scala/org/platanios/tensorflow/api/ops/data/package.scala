@@ -19,7 +19,8 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 package object data {
-  private[ops] trait API extends Data {
+  private[ops] trait API extends Data
+      with data.DatasetIterator.API {
     type Dataset[T] = data.Dataset[T]
     type DatasetIterator[T] = data.DatasetIterator[T]
   }
