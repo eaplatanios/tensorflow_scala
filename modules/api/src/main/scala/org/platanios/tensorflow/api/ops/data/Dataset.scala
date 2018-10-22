@@ -408,6 +408,78 @@ trait Dataset[T] { outer =>
     }
   }
 
+  /** Creates a new dataset by mapping a function across all elements of this dataset and batching the resulting
+    * elements.
+    *
+    * The op has similar semantics to the built-in Scala collections `map` function.
+    *
+    * @param  function         Mapping function.
+    * @param  batchSize        Batch size to use.
+    * @param  numParallelCalls Number elements to process in parallel. If not specified, elements will be processed
+    *                          sequentially.
+    * @param  dropRemainder    Boolean indicating whether to drop the last batch in the dataset if it's size is less
+    *                          than `batchSize`.
+    * @tparam R Tensor type for the resulting dataset (i.e., nested structure of outputs).
+    * @return Created dataset.
+    */
+  def mapAndBatch[V, D, S, R](
+      function: T => R,
+      batchSize: Long,
+      numParallelCalls: Long = 1L,
+      dropRemainder: Boolean = false,
+      name: String = s"${this.name}/Map"
+  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[R] = {
+    val providedName = name
+    new Dataset[R] {
+      override val name: String = providedName
+
+      private var instantiatedFunction: Option[InstantiatedFunction[T, R]] = None
+
+      private def initializeInstantiatedFunction[RV, RD, RS]()(implicit
+          evR: NestedStructure.Aux[R, RV, RD, RS]
+      ): InstantiatedFunction[T, R] = {
+        if (instantiatedFunction.isEmpty)
+          instantiatedFunction = Some(
+            Function(s"$name/Function", function).instantiate(
+              inputDataType = outer.outputDataTypes,
+              inputShape = Some(outer.outputShapes),
+              appendHashToName = true))
+        instantiatedFunction.get
+      }
+
+      override def createHandle[RV, RD, RS]()(implicit evR: NestedStructure.Aux[R, RV, RD, RS]): Output[Variant] = {
+        val instantiatedFunction = this.instantiatedFunction.getOrElse(initializeInstantiatedFunction())
+        val bs = Op.nameScope(s"$name/BatchSize")(Basic.constant(batchSize))
+        val dr = Op.nameScope(s"$name/DropRemainder")(Basic.constant(dropRemainder))
+        Op.Builder[(Output[Variant], Seq[Output[Any]], Output[Long], Output[Long], Output[Boolean]), Output[Variant]](
+          opType = "MapAndBatchDatasetV2",
+          name = name,
+          input = (
+              outer.createHandle(),
+              instantiatedFunction.extraInputs,
+              Basic.constant(batchSize, name = s"$name/BatchSize"),
+              Basic.constant(numParallelCalls, name = s"$name/NumParallelCalls"),
+              Basic.constant(dropRemainder, name = s"$name/DropRemainder"))
+        ).setAttribute("f", instantiatedFunction)
+            .setAttribute("output_types", flatOutputDataTypes.toArray)
+            .setAttribute("output_shapes", flatOutputShapes.toArray)
+            .build().output
+      }
+
+      override def outputDataTypes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RD = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputDataTypes
+      }
+
+      override def outputShapes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RS = {
+        val functionOutputShapes = instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputShapes
+        evR.decodeShapeFromDataType(
+          outputDataTypes,
+          evR.shapes(functionOutputShapes).map(Shape(-1) ++ _)
+        )._1
+      }
+    }
+  }
+
   /** Creates a new dataset by mapping a function across all elements of this dataset and then flattening the result.
     *
     * The op has similar semantics to the built-in Scala collections `flatMap` function.
@@ -814,7 +886,7 @@ trait Dataset[T] { outer =>
               batchSize,
               Op.nameScope(s"$name/PaddedShapes")(flatPaddedShapes),
               Op.nameScope(s"$name/PaddingValues")(flatPaddingValues))
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
+        ).setAttribute("Toutput_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
       }
