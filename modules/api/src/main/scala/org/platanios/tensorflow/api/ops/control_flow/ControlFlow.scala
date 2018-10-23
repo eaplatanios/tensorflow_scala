@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{DataType, RESOURCE, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
@@ -303,7 +303,9 @@ private[api] trait ControlFlow {
       swapMemory: Boolean = false,
       maximumIterations: Output[Int] = null,
       name: String = "WhileLoop"
-  )(implicit evStructureT: NestedStructure.Aux[T, _, _, S]): T = {
+  )(implicit
+      evOutputToShape: OutputToShape.Aux[T, S]
+  ): T = {
     require(parallelIterations > 0, "'parallelIterations' must be a positive integer.")
     Op.nameScope(name) {
       val loopContext = WhileLoopContext(

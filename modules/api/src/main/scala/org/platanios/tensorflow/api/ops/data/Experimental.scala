@@ -17,8 +17,8 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.Variant
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
-import org.platanios.tensorflow.api.ops.{Basic, Function, InstantiatedFunction, Op, Output}
+import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToShape, OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 
 /** Contains implementations for some experimental dataset ops.
   *
@@ -50,18 +50,27 @@ trait Experimental {
     * @tparam S Shape of the element.
     * @return New dataset.
     */
-  def chooseFromDatasets[T, V, D, S](
+  def chooseFromDatasets[T: OutputStructure](
       selectorDataset: Dataset[Output[Long]],
       inputDatasets: Seq[Dataset[T]],
       name: String = "ChooseFromDatasets"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[T] = {
+  ): Dataset[T] = {
     val providedName = name
     new Dataset[T] {
+      val firstDataset: Dataset[T] = inputDatasets.head
+
+      override type D = firstDataset.D
+      override type S = firstDataset.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = firstDataset.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = firstDataset.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = firstDataset.evDataTypeToShape
+
       override val name: String = providedName
 
       private var mostSpecificFlattenedShapes: Option[Seq[Shape]] = None
 
-      override def createHandle[VV, DD, SS]()(implicit evT: NestedStructure.Aux[T, VV, DD, SS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         mostSpecificFlattenedShapes = Some(
           inputDatasets.map(_.flatOutputShapes).reduceLeft[Seq[Shape]] {
             case (specificShapes, shapes) =>
@@ -85,13 +94,13 @@ trait Experimental {
             .build().output
       }
 
-      override def outputDataTypes[VV, DD, SS](implicit evT: NestedStructure.Aux[T, VV, DD, SS]): DD = {
-        inputDatasets.head.outputDataTypes
+      override def outputDataTypes: D = {
+        inputDatasets.head.outputDataTypes.asInstanceOf[D]
       }
 
-      override def outputShapes[VV, DD, SS](implicit evT: NestedStructure.Aux[T, VV, DD, SS]): SS = {
-        evT.decodeShapeFromDataType(
-          outputDataTypes,
+      override def outputShapes: S = {
+        evOutputToShape.shapeStructure.decodeShape(
+          inputDatasets.head.outputShapes.asInstanceOf[S],
           mostSpecificFlattenedShapes.get
         )._1
       }

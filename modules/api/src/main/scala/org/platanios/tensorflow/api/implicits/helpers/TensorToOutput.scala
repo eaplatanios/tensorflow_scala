@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.implicits.helpers
 
-import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 
@@ -28,6 +27,9 @@ import shapeless.ops.hlist.Tupler
   */
 sealed trait TensorToOutput[T] {
   type O
+
+  def output(tensor: T): O
+  def tensors(tensor: T): Seq[Tensor[Any]]
 }
 
 object TensorToOutput {
@@ -38,24 +40,62 @@ object TensorToOutput {
   implicit val fromUnit: Aux[Unit, Unit] = {
     new TensorToOutput[Unit] {
       override type O = Unit
+
+      override def output(tensor: Unit): Unit = {
+        ()
+      }
+
+      override def tensors(tensor: Unit): Seq[Tensor[Any]] = {
+        Seq.empty
+      }
     }
   }
 
   implicit def fromTensor[T]: Aux[Tensor[T], Output[T]] = {
     new TensorToOutput[Tensor[T]] {
       override type O = Output[T]
+
+      override def output(tensor: Tensor[T]): Output[T] = {
+        tensor.toOutput
+      }
+
+      override def tensors(tensor: Tensor[T]): Seq[Tensor[Any]] = {
+        Seq(tensor)
+      }
     }
   }
 
   implicit def fromTensorIndexedSlices[T]: Aux[TensorIndexedSlices[T], OutputIndexedSlices[T]] = {
     new TensorToOutput[TensorIndexedSlices[T]] {
       override type O = OutputIndexedSlices[T]
+
+      override def output(tensor: TensorIndexedSlices[T]): OutputIndexedSlices[T] = {
+        OutputIndexedSlices(
+          indices = tensor.indices,
+          values = tensor.values.toOutput,
+          denseShape = tensor.denseShape)
+      }
+
+      override def tensors(tensor: TensorIndexedSlices[T]): Seq[Tensor[Any]] = {
+        Seq(tensor.indices, tensor.values, tensor.denseShape)
+      }
     }
   }
 
   implicit def fromSparseTensor[T]: Aux[SparseTensor[T], SparseOutput[T]] = {
     new TensorToOutput[SparseTensor[T]] {
       override type O = SparseOutput[T]
+
+      override def output(tensor: SparseTensor[T]): SparseOutput[T] = {
+        SparseOutput(
+          indices = tensor.indices,
+          values = tensor.values.toOutput,
+          denseShape = tensor.denseShape)
+      }
+
+      override def tensors(tensor: SparseTensor[T]): Seq[Tensor[Any]] = {
+        Seq(tensor.indices, tensor.values, tensor.denseShape)
+      }
     }
   }
 
@@ -64,6 +104,14 @@ object TensorToOutput {
   ): TensorToOutput.Aux[Option[T], Option[ev.O]] = {
     new TensorToOutput[Option[T]] {
       override type O = Option[ev.O]
+
+      override def output(tensor: Option[T]): Option[ev.O] = {
+        tensor.map(t => ev.output(t))
+      }
+
+      override def tensors(tensor: Option[T]): Seq[Tensor[Any]] = {
+        tensor.toSeq.flatMap(ev.tensors)
+      }
     }
   }
 
@@ -72,6 +120,14 @@ object TensorToOutput {
   ): TensorToOutput.Aux[Seq[T], Seq[ev.O]] = {
     new TensorToOutput[Seq[T]] {
       override type O = Seq[ev.O]
+
+      override def output(tensor: Seq[T]): Seq[ev.O] = {
+        tensor.map(t => ev.output(t))
+      }
+
+      override def tensors(tensor: Seq[T]): Seq[Tensor[Any]] = {
+        tensor.flatMap(ev.tensors)
+      }
     }
   }
 
@@ -80,20 +136,28 @@ object TensorToOutput {
   ): TensorToOutput.Aux[Map[K, T], Map[K, ev.O]] = {
     new TensorToOutput[Map[K, T]] {
       override type O = Map[K, ev.O]
-    }
-  }
 
-  implicit def fromNestedStructure[T, V](implicit
-      evStructure: NestedStructure.Aux[T, V, _, _]
-  ): TensorToOutput.Aux[V, T] = {
-    new TensorToOutput[V] {
-      override type O = T
+      override def output(tensor: Map[K, T]): Map[K, ev.O] = {
+        tensor.mapValues(t => ev.output(t))
+      }
+
+      override def tensors(tensor: Map[K, T]): Seq[Tensor[Any]] = {
+        tensor.values.flatMap(ev.tensors).toSeq
+      }
     }
   }
 
   implicit val fromHNil: TensorToOutput.Aux[HNil, HNil] = {
     new TensorToOutput[HNil] {
       override type O = HNil
+
+      override def output(tensor: HNil): HNil = {
+        HNil
+      }
+
+      override def tensors(tensor: HNil): Seq[Tensor[Any]] = {
+        Seq.empty
+      }
     }
   }
 
@@ -103,6 +167,14 @@ object TensorToOutput {
   ): TensorToOutput.Aux[HT :: TT, HO :: TO] = {
     new TensorToOutput[HT :: TT] {
       override type O = HO :: TO
+
+      override def output(tensor: HT :: TT): HO :: TO = {
+        evH.value.output(tensor.head) :: evT.output(tensor.tail)
+      }
+
+      override def tensors(tensor: HT :: TT): Seq[Tensor[Any]] = {
+        evH.value.tensors(tensor.head) ++ evT.tensors(tensor.tail)
+      }
     }
   }
 
@@ -114,6 +186,14 @@ object TensorToOutput {
   ): TensorToOutput.Aux[PT, PO] = {
     new TensorToOutput[PT] {
       override type O = PO
+
+      override def output(tensor: PT): PO = {
+        genO.from(evT.output(genT.to(tensor)))
+      }
+
+      override def tensors(tensor: PT): Seq[Tensor[Any]] = {
+        evT.tensors(genT.to(tensor))
+      }
     }
   }
 
@@ -123,6 +203,20 @@ object TensorToOutput {
   ): TensorToOutput.Aux[HT :+: TT, HO :+: TO] = {
     new TensorToOutput[HT :+: TT] {
       override type O = HO :+: TO
+
+      override def output(tensor: HT :+: TT): HO :+: TO = {
+        tensor match {
+          case Inl(h) => Inl(evH.value.output(h))
+          case Inr(t) => Inr(evT.output(t))
+        }
+      }
+
+      override def tensors(tensor: HT :+: TT): Seq[Tensor[Any]] = {
+        tensor match {
+          case Inl(h) => evH.value.tensors(h)
+          case Inr(t) => evT.tensors(t)
+        }
+      }
     }
   }
 }

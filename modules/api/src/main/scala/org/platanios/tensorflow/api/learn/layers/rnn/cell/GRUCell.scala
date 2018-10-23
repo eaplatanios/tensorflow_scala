@@ -15,11 +15,12 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
 /** $OpDocRNNCellGRUCell
@@ -39,12 +40,23 @@ class GRUCell[T: TF : IsNotQuantized](
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
 ) extends RNNCell[Output[T], Output[T]](name) {
+  type OutShape = Shape
+  type StateShape = Shape
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
+    OutputToShape[Output[T]]
+  }
+
+  override def evOutputToShapeState: OutputToShape.Aux[Output[T], StateShape] = {
+    OutputToShape[Output[T]]
+  }
+
   override val layerType: String = "GRUCell"
 
-  override def createCellWithoutContext[OS](
+  override def createCellWithoutContext(
       mode: Mode,
-      inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): ops.rnn.cell.GRUCell[T] = {
+      inputShape: OutShape
+  ): ops.rnn.cell.GRUCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val gateKernel = getParameter[T](
       s"Gate/$KERNEL_NAME",

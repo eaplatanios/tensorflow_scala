@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToOutput, OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.learn.layers.{Input, Layer}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
@@ -33,22 +33,27 @@ import org.platanios.tensorflow.api.ops.variables.Variable
 trait Model
 
 abstract class InferenceModel[In, Out](implicit
-    evStructureIn: NestedStructure.Aux[In, _, _, _]
+    evOutputToDataTypeIn: OutputToDataType.Aux[In, _],
+    evOutputToShapeIn: OutputToShape.Aux[In, _]
 ) extends Model {
   def buildInferOps(): Model.InferOps[In, Out]
 }
 
 abstract class TrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](implicit
-    evStructureIn: NestedStructure.Aux[In, _, _, _],
-    evStructureTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
+    evOutputToDataTypeIn: OutputToDataType.Aux[In, _],
+    evOutputToShapeIn: OutputToShape.Aux[In, _],
+    evOutputToDataTypeTrainIn: OutputToDataType.Aux[TrainIn, _],
+    evOutputToShapeTrainIn: OutputToShape.Aux[TrainIn, _]
 ) extends InferenceModel[In, Out] {
   def buildTrainOps(): Model.TrainOps[TrainIn, TrainOut, Loss]
   def buildEvalOps(metrics: Seq[Metric[EvalIn, Output[Float]]]): Model.EvalOps[TrainIn, Out]
 }
 
 abstract class SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble](implicit
-    evIn: NestedStructure.Aux[In, _, _, _],
-    evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
+    evOutputToDataTypeIn: OutputToDataType.Aux[In, _],
+    evOutputToShapeIn: OutputToShape.Aux[In, _],
+    evOutputToDataTypeTrainIn: OutputToDataType.Aux[TrainIn, _],
+    evOutputToShapeTrainIn: OutputToShape.Aux[TrainIn, _]
 ) extends TrainableModel[In, (In, TrainIn), Out, TrainOut, Loss, (Out, (In, TrainIn))] {
   val input: Input[In]
   val layer: Layer[In, Out]
@@ -116,7 +121,8 @@ abstract class SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss: TF : I
 }
 
 abstract class UnsupervisedTrainableModel[In, Out, Loss: TF : IsFloatOrDouble](implicit
-    evIn: NestedStructure.Aux[In, _, _, _]
+    evOutputToDataTypeIn: OutputToDataType.Aux[In, _],
+    evOutputToShapeIn: OutputToShape.Aux[In, _]
 ) extends TrainableModel[In, In, Out, Out, Loss, Out] {
   val input: Input[In]
   val layer: Layer[In, Out]
@@ -209,8 +215,10 @@ object Model {
       clipGradients: ClipGradients = NoClipGradients,
       colocateGradientsWithOps: Boolean = false
   )(implicit
-      evIn: NestedStructure.Aux[In, _, _, _],
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
+      evOutputToDataTypeIn: OutputToDataType.Aux[In, _],
+      evOutputToShapeIn: OutputToShape.Aux[In, _],
+      evOutputToDataTypeTrainIn: OutputToDataType.Aux[TrainIn, _],
+      evOutputToShapeTrainIn: OutputToShape.Aux[TrainIn, _]
   ): SupervisedTrainableModel[In, TrainIn, Out, Out, Loss] = {
     val trainLayer = new Layer[(In, TrainIn), Out]("SimpleSupervisedTrainLayer") {
       override val layerType: String = "SimpleSupervisedTrainLayer"
@@ -261,8 +269,10 @@ object Model {
       clipGradients: ClipGradients = NoClipGradients,
       colocateGradientsWithOps: Boolean = false
   )(implicit
-      evIn: NestedStructure.Aux[In, _, _, _],
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
+      evOutputToDataTypeIn: OutputToDataType.Aux[In, _],
+      evOutputToShapeIn: OutputToShape.Aux[In, _],
+      evOutputToDataTypeTrainIn: OutputToDataType.Aux[TrainIn, _],
+      evOutputToShapeTrainIn: OutputToShape.Aux[TrainIn, _]
   ): SupervisedTrainableModel[In, TrainIn, Out, TrainOut, Loss] = {
     val providedInput = input
     val providedTrainInput = trainInput
@@ -293,7 +303,8 @@ object Model {
       clipGradients: ClipGradients = NoClipGradients,
       colocateGradientsWithOps: Boolean = false
   )(implicit
-      evIn: NestedStructure.Aux[In, _, _, _]
+      evOutputToDataTypeIn: OutputToDataType.Aux[In, _],
+      evOutputToShapeIn: OutputToShape.Aux[In, _]
   ): UnsupervisedTrainableModel[In, Out, Loss] = {
     val providedInput = input
     val providedLayer = layer

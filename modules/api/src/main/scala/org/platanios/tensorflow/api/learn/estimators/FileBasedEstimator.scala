@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.io.CheckpointReader
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
@@ -76,8 +76,11 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
 )(implicit
-    evIn: NestedStructure.Aux[In, _, _, _],
-    evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
+    evOutputStructureIn: OutputStructure[In],
+    evOutputStructureTrainIn: OutputStructure[TrainIn],
+    evOutputStructureOut: OutputStructure[Out],
+    // This implicit helps the Scala 2.11 compiler.
+    evOutputStructureInOut: OutputStructure[(In, Out)]
 ) extends Estimator[In, TrainIn, Out, TrainOut, Loss, EvalIn](modelFunction, configurationBase) {
   /** Trains the model managed by this estimator.
     *
@@ -215,11 +218,11 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
   override def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
-      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
-      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      evOutputToTensorIn: OutputToTensor.Aux[In, InV],
+      evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
       // This implicit helps the Scala 2.11 compiler.
-      evFetchableInOut: NestedStructure.Aux[(In, Out), (InV, OutV), (InD, OutD), (InS, OutS)]
+      evOutputToTensorInOut: OutputToTensor.Aux[(In, Out), (InV, OutV)]
   ): InferOut = {
     inferWithHooks(input)
   }
@@ -258,11 +261,11 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
       hooks: Set[Hook] = inferHooks,
       checkpointPath: Path = null
   )(implicit
-      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
-      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      evOutputToTensorIn: OutputToTensor.Aux[In, InV],
+      evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
       // This implicit helps the Scala 2.11 compiler.
-      evFetchableInOut: NestedStructure.Aux[(In, Out), (InV, OutV), (InD, OutD), (InS, OutS)]
+      evOutputToTensorInOut: OutputToTensor.Aux[(In, Out), (InV, OutV)]
   ): InferOut = {
     Op.nameScope("Estimator/Infer") {
       if (hooks.exists(_.isInstanceOf[Stopper]))
@@ -479,7 +482,7 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
 object FileBasedEstimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / File-based Estimator"))
 
-  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](
+  def apply[In: OutputStructure, TrainIn: OutputStructure, Out: OutputStructure, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](
       modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),
@@ -489,9 +492,6 @@ object FileBasedEstimator {
       evaluateHooks: Set[Hook] = Set.empty,
       tensorBoardConfig: TensorBoardConfig = null,
       evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
-  )(implicit
-      evIn: NestedStructure.Aux[In, _, _, _],
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
   ): FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss, EvalIn] = {
     new FileBasedEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,

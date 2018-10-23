@@ -27,9 +27,15 @@ import shapeless.ops.hlist.Tupler
   */
 sealed trait DataTypeToOutput[D] {
   type O
+
+  def dataTypeStructure: DataTypeStructure[D]
 }
 
 object DataTypeToOutput {
+  def apply[D](implicit ev: DataTypeToOutput[D]): Aux[D, ev.O] = {
+    ev.asInstanceOf[Aux[D, ev.O]]
+  }
+
   type Aux[D, OO] = DataTypeToOutput[D] {
     type O = OO
   }
@@ -37,12 +43,20 @@ object DataTypeToOutput {
   implicit val fromUnit: Aux[Unit, Unit] = {
     new DataTypeToOutput[Unit] {
       override type O = Unit
+
+      override def dataTypeStructure: DataTypeStructure[Unit] = {
+        DataTypeStructure.fromUnit
+      }
     }
   }
 
   implicit def fromDataType[T]: Aux[DataType[T], Output[T]] = {
     new DataTypeToOutput[DataType[T]] {
       override type O = Output[T]
+
+      override def dataTypeStructure: DataTypeStructure[DataType[T]] = {
+        DataTypeStructure.fromOutput[T]
+      }
     }
   }
 
@@ -51,6 +65,10 @@ object DataTypeToOutput {
   ): DataTypeToOutput.Aux[Option[D], Option[ev.O]] = {
     new DataTypeToOutput[Option[D]] {
       override type O = Option[ev.O]
+
+      override def dataTypeStructure: DataTypeStructure[Option[D]] = {
+        DataTypeStructure.fromOption[D](ev.dataTypeStructure)
+      }
     }
   }
 
@@ -59,6 +77,10 @@ object DataTypeToOutput {
   ): DataTypeToOutput.Aux[Seq[D], Seq[ev.O]] = {
     new DataTypeToOutput[Seq[D]] {
       override type O = Seq[ev.O]
+
+      override def dataTypeStructure: DataTypeStructure[Seq[D]] = {
+        DataTypeStructure.fromSeq[D](ev.dataTypeStructure)
+      }
     }
   }
 
@@ -67,20 +89,20 @@ object DataTypeToOutput {
   ): DataTypeToOutput.Aux[Map[K, D], Map[K, ev.O]] = {
     new DataTypeToOutput[Map[K, D]] {
       override type O = Map[K, ev.O]
-    }
-  }
 
-  implicit def fromNestedStructure[T](implicit
-      evStructure: NestedStructure[T]
-  ): DataTypeToOutput.Aux[evStructure.D, T] = {
-    new DataTypeToOutput[evStructure.D] {
-      override type O = T
+      override def dataTypeStructure: DataTypeStructure[Map[K, D]] = {
+        DataTypeStructure.fromMap[K, D](ev.dataTypeStructure)
+      }
     }
   }
 
   implicit val fromHNil: DataTypeToOutput.Aux[HNil, HNil] = {
     new DataTypeToOutput[HNil] {
       override type O = HNil
+
+      override def dataTypeStructure: DataTypeStructure[HNil] = {
+        DataTypeStructure.fromHNil
+      }
     }
   }
 
@@ -90,6 +112,10 @@ object DataTypeToOutput {
   ): DataTypeToOutput.Aux[HD :: TD, HO :: TO] = {
     new DataTypeToOutput[HD :: TD] {
       override type O = HO :: TO
+
+      override def dataTypeStructure: DataTypeStructure[HD :: TD] = {
+        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.dataTypeStructure)
+      }
     }
   }
 
@@ -101,15 +127,10 @@ object DataTypeToOutput {
   ): DataTypeToOutput.Aux[PD, PO] = {
     new DataTypeToOutput[PD] {
       override type O = PO
-    }
-  }
 
-  implicit def fromCoproduct[HD, HO, TD <: Coproduct, TO <: Coproduct](implicit
-      evH: Strict[DataTypeToOutput.Aux[HD, HO]],
-      evT: DataTypeToOutput.Aux[TD, TO]
-  ): DataTypeToOutput.Aux[HD :+: TD, HO :+: TO] = {
-    new DataTypeToOutput[HD :+: TD] {
-      override type O = HO :+: TO
+      override def dataTypeStructure: DataTypeStructure[PD] = {
+        DataTypeStructure.fromProduct[PD, HD](genD, evD.dataTypeStructure)
+      }
     }
   }
 }

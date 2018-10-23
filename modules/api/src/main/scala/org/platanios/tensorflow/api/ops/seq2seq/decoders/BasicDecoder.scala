@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.{IsIntOrLong, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.RNN
@@ -40,27 +40,60 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicDecoder[Out: Zero, Sample: Zero, State: NestedStructure](
+class BasicDecoder[Out: OutputStructure, Sample: OutputStructure, State: OutputStructure, CellOutShape, SampleShape, CellStateShape](
     override val cell: RNNCell[Out, State],
     val initialCellState: State,
     val helper: BasicDecoder.Helper[Out, Sample, State],
     val outputLayer: Out => Out = (o: Out) => o,
     override val name: String = "BasicRNNDecoder"
+)(implicit
+    evOutputToShapeCellOut: OutputToShape.Aux[Out, CellOutShape],
+    evOutputToShapeSample: OutputToShape.Aux[Sample, SampleShape],
+    evOutputToShapeCellState: OutputToShape.Aux[State, CellStateShape],
+    evZeroCellOut: Zero.Aux[Out, CellOutShape],
+    evZeroSample: Zero.Aux[Sample, SampleShape]
 ) extends Decoder[
-    /* Out      */ Out,
-    /* State    */ State,
-    /* DecOut   */ BasicDecoder.BasicDecoderOutput[Out, Sample], State,
-    /* DecState */ BasicDecoder.BasicDecoderOutput[Out, Sample], State](
+    /* Out           */ Out,
+    /* State         */ State,
+    /* DecOut        */ BasicDecoder.BasicDecoderOutput[Out, Sample],
+    /* DecState      */ State,
+    /* DecFinalOut   */ BasicDecoder.BasicDecoderOutput[Out, Sample],
+    /* DecFinalState */ State](
   cell = cell,
   name = name
 ) {
+  type OutShape = CellOutShape
+  type StateShape = CellStateShape
+  type DecOutShape = (CellOutShape, SampleShape)
+  type DecStateShape = CellStateShape
+
+  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = {
+    implicitly[OutputToShape.Aux[Out, OutShape]]
+  }
+
+  def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = {
+    implicitly[OutputToShape.Aux[State, StateShape]]
+  }
+
+  def evOutputToShapeDecState: OutputToShape.Aux[State, DecStateShape] = {
+    implicitly[OutputToShape.Aux[State, DecStateShape]]
+  }
+
+  def evZeroOut: Zero.Aux[Out, OutShape] = {
+    implicitly[Zero.Aux[Out, OutShape]]
+  }
+
+  def evZeroDecOut: Zero.Aux[BasicDecoder.BasicDecoderOutput[Out, Sample], DecOutShape] = {
+    implicitly[Zero.Aux[BasicDecoder.BasicDecoderOutput[Out, Sample], DecOutShape]]
+  }
+
   /** Scalar tensor representing the batch size of the input values. */
   override val batchSize: Output[Int] = {
     helper.batchSize
   }
 
   override def zeroOutput: BasicDecoder.BasicDecoderOutput[Out, Sample] = {
-    val zOutput = Zero[Out].zero(batchSize, cell.outputShape(Zero[Out].structure), "ZeroOutput")
+    val zOutput = Zero[Out].zero(batchSize, cell.outputShape.asInstanceOf[OutShape], "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
     BasicDecoder.BasicDecoderOutput(
       modelOutput = outputLayer(zOutput),
@@ -114,13 +147,19 @@ class BasicDecoder[Out: Zero, Sample: Zero, State: NestedStructure](
 }
 
 object BasicDecoder {
-  def apply[Out: Zero, Sample: Zero, State: NestedStructure](
+  def apply[Out: OutputStructure, Sample: OutputStructure, State: OutputStructure, OutShape, SampleShape, StateShape](
       cell: RNNCell[Out, State],
       initialCellState: State,
       helper: BasicDecoder.Helper[Out, Sample, State],
       outputLayer: Out => Out = (o: Out) => o,
       name: String = "BasicRNNDecoder"
-  ): BasicDecoder[Out, Sample, State] = {
+  )(implicit
+      evOutputToShapeCellOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeSample: OutputToShape.Aux[Sample, SampleShape],
+      evOutputToShapeCellState: OutputToShape.Aux[State, StateShape],
+      evZeroCellOut: Zero.Aux[Out, OutShape],
+      evZeroSample: Zero.Aux[Sample, SampleShape]
+  ): BasicDecoder[Out, Sample, State, OutShape, SampleShape, StateShape] = {
     new BasicDecoder(cell, initialCellState, helper, outputLayer, name)
   }
 
@@ -160,17 +199,21 @@ object BasicDecoder {
 
   /** RNN decoder helper to be used while training. It only reads inputs and the returned sample indexes are the argmax
     * over the RNN output logits. */
-  case class TrainingHelper[Out, State](
+  case class TrainingHelper[Out, State, OutShape](
       input: Out,
       sequenceLengths: Output[Int],
       timeMajor: Boolean = false,
       name: String = "RNNDecoderTrainingHelper"
-  )(implicit evZeroO: Zero.Aux[Out, _, _, _]) extends Helper[Out, Out, State] {
+  )(implicit
+      evOutputStructure: OutputStructure[Out],
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evZeroOut: Zero.Aux[Out, OutShape]
+  ) extends Helper[Out, Out, State] {
     if (sequenceLengths.rank != 1)
       throw InvalidShapeException(s"'sequenceLengths' (shape = ${sequenceLengths.shape}) must have rank 1.")
 
     private var inputs: Seq[Output[Any]] = {
-      evZeroO.structure.outputs(input)
+      OutputStructure[Out].outputs(input)
     }
 
     private val inputTensorArrays: Seq[TensorArray[Any]] = {
@@ -214,9 +257,9 @@ object BasicDecoder {
         batchSize: Output[Int],
         name: String = "ZeroSample"
     ): Out = {
-      val shapes = evZeroO.structure.outputs(input).map(_ => Shape.scalar())
-      val shape = evZeroO.structure.decodeShapeFromOutput(input, shapes)._1
-      evZeroO.zero(batchSize, shape.asInstanceOf[evZeroO.S])
+      val shapes = evOutputStructure.outputs(input).map(_ => Shape.scalar())
+      val shape = evOutputToShapeOut.decodeShape(input, shapes)._1
+      evZeroOut.zero(batchSize, shape)
     }
 
     /** Returns a tuple containing: (i) a scalar tensor specifying whether initialization has finished, and
@@ -228,7 +271,7 @@ object BasicDecoder {
           Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(0)))
-        (finished, evZeroO.structure.decodeOutputFromOutput(input, nextInputs)._1)
+        (finished, OutputStructure[Out].decodeOutput(input, nextInputs)._1)
       }
     }
 
@@ -238,9 +281,9 @@ object BasicDecoder {
         input: Out,
         state: State
     ): Out = {
-      val outputs = evZeroO.structure.outputs(input)
+      val outputs = evOutputStructure.outputs(input)
       Op.nameScope(s"$name/Sample") {
-        evZeroO.structure.decodeOutputFromOutput(input, outputs.map(output => {
+        OutputStructure[Out].decodeOutput(input, outputs.map(output => {
 
           // TODO: [TYPES] !!! Super hacky. Remove in the future.
           val ev: IsNotQuantized[Any] = null
@@ -269,7 +312,7 @@ object BasicDecoder {
           Math.all(finished),
           () => zeroInputs,
           () => inputTensorArrays.map(_.read(nextTime)))
-        (finished, evZeroO.structure.decodeOutputFromOutput(input, nextInputs)._1, state)
+        (finished, evOutputStructure.decodeOutput(input, nextInputs)._1, state)
       }
     }
   }

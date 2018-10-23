@@ -19,12 +19,11 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
-
 import org.tensorflow.framework.FunctionDef
 
 import scala.collection.mutable
@@ -35,41 +34,41 @@ import scala.collection.JavaConverters._
 /**
   * @author Emmanouil Antonios Platanios
   */
-case class Function[I, O](
+case class Function[I: OutputStructure, O: OutputStructure](
     name: String,
     function: I => O
 ) {
-  def apply[IV, ID, IS, OV, OD, OS](
+  def apply[ID, IS](
       arg: I,
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   )(implicit
-      evStructureI: NestedStructure.Aux[I, IV, ID, IS],
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS]
+      evOutputToDataTypeI: OutputToDataType.Aux[I, ID],
+      evOutputToShapeI: OutputToShape.Aux[I, IS]
   ): O = {
-    val dataTypes = evStructureI.outputs(arg).map(_.dataType)
+    val dataTypes = OutputStructure[I].outputs(arg).map(_.dataType)
     val key = dataTypes.map(_.toString).mkString(":")
     InstantiatedFunction(
       name = s"${name}_$key",
       function = function,
-      inputDataType = evStructureI.dataTypeFromOutput(arg),
+      inputDataType = evOutputToDataTypeI.dataType(arg),
       input = Some(arg),
       captureByValue = captureByValue, appendHashToName = appendHashToName
     ).apply(arg)
   }
 
-  def instantiate[IV, ID, IS, OV, OD, OS](
+  def instantiate[ID, IS](
       inputDataType: ID,
       inputShape: Option[IS] = None,
       input: Option[I] = None,
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   )(implicit
-      evStructureI: NestedStructure.Aux[I, IV, ID, IS],
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS]
+      evOutputToDataTypeI: OutputToDataType.Aux[I, ID],
+      evOutputToShapeI: OutputToShape.Aux[I, IS]
   ): InstantiatedFunction[I, O] = {
-    val inputDataTypes = evStructureI.dataTypes(inputDataType)
-    val inputShapes = inputShape.map(evStructureI.shapes)
+    val inputDataTypes = evOutputToDataTypeI.dataTypeStructure.dataTypes(inputDataType)
+    val inputShapes = inputShape.map(evOutputToShapeI.shapeStructure.shapes)
     val key = (inputDataTypes.map(_.toString) ++
         inputShapes.getOrElse(Seq.empty).map(_.toString)).mkString(":")
     InstantiatedFunction(
@@ -85,7 +84,7 @@ case class Function[I, O](
 
 // TODO: [TYPES] !!! What about type variance here?
 
-private[api] class InstantiatedFunction[I, O] protected(
+private[api] class InstantiatedFunction[I: OutputStructure, O: OutputStructure] protected(
     val hashedName: String,
     val inputNames: Seq[String],
     val outputNames: Seq[String],
@@ -97,12 +96,12 @@ private[api] class InstantiatedFunction[I, O] protected(
     private[this] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
 ) extends Closeable {
-  def outputDataTypes[V, D, S](implicit evStructureO: NestedStructure.Aux[O, V, D, S]): D = {
-    evStructureO.dataTypeFromOutput(_dummyOutput)
+  def outputDataTypes[D](implicit ev: OutputToDataType.Aux[O, D]): D = {
+    ev.dataType(_dummyOutput)
   }
 
-  def outputShapes[V, D, S](implicit evStructureI: NestedStructure.Aux[O, V, D, S]): S = {
-    evStructureI.shapeFromOutput(_dummyOutput)
+  def outputShapes[S](implicit ev: OutputToShape.Aux[O, S]): S = {
+    ev.shape(_dummyOutput)
   }
 
   /** Lock for the native handle. */
@@ -147,18 +146,15 @@ private[api] class InstantiatedFunction[I, O] protected(
     * @param  name                      Name for the created op.
     * @return Function output.
     */
-  def apply[IV, ID, IS, OV, OD, OS](
+  def apply(
       input: I,
       inline: Boolean = true,
       compiled: Boolean = false,
       separateCompiledGradients: Boolean = false,
       name: String = name
-  )(implicit
-      evStructureI: NestedStructure.Aux[I, IV, ID, IS],
-      evStructureO: NestedStructure.Aux[O, OV, OD, OS]
   ): O = {
     val outputs = Op.nameScope(name) {
-      val outputs = evStructureI.outputs(input)
+      val outputs = OutputStructure[I].outputs(input)
       addToGraph(outputs.head.graph)
       val builder = Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
         opType = hashedName,
@@ -176,7 +172,7 @@ private[api] class InstantiatedFunction[I, O] protected(
       }
       builder.build().output
     }
-    evStructureO.decodeOutputFromOutput(_dummyOutput, outputs)._1
+    OutputStructure[O].decodeOutput(_dummyOutput, outputs)._1
   }
 
   /** Constructs and returns a [[FunctionDef]] object, which is a serialized version of this function. */
@@ -186,7 +182,7 @@ private[api] class InstantiatedFunction[I, O] protected(
 }
 
 object InstantiatedFunction {
-  private[api] def apply[I, IV, ID, IS, O, OV, OD, OS](
+  private[api] def apply[I, O, ID, IS](
       name: String,
       function: I => O,
       inputDataType: ID,
@@ -195,11 +191,13 @@ object InstantiatedFunction {
       captureByValue: Boolean = false,
       appendHashToName: Boolean = false
   )(implicit
-      evInput: NestedStructure.Aux[I, IV, ID, IS],
-      evOutput: NestedStructure.Aux[O, OV, OD, OS]
+      evOutputStructureI: OutputStructure[I],
+      evOutputStructureO: OutputStructure[O],
+      evOutputToDataTypeI: OutputToDataType.Aux[I, ID],
+      evOutputToShapeI: OutputToShape.Aux[I, IS]
   ): InstantiatedFunction[I, O] = {
     // List of placeholders for the function definition.
-    val inputDataTypes = evInput.dataTypes(inputDataType)
+    val inputDataTypes = evOutputToDataTypeI.dataTypeStructure.dataTypes(inputDataType)
     val inputs = mutable.ListBuffer.empty[Output[Any]]
     val functionGraph = FunctionGraph(captureByValue)
     val (inputNamesWithDefault, outputNamesWithDefault, outputs, flattenedOutputs) = Op.createWith(functionGraph) {
@@ -212,10 +210,11 @@ object InstantiatedFunction {
                 Basic.placeholder(name = name)(TF.fromDataType(dataType))
               }))
         case Some(shape) =>
-          inputs.appendAll((inputNamesWithDefault, inputDataTypes, evInput.shapes(shape)).zipped
-              .map((name, dataType, shape) => {
-                Basic.placeholder(shape, name = name)(TF.fromDataType(dataType))
-              }))
+          inputs.appendAll(
+            (inputNamesWithDefault, inputDataTypes, evOutputToShapeI.shapeStructure.shapes(shape)).zipped
+                .map((name, dataType, shape) => {
+                  Basic.placeholder(shape, name = name)(TF.fromDataType(dataType))
+                }))
       }
 
       // Call the Scala function and gather the output tensors.
@@ -225,10 +224,10 @@ object InstantiatedFunction {
           underlyingGetter = functionGraph.customVariableGetter
         ) {
           // Unflatten the inputs, pass them to the function, and then flatten the returned outputs.
-          val outputs = function(input.map(evInput.decodeOutputFromOutput(_, inputs)._1)
-              .getOrElse(evInput.decodeOutputFromDataType(inputDataType, inputs)._1))
-          val flattenedOutputs = evOutput.outputs(outputs).map(functionGraph.capture)
-          (evOutput.decodeOutputFromOutput(outputs, flattenedOutputs)._1, flattenedOutputs)
+          val outputs = function(input.map(evOutputStructureI.decodeOutput(_, inputs)._1)
+              .getOrElse(evOutputToDataTypeI.decodeOutput(inputDataType, inputs)._1))
+          val flattenedOutputs = evOutputStructureO.outputs(outputs).map(functionGraph.capture)
+          (evOutputStructureO.decodeOutput(outputs, flattenedOutputs)._1, flattenedOutputs)
         }
       }
 

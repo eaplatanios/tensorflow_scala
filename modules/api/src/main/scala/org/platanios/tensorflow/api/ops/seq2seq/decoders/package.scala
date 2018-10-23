@@ -21,8 +21,8 @@ package org.platanios.tensorflow.api.ops.seq2seq
 package object decoders {
   private[seq2seq] trait API {
     type Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState] = decoders.Decoder[Out, State, DecOut, DecState, DecFinalOut, DecFinalState]
-    type BasicDecoder[Out, Sample, State] = decoders.BasicDecoder[Out, Sample, State]
-    type BeamSearchDecoder[T, State] = decoders.BeamSearchDecoder[T, State]
+    type BasicDecoder[Out, Sample, State, OutShape, SampleShape, StateShape] = decoders.BasicDecoder[Out, Sample, State, OutShape, SampleShape, StateShape]
+    type BeamSearchDecoder[T, State, StateShape] = decoders.BeamSearchDecoder[T, State, StateShape]
 
     val BasicDecoder     : decoders.BasicDecoder.type      = decoders.BasicDecoder
     val BeamSearchDecoder: decoders.BeamSearchDecoder.type = decoders.BeamSearchDecoder

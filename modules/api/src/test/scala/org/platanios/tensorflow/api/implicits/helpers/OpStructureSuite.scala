@@ -28,8 +28,8 @@ import org.scalatest.junit.JUnitSuite
 /**
   * @author Emmanouil Antonios Platanios
   */
-class NestedStructureOpsSuite extends JUnitSuite {
-  def executable[T: NestedStructureOps](value: T): T = value
+class OpStructureSuite extends JUnitSuite {
+  def executable[T: OpStructure](value: T): T = value
 
   @Test def testOpExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {

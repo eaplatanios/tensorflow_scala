@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.learn.SessionWrapper
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
@@ -73,9 +73,9 @@ class CheckpointSaver protected (
     summaryWriter.foreach(_.flush())
   }
 
-  override protected def onFirstTrigger[C, CV](
+  override protected def onFirstTrigger[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV]
-  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+  )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
     // We save the graph and the saver at the first call of `beforeSessionRun`. We cannot do this in `begin()` because
     // we let other hooks change the graph and add variables in their `begin()` methods. The graph is finalized after
     // all `begin()` calls.

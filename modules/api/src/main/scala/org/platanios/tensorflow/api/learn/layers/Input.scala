@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.learn.layers
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToOutput, NestedStructure}
+import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.learn.layers
 import org.platanios.tensorflow.api.ops.data.DatasetIterator
 import org.platanios.tensorflow.api.ops.Op
@@ -31,11 +31,11 @@ class Input[T] private(
     private val _shape: Any,
     private val name: String = "Input"
 ) {
-  def dataType[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+  def dataType[D](implicit evOutputToDataType: OutputToDataType.Aux[T, D]): D = {
     _dataType.asInstanceOf[D]
   }
 
-  def shape[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+  def shape[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
     _shape.asInstanceOf[S]
   }
 
@@ -43,20 +43,28 @@ class Input[T] private(
     mutable.Map.empty
   }
 
-  protected def create[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): DatasetIterator[T] = {
+  protected def create[D, S]()(implicit
+      evOutputToDataType: OutputToDataType.Aux[T, D],
+      evOutputToShape: OutputToShape.Aux[T, S]
+  ): DatasetIterator[T] = {
     DatasetIterator.fromStructure(
       outputDataTypes = dataType,
       outputShapes = shape,
       name = name)
   }
 
-  final def apply[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): DatasetIterator[T] = {
+  final def apply[D, S]()(implicit
+      evOutputToDataType: OutputToDataType.Aux[T, D],
+      evOutputToShape: OutputToShape.Aux[T, S]
+  ): DatasetIterator[T] = {
     cache.getOrElse(Op.currentGraph, create())
   }
 
-  def zip[V, D, S, T2, V2, D2, S2](other: Input[T2])(implicit
-      evT: NestedStructure.Aux[T, V, D, S],
-      evT2: NestedStructure.Aux[T2, V2, D2, S2]
+  def zip[D, S, T2, D2, S2](other: Input[T2])(implicit
+      evOutputToDataTypeT: OutputToDataType.Aux[T, D],
+      evOutputToShapeT: OutputToShape.Aux[T, S],
+      evOutputToDataTypeT2: OutputToDataType.Aux[T2, D2],
+      evOutputToShapeT2: OutputToShape.Aux[T2, S2]
   ): Input[(T, T2)] = {
     new Input[(T, T2)](
       _dataType = (dataType, other.dataType),
@@ -66,13 +74,13 @@ class Input[T] private(
 }
 
 object Input {
-  def apply[T, V, D, S](
+  def apply[T, D, S](
       dataType: D,
       shape: S,
       name: String = "Input"
   )(implicit
       evDataTypeToOutput: DataTypeToOutput.Aux[D, T],
-      evStructure: NestedStructure.Aux[T, V, D, S]
+      evOutputToShape: OutputToShape.Aux[T, S]
   ): Input[T] = {
     new Input[T](dataType, shape, name)
   }

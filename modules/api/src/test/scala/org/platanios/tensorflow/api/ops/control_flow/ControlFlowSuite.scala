@@ -19,6 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.training.optimizers.GradientDescent
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, OnesInitializer, Variable, ZerosInitializer}
@@ -38,6 +39,14 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 class ControlFlowSuite extends JUnitSuite with Matchers {
+  // Implicit helpers for Scala 2.11
+  val evOutputStructureDoubleDouble: OutputStructure[(Output[Double], Output[Double])] = OutputStructure[(Output[Double], Output[Double])]
+  val evOutputStructureBooleanInt: OutputStructure[(Output[Boolean], Output[Int])] = OutputStructure[(Output[Boolean], Output[Int])]
+  val evOutputStructureIntFloat: OutputStructure[(Output[Int], Output[Float])] = OutputStructure[(Output[Int], Output[Float])]
+  val evOutputToTensorDoubleDouble: OutputToTensor.Aux[(Output[Double], Output[Double]), (Tensor[Double], Tensor[Double])]= OutputToTensor[(Output[Double], Output[Double])]
+  val evOutputToTensorBooleanInt: OutputToTensor.Aux[(Output[Boolean], Output[Int]), (Tensor[Boolean], Tensor[Int])] = OutputToTensor[(Output[Boolean], Output[Int])]
+  val evOutputToTensorIntFloat: OutputToTensor.Aux[(Output[Int], Output[Float]), (Tensor[Int], Tensor[Float])] = OutputToTensor[(Output[Int], Output[Float])]
+
   private[this] def withNewGraph[T](fn: => T): T = {
     using(Graph())(graph => {
       Op.createWith(graph) {
@@ -185,6 +194,10 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testGradientThroughSingleBranchOutsideOfContext(): Unit = withNewGraph {
+    // Implicit helper for Scala 2.11
+    implicit val evOutputStructureDoubleDouble: OutputStructure[(Output[Double], Output[Double])] = this.evOutputStructureDoubleDouble
+    implicit val evOutputToTensorDoubleDouble: OutputToTensor.Aux[(Output[Double], Output[Double]), (Tensor[Double], Tensor[Double])]= this.evOutputToTensorDoubleDouble
+
     val p = Basic.constant(true)
     val x = Basic.constant(2.0)
     val (xFalse, xTrue) = ControlFlow.switch(x, p)
@@ -305,6 +318,10 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testCondWithOutputSequence(): Unit = withNewGraph {
+    // Implicit helper for Scala 2.11
+  implicit val evOutputStructureBooleanInt: OutputStructure[(Output[Boolean], Output[Int])] = this.evOutputStructureBooleanInt
+    implicit val evOutputToTensorBooleanInt: OutputToTensor.Aux[(Output[Boolean], Output[Int]), (Tensor[Boolean], Tensor[Int])] = this.evOutputToTensorBooleanInt
+
     val p = Basic.constant(0) < 10
     val t = () => (Basic.constant(true), Basic.constant(1))
     val f = () => (Basic.constant(false), Basic.constant(0))
@@ -503,6 +520,10 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testCondGradientInNestedWhileLoops(): Unit = {
+    // Implicit helper for Scala 2.11
+    implicit val evOutputStructureIntFloat: OutputStructure[(Output[Int], Output[Float])] = this.evOutputStructureIntFloat
+    implicit val evOutputToTensorIntFloat: OutputToTensor.Aux[(Output[Int], Output[Float]), (Tensor[Int], Tensor[Float])] = this.evOutputToTensorIntFloat
+
     val (i, x) = ControlFlow.whileLoop(
       (outerV: (Output[Int], Output[Float])) => outerV._1 < 3,
       (outerV: (Output[Int], Output[Float])) => {

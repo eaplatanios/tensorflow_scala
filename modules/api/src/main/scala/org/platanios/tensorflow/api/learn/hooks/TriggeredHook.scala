@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -39,8 +39,6 @@ import org.tensorflow.framework.RunOptions
 abstract class TriggeredHook(
     trigger: HookTrigger = StepHookTrigger(10),
     triggerAtEnd: Boolean = true
-)(implicit
-    evStructureOptionS: NestedStructure.Aux[Option[Seq[Output[Any]]], Option[Seq[Tensor[Any]]], _, _]
 ) extends Hook {
   protected val internalTrigger: HookTrigger    = trigger.copy()
   protected var step           : Variable[Long] = _
@@ -61,10 +59,10 @@ abstract class TriggeredHook(
     super.internalAfterSessionCreation(session)
   }
 
-  override protected def beforeSessionRun[C, CV](
+  override protected def beforeSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV]
   )(implicit
-      evStructureC: NestedStructure.Aux[C, CV, _, _]
+      evOutputToTensorC: OutputToTensor.Aux[C, CV]
   ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
     shouldTrigger = internalTrigger.shouldTriggerForStep(lastStep.toInt + 1)
     if (shouldTrigger) {
@@ -77,16 +75,16 @@ abstract class TriggeredHook(
         wantMetadata = wantMetadata))
     } else {
       Some(Hook.SessionRunArgs(
-        fetches = Seq(step.value),
+        fetches = Seq[Output[Any]](step.value),
         targets = Set.empty))
     }
   }
 
-  override protected def afterSessionRun[C, CV](
+  override protected def afterSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV],
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
   )(implicit
-      evStructureC: NestedStructure.Aux[C, CV, _, _]
+      evOutputToTensorC: OutputToTensor.Aux[C, CV]
   ): Unit = {
     val result = runResult.result
     lastStep = result.head.scalar.asInstanceOf[Long]
@@ -113,9 +111,9 @@ abstract class TriggeredHook(
   protected def runOptions: Option[RunOptions] = None
   protected def wantMetadata: Boolean = false
 
-  protected def onFirstTrigger[C, CV](
+  protected def onFirstTrigger[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV]
-  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+  )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
     ()
   }
 

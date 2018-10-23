@@ -16,9 +16,8 @@
 package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.core.client.{FeedMap, Session}
-import org.platanios.tensorflow.api.core.exception.OutOfRangeException
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
-import org.platanios.tensorflow.api.learn.{MonitoredSession, SessionWrapper}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
+import org.platanios.tensorflow.api.learn.SessionWrapper
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -159,18 +158,18 @@ trait Hook {
     * @param  runContext Provides information about the upcoming run call (i.e., the originally requested ops/tensors,
     *                    the session, etc.).
     */
-  protected def beforeSessionRun[C, CV](
+  protected def beforeSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV]
   )(implicit
-      evStructureC: NestedStructure.Aux[C, CV, _, _]
+      evOutputToTensorC: OutputToTensor.Aux[C, CV]
   ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
     None
   }
 
-  private[learn] def internalBeforeSessionRun[C, CV](
+  private[learn] def internalBeforeSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV]
   )(implicit
-      evStructureC: NestedStructure.Aux[C, CV, _, _]
+      evOutputToTensorC: OutputToTensor.Aux[C, CV]
   ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
     beforeSessionRun(runContext)
   }
@@ -191,17 +190,17 @@ trait Hook {
     * @param  runResult  Result of the `Session.run()` call that includes the fetched values for the tensors requested
     *                    by `beforeSessionRun()`.
     */
-  protected def afterSessionRun[C, CV](
+  protected def afterSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV],
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
-  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+  )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
     ()
   }
 
-  private[learn] def internalAfterSessionRun[C, CV](
+  private[learn] def internalAfterSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV],
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
-  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+  )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
     afterSessionRun(runContext, runResult)
   }
 
@@ -255,13 +254,16 @@ object Hook {
       targets: Set[UntypedOp] = Set.empty,
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
-  )(implicit val evStructureS: NestedStructure.Aux[S, V, _, _]) {
+  )(implicit
+      val evOutputToTensor: OutputToTensor.Aux[S, V],
+      val evOutputStructureS: OutputStructure[S]
+  ) {
     private[learn] def flatFetches: Seq[Output[Any]] = {
-      evStructureS.outputs(fetches)
+      evOutputStructureS.outputs(fetches)
     }
 
     private[learn] def decodeResults(results: Seq[Tensor[Any]]): V = {
-      evStructureS.decodeTensorFromOutput(fetches, results)._1
+      evOutputToTensor.decodeTensor(fetches, results)._1
     }
   }
 

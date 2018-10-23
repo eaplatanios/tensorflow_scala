@@ -51,10 +51,10 @@ package object cell {
     type GRUCell[T] = cell.GRUCell[T]
     type BasicLSTMCell[T] = cell.BasicLSTMCell[T]
     type LSTMCell[T] = cell.LSTMCell[T]
-    type DeviceWrapper[O, S] = cell.DeviceWrapper[O, S]
-    type DropoutWrapper[O, S] = cell.DropoutWrapper[O, S]
-    type ResidualWrapper[O, S] = cell.ResidualWrapper[O, S]
-    type StackedCell[O, S] = cell.StackedCell[O, S]
+    type DeviceWrapper[Out, State] = cell.DeviceWrapper[Out, State]
+    type DropoutWrapper[Out, State] = cell.DropoutWrapper[Out, State]
+    type ResidualWrapper[Out, State] = cell.ResidualWrapper[Out, State]
+    type StackedCell[Out, State] = cell.StackedCell[Out, State]
 
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell

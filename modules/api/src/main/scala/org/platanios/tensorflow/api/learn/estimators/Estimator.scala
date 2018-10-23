@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.api.core.distributed.ReplicaDevicePlacer
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
@@ -182,11 +182,11 @@ abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
   def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
-      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
-      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      evOutputToTensorIn: OutputToTensor.Aux[In, InV],
+      evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
       // This implicit helps the Scala 2.11 compiler.
-      evFetchableInOut: NestedStructure.Aux[(In, Out), (InV, OutV), (InD, OutD), (InS, OutS)]
+      evOutputToTensorInOut: OutputToTensor.Aux[(In, Out), (InV, OutV)]
   ): InferOut
 
   /** Evaluates the model managed by this estimator given the provided evaluation data, `data`.
@@ -350,8 +350,8 @@ object Estimator {
   }
 
   object SupportedInferInput {
-    implicit def datasetInferInput[In, InV, InD, InS, OutV](implicit
-        evStructure: NestedStructure.Aux[In, InV, InD, InS]
+    implicit def datasetInferInput[In, InV, OutV](implicit
+        evOutputToTensor: OutputToTensor.Aux[In, InV]
     ): SupportedInferInput[In, InV, OutV, Dataset[In], Iterator[(InV, OutV)]] = {
       new SupportedInferInput[In, InV, OutV, Dataset[In], Iterator[(InV, OutV)]] {
         override def toDataset(value: Dataset[In]): Dataset[In] = {
@@ -365,7 +365,13 @@ object Estimator {
     }
 
     implicit def singleValueInferInput[In, InV, InD, InS, OutV](implicit
-        evStructure: NestedStructure.Aux[In, InV, InD, InS]
+        evTensorToOutput: TensorToOutput.Aux[InV, In],
+        evTensorToDataType: TensorToDataType.Aux[InV, InD],
+        evTensorToShape: TensorToShape.Aux[InV, InS],
+        evOutputToDataType: OutputToDataType.Aux[In, InD],
+        evOutputToShape: OutputToShape.Aux[In, InS],
+        evOutputStructure: OutputStructure[In],
+        evDataTypeToShape: DataTypeToShape.Aux[InD, InS]
     ): SupportedInferInput[In, InV, OutV, InV, OutV] = new SupportedInferInput[In, InV, OutV, InV, OutV] {
       override def toDataset(value: InV): Dataset[In] = {
         Data.datasetFromTensors(value)

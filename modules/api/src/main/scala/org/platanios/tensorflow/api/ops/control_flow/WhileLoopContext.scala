@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.ShapeMismatchException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
@@ -203,13 +203,17 @@ private[api] case class WhileLoopContext private[control_flow] (
       bodyFn: T => T,
       loopVariables: T,
       shapeInvariants: Option[S]
-  )(implicit evStructureT: NestedStructure.Aux[T, _, _, S]): T = {
+  )(implicit
+      evOutputToShape: OutputToShape.Aux[T, S]
+  ): T = {
+    val evOutputStructure = evOutputToShape.outputStructure
+
     try {
       // Enter the frame for this loop.
       enter()
 
-      val flattenedLoopVariables = evStructureT.outputs(loopVariables)
-      val flattenedShapeInvariants = shapeInvariants.map(evStructureT.shapes)
+      val flattenedLoopVariables = evOutputStructure.outputs(loopVariables)
+      val flattenedShapeInvariants = shapeInvariants.map(evOutputToShape.shapeStructure.shapes)
 
       // Let the context know the loop variables so the loop variables would be added to the outer contexts properly.
       initializeValues(flattenedLoopVariables)
@@ -257,7 +261,7 @@ private[api] case class WhileLoopContext private[control_flow] (
       pivotForPredicate = mergeVariables(0).op
 
       // Build the graph for the predicate.
-      val packedPredicateVariables = evStructureT.decodeOutputFromOutput(loopVariables, mergeVariables)._1
+      val packedPredicateVariables = evOutputStructure.decodeOutput(loopVariables, mergeVariables)._1
       val predicateResult = predicateFn(packedPredicateVariables)
       pivot = ControlFlow.loopCond(predicateResult, name = "LoopCond")
       val switchVariables = mergeVariables.map(v => {
@@ -269,11 +273,11 @@ private[api] case class WhileLoopContext private[control_flow] (
         Basic.identity(v._2)(TF.fromDataType(v._2.dataType))
       })
       pivotForBody = bodyVariables(0).op
-      val packedBodyVariables = evStructureT.decodeOutputFromOutput(loopVariables, bodyVariables)._1
+      val packedBodyVariables = evOutputStructure.decodeOutput(loopVariables, bodyVariables)._1
       val bodyResult = bodyFn(packedBodyVariables)
 
       // Convert the tensor arrays returned by the body function into their flow variables.
-      val flattenedBodyResult = evStructureT.outputs(bodyResult)
+      val flattenedBodyResult = evOutputStructure.outputs(bodyResult)
 
       // Add the `NextIteration` op and the back edges to complete the loop.
       mergeVariables.zip(flattenedBodyResult).map(p => {
@@ -292,7 +296,7 @@ private[api] case class WhileLoopContext private[control_flow] (
 
       // Convert any tensor array flow variables outside the context back into their associated tensor arrays for
       // returning to the caller.
-      evStructureT.decodeOutputFromOutput(bodyResult, exitVariables)._1
+      evOutputStructure.decodeOutput(bodyResult, exitVariables)._1
     } catch {
       case t: Throwable =>
         exit()

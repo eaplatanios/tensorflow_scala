@@ -15,35 +15,41 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputToShape, Zero}
 import org.platanios.tensorflow.api.ops.Output
 
 /** Contains functions for constructing ops related to recurrent neural network (RNN) cells.
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[O, S] {
-  def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS
-  def stateShape[SS](implicit evStructureS: NestedStructure.Aux[S, _, _, SS]): SS
+abstract class RNNCell[Out, State] {
+  type OutShape
+  type StateShape
+
+  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape]
+  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+
+  def outputShape: OutShape
+  def stateShape: StateShape
 
   def zeroOutput(
       batchSize: Output[Int],
       name: String = "ZeroOutput"
-  )(implicit evZeroO: Zero[O]): O = {
-    evZeroO.zero(batchSize, outputShape(evZeroO.structure), name)
+  )(implicit evZeroO: Zero.Aux[Out, OutShape]): Out = {
+    evZeroO.zero(batchSize, outputShape, name)
   }
 
   def zeroState(
       batchSize: Output[Int],
       name: String = "ZeroState"
-  )(implicit evZeroS: Zero[S]): S = {
-    evZeroS.zero(batchSize, stateShape(evZeroS.structure), name)
+  )(implicit evZeroS: Zero.Aux[State, StateShape]): State = {
+    evZeroS.zero(batchSize, stateShape, name)
   }
 
   @throws[IllegalArgumentException]
-  def forward(input: Tuple[O, S]): Tuple[O, S]
+  def forward(input: Tuple[Out, State]): Tuple[Out, State]
 
-  def apply(input: Tuple[O, S]): Tuple[O, S] = {
+  def apply(input: Tuple[Out, State]): Tuple[Out, State] = {
     forward(input)
   }
 }

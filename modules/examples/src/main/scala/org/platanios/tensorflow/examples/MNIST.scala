@@ -17,8 +17,12 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.UByte
+import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
 import org.platanios.tensorflow.api.learn.ClipGradientsByGlobalNorm
+import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.MNISTLoader
+import org.platanios.tensorflow.examples
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -30,6 +34,10 @@ import java.nio.file.Paths
   */
 object MNIST {
   private val logger = Logger(LoggerFactory.getLogger("Examples / MNIST"))
+
+  // Implicit helper for Scala 2.11
+  implicit val evOutputStructureFloatLong: OutputStructure[(Output[Float], Output[Long])] = examples.evOutputStructureFloatLong
+
 
   def main(args: Array[String]): Unit = {
     val dataSet = MNISTLoader.load(Paths.get("datasets/MNIST"))

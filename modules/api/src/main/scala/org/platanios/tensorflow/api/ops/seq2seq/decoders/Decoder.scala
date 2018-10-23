@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, Zero}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape, Zero}
 import org.platanios.tensorflow.api.ops.{Basic, Math, OpSpecification, Output, TensorArray}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.rnn.RNN
@@ -42,10 +42,21 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Decoder[Out: Zero, State, DecOut: Zero, DecState: NestedStructure, DecFinalOut: NestedStructure, DecFinalState](
+abstract class Decoder[Out, State, DecOut: OutputStructure, DecState: OutputStructure, DecFinalOut: OutputStructure, DecFinalState](
     val cell: RNNCell[Out, State],
     val name: String = "RNNDecoder"
 ) {
+  type OutShape
+  type StateShape
+  type DecOutShape
+  type DecStateShape
+
+  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape]
+  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  def evOutputToShapeDecState: OutputToShape.Aux[DecState, DecStateShape]
+  def evZeroOut: Zero.Aux[Out, OutShape]
+  def evZeroDecOut: Zero.Aux[DecOut, DecOutShape]
+
   /** Scalar tensor representing the batch size of the input values. */
   val batchSize: Output[Int]
 
@@ -106,9 +117,9 @@ abstract class Decoder[Out: Zero, State, DecOut: Zero, DecState: NestedStructure
       swapMemory: Boolean = false,
       name: String = s"$name/DynamicRNNDecode"
   ): (DecFinalOut, DecFinalState, Output[Int]) = {
-    val evZeroDecOut = Zero[DecOut]
-    val evStructureDecState = NestedStructure[DecState]
-    val evStructureDecFinalOut = NestedStructure[DecFinalOut]
+    val evStructureDecOut = OutputStructure[DecOut]
+    val evStructureDecState = OutputStructure[DecState]
+    val evStructureDecFinalOut = OutputStructure[DecFinalOut]
 
     if (maximumIterations != null && maximumIterations.rank != 0) {
       throw InvalidShapeException(
@@ -126,7 +137,7 @@ abstract class Decoder[Out: Zero, State, DecOut: Zero, DecState: NestedStructure
     VariableScope.updatedScope(currentVariableScope, cachingDevice = cachingDevice) {
       var (initialFinished, initialInput, initialState) = initialize()
       val zeroOutput = this.zeroOutput
-      val zeroOutputs = evZeroDecOut.structure.outputs(zeroOutput)
+      val zeroOutputs = evStructureDecOut.outputs(zeroOutput)
       val initialOutputTensorArrays = zeroOutputs.map(output => {
         TensorArray.create(
           size = 0,
@@ -154,7 +165,7 @@ abstract class Decoder[Out: Zero, State, DecOut: Zero, DecState: NestedStructure
       def body(loopVariables: LoopVariables): LoopVariables = {
         val (time, outputTensorArrays, state, input, finished, sequenceLengths) = loopVariables
         val (decoderOutput, decoderState, nextInput, decoderFinished) = next(time, input, state)
-        val decoderOutputs = evZeroDecOut.structure.outputs(decoderOutput)
+        val decoderOutputs = evStructureDecOut.outputs(decoderOutput)
         val decoderStates = evStructureDecState.outputs(decoderState)
         var nextFinished = {
           if (tracksOwnFinished)
@@ -191,15 +202,16 @@ abstract class Decoder[Out: Zero, State, DecOut: Zero, DecState: NestedStructure
             (decoderOutputs, decoderStates)
           }
         }
-        val nextState = evStructureDecState.decodeOutputFromOutput(state, nextStates)._1
+        val nextState = evStructureDecState.decodeOutput(state, nextStates)._1
         val nextOutputTensorArrays = outputTensorArrays.zip(nextOutputs).map(t => {
           t._1.write(time, t._2)
         })
         (time + 1, nextOutputTensorArrays, nextState, nextInput, nextFinished, nextSequenceLengths)
       }
 
-      // The following implicit is a helper for Scala 2.11 support.
-      val ev211Helper = implicitly[NestedStructure[(Output[Int], Seq[TensorArray[Any]], DecState, Out, Output[Boolean], Output[Int])]]
+      implicit val evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = this.evOutputToShapeOut
+      implicit val evOutputToShapeState: OutputToShape.Aux[State, StateShape] = this.evOutputToShapeState
+      implicit val evOutputToShapeDecState: OutputToShape.Aux[DecState, DecStateShape] = this.evOutputToShapeDecState
 
       val (_, finalOutputTensorArrays, preFinalState, _, _, preFinalSequenceLengths): LoopVariables =
         ControlFlow.whileLoop(
@@ -208,14 +220,14 @@ abstract class Decoder[Out: Zero, State, DecOut: Zero, DecState: NestedStructure
           (initialTime, initialOutputTensorArrays, initialState,
               initialInput, initialFinished, initialSequenceLengths),
           parallelIterations = parallelIterations,
-          swapMemory = swapMemory)(ev211Helper.asAux())
+          swapMemory = swapMemory)(OutputToShape[LoopVariables])
 
       var (finalOutput, finalState, finalSequenceLengths) = finalize(
-        evZeroDecOut.structure.decodeOutputFromOutput(zeroOutput, finalOutputTensorArrays.map(_.stack()))._1,
+        evStructureDecOut.decodeOutput(zeroOutput, finalOutputTensorArrays.map(_.stack()))._1,
         preFinalState, preFinalSequenceLengths)
 
       if (!outputTimeMajor) {
-        finalOutput = evStructureDecFinalOut.decodeOutputFromOutput(
+        finalOutput = evStructureDecFinalOut.decodeOutput(
           finalOutput,
           evStructureDecFinalOut.outputs(finalOutput).map(o => {
             RNN.transposeBatchTime(o)(TF.fromDataType(o.dataType))

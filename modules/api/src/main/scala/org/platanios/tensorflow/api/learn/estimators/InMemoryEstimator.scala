@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
 import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output, UntypedOp}
@@ -72,8 +72,11 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
 )(implicit
-    evIn: NestedStructure.Aux[In, _, _, _],
-    evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
+    evOutputStructureIn: OutputStructure[In],
+    evOutputStructureTrainIn: OutputStructure[TrainIn],
+    evOutputStructureOut: OutputStructure[Out],
+    // This implicit helps the Scala 2.11 compiler.
+    evOutputStructureInOut: OutputStructure[(In, Out)]
 ) extends Estimator[In, TrainIn, Out, TrainOut, Loss, EvalIn](modelFunction, configurationBase) {
   if (trainHooks.exists(_.isInstanceOf[Stopper])
       || trainChiefOnlyHooks.exists(_.isInstanceOf[Stopper])
@@ -238,11 +241,11 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
   override def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
-      evFetchableIn: NestedStructure.Aux[In, InV, InD, InS],
-      evFetchableOut: NestedStructure.Aux[Out, OutV, OutD, OutS],
+      evOutputToTensorIn: OutputToTensor.Aux[In, InV],
+      evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
       // This implicit helps the Scala 2.11 compiler.
-      evFetchableInOut: NestedStructure.Aux[(In, Out), (InV, OutV), (InD, OutD), (InS, OutS)]
+      evOutputToTensorInOut: OutputToTensor.Aux[(In, Out), (InV, OutV)]
   ): InferOut = {
     session.removeHooks(currentTrainHooks ++ evaluateHooks)
     val output = Op.createWith(graph) {
@@ -385,7 +388,7 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
 object InMemoryEstimator {
   private[estimators] val logger = Logger(LoggerFactory.getLogger("Learn / In-Memory Estimator"))
 
-  def apply[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](
+  def apply[In: OutputStructure, TrainIn: OutputStructure, Out: OutputStructure, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn](
       modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
       configurationBase: Configuration = null,
       stopCriteria: StopCriteria = StopCriteria(),
@@ -395,9 +398,6 @@ object InMemoryEstimator {
       evaluateHooks: Set[Hook] = Set.empty,
       tensorBoardConfig: TensorBoardConfig = null,
       evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
-  )(implicit
-      evIn: NestedStructure.Aux[In, _, _, _],
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
   ): InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss, EvalIn] = {
     new InMemoryEstimator(
       modelFunction, configurationBase, stopCriteria, trainHooks, trainChiefOnlyHooks, inferHooks, evaluateHooks,

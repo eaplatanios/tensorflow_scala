@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
@@ -29,18 +29,24 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
   *
   * @author Emmanouil Antonios Platanios
   */
-class DeviceWrapper[O: NestedStructure, S](
+class DeviceWrapper[Out, State](
     override val name: String,
-    val cell: RNNCell[O, S],
+    val cell: RNNCell[Out, State],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
-) extends RNNCell[O, S](name) {
+) extends RNNCell[Out, State](name) {
+  type OutShape = cell.OutShape
+  type StateShape = cell.StateShape
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
+  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
+
   override val layerType: String = "DeviceWrapper"
 
-  override def createCellWithoutContext[OS](
+  override def createCellWithoutContext(
       mode: Mode,
-      inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S] = {
+      inputShape: OutShape
+  ): ops.rnn.cell.RNNCell[Out, State] = {
     Op.createWith(device = device, deviceFunction = deviceFunction) {
       ops.rnn.cell.DeviceWrapper(cell.createCellWithoutContext(mode, inputShape), device, deviceFunction)
     }
@@ -48,15 +54,12 @@ class DeviceWrapper[O: NestedStructure, S](
 }
 
 object DeviceWrapper {
-  def apply[O, S](
+  def apply[Out, State](
       variableScope: String,
-      cell: RNNCell[O, S],
+      cell: RNNCell[Out, State],
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
-  )(implicit
-      evStructureO: NestedStructure[O],
-      evStructureS: NestedStructure[S]
-  ): DeviceWrapper[O, S] = {
+  ): DeviceWrapper[Out, State] = {
     new DeviceWrapper(variableScope, cell, device, deviceFunction)
   }
 }

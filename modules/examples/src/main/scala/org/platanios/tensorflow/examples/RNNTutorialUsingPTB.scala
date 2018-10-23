@@ -16,9 +16,14 @@
 package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
+import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape}
 import org.platanios.tensorflow.api.learn.layers.rnn.RNN
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, DropoutWrapper, LSTMTuple}
+import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.rnn.cell.LSTMState
 import org.platanios.tensorflow.data.text.PTBLoader
+import org.platanios.tensorflow.examples
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -30,6 +35,11 @@ import java.nio.file.Paths
   */
 object RNNTutorialUsingPTB {
   private val logger = Logger(LoggerFactory.getLogger("Tutorials / RNN-PTB"))
+
+  // Implicit helpers for Scala 2.11
+  implicit val evOutputStructureIntInt        : OutputStructure[(Output[Int], Output[Int])] = examples.evOutputStructureIntInt
+  implicit val evOutputStructureLSTMStateFloat: OutputStructure[LSTMState[Float]] = examples.evOutputStructureLSTMStateFloat
+  implicit val evOutputToShapeLSTMStateFloat  : OutputToShape.Aux[LSTMState[Float], (Shape, Shape)] = examples.evOutputToShapeLSTMStateFloat
 
   val batchSize   : Int = 20
   val numSteps    : Int = 20

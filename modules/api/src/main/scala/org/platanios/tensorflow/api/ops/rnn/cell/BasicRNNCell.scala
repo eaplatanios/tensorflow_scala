@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 /** The most basic RNN cell.
@@ -39,12 +40,23 @@ class BasicRNNCell[T: TF : IsNotQuantized] protected (
     val activation: Output[T] => Output[T],
     val name: String = "BasicRNNCell"
 ) extends RNNCell[Output[T], Output[T]] {
-  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): OS = {
-    bias.shape.asInstanceOf[OS]
+  type OutShape = Shape
+  type StateShape = Shape
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
+    OutputToShape[Output[T]]
   }
 
-  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[Output[T], _, _, SS]): SS = {
-    bias.shape.asInstanceOf[SS]
+  override def evOutputToShapeState: OutputToShape.Aux[Output[T], StateShape] = {
+    OutputToShape[Output[T]]
+  }
+
+  override def outputShape: OutShape = {
+    bias.shape
+  }
+
+  override def stateShape: StateShape = {
+    bias.shape
   }
 
   @throws[IllegalArgumentException]

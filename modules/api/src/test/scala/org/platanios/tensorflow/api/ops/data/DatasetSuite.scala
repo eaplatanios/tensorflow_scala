@@ -20,7 +20,8 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.core.types.INT32
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Op}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
+import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 
@@ -31,6 +32,10 @@ import org.scalatest.junit.JUnitSuite
   * @author Emmanouil Antonios Platanios
   */
 class DatasetSuite extends JUnitSuite {
+  // Implicit helper for Scala 2.11
+  val evOutputStructureIntIntDouble: OutputStructure[(Output[Int], Output[Int], Output[Double])] = OutputStructure[(Output[Int], Output[Int], Output[Double])]
+  val evOutputToTensorIntIntDouble: OutputToTensor.Aux[(Output[Int], Output[Int], Output[Double]), (Tensor[Int], Tensor[Int], Tensor[Double])] = OutputToTensor[(Output[Int], Output[Int], Output[Double])]
+
   @Test def testTensorDataset(): Unit = using(Graph()) { graph =>
     Op.createWith(graph, device = "/cpu:0") {
       val components = Tensor(1, 2, 3)
@@ -46,6 +51,10 @@ class DatasetSuite extends JUnitSuite {
   }
 
   @Test def testTensorTupleDataset(): Unit = using(Graph()) { graph =>
+    // Implicit helper for Scala 2.11
+    implicit val evOutputStructureIntIntDouble: OutputStructure[(Output[Int], Output[Int], Output[Double])] = this.evOutputStructureIntIntDouble
+    implicit val evOutputToTensorIntIntDouble: OutputToTensor.Aux[(Output[Int], Output[Int], Output[Double]), (Tensor[Int], Tensor[Int], Tensor[Double])] = this.evOutputToTensorIntIntDouble
+
     Op.createWith(graph) {
       val components = (Tensor(1), Tensor(1, 2, 3), Tensor(37.0))
       val dataset = Data.datasetFromTensors(components)
@@ -125,7 +134,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testDatasetFromGenerator(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val dataset = Data.datasetFromGenerator(() => {
-        Stream(0, 1, 2, 3).map(Tensor(_))
+        Stream(0, 1, 2, 3).map(Tensor[Int](_))
       }, INT32, Shape(1))
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer

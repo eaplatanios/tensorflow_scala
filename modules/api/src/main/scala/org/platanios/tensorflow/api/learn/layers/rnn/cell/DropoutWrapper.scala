@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape}
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Basic
@@ -39,14 +39,20 @@ import org.platanios.tensorflow.api.ops.Basic
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O: NestedStructure, S: NestedStructure](
+class DropoutWrapper[Out: OutputStructure, State: OutputStructure](
     override val name: String,
-    val cell: RNNCell[O, S],
+    val cell: RNNCell[Out, State],
     val inputKeepProbability: Float = 1.0f,
     val outputKeepProbability: Float = 1.0f,
     val stateKeepProbability: Float = 1.0f,
     val seed: Option[Int] = None
-) extends RNNCell[O, S](name) {
+) extends RNNCell[Out, State](name) {
+  type OutShape = cell.OutShape
+  type StateShape = cell.StateShape
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
+  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
+
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
   require(outputKeepProbability > 0.0 && outputKeepProbability <= 1.0,
@@ -56,10 +62,10 @@ class DropoutWrapper[O: NestedStructure, S: NestedStructure](
 
   override val layerType: String = "DropoutWrapper"
 
-  override def createCellWithoutContext[OS](
+  override def createCellWithoutContext(
       mode: Mode,
-      inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S] = {
+      inputShape: OutShape
+  ): ops.rnn.cell.RNNCell[Out, State] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     mode match {
       case TRAINING =>
@@ -75,14 +81,14 @@ class DropoutWrapper[O: NestedStructure, S: NestedStructure](
 }
 
 object DropoutWrapper {
-  def apply[O: NestedStructure, S: NestedStructure](
+  def apply[Out: OutputStructure, State: OutputStructure](
       variableScope: String,
-      cell: RNNCell[O, S],
+      cell: RNNCell[Out, State],
       inputKeepProbability: Float = 1.0f,
       outputKeepProbability: Float = 1.0f,
       stateKeepProbability: Float = 1.0f,
       seed: Option[Int] = None
-  ): DropoutWrapper[O, S] = {
+  ): DropoutWrapper[Out, State] = {
     new DropoutWrapper(
       variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)
   }
