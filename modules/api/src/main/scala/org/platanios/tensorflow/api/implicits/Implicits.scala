@@ -17,12 +17,10 @@ package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.{core, learn, ops, tensors}
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.DataType
+import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import scala.reflect._
 
 /** Groups together all the implicits of the API and takes care of their priorities.
   *
@@ -138,6 +136,30 @@ private[api] trait Implicits
 
   implicit def outputMathOps[T](output: Output[T]): MathOps[T] = {
     new MathOps[T](output)
+  }
+
+  implicit val evStructureString: OutputStructure[Output[String]] = {
+    OutputStructure.fromOutput[String]
+  }
+
+  implicit val evStructureLong: OutputStructure[Output[Long]] = {
+    OutputStructure.fromOutput[Long]
+  }
+
+  implicit val evStructureFloat: OutputStructure[Output[Float]] = {
+    OutputStructure.fromOutput[Float]
+  }
+
+  implicit val evStructureUntyped: OutputStructure[Output[Any]] = {
+    OutputStructure.fromOutput[Any]
+  }
+
+  implicit val evStructureSeqUntyped: OutputStructure[Seq[Output[Any]]] = {
+    OutputStructure.fromSeq[Output[Any]]
+  }
+
+  implicit val evStructureOptionSeqUntyped: OutputStructure[Option[Seq[Output[Any]]]] = {
+    OutputStructure.fromOption[Seq[Output[Any]]](OutputStructure.fromSeq[Output[Any]])
   }
 
   //endregion Cached Implicits

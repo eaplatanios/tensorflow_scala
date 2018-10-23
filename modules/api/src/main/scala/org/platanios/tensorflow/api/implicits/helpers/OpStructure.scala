@@ -40,28 +40,28 @@ import scala.language.higherKinds
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait NestedStructureOps[T] {
+sealed trait OpStructure[T] {
   /** Target ops to execute. */
   def ops(executable: T): Set[UntypedOp]
 }
 
-object NestedStructureOps extends NestedStructureOpsLowPriority {
-  implicit val evStructureUntypedOp: NestedStructureOps[UntypedOp] = {
+object OpStructure extends NestedStructureOpsLowPriority {
+  implicit val evStructureUntypedOp: OpStructure[UntypedOp] = {
     fromOp[Seq[Output[Any]], Seq[Output[Any]]]
   }
 
-  implicit val evStructureSetUntypedOps: NestedStructureOps[Set[UntypedOp]] = {
+  implicit val evStructureSetUntypedOps: OpStructure[Set[UntypedOp]] = {
     fromSet[Op[Seq[Output[Any]], Seq[Output[Any]]]]
   }
 
-  def apply[T: NestedStructureOps]: NestedStructureOps[T] = {
-    implicitly[NestedStructureOps[T]]
+  def apply[T: OpStructure]: OpStructure[T] = {
+    implicitly[OpStructure[T]]
   }
 }
 
 trait NestedStructureOpsLowPriority {
-  implicit val fromUnit: NestedStructureOps[Unit] = {
-    new NestedStructureOps[Unit] {
+  implicit val fromUnit: OpStructure[Unit] = {
+    new OpStructure[Unit] {
       /** Target ops to execute. */
       override def ops(executable: Unit): Set[UntypedOp] = {
         Set.empty
@@ -69,56 +69,56 @@ trait NestedStructureOpsLowPriority {
     }
   }
 
-  implicit def fromOp[I, O]: NestedStructureOps[Op[I, O]] = {
-    new NestedStructureOps[Op[I, O]] {
+  implicit def fromOp[I, O]: OpStructure[Op[I, O]] = {
+    new OpStructure[Op[I, O]] {
       override def ops(executable: Op[I, O]): Set[UntypedOp] = {
         Set(executable)
       }
     }
   }
 
-  implicit def fromOutput[T]: NestedStructureOps[Output[T]] = {
-    new NestedStructureOps[Output[T]] {
+  implicit def fromOutput[T]: OpStructure[Output[T]] = {
+    new OpStructure[Output[T]] {
       override def ops(executable: Output[T]): Set[UntypedOp] = {
         Set(executable.op)
       }
     }
   }
 
-  implicit def fromOption[T: NestedStructureOps]: NestedStructureOps[Option[T]] = {
-    new NestedStructureOps[Option[T]] {
+  implicit def fromOption[T: OpStructure]: OpStructure[Option[T]] = {
+    new OpStructure[Option[T]] {
       override def ops(executable: Option[T]): Set[UntypedOp] = {
-        executable.map(e => NestedStructureOps[T].ops(e)).getOrElse(Set.empty)
+        executable.map(e => OpStructure[T].ops(e)).getOrElse(Set.empty)
       }
     }
   }
 
-  implicit def fromArray[T: NestedStructureOps]: NestedStructureOps[Array[T]] = {
-    new NestedStructureOps[Array[T]] {
+  implicit def fromArray[T: OpStructure]: OpStructure[Array[T]] = {
+    new OpStructure[Array[T]] {
       override def ops(executable: Array[T]): Set[UntypedOp] = {
-        executable.flatMap(e => NestedStructureOps[T].ops(e)).toSet
+        executable.flatMap(e => OpStructure[T].ops(e)).toSet
       }
     }
   }
 
-  implicit def fromSeq[T: NestedStructureOps]: NestedStructureOps[Seq[T]] = {
-    new NestedStructureOps[Seq[T]] {
+  implicit def fromSeq[T: OpStructure]: OpStructure[Seq[T]] = {
+    new OpStructure[Seq[T]] {
       override def ops(executable: Seq[T]): Set[UntypedOp] = {
-        executable.flatMap(e => NestedStructureOps[T].ops(e)).toSet
+        executable.flatMap(e => OpStructure[T].ops(e)).toSet
       }
     }
   }
 
-  implicit def fromSet[T: NestedStructureOps]: NestedStructureOps[Set[T]] = {
-    new NestedStructureOps[Set[T]] {
+  implicit def fromSet[T: OpStructure]: OpStructure[Set[T]] = {
+    new OpStructure[Set[T]] {
       override def ops(executable: Set[T]): Set[UntypedOp] = {
-        executable.flatMap(e => NestedStructureOps[T].ops(e))
+        executable.flatMap(e => OpStructure[T].ops(e))
       }
     }
   }
 
-  implicit val fromHNil: NestedStructureOps[HNil] = {
-    new NestedStructureOps[HNil] {
+  implicit val fromHNil: OpStructure[HNil] = {
+    new OpStructure[HNil] {
       override def ops(executable: HNil): Set[UntypedOp] = {
         Set.empty
       }
@@ -126,10 +126,10 @@ trait NestedStructureOpsLowPriority {
   }
 
   implicit def fromHList[H, T <: HList](implicit
-      evH: Strict[NestedStructureOps[H]],
-      evT: NestedStructureOps[T]
-  ): NestedStructureOps[H :: T] = {
-    new NestedStructureOps[H :: T] {
+      evH: Strict[OpStructure[H]],
+      evT: OpStructure[T]
+  ): OpStructure[H :: T] = {
+    new OpStructure[H :: T] {
       override def ops(executable: H :: T): Set[UntypedOp] = {
         evH.value.ops(executable.head) ++
             evT.ops(executable.tail)
@@ -139,9 +139,9 @@ trait NestedStructureOpsLowPriority {
 
   implicit def fromProduct[P <: Product, L <: HList](implicit
       gen: Generic.Aux[P, L],
-      executableL: NestedStructureOps[L]
-  ): NestedStructureOps[P] = {
-    new NestedStructureOps[P] {
+      executableL: OpStructure[L]
+  ): OpStructure[P] = {
+    new OpStructure[P] {
       override def ops(executable: P): Set[UntypedOp] = {
         executableL.ops(gen.to(executable))
       }
@@ -149,10 +149,10 @@ trait NestedStructureOpsLowPriority {
   }
 
   implicit def fromCoproduct[H, T <: Coproduct](implicit
-      evH: Strict[NestedStructureOps[H]],
-      evT: NestedStructureOps[T]
-  ): NestedStructureOps[H :+: T] = {
-    new NestedStructureOps[H :+: T] {
+      evH: Strict[OpStructure[H]],
+      evT: OpStructure[T]
+  ): OpStructure[H :+: T] = {
+    new OpStructure[H :+: T] {
       override def ops(executable: H :+: T): Set[UntypedOp] = {
         executable match {
           case Inl(h) => evH.value.ops(h)

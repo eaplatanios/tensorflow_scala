@@ -16,10 +16,9 @@
 package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{DataType, TF}
+import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
-import org.platanios.tensorflow.api.tensors.Tensor
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
@@ -29,15 +28,7 @@ import shapeless.ops.hlist.Tupler
   * @author Emmanouil Antonios Platanios
   */
 sealed trait Zero[T] {
-  type V // Tensor value
-  type D // Data type
-  type S // Shape
-
-  val structure: NestedStructure.Aux[T, V, D, S]
-
-  def asAux(): Zero.Aux[T, V, D, S] = {
-    this.asInstanceOf[Zero.Aux[T, V, D, S]]
-  }
+  type S // Shape type
 
   /** Generates a zero value of type `T`. */
   def zero(
@@ -47,29 +38,18 @@ sealed trait Zero[T] {
   ): T
 }
 
-object Zero extends ZeroHelpers {
-  type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
-  type SparseShape = (Shape, Shape, Shape)
-
-  def apply[T](implicit ev: Zero[T]): Zero.Aux[T, ev.V, ev.D, ev.S] = {
-    ev.asAux()
+object Zero {
+  def apply[T](implicit ev: Zero[T]): Zero.Aux[T, ev.S] = {
+    ev.asInstanceOf[Zero.Aux[T, ev.S]]
   }
 
-  type Aux[T, VV, DD, SS] = Zero[T] {
-    type V = VV
-    type D = DD
+  type Aux[T, SS] = Zero[T] {
     type S = SS
   }
 
-  implicit val fromUnit: Aux[Unit, Unit, Unit, Unit] = {
+  implicit val fromUnit: Aux[Unit, Unit] = {
     new Zero[Unit] {
-      override type V = Unit
-      override type D = Unit
       override type S = Unit
-
-      override val structure: NestedStructure.Aux[Unit, Unit, Unit, Unit] = {
-        NestedStructure.fromUnit
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -81,15 +61,9 @@ object Zero extends ZeroHelpers {
     }
   }
 
-  implicit def fromOutput[T: TF]: Aux[Output[T], Tensor[T], DataType[T], Shape] = {
+  implicit def fromOutput[T: TF]: Aux[Output[T], Shape] = {
     new Zero[Output[T]] {
-      override type V = Tensor[T]
-      override type D = DataType[T]
       override type S = Shape
-
-      override val structure: NestedStructure.Aux[Output[T], Tensor[T], DataType[T], Shape] = {
-        NestedStructure.fromOutput[T]
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -114,15 +88,9 @@ object Zero extends ZeroHelpers {
 
   implicit def fromOption[T](implicit
       ev: Zero[T]
-  ): Zero.Aux[Option[T], Option[ev.V], Option[ev.D], Option[ev.S]] = {
+  ): Zero.Aux[Option[T], Option[ev.S]] = {
     new Zero[Option[T]] {
-      override type V = Option[ev.V]
-      override type D = Option[ev.D]
       override type S = Option[ev.S]
-
-      override val structure: NestedStructure.Aux[Option[T], Option[ev.V], Option[ev.D], Option[ev.S]] = {
-        NestedStructure.fromOption[T](ev.structure)
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -138,15 +106,9 @@ object Zero extends ZeroHelpers {
 
   implicit def fromSeq[T](implicit
       ev: Zero[T]
-  ): Zero.Aux[Seq[T], Seq[ev.V], Seq[ev.D], Seq[ev.S]] = {
+  ): Zero.Aux[Seq[T], Seq[ev.S]] = {
     new Zero[Seq[T]] {
-      override type V = Seq[ev.V]
-      override type D = Seq[ev.D]
       override type S = Seq[ev.S]
-
-      override val structure: NestedStructure.Aux[Seq[T], Seq[ev.V], Seq[ev.D], Seq[ev.S]] = {
-        NestedStructure.fromSeq[T](ev.structure)
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -162,15 +124,9 @@ object Zero extends ZeroHelpers {
 
   implicit def fromMap[K, T](implicit
       ev: Zero[T]
-  ): Zero.Aux[Map[K, T], Map[K, ev.V], Map[K, ev.D], Map[K, ev.S]] = {
+  ): Zero.Aux[Map[K, T], Map[K, ev.S]] = {
     new Zero[Map[K, T]] {
-      override type V = Map[K, ev.V]
-      override type D = Map[K, ev.D]
       override type S = Map[K, ev.S]
-
-      override val structure: NestedStructure.Aux[Map[K, T], Map[K, ev.V], Map[K, ev.D], Map[K, ev.S]] = {
-        NestedStructure.fromMap[K, T](ev.structure)
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -184,15 +140,9 @@ object Zero extends ZeroHelpers {
     }
   }
 
-  implicit val fromHNil: Zero.Aux[HNil, HNil, HNil, HNil] = {
+  implicit val fromHNil: Zero.Aux[HNil, HNil] = {
     new Zero[HNil] {
-      override type V = HNil
-      override type D = HNil
       override type S = HNil
-
-      override val structure: NestedStructure.Aux[HNil, HNil, HNil, HNil] = {
-        NestedStructure.fromHNil
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -204,21 +154,12 @@ object Zero extends ZeroHelpers {
     }
   }
 
-  implicit def fromHList[HT, HV, HD, HS, TT <: HList, TV <: HList, TD <: HList, TS <: HList](implicit
-      evH: Strict[Zero.Aux[HT, HV, HD, HS]],
-      evT: Zero.Aux[TT, TV, TD, TS]
-  ): Zero.Aux[HT :: TT, HV :: TV, HD :: TD, HS :: TS] = {
+  implicit def fromHList[HT, HS, TT <: HList, TS <: HList](implicit
+      evH: Strict[Zero.Aux[HT, HS]],
+      evT: Zero.Aux[TT, TS]
+  ): Zero.Aux[HT :: TT, HS :: TS] = {
     new Zero[HT :: TT] {
-      override type V = HV :: TV
-      override type D = HD :: TD
       override type S = HS :: TS
-
-      implicit val evStructureH: NestedStructure.Aux[HT, HV, HD, HS] = evH.value.structure
-      implicit val evStructureT: NestedStructure.Aux[TT, TV, TD, TS] = evT.structure
-
-      override val structure: NestedStructure.Aux[HT :: TT, HV :: TV, HD :: TD, HS :: TS] = {
-        NestedStructure.fromHList[HT, HV, HD, HS, TT, TV, TD, TS]
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -233,26 +174,14 @@ object Zero extends ZeroHelpers {
     }
   }
 
-  implicit def fromProduct[PT <: Product, PV <: Product, PD <: Product, PS <: Product, HT <: HList, HV <: HList, HD <: HList, HS <: HList](implicit
+  implicit def fromProduct[PT <: Product, PS <: Product, HT <: HList, HS <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evZeroH: Zero.Aux[HT, HV, HD, HS],
-      tuplerV: Tupler.Aux[HV, PV],
-      tuplerD: Tupler.Aux[HD, PD],
+      evZeroH: Zero.Aux[HT, HS],
       tuplerS: Tupler.Aux[HS, PS],
-      genV: Generic.Aux[PV, HV],
-      genD: Generic.Aux[PD, HD],
       genS: Generic.Aux[PS, HS]
-  ): Zero.Aux[PT, PV, PD, PS] = {
+  ): Zero.Aux[PT, PS] = {
     new Zero[PT] {
-      override type V = PV
-      override type D = PD
       override type S = PS
-
-      implicit val evStructureH: NestedStructure.Aux[HT, HV, HD, HS] = evZeroH.structure
-
-      override val structure: NestedStructure.Aux[PT, PV, PD, PS] = {
-        NestedStructure.fromProduct[PT, PV, PD, PS, HT, HV, HD, HS]
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -264,21 +193,12 @@ object Zero extends ZeroHelpers {
     }
   }
 
-  implicit def fromCoproduct[HT, HV, HD, HS, TT <: Coproduct, TV <: Coproduct, TD <: Coproduct, TS <: Coproduct](implicit
-      evH: Strict[Zero.Aux[HT, HV, HD, HS]],
-      evT: Zero.Aux[TT, TV, TD, TS]
-  ): Zero.Aux[HT :+: TT, HV :+: TV, HD :+: TD, HS :+: TS] = {
+  implicit def fromCoproduct[HT, HS, TT <: Coproduct, TS <: Coproduct](implicit
+      evH: Strict[Zero.Aux[HT, HS]],
+      evT: Zero.Aux[TT, TS]
+  ): Zero.Aux[HT :+: TT, HS :+: TS] = {
     new Zero[HT :+: TT] {
-      override type V = HV :+: TV
-      override type D = HD :+: TD
       override type S = HS :+: TS
-
-      implicit val evStructureH: NestedStructure.Aux[HT, HV, HD, HS] = evH.value.structure
-      implicit val evStructureT: NestedStructure.Aux[TT, TV, TD, TS] = evT.structure
-
-      override val structure: NestedStructure.Aux[HT :+: TT, HV :+: TV, HD :+: TD, HS :+: TS] = {
-        NestedStructure.fromCoproduct[HT, HV, HD, HS, TT, TV, TD, TS]
-      }
 
       override def zero(
           batchSize: Output[Int],
@@ -289,83 +209,6 @@ object Zero extends ZeroHelpers {
           case Inl(h) => Inl(evH.value.zero(batchSize, h, name))
           case Inr(t) => Inr(evT.zero(batchSize, t, name))
         }
-      }
-    }
-  }
-}
-
-trait ZeroHelpers {
-  implicit def fromHListHelper[HT, TT <: HList](implicit
-      evH: Strict[Zero[HT]],
-      evT: Zero[TT]
-  ): Zero[HT :: TT] = {
-    new Zero[HT :: TT] {
-      override type V = HList
-      override type D = HList
-      override type S = HList
-
-      override val structure: NestedStructure.Aux[HT :: TT, HList, HList, HList] = {
-        NestedStructure.fromHListHelper[HT, TT](
-          Strict(evH.value.structure),
-          evT.structure
-        ).asInstanceOf[NestedStructure.Aux[HT :: TT, HList, HList, HList]]
-      }
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: HList,
-          name: String = "Zero"
-      ): HT :: TT = {
-        ???
-      }
-    }
-  }
-
-  implicit def fromProductHelper[PT <: Product, HT <: HList](implicit
-      genT: Generic.Aux[PT, HT],
-      evZeroH: Zero[HT]
-  ): Zero[PT] = {
-    new Zero[PT] {
-      override type V = Product
-      override type D = Product
-      override type S = Product
-
-      override val structure: NestedStructure.Aux[PT, Product, Product, Product] = {
-        NestedStructure.fromProductHelper[PT, HT].asInstanceOf[NestedStructure.Aux[PT, Product, Product, Product]]
-      }
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: S,
-          name: String = "Zero"
-      ): PT = {
-        ???
-      }
-    }
-  }
-
-  implicit def fromCoproductHelper[HT, TT <: Coproduct](implicit
-      evH: Strict[Zero[HT]],
-      evT: Zero[TT]
-  ): Zero[HT :+: TT] = {
-    new Zero[HT :+: TT] {
-      override type V = Coproduct
-      override type D = Coproduct
-      override type S = Coproduct
-
-      override val structure: NestedStructure.Aux[HT :+: TT, Coproduct, Coproduct, Coproduct] = {
-        NestedStructure.fromCoproductHelper[HT, TT](
-          Strict(evH.value.structure),
-          evT.structure
-        ).asInstanceOf[NestedStructure.Aux[HT :+: TT, Coproduct, Coproduct, Coproduct]]
-      }
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: Coproduct,
-          name: String
-      ): HT :+: TT = {
-        ???
       }
     }
   }
