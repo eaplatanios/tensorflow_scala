@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.hooks
 
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -42,19 +42,19 @@ class NaNChecker protected (
     outputs = tensorNames.map(Op.currentGraph.getOutputByName).toSeq
   }
 
-  override protected def beforeSessionRun[C, CV](
+  override protected def beforeSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV]
   )(implicit
-      evStructureC: NestedStructure.Aux[C, CV, _, _]
+      evOutputToTensorC: OutputToTensor.Aux[C, CV]
   ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
     Some(Hook.SessionRunArgs(fetches = outputs))
   }
 
   @throws[IllegalStateException]
-  override protected def afterSessionRun[C, CV](
+  override protected def afterSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV],
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
-  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+  )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
     // TODO: [TYPES] !!! Remove the cast once we start using static types everywhere.
     runResult.result.filter(_.toFloat.isNaN.any().scalar).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."

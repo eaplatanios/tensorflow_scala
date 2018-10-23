@@ -18,8 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
-import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
@@ -68,8 +67,6 @@ class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] protected (
     val numDecimalPoints: Int = 4,
     val randomSeed: Option[Int] = None,
     val name: String = "Evaluator"
-)(implicit
-  evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, InEval] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
@@ -91,7 +88,8 @@ class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] protected (
       randomSeed.foreach(graph.setRandomSeed)
       evaluateOps = Op.nameScope("Model")(modelInstance.model.buildEvalOps(metrics))
       datasetInitializers = datasets.map(d => {
-        (d._1, evaluateOps.inputIterator.createInitializer(d._2()).asUntyped)
+        val dataset = d._2()
+        (d._1, evaluateOps.inputIterator.createInitializer(dataset).asUntyped)
       })
       this.sessionCreator = ChiefSessionCreator(
         master = modelInstance.configuration.evaluationMaster,
@@ -207,8 +205,6 @@ object Evaluator {
       numDecimalPoints: Int = 4,
       randomSeed: Option[Int] = None,
       name: String = "Evaluator"
-  )(implicit
-      evTrainIn: NestedStructure.Aux[TrainIn, _, _, _]
   ): Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] = {
     new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }

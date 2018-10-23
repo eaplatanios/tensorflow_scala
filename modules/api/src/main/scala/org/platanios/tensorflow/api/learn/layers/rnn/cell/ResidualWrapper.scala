@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 
@@ -28,28 +28,34 @@ import org.platanios.tensorflow.api.ops
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[O: NestedStructure, S](
+class ResidualWrapper[Out, State](
     override val name: String,
-    val cell: RNNCell[O, S],
-    val residualFn: (O, O) => O
-) extends RNNCell[O, S](name) {
+    val cell: RNNCell[Out, State],
+    val residualFn: (Out, Out) => Out
+) extends RNNCell[Out, State](name) {
+  type OutShape = cell.OutShape
+  type StateShape = cell.StateShape
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
+  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
+
   override val layerType: String = "ResidualWrapper"
 
-  override def createCellWithoutContext[OS](
+  override def createCellWithoutContext(
       mode: Mode,
-      inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S] = {
+      inputShape: OutShape
+  ): ops.rnn.cell.RNNCell[Out, State] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     ops.rnn.cell.ResidualWrapper(createdCell, residualFn)
   }
 }
 
 object ResidualWrapper {
-  def apply[O: NestedStructure, S](
+  def apply[Out, State](
       variableScope: String,
-      cell: RNNCell[O, S],
-      residualFn: (O, O) => O
-  ): ResidualWrapper[O, S] = {
+      cell: RNNCell[Out, State],
+      residualFn: (Out, Out) => Out
+  ): ResidualWrapper[Out, State] = {
     new ResidualWrapper(variableScope, cell, residualFn)
   }
 }

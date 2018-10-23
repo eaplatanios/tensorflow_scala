@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.ops
@@ -26,18 +26,24 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[O: NestedStructure, S](
+abstract class RNNCell[Out, State](
     override val name: String
-) extends Layer[Tuple[O, S], Tuple[O, S]](name) {
-  def createCellWithoutContext[OS](
-      mode: Mode,
-      inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S]
+) extends Layer[Tuple[Out, State], Tuple[Out, State]](name) {
+  type OutShape
+  type StateShape
 
-  final def createCell[OS](
+  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape]
+  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+
+  def createCellWithoutContext(
       mode: Mode,
-      inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): ops.rnn.cell.RNNCell[O, S] = {
+      inputShape: OutShape
+  ): ops.rnn.cell.RNNCell[Out, State]
+
+  final def createCell(
+      mode: Mode,
+      inputShape: OutShape
+  ): ops.rnn.cell.RNNCell[Out, State] = {
     if (name != null) {
       VariableScope.scope(name, isPure = true) {
         createCellWithoutContext(mode, inputShape)
@@ -48,8 +54,8 @@ abstract class RNNCell[O: NestedStructure, S](
   }
 
   override final def forwardWithoutContext(
-      input: Tuple[O, S]
-  )(implicit mode: Mode): Tuple[O, S] = {
-    createCellWithoutContext(mode, NestedStructure[O].shapeFromOutput(input.output))(NestedStructure[O]).forward(input)
+      input: Tuple[Out, State]
+  )(implicit mode: Mode): Tuple[Out, State] = {
+    createCellWithoutContext(mode, evOutputToShapeOut.shape(input.output)).forward(input)
   }
 }

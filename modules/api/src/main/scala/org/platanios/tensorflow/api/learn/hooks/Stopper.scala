@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.learn.{Counter, StopCriteria}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output}
 import org.platanios.tensorflow.api.ops.variables.Variable
@@ -103,19 +103,19 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
     reset(session)
   }
 
-  override protected def beforeSessionRun[C, CV](
+  override protected def beforeSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV]
   )(implicit
-      evStructureC: NestedStructure.Aux[C, CV, _, _]
+      evOutputToTensorC: OutputToTensor.Aux[C, CV]
   ): Option[Hook.SessionRunArgs[Seq[Output[Any]], Seq[Tensor[Any]]]] = {
     Some(Hook.SessionRunArgs(fetches = sessionFetches))
   }
 
   @throws[IllegalStateException]
-  override protected def afterSessionRun[C, CV](
+  override protected def afterSessionRun[C: OutputStructure, CV](
       runContext: Hook.SessionRunContext[C, CV],
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
-  )(implicit evStructureC: NestedStructure.Aux[C, CV, _, _]): Unit = {
+  )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
 
     var converged = false
     if (criteria.maxEpochs.isDefined) {

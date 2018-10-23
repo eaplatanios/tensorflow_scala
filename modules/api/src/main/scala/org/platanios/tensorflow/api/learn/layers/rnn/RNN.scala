@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
-import org.platanios.tensorflow.api.implicits.helpers.Zero
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape, Zero}
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
@@ -41,37 +41,44 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-class RNN[O: Zero, S: Zero](
+class RNN[Out: OutputStructure : OutputToShape, State: OutputStructure : OutputToShape](
     override val name: String,
-    val cell: RNNCell[O, S],
-    val initialState: () => S = null,
+    val cell: RNNCell[Out, State],
+    val initialState: () => State = null,
     val timeMajor: Boolean = false,
     val parallelIterations: Int = 32,
     val swapMemory: Boolean = false,
     val sequenceLengths: Tensor[Int] = null
-) extends Layer[O, Tuple[O, S]](name) {
+)(implicit
+    evZeroOut: Zero.Aux[Out, _],
+    evZeroState: Zero.Aux[State, _]
+) extends Layer[Out, Tuple[Out, State]](name) {
   override val layerType: String = "RNN"
 
-  override def forwardWithoutContext(input: O)(implicit mode: Mode): Tuple[O, S] = {
+  override def forwardWithoutContext(input: Out)(implicit mode: Mode): Tuple[Out, State] = {
+    val evOutputToShape = OutputToShape[Out]
     val state = if (initialState == null) None else Some(initialState())
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val createdCell = cell.createCell(mode, Zero[O].structure.shapeFromOutput(input))(Zero[O].structure)
+    val createdCell = cell.createCell(mode, evOutputToShape.shape(input).asInstanceOf[cell.OutShape])
     ops.rnn.RNN.dynamicRNN(
       createdCell, input, state, timeMajor, parallelIterations,
-      swapMemory, lengths, name)(Zero[O], Zero[S])
+      swapMemory, lengths, name)
   }
 }
 
 object RNN {
-  def apply[O: Zero, S: Zero](
+  def apply[Out: OutputStructure : OutputToShape, State: OutputStructure : OutputToShape](
       variableScope: String,
-      cell: RNNCell[O, S],
-      initialState: () => S = null,
+      cell: RNNCell[Out, State],
+      initialState: () => State = null,
       timeMajor: Boolean = false,
       parallelIterations: Int = 32,
       swapMemory: Boolean = false,
       sequenceLengths: Tensor[Int] = null
-  ): RNN[O, S] = {
+  )(implicit
+      evZeroOut: Zero.Aux[Out, _],
+      evZeroState: Zero.Aux[State, _]
+  ): RNN[Out, State] = {
     new RNN(variableScope, cell, initialState, timeMajor, parallelIterations, swapMemory, sequenceLengths)
   }
 }

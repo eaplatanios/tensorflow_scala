@@ -17,9 +17,10 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.variables.{Initializer, ZerosInitializer}
 
 /** $OpDocRNNCellBasicLSTMCell
@@ -41,12 +42,23 @@ class BasicLSTMCell[T: TF : IsNotQuantized](
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
 ) extends RNNCell[Output[T], LSTMState[T]](name) {
+  type OutShape = Shape
+  type StateShape = (Shape, Shape)
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
+    OutputToShape[Output[T]]
+  }
+
+  override def evOutputToShapeState: OutputToShape.Aux[LSTMState[T], StateShape] = {
+    OutputToShape[LSTMState[T]].asInstanceOf[OutputToShape.Aux[LSTMState[T], StateShape]]
+  }
+
   override val layerType: String = "BasicLSTMCell"
 
-  override def createCellWithoutContext[OS](
+  override def createCellWithoutContext(
       mode: Mode,
-      inputShape: OS
-  )(implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): ops.rnn.cell.BasicLSTMCell[T] = {
+      inputShape: OutShape
+  ): ops.rnn.cell.BasicLSTMCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + numUnits, 4 * numUnits), kernelInitializer)
     val bias = getParameter[T](BIAS_NAME, Shape(4 * numUnits), biasInitializer)
