@@ -17,8 +17,11 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.UByte
+import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.STL10Loader
+import org.platanios.tensorflow.examples
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -30,6 +33,9 @@ import java.nio.file.Paths
   */
 object STL10 {
   private val logger = Logger(LoggerFactory.getLogger("Examples / STL10"))
+
+  // Implicit helper for Scala 2.11
+  implicit val evOutputStructureFloatLong: OutputStructure[(Output[Float], Output[Long])] = examples.evOutputStructureFloatLong
 
   def main(args: Array[String]): Unit = {
     val dataSet = STL10Loader.load(Paths.get("datasets/STL10"), loadUnlabeled = false)

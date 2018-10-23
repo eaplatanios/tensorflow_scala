@@ -17,8 +17,11 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.UByte
+import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.CIFARLoader
+import org.platanios.tensorflow.examples
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
@@ -30,6 +33,9 @@ import java.nio.file.Paths
   */
 object CIFAR {
   private val logger = Logger(LoggerFactory.getLogger("Examples / CIFAR"))
+
+  // Implicit helper for Scala 2.11
+  implicit val evOutputStructureFloatLong: OutputStructure[(Output[Float], Output[Long])] = examples.evOutputStructureFloatLong
 
   def main(args: Array[String]): Unit = {
     val dataSet = CIFARLoader.load(Paths.get("datasets/CIFAR"), CIFARLoader.CIFAR_10)
