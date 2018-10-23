@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 /** The Long-Short Term Memory (LSTM) cell.
@@ -66,20 +66,31 @@ class LSTMCell[T: TF : IsNotQuantized] protected (
     val forgetBias: Float = 1.0f,
     val name: String = "LSTMCell"
 ) extends RNNCell[Output[T], LSTMState[T]] {
-  private val numUnits = bias.shape(0) / 4
+  type OutShape = Shape
+  type StateShape = (Shape, Shape)
 
-  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[Output[T], _, _, OS]): OS = {
-    if (projectionKernel != null)
-      Shape(projectionKernel.shape(1)).asInstanceOf[OS]
-    else
-      Shape(numUnits).asInstanceOf[OS]
+  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
+    OutputToShape[Output[T]]
   }
 
-  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[LSTMState[T], _, _, SS]): SS = {
+  override def evOutputToShapeState: OutputToShape.Aux[LSTMState[T], StateShape] = {
+    OutputToShape[LSTMState[T]].asInstanceOf[OutputToShape.Aux[LSTMState[T], StateShape]]
+  }
+
+  private val numUnits = bias.shape(0) / 4
+
+  override def outputShape: OutShape = {
     if (projectionKernel != null)
-      (Shape(numUnits), Shape(projectionKernel.shape(1))).asInstanceOf[SS]
+      Shape(projectionKernel.shape(1))
     else
-      (Shape(numUnits), Shape(numUnits)).asInstanceOf[SS]
+      Shape(numUnits)
+  }
+
+  override def stateShape: StateShape = {
+    if (projectionKernel != null)
+      (Shape(numUnits), Shape(projectionKernel.shape(1)))
+    else
+      (Shape(numUnits), Shape(numUnits))
   }
 
   @throws[IllegalArgumentException]

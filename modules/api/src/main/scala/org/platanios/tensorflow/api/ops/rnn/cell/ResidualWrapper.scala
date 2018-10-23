@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 
 /** RNN cell that creates a residual connection (i.e., combining the cell inputs and its outputs) over another RNN cell.
   *
@@ -25,19 +25,25 @@ import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[O, S] protected (
-    val cell: RNNCell[O, S],
-    val residualFn: (O, O) => O
-) extends RNNCell[O, S]() {
-  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
+class ResidualWrapper[Out, State] protected (
+    val cell: RNNCell[Out, State],
+    val residualFn: (Out, Out) => Out
+) extends RNNCell[Out, State]() {
+  type OutShape = cell.OutShape
+  type StateShape = cell.StateShape
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
+  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
+
+  override def outputShape: OutShape = {
     cell.outputShape
   }
 
-  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[S, _, _, SS]): SS = {
+  override def stateShape: StateShape = {
     cell.stateShape
   }
 
-  override def forward(input: Tuple[O, S]): Tuple[O, S] = {
+  override def forward(input: Tuple[Out, State]): Tuple[Out, State] = {
     val nextTuple = cell.forward(input)
     val nextOutput = residualFn(input.output, nextTuple.output)
     Tuple(nextOutput, nextTuple.state)
@@ -45,10 +51,10 @@ class ResidualWrapper[O, S] protected (
 }
 
 object ResidualWrapper {
-  def apply[O, S](
-      cell: RNNCell[O, S],
-      residualFn: (O, O) => O
-  ): ResidualWrapper[O, S] = {
+  def apply[Out, State](
+      cell: RNNCell[Out, State],
+      residualFn: (Out, Out) => Out
+  ): ResidualWrapper[Out, State] = {
     new ResidualWrapper(cell, residualFn)
   }
 }

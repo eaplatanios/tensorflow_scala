@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.control_flow
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.types.TF
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 
@@ -313,7 +313,7 @@ object CondArg extends CondArgLowPriority {
 }
 
 trait CondArgLowPriority {
-  implicit def fromNestedStructure[T](implicit ev: NestedStructure[T]): CondArg[T] = {
+  implicit def fromNestedStructure[T](implicit ev: OutputStructure[T]): CondArg[T] = {
     new CondArg[T] {
       override def outputs(
           output: T,
@@ -326,7 +326,7 @@ trait CondArgLowPriority {
           output: T,
           outputs: Seq[Output[Any]]
       ): (T, Seq[Output[Any]]) = {
-        ev.decodeOutputFromOutput(output, outputs)
+        ev.decodeOutput(output, outputs)
       }
     }
   }

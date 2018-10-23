@@ -15,13 +15,11 @@
 
 package org.platanios.tensorflow.api.ops.rnn.attention
 
-import cats.data.Nested
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.Aux
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
 
 import scala.language.postfixOps
@@ -49,6 +47,10 @@ abstract class Attention[T: TF : IsDecimal, State](
     val scoreMaskValue: Output[Float] = Float.MinValue,
     val name: String = "Attention"
 ) {
+  type StateShape
+
+  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+
   lazy val values: Output[T] = {
     Op.nameScope(s"$name/Values") {
       Attention.maybeMaskValues(memory, memorySequenceLengths, checkInnerDimensionsDefined)
@@ -71,7 +73,7 @@ abstract class Attention[T: TF : IsDecimal, State](
     }
   }
 
-  def stateSize[V, D, S](implicit evStructureState: NestedStructure.Aux[State, V, D, S]): S
+  def stateSize: StateShape
 
   lazy val dataType: DataType[T] = {
     keys.dataType
@@ -152,8 +154,14 @@ abstract class SimpleAttention[T: TF : IsDecimal](
   scoreMaskValue = scoreMaskValue,
   name = name
 ) {
-  override def stateSize[V, D, S](implicit evStructureState: Aux[Output[T], V, D, S]): S = {
-    Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown()).asInstanceOf[S]
+  override type StateShape = Shape
+
+  override def evOutputToShapeState: OutputToShape.Aux[Output[T], Shape] = {
+    OutputToShape[Output[T]]
+  }
+
+  override def stateSize: StateShape = {
+    Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown())
   }
 
   override def initialState: Output[T] = {

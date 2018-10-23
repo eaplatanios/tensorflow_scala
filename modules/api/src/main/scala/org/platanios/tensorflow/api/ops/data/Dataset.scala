@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -34,12 +34,18 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Dataset[T] { outer =>
+abstract class Dataset[T: OutputStructure] { outer =>
+  type D // Element data type
+  type S // Element shape
+
+  def evOutputToDataType: OutputToDataType.Aux[T, D]
+  def evOutputToShape: OutputToShape.Aux[T, S]
+
   val name: String
 
   /** Creates a `VARIANT` scalar tensor representing this dataset. This function adds ops to the current graph, that
     * create the dataset resource. */
-  def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant]
+  def createHandle(): Output[Variant]
 
   /** Creates a dataset iterator for this dataset.
     *
@@ -51,35 +57,33 @@ trait Dataset[T] { outer =>
     * @param  name       Name for the op created in relation to the iterator.
     * @return Created iterator.
     */
-  def createInitializableIterator[V, D, S](
+  def createInitializableIterator(
       sharedName: String = "",
       name: String = "InitializableDatasetIterator"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): InitializableDatasetIterator[T] = {
+  ): InitializableDatasetIterator[T] = {
+    implicit val _evOutputToDataType: OutputToDataType.Aux[T, D] = this.evOutputToDataType
+    implicit val _evOutputToShape: OutputToShape.Aux[T, S] = this.evOutputToShape
     DatasetIterator.fromDataset(dataset = this, sharedName, name)
   }
 
   // TODO: [DATASETS] "createOneShotIterator".
 
   /** Returns the data types corresponding to each element of this dataset, matching the structure of the elements. */
-  def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D
+  def outputDataTypes: D
 
   /** Returns the shapes corresponding to each element of this dataset, matching the structure of the elements. */
-  def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S
+  def outputShapes: S
 
   /** Returns a sequence of data types that correspond to the flattened data types of the nested tensor structure
     * of the elements of this dataset. */
-  private[data] def flatOutputDataTypes[V, D, S](implicit
-      evT: NestedStructure.Aux[T, V, D, S]
-  ): Seq[DataType[Any]] = {
-    evT.dataTypes(outputDataTypes)
+  private[data] def flatOutputDataTypes: Seq[DataType[Any]] = {
+    evOutputToDataType.dataTypeStructure.dataTypes(outputDataTypes)
   }
 
   /** Returns a sequence of [[Shape]]s that correspond to the flattened shapes of the nested tensor structure of the
     * elements of this dataset. */
-  private[data] def flatOutputShapes[V, D, S](implicit
-      evT: NestedStructure.Aux[T, V, D, S]
-  ): Seq[Shape] = {
-    evT.shapes(outputShapes)
+  private[data] def flatOutputShapes: Seq[Shape] = {
+    evOutputToShape.shapeStructure.shapes(outputShapes)
   }
 
   //region Transformations
@@ -93,13 +97,17 @@ trait Dataset[T] { outer =>
     *               indefinitely.
     * @return Created dataset.
     */
-  def repeat(
-      count: Long = -1L
-  ): Dataset[T] = {
+  def repeat(count: Long = -1L): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Repeat"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val c = Op.nameScope(name)(Basic.constant(count))
         Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "RepeatDataset",
@@ -110,11 +118,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -126,14 +134,17 @@ trait Dataset[T] { outer =>
     * @param  seed       Seed value for the random number generator. If not provided, a random seed is used.
     * @return Created dataset.
     */
-  def shuffle(
-      bufferSize: Long,
-      seed: Option[Int] = None
-  ): Dataset[T] = {
+  def shuffle(bufferSize: Long, seed: Option[Int] = None): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Shuffle"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val (bs, s1, s2) = Op.nameScope(name) {
           val bs = Basic.constant(bufferSize)
           val (s1, s2) = Dataset.randomSeeds(seed, s"$name/RandomSeeds")
@@ -148,11 +159,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -166,13 +177,17 @@ trait Dataset[T] { outer =>
     * @param  count Number of elements to take.
     * @return Created dataset.
     */
-  def take(
-      count: Long
-  ): Dataset[T] = {
+  def take(count: Long): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Take"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val c = Basic.constant(count, name = s"$name/Count")
         Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "TakeDataset",
@@ -183,11 +198,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -201,13 +216,17 @@ trait Dataset[T] { outer =>
     * @param  count Number of elements to take.
     * @return Created dataset.
     */
-  def take(
-      count: Output[Long]
-  ): Dataset[T] = {
+  def take(count: Output[Long]): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Take"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "TakeDataset",
           name = name,
@@ -217,11 +236,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -235,13 +254,17 @@ trait Dataset[T] { outer =>
     * @param  count Number of elements to take.
     * @return Created dataset.
     */
-  def drop(
-      count: Long
-  ): Dataset[T] = {
+  def drop(count: Long): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Drop"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val c = Basic.constant(count, name = s"$name/Count")
         Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "SkipDataset",
@@ -252,11 +275,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -270,13 +293,17 @@ trait Dataset[T] { outer =>
     * @param  count Number of elements to take.
     * @return Created dataset.
     */
-  def drop(
-      count: Output[Long]
-  ): Dataset[T] = {
+  def drop(count: Output[Long]): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Drop"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "SkipDataset",
           name = name,
@@ -286,11 +313,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -310,14 +337,21 @@ trait Dataset[T] { outer =>
   ): Dataset[T] = {
     val providedName = name
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = providedName
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
-        val instantiatedPredicateFunction = Function(s"$name/Predicate", predicate).
-            instantiate(
+      override def createHandle(): Output[Variant] = {
+        val instantiatedPredicateFunction = Function(s"$name/Predicate", predicate)
+            .instantiate(
               inputDataType = outer.outputDataTypes,
               inputShape = Some(outer.outputShapes),
-              appendHashToName = true)
+              appendHashToName = true
+            )(evOutputToDataType, evOutputToShape)
 
         Op.Builder[(Output[Variant], Seq[Output[Any]]), Output[Variant]](
           opType = "FilterDataset",
@@ -329,11 +363,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -349,20 +383,32 @@ trait Dataset[T] { outer =>
     * @tparam R Tensor type for the resulting dataset (i.e., nested structure of outputs).
     * @return Created dataset.
     */
-  def map[V, D, S, R](
+  def map[R: OutputStructure, RD, RS](
       function: T => R,
       numParallelCalls: Int = 1,
       name: String = s"${this.name}/Map"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[R] = {
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[R, RD],
+      evOutputToShape: OutputToShape.Aux[R, RS]
+  ): Dataset[R] = {
+    val providedEvOutputToDataType = evOutputToDataType
+    val providedEvOutputToShape = evOutputToShape
     val providedName = name
     new Dataset[R] {
+      override type D = RD
+      override type S = RS
+
+      implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
+      implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+
+      override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+
       override val name: String = providedName
 
       private var instantiatedFunction: Option[InstantiatedFunction[T, R]] = None
 
-      private def initializeInstantiatedFunction[RV, RD, RS]()(implicit
-          evR: NestedStructure.Aux[R, RV, RD, RS]
-      ): InstantiatedFunction[T, R] = {
+      private def initializeInstantiatedFunction(): InstantiatedFunction[T, R] = {
         if (instantiatedFunction.isEmpty)
           instantiatedFunction = Some(
             Function(s"$name/Function", function).instantiate(
@@ -372,7 +418,7 @@ trait Dataset[T] { outer =>
         instantiatedFunction.get
       }
 
-      override def createHandle[RV, RD, RS]()(implicit evR: NestedStructure.Aux[R, RV, RD, RS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val instantiatedFunction = this.instantiatedFunction.getOrElse(initializeInstantiatedFunction())
         if (numParallelCalls > 1) {
           Op.Builder[(Output[Variant], Seq[Output[Any]], Output[Int]), Output[Variant]](
@@ -398,12 +444,12 @@ trait Dataset[T] { outer =>
         }
       }
 
-      override def outputDataTypes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RD = {
-        instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputDataTypes
+      override def outputDataTypes: RD = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputDataTypes(evOutputToDataType)
       }
 
-      override def outputShapes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RS = {
-        instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputShapes
+      override def outputShapes: RS = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputShapes(evOutputToShape)
       }
     }
   }
@@ -422,22 +468,34 @@ trait Dataset[T] { outer =>
     * @tparam R Tensor type for the resulting dataset (i.e., nested structure of outputs).
     * @return Created dataset.
     */
-  def mapAndBatch[V, D, S, R](
+  def mapAndBatch[R: OutputStructure, RD, RS](
       function: T => R,
       batchSize: Long,
       numParallelCalls: Long = 1L,
       dropRemainder: Boolean = false,
       name: String = s"${this.name}/Map"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[R] = {
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[R, RD],
+      evOutputToShape: OutputToShape.Aux[R, RS]
+  ): Dataset[R] = {
+    val providedEvOutputToDataType = evOutputToDataType
+    val providedEvOutputToShape = evOutputToShape
     val providedName = name
     new Dataset[R] {
+      override type D = RD
+      override type S = RS
+
+      implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
+      implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+
+      override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+
       override val name: String = providedName
 
       private var instantiatedFunction: Option[InstantiatedFunction[T, R]] = None
 
-      private def initializeInstantiatedFunction[RV, RD, RS]()(implicit
-          evR: NestedStructure.Aux[R, RV, RD, RS]
-      ): InstantiatedFunction[T, R] = {
+      private def initializeInstantiatedFunction(): InstantiatedFunction[T, R] = {
         if (instantiatedFunction.isEmpty)
           instantiatedFunction = Some(
             Function(s"$name/Function", function).instantiate(
@@ -447,7 +505,7 @@ trait Dataset[T] { outer =>
         instantiatedFunction.get
       }
 
-      override def createHandle[RV, RD, RS]()(implicit evR: NestedStructure.Aux[R, RV, RD, RS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val instantiatedFunction = this.instantiatedFunction.getOrElse(initializeInstantiatedFunction())
         val bs = Op.nameScope(s"$name/BatchSize")(Basic.constant(batchSize))
         val dr = Op.nameScope(s"$name/DropRemainder")(Basic.constant(dropRemainder))
@@ -466,15 +524,15 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RD = {
-        instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputDataTypes
+      override def outputDataTypes: RD = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputDataTypes(evOutputToDataType)
       }
 
-      override def outputShapes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RS = {
-        val functionOutputShapes = instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputShapes
-        evR.decodeShapeFromDataType(
-          outputDataTypes,
-          evR.shapes(functionOutputShapes).map(Shape(-1) ++ _)
+      override def outputShapes: RS = {
+        val functionOutputShapes = instantiatedFunction.getOrElse(initializeInstantiatedFunction()).outputShapes(evOutputToShape)
+        evOutputToShape.shapeStructure.decodeShape(
+          functionOutputShapes,
+          evOutputToShape.shapeStructure.shapes(functionOutputShapes).map(Shape(-1) ++ _)
         )._1
       }
     }
@@ -488,19 +546,34 @@ trait Dataset[T] { outer =>
     * @tparam R Tensor type for the resulting dataset elements (i.e., nested structure of outputs).
     * @return Created dataset.
     */
-  def flatMap[V, D, S, R](
+  def flatMap[R: OutputStructure, RD, RS](
       function: T => Dataset[R],
       name: String = s"${this.name}/FlatMap"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[R] = {
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[R, RD],
+      evOutputToShape: OutputToShape.Aux[R, RS]
+  ): Dataset[R] = {
+    val providedEvOutputToDataType = evOutputToDataType
+    val providedEvOutputToShape = evOutputToShape
     val providedName = name
     new Dataset[R] {
+      override type D = RD
+      override type S = RS
+
+      implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
+      implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+
+      override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+
+      implicit val _evOutputToDataType: OutputToDataType.Aux[R, RD] = evOutputToDataType
+      implicit val _evOutputToShape: OutputToShape.Aux[R, RS] = evOutputToShape
+
       override val name: String = providedName
 
       private var instantiatedFunction: Option[InstantiatedFunction[T, Dataset[R]]] = None
 
-      private def initializeInstantiatedFunction[RV, RD, RS]()(implicit
-          evR: NestedStructure.Aux[R, RV, RD, RS]
-      ): InstantiatedFunction[T, Dataset[R]] = {
+      private def initializeInstantiatedFunction(): InstantiatedFunction[T, Dataset[R]] = {
         if (instantiatedFunction.isEmpty)
           instantiatedFunction = Some(
             Function(s"$name/Function", function).instantiate(
@@ -510,7 +583,7 @@ trait Dataset[T] { outer =>
         instantiatedFunction.get
       }
 
-      override def createHandle[RV, RD, RS]()(implicit evR: NestedStructure.Aux[R, RV, RD, RS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val instantiatedFunction = this.instantiatedFunction.getOrElse(initializeInstantiatedFunction())
         Op.Builder[(Output[Variant], Seq[Output[Any]]), Output[Variant]](
           opType = "FlatMapDataset",
@@ -522,12 +595,16 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RD = {
-        instantiatedFunction.getOrElse(initializeInstantiatedFunction())._dummyOutput.outputDataTypes
+      override def outputDataTypes: RD = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction())
+            ._dummyOutput.outputDataTypes
+            .asInstanceOf[RD]
       }
 
-      override def outputShapes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RS = {
-        instantiatedFunction.getOrElse(initializeInstantiatedFunction())._dummyOutput.outputShapes
+      override def outputShapes: RS = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction())
+            ._dummyOutput.outputShapes
+            .asInstanceOf[RS]
       }
     }
   }
@@ -585,22 +662,37 @@ trait Dataset[T] { outer =>
     * @tparam R Tensor type for the resulting dataset elements (i.e., nested structure of outputs).
     * @return Created dataset.
     */
-  def interleave[V, D, S, R](
+  def interleave[R: OutputStructure, RD, RS](
       function: T => Dataset[R],
       cycleLength: Long,
       blockLength: Long = 1L,
       numParallelCalls: Int = 1,
       name: String = "Interleave"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[R] = {
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[R, RD],
+      evOutputToShape: OutputToShape.Aux[R, RS]
+  ): Dataset[R] = {
+    val providedEvOutputToDataType = evOutputToDataType
+    val providedEvOutputToShape = evOutputToShape
     val providedName = name
     new Dataset[R] {
+      override type D = RD
+      override type S = RS
+
+      implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
+      implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+
+      override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+
+      implicit val _evOutputToDataType: OutputToDataType.Aux[R, RD] = evOutputToDataType
+      implicit val _evOutputToShape: OutputToShape.Aux[R, RS] = evOutputToShape
+
       override val name: String = s"${outer.name}/$providedName"
 
       private var instantiatedFunction: Option[InstantiatedFunction[T, Dataset[R]]] = None
 
-      private def initializeInstantiatedFunction[RV, RD, RS]()(implicit
-          evR: NestedStructure.Aux[R, RV, RD, RS]
-      ): InstantiatedFunction[T, Dataset[R]] = {
+      private def initializeInstantiatedFunction(): InstantiatedFunction[T, Dataset[R]] = {
         if (instantiatedFunction.isEmpty)
           instantiatedFunction = Some(
             Function(s"$name/Function", function).instantiate(
@@ -610,7 +702,7 @@ trait Dataset[T] { outer =>
         instantiatedFunction.get
       }
 
-      override def createHandle[RV, RD, RS]()(implicit evR: NestedStructure.Aux[R, RV, RD, RS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val instantiatedFunction = this.instantiatedFunction.getOrElse(initializeInstantiatedFunction())
         if (numParallelCalls > 1) {
           Op.Builder[(Output[Variant], Seq[Output[Any]], Output[Long], Output[Long], Output[Long]), Output[Variant]](
@@ -642,12 +734,16 @@ trait Dataset[T] { outer =>
         }
       }
 
-      override def outputDataTypes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RD = {
-        instantiatedFunction.getOrElse(initializeInstantiatedFunction())._dummyOutput.outputDataTypes
+      override def outputDataTypes: RD = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction())
+            ._dummyOutput.outputDataTypes
+            .asInstanceOf[RD]
       }
 
-      override def outputShapes[RV, RD, RS](implicit evR: NestedStructure.Aux[R, RV, RD, RS]): RS = {
-        instantiatedFunction.getOrElse(initializeInstantiatedFunction())._dummyOutput.outputShapes
+      override def outputShapes: RS = {
+        instantiatedFunction.getOrElse(initializeInstantiatedFunction())
+            ._dummyOutput.outputShapes
+            .asInstanceOf[RS]
       }
     }
   }
@@ -671,39 +767,44 @@ trait Dataset[T] { outer =>
   ): Dataset[T] = {
     val providedName = name
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
+      implicit val _evOutputToDataType: OutputToDataType.Aux[T, D] = evOutputToDataType
+      implicit val _evOutputToShape: OutputToShape.Aux[T, S] = evOutputToShape
+
       override val name: String = providedName
 
       private var instantiatedKeyFunction       : Option[InstantiatedFunction[T, Output[Long]]]                        = None
       private var instantiatedReduceFunction    : Option[InstantiatedFunction[(Output[Long], Dataset[T]), Dataset[T]]] = None
       private var instantiatedWindowSizeFunction: Option[InstantiatedFunction[Output[Long], Output[Long]]]             = None
 
-      private def initializeInstantiatedKeyFunction[V, D, S]()(implicit
-          evT: NestedStructure.Aux[T, V, D, S]
-      ): InstantiatedFunction[T, Output[Long]] = {
+      private def initializeInstantiatedKeyFunction(): InstantiatedFunction[T, Output[Long]] = {
         if (instantiatedKeyFunction.isEmpty)
           instantiatedKeyFunction = Some(
             Function(s"$name/KeyFunction", keyFn).instantiate(
               inputDataType = outer.outputDataTypes,
               inputShape = Some(outer.outputShapes),
-              appendHashToName = true))
+              appendHashToName = true
+            )(evOutputToDataType, evOutputToShape))
         instantiatedKeyFunction.get
       }
 
-      private def initializeInstantiatedReduceFunction[V, D, S]()(implicit
-          evT: NestedStructure.Aux[T, V, D, S]
-      ): InstantiatedFunction[(Output[Long], Dataset[T]), Dataset[T]] = {
+      private def initializeInstantiatedReduceFunction(): InstantiatedFunction[(Output[Long], Dataset[T]), Dataset[T]] = {
         if (instantiatedReduceFunction.isEmpty)
           instantiatedReduceFunction = Some(
             Function(s"$name/ReduceFunction", reduceFn).instantiate(
               inputDataType = (INT64.asInstanceOf[DataType[Long]], VARIANT.asInstanceOf[DataType[Variant]]),
               inputShape = Some((Shape(), Shape())),
-              appendHashToName = true))
+              appendHashToName = true
+            )(OutputToDataType[(Output[Long], Dataset[T])], OutputToShape[(Output[Long], Dataset[T])]))
         instantiatedReduceFunction.get
       }
 
-      private def initializeInstantiatedWindowSizeFunction[V, D, S]()(implicit
-          evT: NestedStructure.Aux[T, V, D, S]
-      ): InstantiatedFunction[Output[Long], Output[Long]] = {
+      private def initializeInstantiatedWindowSizeFunction(): InstantiatedFunction[Output[Long], Output[Long]] = {
         if (instantiatedWindowSizeFunction.isEmpty)
           instantiatedWindowSizeFunction = Some(
             Function(s"$name/WindowSizeFunction", windowSizeFn).instantiate(
@@ -713,7 +814,7 @@ trait Dataset[T] { outer =>
         instantiatedWindowSizeFunction.get
       }
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val instantiatedKeyFunction = this.instantiatedKeyFunction.getOrElse(initializeInstantiatedKeyFunction())
         val instantiatedReduceFunction = this.instantiatedReduceFunction.getOrElse(initializeInstantiatedReduceFunction())
         val instantiatedWindowSizeFunction = this.instantiatedWindowSizeFunction.getOrElse(initializeInstantiatedWindowSizeFunction())
@@ -733,12 +834,16 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
-        instantiatedReduceFunction.getOrElse(initializeInstantiatedReduceFunction())._dummyOutput.outputDataTypes
+      override def outputDataTypes: D = {
+        instantiatedReduceFunction.getOrElse(initializeInstantiatedReduceFunction())
+            ._dummyOutput.outputDataTypes
+            .asInstanceOf[D]
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
-        instantiatedReduceFunction.getOrElse(initializeInstantiatedReduceFunction())._dummyOutput.outputShapes
+      override def outputShapes: S = {
+        instantiatedReduceFunction.getOrElse(initializeInstantiatedReduceFunction())
+            ._dummyOutput.outputShapes
+            .asInstanceOf[S]
       }
     }
   }
@@ -753,11 +858,19 @@ trait Dataset[T] { outer =>
   def batch(
       batchSize: Long,
       dropRemainder: Boolean = false
+  )(implicit
+      evDataTypeToShape: DataTypeToShape.Aux[D, S]
   ): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Batch"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val bs = Op.nameScope(name)(Basic.constant(batchSize))
         Op.Builder[(Output[Variant], Output[Long], Output[Boolean]), Output[Variant]](
           opType = "BatchDatasetV2",
@@ -768,12 +881,12 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
-        evT.decodeShapeFromDataType(
+      override def outputShapes: S = {
+        evDataTypeToShape.decodeShape(
           outputDataTypes,
           outer.flatOutputShapes.map(Shape(-1) ++ _)
         )._1
@@ -791,11 +904,19 @@ trait Dataset[T] { outer =>
   def dynamicBatch(
       batchSize: Output[Long],
       dropRemainder: Output[Boolean] = false
+  )(implicit
+      evDataTypeToShape: DataTypeToShape.Aux[D, S]
   ): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Batch"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[(Output[Variant], Output[Long], Output[Boolean]), Output[Variant]](
           opType = "BatchDatasetV2",
           name = name,
@@ -805,12 +926,12 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
-        evT.decodeShapeFromDataType(
+      override def outputShapes: S = {
+        evDataTypeToShape.decodeShape(
           outputDataTypes,
           outer.flatOutputShapes.map(Shape(-1) ++ _)
         )._1
@@ -852,24 +973,31 @@ trait Dataset[T] { outer =>
     * @param  name          Name for this dataset.
     * @return Created dataset.
     */
-  def paddedBatch[VV, DD, SS](
+  def paddedBatch[VV](
       batchSize: Long,
-      paddedShapes: SS,
+      paddedShapes: S,
       paddingValues: VV = null.asInstanceOf[VV],
       name: String = s"${this.name}/PaddedBatch"
   )(implicit
-      evStructureT: NestedStructure.Aux[T, VV, DD, SS]
+      evDataTypeToShape: DataTypeToShape.Aux[D, S],
+      evTensorToOutput: TensorToOutput.Aux[VV, T]
   ): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/PaddedBatch"
 
       private def flatPaddedShapes: Seq[Output[Long]] = {
-        evStructureT.shapes(paddedShapes).map(_.toOutput)
+        evOutputToShape.shapeStructure.shapes(paddedShapes).map(_.toOutput)
       }
 
       private def flatPaddingValues: Seq[Output[Any]] = {
         if (paddingValues != null) {
-          evStructureT.tensors(paddingValues).map(v => {
+          evTensorToOutput.tensors(paddingValues).map(v => {
             Basic.constant(v)
           })
         } else {
@@ -877,7 +1005,7 @@ trait Dataset[T] { outer =>
         }
       }
 
-      override def createHandle[V, D, S]()(implicit evStructureT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[(Output[Variant], Output[Long], Seq[Output[Long]], Seq[Output[Any]]), Output[Variant]](
           opType = "PaddedBatchDataset",
           name = name,
@@ -891,13 +1019,13 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evStructureT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evStructureT: NestedStructure.Aux[T, V, D, S]): S = {
-        evStructureT.decodeShapeFromDataType(
-          outputDataTypes,
+      override def outputShapes: S = {
+        evOutputToShape.shapeStructure.decodeShape(
+          outer.outputShapes,
           outer.flatOutputShapes.map(Shape(-1) ++ _)
         )._1
       }
@@ -913,9 +1041,15 @@ trait Dataset[T] { outer =>
       bufferSize: Long
   ): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Prefetch"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val bs = Op.nameScope(name)(Basic.constant(bufferSize))
         Op.Builder[(Output[Variant], Output[Long]), Output[Variant]](
           opType = "PrefetchDataset",
@@ -926,11 +1060,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -946,9 +1080,15 @@ trait Dataset[T] { outer =>
       directory: String
   ): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Cache"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         val d = Op.nameScope(name)(Basic.constant(directory))
         Op.Builder[(Output[Variant], Output[String]), Output[Variant]](
           opType = "CacheDataset",
@@ -959,11 +1099,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -979,9 +1119,15 @@ trait Dataset[T] { outer =>
       directory: Output[String]
   ): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/Cache"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[(Output[Variant], Output[String]), Output[Variant]](
           opType = "CacheDataset",
           name = name,
@@ -991,11 +1137,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -1022,16 +1168,23 @@ trait Dataset[T] { outer =>
   def concatenateWith(
       other: Dataset[T],
       name: String = s"${this.name}/Concatenated"
+  )(implicit
+      evOutputToDataTypeOther: OutputToDataType.Aux[T, other.D],
+      evOutputToShapeOther: OutputToShape.Aux[T, other.S]
   ): Dataset[T] = {
     val providedName = name
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = providedName
 
       private var mostSpecificFlattenedShapes: Option[Seq[Shape]] = None
 
-      private def initializeMostSpecificFlattenedShapes[V, D, S]()(implicit
-          evT: NestedStructure.Aux[T, V, D, S]
-      ): Seq[Shape] = {
+      private def initializeMostSpecificFlattenedShapes(): Seq[Shape] = {
         if (mostSpecificFlattenedShapes.isEmpty) {
           mostSpecificFlattenedShapes = Some(
             outer.flatOutputShapes.zip(other.flatOutputShapes).map(p => {
@@ -1046,7 +1199,7 @@ trait Dataset[T] { outer =>
         mostSpecificFlattenedShapes.get
       }
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[(Output[Variant], Output[Variant]), Output[Variant]](
           opType = "CacheDataset",
           name = name,
@@ -1056,13 +1209,13 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
-        evT.decodeShapeFromDataType(
-          outputDataTypes,
+      override def outputShapes: S = {
+        evOutputToShape.shapeStructure.decodeShape(
+          outer.outputShapes,
           initializeMostSpecificFlattenedShapes()
         )._1
       }
@@ -1094,18 +1247,27 @@ trait Dataset[T] { outer =>
     * @param  name  Name to use for the new dataset.
     * @return Created dataset.
     */
-  def zip[V, D, S, R, RV, RD, RS](
+  def zip[R: OutputStructure, RD, RS](
       other: Dataset[R],
       name: String = s"${this.name}/Zip"
   )(implicit
-      evT: NestedStructure.Aux[T, V, D, S],
-      evR: NestedStructure.Aux[R, RV, RD, RS]
+      evOutputToDataTypeR: OutputToDataType.Aux[R, RD],
+      evOutputToShapeR: OutputToShape.Aux[R, RS]
   ): Dataset[(T, R)] = {
     val providedName = name
     new Dataset[(T, R)] {
+      override type D = (outer.D, RD)
+      override type S = (outer.S, RS)
+
+      implicit val _evOutputToDataType: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
+      implicit val _evOutputToShape: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+
+      override def evOutputToDataType: OutputToDataType.Aux[(T, R), D] = OutputToDataType[(T, R)]
+      override def evOutputToShape: OutputToShape.Aux[(T, R), S] = OutputToShape[(T, R)]
+
       override val name: String = providedName
 
-      override def createHandle[VV, DD, SS]()(implicit evTR: NestedStructure.Aux[(T, R), VV, DD, SS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[Seq[Output[Variant]], Output[Variant]](
           opType = "ZipDataset",
           name = name,
@@ -1115,12 +1277,12 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[VV, DD, SS](implicit evTR: NestedStructure.Aux[(T, R), VV, DD, SS]): DD = {
-        (outer.outputDataTypes, other.outputDataTypes).asInstanceOf[DD]
+      override def outputDataTypes: D = {
+        (outer.outputDataTypes, other.outputDataTypes.asInstanceOf[RD])
       }
 
-      override def outputShapes[VV, DD, SS](implicit evTR: NestedStructure.Aux[(T, R), VV, DD, SS]): SS = {
-        (outer.outputShapes, other.outputShapes).asInstanceOf[SS]
+      override def outputShapes: S = {
+        (outer.outputShapes, other.outputShapes.asInstanceOf[RS])
       }
     }
   }
@@ -1146,20 +1308,30 @@ trait Dataset[T] { outer =>
     * @param  name   Name to use for the new dataset.
     * @return Created dataset.
     */
-  def zip3[V, D, S, R1, RV1, RD1, RS1, R2, RV2, RD2, RS2](
+  def zip3[R1: OutputStructure, RD1, RS1, R2: OutputStructure, RD2, RS2](
       other1: Dataset[R1],
       other2: Dataset[R2],
       name: String = s"${this.name}/Zip"
   )(implicit
-      evT: NestedStructure.Aux[T, V, D, S],
-      evR1: NestedStructure.Aux[R1, RV1, RD1, RS1],
-      evR2: NestedStructure.Aux[R2, RV2, RD2, RS2]
+      evOutputToDataTypeR1: OutputToDataType.Aux[R1, RD1],
+      evOutputToShapeR1: OutputToShape.Aux[R1, RS1],
+      evOutputToDataTypeR2: OutputToDataType.Aux[R2, RD2],
+      evOutputToShapeR2: OutputToShape.Aux[R2, RS2]
   ): Dataset[(T, R1, R2)] = {
     val providedName = name
     new Dataset[(T, R1, R2)] {
+      override type D = (outer.D, RD1, RD2)
+      override type S = (outer.S, RS1, RS2)
+
+      implicit val _evOutputToDataType: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
+      implicit val _evOutputToShape: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+
+      override def evOutputToDataType: OutputToDataType.Aux[(T, R1, R2), D] = OutputToDataType[(T, R1, R2)]
+      override def evOutputToShape: OutputToShape.Aux[(T, R1, R2), S] = OutputToShape[(T, R1, R2)]
+
       override val name: String = providedName
 
-      override def createHandle[VV, DD, SS]()(implicit evTR1R2: NestedStructure.Aux[(T, R1, R2), VV, DD, SS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[Seq[Output[Variant]], Output[Variant]](
           opType = "ZipDataset",
           name = name,
@@ -1169,12 +1341,12 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[VV, DD, SS](implicit evTR1R2: NestedStructure.Aux[(T, R1, R2), VV, DD, SS]): DD = {
-        (outer.outputDataTypes, other1.outputDataTypes, other2.outputDataTypes).asInstanceOf[DD]
+      override def outputDataTypes: D = {
+        (outer.outputDataTypes, other1.outputDataTypes.asInstanceOf[RD1], other2.outputDataTypes.asInstanceOf[RD2])
       }
 
-      override def outputShapes[VV, DD, SS](implicit evTR1R2: NestedStructure.Aux[(T, R1, R2), VV, DD, SS]): SS = {
-        (outer.outputShapes, other1.outputShapes, other2.outputShapes).asInstanceOf[SS]
+      override def outputShapes: S = {
+        (outer.outputShapes, other1.outputShapes.asInstanceOf[RS1], other2.outputShapes.asInstanceOf[RS2])
       }
     }
   }
@@ -1187,15 +1359,24 @@ trait Dataset[T] { outer =>
     * @param  name   Name to use for the new dataset.
     * @return Created dataset.
     */
-  def zipMultiple[V, D, S](
+  def zipMultiple(
       others: Seq[Dataset[T]],
       name: String = s"${this.name}/Zip"
-  )(implicit evT: NestedStructure.Aux[T, V, D, S]): Dataset[Seq[T]] = {
+  ): Dataset[Seq[T]] = {
     val providedName = name
     new Dataset[Seq[T]] {
+      override type D = Seq[outer.D]
+      override type S = Seq[outer.S]
+
+      implicit val _evOutputToDataType: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
+      implicit val _evOutputToShape: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+
+      override def evOutputToDataType: OutputToDataType.Aux[Seq[T], D] = OutputToDataType[Seq[T]]
+      override def evOutputToShape: OutputToShape.Aux[Seq[T], S] = OutputToShape[Seq[T]]
+
       override val name: String = providedName
 
-      override def createHandle[VV, DD, SS]()(implicit evSeqT: NestedStructure.Aux[Seq[T], VV, DD, SS]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[Seq[Output[Variant]], Output[Variant]](
           opType = "ZipDataset",
           name = name,
@@ -1205,12 +1386,12 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[VV, DD, SS](implicit evSeqT: NestedStructure.Aux[Seq[T], VV, DD, SS]): DD = {
-        (outer.outputDataTypes +: others.map(_.outputDataTypes[V, D, S](evT))).asInstanceOf[DD]
+      override def outputDataTypes: D = {
+        outer.outputDataTypes +: others.map(_.outputDataTypes.asInstanceOf[outer.D])
       }
 
-      override def outputShapes[VV, DD, SS](implicit evSeqT: NestedStructure.Aux[Seq[T], VV, DD, SS]): SS = {
-        (outer.outputShapes +: others.map(_.outputShapes[V, D, S](evT))).asInstanceOf[SS]
+      override def outputShapes: S = {
+        outer.outputShapes +: others.map(_.outputShapes.asInstanceOf[outer.S])
       }
     }
   }
@@ -1233,9 +1414,15 @@ trait Dataset[T] { outer =>
     */
   def ignoreErrors(): Dataset[T] = {
     new Dataset[T] {
+      override type D = outer.D
+      override type S = outer.S
+
+      override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
+      override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+
       override val name: String = s"${outer.name}/IgnoreErrors"
 
-      override def createHandle[V, D, S]()(implicit evT: NestedStructure.Aux[T, V, D, S]): Output[Variant] = {
+      override def createHandle(): Output[Variant] = {
         Op.Builder[Output[Variant], Output[Variant]](
           opType = "IgnoreErrorsDataset",
           name = name,
@@ -1245,11 +1432,11 @@ trait Dataset[T] { outer =>
             .build().output
       }
 
-      override def outputDataTypes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): D = {
+      override def outputDataTypes: D = {
         outer.outputDataTypes
       }
 
-      override def outputShapes[V, D, S](implicit evT: NestedStructure.Aux[T, V, D, S]): S = {
+      override def outputShapes: S = {
         outer.outputShapes
       }
     }
@@ -1294,19 +1481,17 @@ trait Dataset[T] { outer =>
     * @throws InvalidArgumentException If `shardIndex >= numShards`.
     */
   @throws[InvalidArgumentException]
-  def shard[V, D, S](
+  def shard(
       numShards: Long,
       shardIndex: Long
-  )(implicit
-      evT: NestedStructure.Aux[T, V, D, S],
-      // The following implicit hint helps the compiler for Scala 2.11 support.
-      evStructure: NestedStructure.Aux[(T, Output[Long]), (V, Tensor[Long]), (D, DataType[Long]), (S, Shape)]
   ): Dataset[T] = {
     if (shardIndex >= numShards)
       throw InvalidArgumentException(s"'index' (= $shardIndex) must be smaller than 'numShards' (= $numShards).")
     if (numShards == 1) {
       this
     } else {
+      implicit val _evOutputToDataType: OutputToDataType.Aux[T, D] = this.evOutputToDataType
+      implicit val _evOutputToShape: OutputToShape.Aux[T, S] = this.evOutputToShape
       this.zip(Data.datasetFromRange(0L, Long.MaxValue))
           .filter(t => Math.equal(Math.mod(t._2, numShards), shardIndex))
           .map(o => o._1)
@@ -1322,7 +1507,7 @@ trait Dataset[T] { outer =>
     * @return Transformed dataset.
     */
   def transform[R](transformFn: Dataset[T] => Dataset[R])(implicit
-      evR: NestedStructure[R]
+      evR: OutputStructure[R]
   ): Dataset[R] = {
     transformFn(this)
   }

@@ -19,8 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{IsHalfOrFloatOrDouble, IsIntOrLong, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure.SparseShape
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape, SparseShape}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
@@ -48,45 +47,51 @@ import java.security.MessageDigest
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[O: NestedStructure, S: NestedStructure] protected (
-    val cell: RNNCell[O, S],
+class DropoutWrapper[Out: OutputStructure, State: OutputStructure] protected (
+    val cell: RNNCell[Out, State],
     val inputKeepProbability: Output[Float] = 1.0f,
     val outputKeepProbability: Output[Float] = 1.0f,
     val stateKeepProbability: Output[Float] = 1.0f,
     val seed: Option[Int] = None,
     val name: String = "DropoutWrapper"
-) extends RNNCell[O, S]() {
-  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
+) extends RNNCell[Out, State]() {
+  type OutShape = cell.OutShape
+  type StateShape = cell.StateShape
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
+  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
+
+  override def outputShape: OutShape = {
     cell.outputShape
   }
 
-  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[S, _, _, SS]): SS = {
+  override def stateShape: StateShape = {
     cell.stateShape
   }
 
-  override def forward(input: Tuple[O, S]): Tuple[O, S] = {
+  override def forward(input: Tuple[Out, State]): Tuple[Out, State] = {
     Op.nameScope(name) {
-      val dropoutInput = NestedStructure[O].map(
-        input.output, None, DropoutWrapper.DropoutConverter(inputKeepProbability, "input", seed))
+      val dropoutInput = OutputStructure[Out].map(
+        input.output, DropoutWrapper.DropoutConverter(inputKeepProbability, "input", seed))
       val nextTuple = cell(Tuple(dropoutInput, input.state))
-      val nextState = NestedStructure[S].map(
-        nextTuple.state, None, DropoutWrapper.DropoutConverter(stateKeepProbability, "state", seed))
-      val nextOutput = NestedStructure[O].map(
-        nextTuple.output, None, DropoutWrapper.DropoutConverter(outputKeepProbability, "output", seed))
+      val nextState = OutputStructure[State].map(
+        nextTuple.state, DropoutWrapper.DropoutConverter(stateKeepProbability, "state", seed))
+      val nextOutput = OutputStructure[Out].map(
+        nextTuple.output, DropoutWrapper.DropoutConverter(outputKeepProbability, "output", seed))
       Tuple(nextOutput, nextState)
     }
   }
 }
 
 object DropoutWrapper {
-  def apply[O: NestedStructure, S: NestedStructure](
-      cell: RNNCell[O, S],
+  def apply[Out: OutputStructure, State: OutputStructure](
+      cell: RNNCell[Out, State],
       inputKeepProbability: Output[Float] = 1.0f,
       outputKeepProbability: Output[Float] = 1.0f,
       stateKeepProbability: Output[Float] = 1.0f,
       seed: Option[Int] = None,
       name: String = "DropoutWrapper"
-  ): DropoutWrapper[O, S] = {
+  ): DropoutWrapper[Out, State] = {
     new DropoutWrapper(
       cell, inputKeepProbability, outputKeepProbability,
       stateKeepProbability, seed, name)
@@ -110,7 +115,7 @@ object DropoutWrapper {
       keepProbability: Output[Float],
       saltPrefix: String,
       seed: Option[Int]
-  ) extends NestedStructure.Converter {
+  ) extends OutputStructure.Converter {
     // TODO: [IMPLICITS] !!! Handle OutputIndexedSlices and SparseOutput.
 
     override def apply[T](value: Output[T], shape: Option[Shape]): Output[T] = {

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops.rnn.cell
 
-import org.platanios.tensorflow.api.implicits.helpers.NestedStructure
+import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops.Op
 
 /** RNN cell that is composed by applying a sequence of RNN cells in order.
@@ -31,19 +31,30 @@ import org.platanios.tensorflow.api.ops.Op
   *
   * @author Emmanouil Antonios Platanios
   */
-class StackedCell[O, S: NestedStructure] protected (
-    val cells: Seq[RNNCell[O, S]],
+class StackedCell[Out, State: OutputToShape] protected (
+    val cells: Seq[RNNCell[Out, State]],
     val name: String = "StackedCell"
-) extends RNNCell[O, Seq[S]] {
-  override def outputShape[OS](implicit evStructureO: NestedStructure.Aux[O, _, _, OS]): OS = {
-    cells.last.outputShape
+) extends RNNCell[Out, Seq[State]] {
+  val lastCell: RNNCell[Out, State] = cells.last
+
+  type OutShape = lastCell.OutShape
+  type StateShape = Seq[lastCell.StateShape]
+
+  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = lastCell.evOutputToShapeOut
+
+  override def evOutputToShapeState: OutputToShape.Aux[Seq[State], StateShape] = {
+    OutputToShape[Seq[State]].asInstanceOf[OutputToShape.Aux[Seq[State], StateShape]]
   }
 
-  override def stateShape[SS](implicit evStructureS: NestedStructure.Aux[Seq[S], _, _, SS]): SS = {
-    cells.map(_.stateShape(NestedStructure[S])).asInstanceOf[SS]
+  override def outputShape: OutShape = {
+    cells.last.outputShape.asInstanceOf[OutShape]
   }
 
-  override def forward(input: Tuple[O, Seq[S]]): Tuple[O, Seq[S]] = {
+  override def stateShape: StateShape = {
+    cells.map(_.stateShape).asInstanceOf[StateShape]
+  }
+
+  override def forward(input: Tuple[Out, Seq[State]]): Tuple[Out, Seq[State]] = {
     Op.nameScope(name) {
       var currentInput = input.output
       val state = cells.zip(input.state).map {
@@ -58,10 +69,10 @@ class StackedCell[O, S: NestedStructure] protected (
 }
 
 object StackedCell {
-  def apply[O, S: NestedStructure](
-      cells: Seq[RNNCell[O, S]],
+  def apply[Out, State: OutputToShape](
+      cells: Seq[RNNCell[Out, State]],
       name: String = "StackedCell"
-  ): StackedCell[O, S] = {
+  ): StackedCell[Out, State] = {
     new StackedCell(cells, name)
   }
 }

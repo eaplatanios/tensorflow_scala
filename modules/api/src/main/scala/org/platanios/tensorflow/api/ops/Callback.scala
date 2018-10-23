@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, TensorToOutput}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToTensor, TensorToOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.jni.{ScalaCallbacksRegistry => NativeCallbacksRegistry, TensorFlow => NativeLibrary}
 
@@ -37,22 +37,21 @@ trait Callback {
     * @param  name           Name for the created op.
     * @return Created op output.
     */
-  def callback[IT, IV, ID, IS, OT, OV, OD, OS](
+  def callback[IT: OutputStructure, IV, OT, OV, OD](
       function: IV => OV,
       input: IT,
       outputDataType: OD,
       stateful: Boolean = true,
       name: String = "Callback"
   )(implicit
-      evTensorToOutputInput: TensorToOutput.Aux[IV, IT],
-      evTensorToOutputOutput: TensorToOutput.Aux[OV, OT],
-      evInput: NestedStructure.Aux[IT, IV, ID, IS],
-      evOutput: NestedStructure.Aux[OT, OV, OD, OS]
+      evOutputToTensorI: OutputToTensor.Aux[IT, IV],
+      evTensorToOutputO: TensorToOutput.Aux[OV, OT],
+      evOutputToDataType: OutputToDataType.Aux[OT, OD]
   ): OT = {
     val id = NativeCallbacksRegistry.register(inputs => {
       val inputTensors = inputs.map(Tensor.fromNativeHandle[Any]).toSeq
-      val outputs = function(evInput.decodeTensorFromOutput(input, inputTensors)._1)
-      val outputTensors = evOutput.tensors(outputs)
+      val outputs = function(evOutputToTensorI.decodeTensor(input, inputTensors)._1)
+      val outputTensors = evTensorToOutputO.tensors(outputs)
       outputTensors.map(_.nativeHandle).toArray
     })
     // We tie the registered function's lifetime with the current graph. That is, when the current graph is destroyed,
@@ -70,19 +69,19 @@ trait Callback {
         Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
           opType = "JVMCallback",
           name = name,
-          input = evInput.outputs(input))
+          input = OutputStructure[IT].outputs(input))
       } else {
         Op.Builder[Seq[Output[Any]], Seq[Output[Any]]](
           opType = "JVMCallbackStateless",
           name = name,
-          input = evInput.outputs(input))
+          input = OutputStructure[IT].outputs(input))
       }
     }
     builder.setAttribute("id", id)
     builder.setAttribute("jvm_pointer", NativeLibrary.currentJvmPointer)
     builder.setAttribute("registry_pointer", NativeLibrary.currentCallbackRegistryPointer)
-    builder.setAttribute("Tout", evOutput.dataTypes(outputDataType).toArray)
-    evOutput.decodeOutputFromDataType(outputDataType, builder.build().output)._1
+    builder.setAttribute("Tout", evOutputToDataType.dataTypeStructure.dataTypes(outputDataType).toArray)
+    evOutputToDataType.decodeOutput(outputDataType, builder.build().output)._1
   }
 }
 
