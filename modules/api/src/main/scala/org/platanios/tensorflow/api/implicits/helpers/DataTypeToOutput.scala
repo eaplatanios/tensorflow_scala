@@ -32,6 +32,10 @@ sealed trait DataTypeToOutput[D] {
 }
 
 object DataTypeToOutput {
+  def apply[D](implicit ev: DataTypeToOutput[D]): Aux[D, ev.O] = {
+    ev.asInstanceOf[Aux[D, ev.O]]
+  }
+
   type Aux[D, OO] = DataTypeToOutput[D] {
     type O = OO
   }
@@ -126,19 +130,6 @@ object DataTypeToOutput {
 
       override def dataTypeStructure: DataTypeStructure[PD] = {
         DataTypeStructure.fromProduct[PD, HD](genD, evD.dataTypeStructure)
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HD, HO, TD <: Coproduct, TO <: Coproduct](implicit
-      evH: Strict[DataTypeToOutput.Aux[HD, HO]],
-      evT: DataTypeToOutput.Aux[TD, TO]
-  ): DataTypeToOutput.Aux[HD :+: TD, HO :+: TO] = {
-    new DataTypeToOutput[HD :+: TD] {
-      override type O = HO :+: TO
-
-      override def dataTypeStructure: DataTypeStructure[HD :+: TD] = {
-        DataTypeStructure.fromCoproduct[HD, TD](evH.value.dataTypeStructure, evT.dataTypeStructure)
       }
     }
   }

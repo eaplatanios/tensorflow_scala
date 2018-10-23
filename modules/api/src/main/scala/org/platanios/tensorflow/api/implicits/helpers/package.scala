@@ -32,13 +32,15 @@ package object helpers {
       private val _outputShapes: Any = null
   )(implicit
       _evOutputToDataType: OutputToDataType.Aux[T, DD],
-      _evOutputToShape: OutputToShape.Aux[T, SS]
+      _evOutputToShape: OutputToShape.Aux[T, SS],
+      _evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ) extends Dataset[T] {
     override type D = DD
     override type S = SS
 
-    override implicit def evOutputToDataType: OutputToDataType.Aux[T, DD] = _evOutputToDataType
-    override implicit def evOutputToShape: OutputToShape.Aux[T, SS] = _evOutputToShape
+    override def evOutputToDataType: OutputToDataType.Aux[T, DD] = _evOutputToDataType
+    override def evOutputToShape: OutputToShape.Aux[T, SS] = _evOutputToShape
+    override def evDataTypeToShape: DataTypeToShape.Aux[DD, SS] = _evDataTypeToShape
 
     override val name: String = "VariantDataset"
 

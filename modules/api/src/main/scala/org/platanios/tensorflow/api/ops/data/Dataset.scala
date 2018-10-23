@@ -40,6 +40,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
   def evOutputToDataType: OutputToDataType.Aux[T, D]
   def evOutputToShape: OutputToShape.Aux[T, S]
+  def evDataTypeToShape: DataTypeToShape.Aux[D, S]
 
   val name: String
 
@@ -104,6 +105,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Repeat"
 
@@ -141,6 +143,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Shuffle"
 
@@ -184,6 +187,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Take"
 
@@ -223,6 +227,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Take"
 
@@ -261,6 +266,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Drop"
 
@@ -300,6 +306,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Drop"
 
@@ -342,6 +349,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = providedName
 
@@ -389,10 +397,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
       name: String = s"${this.name}/Map"
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[R, RD],
-      evOutputToShape: OutputToShape.Aux[R, RS]
+      evOutputToShape: OutputToShape.Aux[R, RS],
+      evDataTypeToShape: DataTypeToShape.Aux[RD, RS]
   ): Dataset[R] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val providedName = name
     new Dataset[R] {
       override type D = RD
@@ -400,9 +410,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
       implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+      implicit val evDataTypeToShapeT: DataTypeToShape.Aux[outer.D, outer.S] = outer.evDataTypeToShape
 
       override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[RD, RS] = providedEvDataTypeToShape
 
       override val name: String = providedName
 
@@ -476,10 +488,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
       name: String = s"${this.name}/Map"
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[R, RD],
-      evOutputToShape: OutputToShape.Aux[R, RS]
+      evOutputToShape: OutputToShape.Aux[R, RS],
+      evDataTypeToShape: DataTypeToShape.Aux[RD, RS]
   ): Dataset[R] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val providedName = name
     new Dataset[R] {
       override type D = RD
@@ -487,9 +501,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
       implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+      implicit val evDataTypeToShapeT: DataTypeToShape.Aux[outer.D, outer.S] = outer.evDataTypeToShape
 
       override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[RD, RS] = providedEvDataTypeToShape
 
       override val name: String = providedName
 
@@ -551,10 +567,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
       name: String = s"${this.name}/FlatMap"
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[R, RD],
-      evOutputToShape: OutputToShape.Aux[R, RS]
+      evOutputToShape: OutputToShape.Aux[R, RS],
+      evDataTypeToShape: DataTypeToShape.Aux[RD, RS]
   ): Dataset[R] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val providedName = name
     new Dataset[R] {
       override type D = RD
@@ -562,12 +580,15 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
       implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+      implicit val evDataTypeToShapeT: DataTypeToShape.Aux[outer.D, outer.S] = outer.evDataTypeToShape
 
       override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[RD, RS] = providedEvDataTypeToShape
 
       implicit val _evOutputToDataType: OutputToDataType.Aux[R, RD] = evOutputToDataType
       implicit val _evOutputToShape: OutputToShape.Aux[R, RS] = evOutputToShape
+      implicit val _evDataTypeToShape: DataTypeToShape.Aux[RD, RS] = evDataTypeToShape
 
       override val name: String = providedName
 
@@ -670,10 +691,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
       name: String = "Interleave"
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[R, RD],
-      evOutputToShape: OutputToShape.Aux[R, RS]
+      evOutputToShape: OutputToShape.Aux[R, RS],
+      evDataTypeToShape: DataTypeToShape.Aux[RD, RS]
   ): Dataset[R] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val providedName = name
     new Dataset[R] {
       override type D = RD
@@ -681,12 +704,15 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       implicit val evOutputToDataTypeT: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
       implicit val evOutputToShapeT: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+      implicit val evDataTypeToShapeT: DataTypeToShape.Aux[outer.D, outer.S] = outer.evDataTypeToShape
 
       override def evOutputToDataType: OutputToDataType.Aux[R, RD] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[R, RS] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[RD, RS] = providedEvDataTypeToShape
 
       implicit val _evOutputToDataType: OutputToDataType.Aux[R, RD] = evOutputToDataType
       implicit val _evOutputToShape: OutputToShape.Aux[R, RS] = evOutputToShape
+      implicit val _evDataTypeToShape: DataTypeToShape.Aux[RD, RS] = evDataTypeToShape
 
       override val name: String = s"${outer.name}/$providedName"
 
@@ -772,9 +798,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       implicit val _evOutputToDataType: OutputToDataType.Aux[T, D] = evOutputToDataType
       implicit val _evOutputToShape: OutputToShape.Aux[T, S] = evOutputToShape
+      implicit val _evDataTypeToShape: DataTypeToShape.Aux[D, S] = evDataTypeToShape
 
       override val name: String = providedName
 
@@ -858,8 +886,6 @@ abstract class Dataset[T: OutputStructure] { outer =>
   def batch(
       batchSize: Long,
       dropRemainder: Boolean = false
-  )(implicit
-      evDataTypeToShape: DataTypeToShape.Aux[D, S]
   ): Dataset[T] = {
     new Dataset[T] {
       override type D = outer.D
@@ -867,6 +893,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Batch"
 
@@ -904,8 +931,6 @@ abstract class Dataset[T: OutputStructure] { outer =>
   def dynamicBatch(
       batchSize: Output[Long],
       dropRemainder: Output[Boolean] = false
-  )(implicit
-      evDataTypeToShape: DataTypeToShape.Aux[D, S]
   ): Dataset[T] = {
     new Dataset[T] {
       override type D = outer.D
@@ -913,6 +938,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Batch"
 
@@ -979,7 +1005,6 @@ abstract class Dataset[T: OutputStructure] { outer =>
       paddingValues: VV = null.asInstanceOf[VV],
       name: String = s"${this.name}/PaddedBatch"
   )(implicit
-      evDataTypeToShape: DataTypeToShape.Aux[D, S],
       evTensorToOutput: TensorToOutput.Aux[VV, T]
   ): Dataset[T] = {
     new Dataset[T] {
@@ -988,6 +1013,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/PaddedBatch"
 
@@ -1046,6 +1072,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Prefetch"
 
@@ -1085,6 +1112,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Cache"
 
@@ -1124,6 +1152,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/Cache"
 
@@ -1179,6 +1208,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = providedName
 
@@ -1252,7 +1282,8 @@ abstract class Dataset[T: OutputStructure] { outer =>
       name: String = s"${this.name}/Zip"
   )(implicit
       evOutputToDataTypeR: OutputToDataType.Aux[R, RD],
-      evOutputToShapeR: OutputToShape.Aux[R, RS]
+      evOutputToShapeR: OutputToShape.Aux[R, RS],
+      evDataTypeToShapeR: DataTypeToShape.Aux[RD, RS]
   ): Dataset[(T, R)] = {
     val providedName = name
     new Dataset[(T, R)] {
@@ -1261,9 +1292,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       implicit val _evOutputToDataType: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
       implicit val _evOutputToShape: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+      implicit val _evDataTypeToShape: DataTypeToShape.Aux[outer.D, outer.S] = outer.evDataTypeToShape
 
       override def evOutputToDataType: OutputToDataType.Aux[(T, R), D] = OutputToDataType[(T, R)]
       override def evOutputToShape: OutputToShape.Aux[(T, R), S] = OutputToShape[(T, R)]
+      override def evDataTypeToShape: DataTypeToShape.Aux[(outer.D, RD), S] = DataTypeToShape[(outer.D, RD)]
 
       override val name: String = providedName
 
@@ -1315,8 +1348,10 @@ abstract class Dataset[T: OutputStructure] { outer =>
   )(implicit
       evOutputToDataTypeR1: OutputToDataType.Aux[R1, RD1],
       evOutputToShapeR1: OutputToShape.Aux[R1, RS1],
+      evDataTypeToShapeR1: DataTypeToShape.Aux[RD1, RS1],
       evOutputToDataTypeR2: OutputToDataType.Aux[R2, RD2],
-      evOutputToShapeR2: OutputToShape.Aux[R2, RS2]
+      evOutputToShapeR2: OutputToShape.Aux[R2, RS2],
+      evDataTypeToShapeR2: DataTypeToShape.Aux[RD2, RS2]
   ): Dataset[(T, R1, R2)] = {
     val providedName = name
     new Dataset[(T, R1, R2)] {
@@ -1325,9 +1360,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       implicit val _evOutputToDataType: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
       implicit val _evOutputToShape: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+      implicit val _evDataTypeToShape: DataTypeToShape.Aux[outer.D, outer.S] = outer.evDataTypeToShape
 
       override def evOutputToDataType: OutputToDataType.Aux[(T, R1, R2), D] = OutputToDataType[(T, R1, R2)]
       override def evOutputToShape: OutputToShape.Aux[(T, R1, R2), S] = OutputToShape[(T, R1, R2)]
+      override def evDataTypeToShape: DataTypeToShape.Aux[(outer.D, RD1, RD2), S] = DataTypeToShape[(outer.D, RD1, RD2)]
 
       override val name: String = providedName
 
@@ -1370,9 +1407,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       implicit val _evOutputToDataType: OutputToDataType.Aux[T, outer.D] = outer.evOutputToDataType
       implicit val _evOutputToShape: OutputToShape.Aux[T, outer.S] = outer.evOutputToShape
+      implicit val _evDataTypeToShape: DataTypeToShape.Aux[outer.D, outer.S] = outer.evDataTypeToShape
 
       override def evOutputToDataType: OutputToDataType.Aux[Seq[T], D] = OutputToDataType[Seq[T]]
       override def evOutputToShape: OutputToShape.Aux[Seq[T], S] = OutputToShape[Seq[T]]
+      override def evDataTypeToShape: DataTypeToShape.Aux[Seq[outer.D], S] = DataTypeToShape[Seq[outer.D]]
 
       override val name: String = providedName
 
@@ -1419,6 +1458,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = outer.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = outer.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = outer.evDataTypeToShape
 
       override val name: String = s"${outer.name}/IgnoreErrors"
 
@@ -1492,6 +1532,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
     } else {
       implicit val _evOutputToDataType: OutputToDataType.Aux[T, D] = this.evOutputToDataType
       implicit val _evOutputToShape: OutputToShape.Aux[T, S] = this.evOutputToShape
+      implicit val _evDataTypeToShape: DataTypeToShape.Aux[D, S] = this.evDataTypeToShape
       this.zip(Data.datasetFromRange(0L, Long.MaxValue))
           .filter(t => Math.equal(Math.mod(t._2, numShards), shardIndex))
           .map(o => o._1)

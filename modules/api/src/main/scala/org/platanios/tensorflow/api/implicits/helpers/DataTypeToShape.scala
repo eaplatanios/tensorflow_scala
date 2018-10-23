@@ -34,6 +34,10 @@ sealed trait DataTypeToShape[D] {
 }
 
 object DataTypeToShape {
+  def apply[D](implicit ev: DataTypeToShape[D]): Aux[D, ev.S] = {
+    ev.asInstanceOf[Aux[D, ev.S]]
+  }
+
   type Aux[D, SS] = DataTypeToShape[D] {
     type S = SS
   }
@@ -182,53 +186,23 @@ object DataTypeToShape {
 
   implicit def fromProduct[PD <: Product, PS <: Product, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
-      evD: DataTypeToShape.Aux[HD, HS],
-      tuplerO: Tupler.Aux[HS, PS],
+      evD: Strict[DataTypeToShape.Aux[HD, HS]],
+      tuplerS: Tupler.Aux[HS, PS],
       genS: Generic.Aux[PS, HS]
   ): DataTypeToShape.Aux[PD, PS] = {
     new DataTypeToShape[PD] {
       override type S = PS
 
       override def sizeFromDataType(dataType: PD): Int = {
-        evD.sizeFromDataType(genD.to(dataType))
+        evD.value.sizeFromDataType(genD.to(dataType))
       }
 
       override def decodeShape(
           dataType: PD,
           shapes: Seq[Shape]
       ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evD.decodeShape(genD.to(dataType), shapes)
+        val (out, remaining) = evD.value.decodeShape(genD.to(dataType), shapes)
         (genS.from(out), remaining)
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HD, HS, TD <: Coproduct, TS <: Coproduct](implicit
-      evH: Strict[DataTypeToShape.Aux[HD, HS]],
-      evT: DataTypeToShape.Aux[TD, TS]
-  ): DataTypeToShape.Aux[HD :+: TD, HS :+: TS] = {
-    new DataTypeToShape[HD :+: TD] {
-      override type S = HS :+: TS
-
-      override def sizeFromDataType(dataType: HD :+: TD): Int = {
-        dataType match {
-          case Inl(h) => evH.value.sizeFromDataType(h)
-          case Inr(t) => evT.sizeFromDataType(t)
-        }
-      }
-
-      override def decodeShape(
-          dataType: HD :+: TD,
-          shapes: Seq[Shape]
-      ): (HS :+: TS, Seq[Shape]) = {
-        dataType match {
-          case Inl(h) =>
-            val (result, remaining) = evH.value.decodeShape(h, shapes)
-            (Inl(result), remaining)
-          case Inr(t) =>
-            val (result, remaining) = evT.decodeShape(t, shapes)
-            (Inr(result), remaining)
-        }
       }
     }
   }

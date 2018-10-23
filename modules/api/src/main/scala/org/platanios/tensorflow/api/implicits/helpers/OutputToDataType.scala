@@ -180,7 +180,8 @@ object OutputToDataType {
 
   implicit def fromDataset[T: OutputStructure, DD, SS](implicit
       evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS]
+      evOutputToShape: OutputToShape.Aux[T, SS],
+      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ): Aux[Dataset[T], DataType[Variant]] = {
     new OutputToDataType[Dataset[T]] {
       override type D = DataType[Variant]
@@ -381,47 +382,6 @@ object OutputToDataType {
       ): (PT, Seq[Output[Any]]) = {
         val (out, remaining) = evT.decodeOutput(genD.to(dataType), outputs)
         (genT.from(out), remaining)
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HT, HD, TT <: Coproduct, TD <: Coproduct](implicit
-      evH: Strict[OutputToDataType.Aux[HT, HD]],
-      evT: OutputToDataType.Aux[TT, TD]
-  ): OutputToDataType.Aux[HT :+: TT, HD :+: TD] = {
-    new OutputToDataType[HT :+: TT] {
-      override type D = HD :+: TD
-
-      override def dataTypeStructure: DataTypeStructure[HD :+: TD] = {
-        DataTypeStructure.fromCoproduct[HD, TD](evH.value.dataTypeStructure, evT.dataTypeStructure)
-      }
-
-      override def sizeFromDataType(dataType: HD :+: TD): Int = {
-        dataType match {
-          case Inl(h) => evH.value.sizeFromDataType(h)
-          case Inr(t) => evT.sizeFromDataType(t)
-        }
-      }
-
-      override def dataType(output: HT :+: TT): HD :+: TD = {
-        output match {
-          case Inl(h) => Inl(evH.value.dataType(h))
-          case Inr(t) => Inr(evT.dataType(t))
-        }
-      }
-
-      override def decodeOutput(
-          dataType: HD :+: TD,
-          outputs: Seq[Output[Any]]
-      ): (HT :+: TT, Seq[Output[Any]]) = {
-        dataType match {
-          case Inl(h) =>
-            val (result, remaining) = evH.value.decodeOutput(h, outputs)
-            (Inl(result), remaining)
-          case Inr(t) =>
-            val (result, remaining) = evT.decodeOutput(t, outputs)
-            (Inr(result), remaining)
-        }
       }
     }
   }

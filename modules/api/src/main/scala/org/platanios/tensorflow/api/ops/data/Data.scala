@@ -59,10 +59,12 @@ trait Data extends Experimental {
       evTensorToShape: TensorToShape.Aux[V, SS],
       evOutputToDataType: OutputToDataType.Aux[T, DD],
       evOutputToShape: OutputToShape.Aux[T, SS],
-      evOutputStructure: OutputStructure[T]
+      evOutputStructure: OutputStructure[T],
+      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ): Dataset[T] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
       override type D = DD
@@ -70,6 +72,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
 
       override val name: String = datasetName
 
@@ -108,10 +111,12 @@ trait Data extends Experimental {
       name: String = "TensorDataset"
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS]
+      evOutputToShape: OutputToShape.Aux[T, SS],
+      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ): Dataset[T] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
       override type D = DD
@@ -119,6 +124,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
 
       override val name: String = datasetName
 
@@ -153,7 +159,7 @@ trait Data extends Experimental {
     * @tparam S Shape of the element.
     * @return Created dataset.
     */
-  def datasetFromTensorSlices[T: OutputStructure, V, DD, SS](
+  def datasetFromTensorSlices[T, V, DD, SS](
       data: V,
       name: String = "TensorSlicesDataset"
   )(implicit
@@ -161,10 +167,13 @@ trait Data extends Experimental {
       evTensorToDataType: TensorToDataType.Aux[V, DD],
       evTensorToShape: TensorToShape.Aux[V, SS],
       evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS]
+      evOutputToShape: OutputToShape.Aux[T, SS],
+      evOutputStructure: OutputStructure[T],
+      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ): Dataset[T] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
       override type D = DD
@@ -172,6 +181,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
 
       override val name: String = datasetName
 
@@ -216,10 +226,12 @@ trait Data extends Experimental {
       name: String = "TensorSlicesDataset"
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS]
+      evOutputToShape: OutputToShape.Aux[T, SS],
+      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ): Dataset[T] = {
     val providedEvOutputToDataType = evOutputToDataType
     val providedEvOutputToShape = evOutputToShape
+    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
       override type D = DD
@@ -227,6 +239,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
 
       override val name: String = datasetName
 
@@ -277,6 +290,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[Output[Long], D] = OutputToDataType[Output[Long]]
       override def evOutputToShape: OutputToShape.Aux[Output[Long], S] = OutputToShape[Output[Long]]
+      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[Long], S] = DataTypeToShape[DataType[Long]]
 
       override val name: String = datasetName
 
@@ -322,6 +336,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[Output[Long], D] = OutputToDataType[Output[Long]]
       override def evOutputToShape: OutputToShape.Aux[Output[Long], S] = OutputToShape[Output[Long]]
+      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[Long], S] = DataTypeToShape[DataType[Long]]
 
       override val name: String = datasetName
 
@@ -372,6 +387,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
       override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
+      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
 
       override val name: String = datasetName
 
@@ -421,6 +437,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
       override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
+      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
 
       override val name: String = datasetName
 
@@ -468,6 +485,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
       override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
+      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
 
       override val name: String = datasetName
 
@@ -513,6 +531,7 @@ trait Data extends Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
       override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
+      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
 
       override val name: String = datasetName
 

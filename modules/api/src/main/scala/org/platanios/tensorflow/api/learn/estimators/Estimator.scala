@@ -370,7 +370,8 @@ object Estimator {
         evTensorToShape: TensorToShape.Aux[InV, InS],
         evOutputToDataType: OutputToDataType.Aux[In, InD],
         evOutputToShape: OutputToShape.Aux[In, InS],
-        evOutputStructure: OutputStructure[In]
+        evOutputStructure: OutputStructure[In],
+        evDataTypeToShape: DataTypeToShape.Aux[InD, InS]
     ): SupportedInferInput[In, InV, OutV, InV, OutV] = new SupportedInferInput[In, InV, OutV, InV, OutV] {
       override def toDataset(value: InV): Dataset[In] = {
         Data.datasetFromTensors(value)

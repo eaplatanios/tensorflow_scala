@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.Variant
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToShape, OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 
 /** Contains implementations for some experimental dataset ops.
@@ -64,6 +64,7 @@ trait Experimental {
 
       override def evOutputToDataType: OutputToDataType.Aux[T, D] = firstDataset.evOutputToDataType
       override def evOutputToShape: OutputToShape.Aux[T, S] = firstDataset.evOutputToShape
+      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = firstDataset.evDataTypeToShape
 
       override val name: String = providedName
 

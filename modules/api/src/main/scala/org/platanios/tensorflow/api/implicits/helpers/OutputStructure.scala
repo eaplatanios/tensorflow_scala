@@ -213,7 +213,8 @@ object OutputStructure {
 
   implicit def fromDataset[T: OutputStructure, D, S](implicit
       evOutputToDataType: OutputToDataType.Aux[T, D],
-      evOutputToShape: OutputToShape.Aux[T, S]
+      evOutputToShape: OutputToShape.Aux[T, S],
+      evDataTypeToShape: DataTypeToShape.Aux[D, S]
   ): OutputStructure[Dataset[T]] = {
     new OutputStructure[Dataset[T]] {
       override def size(output: Dataset[T]): Int = {

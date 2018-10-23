@@ -211,39 +211,4 @@ object DataTypeStructure {
       }
     }
   }
-
-  implicit def fromCoproduct[HD, TD <: Coproduct](implicit
-      evH: Strict[DataTypeStructure[HD]],
-      evT: DataTypeStructure[TD]
-  ): DataTypeStructure[HD :+: TD] = {
-    new DataTypeStructure[HD :+: TD] {
-      override def size(dataType: HD :+: TD): Int = {
-        dataType match {
-          case Inl(h) => evH.value.size(h)
-          case Inr(t) => evT.size(t)
-        }
-      }
-
-      override def dataTypes(dataType: HD :+: TD): Seq[DataType[Any]] = {
-        dataType match {
-          case Inl(h) => evH.value.dataTypes(h)
-          case Inr(t) => evT.dataTypes(t)
-        }
-      }
-
-      override def decodeDataType(
-          dataType: HD :+: TD,
-          dataTypes: Seq[DataType[Any]]
-      ): (HD :+: TD, Seq[DataType[Any]]) = {
-        dataType match {
-          case Inl(h) =>
-            val (result, remaining) = evH.value.decodeDataType(h, dataTypes)
-            (Inl(result), remaining)
-          case Inr(t) =>
-            val (result, remaining) = evT.decodeDataType(t, dataTypes)
-            (Inr(result), remaining)
-        }
-      }
-    }
-  }
 }
