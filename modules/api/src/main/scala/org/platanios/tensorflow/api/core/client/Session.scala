@@ -16,10 +16,10 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.core.Graph
-import org.platanios.tensorflow.api.implicits.helpers.{NestedStructure, NestedStructureOps}
+import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
+import org.platanios.tensorflow.api.utilities.{Closeable, DefaultsTo, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
 
 import org.tensorflow.framework.{RunMetadata, RunOptions}
@@ -72,15 +72,14 @@ class Session private[api](
     * @throws IllegalStateException If this session has already been closed.
     */
   @throws[IllegalStateException]
-  def run[F, FV, FD, FS, E](
+  def run[F: Session.DefaultFetches : OutputStructure, V, E: Session.DefaultTargets : OpStructure](
       feeds: FeedMap = FeedMap.empty,
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
   )(implicit
-      evFetchable: NestedStructure.Aux[F, FV, FD, FS],
-      evExecutable: NestedStructureOps[E]
-  ): FV = {
+      evOutputToTensor: OutputToTensor.Aux[F, V]
+  ): V = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
 
@@ -112,30 +111,28 @@ class Session private[api](
     * @throws IllegalStateException If the session has already been closed.
     */
   @throws[IllegalStateException]
-  def runWithMetadata[F, FV, FD, FS, E](
+  def runWithMetadata[F: Session.DefaultFetches : OutputStructure, V, E: Session.DefaultTargets : OpStructure](
       feeds: FeedMap = FeedMap.empty,
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
   )(implicit
-      evFetchable: NestedStructure.Aux[F, FV, FD, FS],
-      evExecutable: NestedStructureOps[E]
-  ): (FV, Option[RunMetadata]) = {
+      evOutputToTensor: OutputToTensor.Aux[F, V]
+  ): (V, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
 
   /** Helper method for [[run]] and [[runWithMetadata]]. */
   @throws[IllegalStateException]
-  private[api] def runHelper[F, FV, FD, FS, E](
+  private[api] def runHelper[F: Session.DefaultFetches : OutputStructure, V, E: Session.DefaultTargets : OpStructure](
       feeds: FeedMap = FeedMap.empty,
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
   )(implicit
-      evFetchable: NestedStructure.Aux[F, FV, FD, FS],
-      evExecutable: NestedStructureOps[E]
-  ): (FV, Option[RunMetadata]) = {
+      evOutputToTensor: OutputToTensor.Aux[F, V]
+  ): (V, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
     // TODO: !!! [JNI] Add a call to 'extend' once some JNI issues are resolved.
@@ -143,11 +140,12 @@ class Session private[api](
     val inputTensorHandles: Array[Long] = inputTensors.map(_.resolve()).toArray
     val inputOpHandles: Array[Long] = inputs.map(_.op.nativeHandle).toArray
     val inputOpIndices: Array[Int] = inputs.map(_.index).toArray
-    val (uniqueFetches, resultsBuilder) = Session.processFetches(fetches)(evFetchable)
+    val (uniqueFetches, resultsBuilder) = Session.processFetches(fetches)
     val outputOpHandles: Array[Long] = uniqueFetches.map(_.op.nativeHandle).toArray
     val outputOpIndices: Array[Int] = uniqueFetches.map(_.index).toArray
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
-    val targetOpHandles: Array[Long] = evExecutable.ops(targets).map(_.nativeHandle).toArray
+    val targetOpHandles: Array[Long] = Option(targets).map(OpStructure[E].ops)
+        .getOrElse(Set.empty[UntypedOp]).map(_.nativeHandle).toArray
     NativeHandleLock.synchronized {
       if (nativeHandle == 0)
         throw new IllegalStateException("close() has been called on the session.")
@@ -165,7 +163,7 @@ class Session private[api](
         targetOpHandles = targetOpHandles,
         wantRunMetadata = wantMetadata,
         outputTensorHandles = outputTensorHandles)
-      val outputs: FV = resultsBuilder(outputTensorHandles.map(handle => {
+      val outputs: V = resultsBuilder(outputTensorHandles.map(handle => {
         val tensor = Tensor.fromHostNativeHandle[Any](handle)
         NativeTensor.delete(handle)
         tensor
@@ -201,6 +199,9 @@ class Session private[api](
 
 /** Contains helper functions for managing sessions. */
 object Session {
+  type DefaultFetches[F] = DefaultsTo[F, Seq[Output[Any]]]
+  type DefaultTargets[T] = DefaultsTo[T, Set[UntypedOp]]
+
   def apply(
       graph: Graph = Op.currentGraph,
       target: String = null,
@@ -243,13 +244,16 @@ object Session {
     session
   }
 
-  private[core] def processFetches[T, V, D, S](
+  private[core] def processFetches[T, V](
       fetchable: T
-  )(implicit ev: NestedStructure.Aux[T, V, D, S]): (Seq[Output[Any]], Seq[Tensor[Any]] => V) = {
-    val fetches = ev.outputs(fetchable)
+  )(implicit
+      evOutputStructure: OutputStructure[T],
+      evOutputToTensor: OutputToTensor.Aux[T, V]
+  ): (Seq[Output[Any]], Seq[Tensor[Any]] => V) = {
+    val fetches = evOutputStructure.outputs(fetchable)
     val (uniqueFetches, indices) = uniquifyFetches(fetches)
     val resultsBuilder = (values: Seq[Tensor[Any]]) => {
-      ev.decodeTensorFromOutput(fetchable, indices.map(values(_)))._1
+      evOutputToTensor.decodeTensor(fetchable, indices.map(values(_)))._1
     }
     (uniqueFetches, resultsBuilder)
   }
