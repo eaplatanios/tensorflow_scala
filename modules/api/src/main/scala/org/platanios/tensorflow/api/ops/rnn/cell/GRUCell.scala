@@ -44,23 +44,12 @@ class GRUCell[T: TF : IsNotQuantized] protected (
     val candidateBias: Output[T],
     val activation: Output[T] => Output[T],
     val name: String = "GRUCell"
-) extends RNNCell[Output[T], Output[T]] {
-  type OutShape = Shape
-  type StateShape = Shape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
-    OutputToShape[Output[T]]
-  }
-
-  override def evOutputToShapeState: OutputToShape.Aux[Output[T], StateShape] = {
-    OutputToShape[Output[T]]
-  }
-
-  override def outputShape: OutShape = {
+) extends RNNCell[Output[T], Output[T], Shape, Shape] {
+  override def outputShape: Shape = {
     candidateBias.shape
   }
 
-  override def stateShape: StateShape = {
+  override def stateShape: Shape = {
     candidateBias.shape
   }
 

@@ -26,24 +26,21 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[Out, State](
+abstract class RNNCell[Out, State, OutShape, StateShape](
     override val name: String
+)(implicit
+    val evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    val evOutputToShapeState: OutputToShape.Aux[State, StateShape]
 ) extends Layer[Tuple[Out, State], Tuple[Out, State]](name) {
-  type OutShape
-  type StateShape
-
-  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape]
-  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
-
   def createCellWithoutContext(
       mode: Mode,
       inputShape: OutShape
-  ): ops.rnn.cell.RNNCell[Out, State]
+  ): ops.rnn.cell.RNNCell[Out, State, OutShape, StateShape]
 
   final def createCell(
       mode: Mode,
       inputShape: OutShape
-  ): ops.rnn.cell.RNNCell[Out, State] = {
+  ): ops.rnn.cell.RNNCell[Out, State, OutShape, StateShape] = {
     if (name != null) {
       VariableScope.scope(name, isPure = true) {
         createCellWithoutContext(mode, inputShape)

@@ -25,7 +25,7 @@ package object cell {
   private[cell] val KERNEL_NAME: String = "Weights"
   private[cell] val BIAS_NAME  : String = "Bias"
 
-  type Tuple[O, S] = ops.rnn.cell.Tuple[O, S]
+  type Tuple[Out, State] = ops.rnn.cell.Tuple[Out, State]
   type BasicTuple[T] = ops.rnn.cell.BasicTuple[T]
 
   val Tuple: ops.rnn.cell.Tuple.type = ops.rnn.cell.Tuple
@@ -41,15 +41,15 @@ package object cell {
   }
 
   private[rnn] trait API {
-    type RNNCell[O, S] = cell.RNNCell[O, S]
+    type RNNCell[Out, State, OutShape, StateShape] = cell.RNNCell[Out, State, OutShape, StateShape]
     type BasicRNNCell[T] = cell.BasicRNNCell[T]
     type GRUCell[T] = cell.GRUCell[T]
     type BasicLSTMCell[T] = cell.BasicLSTMCell[T]
     type LSTMCell[T] = cell.LSTMCell[T]
-    type DeviceWrapper[O, S] = cell.DeviceWrapper[O, S]
-    type DropoutWrapper[O, S] = cell.DropoutWrapper[O, S]
-    type ResidualWrapper[O, S] = cell.ResidualWrapper[O, S]
-    type StackedCell[O, S] = cell.StackedCell[O, S]
+    type DeviceWrapper[Out, State, OutShape, StateShape] = cell.DeviceWrapper[Out, State, OutShape, StateShape]
+    type DropoutWrapper[Out, State, OutShape, StateShape] = cell.DropoutWrapper[Out, State, OutShape, StateShape]
+    type ResidualWrapper[Out, State, OutShape, StateShape] = cell.ResidualWrapper[Out, State, OutShape, StateShape]
+    type StackedCell[Out, State, OutShape, StateShape] = cell.StackedCell[Out, State, OutShape, StateShape]
 
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell
@@ -60,7 +60,7 @@ package object cell {
     val ResidualWrapper: cell.ResidualWrapper.type = cell.ResidualWrapper
     val StackedCell    : cell.StackedCell.type     = cell.StackedCell
 
-    type RNNTuple[O, S] = cell.Tuple[O, S]
+    type RNNTuple[Out, State] = cell.Tuple[Out, State]
     type BasicTuple[T] = cell.BasicTuple[T]
     type LSTMTuple[T] = cell.LSTMTuple[T]
 

@@ -28,8 +28,8 @@ import shapeless.ops.hlist.Tupler
 sealed trait TensorToOutput[T] {
   type O
 
+  def tensorStructure: TensorStructure[T]
   def output(tensor: T): O
-  def tensors(tensor: T): Seq[Tensor[Any]]
 }
 
 object TensorToOutput {
@@ -41,12 +41,12 @@ object TensorToOutput {
     new TensorToOutput[Unit] {
       override type O = Unit
 
-      override def output(tensor: Unit): Unit = {
-        ()
+      override def tensorStructure: TensorStructure[Unit] = {
+        TensorStructure.fromUnit
       }
 
-      override def tensors(tensor: Unit): Seq[Tensor[Any]] = {
-        Seq.empty
+      override def output(tensor: Unit): Unit = {
+        ()
       }
     }
   }
@@ -55,12 +55,12 @@ object TensorToOutput {
     new TensorToOutput[Tensor[T]] {
       override type O = Output[T]
 
-      override def output(tensor: Tensor[T]): Output[T] = {
-        tensor.toOutput
+      override def tensorStructure: TensorStructure[Tensor[T]] = {
+        TensorStructure.fromTensor[T]
       }
 
-      override def tensors(tensor: Tensor[T]): Seq[Tensor[Any]] = {
-        Seq(tensor)
+      override def output(tensor: Tensor[T]): Output[T] = {
+        tensor.toOutput
       }
     }
   }
@@ -69,15 +69,15 @@ object TensorToOutput {
     new TensorToOutput[TensorIndexedSlices[T]] {
       override type O = OutputIndexedSlices[T]
 
+      override def tensorStructure: TensorStructure[TensorIndexedSlices[T]] = {
+        TensorStructure.fromTensorIndexedSlices[T]
+      }
+
       override def output(tensor: TensorIndexedSlices[T]): OutputIndexedSlices[T] = {
         OutputIndexedSlices(
           indices = tensor.indices,
           values = tensor.values.toOutput,
           denseShape = tensor.denseShape)
-      }
-
-      override def tensors(tensor: TensorIndexedSlices[T]): Seq[Tensor[Any]] = {
-        Seq(tensor.indices, tensor.values, tensor.denseShape)
       }
     }
   }
@@ -86,15 +86,15 @@ object TensorToOutput {
     new TensorToOutput[SparseTensor[T]] {
       override type O = SparseOutput[T]
 
+      override def tensorStructure: TensorStructure[SparseTensor[T]] = {
+        TensorStructure.fromSparseTensor[T]
+      }
+
       override def output(tensor: SparseTensor[T]): SparseOutput[T] = {
         SparseOutput(
           indices = tensor.indices,
           values = tensor.values.toOutput,
           denseShape = tensor.denseShape)
-      }
-
-      override def tensors(tensor: SparseTensor[T]): Seq[Tensor[Any]] = {
-        Seq(tensor.indices, tensor.values, tensor.denseShape)
       }
     }
   }
@@ -105,12 +105,12 @@ object TensorToOutput {
     new TensorToOutput[Option[T]] {
       override type O = Option[ev.O]
 
-      override def output(tensor: Option[T]): Option[ev.O] = {
-        tensor.map(t => ev.output(t))
+      override def tensorStructure: TensorStructure[Option[T]] = {
+        TensorStructure.fromOption[T](ev.tensorStructure)
       }
 
-      override def tensors(tensor: Option[T]): Seq[Tensor[Any]] = {
-        tensor.toSeq.flatMap(ev.tensors)
+      override def output(tensor: Option[T]): Option[ev.O] = {
+        tensor.map(t => ev.output(t))
       }
     }
   }
@@ -121,12 +121,12 @@ object TensorToOutput {
     new TensorToOutput[Seq[T]] {
       override type O = Seq[ev.O]
 
-      override def output(tensor: Seq[T]): Seq[ev.O] = {
-        tensor.map(t => ev.output(t))
+      override def tensorStructure: TensorStructure[Seq[T]] = {
+        TensorStructure.fromSeq[T](ev.tensorStructure)
       }
 
-      override def tensors(tensor: Seq[T]): Seq[Tensor[Any]] = {
-        tensor.flatMap(ev.tensors)
+      override def output(tensor: Seq[T]): Seq[ev.O] = {
+        tensor.map(t => ev.output(t))
       }
     }
   }
@@ -137,12 +137,12 @@ object TensorToOutput {
     new TensorToOutput[Map[K, T]] {
       override type O = Map[K, ev.O]
 
-      override def output(tensor: Map[K, T]): Map[K, ev.O] = {
-        tensor.mapValues(t => ev.output(t))
+      override def tensorStructure: TensorStructure[Map[K, T]] = {
+        TensorStructure.fromMap[K, T](ev.tensorStructure)
       }
 
-      override def tensors(tensor: Map[K, T]): Seq[Tensor[Any]] = {
-        tensor.values.flatMap(ev.tensors).toSeq
+      override def output(tensor: Map[K, T]): Map[K, ev.O] = {
+        tensor.mapValues(t => ev.output(t))
       }
     }
   }
@@ -151,12 +151,12 @@ object TensorToOutput {
     new TensorToOutput[HNil] {
       override type O = HNil
 
-      override def output(tensor: HNil): HNil = {
-        HNil
+      override def tensorStructure: TensorStructure[HNil] = {
+        TensorStructure.fromHNil
       }
 
-      override def tensors(tensor: HNil): Seq[Tensor[Any]] = {
-        Seq.empty
+      override def output(tensor: HNil): HNil = {
+        HNil
       }
     }
   }
@@ -168,12 +168,12 @@ object TensorToOutput {
     new TensorToOutput[HT :: TT] {
       override type O = HO :: TO
 
-      override def output(tensor: HT :: TT): HO :: TO = {
-        evH.value.output(tensor.head) :: evT.value.output(tensor.tail)
+      override def tensorStructure: TensorStructure[HT :: TT] = {
+        TensorStructure.fromHList[HT, TT](evH.value.tensorStructure, evT.value.tensorStructure)
       }
 
-      override def tensors(tensor: HT :: TT): Seq[Tensor[Any]] = {
-        evH.value.tensors(tensor.head) ++ evT.value.tensors(tensor.tail)
+      override def output(tensor: HT :: TT): HO :: TO = {
+        evH.value.output(tensor.head) :: evT.value.output(tensor.tail)
       }
     }
   }
@@ -187,12 +187,12 @@ object TensorToOutput {
     new TensorToOutput[PT] {
       override type O = PO
 
-      override def output(tensor: PT): PO = {
-        genO.from(evT.value.output(genT.to(tensor)))
+      override def tensorStructure: TensorStructure[PT] = {
+        TensorStructure.fromProduct[PT, HT](genT, evT.value.tensorStructure)
       }
 
-      override def tensors(tensor: PT): Seq[Tensor[Any]] = {
-        evT.value.tensors(genT.to(tensor))
+      override def output(tensor: PT): PO = {
+        genO.from(evT.value.output(genT.to(tensor)))
       }
     }
   }

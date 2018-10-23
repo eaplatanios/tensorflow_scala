@@ -22,28 +22,25 @@ import org.platanios.tensorflow.api.ops.Output
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class RNNCell[Out, State] {
-  type OutShape
-  type StateShape
-
-  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape]
-  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
-
+abstract class RNNCell[Out, State, OutShape, StateShape](implicit
+    val evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    val evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) {
   def outputShape: OutShape
   def stateShape: StateShape
 
   def zeroOutput(
       batchSize: Output[Int],
       name: String = "ZeroOutput"
-  )(implicit evZeroO: Zero.Aux[Out, OutShape]): Out = {
-    evZeroO.zero(batchSize, outputShape, name)
+  )(implicit evZero: Zero.Aux[Out, OutShape]): Out = {
+    evZero.zero(batchSize, outputShape, name)
   }
 
   def zeroState(
       batchSize: Output[Int],
       name: String = "ZeroState"
-  )(implicit evZeroS: Zero.Aux[State, StateShape]): State = {
-    evZeroS.zero(batchSize, stateShape, name)
+  )(implicit evZero: Zero.Aux[State, StateShape]): State = {
+    evZero.zero(batchSize, stateShape, name)
   }
 
   @throws[IllegalArgumentException]

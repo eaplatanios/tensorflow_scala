@@ -40,17 +40,22 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-class BasicDecoder[Out: OutputStructure, Sample: OutputStructure, State: OutputStructure, CellOutShape, SampleShape, CellStateShape](
-    override val cell: RNNCell[Out, State],
+class BasicDecoder[
+    Out: OutputStructure,
+    State: OutputStructure,
+    Sample: OutputStructure,
+    OutShape, StateShape, SampleShape
+](
+    override val cell: RNNCell[Out, State, OutShape, StateShape],
     val initialCellState: State,
     val helper: BasicDecoder.Helper[Out, Sample, State],
     val outputLayer: Out => Out = (o: Out) => o,
     override val name: String = "BasicRNNDecoder"
 )(implicit
-    evOutputToShapeCellOut: OutputToShape.Aux[Out, CellOutShape],
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape],
     evOutputToShapeSample: OutputToShape.Aux[Sample, SampleShape],
-    evOutputToShapeCellState: OutputToShape.Aux[State, CellStateShape],
-    evZeroCellOut: Zero.Aux[Out, CellOutShape],
+    evZeroOut: Zero.Aux[Out, OutShape],
     evZeroSample: Zero.Aux[Sample, SampleShape]
 ) extends Decoder[
     /* Out           */ Out,
@@ -58,42 +63,18 @@ class BasicDecoder[Out: OutputStructure, Sample: OutputStructure, State: OutputS
     /* DecOut        */ BasicDecoder.BasicDecoderOutput[Out, Sample],
     /* DecState      */ State,
     /* DecFinalOut   */ BasicDecoder.BasicDecoderOutput[Out, Sample],
-    /* DecFinalState */ State](
+    /* DecFinalState */ State,
+    /* Shapes        */ OutShape, StateShape, (OutShape, SampleShape), StateShape](
   cell = cell,
   name = name
 ) {
-  type OutShape = CellOutShape
-  type StateShape = CellStateShape
-  type DecOutShape = (CellOutShape, SampleShape)
-  type DecStateShape = CellStateShape
-
-  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = {
-    implicitly[OutputToShape.Aux[Out, OutShape]]
-  }
-
-  def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = {
-    implicitly[OutputToShape.Aux[State, StateShape]]
-  }
-
-  def evOutputToShapeDecState: OutputToShape.Aux[State, DecStateShape] = {
-    implicitly[OutputToShape.Aux[State, DecStateShape]]
-  }
-
-  def evZeroOut: Zero.Aux[Out, OutShape] = {
-    implicitly[Zero.Aux[Out, OutShape]]
-  }
-
-  def evZeroDecOut: Zero.Aux[BasicDecoder.BasicDecoderOutput[Out, Sample], DecOutShape] = {
-    implicitly[Zero.Aux[BasicDecoder.BasicDecoderOutput[Out, Sample], DecOutShape]]
-  }
-
   /** Scalar tensor representing the batch size of the input values. */
   override val batchSize: Output[Int] = {
     helper.batchSize
   }
 
   override def zeroOutput: BasicDecoder.BasicDecoderOutput[Out, Sample] = {
-    val zOutput = Zero[Out].zero(batchSize, cell.outputShape.asInstanceOf[OutShape], "ZeroOutput")
+    val zOutput = Zero[Out].zero(batchSize, cell.outputShape, "ZeroOutput")
     val zSample = helper.zeroSample(batchSize, "ZeroSample")
     BasicDecoder.BasicDecoderOutput(
       modelOutput = outputLayer(zOutput),
@@ -147,19 +128,19 @@ class BasicDecoder[Out: OutputStructure, Sample: OutputStructure, State: OutputS
 }
 
 object BasicDecoder {
-  def apply[Out: OutputStructure, Sample: OutputStructure, State: OutputStructure, OutShape, SampleShape, StateShape](
-      cell: RNNCell[Out, State],
+  def apply[Out: OutputStructure, State: OutputStructure, Sample: OutputStructure, OutShape, StateShape, SampleShape](
+      cell: RNNCell[Out, State, OutShape, StateShape],
       initialCellState: State,
       helper: BasicDecoder.Helper[Out, Sample, State],
       outputLayer: Out => Out = (o: Out) => o,
       name: String = "BasicRNNDecoder"
   )(implicit
-      evOutputToShapeCellOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape],
       evOutputToShapeSample: OutputToShape.Aux[Sample, SampleShape],
-      evOutputToShapeCellState: OutputToShape.Aux[State, StateShape],
-      evZeroCellOut: Zero.Aux[Out, OutShape],
+      evZeroOut: Zero.Aux[Out, OutShape],
       evZeroSample: Zero.Aux[Sample, SampleShape]
-  ): BasicDecoder[Out, Sample, State, OutShape, SampleShape, StateShape] = {
+  ): BasicDecoder[Out, State, Sample, OutShape, StateShape, SampleShape] = {
     new BasicDecoder(cell, initialCellState, helper, outputLayer, name)
   }
 

@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
-import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
@@ -39,23 +38,12 @@ class BasicRNNCell[T: TF : IsNotQuantized](
     val activation: Output[T] => Output[T],
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output[T], Output[T]](name) {
-  type OutShape = Shape
-  type StateShape = Shape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
-    OutputToShape[Output[T]]
-  }
-
-  override def evOutputToShapeState: OutputToShape.Aux[Output[T], StateShape] = {
-    OutputToShape[Output[T]]
-  }
-
+) extends RNNCell[Output[T], Output[T], Shape, Shape](name) {
   override val layerType: String = "BasicRNNCell"
 
   override def createCellWithoutContext(
       mode: Mode,
-      inputShape: OutShape
+      inputShape: Shape
   ): ops.rnn.cell.BasicRNNCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + numUnits, numUnits), kernelInitializer)

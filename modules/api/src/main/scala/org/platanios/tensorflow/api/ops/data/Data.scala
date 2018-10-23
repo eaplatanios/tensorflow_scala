@@ -649,7 +649,7 @@ trait Data extends Experimental {
           else
             throw OutOfRangeException("The iterator does not contain any more elements.")
         }
-        val flatTensors = evTensorToOutput.tensors(element)
+        val flatTensors = evTensorToOutput.tensorStructure.tensors(element)
         // Additional type and shape checking to ensure that the components of the generated element match the
         // output data types and output shapes arguments.
         (flatTensors, flatDataTypes, flatShapes).zipped.foreach((tensor, dataType, shape) => {

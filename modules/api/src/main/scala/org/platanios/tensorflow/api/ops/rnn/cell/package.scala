@@ -21,10 +21,10 @@ import org.platanios.tensorflow.api.ops.Output
   * @author Emmanouil Antonios Platanios
   */
 package object cell {
-  class Tuple[O, S](val output: O, val state: S)
+  class Tuple[Out, State](val output: Out, val state: State)
 
   object Tuple {
-    def apply[O, S](output: O, state: S): Tuple[O, S] = new Tuple(output, state)
+    def apply[Out, State](output: Out, state: State): Tuple[Out, State] = new Tuple(output, state)
   }
 
   type BasicTuple[T] = Tuple[Output[T], Output[T]]
@@ -46,15 +46,15 @@ package object cell {
   }
 
   private[rnn] trait API {
-    type RNNCell[O, S] = cell.RNNCell[O, S]
+    type RNNCell[Out, State, OutShape, StateShape] = cell.RNNCell[Out, State, OutShape, StateShape]
     type BasicRNNCell[T] = cell.BasicRNNCell[T]
     type GRUCell[T] = cell.GRUCell[T]
     type BasicLSTMCell[T] = cell.BasicLSTMCell[T]
     type LSTMCell[T] = cell.LSTMCell[T]
-    type DeviceWrapper[Out, State] = cell.DeviceWrapper[Out, State]
-    type DropoutWrapper[Out, State] = cell.DropoutWrapper[Out, State]
-    type ResidualWrapper[Out, State] = cell.ResidualWrapper[Out, State]
-    type StackedCell[Out, State] = cell.StackedCell[Out, State]
+    type DeviceWrapper[Out, State, OutShape, StateShape] = cell.DeviceWrapper[Out, State, OutShape, StateShape]
+    type DropoutWrapper[Out, State, OutShape, StateShape] = cell.DropoutWrapper[Out, State, OutShape, StateShape]
+    type ResidualWrapper[Out, State, OutShape, StateShape] = cell.ResidualWrapper[Out, State, OutShape, StateShape]
+    type StackedCell[Out, State, OutShape, StateShape] = cell.StackedCell[Out, State, OutShape, StateShape]
 
     val BasicRNNCell   : cell.BasicRNNCell.type    = cell.BasicRNNCell
     val GRUCell        : cell.GRUCell.type         = cell.GRUCell
@@ -69,7 +69,7 @@ package object cell {
 
     val LSTMState: cell.LSTMState.type = cell.LSTMState
 
-    type RNNTuple[O, S] = cell.Tuple[O, S]
+    type RNNTuple[Out, State] = cell.Tuple[Out, State]
     type BasicTuple[T] = cell.Tuple[Output[T], Output[T]]
     type LSTMTuple[T] = cell.Tuple[Output[T], LSTMState[T]]
 

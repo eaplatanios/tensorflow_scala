@@ -28,34 +28,34 @@ import org.platanios.tensorflow.api.ops
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[Out, State](
+class ResidualWrapper[Out, State, OutShape, StateShape](
     override val name: String,
-    val cell: RNNCell[Out, State],
+    val cell: RNNCell[Out, State, OutShape, StateShape],
     val residualFn: (Out, Out) => Out
-) extends RNNCell[Out, State](name) {
-  type OutShape = cell.OutShape
-  type StateShape = cell.StateShape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
-  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
-
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, State, OutShape, StateShape](name) {
   override val layerType: String = "ResidualWrapper"
 
   override def createCellWithoutContext(
       mode: Mode,
       inputShape: OutShape
-  ): ops.rnn.cell.RNNCell[Out, State] = {
+  ): ops.rnn.cell.RNNCell[Out, State, OutShape, StateShape] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     ops.rnn.cell.ResidualWrapper(createdCell, residualFn)
   }
 }
 
 object ResidualWrapper {
-  def apply[Out, State](
+  def apply[Out, State, OutShape, StateShape](
       variableScope: String,
-      cell: RNNCell[Out, State],
+      cell: RNNCell[Out, State, OutShape, StateShape],
       residualFn: (Out, Out) => Out
-  ): ResidualWrapper[Out, State] = {
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): ResidualWrapper[Out, State, OutShape, StateShape] = {
     new ResidualWrapper(variableScope, cell, residualFn)
   }
 }

@@ -51,7 +51,7 @@ trait Callback {
     val id = NativeCallbacksRegistry.register(inputs => {
       val inputTensors = inputs.map(Tensor.fromNativeHandle[Any]).toSeq
       val outputs = function(evOutputToTensorI.decodeTensor(input, inputTensors)._1)
-      val outputTensors = evTensorToOutputO.tensors(outputs)
+      val outputTensors = evTensorToOutputO.tensorStructure.tensors(outputs)
       outputTensors.map(_.nativeHandle).toArray
     })
     // We tie the registered function's lifetime with the current graph. That is, when the current graph is destroyed,

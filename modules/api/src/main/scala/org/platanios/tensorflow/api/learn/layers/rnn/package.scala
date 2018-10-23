@@ -21,8 +21,8 @@ package org.platanios.tensorflow.api.learn.layers
 package object rnn {
   private[layers] trait API
       extends rnn.cell.API {
-    type RNN[O, S] = rnn.RNN[O, S]
-    type BidirectionalRNN[O, S] = rnn.BidirectionalRNN[O, S]
+    type RNN[Out, State, OutShape, StateShape] = rnn.RNN[Out, State, OutShape, StateShape]
+    type BidirectionalRNN[Out, State, OutShape, StateShape] = rnn.BidirectionalRNN[Out, State, OutShape, StateShape]
 
     val RNN             : rnn.RNN.type              = rnn.RNN
     val BidirectionalRNN: rnn.BidirectionalRNN.type = rnn.BidirectionalRNN

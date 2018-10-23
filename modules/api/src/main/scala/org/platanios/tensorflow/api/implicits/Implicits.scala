@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.implicits
 
 import org.platanios.tensorflow.api.{core, learn, ops, tensors}
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.implicits.helpers.{OpStructure, OutputStructure}
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
@@ -160,6 +160,14 @@ private[api] trait Implicits
 
   implicit val evStructureOptionSeqUntyped: OutputStructure[Option[Seq[Output[Any]]]] = {
     OutputStructure.fromOption[Seq[Output[Any]]](OutputStructure.fromSeq[Output[Any]])
+  }
+
+  implicit val evStructureUntypedOp: OpStructure[UntypedOp] = {
+    OpStructure.fromOp[Seq[Output[Any]], Seq[Output[Any]]]
+  }
+
+  implicit val evStructureSetUntypedOps: OpStructure[Set[UntypedOp]] = {
+    OpStructure.fromSet[Op[Seq[Output[Any]], Seq[Output[Any]]]]
   }
 
   //endregion Cached Implicits

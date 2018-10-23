@@ -47,10 +47,10 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-class BidirectionalRNN[Out: OutputStructure : OutputToShape, State: OutputStructure : OutputToShape](
+class BidirectionalRNN[Out: OutputStructure, State: OutputStructure, OutShape, StateShape](
     override val name: String,
-    val cellFw: RNNCell[Out, State],
-    val cellBw: RNNCell[Out, State],
+    val cellFw: RNNCell[Out, State, OutShape, StateShape],
+    val cellBw: RNNCell[Out, State, OutShape, StateShape],
     val initialStateFw: () => State = null,
     val initialStateBw: () => State = null,
     val timeMajor: Boolean = false,
@@ -58,19 +58,20 @@ class BidirectionalRNN[Out: OutputStructure : OutputToShape, State: OutputStruct
     val swapMemory: Boolean = false,
     val sequenceLengths: Tensor[Int] = null
 )(implicit
-    evZeroOut: Zero.Aux[Out, _],
-    evZeroState: Zero.Aux[State, _]
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape],
+    evZeroOut: Zero.Aux[Out, OutShape],
+    evZeroState: Zero.Aux[State, StateShape]
 ) extends Layer[Out, (Tuple[Out, State], Tuple[Out, State])](name) {
   override val layerType: String = "BidirectionalRNN"
 
   override def forwardWithoutContext(input: Out)(implicit mode: Mode): (Tuple[Out, State], Tuple[Out, State]) = {
-    val evOutputToShape = OutputToShape[Out]
     val stateFw = if (initialStateFw == null) None else Some(initialStateFw())
     val stateBw = if (initialStateBw == null) None else Some(initialStateBw())
     val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
-    val inputShape = evOutputToShape.shape(input)
-    val createdCellFw = cellFw.createCell(mode, inputShape.asInstanceOf[cellFw.OutShape])
-    val createdCellBw = cellBw.createCell(mode, inputShape.asInstanceOf[cellBw.OutShape])
+    val inputShape = evOutputToShapeOut.shape(input)
+    val createdCellFw = cellFw.createCell(mode, inputShape)
+    val createdCellBw = cellBw.createCell(mode, inputShape)
     ops.rnn.RNN.bidirectionalDynamicRNN(
       createdCellFw, createdCellBw, input, stateFw, stateBw,
       timeMajor, parallelIterations, swapMemory, lengths, name)
@@ -94,10 +95,10 @@ class BidirectionalRNN[Out: OutputStructure : OutputToShape, State: OutputStruct
 }
 
 object BidirectionalRNN {
-  def apply[Out: OutputStructure : OutputToShape, State: OutputStructure : OutputToShape](
+  def apply[Out: OutputStructure, State: OutputStructure, OutShape, StateShape](
       variableScope: String,
-      cellFw: RNNCell[Out, State],
-      cellBw: RNNCell[Out, State],
+      cellFw: RNNCell[Out, State, OutShape, StateShape],
+      cellBw: RNNCell[Out, State, OutShape, StateShape],
       initialStateFw: () => State = null,
       initialStateBw: () => State = null,
       timeMajor: Boolean = false,
@@ -105,9 +106,11 @@ object BidirectionalRNN {
       swapMemory: Boolean = false,
       sequenceLengths: Tensor[Int] = null
   )(implicit
-      evZeroOut: Zero.Aux[Out, _],
-      evZeroState: Zero.Aux[State, _]
-  ): BidirectionalRNN[Out, State] = {
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape],
+      evZeroOut: Zero.Aux[Out, OutShape],
+      evZeroState: Zero.Aux[State, StateShape]
+  ): BidirectionalRNN[Out, State, OutShape, StateShape] = {
     new BidirectionalRNN(
       variableScope, cellFw, cellBw, initialStateFw, initialStateBw,
       timeMajor, parallelIterations, swapMemory, sequenceLengths)

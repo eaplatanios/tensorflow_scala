@@ -44,9 +44,9 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, AttentionState] private[attention] (
-    val cell: RNNCell[Output[T], CellState],
-    val attentions: Seq[Attention[T, AttentionState]], // TODO: [TYPES] Allow for varying supported types in the sequence.
+class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, AttentionState, CellStateShape, AttentionStateShape] private[attention] (
+    val cell: RNNCell[Output[T], CellState, Shape, CellStateShape],
+    val attentions: Seq[Attention[T, AttentionState, AttentionStateShape]], // TODO: [TYPES] Allow for varying supported types in the sequence.
     val attentionLayerWeights: Seq[Output[T]] = null,
     val cellInputFn: (Output[T], Output[T]) => Output[T] = {
       (input: Output[T], attention: Output[T]) =>
@@ -55,23 +55,10 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
     val outputAttention: Boolean = true,
     val storeAlignmentsHistory: Boolean = false,
     val name: String = "AttentionWrapperCell"
-) extends RNNCell[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] {
-  val lastAttention: Attention[T, AttentionState] = attentions.last
-
-  type OutShape = Shape
-  type StateShape = (cell.StateShape, Shape, Shape, Seq[Shape], Seq[Shape], lastAttention.StateShape)
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
-    OutputToShape[Output[T]]
-  }
-
-  override def evOutputToShapeState: OutputToShape.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], StateShape] = {
-    implicit val evOutputToShapeCellState: OutputToShape.Aux[CellState, _] = cell.evOutputToShapeState
-    implicit val evOutputToShapeAttentionState: OutputToShape.Aux[AttentionState, _] = lastAttention.evOutputToShapeState
-    OutputToShape[AttentionWrapperState[T, CellState, Seq[AttentionState]]]
-        .asInstanceOf[OutputToShape.Aux[AttentionWrapperState[T, CellState, Seq[AttentionState]], StateShape]]
-  }
-
+)(implicit
+    evOutputToShapeCellState: OutputToShape.Aux[CellState, CellStateShape],
+    evOutputToShapeAttentionState: OutputToShape.Aux[AttentionState, AttentionStateShape]
+) extends RNNCell[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]], Shape, (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[AttentionStateShape])] {
   private val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
       require(attentionLayerWeights.lengthCompare(attentions.size) == 0,
@@ -128,14 +115,14 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
     }
   }
 
-  override def outputShape: OutShape = {
+  override def outputShape: Shape = {
     if (outputAttention)
       Shape(attentionLayersSize)
     else
-      cell.outputShape.asInstanceOf[Shape]
+      cell.outputShape
   }
 
-  override def stateShape: StateShape = {
+  override def stateShape: (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[AttentionStateShape]) = {
     (cell.stateShape, Shape(1), Shape(attentionLayersSize),
         attentions.map(a => {
           Output.constantValueAsShape(a.alignmentSize.expandDims(0))
@@ -149,8 +136,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
             Shape.scalar()
           }
         }),
-        attentions.map(_.stateSize)
-    ).asInstanceOf[StateShape]
+        attentions.map(_.stateSize))
   }
 
   /** Performs a step using this attention-wrapped RNN cell.
@@ -212,9 +198,9 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
 }
 
 object AttentionWrapperCell {
-  def apply[T: TF : IsNotQuantized, CellState: OutputStructure, AttentionState](
-      cell: RNNCell[Output[T], CellState],
-      attentions: Seq[Attention[T, AttentionState]],
+  def apply[T: TF : IsNotQuantized, CellState: OutputStructure, AttentionState, CellStateShape, AttentionStateShape](
+      cell: RNNCell[Output[T], CellState, Shape, CellStateShape],
+      attentions: Seq[Attention[T, AttentionState, AttentionStateShape]],
       attentionLayerWeights: Seq[Output[T]] = null,
       cellInputFn: (Output[T], Output[T]) => Output[T] = {
         (input: Output[T], attention: Output[T]) =>
@@ -223,8 +209,11 @@ object AttentionWrapperCell {
       outputAttention: Boolean = true,
       storeAlignmentsHistory: Boolean = false,
       name: String = "AttentionWrapperCell"
-  ): AttentionWrapperCell[T, CellState, AttentionState] = {
-    new AttentionWrapperCell[T, CellState, AttentionState](
+  )(implicit
+      evOutputToShapeCellState: OutputToShape.Aux[CellState, CellStateShape],
+      evOutputToShapeAttentionState: OutputToShape.Aux[AttentionState, AttentionStateShape]
+  ): AttentionWrapperCell[T, CellState, AttentionState, CellStateShape, AttentionStateShape] = {
+    new AttentionWrapperCell[T, CellState, AttentionState, CellStateShape, AttentionStateShape](
       cell, attentions, attentionLayerWeights, cellInputFn,
       outputAttention, storeAlignmentsHistory, name)
   }

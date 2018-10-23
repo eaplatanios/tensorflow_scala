@@ -1002,10 +1002,10 @@ abstract class Dataset[T: OutputStructure] { outer =>
   def paddedBatch[VV](
       batchSize: Long,
       paddedShapes: S,
-      paddingValues: VV = null.asInstanceOf[VV],
+      paddingValues: Option[VV] = None,
       name: String = s"${this.name}/PaddedBatch"
   )(implicit
-      evTensorToOutput: TensorToOutput.Aux[VV, T]
+      evOutputToTensor: OutputToTensor.Aux[T, VV]
   ): Dataset[T] = {
     new Dataset[T] {
       override type D = outer.D
@@ -1022,12 +1022,9 @@ abstract class Dataset[T: OutputStructure] { outer =>
       }
 
       private def flatPaddingValues: Seq[Output[Any]] = {
-        if (paddingValues != null) {
-          evTensorToOutput.tensors(paddingValues).map(v => {
-            Basic.constant(v)
-          })
-        } else {
-          flatOutputDataTypes.map(Basic.zeros[Any](_, Tensor.empty[Long]))
+        paddingValues match {
+          case Some(values) => evOutputToTensor.tensorStructure.tensors(values).map(Basic.constant(_))
+          case None => flatOutputDataTypes.map(Basic.zeros[Any](_, Tensor.empty[Long]))
         }
       }
 

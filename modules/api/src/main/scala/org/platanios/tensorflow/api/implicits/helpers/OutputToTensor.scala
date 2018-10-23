@@ -31,6 +31,7 @@ import shapeless.ops.hlist.Tupler
 sealed trait OutputToTensor[T] {
   type V
 
+  def tensorStructure: TensorStructure[V]
   def size(output: T): Int
   def decodeTensor(output: T, tensors: Seq[Tensor[Any]]): (V, Seq[Tensor[Any]])
 }
@@ -47,6 +48,10 @@ object OutputToTensor {
   implicit val fromUnit: Aux[Unit, Unit] = {
     new OutputToTensor[Unit] {
       override type V = Unit
+
+      override def tensorStructure: TensorStructure[Unit] = {
+        TensorStructure.fromUnit
+      }
 
       override def size(output: Unit): Int = {
         0
@@ -65,6 +70,10 @@ object OutputToTensor {
     new OutputToTensor[Output[T]] {
       override type V = Tensor[T]
 
+      override def tensorStructure: TensorStructure[Tensor[T]] = {
+        TensorStructure.fromTensor[T]
+      }
+
       override def size(output: Output[T]): Int = {
         1
       }
@@ -81,6 +90,10 @@ object OutputToTensor {
   implicit def fromOutputIndexedSlices[T]: Aux[OutputIndexedSlices[T], TensorIndexedSlices[T]] = {
     new OutputToTensor[OutputIndexedSlices[T]] {
       override type V = TensorIndexedSlices[T]
+
+      override def tensorStructure: TensorStructure[TensorIndexedSlices[T]] = {
+        TensorStructure.fromTensorIndexedSlices[T]
+      }
 
       override def size(output: OutputIndexedSlices[T]): Int = {
         3
@@ -103,6 +116,10 @@ object OutputToTensor {
     new OutputToTensor[SparseOutput[T]] {
       override type V = SparseTensor[T]
 
+      override def tensorStructure: TensorStructure[SparseTensor[T]] = {
+        TensorStructure.fromSparseTensor[T]
+      }
+
       override def size(output: SparseOutput[T]): Int = {
         3
       }
@@ -124,6 +141,10 @@ object OutputToTensor {
     new OutputToTensor[TensorArray[T]] {
       override type V = Tensor[Float]
 
+      override def tensorStructure: TensorStructure[Tensor[Float]] = {
+        TensorStructure.fromTensor[Float]
+      }
+
       override def size(output: TensorArray[T]): Int = {
         1
       }
@@ -140,6 +161,10 @@ object OutputToTensor {
   implicit def fromDataset[T]: Aux[Dataset[T], Tensor[Variant]] = {
     new OutputToTensor[Dataset[T]] {
       override type V = Tensor[Variant]
+
+      override def tensorStructure: TensorStructure[Tensor[Variant]] = {
+        TensorStructure.fromTensor[Variant]
+      }
 
       override def size(output: Dataset[T]): Int = {
         1
@@ -159,6 +184,10 @@ object OutputToTensor {
   ): OutputToTensor.Aux[Option[T], Option[ev.V]] = {
     new OutputToTensor[Option[T]] {
       override type V = Option[ev.V]
+
+      override def tensorStructure: TensorStructure[Option[ev.V]] = {
+        TensorStructure.fromOption[ev.V](ev.tensorStructure)
+      }
 
       override def size(output: Option[T]): Int = {
         output.map(ev.size).sum
@@ -184,6 +213,10 @@ object OutputToTensor {
     new OutputToTensor[Seq[T]] {
       override type V = Seq[ev.V]
 
+      override def tensorStructure: TensorStructure[Seq[ev.V]] = {
+        TensorStructure.fromSeq[ev.V](ev.tensorStructure)
+      }
+
       override def size(output: Seq[T]): Int = {
         output.map(ev.size).sum
       }
@@ -206,6 +239,10 @@ object OutputToTensor {
     new OutputToTensor[Map[K, T]] {
       override type V = Map[K, ev.V]
 
+      override def tensorStructure: TensorStructure[Map[K, ev.V]] = {
+        TensorStructure.fromMap[K, ev.V](ev.tensorStructure)
+      }
+
       override def size(output: Map[K, T]): Int = {
         output.values.map(ev.size).sum
       }
@@ -227,6 +264,10 @@ object OutputToTensor {
     new OutputToTensor[HNil] {
       override type V = HNil
 
+      override def tensorStructure: TensorStructure[HNil] = {
+        TensorStructure.fromHNil
+      }
+
       override def size(output: HNil): Int = {
         0
       }
@@ -246,6 +287,10 @@ object OutputToTensor {
   ): OutputToTensor.Aux[HT :: TT, HV :: TV] = {
     new OutputToTensor[HT :: TT] {
       override type V = HV :: TV
+
+      override def tensorStructure: TensorStructure[HV :: TV] = {
+        TensorStructure.fromHList[HV, TV](evH.value.tensorStructure, evT.value.tensorStructure)
+      }
 
       override def size(output: HT :: TT): Int = {
         evH.value.size(output.head) + evT.value.size(output.tail)
@@ -270,6 +315,10 @@ object OutputToTensor {
   ): OutputToTensor.Aux[PT, PV] = {
     new OutputToTensor[PT] {
       override type V = PV
+
+      override def tensorStructure: TensorStructure[PV] = {
+        TensorStructure.fromProduct[PV, HV](genV, evT.value.tensorStructure)
+      }
 
       override def size(output: PT): Int = {
         evT.value.size(genT.to(output))

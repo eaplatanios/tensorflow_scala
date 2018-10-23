@@ -31,27 +31,19 @@ import org.platanios.tensorflow.api.ops.Op
   *
   * @author Emmanouil Antonios Platanios
   */
-class StackedCell[Out, State: OutputToShape] protected (
-    val cells: Seq[RNNCell[Out, State]],
+class StackedCell[Out, State, OutShape, StateShape] protected (
+    val cells: Seq[RNNCell[Out, State, OutShape, StateShape]],
     val name: String = "StackedCell"
-) extends RNNCell[Out, Seq[State]] {
-  val lastCell: RNNCell[Out, State] = cells.last
-
-  type OutShape = lastCell.OutShape
-  type StateShape = Seq[lastCell.StateShape]
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = lastCell.evOutputToShapeOut
-
-  override def evOutputToShapeState: OutputToShape.Aux[Seq[State], StateShape] = {
-    OutputToShape[Seq[State]].asInstanceOf[OutputToShape.Aux[Seq[State], StateShape]]
-  }
-
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, Seq[State], OutShape, Seq[StateShape]] {
   override def outputShape: OutShape = {
-    cells.last.outputShape.asInstanceOf[OutShape]
+    cells.last.outputShape
   }
 
-  override def stateShape: StateShape = {
-    cells.map(_.stateShape).asInstanceOf[StateShape]
+  override def stateShape: Seq[StateShape] = {
+    cells.map(_.stateShape)
   }
 
   override def forward(input: Tuple[Out, Seq[State]]): Tuple[Out, Seq[State]] = {
@@ -69,10 +61,13 @@ class StackedCell[Out, State: OutputToShape] protected (
 }
 
 object StackedCell {
-  def apply[Out, State: OutputToShape](
-      cells: Seq[RNNCell[Out, State]],
+  def apply[Out, State, OutShape, StateShape](
+      cells: Seq[RNNCell[Out, State, OutShape, StateShape]],
       name: String = "StackedCell"
-  ): StackedCell[Out, State] = {
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): StackedCell[Out, State, OutShape, StateShape] = {
     new StackedCell(cells, name)
   }
 }

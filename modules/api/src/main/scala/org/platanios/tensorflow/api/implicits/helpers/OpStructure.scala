@@ -46,16 +46,8 @@ sealed trait OpStructure[T] {
 }
 
 object OpStructure extends NestedStructureOpsLowPriority {
-  implicit val evStructureUntypedOp: OpStructure[UntypedOp] = {
-    fromOp[Seq[Output[Any]], Seq[Output[Any]]]
-  }
-
-  implicit val evStructureSetUntypedOps: OpStructure[Set[UntypedOp]] = {
-    fromSet[Op[Seq[Output[Any]], Seq[Output[Any]]]]
-  }
-
-  def apply[T: OpStructure]: OpStructure[T] = {
-    implicitly[OpStructure[T]]
+  def apply[T](implicit ev: OpStructure[T]): OpStructure[T] = {
+    ev
   }
 }
 

@@ -25,16 +25,13 @@ import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
   *
   * @author Emmanouil Antonios Platanios
   */
-class ResidualWrapper[Out, State] protected (
-    val cell: RNNCell[Out, State],
+class ResidualWrapper[Out, State, OutShape, StateShape] protected (
+    val cell: RNNCell[Out, State, OutShape, StateShape],
     val residualFn: (Out, Out) => Out
-) extends RNNCell[Out, State]() {
-  type OutShape = cell.OutShape
-  type StateShape = cell.StateShape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
-  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
-
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, State, OutShape, StateShape] {
   override def outputShape: OutShape = {
     cell.outputShape
   }
@@ -51,10 +48,13 @@ class ResidualWrapper[Out, State] protected (
 }
 
 object ResidualWrapper {
-  def apply[Out, State](
-      cell: RNNCell[Out, State],
+  def apply[Out, State, OutShape, StateShape](
+      cell: RNNCell[Out, State, OutShape, StateShape],
       residualFn: (Out, Out) => Out
-  ): ResidualWrapper[Out, State] = {
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): ResidualWrapper[Out, State, OutShape, StateShape] = {
     new ResidualWrapper(cell, residualFn)
   }
 }

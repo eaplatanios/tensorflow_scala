@@ -40,10 +40,10 @@ package object attention {
       attentionState: AttentionState)
 
   private[rnn] trait API {
-    type Attention[AttentionDataType, AttentionState] = attention.Attention[AttentionDataType, AttentionState]
+    type Attention[T, State, StateShape] = attention.Attention[T, State, StateShape]
     type BahdanauAttention[T] = attention.BahdanauAttention[T]
     type LuongAttention[T] = attention.LuongAttention[T]
-    type AttentionWrapperCell[AttentionDataType, CellState, AttentionState] = attention.AttentionWrapperCell[AttentionDataType, CellState, AttentionState]
+    type AttentionWrapperCell[AttentionDataType, CellState, AttentionState, CellStateShape, AttentionStateShape] = attention.AttentionWrapperCell[AttentionDataType, CellState, AttentionState, CellStateShape, AttentionStateShape]
 
     val LuongAttention      : attention.LuongAttention.type       = attention.LuongAttention
     val BahdanauAttention   : attention.BahdanauAttention.type    = attention.BahdanauAttention

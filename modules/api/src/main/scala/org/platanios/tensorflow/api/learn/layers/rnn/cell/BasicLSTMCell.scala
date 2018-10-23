@@ -17,7 +17,6 @@ package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
-import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
@@ -41,23 +40,12 @@ class BasicLSTMCell[T: TF : IsNotQuantized](
     val forgetBias: Float = 1.0f,
     val kernelInitializer: Initializer = null,
     val biasInitializer: Initializer = ZerosInitializer
-) extends RNNCell[Output[T], LSTMState[T]](name) {
-  type OutShape = Shape
-  type StateShape = (Shape, Shape)
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
-    OutputToShape[Output[T]]
-  }
-
-  override def evOutputToShapeState: OutputToShape.Aux[LSTMState[T], StateShape] = {
-    OutputToShape[LSTMState[T]].asInstanceOf[OutputToShape.Aux[LSTMState[T], StateShape]]
-  }
-
+) extends RNNCell[Output[T], LSTMState[T], Shape, (Shape, Shape)](name) {
   override val layerType: String = "BasicLSTMCell"
 
   override def createCellWithoutContext(
       mode: Mode,
-      inputShape: OutShape
+      inputShape: Shape
   ): ops.rnn.cell.BasicLSTMCell[T] = {
     val shape = inputShape.asInstanceOf[Shape]
     val kernel = getParameter[T](KERNEL_NAME, Shape(shape(-1) + numUnits, 4 * numUnits), kernelInitializer)

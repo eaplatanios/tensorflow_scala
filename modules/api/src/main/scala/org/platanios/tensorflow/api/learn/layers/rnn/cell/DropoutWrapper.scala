@@ -39,20 +39,17 @@ import org.platanios.tensorflow.api.ops.Basic
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[Out: OutputStructure, State: OutputStructure](
+class DropoutWrapper[Out: OutputStructure, State: OutputStructure, OutShape, StateShape](
     override val name: String,
-    val cell: RNNCell[Out, State],
+    val cell: RNNCell[Out, State, OutShape, StateShape],
     val inputKeepProbability: Float = 1.0f,
     val outputKeepProbability: Float = 1.0f,
     val stateKeepProbability: Float = 1.0f,
     val seed: Option[Int] = None
-) extends RNNCell[Out, State](name) {
-  type OutShape = cell.OutShape
-  type StateShape = cell.StateShape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
-  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
-
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, State, OutShape, StateShape](name) {
   require(inputKeepProbability > 0.0 && inputKeepProbability <= 1.0,
     s"'inputKeepProbability' ($inputKeepProbability) must be in (0, 1].")
   require(outputKeepProbability > 0.0 && outputKeepProbability <= 1.0,
@@ -65,7 +62,7 @@ class DropoutWrapper[Out: OutputStructure, State: OutputStructure](
   override def createCellWithoutContext(
       mode: Mode,
       inputShape: OutShape
-  ): ops.rnn.cell.RNNCell[Out, State] = {
+  ): ops.rnn.cell.RNNCell[Out, State, OutShape, StateShape] = {
     val createdCell = cell.createCellWithoutContext(mode, inputShape)
     mode match {
       case TRAINING =>
@@ -81,14 +78,17 @@ class DropoutWrapper[Out: OutputStructure, State: OutputStructure](
 }
 
 object DropoutWrapper {
-  def apply[Out: OutputStructure, State: OutputStructure](
+  def apply[Out: OutputStructure, State: OutputStructure, OutShape, StateShape](
       variableScope: String,
-      cell: RNNCell[Out, State],
+      cell: RNNCell[Out, State, OutShape, StateShape],
       inputKeepProbability: Float = 1.0f,
       outputKeepProbability: Float = 1.0f,
       stateKeepProbability: Float = 1.0f,
       seed: Option[Int] = None
-  ): DropoutWrapper[Out, State] = {
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): DropoutWrapper[Out, State, OutShape, StateShape] = {
     new DropoutWrapper(
       variableScope, cell, inputKeepProbability, outputKeepProbability, stateKeepProbability, seed)
   }

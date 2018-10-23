@@ -40,17 +40,13 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Attention[T: TF : IsDecimal, State](
+abstract class Attention[T: TF : IsDecimal, State, StateShape](
     protected val memory: Output[T],
     protected val memorySequenceLengths: Output[Int] = null,
     val checkInnerDimensionsDefined: Boolean = true,
     val scoreMaskValue: Output[Float] = Float.MinValue,
     val name: String = "Attention"
-) {
-  type StateShape
-
-  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
-
+)(implicit evOutputToShapeState: OutputToShape.Aux[State, StateShape]) {
   lazy val values: Output[T] = {
     Op.nameScope(s"$name/Values") {
       Attention.maybeMaskValues(memory, memorySequenceLengths, checkInnerDimensionsDefined)
@@ -147,20 +143,14 @@ abstract class SimpleAttention[T: TF : IsDecimal](
     override val checkInnerDimensionsDefined: Boolean = true,
     override val scoreMaskValue: Output[Float] = Float.MinValue,
     override val name: String = "SimpleAttention"
-) extends Attention[T, Output[T]](
+) extends Attention[T, Output[T], Shape](
   memory = memory,
   memorySequenceLengths = memorySequenceLengths,
   checkInnerDimensionsDefined = checkInnerDimensionsDefined,
   scoreMaskValue = scoreMaskValue,
   name = name
 ) {
-  override type StateShape = Shape
-
-  override def evOutputToShapeState: OutputToShape.Aux[Output[T], Shape] = {
-    OutputToShape[Output[T]]
-  }
-
-  override def stateSize: StateShape = {
+  override def stateSize: Shape = {
     Output.constantValueAsShape(alignmentSize).getOrElse(Shape.unknown())
   }
 

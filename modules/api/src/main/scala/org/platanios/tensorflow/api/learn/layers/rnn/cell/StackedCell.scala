@@ -29,35 +29,26 @@ import org.platanios.tensorflow.api.ops.variables.VariableScope
   *
   * @author Emmanouil Antonios Platanios
   */
-class StackedCell[Out, State: OutputToShape](
+class StackedCell[Out, State: OutputToShape, OutShape, StateShape](
     override val name: String,
-    val cells: Seq[RNNCell[Out, State]]
-) extends RNNCell[Out, Seq[State]](name) {
-  val lastCell: RNNCell[Out, State] = cells.last
-
-  type OutShape = lastCell.OutShape
-  type StateShape = Seq[lastCell.StateShape]
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = lastCell.evOutputToShapeOut
-
-  override def evOutputToShapeState: OutputToShape.Aux[Seq[State], StateShape] = {
-    import lastCell.evOutputToShapeState
-    OutputToShape[Seq[State]].asInstanceOf[OutputToShape.Aux[Seq[State], StateShape]]
-  }
-
+    val cells: Seq[RNNCell[Out, State, OutShape, StateShape]]
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, Seq[State], OutShape, Seq[StateShape]](name) {
   override val layerType: String = "StackedCell"
 
   override def createCellWithoutContext(
       mode: Mode,
       inputShape: OutShape
-  ): ops.rnn.cell.RNNCell[Out, Seq[State]] = {
-    val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[Out, State]])((seq, cell) => {
+  ): ops.rnn.cell.RNNCell[Out, Seq[State], OutShape, Seq[StateShape]] = {
+    val createdCells = cells.zipWithIndex.foldLeft(Seq.empty[ops.rnn.cell.RNNCell[Out, State, OutShape, StateShape]])((seq, cell) => {
       VariableScope.scope(s"Cell${cell._2}") {
         if (seq.isEmpty) {
-          seq :+ cell._1.createCellWithoutContext(mode, inputShape.asInstanceOf[cell._1.OutShape])
+          seq :+ cell._1.createCellWithoutContext(mode, inputShape)
         } else {
           val last = seq.last
-          seq :+ cell._1.createCellWithoutContext(mode, last.outputShape.asInstanceOf[cell._1.OutShape])
+          seq :+ cell._1.createCellWithoutContext(mode, last.outputShape)
         }
       }
     })
@@ -66,10 +57,13 @@ class StackedCell[Out, State: OutputToShape](
 }
 
 object StackedCell {
-  def apply[Out, State: OutputToShape](
+  def apply[Out, State: OutputToShape, OutShape, StateShape](
       variableScope: String,
-      cells: Seq[RNNCell[Out, State]]
-  ): StackedCell[Out, State] = {
+      cells: Seq[RNNCell[Out, State, OutShape, StateShape]]
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): StackedCell[Out, State, OutShape, StateShape] = {
     new StackedCell(variableScope, cells)
   }
 }

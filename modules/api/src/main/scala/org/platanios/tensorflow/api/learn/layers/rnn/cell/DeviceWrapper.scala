@@ -29,24 +29,21 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
   *
   * @author Emmanouil Antonios Platanios
   */
-class DeviceWrapper[Out, State](
+class DeviceWrapper[Out, State, OutShape, StateShape](
     override val name: String,
-    val cell: RNNCell[Out, State],
+    val cell: RNNCell[Out, State, OutShape, StateShape],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
-) extends RNNCell[Out, State](name) {
-  type OutShape = cell.OutShape
-  type StateShape = cell.StateShape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
-  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
-
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, State, OutShape, StateShape](name) {
   override val layerType: String = "DeviceWrapper"
 
   override def createCellWithoutContext(
       mode: Mode,
       inputShape: OutShape
-  ): ops.rnn.cell.RNNCell[Out, State] = {
+  ): ops.rnn.cell.RNNCell[Out, State, OutShape, StateShape] = {
     Op.createWith(device = device, deviceFunction = deviceFunction) {
       ops.rnn.cell.DeviceWrapper(cell.createCellWithoutContext(mode, inputShape), device, deviceFunction)
     }
@@ -54,12 +51,15 @@ class DeviceWrapper[Out, State](
 }
 
 object DeviceWrapper {
-  def apply[Out, State](
+  def apply[Out, State, OutShape, StateShape](
       variableScope: String,
-      cell: RNNCell[Out, State],
+      cell: RNNCell[Out, State, OutShape, StateShape],
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
-  ): DeviceWrapper[Out, State] = {
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): DeviceWrapper[Out, State, OutShape, StateShape] = {
     new DeviceWrapper(variableScope, cell, device, deviceFunction)
   }
 }

@@ -48,25 +48,14 @@ class BasicLSTMCell[T: TF : IsNotQuantized] protected (
     val activation: Output[T] => Output[T],
     val forgetBias: Float = 1.0f,
     val name: String = "BasicLSTMCell"
-) extends RNNCell[Output[T], LSTMState[T]] {
-  type OutShape = Shape
-  type StateShape = (Shape, Shape)
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Output[T], OutShape] = {
-    OutputToShape[Output[T]]
-  }
-
-  override def evOutputToShapeState: OutputToShape.Aux[LSTMState[T], StateShape] = {
-    OutputToShape[LSTMState[T]].asInstanceOf[OutputToShape.Aux[LSTMState[T], StateShape]]
-  }
-
+) extends RNNCell[Output[T], LSTMState[T], Shape, (Shape, Shape)] {
   private val numUnits = bias.shape(0) / 4
 
-  override def outputShape: OutShape = {
+  override def outputShape: Shape = {
     Shape(numUnits)
   }
 
-  override def stateShape: StateShape = {
+  override def stateShape: (Shape, Shape) = {
     (Shape(numUnits), Shape(numUnits))
   }
 

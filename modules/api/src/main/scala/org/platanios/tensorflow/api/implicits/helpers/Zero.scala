@@ -30,6 +30,8 @@ import shapeless.ops.hlist.Tupler
 sealed trait Zero[T] {
   type S // Shape type
 
+  def evOutputToShape: OutputToShape.Aux[T, S]
+
   /** Generates a zero value of type `T`. */
   def zero(
       batchSize: Output[Int],
@@ -51,6 +53,10 @@ object Zero {
     new Zero[Unit] {
       override type S = Unit
 
+      override def evOutputToShape: OutputToShape.Aux[Unit, Unit] = {
+        OutputToShape.fromUnit
+      }
+
       override def zero(
           batchSize: Output[Int],
           shape: Unit,
@@ -64,6 +70,10 @@ object Zero {
   implicit def fromOutput[T: TF]: Aux[Output[T], Shape] = {
     new Zero[Output[T]] {
       override type S = Shape
+
+      override def evOutputToShape: OutputToShape.Aux[Output[T], Shape] = {
+        OutputToShape.fromOutput[T]
+      }
 
       override def zero(
           batchSize: Output[Int],
@@ -92,6 +102,10 @@ object Zero {
     new Zero[Option[T]] {
       override type S = Option[ev.S]
 
+      override def evOutputToShape: OutputToShape.Aux[Option[T], Option[ev.S]] = {
+        OutputToShape.fromOption[T](ev.evOutputToShape)
+      }
+
       override def zero(
           batchSize: Output[Int],
           shape: Option[ev.S],
@@ -109,6 +123,10 @@ object Zero {
   ): Zero.Aux[Seq[T], Seq[ev.S]] = {
     new Zero[Seq[T]] {
       override type S = Seq[ev.S]
+
+      override def evOutputToShape: OutputToShape.Aux[Seq[T], Seq[ev.S]] = {
+        OutputToShape.fromSeq[T](ev.evOutputToShape)
+      }
 
       override def zero(
           batchSize: Output[Int],
@@ -128,6 +146,10 @@ object Zero {
     new Zero[Map[K, T]] {
       override type S = Map[K, ev.S]
 
+      override def evOutputToShape: OutputToShape.Aux[Map[K, T], Map[K, ev.S]] = {
+        OutputToShape.fromMap[K, T](ev.evOutputToShape)
+      }
+
       override def zero(
           batchSize: Output[Int],
           shape: Map[K, ev.S],
@@ -143,6 +165,10 @@ object Zero {
   implicit val fromHNil: Zero.Aux[HNil, HNil] = {
     new Zero[HNil] {
       override type S = HNil
+
+      override def evOutputToShape: OutputToShape.Aux[HNil, HNil] = {
+        OutputToShape.fromHNil
+      }
 
       override def zero(
           batchSize: Output[Int],
@@ -161,6 +187,10 @@ object Zero {
     new Zero[HT :: TT] {
       override type S = HS :: TS
 
+      override def evOutputToShape: OutputToShape.Aux[HT :: TT, HS :: TS] = {
+        OutputToShape.fromHList[HT, HS, TT, TS](evH.value.evOutputToShape, evT.value.evOutputToShape)
+      }
+
       override def zero(
           batchSize: Output[Int],
           shape: HS :: TS,
@@ -176,19 +206,23 @@ object Zero {
 
   implicit def fromProduct[PT <: Product, PS <: Product, HT <: HList, HS <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evZeroH: Strict[Zero.Aux[HT, HS]],
+      evH: Strict[Zero.Aux[HT, HS]],
       tuplerS: Tupler.Aux[HS, PS],
       genS: Generic.Aux[PS, HS]
   ): Zero.Aux[PT, PS] = {
     new Zero[PT] {
       override type S = PS
 
+      override def evOutputToShape: OutputToShape.Aux[PT, PS] = {
+        OutputToShape.fromProduct[PT, PS, HT, HS](genT, evH.value.evOutputToShape, tuplerS, genS)
+      }
+
       override def zero(
           batchSize: Output[Int],
           shape: PS,
           name: String = "Zero"
       ): PT = {
-        genT.from(evZeroH.value.zero(batchSize, genS.to(shape), name))
+        genT.from(evH.value.zero(batchSize, genS.to(shape), name))
       }
     }
   }

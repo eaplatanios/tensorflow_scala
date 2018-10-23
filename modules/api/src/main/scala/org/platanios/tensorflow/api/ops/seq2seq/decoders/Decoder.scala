@@ -42,21 +42,24 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-abstract class Decoder[Out, State, DecOut: OutputStructure, DecState: OutputStructure, DecFinalOut: OutputStructure, DecFinalState](
-    val cell: RNNCell[Out, State],
+abstract class Decoder[
+    Out,
+    State,
+    DecOut: OutputStructure,
+    DecState: OutputStructure,
+    DecFinalOut: OutputStructure,
+    DecFinalState,
+    OutShape, StateShape, DecOutShape, DecStateShape
+](
+    val cell: RNNCell[Out, State, OutShape, StateShape],
     val name: String = "RNNDecoder"
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape],
+    evOutputToShapeDecState: OutputToShape.Aux[DecState, DecStateShape],
+    evZeroOut: Zero.Aux[Out, OutShape],
+    evZeroDecOut: Zero.Aux[DecOut, DecOutShape]
 ) {
-  type OutShape
-  type StateShape
-  type DecOutShape
-  type DecStateShape
-
-  def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape]
-  def evOutputToShapeState: OutputToShape.Aux[State, StateShape]
-  def evOutputToShapeDecState: OutputToShape.Aux[DecState, DecStateShape]
-  def evZeroOut: Zero.Aux[Out, OutShape]
-  def evZeroDecOut: Zero.Aux[DecOut, DecOutShape]
-
   /** Scalar tensor representing the batch size of the input values. */
   val batchSize: Output[Int]
 

@@ -47,20 +47,17 @@ import java.security.MessageDigest
   *
   * @author Emmanouil Antonios Platanios
   */
-class DropoutWrapper[Out: OutputStructure, State: OutputStructure] protected (
-    val cell: RNNCell[Out, State],
+class DropoutWrapper[Out: OutputStructure, State: OutputStructure, OutShape, StateShape] protected (
+    val cell: RNNCell[Out, State, OutShape, StateShape],
     val inputKeepProbability: Output[Float] = 1.0f,
     val outputKeepProbability: Output[Float] = 1.0f,
     val stateKeepProbability: Output[Float] = 1.0f,
     val seed: Option[Int] = None,
     val name: String = "DropoutWrapper"
-) extends RNNCell[Out, State]() {
-  type OutShape = cell.OutShape
-  type StateShape = cell.StateShape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
-  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
-
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, State, OutShape, StateShape] {
   override def outputShape: OutShape = {
     cell.outputShape
   }
@@ -84,14 +81,17 @@ class DropoutWrapper[Out: OutputStructure, State: OutputStructure] protected (
 }
 
 object DropoutWrapper {
-  def apply[Out: OutputStructure, State: OutputStructure](
-      cell: RNNCell[Out, State],
+  def apply[Out: OutputStructure, State: OutputStructure, OutShape, StateShape](
+      cell: RNNCell[Out, State, OutShape, StateShape],
       inputKeepProbability: Output[Float] = 1.0f,
       outputKeepProbability: Output[Float] = 1.0f,
       stateKeepProbability: Output[Float] = 1.0f,
       seed: Option[Int] = None,
       name: String = "DropoutWrapper"
-  ): DropoutWrapper[Out, State] = {
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): DropoutWrapper[Out, State, OutShape, StateShape] = {
     new DropoutWrapper(
       cell, inputKeepProbability, outputKeepProbability,
       stateKeepProbability, seed, name)

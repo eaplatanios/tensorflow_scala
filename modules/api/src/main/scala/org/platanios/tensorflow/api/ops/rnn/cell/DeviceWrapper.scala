@@ -26,17 +26,14 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
   *
   * @author Emmanouil Antonios Platanios
   */
-class DeviceWrapper[Out, State] protected (
-    val cell: RNNCell[Out, State],
+class DeviceWrapper[Out, State, OutShape, StateShape] protected (
+    val cell: RNNCell[Out, State, OutShape, StateShape],
     val device: String = "",
     val deviceFunction: OpSpecification => String = _.device
-) extends RNNCell[Out, State]() {
-  type OutShape = cell.OutShape
-  type StateShape = cell.StateShape
-
-  override def evOutputToShapeOut: OutputToShape.Aux[Out, OutShape] = cell.evOutputToShapeOut
-  override def evOutputToShapeState: OutputToShape.Aux[State, StateShape] = cell.evOutputToShapeState
-
+)(implicit
+    evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+    evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+) extends RNNCell[Out, State, OutShape, StateShape] {
   override def outputShape: OutShape = {
     cell.outputShape
   }
@@ -50,7 +47,7 @@ class DeviceWrapper[Out, State] protected (
       name: String
   )(implicit evZeroS: Zero.Aux[State, StateShape]): State = {
     Op.device(device, deviceFunction) {
-      super.zeroState(batchSize, name)
+      cell.zeroState(batchSize, name)
     }
   }
 
@@ -62,11 +59,14 @@ class DeviceWrapper[Out, State] protected (
 }
 
 object DeviceWrapper {
-  def apply[Out, State](
-      cell: RNNCell[Out, State],
+  def apply[Out, State, OutShape, StateShape](
+      cell: RNNCell[Out, State, OutShape, StateShape],
       device: String = "",
       deviceFunction: OpSpecification => String = _.device
-  ): DeviceWrapper[Out, State] = {
+  )(implicit
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
+      evOutputToShapeState: OutputToShape.Aux[State, StateShape]
+  ): DeviceWrapper[Out, State, OutShape, StateShape] = {
     new DeviceWrapper(cell, device, deviceFunction)
   }
 }
