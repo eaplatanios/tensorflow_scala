@@ -167,15 +167,15 @@ object DataTypeStructure {
 
   implicit def fromHList[HD, TD <: HList](implicit
       evH: Strict[DataTypeStructure[HD]],
-      evT: DataTypeStructure[TD]
+      evT: Strict[DataTypeStructure[TD]]
   ): DataTypeStructure[HD :: TD] = {
     new DataTypeStructure[HD :: TD] {
       override def size(dataType: HD :: TD): Int = {
-        evH.value.size(dataType.head) + evT.size(dataType.tail)
+        evH.value.size(dataType.head) + evT.value.size(dataType.tail)
       }
 
       override def dataTypes(dataType: HD :: TD): Seq[DataType[Any]] = {
-        evH.value.dataTypes(dataType.head) ++ evT.dataTypes(dataType.tail)
+        evH.value.dataTypes(dataType.head) ++ evT.value.dataTypes(dataType.tail)
       }
 
       override def decodeDataType(
@@ -183,7 +183,7 @@ object DataTypeStructure {
           dataTypes: Seq[DataType[Any]]
       ): (HD :: TD, Seq[DataType[Any]]) = {
         val (headOut, headRemaining) = evH.value.decodeDataType(dataType.head, dataTypes)
-        val (tailOut, tailRemaining) = evT.decodeDataType(dataType.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.value.decodeDataType(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }
@@ -191,22 +191,22 @@ object DataTypeStructure {
 
   implicit def fromProduct[PD <: Product, HD <: HList](implicit
       genD: Generic.Aux[PD, HD],
-      evD: DataTypeStructure[HD]
+      evD: Strict[DataTypeStructure[HD]]
   ): DataTypeStructure[PD] = {
     new DataTypeStructure[PD] {
       override def size(dataType: PD): Int = {
-        evD.size(genD.to(dataType))
+        evD.value.size(genD.to(dataType))
       }
 
       override def dataTypes(dataType: PD): Seq[DataType[Any]] = {
-        evD.dataTypes(genD.to(dataType))
+        evD.value.dataTypes(genD.to(dataType))
       }
 
       override def decodeDataType(
           dataType: PD,
           dataTypes: Seq[DataType[Any]]
       ): (PD, Seq[DataType[Any]]) = {
-        val (out, remaining) = evD.decodeDataType(genD.to(dataType), dataTypes)
+        val (out, remaining) = evD.value.decodeDataType(genD.to(dataType), dataTypes)
         (genD.from(out), remaining)
       }
     }

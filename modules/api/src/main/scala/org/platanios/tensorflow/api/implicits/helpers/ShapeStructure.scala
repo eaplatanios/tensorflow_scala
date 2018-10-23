@@ -163,15 +163,15 @@ object ShapeStructure {
 
   implicit def fromHList[HS, TS <: HList](implicit
       evH: Strict[ShapeStructure[HS]],
-      evT: ShapeStructure[TS]
+      evT: Strict[ShapeStructure[TS]]
   ): ShapeStructure[HS :: TS] = {
     new ShapeStructure[HS :: TS] {
       override def size(shape: HS :: TS): Int = {
-        evH.value.size(shape.head) + evT.size(shape.tail)
+        evH.value.size(shape.head) + evT.value.size(shape.tail)
       }
 
       override def shapes(shape: HS :: TS): Seq[Shape] = {
-        evH.value.shapes(shape.head) ++ evT.shapes(shape.tail)
+        evH.value.shapes(shape.head) ++ evT.value.shapes(shape.tail)
       }
 
       override def decodeShape(
@@ -179,7 +179,7 @@ object ShapeStructure {
           shapes: Seq[Shape]
       ): (HS :: TS, Seq[Shape]) = {
         val (headOut, headRemaining) = evH.value.decodeShape(shape.head, shapes)
-        val (tailOut, tailRemaining) = evT.decodeShape(shape.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.value.decodeShape(shape.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }
@@ -187,58 +187,23 @@ object ShapeStructure {
 
   implicit def fromProduct[PS <: Product, HS <: HList](implicit
       genD: Generic.Aux[PS, HS],
-      evD: ShapeStructure[HS]
+      evD: Strict[ShapeStructure[HS]]
   ): ShapeStructure[PS] = {
     new ShapeStructure[PS] {
       override def size(shape: PS): Int = {
-        evD.size(genD.to(shape))
+        evD.value.size(genD.to(shape))
       }
 
       override def shapes(shape: PS): Seq[Shape] = {
-        evD.shapes(genD.to(shape))
+        evD.value.shapes(genD.to(shape))
       }
 
       override def decodeShape(
           shape: PS,
           shapes: Seq[Shape]
       ): (PS, Seq[Shape]) = {
-        val (out, remaining) = evD.decodeShape(genD.to(shape), shapes)
+        val (out, remaining) = evD.value.decodeShape(genD.to(shape), shapes)
         (genD.from(out), remaining)
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HS, TS <: Coproduct](implicit
-      evH: Strict[ShapeStructure[HS]],
-      evT: ShapeStructure[TS]
-  ): ShapeStructure[HS :+: TS] = {
-    new ShapeStructure[HS :+: TS] {
-      override def size(shape: HS :+: TS): Int = {
-        shape match {
-          case Inl(h) => evH.value.size(h)
-          case Inr(t) => evT.size(t)
-        }
-      }
-
-      override def shapes(shape: HS :+: TS): Seq[Shape] = {
-        shape match {
-          case Inl(h) => evH.value.shapes(h)
-          case Inr(t) => evT.shapes(t)
-        }
-      }
-
-      override def decodeShape(
-          shape: HS :+: TS,
-          shapes: Seq[Shape]
-      ): (HS :+: TS, Seq[Shape]) = {
-        shape match {
-          case Inl(h) =>
-            val (result, remaining) = evH.value.decodeShape(h, shapes)
-            (Inl(result), remaining)
-          case Inr(t) =>
-            val (result, remaining) = evT.decodeShape(t, shapes)
-            (Inr(result), remaining)
-        }
       }
     }
   }

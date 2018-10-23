@@ -127,37 +127,23 @@ trait NestedStructureOpsLowPriority {
 
   implicit def fromHList[H, T <: HList](implicit
       evH: Strict[OpStructure[H]],
-      evT: OpStructure[T]
+      evT: Strict[OpStructure[T]]
   ): OpStructure[H :: T] = {
     new OpStructure[H :: T] {
       override def ops(executable: H :: T): Set[UntypedOp] = {
         evH.value.ops(executable.head) ++
-            evT.ops(executable.tail)
+            evT.value.ops(executable.tail)
       }
     }
   }
 
   implicit def fromProduct[P <: Product, L <: HList](implicit
       gen: Generic.Aux[P, L],
-      executableL: OpStructure[L]
+      executableL: Strict[OpStructure[L]]
   ): OpStructure[P] = {
     new OpStructure[P] {
       override def ops(executable: P): Set[UntypedOp] = {
-        executableL.ops(gen.to(executable))
-      }
-    }
-  }
-
-  implicit def fromCoproduct[H, T <: Coproduct](implicit
-      evH: Strict[OpStructure[H]],
-      evT: OpStructure[T]
-  ): OpStructure[H :+: T] = {
-    new OpStructure[H :+: T] {
-      override def ops(executable: H :+: T): Set[UntypedOp] = {
-        executable match {
-          case Inl(h) => evH.value.ops(h)
-          case Inr(t) => evT.ops(t)
-        }
+        executableL.value.ops(gen.to(executable))
       }
     }
   }

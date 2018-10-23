@@ -108,20 +108,20 @@ object DataTypeToOutput {
 
   implicit def fromHList[HD, HO, TD <: HList, TO <: HList](implicit
       evH: Strict[DataTypeToOutput.Aux[HD, HO]],
-      evT: DataTypeToOutput.Aux[TD, TO]
+      evT: Strict[DataTypeToOutput.Aux[TD, TO]]
   ): DataTypeToOutput.Aux[HD :: TD, HO :: TO] = {
     new DataTypeToOutput[HD :: TD] {
       override type O = HO :: TO
 
       override def dataTypeStructure: DataTypeStructure[HD :: TD] = {
-        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.dataTypeStructure)
+        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.value.dataTypeStructure)
       }
     }
   }
 
   implicit def fromProduct[PD <: Product, PO <: Product, HD <: HList, HO <: HList](implicit
       genD: Generic.Aux[PD, HD],
-      evD: DataTypeToOutput.Aux[HD, HO],
+      evD: Strict[DataTypeToOutput.Aux[HD, HO]],
       tuplerO: Tupler.Aux[HO, PO],
       genO: Generic.Aux[PO, HO]
   ): DataTypeToOutput.Aux[PD, PO] = {
@@ -129,7 +129,7 @@ object DataTypeToOutput {
       override type O = PO
 
       override def dataTypeStructure: DataTypeStructure[PD] = {
-        DataTypeStructure.fromProduct[PD, HD](genD, evD.dataTypeStructure)
+        DataTypeStructure.fromProduct[PD, HD](genD, evD.value.dataTypeStructure)
       }
     }
   }

@@ -146,20 +146,20 @@ object TensorToDataType {
 
   implicit def fromHList[HT, HD, TT <: HList, TD <: HList](implicit
       evH: Strict[TensorToDataType.Aux[HT, HD]],
-      evT: TensorToDataType.Aux[TT, TD]
+      evT: Strict[TensorToDataType.Aux[TT, TD]]
   ): TensorToDataType.Aux[HT :: TT, HD :: TD] = {
     new TensorToDataType[HT :: TT] {
       override type D = HD :: TD
 
       override def dataType(output: HT :: TT): HD :: TD = {
-        evH.value.dataType(output.head) :: evT.dataType(output.tail)
+        evH.value.dataType(output.head) :: evT.value.dataType(output.tail)
       }
     }
   }
 
   implicit def fromProduct[PT <: Product, PD <: Product, HT <: HList, HD <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: TensorToDataType.Aux[HT, HD],
+      evT: Strict[TensorToDataType.Aux[HT, HD]],
       tuplerS: Tupler.Aux[HD, PD],
       genS: Generic.Aux[PD, HD]
   ): TensorToDataType.Aux[PT, PD] = {
@@ -167,23 +167,7 @@ object TensorToDataType {
       override type D = PD
 
       override def dataType(output: PT): PD = {
-        tuplerS(evT.dataType(genT.to(output)))
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HT, HD, TT <: Coproduct, TD <: Coproduct](implicit
-      evH: Strict[TensorToDataType.Aux[HT, HD]],
-      evT: TensorToDataType.Aux[TT, TD]
-  ): TensorToDataType.Aux[HT :+: TT, HD :+: TD] = {
-    new TensorToDataType[HT :+: TT] {
-      override type D = HD :+: TD
-
-      override def dataType(output: HT :+: TT): HD :+: TD = {
-        output match {
-          case Inl(h) => Inl(evH.value.dataType(h))
-          case Inr(t) => Inr(evT.dataType(t))
-        }
+        tuplerS(evT.value.dataType(genT.to(output)))
       }
     }
   }

@@ -156,7 +156,7 @@ object Zero {
 
   implicit def fromHList[HT, HS, TT <: HList, TS <: HList](implicit
       evH: Strict[Zero.Aux[HT, HS]],
-      evT: Zero.Aux[TT, TS]
+      evT: Strict[Zero.Aux[TT, TS]]
   ): Zero.Aux[HT :: TT, HS :: TS] = {
     new Zero[HT :: TT] {
       override type S = HS :: TS
@@ -168,7 +168,7 @@ object Zero {
       ): HT :: TT = {
         Op.nameScope(name) {
           evH.value.zero(batchSize, shape.head) ::
-              evT.zero(batchSize, shape.tail)
+              evT.value.zero(batchSize, shape.tail)
         }
       }
     }
@@ -176,7 +176,7 @@ object Zero {
 
   implicit def fromProduct[PT <: Product, PS <: Product, HT <: HList, HS <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evZeroH: Zero.Aux[HT, HS],
+      evZeroH: Strict[Zero.Aux[HT, HS]],
       tuplerS: Tupler.Aux[HS, PS],
       genS: Generic.Aux[PS, HS]
   ): Zero.Aux[PT, PS] = {
@@ -188,27 +188,7 @@ object Zero {
           shape: PS,
           name: String = "Zero"
       ): PT = {
-        genT.from(evZeroH.zero(batchSize, genS.to(shape), name))
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HT, HS, TT <: Coproduct, TS <: Coproduct](implicit
-      evH: Strict[Zero.Aux[HT, HS]],
-      evT: Zero.Aux[TT, TS]
-  ): Zero.Aux[HT :+: TT, HS :+: TS] = {
-    new Zero[HT :+: TT] {
-      override type S = HS :+: TS
-
-      override def zero(
-          batchSize: Output[Int],
-          shape: HS :+: TS,
-          name: String
-      ): HT :+: TT = {
-        shape match {
-          case Inl(h) => Inl(evH.value.zero(batchSize, h, name))
-          case Inr(t) => Inr(evT.zero(batchSize, t, name))
-        }
+        genT.from(evZeroH.value.zero(batchSize, genS.to(shape), name))
       }
     }
   }

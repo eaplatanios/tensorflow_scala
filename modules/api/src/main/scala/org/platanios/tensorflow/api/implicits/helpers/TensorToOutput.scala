@@ -163,24 +163,24 @@ object TensorToOutput {
 
   implicit def fromHList[HT, HO, TT <: HList, TO <: HList](implicit
       evH: Strict[TensorToOutput.Aux[HT, HO]],
-      evT: TensorToOutput.Aux[TT, TO]
+      evT: Strict[TensorToOutput.Aux[TT, TO]]
   ): TensorToOutput.Aux[HT :: TT, HO :: TO] = {
     new TensorToOutput[HT :: TT] {
       override type O = HO :: TO
 
       override def output(tensor: HT :: TT): HO :: TO = {
-        evH.value.output(tensor.head) :: evT.output(tensor.tail)
+        evH.value.output(tensor.head) :: evT.value.output(tensor.tail)
       }
 
       override def tensors(tensor: HT :: TT): Seq[Tensor[Any]] = {
-        evH.value.tensors(tensor.head) ++ evT.tensors(tensor.tail)
+        evH.value.tensors(tensor.head) ++ evT.value.tensors(tensor.tail)
       }
     }
   }
 
   implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: TensorToOutput.Aux[HT, HO],
+      evT: Strict[TensorToOutput.Aux[HT, HO]],
       tuplerO: Tupler.Aux[HO, PO],
       genO: Generic.Aux[PO, HO]
   ): TensorToOutput.Aux[PT, PO] = {
@@ -188,34 +188,11 @@ object TensorToOutput {
       override type O = PO
 
       override def output(tensor: PT): PO = {
-        genO.from(evT.output(genT.to(tensor)))
+        genO.from(evT.value.output(genT.to(tensor)))
       }
 
       override def tensors(tensor: PT): Seq[Tensor[Any]] = {
-        evT.tensors(genT.to(tensor))
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HT, HO, TT <: Coproduct, TO <: Coproduct](implicit
-      evH: Strict[TensorToOutput.Aux[HT, HO]],
-      evT: TensorToOutput.Aux[TT, TO]
-  ): TensorToOutput.Aux[HT :+: TT, HO :+: TO] = {
-    new TensorToOutput[HT :+: TT] {
-      override type O = HO :+: TO
-
-      override def output(tensor: HT :+: TT): HO :+: TO = {
-        tensor match {
-          case Inl(h) => Inl(evH.value.output(h))
-          case Inr(t) => Inr(evT.output(t))
-        }
-      }
-
-      override def tensors(tensor: HT :+: TT): Seq[Tensor[Any]] = {
-        tensor match {
-          case Inl(h) => evH.value.tensors(h)
-          case Inr(t) => evT.tensors(t)
-        }
+        evT.value.tensors(genT.to(tensor))
       }
     }
   }

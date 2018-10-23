@@ -146,20 +146,20 @@ object TensorToShape {
 
   implicit def fromHList[HT, HS, TT <: HList, TS <: HList](implicit
       evH: Strict[TensorToShape.Aux[HT, HS]],
-      evT: TensorToShape.Aux[TT, TS]
+      evT: Strict[TensorToShape.Aux[TT, TS]]
   ): TensorToShape.Aux[HT :: TT, HS :: TS] = {
     new TensorToShape[HT :: TT] {
       override type S = HS :: TS
 
       override def shape(output: HT :: TT): HS :: TS = {
-        evH.value.shape(output.head) :: evT.shape(output.tail)
+        evH.value.shape(output.head) :: evT.value.shape(output.tail)
       }
     }
   }
 
   implicit def fromProduct[PT <: Product, PS <: Product, HT <: HList, HS <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: TensorToShape.Aux[HT, HS],
+      evT: Strict[TensorToShape.Aux[HT, HS]],
       tuplerS: Tupler.Aux[HS, PS],
       genS: Generic.Aux[PS, HS]
   ): TensorToShape.Aux[PT, PS] = {
@@ -167,23 +167,7 @@ object TensorToShape {
       override type S = PS
 
       override def shape(output: PT): PS = {
-        tuplerS(evT.shape(genT.to(output)))
-      }
-    }
-  }
-
-  implicit def fromCoproduct[HT, HS, TT <: Coproduct, TS <: Coproduct](implicit
-      evH: Strict[TensorToShape.Aux[HT, HS]],
-      evT: TensorToShape.Aux[TT, TS]
-  ): TensorToShape.Aux[HT :+: TT, HS :+: TS] = {
-    new TensorToShape[HT :+: TT] {
-      override type S = HS :+: TS
-
-      override def shape(output: HT :+: TT): HS :+: TS = {
-        output match {
-          case Inl(h) => Inl(evH.value.shape(h))
-          case Inr(t) => Inr(evT.shape(t))
-        }
+        tuplerS(evT.value.shape(genT.to(output)))
       }
     }
   }

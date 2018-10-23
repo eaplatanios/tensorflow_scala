@@ -327,21 +327,21 @@ object OutputToDataType {
 
   implicit def fromHList[HT, HD, TT <: HList, TD <: HList](implicit
       evH: Strict[OutputToDataType.Aux[HT, HD]],
-      evT: OutputToDataType.Aux[TT, TD]
+      evT: Strict[OutputToDataType.Aux[TT, TD]]
   ): OutputToDataType.Aux[HT :: TT, HD :: TD] = {
     new OutputToDataType[HT :: TT] {
       override type D = HD :: TD
 
       override def dataTypeStructure: DataTypeStructure[HD :: TD] = {
-        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.dataTypeStructure)
+        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.value.dataTypeStructure)
       }
 
       override def sizeFromDataType(dataType: HD :: TD): Int = {
-        evH.value.sizeFromDataType(dataType.head) + evT.sizeFromDataType(dataType.tail)
+        evH.value.sizeFromDataType(dataType.head) + evT.value.sizeFromDataType(dataType.tail)
       }
 
       override def dataType(output: HT :: TT): HD :: TD = {
-        evH.value.dataType(output.head) :: evT.dataType(output.tail)
+        evH.value.dataType(output.head) :: evT.value.dataType(output.tail)
       }
 
       override def decodeOutput(
@@ -349,7 +349,7 @@ object OutputToDataType {
           outputs: Seq[Output[Any]]
       ): (HT :: TT, Seq[Output[Any]]) = {
         val (headOut, headRemaining) = evH.value.decodeOutput(dataType.head, outputs)
-        val (tailOut, tailRemaining) = evT.decodeOutput(dataType.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.value.decodeOutput(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }
@@ -357,7 +357,7 @@ object OutputToDataType {
 
   implicit def fromProduct[PT <: Product, PD <: Product, HT <: HList, HD <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: OutputToDataType.Aux[HT, HD],
+      evT: Strict[OutputToDataType.Aux[HT, HD]],
       tuplerD: Tupler.Aux[HD, PD],
       genD: Generic.Aux[PD, HD]
   ): OutputToDataType.Aux[PT, PD] = {
@@ -365,22 +365,22 @@ object OutputToDataType {
       override type D = PD
 
       override def dataTypeStructure: DataTypeStructure[PD] = {
-        DataTypeStructure.fromProduct[PD, HD](genD, evT.dataTypeStructure)
+        DataTypeStructure.fromProduct[PD, HD](genD, evT.value.dataTypeStructure)
       }
 
       override def sizeFromDataType(dataType: PD): Int = {
-        evT.sizeFromDataType(genD.to(dataType))
+        evT.value.sizeFromDataType(genD.to(dataType))
       }
 
       override def dataType(output: PT): PD = {
-        tuplerD(evT.dataType(genT.to(output)))
+        tuplerD(evT.value.dataType(genT.to(output)))
       }
 
       override def decodeOutput(
           dataType: PD,
           outputs: Seq[Output[Any]]
       ): (PT, Seq[Output[Any]]) = {
-        val (out, remaining) = evT.decodeOutput(genD.to(dataType), outputs)
+        val (out, remaining) = evT.value.decodeOutput(genD.to(dataType), outputs)
         (genT.from(out), remaining)
       }
     }

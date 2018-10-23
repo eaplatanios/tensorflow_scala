@@ -387,9 +387,6 @@ object BeamSearchDecoder {
       predictedIDs: Output[Int],
       output: BeamSearchDecoderOutput)
 
-  implicitly[OutputStructure[BeamSearchDecoderOutput]]
-  implicitly[OutputStructure[BeamSearchFinalOutput]]
-
   /** Masks log probabilities. The result is that finished search states allocate all probability mass to `endToken` and
     * unfinished search states remain unchanged.
     *
