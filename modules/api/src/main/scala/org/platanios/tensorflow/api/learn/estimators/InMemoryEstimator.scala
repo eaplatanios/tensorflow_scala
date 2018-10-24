@@ -96,7 +96,7 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
     Op.createWith(
       graph = graph,
       nameScope = "Estimator",
-      deviceFunction = deviceFunction.getOrElse((opSpec: OpSpecification) => opSpec.device)
+      deviceFunction = deviceFunction
     ) {
       randomSeed.foreach(graph.setRandomSeed)
       val (globalStep, trainOps) = Op.nameScope("Train") {
@@ -158,7 +158,7 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
   protected val session: MonitoredSession = {
     Op.createWith(
       graph = graph,
-      deviceFunction = deviceFunction.getOrElse((opSpec: OpSpecification) => opSpec.device)
+      deviceFunction = deviceFunction
     ) {
       Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
       graph.addToCollection(Graph.Keys.LOSSES)(trainingOps.loss)

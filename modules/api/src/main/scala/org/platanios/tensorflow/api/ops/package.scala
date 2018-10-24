@@ -112,7 +112,7 @@ package object ops {
 
     def createWith[R](
         graph: Graph = null, nameScope: String = null, device: String = "",
-        deviceFunction: OpSpecification => String = _.device, colocationOps: Set[UntypedOp] = null,
+        deviceFunction: Option[OpSpecification => String] = None, colocationOps: Set[UntypedOp] = null,
         controlDependencies: Set[UntypedOp] = null, attributes: Map[String, Any] = null, container: String = null
     )(block: => R): R = {
       ops.Op.createWith(
@@ -125,7 +125,7 @@ package object ops {
 
     def device[R](
         device: String = "",
-        deviceFunction: OpSpecification => String = _.device
+        deviceFunction: Option[OpSpecification => String] = None
     )(block: => R): R = {
       ops.Op.device(device, deviceFunction)(block)
     }

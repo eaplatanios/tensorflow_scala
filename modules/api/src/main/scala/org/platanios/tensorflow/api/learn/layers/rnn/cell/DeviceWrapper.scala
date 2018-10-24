@@ -33,7 +33,7 @@ class DeviceWrapper[Out, State, OutShape, StateShape](
     override val name: String,
     val cell: RNNCell[Out, State, OutShape, StateShape],
     val device: String = "",
-    val deviceFunction: OpSpecification => String = _.device
+    val deviceFunction: Option[OpSpecification => String] = None
 )(implicit
     evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
     evOutputToShapeState: OutputToShape.Aux[State, StateShape]
@@ -55,7 +55,7 @@ object DeviceWrapper {
       variableScope: String,
       cell: RNNCell[Out, State, OutShape, StateShape],
       device: String = "",
-      deviceFunction: OpSpecification => String = _.device
+      deviceFunction: Option[OpSpecification => String] = None
   )(implicit
       evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
       evOutputToShapeState: OutputToShape.Aux[State, StateShape]

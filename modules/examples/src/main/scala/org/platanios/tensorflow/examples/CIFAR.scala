@@ -17,7 +17,7 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.UByte
-import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
+import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToShape, OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.CIFARLoader
@@ -34,8 +34,12 @@ import java.nio.file.Paths
 object CIFAR {
   private val logger = Logger(LoggerFactory.getLogger("Examples / CIFAR"))
 
-  // Implicit helper for Scala 2.11
-  implicit val evOutputStructureFloatLong: OutputStructure[(Output[Float], Output[Long])] = examples.evOutputStructureFloatLong
+  // Implicit helpers for Scala 2.11.
+  implicit val evOutputStructureFloatLong : OutputStructure[(Output[Float], Output[Long])]  = examples.evOutputStructureFloatLong
+  implicit val evOutputToDataTypeFloatLong: OutputToDataType[(Output[Float], Output[Long])] = examples.evOutputToDataTypeFloatLong
+  implicit val evOutputToShapeFloatLong   : OutputToShape[(Output[Float], Output[Long])]    = examples.evOutputToShapeFloatLong
+
+  implicit val evDataTypeToShapeFloatLong: DataTypeToShape.Aux[(DataType[Float], DataType[Long]), (Shape, Shape)] = examples.evDataTypeToShapeFloatLong
 
   def main(args: Array[String]): Unit = {
     val dataSet = CIFARLoader.load(Paths.get("datasets/CIFAR"), CIFARLoader.CIFAR_10)
@@ -67,12 +71,12 @@ object CIFAR {
         tf.learn.Mean[Float]("Loss/Mean") >>
         tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
     val optimizer = tf.train.AdaGrad(0.1f)
-    
+
     val model = tf.learn.Model.simpleSupervised(
-      input = input,  
-      trainInput = trainInput, 
-      layer = layer, 
-      loss = loss, 
+      input = input,
+      trainInput = trainInput,
+      layer = layer,
+      loss = loss,
       optimizer = optimizer)
 
     logger.info("Training the linear regression model.")
@@ -84,7 +88,7 @@ object CIFAR {
       Set(
         tf.learn.LossLogger(trigger = tf.learn.StepHookTrigger(100)),
         tf.learn.StepRateLogger(log = false, summaryDir = summariesDir, trigger = tf.learn.StepHookTrigger(100)),
-      tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
+        tf.learn.CheckpointSaver(summariesDir, tf.learn.StepHookTrigger(1000))),
       tensorBoardConfig = tf.learn.TensorBoardConfig(summariesDir, reloadInterval = 1))
     estimator.train(trainData, tf.learn.StopCriteria(maxSteps = Some(1000)))
 

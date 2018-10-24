@@ -154,7 +154,7 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
         val graph = Graph()
         Op.createWith(
           graph = graph,
-          deviceFunction = deviceFunction.getOrElse((opSpec: OpSpecification) => opSpec.device)
+          deviceFunction = deviceFunction
         ) {
           randomSeed.foreach(graph.setRandomSeed)
           // TODO: [LEARN] !!! Do we ever update the global epoch?

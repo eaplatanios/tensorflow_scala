@@ -730,7 +730,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
             Function(s"$name/ReduceFunction", reduceFn).instantiate(
               inputDataType = (INT64, VARIANT),
               inputShape = Some((Shape(), Shape())),
-              input = Some((null, this)),
+              input = Some((null, outer)),
               appendHashToName = true))
         instantiatedReduceFunction.get
       }

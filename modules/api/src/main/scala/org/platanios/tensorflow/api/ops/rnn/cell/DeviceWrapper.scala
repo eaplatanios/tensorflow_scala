@@ -29,7 +29,7 @@ import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output}
 class DeviceWrapper[Out, State, OutShape, StateShape] protected (
     val cell: RNNCell[Out, State, OutShape, StateShape],
     val device: String = "",
-    val deviceFunction: OpSpecification => String = _.device
+    val deviceFunction: Option[OpSpecification => String] = None
 )(implicit
     evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
     evOutputToShapeState: OutputToShape.Aux[State, StateShape]
@@ -62,7 +62,7 @@ object DeviceWrapper {
   def apply[Out, State, OutShape, StateShape](
       cell: RNNCell[Out, State, OutShape, StateShape],
       device: String = "",
-      deviceFunction: OpSpecification => String = _.device
+      deviceFunction: Option[OpSpecification => String] = None
   )(implicit
       evOutputToShapeOut: OutputToShape.Aux[Out, OutShape],
       evOutputToShapeState: OutputToShape.Aux[State, StateShape]

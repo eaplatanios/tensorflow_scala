@@ -2007,7 +2007,7 @@ object Op {
       graph: Graph = null,
       nameScope: String = null,
       device: String = "",
-      deviceFunction: OpSpecification => String = _.device,
+      deviceFunction: Option[OpSpecification => String] = None,
       colocationOps: Set[UntypedOp] = null,
       controlDependencies: Set[UntypedOp] = null,
       attributes: Map[String, Any] = null,
@@ -2022,8 +2022,14 @@ object Op {
     updatedContext = updatedContext.copy(nameScope = newNameScope, outerContext = Some(updatedContext))
     val newDevice = mergeDevice(device, updatedContext.device)
     updatedContext = updatedContext.copy(device = newDevice, outerContext = Some(updatedContext))
-    val newDeviceFunction = mergeDeviceFunction(deviceFunction, updatedContext.deviceFunction, updatedContext.device)
-    updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction, outerContext = Some(updatedContext))
+
+    deviceFunction match {
+      case Some(deviceFn) =>
+      val newDeviceFunction = mergeDeviceFunction(deviceFn, updatedContext.deviceFunction, updatedContext.device)
+      updatedContext = updatedContext.copy(deviceFunction = newDeviceFunction, outerContext = Some(updatedContext))
+      case None => ()
+    }
+
     val newColocationOps = mergeColocationOps(colocationOps, updatedContext)
     updatedContext = updatedContext.copy(colocationOps = newColocationOps, outerContext = Some(updatedContext))
     val (newControlDependencies, newControlFlowContext) = mergeControlDependencies(controlDependencies, updatedContext)
@@ -2115,7 +2121,7 @@ object Op {
     */
   private[api] def device[R](
       device: String = "",
-      deviceFunction: OpSpecification => String = _.device
+      deviceFunction: Option[OpSpecification => String] = None
   )(block: => R): R = {
     createWith(
       device = device,

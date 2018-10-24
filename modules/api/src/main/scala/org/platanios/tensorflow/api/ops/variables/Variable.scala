@@ -617,7 +617,7 @@ private[api] object Variable {
                 // specification. Therefore, we reset the colocation stack before creating the cached value. Note that
                 // resetting the colocation stack will also reset the device stack.
                 Op.colocateWith(Set.empty, ignoreExisting = true) {
-                  Op.createWith(deviceFunction = cachingDevice)(Basic.identity(value))
+                  Op.createWith(deviceFunction = Some(cachingDevice))(Basic.identity(value))
                 }
               } else {
                 null
