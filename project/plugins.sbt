@@ -30,7 +30,6 @@ addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.0.0")
 // addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC4")
 // addSbtPlugin("org.scalameta" % "sbt-metals" % "0.1.0-M1+267-28b92d0a")
 
-// addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
 
 // Plugins used for the documentation website.
@@ -38,6 +37,7 @@ addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.4.3")
 addSbtPlugin("io.github.jonas" % "sbt-paradox-material-theme" % "0.5.1")
 addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "1.3.2")
 addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.2")
+addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 
 // Plugins used for generating the library website
 addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.2")

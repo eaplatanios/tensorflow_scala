@@ -331,48 +331,60 @@ lazy val site = (project in file("./docs/site"))
           "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
       includeFilter in Jekyll := (includeFilter in makeSite).value)
 
-val API = config("api")
 val JNI = config("jni")
+val API = config("api")
 val DATA = config("data")
+val EXAMPLES = config("examples")
 
 lazy val docs = (project in file("docs"))
-    .dependsOn(api, jni, data)
-    .enablePlugins(SiteScaladocPlugin, ParadoxPlugin, ParadoxMaterialThemePlugin, GhpagesPlugin)
+    .dependsOn(api, jni, data, examples)
+    .enablePlugins(SiteScaladocPlugin, ParadoxSitePlugin, ParadoxMaterialThemePlugin, GhpagesPlugin)
     .settings(moduleName := "tensorflow-docs", name := "TensorFlow Scala - Documentation")
+    .settings(ParadoxMaterialThemePlugin.paradoxMaterialThemeSettings(Paradox))
     .settings(
-      SiteScaladocPlugin.scaladocSettings(API, mappings in (Compile, packageDoc) in api, "api/api"),
-      SiteScaladocPlugin.scaladocSettings(JNI, mappings in (Compile, packageDoc) in jni, "api/jni"),
-      SiteScaladocPlugin.scaladocSettings(DATA, mappings in (Compile, packageDoc) in data, "api/data"),
       ghpagesNoJekyll := true,
-      siteSubdirName in SiteScaladoc := "api/latest",
-      siteSourceDirectory := (target in (Compile, paradox)).value,
-      makeSite := makeSite.dependsOn(paradox in Compile).value,
-      paradoxMaterialTheme := ParadoxMaterialTheme(),
-      paradoxProperties += ("material.theme.version" -> (version in paradoxMaterialTheme).value),
-      paradoxProperties ++= paradoxMaterialTheme.value.paradoxProperties,
-      paradoxProperties in Compile ++= Map(
+      sourceDirectory in Paradox := sourceDirectory.value / "main" / "paradox",
+      paradoxProperties in Paradox ++= Map(
+        "scaladoc.base_url" -> "http://platanios.org/tensorflow_scala/api/",
+        "scaladoc.org.platanios.tensorflow.api.base_url" -> "http://platanios.org/tensorflow_scala/api/api/",
         "github.base_url" -> "https://github.com/eaplatanios/tensorflow_scala",
         "snip.github_link" -> "false"),
-      mappings in makeSite ++= (mappings in (Compile, paradoxMaterialTheme)).value,
-      mappings in makeSite ++= Seq(
-        file("LICENSE") -> "LICENSE"),
+      paradoxNavigationDepth in Paradox := 3,
+      makeSite := makeSite.dependsOn(paradox in Paradox).value,
+      mappings in makeSite in Paradox ++= Seq(
+        file("LICENSE") -> "LICENSE",
+        file("assets/favicon.ico") -> "favicon.ico"),
       scmInfo := Some(ScmInfo(
         url("https://github.com/eaplatanios/tensorflow_scala"),
         "git@github.com:eaplatanios/tensorflow_scala.git")),
       git.remoteRepo := scmInfo.value.get.connection,
-      paradoxMaterialTheme in Compile ~= {
-        _.withColor("orange", "orange")
-            .withFavicon("assets/images/favicon.png")
-            // .withLogo("assets/images/logo.png")
+      paradoxMaterialTheme in Paradox ~= {
+        _.withColor("white", "red")
+            .withFavicon("favicon.ico")
+            .withLogo("assets/images/logo.png")
             // .withGoogleAnalytics("UA-107934279-1")
             .withRepository(uri("https://github.com/eaplatanios/tensorflow_scala"))
             .withSocial(
               uri("https://github.com/eaplatanios"),
               uri("https://twitter.com/eaplatanios"))
             .withLanguage(java.util.Locale.ENGLISH)
-            .withFont("Ubuntu", "SFMono-Regular")
             .withCustomStylesheet("assets/custom.css")
-      })
+      },
+      autoAPIMappings := true,
+      siteSubdirName in SiteScaladoc := "api/docs",
+      SiteScaladocPlugin.scaladocSettings(JNI, mappings in (Compile, packageDoc) in jni, "api/jni"),
+      SiteScaladocPlugin.scaladocSettings(API, mappings in (Compile, packageDoc) in api, "api/api"),
+      SiteScaladocPlugin.scaladocSettings(DATA, mappings in (Compile, packageDoc) in data, "api/data"),
+      SiteScaladocPlugin.scaladocSettings(EXAMPLES, mappings in (Compile, packageDoc) in examples, "api/examples"),
+      // addMappingsToSiteDir(mappings in (SiteScaladoc, packageDoc), siteSubdirName in SiteScaladoc),
+      scalacOptions in (SiteScaladoc, packageDoc) ++= Seq(
+        //"-Xfatal-warnings",
+        "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",
+        "-sourcepath", baseDirectory.in(LocalRootProject).value.getAbsolutePath,
+        // "=diagrams",
+        "-groups",
+        "-implicits-show-all"
+      ))
 
 lazy val noPublishSettings = Seq(
   publish := Unit,

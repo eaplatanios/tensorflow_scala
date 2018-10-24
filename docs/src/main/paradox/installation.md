@@ -8,16 +8,19 @@ and synced to Maven Central. Currently, given the beta
 status of this project, only snapshot releases are 
 published.
 
-## Using with SBT
+## Library Dependencies
 
 To include the Sonatype repositories in your 
 [SBT](http://www.scala-sbt.org) build and use TensorFlow 
-for Scala, youshould add the following to your `build.sbt` 
-file:
+for Scala, you should add the following dependency:
 
-@@snip [build.sbt](/docs/src/main/scala/build.sbt) { #main_dependency }
+@@ dependency[sbt,Maven,Gradle] {
+  group="org.platanios"
+  artifact="tensorflow"
+  version="0.4.0"
+}
 
-@@@ warning { title='Note' }
+@@@ note
 
 This requires that you have installed the TensorFlow
 dynamic library in your system. If you haven't, please
@@ -37,10 +40,14 @@ this requirement:
 
 #### Using Precompiled Binaries
 
-Add the following line to your `build.sbt` file, instead of
-the above line:
+Add the following dependency, instead of the previous one:
 
-@@snip [build.sbt](/docs/src/main/scala/build.sbt) { #precompiled_linux_cpu_dependency }
+@@ dependency[sbt,Maven,Gradle] {
+  group="org.platanios"
+  artifact="tensorflow"
+  version="0.4.0"
+  classifier="linux-cpu-x86_64"
+}
 
 @@@ warning { title='Operating System' }
 

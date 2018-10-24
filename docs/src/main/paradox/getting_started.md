@@ -1,7 +1,3 @@
-```tut:invisible
-import org.platanios.tensorflow.api._
-```
-
 [tensor]: /tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html
 [output]: /tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html
 [data_type]: /tensorflow_scala/api/types/DataType.html
@@ -10,16 +6,23 @@ import org.platanios.tensorflow.api._
 
 [tf_python]: https://www.tensorflow.org/get_started/get_started
 
-# Introduction
+# Getting Started
 
-Similar to the [TensorFlow Python API][tf_python], by Google, TensorFlow for Scala provides multiple APIs. The lowest
-level API -- Core API -- provides you with complete programming control. the core API is suitable for machine learning
-researchers and others who require fine levels of control over their models. The higher level APIs are built on
-top of the Core API. These higher level APIs are typically easier to learn and use. In addition, the higher level APIs
-make repetitive tasks easier and more consistent between different users. A high-level API like the Learn API helps you
-manage datasets, models, (distributed) training, and inference.
+Similar to the [TensorFlow Python API][tf_python], by
+Google, TensorFlow for Scala provides multiple APIs. The
+lowest level API -- Core API -- provides you with complete
+programming control. the core API is suitable for machine
+learning researchers and others who require fine levels of
+control over their models. The higher level APIs are built
+on top of the Core API. These higher level APIs are
+typically easier to learn and use. In addition, the higher
+level APIs make repetitive tasks easier and more consistent
+between different users. A high-level API like the Learn
+API helps you manage datasets, models, (distributed)
+training, and inference.
 
-The main APIs of TensorFlow for Scala introduced in this guide are:
+The main APIs of TensorFlow for Scala introduced in this
+guide are:
 
   - **[Tensor API:](#tensors-1)** Provides a simple way for manipulating tensors and performing computations involving
     tensors. This is similar in functionality to the [NumPy](http://www.numpy.org) library used by Python programmers.
@@ -47,12 +50,13 @@ adapts it for the purposes of TensorFlow for Scala. It also introduces a lot of 
 
 TensorFlow, as the name indicates, is a framework to define and run computations involving tensors. A tensor is a
 generalization of vectors and matrices to potentially higher dimensions. Internally, TensorFlow represents tensors as
-`n`-dimensional arrays of some underlying data type. A [`Tensor`][tensor] has a [`DataType`][data_type] (e.g., `FLOAT32`
-which corresponds to 32-bit floating point numbers) and a [`Shape`][shape] (that is, the number of dimensions it has and
+`n`-dimensional arrays of some underlying data type. A @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) has a @scaladoc[DataType](org.platanios.tensorflow.api.DataType) (e.g., `FLOAT32`
+which corresponds to 32-bit floating point numbers) and a @scaladoc[Shape](org.platanios.tensorflow.api.Shape) (that is, the number of dimensions it has and
 the size of each dimension -- e.g., `Shape(10, 2)` which corresponds to a matrix with 10 rows and 2 columns) associated
-with it. Each element in the [`Tensor`][tensor] has the same data type. For example, the following code creates an
+with it. Each element in the @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) has the same data type. For example, the following code creates an
 integer tensor filled with zeros with shape `[2, 5]` (i.e., a two-dimensional array holding integer values, where the
 first dimension size is 2 and the second is 5):
+
 ```scala
 val tensor = Tensor.zeros[Int](Shape(2, 5))
 ```
