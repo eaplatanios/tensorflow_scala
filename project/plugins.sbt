@@ -22,7 +22,8 @@ val tensorFlowVersion = "1.11.0"
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.ow2.asm" % "asm" % "6.2.1",
-  "org.tensorflow" % "proto" % tensorFlowVersion)
+  "org.tensorflow" % "proto" % tensorFlowVersion,
+  "io.circe" %% "circe-core" % "0.8.0" force())
 
 addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.0.0")
 
@@ -31,6 +32,12 @@ addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.0.0")
 
 // addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.3")
+
+// Plugins used for the documentation website.
+addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.4.3")
+addSbtPlugin("io.github.jonas" % "sbt-paradox-material-theme" % "0.5.1")
+addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "1.3.2")
+addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.2")
 
 // Plugins used for generating the library website
 addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.2")

@@ -34,15 +34,17 @@ autoCompilerPlugins in ThisBuild := true
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
   "-encoding", "UTF-8",
+  // "-explaintypes",              // Explain type errors in more detail.
   "-feature",
   "-language:existentials",        // Existential types (besides wildcard types) can be written and inferred.
+  "-language:experimental.macros", // Allow macro definition (besides implementation and application)
   "-language:higherKinds",         // Allow higher-kinded types.
   "-language:implicitConversions", // Allow definition of implicit functions called views.
   "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
   "-Yno-adapted-args",
-  // "-Ypartial-unification",
+  "-Ypartial-unification",
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
@@ -328,6 +330,49 @@ lazy val site = (project in file("./docs/site"))
       includeFilter in makeSite :=
           "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
       includeFilter in Jekyll := (includeFilter in makeSite).value)
+
+val API = config("api")
+val JNI = config("jni")
+val DATA = config("data")
+
+lazy val docs = (project in file("docs"))
+    .dependsOn(api, jni, data)
+    .enablePlugins(SiteScaladocPlugin, ParadoxPlugin, ParadoxMaterialThemePlugin, GhpagesPlugin)
+    .settings(moduleName := "tensorflow-docs", name := "TensorFlow Scala - Documentation")
+    .settings(
+      SiteScaladocPlugin.scaladocSettings(API, mappings in (Compile, packageDoc) in api, "api/api"),
+      SiteScaladocPlugin.scaladocSettings(JNI, mappings in (Compile, packageDoc) in jni, "api/jni"),
+      SiteScaladocPlugin.scaladocSettings(DATA, mappings in (Compile, packageDoc) in data, "api/data"),
+      ghpagesNoJekyll := true,
+      siteSubdirName in SiteScaladoc := "api/latest",
+      siteSourceDirectory := (target in (Compile, paradox)).value,
+      makeSite := makeSite.dependsOn(paradox in Compile).value,
+      paradoxMaterialTheme := ParadoxMaterialTheme(),
+      paradoxProperties += ("material.theme.version" -> (version in paradoxMaterialTheme).value),
+      paradoxProperties ++= paradoxMaterialTheme.value.paradoxProperties,
+      paradoxProperties in Compile ++= Map(
+        "github.base_url" -> "https://github.com/eaplatanios/tensorflow_scala",
+        "snip.github_link" -> "false"),
+      mappings in makeSite ++= (mappings in (Compile, paradoxMaterialTheme)).value,
+      mappings in makeSite ++= Seq(
+        file("LICENSE") -> "LICENSE"),
+      scmInfo := Some(ScmInfo(
+        url("https://github.com/eaplatanios/tensorflow_scala"),
+        "git@github.com:eaplatanios/tensorflow_scala.git")),
+      git.remoteRepo := scmInfo.value.get.connection,
+      paradoxMaterialTheme in Compile ~= {
+        _.withColor("orange", "orange")
+            .withFavicon("assets/images/favicon.png")
+            // .withLogo("assets/images/logo.png")
+            // .withGoogleAnalytics("UA-107934279-1")
+            .withRepository(uri("https://github.com/eaplatanios/tensorflow_scala"))
+            .withSocial(
+              uri("https://github.com/eaplatanios"),
+              uri("https://twitter.com/eaplatanios"))
+            .withLanguage(java.util.Locale.ENGLISH)
+            .withFont("Ubuntu", "SFMono-Regular")
+            .withCustomStylesheet("assets/custom.css")
+      })
 
 lazy val noPublishSettings = Seq(
   publish := Unit,
