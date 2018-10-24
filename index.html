@@ -1,144 +1,365 @@
-<html><head><title>TensorFlow for Scala: Home</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Emmanouil Antonios Platanios" /><meta name="description" content="Scala API for TensorFlow" /><meta name="og:image" content="/tensorflow_scala/img/poster.png" /><meta name="og:title" content="TensorFlow for Scala: Home" /><meta name="og:site_name" content="TensorFlow for Scala" /><meta name="og:url" content="http://eaplatanios.github.io/tensorflow_scala/" /><meta name="og:type" content="website" /><meta name="og:description" content="Scala API for TensorFlow" /><link rel="icon" type="image/png" href="/tensorflow_scala/img/favicon.png" /><meta name="twitter:title" content="TensorFlow for Scala: Home" /><meta name="twitter:image" content="http://eaplatanios.github.io/tensorflow_scala/img/poster.png" /><meta name="twitter:description" content="Scala API for TensorFlow" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/tensorflow_scala/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/tensorflow_scala/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/tensorflow_scala/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/tensorflow_scala/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/tensorflow_scala/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/tensorflow_scala/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/tensorflow_scala/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/tensorflow_scala/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/tensorflow_scala/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/tensorflow_scala/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/tensorflow_scala/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/tensorflow_scala/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/tensorflow_scala/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/tensorflow_scala/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/tensorflow_scala/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/tensorflow_scala/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/tensorflow_scala/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/tensorflow_scala/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/tensorflow_scala/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/tensorflow_scala/img/favicon310x150.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/tensorflow_scala/highlight/styles/hybrid.css" /><link rel="stylesheet" href="/tensorflow_scala/css/style.css" /><link rel="stylesheet" href="/tensorflow_scala/css/palette.css" /><link rel="stylesheet" href="/tensorflow_scala/css/codemirror.css" /><link rel="stylesheet" href="/tensorflow_scala/css/font_libre_franklin.css" /><link rel="stylesheet" href="/tensorflow_scala/css/override.css" /></head><body><header id="site-header"><div class="navbar-wrapper"><div class="container"><div class="row"><div class="col-xs-6"><a href="/tensorflow_scala/" class="brand"><div class="icon-wrapper"><span>TensorFlow for Scala</span></div></a></div><div class="col-xs-6"><nav class="text-right"><ul class=""><li><a href="https://github.com/eaplatanios/tensorflow_scala"><i class="fa fa-github"></i><span class="hidden-xs">GitHub</span></a></li><li><a href="api/"><i class="fa fa-file-text"></i><span class="hidden-xs">Documentation</span></a></li></ul></nav></div></div></div></div><div class="jumbotron"><div class="container"><h1 class="text-center">Scala API for TensorFlow</h1><h2></h2><p class="text-center"><a href="https://github.com/eaplatanios/tensorflow_scala" class="btn btn-outline-inverse">View on GitHub</a></p></div></div><div><ul class="horizontalNav">     <li><a class=" active " href="/tensorflow_scala/">Home</a></li>  <li><a class="" href="/tensorflow_scala/installation.html">Installation</a></li>  <li><a class="" href="/tensorflow_scala/getting_started.html">Getting Started</a></li>  <li><a class="" href="/tensorflow_scala/guides.html">Guides</a></li>  <li><a class="" href="/tensorflow_scala/architecture.html">Architecture</a></li>  <li><a class="" href="/tensorflow_scala/contributing.html">Contributing</a></li> </ul></div></header><main id="site-main"><section class="use"><div class="container"><div id="content"><h1 id="tensorflow-for-scala">TensorFlow for Scala</h1>
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<meta name="description" content="TensorFlow Scala - Documentation">
+<meta name="generator" content="Paradox, paradox-material-theme=0.5.1, mkdocs-material=3.0.3">
 
-<p><a href="https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master"><img src="https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master.svg?style=shield&amp;circle-token=5ee39233fd9f055c3c65529a2737f7666b26f51a" alt="CircleCI" /></a></p>
+<meta name="lang:clipboard.copy" content="Copy to clipboard">
+<meta name="lang:clipboard.copied" content="Copied to clipboard">
+<meta name="lang:search.language" content="">
+<meta name="lang:search.pipeline.stopwords" content="true">
+<meta name="lang:search.pipeline.trimmer" content="true">
+<meta name="lang:search.result.none" content="No matching documents">
+<meta name="lang:search.result.one" content="1 matching document">
+<meta name="lang:search.result.other" content="# matching documents">
+<meta name="lang:search.tokenizer" content="[\s\-]+">
 
-<p>This library is a Scala API for <a href="https://www.tensorflow.org">https://www.tensorflow.org</a>. It attempts to provide most of 
-the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new 
-features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API 
-should be relatively stable by now, but things are still likely to change. That is why there is no official release of 
-this library yet.</p>
 
-<h2 id="main-features">Main Features</h2>
+<meta name="description" content="TensorFlow Scala - Documentation">
+<link rel="shortcut icon" href="favicon.ico">
+<title>TensorFlow Scala</title>
+<link rel="stylesheet" href="assets/stylesheets/application.451f80e5.css">
+<link rel="stylesheet" href="assets/stylesheets/application-palette.22915126.css">
+<link rel="stylesheet" href="lib/material__tabs/dist/mdc.tabs.min.css">
+<link rel="stylesheet" href="lib/prettify/prettify.css">
+<script src="assets/javascripts/modernizr.1aa3b519.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+<style>
+body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}
+code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}
+</style>
+<link rel="stylesheet" href="assets/fonts/font-awesome.css">
+<link rel="stylesheet" href="assets/fonts/material-icons.css">
+<link rel="stylesheet" href="assets/stylesheets/paradox-material-theme.css">
+<link rel="stylesheet" href="assets/custom.css">
+</head>
+<body
+data-md-color-primary="white"
+data-md-color-accent="red"
+>
+<input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+<input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+<label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+<header class="md-header" data-md-component="header">
+<nav class="md-header-nav md-grid">
+<div class="md-flex">
+<div class="md-flex__cell md-flex__cell--shrink">
+<a href="index.html" title="TensorFlow Scala" class="md-header-nav__button md-logo">
+<img src="assets/images/logo.png" width="24" height="24">
+</a>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
+</div>
+<div class="md-flex__cell md-flex__cell--stretch">
+<div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+TensorFlow Scala
+</div>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+<label class="md-icon md-search__icon" for="__search"></label>
+<button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">&#xE5CD;</button>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix>
+<div class="md-search-result" data-md-component="result">
+<div class="md-search-result__meta">
+Type to start searching
+</div>
+<ol class="md-search-result__list"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
 
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<div class="md-header-nav__source">
+<a href="https://github.com/eaplatanios/tensorflow_scala"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+eaplatanios/tensorflow_scala
+</div>
+</a>
+
+</div>
+</div>
+</div>
+</nav>
+</header>
+
+<div class="md-container">
+<main class="md-main">
+<div class="md-main__inner md-grid" data-md-component="container">
+<div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--primary" data-md-level="0" style="visibility: hidden">
+<label class="md-nav__title md-nav__title--site" for="drawer">
+<a href="index.html" title="TensorFlow Scala" class="md-nav__button md-logo">
+<span class="md-nav__button md-logo">
+<img src="assets/images/logo.png" width="24" height="24">
+</a>
+<a href="index.html" title="TensorFlow Scala">
+TensorFlow Scala
+</a>
+</label>
+<div class="md-nav__source">
+<a href="https://github.com/eaplatanios/tensorflow_scala"
+title="Go to repository"
+class="md-source"
+data-md-source="github">
+<div class="md-source__icon">
+<i class="fa fa-github"></i>
+</div>
+<div class="md-source__repository">
+eaplatanios/tensorflow_scala
+</div>
+</a>
+
+</div>
+<ul>
+  <li><a href="installation.html" class="page">Installation</a></li>
+  <li><a href="contributing.html" class="page">Contributing</a></li>
+  <li><a href="release_notes.html" class="page">Release Notes</a>
+  <ul>
+    <li><a href="release_notes/0.4.0.html" class="page">Release 0.4.0</a></li>
+    <li><a href="release_notes/0.3.0.html" class="page">Release 0.3.0</a></li>
+    <li><a href="release_notes/0.2.4.html" class="page">Release 0.2.4</a></li>
+    <li><a href="release_notes/0.2.3.html" class="page">Release 0.2.3</a></li>
+    <li><a href="release_notes/0.2.2.html" class="page">Release 0.2.2</a></li>
+    <li><a href="release_notes/0.2.1.html" class="page">Release 0.2.1</a></li>
+    <li><a href="release_notes/0.2.0.html" class="page">Release 0.2.0</a></li>
+    <li><a href="release_notes/0.1.1.html" class="page">Release 0.1.1</a></li>
+    <li><a href="release_notes/0.1.0.html" class="page">Release 0.1.0</a></li>
+  </ul></li>
+</ul>
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="index.html#tensorflow-scala" class="header">TensorFlow Scala</a>
+  <ul>
+    <li><a href="index.html#main-features" class="header">Main Features</a></li>
+    <li><a href="index.html#tutorials" class="header">Tutorials</a></li>
+    <li><a href="index.html#funding" class="header">Funding</a></li>
+  </ul></li>
+</ul>
+</nav>
+
+</nav>
+<ul style="display: none">
+<li class="md-nav__item md-version" id="project.version">
+<label class="md-nav__link" for="__version">
+<i class="md-icon" title="Version">label_outline</i> 0.4.0*
+</label>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="index.html#tensorflow-scala" class="header">TensorFlow Scala</a>
+  <ul>
+    <li><a href="index.html#main-features" class="header">Main Features</a></li>
+    <li><a href="index.html#tutorials" class="header">Tutorials</a></li>
+    <li><a href="index.html#funding" class="header">Funding</a></li>
+  </ul></li>
+</ul>
+</nav>
+
+</div>
+</div>
+</div>
+<div class="md-content">
+<article class="md-content__inner md-typeset">
+<div class="md-content__searchable">
+<h1><a href="#tensorflow-scala" name="tensorflow-scala" class="anchor"><span class="anchor-link"></span></a>TensorFlow Scala</h1>
+<p><a href="https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master"><img src="https://img.shields.io/circleci/project/github/eaplatanios/tensorflow_scala.svg?style=flat-square" alt="CircleCI" /></a> <a href="https://www.codacy.com/app/eaplatanios/tensorflow_scala?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=eaplatanios/tensorflow_scala&amp;utm_campaign=Badge_Grade"><img src="https://img.shields.io/codacy/grade/7fae7fba84df4831a80bc20c3bd021df.svg?style=flat-square" alt="Codacy Badge" /></a> <img src="https://img.shields.io/github/license/eaplatanios/tensorflow_scala.svg?style=flat-square" alt="License" /> <a href="http://platanios.org/tensorflow_scala/api/api"><img src="https://img.shields.io/badge/docs-api-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="API Docs" /></a> <a href="http://platanios.org/tensorflow_scala/api/jni"><img src="https://img.shields.io/badge/docs-jni-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="JNI Docs" /></a> <a href="http://platanios.org/tensorflow_scala/api/data"><img src="https://img.shields.io/badge/docs-data-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="Data Docs" /></a> <a href="http://platanios.org/tensorflow_scala/api/examples"><img src="https://img.shields.io/badge/docs-examples-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="Examples Docs" /></a></p>
+<p>This library is a Scala API for <a href="https://www.tensorflow.org">https://www.tensorflow.org</a>. It attempts to provide most of the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API should be relatively stable by now, but things are still likely to change.</p>
+<p><a href="https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://img.shields.io/badge/chat-examples-ed1965.svg?longCache=true&style=flat-square&logo=gitter" alt="Chat Room" /></a></p>
+<h2><a href="#main-features" name="main-features" class="anchor"><span class="anchor-link"></span></a>Main Features</h2>
 <ul>
   <li>
     <p>Easy manipulation of tensors and computations involving tensors (similar to NumPy in Python):</p>
-
-    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">t1</span> <span class="k">=</span> <span class="nc">Tensor</span><span class="o">(</span> <span class="mf">1.2</span><span class="o">,</span> <span class="mf">4.5</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">t2</span> <span class="k">=</span> <span class="nc">Tensor</span><span class="o">(-</span><span class="mf">0.2</span><span class="o">,</span> <span class="mf">1.1</span><span class="o">)</span>
-<span class="n">t1</span> <span class="o">+</span> <span class="n">t2</span> <span class="o">==</span> <span class="nc">Tensor</span><span class="o">(</span><span class="mf">1.0</span><span class="o">,</span> <span class="mf">5.6</span><span class="o">)</span>
-</code></pre></div>    </div>
-  </li>
-  <li>
-    <p>High-level API for creating, training, and using neural networks. For example, the following code shows how simple it 
-is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful 
-features such as summary and checkpoint savers, for simplicity, but these are also very simple to use.</p>
-
-    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">org.platanios.tensorflow.api._</span>
-<span class="k">import</span> <span class="nn">org.platanios.tensorflow.api.tf.learn._</span>
-<span class="k">import</span> <span class="nn">org.platanios.tensorflow.data.loaders.MNISTLoader</span>
-  
-<span class="c1">// Load and batch data using pre-fetching.
-</span><span class="k">val</span> <span class="n">dataSet</span> <span class="k">=</span> <span class="nc">MNISTLoader</span><span class="o">.</span><span class="n">load</span><span class="o">(</span><span class="nc">Paths</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"/tmp"</span><span class="o">))</span>
-<span class="k">val</span> <span class="n">trainImages</span> <span class="k">=</span> <span class="nc">DatasetFromSlices</span><span class="o">(</span><span class="n">dataSet</span><span class="o">.</span><span class="n">trainImages</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">trainLabels</span> <span class="k">=</span> <span class="nc">DatasetFromSlices</span><span class="o">(</span><span class="n">dataSet</span><span class="o">.</span><span class="n">trainLabels</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">trainData</span> <span class="k">=</span>
-  <span class="n">trainImages</span><span class="o">.</span><span class="n">zip</span><span class="o">(</span><span class="n">trainLabels</span><span class="o">)</span>
-      <span class="o">.</span><span class="n">repeat</span><span class="o">()</span>
-      <span class="o">.</span><span class="n">shuffle</span><span class="o">(</span><span class="mi">10000</span><span class="o">)</span>
-      <span class="o">.</span><span class="n">batch</span><span class="o">(</span><span class="mi">256</span><span class="o">)</span>
-      <span class="o">.</span><span class="n">prefetch</span><span class="o">(</span><span class="mi">10</span><span class="o">)</span>
-  
-<span class="c1">// Create the MLP model.
-</span><span class="k">val</span> <span class="n">input</span> <span class="k">=</span> <span class="nc">Input</span><span class="o">(</span><span class="nc">UINT8</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">,</span> <span class="mi">28</span><span class="o">,</span> <span class="mi">28</span><span class="o">))</span>
-<span class="k">val</span> <span class="n">trainInput</span> <span class="k">=</span> <span class="nc">Input</span><span class="o">(</span><span class="nc">UINT8</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">))</span>
-<span class="k">val</span> <span class="n">layer</span> <span class="k">=</span> <span class="nc">Flatten</span><span class="o">()</span> <span class="o">&gt;&gt;</span> <span class="nc">Cast</span><span class="o">(</span><span class="nc">FLOAT32</span><span class="o">)</span> <span class="o">&gt;&gt;</span> 
-    <span class="nc">Linear</span><span class="o">(</span><span class="mi">128</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"Layer_0"</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="nc">ReLU</span><span class="o">(</span><span class="mf">0.1f</span><span class="o">)</span> <span class="o">&gt;&gt;</span>
-    <span class="nc">Linear</span><span class="o">(</span><span class="mi">64</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"Layer_1"</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="nc">ReLU</span><span class="o">(</span><span class="mf">0.1f</span><span class="o">)</span> <span class="o">&gt;&gt;</span>
-    <span class="nc">Linear</span><span class="o">(</span><span class="mi">32</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"Layer_2"</span><span class="o">)</span> <span class="o">&gt;&gt;</span> <span class="nc">ReLU</span><span class="o">(</span><span class="mf">0.1f</span><span class="o">)</span> <span class="o">&gt;&gt;</span>
-    <span class="nc">Linear</span><span class="o">(</span><span class="mi">10</span><span class="o">,</span> <span class="n">name</span> <span class="k">=</span> <span class="s">"OutputLayer"</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">trainingInputLayer</span> <span class="k">=</span> <span class="nc">Cast</span><span class="o">(</span><span class="nc">INT64</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">loss</span> <span class="k">=</span> <span class="nc">SparseSoftmaxCrossEntropy</span><span class="o">()</span> <span class="o">&gt;&gt;</span> <span class="nc">Mean</span><span class="o">()</span>
-<span class="k">val</span> <span class="n">optimizer</span> <span class="k">=</span> <span class="nc">GradientDescent</span><span class="o">(</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">6</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">model</span> <span class="k">=</span> <span class="nc">Model</span><span class="o">(</span><span class="n">input</span><span class="o">,</span> <span class="n">layer</span><span class="o">,</span> <span class="n">trainInput</span><span class="o">,</span> <span class="n">trainingInputLayer</span><span class="o">,</span> <span class="n">loss</span><span class="o">,</span> <span class="n">optimizer</span><span class="o">)</span>
-  
-<span class="c1">// Create an estimator and train the model.
-</span><span class="k">val</span> <span class="n">estimator</span> <span class="k">=</span> <span class="nc">Estimator</span><span class="o">(</span><span class="n">model</span><span class="o">)</span>
-<span class="n">estimator</span><span class="o">.</span><span class="n">train</span><span class="o">(</span><span class="n">trainData</span><span class="o">,</span> <span class="nc">StopCriteria</span><span class="o">(</span><span class="n">maxSteps</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">1000000</span><span class="o">)))</span>
-</code></pre></div>    </div>
-
-    <p>And by changing a few lines to the following code, you can get checkpoint capability, summaries, and seamless 
-integration with TensorBoard:</p>
-
-    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">loss</span> <span class="k">=</span> <span class="nc">SparseSoftmaxCrossEntropy</span><span class="o">()</span> <span class="o">&gt;&gt;</span> <span class="nc">Mean</span><span class="o">()</span> <span class="o">&gt;&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="nc">ScalarSummary</span><span class="o">(</span><span class="s">"Loss"</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">summariesDir</span> <span class="k">=</span> <span class="nc">Paths</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="s">"/tmp/summaries"</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">estimator</span> <span class="k">=</span> <span class="nc">Estimator</span><span class="o">(</span><span class="n">model</span><span class="o">,</span> <span class="nc">Configuration</span><span class="o">(</span><span class="nc">Some</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">)))</span>
-<span class="n">estimator</span><span class="o">.</span><span class="n">train</span><span class="o">(</span>
-  <span class="n">trainData</span><span class="o">,</span> <span class="nc">StopCriteria</span><span class="o">(</span><span class="n">maxSteps</span> <span class="k">=</span> <span class="nc">Some</span><span class="o">(</span><span class="mi">1000000</span><span class="o">)),</span>
-  <span class="nc">Seq</span><span class="o">(</span>
-    <span class="nc">SummarySaverHook</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">,</span> <span class="nc">StepHookTrigger</span><span class="o">(</span><span class="mi">100</span><span class="o">)),</span>
-    <span class="nc">CheckpointSaverHook</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">,</span> <span class="nc">StepHookTrigger</span><span class="o">(</span><span class="mi">1000</span><span class="o">))),</span>
-  <span class="n">tensorBoardConfig</span> <span class="k">=</span> <span class="nc">TensorBoardConfig</span><span class="o">(</span><span class="n">summariesDir</span><span class="o">))</span>
-</code></pre></div>    </div>
-
-    <p>If you now browse to <code class="highlighter-rouge">https://127.0.0.1:6006</code> while training, you can see the training progress:</p>
-
-    <p><img src="https://eaplatanios.github.io/tensorflow_scala/img/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px" /></p>
+    <pre class="prettyprint"><code class="language-scala">val t1 = Tensor(1.2, 4.5)
+val t2 = Tensor(-0.2, 1.1)
+t1 + t2 == Tensor(1.0, 5.6)</code></pre>
   </li>
   <li>
     <p>Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:</p>
+    <pre class="prettyprint"><code class="language-scala">import org.platanios.tensorflow.api._
 
-    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">org.platanios.tensorflow.api._</span>
-  
-<span class="k">val</span> <span class="n">inputs</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="o">(</span><span class="nc">FLOAT32</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">,</span> <span class="mi">10</span><span class="o">))</span>
-<span class="k">val</span> <span class="n">outputs</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="o">(</span><span class="nc">FLOAT32</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(-</span><span class="mi">1</span><span class="o">,</span> <span class="mi">10</span><span class="o">))</span>
-<span class="k">val</span> <span class="n">predictions</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">createWith</span><span class="o">(</span><span class="n">nameScope</span> <span class="k">=</span> <span class="s">"Linear"</span><span class="o">)</span> <span class="o">{</span>
-  <span class="k">val</span> <span class="n">weights</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable</span><span class="o">(</span><span class="s">"weights"</span><span class="o">,</span> <span class="nc">FLOAT32</span><span class="o">,</span> <span class="nc">Shape</span><span class="o">(</span><span class="mi">10</span><span class="o">,</span> <span class="mi">1</span><span class="o">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">zerosInitializer</span><span class="o">)</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="o">(</span><span class="n">inputs</span><span class="o">,</span> <span class="n">weights</span><span class="o">)</span>
-<span class="o">}</span>
-<span class="k">val</span> <span class="n">loss</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sum</span><span class="o">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="o">(</span><span class="n">predictions</span> <span class="o">-</span> <span class="n">outputs</span><span class="o">))</span>
-<span class="k">val</span> <span class="n">optimizer</span> <span class="k">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="nc">AdaGrad</span><span class="o">(</span><span class="mf">1.0</span><span class="o">)</span>
-<span class="k">val</span> <span class="n">trainOp</span> <span class="k">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">minimize</span><span class="o">(</span><span class="n">loss</span><span class="o">)</span>
-</code></pre></div>    </div>
+val inputs = tf.placeholder(FLOAT32, Shape(-1, 10))
+val outputs = tf.placeholder(FLOAT32, Shape(-1, 10))
+val predictions = tf.createWith(nameScope = &quot;Linear&quot;) {
+  val weights = tf.variable(&quot;weights&quot;, FLOAT32, Shape(10, 1), tf.zerosInitializer)
+  tf.matmul(inputs, weights)
+}
+val loss = tf.sum(tf.square(predictions - outputs))
+val optimizer = tf.train.AdaGrad(1.0)
+val trainOp = optimizer.minimize(loss)
+</code></pre>
   </li>
   <li>
     <p>Numpy-like indexing/slicing for tensors. For example:</p>
-
-    <div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">tensor</span><span class="o">(</span><span class="mi">2</span> <span class="o">::</span> <span class="mi">5</span><span class="o">,</span> <span class="o">---,</span> <span class="mi">1</span><span class="o">)</span> <span class="c1">// is equivalent to numpy's 'tensor[2:5, ..., 1]'
-</span></code></pre></div>    </div>
+    <pre class="prettyprint"><code class="language-scala">tensor(2 :: 5, ---, 1) // is equivalent to numpy&#39;s &#39;tensor[2:5, ..., 1]&#39;
+</code></pre>
   </li>
   <li>
-    <p>Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and 
-managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow 
-session), we use a combination of weak references and a disposing thread running in the background. Please refer to 
-<code class="highlighter-rouge">tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala</code>, for the implementation.</p>
+    <p>High-level API for creating, training, and using neural networks. For example, the following code shows how simple it is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful features such as summary and checkpoint savers, for simplicity, but these are also very simple to use.</p>
+    <pre class="prettyprint"><code class="language-scala">// Load and batch data using pre-fetching.
+val dataset = MNISTLoader.load(Paths.get(&quot;/tmp&quot;))
+val trainImages = tf.data.datasetFromTensorSlices(dataset.trainImages.toFloat)
+val trainLabels = tf.data.datasetFromTensorSlices(dataset.trainLabels.toLong)
+val trainData =
+  trainImages.zip(trainLabels)
+      .repeat()
+      .shuffle(10000)
+      .batch(256)
+      .prefetch(10)
+
+// Create the MLP model.
+val input = Input(FLOAT32, Shape(-1, 28, 28))
+val trainInput = Input(INT64, Shape(-1))
+val layer = Flatten[Float](&quot;Input/Flatten&quot;) &gt;&gt;
+    Linear[Float](&quot;Layer_0&quot;, 128) &gt;&gt; ReLU[Float](&quot;Layer_0/Activation&quot;, 0.1f) &gt;&gt;
+    Linear[Float](&quot;Layer_1&quot;, 64) &gt;&gt; ReLU[Float](&quot;Layer_1/Activation&quot;, 0.1f) &gt;&gt;
+    Linear[Float](&quot;Layer_2&quot;, 32) &gt;&gt; ReLU[Float](&quot;Layer_2/Activation&quot;, 0.1f) &gt;&gt;
+    Linear[Float](&quot;OutputLayer&quot;, 10)
+val loss = SparseSoftmaxCrossEntropy[Float, Long, Float](&quot;Loss&quot;) &gt;&gt;
+    Mean(&quot;Loss/Mean&quot;)
+val optimizer = tf.train.GradientDescent(1e-6f)
+val model = Model.simpleSupervised(input, trainInput, layer, loss, optimizer)
+
+// Create an estimator and train the model.
+val estimator = InMemoryEstimator(model)
+estimator.train(() =&gt; trainData, StopCriteria(maxSteps = Some(1000000)))</code></pre>
+    <p>And by changing a few lines to the following code, you can get checkpoint capability, summaries, and seamless integration with TensorBoard:</p>
+    <pre class="prettyprint"><code class="language-scala">val loss = SparseSoftmaxCrossEntropy[Float, Long, Float](&quot;Loss&quot;) &gt;&gt;
+    Mean(&quot;Loss/Mean&quot;) &gt;&gt;
+    ScalarSummary(name = &quot;Loss&quot;, tag = &quot;Loss&quot;)
+val summariesDir = Paths.get(&quot;/tmp/summaries&quot;)
+val estimator = InMemoryEstimator(
+  modelFunction = model,
+  configurationBase = Configuration(Some(summariesDir)),
+  trainHooks = Set(
+    SummarySaver(summariesDir, StepHookTrigger(100)),
+    CheckpointSaver(summariesDir, StepHookTrigger(1000))),
+  tensorBoardConfig = TensorBoardConfig(summariesDir))
+estimator.train(() =&gt; trainData, StopCriteria(maxSteps = Some(100000)))</code></pre>
+    <p>If you now browse to <code>https://127.0.0.1:6006</code> while training, you can see the training progress:</p>
+    <img src="img/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
   </li>
+  <li>
+  <p>Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow session), we use a combination of weak references and a disposing thread running in the background. Please refer to <code>tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala</code>, for the implementation.</p></li>
 </ul>
-
-<h2 id="tutorials">Tutorials</h2>
-
+<h2><a href="#tutorials" name="tutorials" class="anchor"><span class="anchor-link"></span></a>Tutorials</h2>
 <ul>
   <li><a href="https://brunk.io/deep-learning-in-scala-part-3-object-detection.html">Object Detection using Pre-Trained Models</a></li>
 </ul>
-
-<h2 id="funding">Funding</h2>
-
+<h2><a href="#funding" name="funding" class="anchor"><span class="anchor-link"></span></a>Funding</h2>
 <p>Funding for the development of this library has been generously provided by the following sponsors:</p>
-
-<table class="funding_table">
+<table>
   <thead>
     <tr>
-      <th style="text-align: center"><img height="150px" width="200px" src="/tensorflow_scala/img/cmu_logo.svg" alt="cmu_logo" /></th>
-      <th style="text-align: center"><img height="150px" width="150px" src="/tensorflow_scala/img/nsf_logo.svg" alt="nsf_logo" /></th>
-      <th style="text-align: center"><img height="150px" width="150px" src="/tensorflow_scala/img/afosr_logo.gif" alt="afosr_logo" /></th>
+      <th align="center"><strong>CMU Presidential Fellowship</strong> </th>
+      <th align="center"><strong>National Science Foundation</strong> </th>
+      <th align="center"><strong>Air Force Office of Scientific Research</strong> </th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td style="text-align: center"><strong>CMU Presidential Fellowship</strong></td>
-      <td style="text-align: center"><strong>National Science Foundation</strong></td>
-      <td style="text-align: center"><strong>Air Force Office of Scientific Research</strong></td>
+      <td align="center">awarded to Emmanouil Antonios Platanios </td>
+      <td align="center">Grant #: IIS1250956 </td>
+      <td align="center">Grant #: FA95501710218 </td>
     </tr>
     <tr>
-      <td style="text-align: center">awarded to Emmanouil Antonios Platanios</td>
-      <td style="text-align: center">Grant #: IIS1250956</td>
-      <td style="text-align: center">Grant #: FA95501710218</td>
+      <td align="center"><img src="img/cmu_logo.svg" height="113px" width="150px" /></td>
+      <td align="center"><img src="img/nsf_logo.svg" height="150px" width="150px" /></td>
+      <td align="center"><img src="img/afosr_logo.gif" height="150px" width="150px" /></td>
     </tr>
   </tbody>
 </table>
-</div></div></section><section class="technologies"><div class="container"><div class="row"></div></div></section></main><footer id="site-footer"><div class="container"><div class="row"><div class="col-xs-6"><p>TensorFlow for Scala is designed and developed by <a href="http://eaplatanios.github.io" target="_blank">Emmanouil Antonios Platanios</a></p></div><div class="col-xs-6"><p class="text-right"><a href="https://github.com/eaplatanios/tensorflow_scala"><span class="fa fa-github"></span>View on GitHub</a></p></div></div></div></footer><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/tensorflow_scala/highlight/highlight.pack.js"></script><script>hljs.configure({
-languages:['scala','java','bash']
+</div>
+<div>
+<a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/docs/src/main/paradox/index.md" title="Edit this page" class="md-source-file md-edit">
+Edit this page
+</a>
+</div>
+<div class="print-only">
+<span class="md-source-file md-version">
+0.4.0*
+</span>
+</div>
+</article>
+</div>
+</div>
+</main>
+<footer class="md-footer">
+<div class="md-footer-nav">
+<nav class="md-footer-nav__inner md-grid">
+<a href="installation.html" title="Installation" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+<div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+<span class="md-flex__ellipsis">
+<span class="md-footer-nav__direction">
+Next
+</span>
+Installation
+</span>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+</div>
+</a>
+</nav>
+</div>
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-footer-copyright">
+Powered by
+<a href="https://github.com/lightbend/paradox">Paradox</a>
+and
+<a href="https://jonas.github.io/paradox-material-theme/">Paradox Material Theme</a>
+
+</div>
+<div class="md-footer-social">
+<a href="https://github.com/eaplatanios" class="md-footer-social__link fa fa-github"></a><a href="https://twitter.com/eaplatanios" class="md-footer-social__link fa fa-twitter"></a>
+</div>
+
+</div>
+</div>
+</footer>
+
+</div>
+<script src="assets/javascripts/application.583bbe55.js"></script>
+<script src="assets/javascripts/paradox-material-theme.js"></script>
+<script>app.initialize({version:"0.17",url:{base:"."}})</script>
+<script type="text/javascript" src="lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", function(event) {
+window.prettyPrint && prettyPrint();
 });
-hljs.initHighlighting();
-             </script><script src="/tensorflow_scala/js/automenu.js"></script><script>((window.gitter = {}).chat = {}).options = {
-room: 'eaplatanios/tensorflow_scala'};</script><script src="https://sidecar.gitter.im/dist/sidecar.v1.js"></script></body></html>
+</script>
+</body>
+</html>
