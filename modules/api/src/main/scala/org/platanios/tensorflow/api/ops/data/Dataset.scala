@@ -728,8 +728,9 @@ abstract class Dataset[T: OutputStructure] { outer =>
         if (instantiatedReduceFunction.isEmpty)
           instantiatedReduceFunction = Some(
             Function(s"$name/ReduceFunction", reduceFn).instantiate(
-              inputDataType = (INT64.asInstanceOf[DataType[Long]], VARIANT.asInstanceOf[DataType[Variant]]),
+              inputDataType = (INT64, VARIANT),
               inputShape = Some((Shape(), Shape())),
+              input = Some((null, this)),
               appendHashToName = true))
         instantiatedReduceFunction.get
       }
