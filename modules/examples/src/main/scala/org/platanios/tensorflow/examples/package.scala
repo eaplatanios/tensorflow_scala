@@ -30,15 +30,11 @@ package object examples {
   val evOutputStructureIntInt        : OutputStructure[(Output[Int], Output[Int])]    = OutputStructure[(Output[Int], Output[Int])]
   val evOutputStructureLSTMStateFloat: OutputStructure[LSTMState[Float]]              = OutputStructure[LSTMState[Float]]
 
-  val evOutputToDataTypeFloatLong     : OutputToDataType[(Output[Float], Output[Long])] = OutputToDataType[(Output[Float], Output[Long])]
-  val evOutputToDataTypeIntInt        : OutputToDataType[(Output[Int], Output[Int])]    = OutputToDataType[(Output[Int], Output[Int])]
-  val evOutputToDataTypeLSTMStateFloat: OutputToDataType[LSTMState[Float]]              = OutputToDataType[LSTMState[Float]]
+  val evOutputToDataTypeFloatLong     : OutputToDataType.Aux[(Output[Float], Output[Long]), (DataType[Float], DataType[Long])] = OutputToDataType[(Output[Float], Output[Long])]
+  val evOutputToDataTypeIntInt        : OutputToDataType.Aux[(Output[Int], Output[Int]), (DataType[Int], DataType[Int])]       = OutputToDataType[(Output[Int], Output[Int])]
+  val evOutputToDataTypeLSTMStateFloat: OutputToDataType.Aux[LSTMState[Float], (DataType[Float], DataType[Float])]             = OutputToDataType[LSTMState[Float]]
 
-  val evOutputToShapeFloatLong     : OutputToShape[(Output[Float], Output[Long])] = OutputToShape[(Output[Float], Output[Long])]
-  val evOutputToShapeIntInt        : OutputToShape[(Output[Int], Output[Int])]    = OutputToShape[(Output[Int], Output[Int])]
-  val evOutputToShapeLSTMStateFloat: OutputToShape[LSTMState[Float]]              = OutputToShape[LSTMState[Float]]
-
-  val evDataTypeToShapeFloatLong     : DataTypeToShape.Aux[(DataType[Float], DataType[Long]), (Shape, Shape)]  = DataTypeToShape[(DataType[Float], DataType[Long])]
-  val evDataTypeToShapeIntInt        : DataTypeToShape.Aux[(DataType[Int], DataType[Int]), (Shape, Shape)]     = DataTypeToShape[(DataType[Int], DataType[Int])]
-  val evDataTypeToShapeLSTMStateFloat: DataTypeToShape.Aux[(DataType[Float], DataType[Float]), (Shape, Shape)] = DataTypeToShape[(DataType[Float], DataType[Float])]
+  val evOutputToShapeFloatLong     : OutputToShape.Aux[(Output[Float], Output[Long]), (Shape, Shape)] = OutputToShape[(Output[Float], Output[Long])]
+  val evOutputToShapeIntInt        : OutputToShape.Aux[(Output[Int], Output[Int]), (Shape, Shape)]    = OutputToShape[(Output[Int], Output[Int])]
+  val evOutputToShapeLSTMStateFloat: OutputToShape.Aux[LSTMState[Float], (Shape, Shape)]              = OutputToShape[LSTMState[Float]]
 }

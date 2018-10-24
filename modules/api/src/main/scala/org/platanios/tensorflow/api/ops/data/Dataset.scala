@@ -790,8 +790,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
       dropRemainder: Boolean = false
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[T, D],
-      evOutputToShape: OutputToShape.Aux[T, S],
-      evDataTypeToShape: DataTypeToShape.Aux[D, S]
+      evOutputToShape: OutputToShape.Aux[T, S]
   ): Dataset[T] = {
     new Dataset[T] {
       override val name: String = s"${outer.name}/Batch"
@@ -815,10 +814,10 @@ abstract class Dataset[T: OutputStructure] { outer =>
       }
 
       override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
-        evDataTypeToShape.decodeShape(
-          outputDataTypes(evOutputToDataType),
+        evOutputToShape.shapeStructure.decodeShape(
+          outer.outputShapes,
           outer.flatOutputShapes.map(Shape(-1) ++ _)
-        )._1.asInstanceOf[S]
+        )._1
       }
     }
   }
@@ -835,8 +834,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
       dropRemainder: Output[Boolean] = false
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[T, D],
-      evOutputToShape: OutputToShape.Aux[T, S],
-      evDataTypeToShape: DataTypeToShape.Aux[D, S]
+      evOutputToShape: OutputToShape.Aux[T, S]
   ): Dataset[T] = {
     new Dataset[T] {
       override val name: String = s"${outer.name}/Batch"
@@ -859,10 +857,10 @@ abstract class Dataset[T: OutputStructure] { outer =>
       }
 
       override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
-        evDataTypeToShape.decodeShape(
-          outputDataTypes(evOutputToDataType),
+        evOutputToShape.shapeStructure.decodeShape(
+          outer.outputShapes,
           outer.flatOutputShapes.map(Shape(-1) ++ _)
-        )._1.asInstanceOf[S]
+        )._1
       }
     }
   }

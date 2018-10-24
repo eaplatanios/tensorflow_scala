@@ -17,7 +17,7 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.UByte
-import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToShape, OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.NN.SameConvPadding
 import org.platanios.tensorflow.data.image.STL10Loader
@@ -38,8 +38,6 @@ object STL10 {
   implicit val evOutputStructureFloatLong : OutputStructure[(Output[Float], Output[Long])]  = examples.evOutputStructureFloatLong
   implicit val evOutputToDataTypeFloatLong: OutputToDataType[(Output[Float], Output[Long])] = examples.evOutputToDataTypeFloatLong
   implicit val evOutputToShapeFloatLong   : OutputToShape[(Output[Float], Output[Long])]    = examples.evOutputToShapeFloatLong
-
-  implicit val evDataTypeToShapeFloatLong: DataTypeToShape.Aux[(DataType[Float], DataType[Long]), (Shape, Shape)] = examples.evDataTypeToShapeFloatLong
 
   def main(args: Array[String]): Unit = {
     val dataSet = STL10Loader.load(Paths.get("datasets/STL10"), loadUnlabeled = false)
