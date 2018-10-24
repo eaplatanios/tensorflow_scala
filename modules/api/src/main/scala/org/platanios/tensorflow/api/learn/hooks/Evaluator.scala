@@ -18,7 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.OutOfRangeException
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
@@ -57,7 +57,7 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] protected (
+class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval, TrainInD, TrainInS] protected (
     val log: Boolean = true,
     val summaryDir: Path = null,
     val datasets: Seq[(String, () => Dataset[TrainIn])],
@@ -67,6 +67,9 @@ class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] protected (
     val numDecimalPoints: Int = 4,
     val randomSeed: Option[Int] = None,
     val name: String = "Evaluator"
+)(implicit
+    evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+    evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
 ) extends TriggeredHook(trigger, triggerAtEnd)
     with ModelDependentHook[In, TrainIn, Out, TrainOut, Loss, InEval] {
   require(log || summaryDir != null, "At least one of 'log' and 'summaryDir' needs to be provided.")
@@ -195,7 +198,7 @@ class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] protected (
 object Evaluator {
   private[Evaluator] val logger = Logger(LoggerFactory.getLogger("Learn / Hooks / Evaluation"))
 
-  def apply[In, TrainIn, Out, TrainOut, Loss, InEval](
+  def apply[In, TrainIn, Out, TrainOut, Loss, InEval, TrainInD, TrainInS](
       log: Boolean = true,
       summaryDir: Path = null,
       datasets: Seq[(String, () => Dataset[TrainIn])],
@@ -205,7 +208,10 @@ object Evaluator {
       numDecimalPoints: Int = 4,
       randomSeed: Option[Int] = None,
       name: String = "Evaluator"
-  ): Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval] = {
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
+  ): Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval, TrainInD, TrainInS] = {
     new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
   }
 }

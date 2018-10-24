@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.io.CheckpointReader
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
@@ -89,9 +89,12 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  override def train(
+  override def train[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       stopCriteria: StopCriteria = this.stopCriteria
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
   ): Unit = {
     trainWithHooks(data, stopCriteria)
   }
@@ -117,12 +120,16 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
     *                           environment in the system. If training in a distributed setting, the TensorBoard
     *                           server is launched on the chief node.
     */
-  def trainWithHooks(
+  def trainWithHooks[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       stopCriteria: StopCriteria = this.stopCriteria,
       hooks: Set[Hook] = trainHooks,
       chiefOnlyHooks: Set[Hook] = trainChiefOnlyHooks,
-      tensorBoardConfig: TensorBoardConfig = this.tensorBoardConfig): Unit = {
+      tensorBoardConfig: TensorBoardConfig = this.tensorBoardConfig
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
+  ): Unit = {
     Op.nameScope("Estimator/Train") {
       if (hooks.exists(_.isInstanceOf[Stopper]) || chiefOnlyHooks.exists(_.isInstanceOf[Stopper]))
         Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
@@ -218,6 +225,10 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
   override def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
+      evOutputToDataTypeIn: OutputToDataType.Aux[In, InD],
+      evOutputToDataTypeOut: OutputToDataType.Aux[Out, OutD],
+      evOutputToShapeIn: OutputToShape.Aux[In, InS],
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutS],
       evOutputToTensorIn: OutputToTensor.Aux[In, InV],
       evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
@@ -261,6 +272,10 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
       hooks: Set[Hook] = inferHooks,
       checkpointPath: Path = null
   )(implicit
+      evOutputToDataTypeIn: OutputToDataType.Aux[In, InD],
+      evOutputToDataTypeOut: OutputToDataType.Aux[Out, OutD],
+      evOutputToShapeIn: OutputToShape.Aux[In, InS],
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutS],
       evOutputToTensorIn: OutputToTensor.Aux[In, InV],
       evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
@@ -351,12 +366,16 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
     *                                  specified.
     */
   @throws[InvalidArgumentException]
-  override def evaluate(
+  override def evaluate[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       metrics: Seq[Metric[EvalIn, Output[Float]]] = this.evaluationMetrics,
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
-      name: String = null): Seq[Tensor[Float]] = {
+      name: String = null
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
+  ): Seq[Tensor[Float]] = {
     evaluateWithHooks(data, metrics, maxSteps, saveSummaries = saveSummaries, name = name)
   }
 
@@ -397,7 +416,7 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
     */
   @throws[CheckpointNotFoundException]
   @throws[InvalidArgumentException]
-  def evaluateWithHooks(
+  def evaluateWithHooks[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       metrics: Seq[Metric[EvalIn, Output[Float]]] = this.evaluationMetrics,
       maxSteps: Long = -1L,
@@ -405,6 +424,9 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
       checkpointPath: Path = null,
       saveSummaries: Boolean = true,
       name: String = null
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
   ): Seq[Tensor[Float]] = {
     Op.nameScope("Estimator/Evaluate") {
       if (hooks.exists(_.isInstanceOf[Stopper]))

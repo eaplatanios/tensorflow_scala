@@ -213,8 +213,7 @@ object OutputStructure {
 
   implicit def fromDataset[T: OutputStructure, D, S](implicit
       evOutputToDataType: OutputToDataType.Aux[T, D],
-      evOutputToShape: OutputToShape.Aux[T, S],
-      evDataTypeToShape: DataTypeToShape.Aux[D, S]
+      evOutputToShape: OutputToShape.Aux[T, S]
   ): OutputStructure[Dataset[T]] = {
     new OutputStructure[Dataset[T]] {
       override def size(output: Dataset[T]): Int = {
@@ -229,7 +228,7 @@ object OutputStructure {
           output: Dataset[T],
           outputs: Seq[Output[Any]]
       ): (Dataset[T], Seq[Output[Any]]) = {
-        (VariantDataset[T, D, S](
+        (VariantDataset[T](
           handle = outputs.head.asInstanceOf[Output[Variant]],
           _outputDataTypes = output.outputDataTypes,
           _outputShapes = output.outputShapes

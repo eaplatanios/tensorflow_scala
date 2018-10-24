@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.Variant
-import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToShape, OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 
 /** Contains implementations for some experimental dataset ops.
@@ -57,20 +57,14 @@ trait Experimental {
   ): Dataset[T] = {
     val providedName = name
     new Dataset[T] {
-      val firstDataset: Dataset[T] = inputDatasets.head
-
-      override type D = firstDataset.D
-      override type S = firstDataset.S
-
-      override def evOutputToDataType: OutputToDataType.Aux[T, D] = firstDataset.evOutputToDataType
-      override def evOutputToShape: OutputToShape.Aux[T, S] = firstDataset.evOutputToShape
-      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = firstDataset.evDataTypeToShape
-
       override val name: String = providedName
 
       private var mostSpecificFlattenedShapes: Option[Seq[Shape]] = None
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[T, D],
+          evOutputToShape: OutputToShape.Aux[T, S]
+      ): Output[Variant] = {
         mostSpecificFlattenedShapes = Some(
           inputDatasets.map(_.flatOutputShapes).reduceLeft[Seq[Shape]] {
             case (specificShapes, shapes) =>
@@ -94,13 +88,13 @@ trait Experimental {
             .build().output
       }
 
-      override def outputDataTypes: D = {
-        inputDatasets.head.outputDataTypes.asInstanceOf[D]
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[T, D]): D = {
+        inputDatasets.head.outputDataTypes
       }
 
-      override def outputShapes: S = {
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
         evOutputToShape.shapeStructure.decodeShape(
-          inputDatasets.head.outputShapes.asInstanceOf[S],
+          inputDatasets.head.outputShapes,
           mostSpecificFlattenedShapes.get
         )._1
       }

@@ -26,33 +26,25 @@ package object helpers {
 
   // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".
 
-  case class VariantDataset[T: OutputStructure, DD, SS] protected(
+  case class VariantDataset[T: OutputStructure] protected(
       handle: Output[Variant],
       private val _outputDataTypes: Any = null,
       private val _outputShapes: Any = null
-  )(implicit
-      _evOutputToDataType: OutputToDataType.Aux[T, DD],
-      _evOutputToShape: OutputToShape.Aux[T, SS],
-      _evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ) extends Dataset[T] {
-    override type D = DD
-    override type S = SS
-
-    override def evOutputToDataType: OutputToDataType.Aux[T, DD] = _evOutputToDataType
-    override def evOutputToShape: OutputToShape.Aux[T, SS] = _evOutputToShape
-    override def evDataTypeToShape: DataTypeToShape.Aux[DD, SS] = _evDataTypeToShape
-
     override val name: String = "VariantDataset"
 
-    override def createHandle(): Output[Variant] = {
+    override def createHandle[D, S]()(implicit
+        evOutputToDataType: OutputToDataType.Aux[T, D],
+        evOutputToShape: OutputToShape.Aux[T, S]
+    ): Output[Variant] = {
       handle
     }
 
-    override def outputDataTypes: D = {
+    override def outputDataTypes[D](implicit ev: OutputToDataType.Aux[T, D]): D = {
       _outputDataTypes.asInstanceOf[D]
     }
 
-    override def outputShapes: S = {
+    override def outputShapes[S](implicit ev: OutputToShape.Aux[T, S]): S = {
       _outputShapes.asInstanceOf[S]
     }
   }

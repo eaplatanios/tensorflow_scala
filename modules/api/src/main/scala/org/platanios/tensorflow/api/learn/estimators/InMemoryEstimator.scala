@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, OutOfRangeException}
 import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
+import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output, UntypedOp}
@@ -185,9 +185,12 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  override def train(
+  override def train[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       stopCriteria: StopCriteria = this.stopCriteria
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
   ): Unit = {
     session.removeHooks(inferHooks ++ evaluateHooks)
     Op.createWith(graph) {
@@ -241,6 +244,10 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
   override def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
+      evOutputToDataTypeIn: OutputToDataType.Aux[In, InD],
+      evOutputToDataTypeOut: OutputToDataType.Aux[Out, OutD],
+      evOutputToShapeIn: OutputToShape.Aux[In, InS],
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutS],
       evOutputToTensorIn: OutputToTensor.Aux[In, InV],
       evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
@@ -315,12 +322,15 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
     *                                  specified.
     */
   @throws[InvalidArgumentException]
-  override def evaluate(
+  override def evaluate[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       metrics: Seq[Metric[EvalIn, Output[Float]]],
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
       name: String = null
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
   ): Seq[Tensor[Float]] = {
     session.removeHooks(currentTrainHooks ++ inferHooks)
     val values = Op.createWith(graph) {

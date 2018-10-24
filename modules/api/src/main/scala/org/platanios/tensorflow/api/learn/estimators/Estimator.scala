@@ -158,9 +158,12 @@ abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
     * @param  stopCriteria Stop criteria to use for stopping the training iteration. For the default criteria please
     *                      refer to the documentation of [[StopCriteria]].
     */
-  def train(
+  def train[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       stopCriteria: StopCriteria = StopCriteria()
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
   ): Unit
 
   /** Infers output (i.e., computes predictions) for `input` using the model managed by this estimator.
@@ -182,6 +185,10 @@ abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
   def infer[InV, InD, InS, OutV, OutD, OutS, InferIn, InferOut](
       input: () => InferIn
   )(implicit
+      evOutputToDataTypeIn: OutputToDataType.Aux[In, InD],
+      evOutputToDataTypeOut: OutputToDataType.Aux[Out, OutD],
+      evOutputToShapeIn: OutputToShape.Aux[In, InS],
+      evOutputToShapeOut: OutputToShape.Aux[Out, OutS],
       evOutputToTensorIn: OutputToTensor.Aux[In, InV],
       evOutputToTensorOut: OutputToTensor.Aux[Out, OutV],
       ev: Estimator.SupportedInferInput[In, InV, OutV, InferIn, InferOut],
@@ -213,12 +220,15 @@ abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
     *                                  specified.
     */
   @throws[InvalidArgumentException]
-  def evaluate(
+  def evaluate[TrainInD, TrainInS](
       data: () => Dataset[TrainIn],
       metrics: Seq[Metric[EvalIn, Output[Float]]],
       maxSteps: Long = -1L,
       saveSummaries: Boolean = true,
       name: String = null
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
+      evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
   ): Seq[Tensor[Float]]
 
   protected def saveEvaluationSummaries(

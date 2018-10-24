@@ -241,14 +241,13 @@ object OutputToShape {
 
   implicit def fromDataset[T: OutputStructure, DD, SS](implicit
       evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS],
-      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
+      evOutputToShape: OutputToShape.Aux[T, SS]
   ): Aux[Dataset[T], Shape] = {
     new OutputToShape[Dataset[T]] {
       override type S = Shape
 
       override def outputStructure: OutputStructure[Dataset[T]] = {
-        OutputStructure.fromDataset[T, DD, SS]
+        OutputStructure.fromDataset[T, DD, SS](OutputStructure[T], evOutputToDataType, evOutputToShape)
       }
 
       override def shapeStructure: ShapeStructure[Shape] = {

@@ -180,8 +180,7 @@ object OutputToDataType {
 
   implicit def fromDataset[T: OutputStructure, DD, SS](implicit
       evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS],
-      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
+      evOutputToShape: OutputToShape.Aux[T, SS]
   ): Aux[Dataset[T], DataType[Variant]] = {
     new OutputToDataType[Dataset[T]] {
       override type D = DataType[Variant]
@@ -202,7 +201,7 @@ object OutputToDataType {
           dataType: DataType[Variant],
           outputs: Seq[Output[Any]]
       ): (Dataset[T], Seq[Output[Any]]) = {
-        (VariantDataset[T, DD, SS](outputs.head.asInstanceOf[Output[Variant]]), outputs.drop(1))
+        (VariantDataset[T](outputs.head.asInstanceOf[Output[Variant]]), outputs.drop(1))
       }
     }
   }

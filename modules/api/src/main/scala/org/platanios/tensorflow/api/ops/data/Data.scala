@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.data
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception._
-import org.platanios.tensorflow.api.core.types.{DataType, INT64, STRING, Variant}
+import org.platanios.tensorflow.api.core.types.{INT64, STRING, Variant}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
@@ -57,26 +57,16 @@ trait Data extends Experimental {
       evTensorToOutput: TensorToOutput.Aux[V, T],
       evTensorToDataType: TensorToDataType.Aux[V, DD],
       evTensorToShape: TensorToShape.Aux[V, SS],
-      evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS],
-      evOutputStructure: OutputStructure[T],
-      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
+      evOutputStructure: OutputStructure[T]
   ): Dataset[T] = {
-    val providedEvOutputToDataType = evOutputToDataType
-    val providedEvOutputToShape = evOutputToShape
-    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
-      override type D = DD
-      override type S = SS
-
-      override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
-      override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
-      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[T, D],
+          evOutputToShape: OutputToShape.Aux[T, S]
+      ): Output[Variant] = {
         val outputs = Op.nameScope(s"$name/TensorToOutput") {
           evTensorToOutput.output(data)
         }
@@ -89,12 +79,12 @@ trait Data extends Experimental {
             .build().output
       }
 
-      override def outputDataTypes: DD = {
-        evTensorToDataType.dataType(data)
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[T, D]): D = {
+        evTensorToDataType.dataType(data).asInstanceOf[D]
       }
 
-      override def outputShapes: SS = {
-        evTensorToShape.shape(data)
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
+        evTensorToShape.shape(data).asInstanceOf[S]
       }
     }
   }
@@ -106,29 +96,18 @@ trait Data extends Experimental {
     * @tparam T Tensor type of the element.
     * @return Created dataset.
     */
-  def datasetFromOutputs[T: OutputStructure, DD, SS](
+  def datasetFromOutputs[T: OutputStructure](
       data: T,
       name: String = "TensorDataset"
-  )(implicit
-      evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS],
-      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ): Dataset[T] = {
-    val providedEvOutputToDataType = evOutputToDataType
-    val providedEvOutputToShape = evOutputToShape
-    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
-      override type D = DD
-      override type S = SS
-
-      override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
-      override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
-      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[T, D],
+          evOutputToShape: OutputToShape.Aux[T, S]
+      ): Output[Variant] = {
         val flatOutputs = OutputStructure[T].outputs(data)
         Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorDataset",
@@ -138,11 +117,11 @@ trait Data extends Experimental {
             .build().output
       }
 
-      override def outputDataTypes: D = {
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[T, D]): D = {
         evOutputToDataType.dataType(data)
       }
 
-      override def outputShapes: S = {
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
         evOutputToShape.shape(data)
       }
     }
@@ -166,26 +145,16 @@ trait Data extends Experimental {
       evTensorToOutput: TensorToOutput.Aux[V, T],
       evTensorToDataType: TensorToDataType.Aux[V, DD],
       evTensorToShape: TensorToShape.Aux[V, SS],
-      evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS],
-      evOutputStructure: OutputStructure[T],
-      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
+      evOutputStructure: OutputStructure[T]
   ): Dataset[T] = {
-    val providedEvOutputToDataType = evOutputToDataType
-    val providedEvOutputToShape = evOutputToShape
-    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
-      override type D = DD
-      override type S = SS
-
-      override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
-      override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
-      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[T, D],
+          evOutputToShape: OutputToShape.Aux[T, S]
+      ): Output[Variant] = {
         val outputs = Op.nameScope(s"$name/TensorToOutput") {
           evTensorToOutput.output(data)
         }
@@ -198,13 +167,13 @@ trait Data extends Experimental {
             .build().output
       }
 
-      override def outputDataTypes: DD = {
-        evTensorToDataType.dataType(data)
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[T, D]): D = {
+        evTensorToDataType.dataType(data).asInstanceOf[D]
       }
 
-      override def outputShapes: SS = {
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
         val evShapeStructure = evOutputToShape.shapeStructure
-        val shape = evTensorToShape.shape(data)
+        val shape = evTensorToShape.shape(data).asInstanceOf[S]
         val flatShapes = evShapeStructure.shapes(shape)
         evShapeStructure.decodeShape(
           shape,
@@ -221,29 +190,18 @@ trait Data extends Experimental {
     * @tparam T Tensor type of the element.
     * @return Created dataset.
     */
-  def datasetFromOutputSlices[T: OutputStructure, DD, SS](
+  def datasetFromOutputSlices[T: OutputStructure](
       data: T,
       name: String = "TensorSlicesDataset"
-  )(implicit
-      evOutputToDataType: OutputToDataType.Aux[T, DD],
-      evOutputToShape: OutputToShape.Aux[T, SS],
-      evDataTypeToShape: DataTypeToShape.Aux[DD, SS]
   ): Dataset[T] = {
-    val providedEvOutputToDataType = evOutputToDataType
-    val providedEvOutputToShape = evOutputToShape
-    val providedEvDataTypeToShape = evDataTypeToShape
     val datasetName = name
     new Dataset[T] {
-      override type D = DD
-      override type S = SS
-
-      override def evOutputToDataType: OutputToDataType.Aux[T, D] = providedEvOutputToDataType
-      override def evOutputToShape: OutputToShape.Aux[T, S] = providedEvOutputToShape
-      override def evDataTypeToShape: DataTypeToShape.Aux[D, S] = providedEvDataTypeToShape
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[T, D],
+          evOutputToShape: OutputToShape.Aux[T, S]
+      ): Output[Variant] = {
         val flatOutputs = OutputStructure[T].outputs(data)
         Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorSliceDataset",
@@ -253,11 +211,11 @@ trait Data extends Experimental {
             .build().output
       }
 
-      override def outputDataTypes: DD = {
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[T, D]): D = {
         evOutputToDataType.dataType(data)
       }
 
-      override def outputShapes: SS = {
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
         val shape = evOutputToShape.shape(data)
         val flatShapes = evOutputToShape.shapeStructure.shapes(shape)
         evOutputToShape.shapeStructure.decodeShape(
@@ -285,16 +243,12 @@ trait Data extends Experimental {
   ): Dataset[Output[Long]] = {
     val datasetName = name
     new Dataset[Output[Long]] {
-      override type D = DataType[Long]
-      override type S = Shape
-
-      override def evOutputToDataType: OutputToDataType.Aux[Output[Long], D] = OutputToDataType[Output[Long]]
-      override def evOutputToShape: OutputToShape.Aux[Output[Long], S] = OutputToShape[Output[Long]]
-      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[Long], S] = DataTypeToShape[DataType[Long]]
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[Output[Long], D],
+          evOutputToShape: OutputToShape.Aux[Output[Long], S]
+      ): Output[Variant] = {
         Op.Builder[(Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "RangeDataset",
           name = name,
@@ -307,12 +261,12 @@ trait Data extends Experimental {
             .build().output
       }
 
-      override def outputDataTypes: DataType[Long] = {
-        INT64
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[Output[Long], D]): D = {
+        INT64.asInstanceOf[D]
       }
 
-      override def outputShapes: Shape = {
-        Shape()
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[Output[Long], S]): S = {
+        Shape().asInstanceOf[S]
       }
     }
   }
@@ -331,16 +285,12 @@ trait Data extends Experimental {
     val (graphSeed, opSeed) = Op.currentGraphRandomSeed(seed)
     val datasetName = name
     new Dataset[Output[Long]] {
-      override type D = DataType[Long]
-      override type S = Shape
-
-      override def evOutputToDataType: OutputToDataType.Aux[Output[Long], D] = OutputToDataType[Output[Long]]
-      override def evOutputToShape: OutputToShape.Aux[Output[Long], S] = OutputToShape[Output[Long]]
-      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[Long], S] = DataTypeToShape[DataType[Long]]
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[Output[Long], D],
+          evOutputToShape: OutputToShape.Aux[Output[Long], S]
+      ): Output[Variant] = {
         Op.Builder[(Output[Long], Output[Long]), Output[Variant]](
           opType = "RandomDataset",
           name = name,
@@ -352,12 +302,12 @@ trait Data extends Experimental {
             .build().output
       }
 
-      override def outputDataTypes: DataType[Long] = {
-        INT64
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[Output[Long], D]): D = {
+        INT64.asInstanceOf[D]
       }
 
-      override def outputShapes: Shape = {
-        Shape()
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[Output[Long], S]): S = {
+        Shape().asInstanceOf[S]
       }
     }
   }
@@ -382,16 +332,12 @@ trait Data extends Experimental {
   ): Dataset[Output[String]] = {
     val datasetName = name
     new Dataset[Output[String]] {
-      override type D = DataType[String]
-      override type S = Shape
-
-      override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
-      override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
-      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[Output[String], D],
+          evOutputToShape: OutputToShape.Aux[Output[String], S]
+      ): Output[Variant] = {
         Op.Builder[(Output[String], Output[Long], Output[Long], Output[Long], Output[Long]), Output[Variant]](
           opType = "FixedLengthRecordDataset",
           name = name,
@@ -404,12 +350,12 @@ trait Data extends Experimental {
         ).build().output
       }
 
-      override def outputDataTypes: DataType[String] = {
-        STRING
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[Output[String], D]): D = {
+        STRING.asInstanceOf[D]
       }
 
-      override def outputShapes: Shape = {
-        Shape()
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[Output[String], S]): S = {
+        Shape().asInstanceOf[S]
       }
     }
   }
@@ -432,16 +378,12 @@ trait Data extends Experimental {
   ): Dataset[Output[String]] = {
     val datasetName = name
     new Dataset[Output[String]] {
-      override type D = DataType[String]
-      override type S = Shape
-
-      override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
-      override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
-      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[Output[String], D],
+          evOutputToShape: OutputToShape.Aux[Output[String], S]
+      ): Output[Variant] = {
         Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TextLineDataset",
           name = name,
@@ -452,12 +394,12 @@ trait Data extends Experimental {
         ).build().output
       }
 
-      override def outputDataTypes: DataType[String] = {
-        STRING
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[Output[String], D]): D = {
+        STRING.asInstanceOf[D]
       }
 
-      override def outputShapes: Shape = {
-        Shape()
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[Output[String], S]): S = {
+        Shape().asInstanceOf[S]
       }
     }
   }
@@ -480,16 +422,12 @@ trait Data extends Experimental {
   ): Dataset[Output[String]] = {
     val datasetName = name
     new Dataset[Output[String]] {
-      override type D = DataType[String]
-      override type S = Shape
-
-      override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
-      override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
-      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[Output[String], D],
+          evOutputToShape: OutputToShape.Aux[Output[String], S]
+      ): Output[Variant] = {
         Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TextLineDataset",
           name = name,
@@ -500,12 +438,12 @@ trait Data extends Experimental {
         ).build().output
       }
 
-      override def outputDataTypes: DataType[String] = {
-        STRING
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[Output[String], D]): D = {
+        STRING.asInstanceOf[D]
       }
 
-      override def outputShapes: Shape = {
-        Shape()
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[Output[String], S]): S = {
+        Shape().asInstanceOf[S]
       }
     }
   }
@@ -526,16 +464,12 @@ trait Data extends Experimental {
   ): Dataset[Output[String]] = {
     val datasetName = name
     new Dataset[Output[String]] {
-      override type D = DataType[String]
-      override type S = Shape
-
-      override def evOutputToDataType: OutputToDataType.Aux[Output[String], D] = OutputToDataType[Output[String]]
-      override def evOutputToShape: OutputToShape.Aux[Output[String], S] = OutputToShape[Output[String]]
-      override def evDataTypeToShape: DataTypeToShape.Aux[DataType[String], S] = DataTypeToShape[DataType[String]]
-
       override val name: String = datasetName
 
-      override def createHandle(): Output[Variant] = {
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[Output[String], D],
+          evOutputToShape: OutputToShape.Aux[Output[String], S]
+      ): Output[Variant] = {
         Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
           opType = "TFRecordDataset",
           name = name,
@@ -546,12 +480,12 @@ trait Data extends Experimental {
         ).build().output
       }
 
-      override def outputDataTypes: DataType[String] = {
-        STRING
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[Output[String], D]): D = {
+        STRING.asInstanceOf[D]
       }
 
-      override def outputShapes: Shape = {
-        Shape()
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[Output[String], S]): S = {
+        Shape().asInstanceOf[S]
       }
     }
   }
