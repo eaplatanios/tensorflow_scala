@@ -17,7 +17,7 @@ package org.platanios.tensorflow
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.DataType
-import org.platanios.tensorflow.api.implicits.helpers.{DataTypeToShape, OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.ops.Output
 import org.platanios.tensorflow.api.ops.rnn.cell.LSTMState
 
@@ -37,4 +37,6 @@ package object examples {
   val evOutputToShapeFloatLong     : OutputToShape.Aux[(Output[Float], Output[Long]), (Shape, Shape)] = OutputToShape[(Output[Float], Output[Long])]
   val evOutputToShapeIntInt        : OutputToShape.Aux[(Output[Int], Output[Int]), (Shape, Shape)]    = OutputToShape[(Output[Int], Output[Int])]
   val evOutputToShapeLSTMStateFloat: OutputToShape.Aux[LSTMState[Float], (Shape, Shape)]              = OutputToShape[LSTMState[Float]]
+
+  val evZeroLSTMStateFloat: Zero.Aux[LSTMState[Float], (Shape, Shape)] = Zero[LSTMState[Float]]
 }

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.examples
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape, Zero}
 import org.platanios.tensorflow.api.learn.layers.rnn.RNN
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{BasicLSTMCell, DropoutWrapper, LSTMTuple}
 import org.platanios.tensorflow.api.ops.Output
@@ -42,6 +42,8 @@ object RNNTutorialUsingPTB {
 
   implicit val evOutputToDataTypeLSTMStateFloat: OutputToDataType.Aux[LSTMState[Float], (DataType[Float], DataType[Float])] = examples.evOutputToDataTypeLSTMStateFloat
   implicit val evOutputToShapeLSTMStateFloat   : OutputToShape.Aux[LSTMState[Float], (Shape, Shape)]                        = examples.evOutputToShapeLSTMStateFloat
+
+  implicit val evZeroLSTMStateFloat: Zero.Aux[LSTMState[Float], (Shape, Shape)] = examples.evZeroLSTMStateFloat
 
   val batchSize   : Int = 20
   val numSteps    : Int = 20
