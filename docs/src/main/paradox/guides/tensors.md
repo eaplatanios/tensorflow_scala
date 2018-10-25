@@ -1,95 +1,102 @@
 # Tensors
 
-TensorFlow, as the name indicates, is a framework to define and run computations involving tensors. A tensor is a
-generalization of vectors and matrices to potentially higher dimensions. Internally, TensorFlow represents tensors as
-`n`-dimensional arrays of some underlying data type. A @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) has a @scaladoc[DataType](org.platanios.tensorflow.api.DataType) (e.g., `FLOAT32`
-which corresponds to 32-bit floating point numbers) and a @scaladoc[Shape](org.platanios.tensorflow.api.Shape) (that is, the number of dimensions it has and
-the size of each dimension -- e.g., `Shape(10, 2)` which corresponds to a matrix with 10 rows and 2 columns) associated
-with it. Each element in the @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) has the same data type. For example, the following code creates an
-integer tensor filled with zeros with shape `[2, 5]` (i.e., a two-dimensional array holding integer values, where the
+TensorFlow, as the name indicates, is a framework used to
+define and run computations involving tensors. A tensor is
+a generalization of vectors and matrices to potentially
+higher dimensions. Internally, TensorFlow represents
+tensors as `n`-dimensional arrays of some underlying data
+type. A @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor)
+has a @scaladoc[DataType](org.platanios.tensorflow.api.DataType)
+(e.g., `FLOAT32`, which corresponds to 32-bit floating
+point numbers) and a
+@scaladoc[Shape](org.platanios.tensorflow.api.Shape) (that
+is, the number of dimensions it has and the size of each
+dimension -- e.g., `Shape(10, 2)` which corresponds to a
+matrix with 10 rows and 2 columns) associated with it. Each
+element in the
+@scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) has
+the same data type. For example, the following code creates
+an integer tensor filled with zeros with shape `[2, 5]`
+(i.e., a two-dimensional array holding integer values, where the
 first dimension size is 2 and the second is 5):
 
-```scala
-val tensor = Tensor.zeros[Int](Shape(2, 5))
-```
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #zeros_tensor_example }
+
 You can print the contents of a tensor as follows:
-```scala
-tensor.summarize(flattened = true)
-```
+
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_summarize_example }
 
 ## Tensor Creation
 
-Tensors can be created using various constructors defined in the `Tensor`
+Tensors can be created using various constructors defined in
+the @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor)
 companion object. For example:
 
-```scala
-val a = Tensor(1, 2)      // Creates a Tensor[Int] with shape [2]
-val b = Tensor(1L, 2)     // Creates a Tensor[Long] with shape [2]
-val c = Tensor(3.0f)      // Creates a Tensor[Float] with shape [1]
-val d = Tensor(-4.0)      // Creates a Tensor[Double] with shape [1]
-val e = Tensor.empty[Int] // Creates an empty Tensor[Int] with shape [0]
-val z = Tensor.zeros[Float](Shape(5, 2))   // Creates a zeros Tensor[Float] with shape [5, 2]
-val r = Tensor.randn(Double, Shape(10, 3)) // Creates a Tensor[Double] with shape [10, 3] and
-                                           // elements drawn from the standard Normal distribution.
-```
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_creation_examples }
 
-## Data Type
+## Data Types
 
-As already mentioned, tensors have a data type. Various numeric data types are supported, as well as strings (i.e.,
-tensors containing strings are supported). It is not possible to have a [`Tensor`][tensor] with more than one data type.
-It is possible, however, to serialize arbitrary data structures as strings and store those in [`Tensor`][tensor]s.
+As already mentioned, tensors have a data type. Various
+numeric data types are supported, as well as strings (i.e.,
+tensors containing strings are supported). It is not
+possible to have a
+@scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) with
+more than one data type. It is possible, however, to
+serialize arbitrary data structures as strings and store
+those in tensors.
 
 The list of all supported data types is:
 
-  - **STRING:** String.
-  - **BOOLEAN:** Boolean.
-  - **FLOAT16:** 16-bit half-precision floating-point.
-  - **FLOAT32:** 32-bit single-precision floating-point.
-  - **FLOAT64:** 64-bit double-precision floating-point.
-  - **BFLOAT16:** 16-bit truncated floating-point.
-  - **COMPLEX64:** 64-bit single-precision complex.
-  - **COMPLEX128:** 128-bit double-precision complex.
-  - **INT8:** 8-bit signed integer.
-  - **INT16:** 16-bit signed integer.
-  - **INT32:** 32-bit signed integer.
-  - **INT64:** 64-bit signed integer.
-  - **UINT8:** 8-bit unsigned integer.
-  - **UINT16:** 16-bit unsigned integer.
-  - **QINT8:** Quantized 8-bit signed integer.
-  - **QINT16:** Quantized 16-bit signed integer.
-  - **QINT32:** Quantized 32-bit signed integer.
-  - **QUINT8:** Quantized 8-bit unsigned integer.
-  - **QUINT16:** Quantized 16-bit unsigned integer.
-  - **RESOURCE:** Handle to a mutable resource.
-  - **VARIANT:** Variant.
-
-It is also possible to cast [`Tensor`][tensor]s from one data type to another using the `toXXX` operator, or the
-`castTo[XXX]` operator:
-```scala
-val floatTensor = Tensor[Float](1, 2, 3) // Floating point vector containing the elements: 1.0f, 2.0f, and 3.0f.
-floatTensor.toInt                        // Integer vector containing the elements: 1, 2, and 3.
-floatTensor.castTo[Int]                  // Integer vector containing the elements: 1, 2, and 3.
+```
+STRING     // String
+BOOLEAN    // Boolean
+FLOAT16    // 16-bit half-precision floating-point
+FLOAT32    // 32-bit single-precision floating-point
+FLOAT64    // 64-bit double-precision floating-point
+BFLOAT16   // 16-bit truncated floating-point
+COMPLEX64  // 64-bit single-precision complex
+COMPLEX128 // 128-bit double-precision complex
+INT8       // 8-bit signed integer
+INT16      // 16-bit signed integer
+INT32      // 32-bit signed integer
+INT64      // 64-bit signed integer
+UINT8      // 8-bit unsigned integer
+UINT16     // 16-bit unsigned integer
+QINT8      // Quantized 8-bit signed integer
+QINT16     // Quantized 16-bit signed integer
+QINT32     // Quantized 32-bit signed integer
+QUINT8     // Quantized 8-bit unsigned integer
+QUINT16    // Quantized 16-bit unsigned integer
+RESOURCE   // Handle to a mutable resource
+VARIANT    // Variant
 ```
 
-**NOTE:** In general, all tensor-supported operations can be accessed as direct methods/operators of the
-[`Tensor`][tensor] object, or as static methods defined in the `tfi` package, which stands for *TensorFlow Imperative*
-(given the imperative nature of that API).
+TensorFlow Scala also provides value classes for the types
+that are not natively supported by Scala (e.g.,
+@scaladoc[UByte](org.platanios.tensorflow.api.types.UByte)
+corresponds to `UINT8`).
 
-A [`Tensor`][tensor]'s data type can be inspected using:
-```scala
-floatTensor.dataType // Returns FLOAT32
-```
+It is also possible to cast tensors from one data type to
+another using the `toXXX` operator, or the `castTo[XXX]`
+operator:
 
-When creating a [`Tensor`][tensor] from a Scala objects you may optionally specify the data type. If you don't,
-TensorFlow chooses a data type that can represent your data. It converts Scala integers to `INT32` and Scala floating
-point numbers to either `FLOAT32` or `FLOAT64` depending on their precision.
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_cast_examples }
 
-```tut:silent
-Tensor(1, 2, 3)      // INT32 tensor
-Tensor(1, 2L, 3)     // INT64 tensor
-Tensor(2.4f, -0.1f)  // FLOAT32 tensor
-Tensor(0.6f, 1.0)    // FLOAT64 tensor
-```
+A tensor's data type can be inspected using:
+
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_datatype_example }
+
+@@@ warning { title='Performing Operations on Tensors' }
+
+In general, all tensor-supported operations can be accessed
+as direct methods/operators of the
+@scaladoc[Tensor](org.platanios.tensorflow.api.Tensor)
+object, or as static methods defined in the
+@scaladoc[tfi](org.platanios.tensorflow.api.tfi) package,
+which stands for *TensorFlow Imperative*
+(given the imperative nature of this API).
+
+@@@
 
 ## Rank
 

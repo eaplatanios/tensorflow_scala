@@ -6,12 +6,18 @@
 
 [![CircleCI](https://img.shields.io/circleci/project/github/eaplatanios/tensorflow_scala.svg?style=flat-square)](https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master)
 [![Codacy Badge](https://img.shields.io/codacy/grade/7fae7fba84df4831a80bc20c3bd021df.svg?style=flat-square)](https://www.codacy.com/app/eaplatanios/tensorflow_scala?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=eaplatanios/tensorflow_scala&amp;utm_campaign=Badge_Grade)
-[![Chat Room](https://img.shields.io/gitter/room/nwjs/nw.js.svg?style=flat-square)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ![License](https://img.shields.io/github/license/eaplatanios/tensorflow_scala.svg?style=flat-square)
+[![API Docs](https://img.shields.io/badge/docs-api-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/api)
+[![JNI Docs](https://img.shields.io/badge/docs-jni-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/jni)
+[![Data Docs](https://img.shields.io/badge/docs-data-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/data)
+[![Examples Docs](https://img.shields.io/badge/docs-examples-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/examples)
 
-This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API 
+This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of
+the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new
+features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API
 should be relatively stable by now, but things are still likely to change.
 
+[![Chat Room](https://img.shields.io/badge/chat-examples-ed1965.svg?longCache=true&style=flat-square&logo=gitter)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Please refer to the main website for documentation and tutorials. Here
 are a few useful links:
 
@@ -118,7 +124,7 @@ are a few useful links:
 
 Funding for the development of this library has been generously provided by the following sponsors:
 
-|<img src="https://eaplatanios.github.io/tensorflow_scala/img/cmu_logo.svg" alt="cmu_logo" width="200px" height="150px">|<img src="https://eaplatanios.github.io/tensorflow_scala/img/nsf_logo.svg" alt="nsf_logo" width="150px" height="150px">|<img src="https://eaplatanios.github.io/tensorflow_scala/img/afosr_logo.gif" alt="afosr_logo" width="150px" height="150px">|
+|<img src="https://platanios.org/tensorflow_scala/assets/images/cmu_logo.svg" alt="cmu_logo" width="200px" height="150px">|<img src="https://platanios.org/tensorflow_scala/assets/images/nsf_logo.svg" alt="nsf_logo" width="150px" height="150px">|<img src="https://platanios.org/tensorflow_scala/assets/images/afosr_logo.gif" alt="afosr_logo" width="150px" height="150px">|
 |:---------------------------------------:|:---------------------------------:|:-----------------------------------------------:|
 | **CMU Presidential Fellowship**         | **National Science Foundation**   | **Air Force Office of Scientific Research**     | 
 | awarded to Emmanouil Antonios Platanios | Grant #: IIS1250956               | Grant #: FA95501710218                          |
@@ -128,6 +134,12 @@ TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google 
 <!---
 
 ## Some TODOs
+
+  - [ ] Figure out what the proper to way to handle Int vs Long shapes is, so that we can use Long shapes without hurting GPU performance.
+  - [ ] Make the optimizers typed (with respect to their state, at least).
+  - [ ] Make the gradients function retain types (we need a type trait for that).
+  - [ ] Dispose dataset iterators automatically.
+  - [ ] Fixed all `[TYPE] !!!` code TODOs.
 
   - [ ] Session execution context (I'm not sure if that's good to have)
   - [ ] Session reset functionality
@@ -153,6 +165,13 @@ TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google 
 
 - Website margins are a little large relative to the content in mobile
 - Make the code blocks scroll rather than wrap
+
+To publish the documentation website we use the following commands:
+
+```bash
+sbt docs/previewSite     # To preview the website
+sbt docs/ghpagesPushSite # To publish the website
+```
 
 ```bash
 find . -name '*.h' | cpio -pdmu ../tensorflow_scala/jni/src/main/native/include/

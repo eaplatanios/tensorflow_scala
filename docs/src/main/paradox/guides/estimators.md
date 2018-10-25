@@ -8,13 +8,13 @@ methods, depending on their type:
   - **Inference Models** only need to implement a method
     for building all ops used for inference:
 
-    @@snip [Index.scala](/docs/src/main/scala/Estimators.scala) { #inference_model }
+    @@snip [Estimators.scala](/docs/src/main/scala/Estimators.scala) { #inference_model }
 
   - **Trainable Models** also need to implement a method
     for building all ops used for training, and one for
     building all ops used for evaluation:
 
-    @@snip [Index.scala](/docs/src/main/scala/Estimators.scala) { #trainable_models }
+    @@snip [Estimators.scala](/docs/src/main/scala/Estimators.scala) { #trainable_models }
 
 ### Type Parameters
 
