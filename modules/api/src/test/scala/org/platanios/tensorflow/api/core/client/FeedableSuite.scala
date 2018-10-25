@@ -31,12 +31,12 @@ class FeedableSuite extends JUnitSuite {
   @Test def testFeedMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val tensor0 = Tensor(0.0f)
-      val tensor1 = Tensor(1L)
+      val tensor1 = Tensor(1)
       val tensor2 = Tensor(2.0f)
-      val tensor3 = Tensor(3L)
+      val tensor3 = Tensor(3)
       val feedable1 = Basic.placeholder[Float]()
       val feedable2 = OutputIndexedSlices(
-        Basic.placeholder[Long](), Basic.placeholder[Float](), Basic.placeholder[Long]())
+        Basic.placeholder[Int](), Basic.placeholder[Float](), Basic.placeholder[Int]())
       val feedable1FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
       val feedable2FeedMap = feedMapIdentity(Map(feedable2 -> TensorIndexedSlices(tensor1, tensor2, tensor3)))
       assert(feedable1FeedMap.values === Map(feedable1 -> tensor0))
@@ -48,12 +48,12 @@ class FeedableSuite extends JUnitSuite {
   @Test def testHeterogeneousFeedMap(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val tensor0 = Tensor(0.0f)
-      val tensor1 = Tensor(1L)
+      val tensor1 = Tensor(1)
       val tensor2 = Tensor(2.0f)
-      val tensor3 = Tensor(3L)
+      val tensor3 = Tensor(3)
       val feedable1 = Basic.placeholder[Float]()
       val feedable2 = OutputIndexedSlices(
-        Basic.placeholder[Long](), Basic.placeholder[Float](), Basic.placeholder[Long]())
+        Basic.placeholder[Int](), Basic.placeholder[Float](), Basic.placeholder[Int]())
       val feedable1FeedMap: FeedMap = feedMapIdentity(Map(feedable1 -> tensor0))
       val feedable2FeedMap: FeedMap = feedMapIdentity(Map(feedable2 -> TensorIndexedSlices(tensor1, tensor2, tensor3)))
       val feedMap = feedMapIdentity(feedable1FeedMap ++ feedable2FeedMap)

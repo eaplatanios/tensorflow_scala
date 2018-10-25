@@ -496,8 +496,8 @@ final case class Output[T] private(
     * @return Output indexed slices object that has the same value as this output.
     */
   override def toOutputIndexedSlices(optimize: Boolean = true): OutputIndexedSlices[T] = {
-    val denseShape = Basic.shape(this, optimize = optimize)(TF.fromDataType(dataType))
-    val indices = Math.range(Basic.constant(0L), denseShape(0))
+    val denseShape = Basic.shape(this, optimize = optimize)
+    val indices = Math.range(Basic.constant[Int](0), denseShape(0).toInt)
     OutputIndexedSlices(
       indices = indices,
       values = this,
@@ -577,11 +577,11 @@ object Output {
     Basic.immutableConstant[T](shape, memoryRegionName, name)
   }
 
-  def zeros[T: TF](shape: Output[Long]): Output[T] = {
+  def zeros[T: TF](shape: Output[Int]): Output[T] = {
     Basic.zeros[T](shape)
   }
 
-  def zeros[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+  def zeros[T](dataType: DataType[T], shape: Output[Int]): Output[T] = {
     Basic.zeros[T](dataType, shape)
   }
 
@@ -593,11 +593,11 @@ object Output {
     Basic.zerosLike[T](output, optimize, name)
   }
 
-  def ones[T: TF](shape: Output[Long]): Output[T] = {
+  def ones[T: TF](shape: Output[Int]): Output[T] = {
     Basic.ones[T](shape)
   }
 
-  def ones[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+  def ones[T](dataType: DataType[T], shape: Output[Int]): Output[T] = {
     Basic.ones[T](dataType, shape)
   }
 
@@ -872,9 +872,9 @@ object Output {
   * @author Emmanouil Antonios Platanios
   */
 final case class OutputIndexedSlices[T](
-    indices: Output[Long],
+    indices: Output[Int],
     values: Output[T],
-    denseShape: Output[Long] = null
+    denseShape: Output[Int] = null
 ) extends OutputLike[T] {
   /** Graph that contains `indices`, `values`, and `denseShape`. */
   override def graph: Graph = {

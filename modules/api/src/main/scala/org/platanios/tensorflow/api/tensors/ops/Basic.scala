@@ -71,11 +71,11 @@ trait Basic {
     * @param  input    Tensor whose shape to return.
     * @return Result as a new tensor.
     */
-  def shape[T <: TensorLike[_]](input: T): Tensor[Long] = {
+  def shape[T <: TensorLike[_]](input: T): Tensor[Int] = {
     input match {
       case t: Tensor[_] => t.shape.toTensor
-      case t: TensorIndexedSlices[_] => t.denseShape
-      case t: SparseTensor[_] => t.denseShape
+      case t: TensorIndexedSlices[_] => t.denseShape.toInt
+      case t: SparseTensor[_] => t.denseShape.toInt
     }
   }
 
@@ -85,7 +85,7 @@ trait Basic {
     * @param  inputs Tensors whose shapes to return.
     * @return Result as a sequence of new tensors.
     */
-  def shapeN(inputs: Seq[Tensor[_]]): Seq[Tensor[Long]] = {
+  def shapeN(inputs: Seq[Tensor[_]]): Seq[Tensor[Int]] = {
     inputs.map(_.shape.toTensor)
   }
 
@@ -634,10 +634,10 @@ trait Basic {
       input: TensorIndexedSlices[T],
       maskIndices: Tensor[Int]
   ): TensorIndexedSlices[T] = {
-    val (outputIndices, toGather) = listDiff(input.indices, maskIndices.toLong, Int)
+    val (outputIndices, toGather) = listDiff(input.indices, maskIndices, Int)
     val outputValues = gather(input.values, toGather)
     TensorIndexedSlices(
-      indices = outputIndices.toLong,
+      indices = outputIndices,
       values = outputValues,
       denseShape = input.denseShape)
   }

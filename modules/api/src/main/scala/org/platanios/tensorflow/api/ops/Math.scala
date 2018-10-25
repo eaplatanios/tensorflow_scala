@@ -2292,7 +2292,7 @@ trait Math {
       x: Output[Int],
       y: Output[Int]
   ): Output[Int] = {
-    truncateDivide[Int](x, maximum[Int](y, Basic.ones[Int](Tensor.empty[Long])))
+    truncateDivide[Int](x, maximum[Int](y, Basic.ones[Int](Tensor.empty[Int])))
   }
 
   /** $OpDocMathSum

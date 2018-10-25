@@ -512,7 +512,7 @@ private[api] case class WhileLoopContext private[control_flow] (
         // statically, we will have to get the shape dynamically from the forward inference. Getting the shape right for
         // the zeros is only needed for the base case when the loop exits without running any iterations.
         outerContext.foreach(_.enter())
-        val indicesAcc = Output.zeros[T](g.dataType, Output[Long](1))
+        val indicesAcc = Output.zeros[T](g.dataType, Output[Int](1))
         val valuesAcc = {
           if (g.values.shape.isFullyDefined) {
             val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*).toOutput
@@ -525,9 +525,9 @@ private[api] case class WhileLoopContext private[control_flow] (
                 // We are in a nested while loop.
                 val forwardContext = context.gradientLoopState.get.forwardContext
                 forwardContext.outerContext.foreach(_.enter())
-                val zerosShape = Basic.concatenate[Long](
+                val zerosShape = Basic.concatenate[Int](
                   Seq(
-                    Tensor(1L),
+                    Tensor(1),
                     resourceSafeShape(value)(TF.fromDataType(value.dataType)).slice(1 ::)
                   ), axis = 0)
                 forwardContext.outerContext.foreach(_.exit())
@@ -542,9 +542,9 @@ private[api] case class WhileLoopContext private[control_flow] (
                 acc
               case _ =>
                 val dataType = op.inputsSeq(0).dataType
-                val zerosShape = Basic.concatenate[Long](
+                val zerosShape = Basic.concatenate[Int](
                   Seq(
-                    Tensor(1L),
+                    Tensor(1),
                     resourceSafeShape(op.inputsSeq(0))(TF.fromDataType(dataType)).slice(1 ::)
                   ), axis = 0)
                 Basic.zeros[T](zerosShape)
@@ -595,14 +595,14 @@ private[api] case class WhileLoopContext private[control_flow] (
 
         // The actual accumulation.
         var addAcc = mutable.ListBuffer[Output[Any]](
-          Basic.concatenate[Long](Seq(switchAcc(0)._2.asInstanceOf[Output[Long]], g.indices), 0),
+          Basic.concatenate[Int](Seq(switchAcc(0)._2.asInstanceOf[Output[Int]], g.indices), 0),
           Basic.concatenate[T](Seq(switchAcc(1)._2.asInstanceOf[Output[T]], g.values), 0))
         denseShapeAcc.foreach(_ => {
           // TODO: [TYPES] Can handle types better here by not using sequences of tensors.
           // For the shape we just keep the maximum.
           addAcc += Math.maximum(
             g.denseShape,
-            switchAcc(2)._2.asInstanceOf[Output[Long]]
+            switchAcc(2)._2.asInstanceOf[Output[Int]]
           ).asInstanceOf[Output[Any]]
         })
         val nextAcc = addAcc.map(a => {
@@ -615,9 +615,9 @@ private[api] case class WhileLoopContext private[control_flow] (
         loopExits ++= exitAcc
         exitResult(exitAcc)
         OutputIndexedSlices(
-          indices = exitAcc(0).asInstanceOf[Output[Long]],
+          indices = exitAcc(0).asInstanceOf[Output[Int]],
           values = exitAcc(1).asInstanceOf[Output[T]],
-          denseShape = denseShapeAcc.map(_ => exitAcc(2).asInstanceOf[Output[Long]]).orNull)
+          denseShape = denseShapeAcc.map(_ => exitAcc(2).asInstanceOf[Output[Int]]).orNull)
       }
       case g: SparseOutput[T] => ???
     }
@@ -625,7 +625,7 @@ private[api] case class WhileLoopContext private[control_flow] (
   }
 
   /** Returns the shape of `value` of the shape of the variable it points to. */
-  private def resourceSafeShape[T: TF](value: Output[T]): Output[Long] = {
+  private def resourceSafeShape[T: TF](value: Output[T]): Output[Int] = {
     if (value.dataType == RESOURCE) {
       var v = value
       while (v.op.inputsSeq.nonEmpty)

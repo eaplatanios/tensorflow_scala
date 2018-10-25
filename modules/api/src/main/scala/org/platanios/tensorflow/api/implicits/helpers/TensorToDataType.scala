@@ -58,11 +58,11 @@ object TensorToDataType {
     }
   }
 
-  implicit def fromTensorIndexedSlices[T]: Aux[TensorIndexedSlices[T], SparseDataType[T]] = {
+  implicit def fromTensorIndexedSlices[T]: Aux[TensorIndexedSlices[T], IndexedSlicesDataType[T]] = {
     new TensorToDataType[TensorIndexedSlices[T]] {
-      override type D = SparseDataType[T]
+      override type D = IndexedSlicesDataType[T]
 
-      override def dataType(output: TensorIndexedSlices[T]): SparseDataType[T] = {
+      override def dataType(output: TensorIndexedSlices[T]): IndexedSlicesDataType[T] = {
         (output.indices.dataType, output.values.dataType, output.denseShape.dataType)
       }
     }

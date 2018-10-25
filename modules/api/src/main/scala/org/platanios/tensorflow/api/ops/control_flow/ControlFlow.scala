@@ -1010,7 +1010,7 @@ private[api] object ControlFlow extends ControlFlow {
               Basic.zerosLike[Any](o)
             case o: OutputIndexedSlices[T] =>
               OutputIndexedSlices[Any](
-                Basic.zeros[Long](Shape(1)),
+                Basic.zeros[Int](Shape(1)),
                 Basic.zeros[T](o.values.dataType, Shape(1, o.values.shape(1))),
                 o.denseShape)
             case o: SparseOutput[T] =>

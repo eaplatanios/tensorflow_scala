@@ -120,22 +120,22 @@ trait Manipulation {
       input: OL[T],
       optimize: Boolean = true,
       name: String = "Shape"
-  ): Output[Long] = {
+  ): Output[Int] = {
     input match {
       case o: Output[T] =>
         val inputShape = o.shape
         if (optimize && inputShape.isFullyDefined) {
           Constructors.constant(inputShape.toTensor, name = name)
         } else {
-          Op.Builder[Output[T], Output[Long]](
+          Op.Builder[Output[T], Output[Int]](
             opType = "Shape",
             name = name,
             input = o
-          ).setAttribute("out_type", Long)
+          ).setAttribute("out_type", Int)
               .build().output
         }
-      case o: OutputIndexedSlices[T] => o.denseShape
-      case o: SparseOutput[T] => o.denseShape
+      case o: OutputIndexedSlices[T] => o.denseShape.toInt
+      case o: SparseOutput[T] => o.denseShape.toInt
     }
   }
 
@@ -147,7 +147,7 @@ trait Manipulation {
     * @tparam I Data type for the resulting tensors.
     * @return Created op outputs, all of which are one-dimensional.
     */
-  def shapeN[T: TF, I: LongDefault : TF : IsIntOrLong](
+  def shapeN[T: TF, I: IntDefault : TF : IsIntOrLong](
       inputs: Seq[Output[T]]
   ): Seq[Output[I]] = {
     Op.Builder[Seq[Output[T]], Seq[Output[I]]](
@@ -496,28 +496,28 @@ trait Manipulation {
             // Since shape is 1-D, 'shapeOfShape' is a scalar containing the rank of the inputs.
             val shapeOfShape = shape(shapes(0))
             // Make a vector of length equal to the input rank, with 0's everywhere and 1 in the concatenation axis index.
-            val zero = Constructors.zeros[Long](Shape())
+            val zero = Constructors.zeros[Int](Shape())
             val mask = concatenate(Seq(
-              Constructors.fill[Long, Int](expandDims(nonNegativeConcatenationAxis, 0))(zero),
-              Constructors.constant(Tensor(1L)),
-              Constructors.fill[Long, Long](
-                shapeOfShape - nonNegativeConcatenationAxis.castTo[Long] - Constructors.ones[Long](Shape())
+              Constructors.fill[Int, Int](expandDims(nonNegativeConcatenationAxis, 0))(zero),
+              Constructors.constant[Int](Tensor(1)),
+              Constructors.fill[Int, Int](
+                shapeOfShape - nonNegativeConcatenationAxis - Constructors.ones[Int](Shape())
               )(zero)
             ), axis = 0)
-            var begin = Constructors.fill[Long, Long](shapeOfShape)(zero)
+            var begin = Constructors.fill[Int, Int](shapeOfShape)(zero)
             shapes.map(shape => {
-              val newValues = slice(g.values, begin, concatenate[Long](
-                Seq(Tensor(-1L), slice(shape, 1, -1)), 0))
+              val newValues = slice(g.values, begin, concatenate[Int](
+                Seq(Tensor(-1), slice(shape, 1, -1)), 0))
               begin = Math.add(begin, shape * mask)
               OutputIndexedSlices(g.indices, newValues, shape)
             })
           } else {
             // 'nonNegativeConcatenationAxis' == 0. Each input gets OutputIndexedSlices gradients but only for the
             // relevant indices.
-            var start = Constructors.zeros[Long](Shape())
+            var start = Constructors.zeros[Int](Shape())
             var end = start
             shapes.map(shape => {
-              val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis, axis = 0).castTo[Long]
+              val shapeConcatenationAxis = gather(shape, nonNegativeConcatenationAxis, axis = 0)
               end = start + shapeConcatenationAxis
               // Compute the 1-D Output of indices relevant for this input.
               val indicesToSelect = squeeze(
@@ -1447,8 +1447,8 @@ trait Manipulation {
     val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
       shape(input)
     }
-    val indices = op.input._2.castTo[Long]
-    val indicesSize = expandDims(size(indices), zero)
+    val indices = op.input._2.toInt
+    val indicesSize = expandDims(size(indices).toInt, zero)
     val axis = op.input._3
     val axisStatic = Output.constantValue(axis)
     // For axis 0 gathers, we build appropriately shaped indexed slices.
@@ -1520,14 +1520,14 @@ trait Manipulation {
       outputGradient: Output[T]
   ): (OutputLike[T], Output[I]) = {
     val indices = op.input._2
-    val inputShape = shape(op.input._1).castTo[I]
+    val inputShape = shape(op.input._1)
     if (indices.rank == 2 && indices.shape(-1) == 1) {
       (OutputIndexedSlices(
-        indices = Basic.squeeze(indices, axes = Seq(-1)).castTo[Long],
+        indices = Basic.squeeze(indices.toInt, axes = Seq(-1)),
         values = outputGradient,
-        denseShape = inputShape.castTo[Long]), null)
+        denseShape = inputShape), null)
     } else {
-      (scatterND(indices, outputGradient, inputShape), null)
+      (scatterND(indices, outputGradient, inputShape.castTo[I]), null)
     }
   }
 

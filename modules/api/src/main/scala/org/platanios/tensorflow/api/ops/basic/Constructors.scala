@@ -156,9 +156,9 @@ trait Constructors {
     * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def zeros[T: TF](shape: Output[Long]): Output[T] = {
+  def zeros[T: TF](shape: Output[Int]): Output[T] = {
     Op.nameScope("Zeros") {
-      fill[T, Long](shape)(Tensor.zeros[T](Shape()))
+      fill[T, Int](shape)(Tensor.zeros[T](Shape()))
     }
   }
 
@@ -184,10 +184,10 @@ trait Constructors {
     * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def zeros[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+  def zeros[T](dataType: DataType[T], shape: Output[Int]): Output[T] = {
     implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Op.nameScope("Zeros") {
-      fill[T, Long](shape)(Tensor.zeros[T](Shape()))
+      fill[T, Int](shape)(Tensor.zeros[T](Shape()))
     }
   }
 
@@ -246,9 +246,9 @@ trait Constructors {
     * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def ones[T: TF](shape: Output[Long]): Output[T] = {
+  def ones[T: TF](shape: Output[Int]): Output[T] = {
     Op.nameScope("Ones") {
-      fill[T, Long](shape)(Tensor.ones[T](Shape()))
+      fill[T, Int](shape)(Tensor.ones[T](Shape()))
     }
   }
 
@@ -274,10 +274,10 @@ trait Constructors {
     * @tparam T Tensor data type.
     * @return Created op output.
     */
-  def ones[T](dataType: DataType[T], shape: Output[Long]): Output[T] = {
+  def ones[T](dataType: DataType[T], shape: Output[Int]): Output[T] = {
     implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Op.nameScope("Ones") {
-      fill[T, Long](shape)(Tensor.ones[T](Shape()))
+      fill[T, Int](shape)(Tensor.ones[T](Shape()))
     }
   }
 
@@ -445,7 +445,7 @@ trait Constructors {
       if (shape == null)
         placeholder[Long](Shape(-1), s"$name/Shape")
       else
-        constant(shape.toTensor)
+        constant(shape.toTensor.toLong)
     }
     SparseOutput[T](
       indices = placeholder[Long](Shape(-1, -1), s"$name/Indices"),

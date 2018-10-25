@@ -607,7 +607,7 @@ class Tensor[T] protected (
   /** Returns the tensor indexed slices that has the same value as this tensor. */
   override def toTensorIndexedSlices: TensorIndexedSlices[T] = {
     TensorIndexedSlices(
-      indices = (0 until shape(0)).toTensor.toLong,
+      indices = (0 until shape(0)).toTensor,
       values = this,
       denseShape = shape.toTensor)
   }
@@ -1125,9 +1125,9 @@ object Tensor {
   * @author Emmanouil Antonios Platanios
   */
 final case class TensorIndexedSlices[T](
-    indices: Tensor[Long],
+    indices: Tensor[Int],
     values: Tensor[T],
-    denseShape: Tensor[Long] = null
+    denseShape: Tensor[Int] = null
 ) extends TensorLike[T] {
   protected implicit val evTTF: TF[T] = {
     TF.fromDataType(values.dataType)

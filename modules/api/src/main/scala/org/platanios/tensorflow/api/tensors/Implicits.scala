@@ -38,7 +38,7 @@ private[api] trait Implicits
     if (value == null) null else value.toTensor
   }
 
-  implicit def tensorFromShape(shape: Shape): Tensor[Long] = {
+  implicit def tensorFromShape(shape: Shape): Tensor[Int] = {
     if (shape == null) null else shape.toTensor
   }
 

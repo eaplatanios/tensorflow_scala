@@ -247,7 +247,7 @@ case class Dropout[T: TF : IsHalfOrFloatOrDouble](
     mode match {
       case TRAINING =>
         val noise = if (noiseShape == null) null else noiseShape.toOutput
-        ops.NN.dropout[T, Long](input, keepProbability, scaleOutput, noise, seed, name)
+        ops.NN.dropout[T, Int](input, keepProbability, scaleOutput, noise, seed, name)
       case _ => input
     }
   }

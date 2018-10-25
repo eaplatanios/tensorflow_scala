@@ -332,18 +332,18 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     *
     * @return One-dimensional tensor representing this shape.
     */
-  def toTensor: Tensor[Long] = {
+  def toTensor: Tensor[Int] = {
     if (rank == 0)
-      Tensor.empty[Long]
+      Tensor.empty[Int]
     else
-      (asArray: Tensor[Int]).castTo[Long]
+      asArray: Tensor[Int]
   }
 
   /** Converts this shape to a one-dimensional "symbolic" tensor (i.e., a constant-valued op output).
     *
     * @return One-dimensional op output tensor representing this shape.
     */
-  def toOutput: Output[Long] = {
+  def toOutput: Output[Int] = {
     Basic.constant(toTensor, name = "Shape")
   }
 

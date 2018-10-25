@@ -40,12 +40,12 @@ class OpStructureSuite extends JUnitSuite {
 
   @Test def testOutputLikeExecutable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
-      val output1 = Basic.constant(Tensor(Tensor(2L), Tensor(1L)), name = "Constant_1")
+      val output1 = Basic.constant(Tensor(Tensor(2), Tensor(1)), name = "Constant_1")
       val output2 = Basic.constant(Tensor(2L, 1L), name = "Constant_2")
-      val output3 = Basic.constant(Tensor(3L), name = "Constant_3")
+      val output3 = Basic.constant(Tensor(3), name = "Constant_3")
       executable(output1)
       executable(OutputIndexedSlices(output1, output2, output3))
-      executable(SparseOutput(output1, output2, output3))
+      executable(SparseOutput(output1.toLong, output2, output3.toLong))
       succeed
     }
   }

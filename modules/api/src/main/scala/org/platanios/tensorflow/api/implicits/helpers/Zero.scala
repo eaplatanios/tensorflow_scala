@@ -83,7 +83,7 @@ object Zero {
         val staticBatchSize = Output.constantValue(batchSize).map(_.scalar).getOrElse(-1)
         Op.nameScope(name) {
           val fullShape = Basic.concatenate(Seq(
-            batchSize.expandDims(0).castTo[Long],
+            batchSize.expandDims(0),
             shape.toOutput
           ), axis = 0)
           val zero = Basic.zeros[T](fullShape)

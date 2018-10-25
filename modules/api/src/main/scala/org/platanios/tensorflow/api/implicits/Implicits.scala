@@ -82,11 +82,11 @@ private[api] trait Implicits
     outputFromSupportedType[Double](value)
   }
 
-  implicit def shapeToTensor(shape: Shape): Tensor[Long] = {
+  implicit def shapeToTensor(shape: Shape): Tensor[Int] = {
     shape.toTensor
   }
 
-  implicit def shapeToOutput(shape: Shape): Output[Long] = {
+  implicit def shapeToOutput(shape: Shape): Output[Int] = {
     shape.toOutput
   }
 

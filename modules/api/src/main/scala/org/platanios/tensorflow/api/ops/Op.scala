@@ -1069,9 +1069,9 @@ object Op {
             reference: Option[OutputIndexedSlices[T]]
         ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
           (OutputIndexedSlices[T](
-            indices = outputs(0).asInstanceOf[Output[Long]],
+            indices = outputs(0).asInstanceOf[Output[Int]],
             values = outputs(1).asInstanceOf[Output[T]],
-            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+            denseShape = outputs(2).asInstanceOf[Output[Int]]),
               outputs.drop(3))
         }
 
@@ -1133,9 +1133,9 @@ object Op {
               (outputs.head, outputs.tail)
             case Some(_: OutputIndexedSlices[T]) =>
               (OutputIndexedSlices(
-                indices = outputs(0).asInstanceOf[Output[Long]],
+                indices = outputs(0).asInstanceOf[Output[Int]],
                 values = outputs(1).asInstanceOf[Output[T]],
-                denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                denseShape = outputs(2).asInstanceOf[Output[Int]]),
                   outputs.drop(3))
             case Some(_: SparseOutput[T]) =>
               (SparseOutput(
@@ -1148,9 +1148,9 @@ object Op {
                 (outputs.head.asInstanceOf[Output[T]], outputs.tail)
               } else if (outputs.head.rank == 1) {
                 (OutputIndexedSlices(
-                  indices = outputs(0).asInstanceOf[Output[Long]],
+                  indices = outputs(0).asInstanceOf[Output[Int]],
                   values = outputs(1).asInstanceOf[Output[T]],
-                  denseShape = outputs(2).asInstanceOf[Output[Long]]),
+                  denseShape = outputs(2).asInstanceOf[Output[Int]]),
                     outputs.drop(3))
               } else {
                 (SparseOutput(
@@ -1548,9 +1548,9 @@ object Op {
             outputs: Seq[Output[Any]]
         ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
           (OutputIndexedSlices(
-            indices = outputs(0).asInstanceOf[Output[Long]],
+            indices = outputs(0).asInstanceOf[Output[Int]],
             values = outputs(1).asInstanceOf[Output[T]],
-            denseShape = outputs(2).asInstanceOf[Output[Long]]),
+            denseShape = outputs(2).asInstanceOf[Output[Int]]),
               outputs.drop(3))
         }
 
@@ -1601,9 +1601,9 @@ object Op {
             (outputs.head.asInstanceOf[Output[T]], outputs.tail)
           } else if (outputs.head.rank == 1) {
             (OutputIndexedSlices(
-              indices = outputs(0).asInstanceOf[Output[Long]],
+              indices = outputs(0).asInstanceOf[Output[Int]],
               values = outputs(1).asInstanceOf[Output[T]],
-              denseShape = outputs(2).asInstanceOf[Output[Long]]),
+              denseShape = outputs(2).asInstanceOf[Output[Int]]),
                 outputs.drop(3))
           } else {
             (SparseOutput(

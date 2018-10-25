@@ -104,9 +104,9 @@ object OutputToTensor {
           tensors: Seq[Tensor[Any]]
       ): (TensorIndexedSlices[T], Seq[Tensor[Any]]) = {
         (TensorIndexedSlices[T](
-          indices = tensors(0).asInstanceOf[Tensor[Long]],
+          indices = tensors(0).asInstanceOf[Tensor[Int]],
           values = tensors(1).asInstanceOf[Tensor[T]],
-          denseShape = tensors(2).asInstanceOf[Tensor[Long]]
+          denseShape = tensors(2).asInstanceOf[Tensor[Int]]
         ), tensors.drop(3))
       }
     }

@@ -1300,8 +1300,8 @@ private[api] object Variable {
     while (handle.op.opType != "VarHandleOp")
       handle = handle.op.inputsSeq(0).asInstanceOf[Output[Resource]]
     val parametersShape = handle.op.shapeAttribute("shape").toOutput
-    val indices = op.input._2.castTo[Long]
-    val size = Basic.expandDims(Basic.size(indices), 0)
+    val indices = op.input._2.toInt
+    val size = Basic.expandDims(Basic.size(indices).toInt, 0)
     val valuesShape = Basic.concatenate(Seq(size, parametersShape(1 ::)), 0)
     val values = Basic.reshape(outputGradient, valuesShape)
     val reshapedIndices = Basic.reshape(indices, size)

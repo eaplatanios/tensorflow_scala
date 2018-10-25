@@ -181,7 +181,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
   }
 
   @Test def testSwitchWithOutputIndexedSlicesWithDenseShape(): Unit = withNewGraph {
-    val data = OutputIndexedSlices(Tensor(0L, 1L), Tensor(1, 2, 3), Tensor(3L))
+    val data = OutputIndexedSlices(Tensor(0, 1), Tensor(1, 2, 3), Tensor(3))
     val zero = Basic.constant(0)
     val one = Basic.constant(1)
     val less = Math.less(zero, one)
@@ -189,7 +189,7 @@ class ControlFlowSuite extends JUnitSuite with Matchers {
     val session = Session()
     val switchTrue = session.run(fetches = switch._2)
     session.close()
-    assert(switchTrue.indices == Tensor(0L, 1L))
+    assert(switchTrue.indices == Tensor(0, 1))
     assert(switchTrue.values == Tensor(1, 2, 3))
   }
 

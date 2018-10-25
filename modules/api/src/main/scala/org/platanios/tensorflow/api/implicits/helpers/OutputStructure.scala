@@ -136,9 +136,9 @@ object OutputStructure {
           outputs: Seq[Output[Any]]
       ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
         (OutputIndexedSlices[T](
-          indices = outputs(0).asInstanceOf[Output[Long]],
+          indices = outputs(0).asInstanceOf[Output[Int]],
           values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]]
+          denseShape = outputs(2).asInstanceOf[Output[Int]]
         ), outputs.drop(3))
       }
 

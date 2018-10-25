@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.implicits.helpers
 
-import org.platanios.tensorflow.api.core.types.{DataType, FLOAT32, INT64, VARIANT, Variant}
+import org.platanios.tensorflow.api.core.types.{DataType, FLOAT32, INT32, INT64, VARIANT, Variant}
 import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput, TensorArray}
 import org.platanios.tensorflow.api.utilities.Collections
@@ -95,30 +95,30 @@ object OutputToDataType {
     }
   }
 
-  implicit def fromOutputIndexedSlices[T]: Aux[OutputIndexedSlices[T], SparseDataType[T]] = {
+  implicit def fromOutputIndexedSlices[T]: Aux[OutputIndexedSlices[T], IndexedSlicesDataType[T]] = {
     new OutputToDataType[OutputIndexedSlices[T]] {
-      override type D = SparseDataType[T]
+      override type D = IndexedSlicesDataType[T]
 
-      override def dataTypeStructure: DataTypeStructure[SparseDataType[T]] = {
-        implicitly[DataTypeStructure[SparseDataType[T]]]
+      override def dataTypeStructure: DataTypeStructure[IndexedSlicesDataType[T]] = {
+        implicitly[DataTypeStructure[IndexedSlicesDataType[T]]]
       }
 
-      override def sizeFromDataType(dataType: (DataType[Long], DataType[T], DataType[Long])): Int = {
+      override def sizeFromDataType(dataType: IndexedSlicesDataType[T]): Int = {
         3
       }
 
-      override def dataType(output: OutputIndexedSlices[T]): (DataType[Long], DataType[T], DataType[Long]) = {
-        (INT64, output.dataType, INT64)
+      override def dataType(output: OutputIndexedSlices[T]): IndexedSlicesDataType[T] = {
+        (INT32, output.dataType, INT32)
       }
 
       override def decodeOutput(
-          dataType: SparseDataType[T],
+          dataType: IndexedSlicesDataType[T],
           outputs: Seq[Output[Any]]
       ): (OutputIndexedSlices[T], Seq[Output[Any]]) = {
         (OutputIndexedSlices[T](
-          indices = outputs(0).asInstanceOf[Output[Long]],
+          indices = outputs(0).asInstanceOf[Output[Int]],
           values = outputs(1).asInstanceOf[Output[T]],
-          denseShape = outputs(2).asInstanceOf[Output[Long]]
+          denseShape = outputs(2).asInstanceOf[Output[Int]]
         ), outputs.drop(3))
       }
     }
@@ -132,11 +132,11 @@ object OutputToDataType {
         implicitly[DataTypeStructure[SparseDataType[T]]]
       }
 
-      override def sizeFromDataType(dataType: (DataType[Long], DataType[T], DataType[Long])): Int = {
+      override def sizeFromDataType(dataType: SparseDataType[T]): Int = {
         3
       }
 
-      override def dataType(output: SparseOutput[T]): (DataType[Long], DataType[T], DataType[Long]) = {
+      override def dataType(output: SparseOutput[T]): SparseDataType[T] = {
         (INT64, output.dataType, INT64)
       }
 

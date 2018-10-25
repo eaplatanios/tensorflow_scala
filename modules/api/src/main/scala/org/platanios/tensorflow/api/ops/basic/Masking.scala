@@ -129,11 +129,11 @@ trait Masking {
     */
   def indexedSlicesMask[T: TF](
       input: OutputIndexedSlices[T],
-      maskIndices: Output[Long],
+      maskIndices: Output[Int],
       name: String = "IndexedSlicesMask"
   ): OutputIndexedSlices[T] = {
     Op.nameScope(name) {
-      val (outputIndices, toGather) = listDiff(input.indices, maskIndices, indicesDataType = Long)
+      val (outputIndices, toGather) = listDiff(input.indices, maskIndices, indicesDataType = Int)
       val outputValues = Manipulation.gather(input.values, toGather, axis = 0)
       OutputIndexedSlices(indices = outputIndices, values = outputValues, denseShape = input.denseShape)
     }

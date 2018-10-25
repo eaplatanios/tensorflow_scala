@@ -913,13 +913,13 @@ abstract class Dataset[T: OutputStructure] { outer =>
       override val name: String = s"${outer.name}/PaddedBatch"
 
       private def flatPaddedShapes: Seq[Output[Long]] = {
-        evOutputToShape.shapeStructure.shapes(paddedShapes).map(_.toOutput)
+        evOutputToShape.shapeStructure.shapes(paddedShapes).map(_.toOutput.toLong)
       }
 
       private def flatPaddingValues: Seq[Output[Any]] = {
         paddingValues match {
           case Some(values) => evOutputToTensor.tensorStructure.tensors(values).map(Basic.constant(_))
-          case None => flatOutputDataTypes.map(Basic.zeros[Any](_, Tensor.empty[Long]))
+          case None => flatOutputDataTypes.map(Basic.zeros[Any](_, Tensor.empty[Int]))
         }
       }
 

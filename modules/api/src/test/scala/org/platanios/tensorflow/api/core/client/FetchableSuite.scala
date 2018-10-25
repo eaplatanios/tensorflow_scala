@@ -31,7 +31,7 @@ class FetchableSuite extends JUnitSuite {
   @Test def testFetchable(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val fetchable1 = Basic.constant[Double](1.0)
-      val fetchable2 = OutputIndexedSlices(Basic.constant(2L), Basic.constant(2L), Basic.constant(2L))
+      val fetchable2 = OutputIndexedSlices(Basic.constant(2), Basic.constant(2L), Basic.constant(2))
       val fetchable3 = SparseOutput(
         Basic.constant(Tensor(Tensor(2L), Tensor(1L))), Basic.constant(Tensor(2L, 1L)), Basic.constant(Tensor(3L)))
       val processed1 = Session.processFetches(fetchable1)

@@ -206,7 +206,7 @@ trait Embedding {
         // Reshape weights to allow broadcasting.
         val weightsStaticShape = weights.shape
         val weightsDynamicShape = Basic.shape(weights)
-        val ones = Output.ones[Long](Basic.expandDims(Basic.rank(embeddings) - 1, 0).toLong)
+        val ones = Output.ones[Int](Basic.expandDims(Basic.rank(embeddings) - 1, 0))
         val broadcastedWeightsShape = Basic.concatenate(
           Seq(weightsDynamicShape, ones), axis = 0)
         val reshapedWeights = weights.reshape(broadcastedWeightsShape)
@@ -263,7 +263,7 @@ trait Embedding {
         } else {
           val axis0Sizes = parameters.map(p => {
             if (p.staticShape.rank != -1 && p.staticShape(0) != -1)
-              Basic.constant(p.staticShape(0)).castTo[Long]
+              Basic.constant(p.staticShape(0))
             else
               Op.colocateWith(Set(p.colocationOp), ignoreExisting = true)(p.dynamicShape(0))
           })
@@ -420,7 +420,7 @@ object Embedding extends Embedding {
       parameters.shape
     }
 
-    @inline override def dynamicShape: Output[Long] = {
+    @inline override def dynamicShape: Output[Int] = {
       Basic.shape(parameters)
     }
 
@@ -443,7 +443,7 @@ object Embedding extends Embedding {
       parameters.shape
     }
 
-    @inline override def dynamicShape: Output[Long] = {
+    @inline override def dynamicShape: Output[Int] = {
       Basic.shape(parameters.value)
     }
 
@@ -523,7 +523,7 @@ trait EmbeddingParameters[T] {
   @inline def staticShape: Shape
 
   /** Returns the dynamic shape of this parameters tensor. */
-  @inline def dynamicShape: Output[Long]
+  @inline def dynamicShape: Output[Int]
 
   /** Gathers the embeddings corresponding to `indices` from `parameters`. */
   def gather[I: TF : IsIntOrLong](

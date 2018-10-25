@@ -22,6 +22,7 @@ import org.platanios.tensorflow.api.ops.data.Dataset
 
 package object helpers {
   type SparseDataType[T] = (DataType[Long], DataType[T], DataType[Long])
+  type IndexedSlicesDataType[T] = (DataType[Int], DataType[T], DataType[Int])
   type SparseShape = (Shape, Shape, Shape)
 
   // TODO: [FUNCTIONS] !!! Find a better way to deal with this for use in the reduce function of the "GroupByWindowDataset".

@@ -412,7 +412,7 @@ object Gradients {
                 }
               case o: SparseOutput[_] =>
                 Op.nameScope(s"Gradients_$index") {
-                  Basic.ones[T](o.denseShape)
+                  Basic.ones[T, Long](o.denseShape)
                 }
             }
           }
