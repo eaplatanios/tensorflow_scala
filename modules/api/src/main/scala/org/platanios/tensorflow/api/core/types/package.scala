@@ -21,6 +21,8 @@ import org.tensorflow.framework.DataType._
   * @author Emmanouil Antonios Platanios
   */
 package object types {
+  //region Value Classes
+
   // TODO: [TYPES] Add some useful functionality to the following types.
 
   case class Half(data: Short) extends AnyVal
@@ -38,6 +40,8 @@ package object types {
   case class QUShort(data: Short) extends AnyVal
   case class Resource(data: Long) extends AnyVal
   case class Variant(data: Long) extends AnyVal
+
+  //endregion Value Classes
 
   //region Data Type Instances
 

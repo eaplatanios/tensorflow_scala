@@ -107,9 +107,45 @@ package object api extends implicits.Implicits with Documentation {
   type VariableLike[T] = ops.variables.VariableLike[T]
   type Variable[T] = ops.variables.Variable[T]
 
-  //region Data Types API
+  //region Types
 
-  // TODO: [TYPES] !!! Move the value classes here.
+  //region Value Classes
+
+  type Half = core.types.Half
+  type TruncatedHalf = core.types.TruncatedHalf
+  type ComplexFloat = core.types.ComplexFloat
+  type ComplexDouble = core.types.ComplexDouble
+  type UByte = core.types.UByte
+  type UShort = core.types.UShort
+  type UInt = core.types.UInt
+  type ULong = core.types.ULong
+  type QByte = core.types.QByte
+  type QShort = core.types.QShort
+  type QInt = core.types.QInt
+  type QUByte = core.types.QUByte
+  type QUShort = core.types.QUShort
+  type Resource = core.types.Resource
+  type Variant = core.types.Variant
+
+  val Half         : core.types.Half.type          = core.types.Half
+  val TruncatedHalf: core.types.TruncatedHalf.type = core.types.TruncatedHalf
+  val ComplexFloat : core.types.ComplexFloat.type  = core.types.ComplexFloat
+  val ComplexDouble: core.types.ComplexDouble.type = core.types.ComplexDouble
+  val UByte        : core.types.UByte.type         = core.types.UByte
+  val UShort       : core.types.UShort.type        = core.types.UShort
+  val UInt         : core.types.UInt.type          = core.types.UInt
+  val ULong        : core.types.ULong.type         = core.types.ULong
+  val QByte        : core.types.QByte.type         = core.types.QByte
+  val QShort       : core.types.QShort.type        = core.types.QShort
+  val QInt         : core.types.QInt.type          = core.types.QInt
+  val QUByte       : core.types.QUByte.type        = core.types.QUByte
+  val QUShort      : core.types.QUShort.type       = core.types.QUShort
+  val Resource     : core.types.Resource.type      = core.types.Resource
+  val Variant      : core.types.Variant.type       = core.types.Variant
+
+  //endregion Value Classes
+
+  //region Data Type Instances
 
   type DataType[T] = core.types.DataType[T]
 
@@ -161,7 +197,51 @@ package object api extends implicits.Implicits with Documentation {
   val RESOURCE  : RESOURCE   = core.types.RESOURCE
   val VARIANT   : VARIANT    = core.types.VARIANT
 
-  //endregion Data Types API
+  //endregion Data Type Instances
+
+  //region Type Traits
+
+  type TF[T] = core.types.TF[T]
+  type IsFloatOrDouble[T] = core.types.IsFloatOrDouble[T]
+  type IsHalfOrFloatOrDouble[T] = core.types.IsHalfOrFloatOrDouble[T]
+  type IsTruncatedHalfOrFloatOrDouble[T] = core.types.IsTruncatedHalfOrFloatOrDouble[T]
+  type IsTruncatedHalfOrHalfOrFloat[T] = core.types.IsTruncatedHalfOrHalfOrFloat[T]
+  type IsDecimal[T] = core.types.IsDecimal[T]
+  type IsIntOrLong[T] = core.types.IsIntOrLong[T]
+  type IsIntOrLongOrFloatOrDouble[T] = core.types.IsIntOrLongOrFloatOrDouble[T]
+  type IsIntOrLongOrHalfOrFloatOrDouble[T] = core.types.IsIntOrLongOrHalfOrFloatOrDouble[T]
+  type IsIntOrLongOrUByte[T] = core.types.IsIntOrLongOrUByte[T]
+  type IsIntOrUInt[T] = core.types.IsIntOrUInt[T]
+  type IsStringOrIntOrUInt[T] = core.types.IsStringOrIntOrUInt[T]
+  type IsReal[T] = core.types.IsReal[T]
+  type IsComplex[T] = core.types.IsComplex[T]
+  type IsNotQuantized[T] = core.types.IsNotQuantized[T]
+  type IsQuantized[T] = core.types.IsQuantized[T]
+  type IsNumeric[T] = core.types.IsNumeric[T]
+  type IsBooleanOrNumeric[T] = core.types.IsBooleanOrNumeric[T]
+
+  val TF                              : core.types.TF.type                               = core.types.TF
+  val IsFloatOrDouble                 : core.types.IsFloatOrDouble.type                  = core.types.IsFloatOrDouble
+  val IsHalfOrFloatOrDouble           : core.types.IsHalfOrFloatOrDouble.type            = core.types.IsHalfOrFloatOrDouble
+  val IsTruncatedHalfOrFloatOrDouble  : core.types.IsTruncatedHalfOrFloatOrDouble.type   = core.types.IsTruncatedHalfOrFloatOrDouble
+  val IsTruncatedHalfOrHalfOrFloat    : core.types.IsTruncatedHalfOrHalfOrFloat.type     = core.types.IsTruncatedHalfOrHalfOrFloat
+  val IsDecimal                       : core.types.IsDecimal.type                        = core.types.IsDecimal
+  val IsIntOrLong                     : core.types.IsIntOrLong.type                      = core.types.IsIntOrLong
+  val IsIntOrLongOrFloatOrDouble      : core.types.IsIntOrLongOrFloatOrDouble.type       = core.types.IsIntOrLongOrFloatOrDouble
+  val IsIntOrLongOrHalfOrFloatOrDouble: core.types.IsIntOrLongOrHalfOrFloatOrDouble.type = core.types.IsIntOrLongOrHalfOrFloatOrDouble
+  val IsIntOrLongOrUByte              : core.types.IsIntOrLongOrUByte.type               = core.types.IsIntOrLongOrUByte
+  val IsIntOrUInt                     : core.types.IsIntOrUInt.type                      = core.types.IsIntOrUInt
+  val IsStringOrIntOrUInt             : core.types.IsStringOrIntOrUInt.type              = core.types.IsStringOrIntOrUInt
+  val IsReal                          : core.types.IsReal.type                           = core.types.IsReal
+  val IsComplex                       : core.types.IsComplex.type                        = core.types.IsComplex
+  val IsNotQuantized                  : core.types.IsNotQuantized.type                   = core.types.IsNotQuantized
+  val IsQuantized                     : core.types.IsQuantized.type                      = core.types.IsQuantized
+  val IsNumeric                       : core.types.IsNumeric.type                        = core.types.IsNumeric
+  val IsBooleanOrNumeric              : core.types.IsBooleanOrNumeric.type               = core.types.IsBooleanOrNumeric
+
+  //endregion Type Traits
+
+  //endregion Types
 
   type Closeable = utilities.Closeable
 
