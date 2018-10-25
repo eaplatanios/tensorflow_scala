@@ -30,7 +30,7 @@ The main APIs of TensorFlow Scala are the following:
     offered by the TensorFlow Python API, with the main
     difference being that this interface is
     statically-typed.
-  - **[High-Level Learning:](guides/learn.md)** High-level
+  - **[High-Level Learning:](guides/estimators.md)** High-level
     interface for creating, training, and using neural
     networks. This is similar in functionality to the
     [Keras](https://keras.io) library used by Python
@@ -54,8 +54,9 @@ you lost everything, decrease significantly.
 It is recommended to first go through the
 **[Tensors](guides/tensors.md)** guide, and then go from
 high-level to low-level concepts as you progress (i.e.,
-read through the **[High-Level Learning](guides/learn.md)**
-guide first and then through the
+read through the
+**[High-Level Learning](guides/estimators.md)** guide first
+and then through the
 **[Graph Construction](guides/graph_construction.md)**
 guide). Concepts such as the TensorFlow graph and sessions
 only appear in the

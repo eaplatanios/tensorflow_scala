@@ -87,7 +87,7 @@ lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples, horovod, site)
+    .aggregate(jni, api, data, examples, horovod)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
@@ -273,63 +273,6 @@ lazy val examples = (project in file("./modules/examples"))
     .settings(moduleName := "tensorflow-examples", name := "TensorFlow Scala - Examples")
     .settings(commonSettings)
     .settings(publishSettings)
-
-lazy val site = (project in file("./docs/site"))
-    .dependsOn(api)
-    .enablePlugins(ScalaUnidocPlugin, MicrositesPlugin)
-    .settings(moduleName := "tensorflow-site", name := "TensorFlow Scala - Site")
-    .settings(commonSettings)
-    .settings(publishSettings)
-    .settings(noPublishSettings)
-    .settings(
-      autoAPIMappings := true,
-      siteSubdirName in ScalaUnidoc := "api",
-      unidocProjectFilter in (ScalaUnidoc, unidoc) := inProjects(jni, api, data, examples),
-      addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc),
-      ghpagesNoJekyll := false,
-      fork in (ScalaUnidoc, unidoc) := true,
-      scalacOptions in (ScalaUnidoc, unidoc) ++= Seq(
-        //"-Xfatal-warnings",
-        "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",
-        "-sourcepath", baseDirectory.in(LocalRootProject).value.getAbsolutePath,
-        // "=diagrams",
-        "-groups",
-        "-implicits-show-all"
-      ),
-      // libraryDependencies += "org.scalameta" %% "scalameta" % "1.8.0" % Provided,
-      // libraryDependencies += "org.scalameta" %% "contrib" % "1.8.0",
-      tutSourceDirectory := (sourceDirectory in Compile).value / "site",
-      fork in tut := true,
-      scalacOptions in Tut ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))),
-      micrositeName := "TensorFlow for Scala",
-      micrositeDescription := "Scala API for TensorFlow",
-      micrositeBaseUrl := "tensorflow_scala",
-      micrositeDocumentationUrl := "api/",
-      micrositeAuthor := "Emmanouil Antonios Platanios",
-      micrositeHomepage := "http://eaplatanios.github.io/tensorflow_scala/",
-      micrositeOrganizationHomepage := "http://eaplatanios.github.io",
-      micrositeGithubOwner := "eaplatanios",
-      micrositeGithubRepo := "tensorflow_scala",
-      micrositePushSiteWith := GHPagesPlugin,
-      micrositeGitterChannel := true,
-      micrositeGitterChannelUrl := "eaplatanios/tensorflow_scala",
-      micrositeHighlightTheme := "hybrid",
-      micrositeImgDirectory := (resourceDirectory in Compile).value / "site" / "img",
-      micrositeCssDirectory := (resourceDirectory in Compile).value / "site" / "css",
-      micrositeJsDirectory := (resourceDirectory in Compile).value / "site" / "js",
-      micrositePalette := Map(
-        "brand-primary"     -> "rgb(239, 108, 0)",
-        "brand-secondary"   -> "#455A64",
-        "brand-tertiary"    -> "#39474E", // "#303C42",
-        "gray-dark"         -> "#453E46",
-        "gray"              -> "#837F84",
-        "gray-light"        -> "#E3E2E3",
-        "gray-lighter"      -> "#F4F3F4",
-        "white-color"       -> "#FFFFFF"),
-      micrositeFooterText := None,
-      includeFilter in makeSite :=
-          "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
-      includeFilter in Jekyll := (includeFilter in makeSite).value)
 
 val JNI = config("jni")
 val API = config("api")

@@ -53,7 +53,7 @@ should be relatively stable by now, but things are still likely to change.
 
     If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
 
-    <img src="img/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
+    <img src="assets/images/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
 
   - Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and
     managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow
@@ -71,4 +71,4 @@ Funding for the development of this library has been generously provided by the 
 | **CMU Presidential Fellowship**         | **National Science Foundation**   | **Air Force Office of Scientific Research**     |
 |:---------------------------------------:|:---------------------------------:|:-----------------------------------------------:|
 | awarded to Emmanouil Antonios Platanios | Grant #: IIS1250956               | Grant #: FA95501710218                          |
-|<img src="img/cmu_logo.svg" height="113px" width="150px" />|<img src="img/nsf_logo.svg" height="150px" width="150px" />|<img src="img/afosr_logo.gif" height="150px" width="150px" />|
+|<img src="assets/images/cmu_logo.svg" height="113px" width="150px" />|<img src="assets/images/nsf_logo.svg" height="150px" width="150px" />|<img src="assets/images/afosr_logo.gif" height="150px" width="150px" />|

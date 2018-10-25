@@ -39,10 +39,6 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "1.3.2")
 addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.2")
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")
 
-// Plugins used for generating the library website
-addSbtPlugin("com.eed3si9n" % "sbt-unidoc"     % "0.4.2")
-addSbtPlugin("com.47deg"    % "sbt-microsites" % "0.7.24")
-
 // Packaging and publishing related plugins
 addSbtPlugin("com.github.gseitz" % "sbt-release"  % "1.0.9")
 addSbtPlugin("com.jsuereth"      % "sbt-pgp"      % "2.0.0-M2")
