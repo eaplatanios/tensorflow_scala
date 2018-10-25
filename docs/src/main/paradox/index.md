@@ -18,7 +18,7 @@ should be relatively stable by now, but things are still likely to change.
 @@@index
 
 * [Installation](installation.md)
-<!--* [Getting Started](getting_started.md)-->
+* [Guides](guides.md)
 <!--* [Architecture](architecture.md)-->
 * [Contributing](contributing.md)
 <!--* [Graph Collections](guides/graph_collections.md)-->
@@ -34,25 +34,11 @@ should be relatively stable by now, but things are still likely to change.
 
   - Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:
 
-    ```scala
-    import org.platanios.tensorflow.api._
-
-    val inputs = tf.placeholder(FLOAT32, Shape(-1, 10))
-    val outputs = tf.placeholder(FLOAT32, Shape(-1, 10))
-    val predictions = tf.createWith(nameScope = "Linear") {
-      val weights = tf.variable("weights", FLOAT32, Shape(10, 1), tf.zerosInitializer)
-      tf.matmul(inputs, weights)
-    }
-    val loss = tf.sum(tf.square(predictions - outputs))
-    val optimizer = tf.train.AdaGrad(1.0)
-    val trainOp = optimizer.minimize(loss)
-    ```
+    @@snip [Index.scala](/docs/src/main/scala/Index.scala) { #low_level_example }
 
   - Numpy-like indexing/slicing for tensors. For example:
 
-    ```scala
-    tensor(2 :: 5, ---, 1) // is equivalent to numpy's 'tensor[2:5, ..., 1]'
-    ```
+    @@snip [Index.scala](/docs/src/main/scala/Index.scala) { #slice_example }
 
   - High-level API for creating, training, and using neural networks. For example, the following code shows how simple it
     is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful

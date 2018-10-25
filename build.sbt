@@ -376,7 +376,6 @@ lazy val docs = (project in file("docs"))
       SiteScaladocPlugin.scaladocSettings(API, mappings in (Compile, packageDoc) in api, "api/api"),
       SiteScaladocPlugin.scaladocSettings(DATA, mappings in (Compile, packageDoc) in data, "api/data"),
       SiteScaladocPlugin.scaladocSettings(EXAMPLES, mappings in (Compile, packageDoc) in examples, "api/examples"),
-      // addMappingsToSiteDir(mappings in (SiteScaladoc, packageDoc), siteSubdirName in SiteScaladoc),
       scalacOptions in (SiteScaladoc, packageDoc) ++= Seq(
         //"-Xfatal-warnings",
         "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",

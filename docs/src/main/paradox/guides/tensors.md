@@ -1,51 +1,3 @@
-[tensor]: /tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html
-[output]: /tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html
-[data_type]: /tensorflow_scala/api/types/DataType.html
-[shape]: /tensorflow_scala/api/core/Shape.html
-[variable]: /tensorflow_scala/api/ops/variables/Variable.html
-
-[tf_python]: https://www.tensorflow.org/get_started/get_started
-
-# Getting Started
-
-Similar to the [TensorFlow Python API][tf_python], by
-Google, TensorFlow for Scala provides multiple APIs. The
-lowest level API -- Core API -- provides you with complete
-programming control. the core API is suitable for machine
-learning researchers and others who require fine levels of
-control over their models. The higher level APIs are built
-on top of the Core API. These higher level APIs are
-typically easier to learn and use. In addition, the higher
-level APIs make repetitive tasks easier and more consistent
-between different users. A high-level API like the Learn
-API helps you manage datasets, models, (distributed)
-training, and inference.
-
-The main APIs of TensorFlow for Scala introduced in this
-guide are:
-
-  - **[Tensor API:](#tensors-1)** Provides a simple way for manipulating tensors and performing computations involving
-    tensors. This is similar in functionality to the [NumPy](http://www.numpy.org) library used by Python programmers.
-  - **[Learn API:](#neural-networks-2)** High-level interface for creating, training, and using neural networks. This is
-    similar in functionality to the [Keras](https://keras.io) library used by Python programmers, with the main
-    difference being that it is strongly-typed and offers a much richer functional interface for building neural
-    networks. Furthermore, it supports distributed training in a way that is very similar to the
-    [TensorFlow Estimators API](https://www.tensorflow.org/programmers_guide/estimators).
-  - **[Core API:](#core-3)** Low-level graph construction interface, similar to that offered by the TensorFlow
-    Python API, with the main difference being that this interface is strongly-typed wherever possible.
-
-The fact that this library is strongly-typed is mentioned a couple times in the above paragraph and that's because it is
-a very important feature. It means that many problems with the code you write will show themselves at compile time,
-which means that your chances of running into the experience of waiting for a neural network to train for a week only to
-find out that your evaluation code crashed and you lost everything, decrease significantly.
-
-This guide starts with an introduction of the **[Tensor API](#tensors-1)** and goes from high-level to low-level
-concepts as you progress. Concepts such as the TensorFlow graph and sessions only appear in the **[Core API](#core-3)**
-section.
-
-**NOTE:** This guide borrows a lot of material from the official [Python API documentation][tf_python] of TensorFlow and
-adapts it for the purposes of TensorFlow for Scala. It also introduces a lot of new constructs specific to this library.
-
 # Tensors
 
 TensorFlow, as the name indicates, is a framework to define and run computations involving tensors. A tensor is a
@@ -63,6 +15,22 @@ val tensor = Tensor.zeros[Int](Shape(2, 5))
 You can print the contents of a tensor as follows:
 ```scala
 tensor.summarize(flattened = true)
+```
+
+## Tensor Creation
+
+Tensors can be created using various constructors defined in the `Tensor`
+companion object. For example:
+
+```scala
+val a = Tensor(1, 2)      // Creates a Tensor[Int] with shape [2]
+val b = Tensor(1L, 2)     // Creates a Tensor[Long] with shape [2]
+val c = Tensor(3.0f)      // Creates a Tensor[Float] with shape [1]
+val d = Tensor(-4.0)      // Creates a Tensor[Double] with shape [1]
+val e = Tensor.empty[Int] // Creates an empty Tensor[Int] with shape [0]
+val z = Tensor.zeros[Float](Shape(5, 2))   // Creates a zeros Tensor[Float] with shape [5, 2]
+val r = Tensor.randn(Double, Shape(10, 3)) // Creates a Tensor[Double] with shape [10, 3] and
+                                           // elements drawn from the standard Normal distribution.
 ```
 
 ## Data Type
@@ -169,72 +137,18 @@ An indexer can be one of:
 
 Examples of constructing and using indexers are provided in the `Ellipsis` and the `Slice` class documentation.
 Here we provide examples of indexing over tensors using indexers:
-```tut:silent
-val t = Tensor.zeros(FLOAT32, Shape(4, 2, 3, 8))
+
+```scala
+val t = Tensor.zeros[Float](Shape(4, 2, 3, 8))
 t(::, ::, 1, ::)            // Tensor with shape [4, 2, 1, 8]
 t(1 :: -2, ---, 2)          // Tensor with shape [1, 2, 3, 1]
 t(---)                      // Tensor with shape [4, 2, 3, 8]
 t(1 :: -2, ---, NewAxis, 2) // Tensor with shape [1, 2, 3, 1, 1]
 t(1 ::, ---, NewAxis, 2)    // Tensor with shape [3, 2, 3, 1, 1]
 ```
+
 where `---` corresponds to an ellipsis.
 
 Note that each indexing sequence is only allowed to contain at most one Ellipsis. Furthermore, if an ellipsis is not
 provided, then one is implicitly appended at the end of indexing sequence. For example, `foo(2 :: 4)` is equivalent to
 `foo(2 :: 4, ---)`.
-
-# Neural Networks
-
-
-# Data
-
-
-# Core
-
-The low level API can be used to define computations that will be executed at a later point, and potentially execute
-them. It can also be used to create custom layers for the [Learn API](#neural-networks-2). The main type of object
-underlying the low level API is the [`Output`][output], which represents the value of a [`Tensor`][tensor] that has not
-yet been computed. Its name comes from the fact that it represents the *output* of some computation. An
-[`Output`][output] object thus represents a partially defined computation that will eventually produce a value. Core
-TensorFlow programs work by first building a graph of [`Output`][output] objects, detailing how each output is computed
-based on the other available outputs, and then by running parts of this graph to achieve the desired results.
-
-Similar to a [`Tensor`][tensor], each element in an [`Output`][output] has the same data type, and the data type is
-always known. However, the shape of an [`Output`][output] might be only partially known. Most operations produce tensors
-of fully-known shapes if the shapes of their inputs are also fully known, but in some cases it's only possible to find
-the shape of a tensor at graph execution time.
-
-It is important to understand the main concepts underlying the core API:
-
-  - **Tensor:**
-  - **Output:**
-    - **Sparse Output:**
-    - **Placeholder:**
-    - **Variable:**
-  - **Graph:**
-  - **Session:**
-
-With the exception of [`Variable`][variable]s, the value of outputs is immutable, which means that in the context of a
-single execution, outputs only have a single value. However, evaluating the same output twice can result in different
-values. For example, that tensor may be the result of reading data from disk, or generating a random number.
-
-## Graph
-
-
-## Working with Outputs
-
-
-### Evaluating Outputs
-
-
-### Printing Outputs
-
-
-### Logging
-
-Logging in the native TensorFlow library can be controlled by setting the `TF_CPP_MIN_LOG_LEVEL` environment variable:
-
-  - `0`: Debug level (default).
-  - `1`: Warning level.
-  - `2`: Error level.
-  - `3`: Fatal level.

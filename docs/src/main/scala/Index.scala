@@ -58,3 +58,24 @@ trait IndexTensorBoard extends Index {
   estimator.train(() => trainData, StopCriteria(maxSteps = Some(100000)))
   // #tensorboard_example
 }
+
+trait IndexLowLevelExample {
+  // #low_level_example
+  val inputs      = tf.placeholder[Float](Shape(-1, 10))
+  val outputs     = tf.placeholder[Float](Shape(-1, 10))
+  val predictions = tf.nameScope("Linear") {
+    val weights = tf.variable[Float]("weights", Shape(10, 1), tf.ZerosInitializer)
+    tf.matmul(inputs, weights)
+  }
+  val loss        = tf.sum(tf.square(predictions - outputs))
+  val optimizer   = tf.train.AdaGrad(1.0f)
+  val trainOp     = optimizer.minimize(loss)
+  // #low_level_example
+}
+
+trait IndexSliceExample {
+  val tensor = Tensor.zeros[Float](Shape(10, 2, 3, 4, 5, 20))
+  // #slice_example
+  tensor(2 :: 5, ---, 1) // is equivalent to numpy's 'tensor[2:5, ..., 1]'
+  // #slice_example
+}
