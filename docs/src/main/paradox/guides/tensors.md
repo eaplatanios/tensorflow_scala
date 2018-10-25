@@ -73,7 +73,7 @@ VARIANT    // Variant
 
 TensorFlow Scala also provides value classes for the types
 that are not natively supported by Scala (e.g.,
-@scaladoc[UByte](org.platanios.tensorflow.api.types.UByte)
+@scaladoc[UByte](org.platanios.tensorflow.api.core.types.UByte)
 corresponds to `UINT8`).
 
 It is also possible to cast tensors from one data type to
@@ -98,11 +98,50 @@ which stands for *TensorFlow Imperative*
 
 @@@
 
-## Rank
+## Shape
 
-The rank of a [`Tensor`][tensor] is its number of dimensions. Synonyms for rank include order or degree or
-`n`-dimension. Note that rank in TensorFlow is not the same as matrix rank in mathematics. As the following table shows,
-each rank in TensorFlow corresponds to a different mathematical entity:
+The shape of a tensor is the number of elements it contains
+in each dimension. The TensorFlow documentation uses two
+notational conventions to describe tensor dimensionality:
+*rank*, and *shape*. The following table shows how these
+relate to one another:
+
+| Rank | Shape              | Example                                 |
+|:-----|:-------------------|:----------------------------------------|
+| 0    | []                 | A 0-D tensor. A scalar.                 |
+| 1    | [D0]               | A 1-D tensor with shape [5].            |
+| 2    | [D0, D1]           | A 2-D tensor with shape [3, 4].         |
+| 3    | [D0, D1, D2]       | A 3-D tensor with shape [1, 4, 3].      |
+| n    | [D0, D1, ... Dn-1] | A tensor with shape [D0, D1, ... Dn-1]. |
+
+Shapes can be automatically converted to integer tensors,
+if necessary.
+
+@@@ note
+
+Shapes are automatically converted to `Tensor[Int]` and not
+`Tensor[Long]` in order to improve performance when working
+with GPUs. The reason is that TensorFlow treats integer
+tensors in a special manner, if they are placed on GPUs,
+assuming that they represent shapes.
+
+@@@
+
+For example:
+
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_shape_examples }
+
+The shape of a tensor can be inspected using:
+
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_inspect_shape_example }
+
+### Rank
+
+The rank of of a tensor is its number of dimensions.
+Synonyms for rank include order or degree or `n`-dimension.
+Note that rank in TensorFlow is not the same as matrix rank
+in mathematics. As the following table shows, each rank in
+TensorFlow corresponds to a different mathematical entity:
 
 | Rank | Math Entity                      |
 |:-----|:---------------------------------|
@@ -112,50 +151,33 @@ each rank in TensorFlow corresponds to a different mathematical entity:
 | 3    | 3-Tensor (cube of numbers)       |
 | n    | n-Tensor (you get the idea)      |
 
-For example:
-```tut:silent
-val t0 = Tensor.ones(INT32, Shape())     // Creates a scalar equal to the value 1
-val t1 = Tensor.ones(INT32, Shape(10))   // Creates a vector with 10 elements, all of which are equal to 1
-val t2 = Tensor.ones(INT32, Shape(5, 2)) // Creates a matrix with 5 rows with 2 columns
+The rank of a tensor can be inspected using:
 
-// You can also create tensors in the following way:
-val t3 = Tensor(2.0, 5.6)                                 // Creates a vector that contains the numbers 2.0 and 5.6
-val t4 = Tensor(Tensor(1.2f, -8.4f), Tensor(-2.3f, 0.4f)) // Creates a matrix with 2 rows and 2 columns
-```
-
-A rank of a tensor can be obtained in one of two ways:
-```tut:silent
-t4.rank      // Returns the value 2
-tfi.rank(t4) // Also returns the value 2
-```
-
-## Shape
-
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_inspect_rank_example }
 
 ## Indexing / Slicing
 
-Similar to NumPy, tensors can be indexed/sliced in various ways:
+Similar to NumPy, tensors can be indexed/sliced in various
+ways. An indexer can be one of:
 
-An indexer can be one of:
-  - `Ellipsis`: Corresponds to a full slice over multiple dimensions of a tensor. Ellipses are used to represent
-    zero or more dimensions of a full-dimension indexer sequence.
-  - `NewAxis`: Corresponds to the addition of a new dimension.
-  - `Slice`: Corresponds to a slice over a single dimension of a tensor.
+  - `Ellipsis`: Full slice over multiple dimensions of a
+    tensor. Ellipses are used to represent zero or more
+    dimensions of a full-dimension indexer sequence.
+  - `NewAxis`: Addition of a new dimension.
+  - `Slice`: Slice over a single dimension of a tensor.
 
-Examples of constructing and using indexers are provided in the `Ellipsis` and the `Slice` class documentation.
-Here we provide examples of indexing over tensors using indexers:
+Examples of constructing and using indexers are provided in
+the @scaladoc[Ellipsis](org.platanios.tensorflow.api.core.Ellipsis)
+and the @scaladoc[Slice](org.platanios.tensorflow.api.core.Slice)
+documentation. Here we provide examples of indexing over
+tensors using indexers:
 
-```scala
-val t = Tensor.zeros[Float](Shape(4, 2, 3, 8))
-t(::, ::, 1, ::)            // Tensor with shape [4, 2, 1, 8]
-t(1 :: -2, ---, 2)          // Tensor with shape [1, 2, 3, 1]
-t(---)                      // Tensor with shape [4, 2, 3, 8]
-t(1 :: -2, ---, NewAxis, 2) // Tensor with shape [1, 2, 3, 1, 1]
-t(1 ::, ---, NewAxis, 2)    // Tensor with shape [3, 2, 3, 1, 1]
-```
+@@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_indexer_examples }
 
 where `---` corresponds to an ellipsis.
 
-Note that each indexing sequence is only allowed to contain at most one Ellipsis. Furthermore, if an ellipsis is not
-provided, then one is implicitly appended at the end of indexing sequence. For example, `foo(2 :: 4)` is equivalent to
-`foo(2 :: 4, ---)`.
+Note that each indexing sequence is only allowed to contain
+at most one ellipsis. Furthermore, if an ellipsis is not
+provided, then one is implicitly appended at the end of the
+indexing sequence. For example, `foo(2 :: 4)` is equivalent
+to `foo(2 :: 4, ---)`.

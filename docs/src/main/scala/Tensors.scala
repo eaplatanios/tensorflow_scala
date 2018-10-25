@@ -1,5 +1,7 @@
 import org.platanios.tensorflow.api._
 
+import scala.language.postfixOps
+
 object Tensors {
   // #zeros_tensor_example
   val tensor = Tensor.zeros[Int](Shape(2, 5))
@@ -33,4 +35,31 @@ object Tensors {
   // #tensor_datatype_example
   floatTensor.dataType // Returns FLOAT32
   // #tensor_datatype_example
+
+  // #tensor_shape_examples
+  val t0 = Tensor.ones[Int](Shape())     // Creates a scalar equal to the value 1
+  val t1 = Tensor.ones[Int](Shape(10))   // Creates a vector with 10 elements, all of which are equal to 1
+  val t2 = Tensor.ones[Int](Shape(5, 2)) // Creates a matrix with 5 rows with 2 columns
+
+  // You can also create tensors in the following way:
+  val t3 = Tensor(2.0, 5.6)                                 // Creates a vector that contains the numbers 2.0 and 5.6
+  val t4 = Tensor(Tensor(1.2f, -8.4f), Tensor(-2.3f, 0.4f)) // Creates a matrix with 2 rows and 2 columns
+  // #tensor_shape_examples
+
+  // #tensor_inspect_shape_example
+  t4.shape // Returns the value Shape(2, 2)
+  // #tensor_inspect_shape_example
+
+  // #tensor_inspect_rank_example
+  t4.rank // Returns the value 2
+  // #tensor_inspect_rank_example
+
+  // #tensor_indexer_examples
+  val t = Tensor.zeros[Float](Shape(4, 2, 3, 8))
+  t(::, ::, 1, ::)            // Tensor with shape [4, 2, 1, 8]
+  t(1 :: -2, ---, 2)          // Tensor with shape [1, 2, 3, 1]
+  t(---)                      // Tensor with shape [4, 2, 3, 8]
+  t(1 :: -2, ---, NewAxis, 2) // Tensor with shape [1, 2, 3, 1, 1]
+  t(1 ::, ---, NewAxis, 2)    // Tensor with shape [3, 2, 3, 1, 1]
+  // #tensor_indexer_examples
 }
