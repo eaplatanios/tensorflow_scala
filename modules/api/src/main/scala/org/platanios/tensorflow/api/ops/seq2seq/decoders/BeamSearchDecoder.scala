@@ -155,12 +155,12 @@ class BeamSearchDecoder[T: TF, State: OutputStructure, StateShape](
       val initialState = BeamSearchDecoder.BeamSearchDecoderState[State](
         modelState = processedInitialCellState,
         logProbabilities = Basic.oneHot[Float, Int](
-          indices = Basic.zeros[Int, Int](batchSize.expandDims(0)),
+          indices = Basic.zeros[Int](batchSize.expandDims(0)),
           depth = beamWidth,
           onValue = Basic.zeros[Float](Shape()),
           offValue = Basic.constant(Float.MinValue)),
         finished = finished,
-        sequenceLengths = Basic.zeros[Int, Int](Basic.stack[Int](Seq(batchSize, beamWidth))))
+        sequenceLengths = Basic.zeros[Int](Basic.stack[Int](Seq(batchSize, beamWidth))))
       (finished, beginInput, initialState)
     }
   }
@@ -183,8 +183,8 @@ class BeamSearchDecoder[T: TF, State: OutputStructure, StateShape](
         BeamSearchDecoder.MaybeTensorConverter(
           BeamSearchDecoder.MergeBatchBeamsConverter(batchSize, beamWidth)))
       val mergedNextTuple = cell(Tuple(mergedInput, mergedCellState))
-      val nextTupleOutput = BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)(
-        mergedNextTuple.output, Some(mergedNextTuple.output.shape(1 ::)))
+      val nextTupleOutput = outputLayer(BeamSearchDecoder.SplitBatchBeamsConverter(batchSize, beamWidth)(
+        mergedNextTuple.output, Some(mergedNextTuple.output.shape(1 ::))))
       val nextTupleState = evOutputToShapeState.map(
         mergedNextTuple.state, Some(cell.stateShape),
         BeamSearchDecoder.MaybeTensorConverter(
@@ -199,7 +199,7 @@ class BeamSearchDecoder[T: TF, State: OutputStructure, StateShape](
 
       // Calculate the total log probabilities for the new hypotheses (final shape = [batchSize, beamWidth, vocabSize]).
       val stepLogProbabilities = BeamSearchDecoder.maskLogProbabilities(
-        NN.logSoftmax(nextTupleOutput.castTo[Float]), endToken, previouslyFinished)
+        NN.logSoftmax(nextTupleOutput.toFloat), endToken, previouslyFinished)
       val totalLogProbabilities = state.logProbabilities.expandDims(Output.constant[Int](2)) + stepLogProbabilities
 
       // Calculate the continuation lengths by adding to all continuing search states.
@@ -207,7 +207,7 @@ class BeamSearchDecoder[T: TF, State: OutputStructure, StateShape](
         if (nextTupleOutput.shape(-1) != -1)
           Basic.constant(nextTupleOutput.shape(-1))
         else
-          Basic.shape(nextTupleOutput).castTo[Int].slice(-1)
+          Basic.shape(nextTupleOutput).toInt.slice(-1)
       }
 
       var lengthsToAdd = Basic.oneHot[Int, Int](
@@ -221,7 +221,7 @@ class BeamSearchDecoder[T: TF, State: OutputStructure, StateShape](
         predictionLengths.expandDims(2))
 
       // Calculate the scores for each search state.
-      val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths).castTo[Float]
+      val scores = lengthPenalty(totalLogProbabilities, newPredictionLengths).toFloat
 
       // During the first time step we only consider the initial search state.
       val scoresFlat = Basic.reshape(scores, Basic.stack[Int](Seq(batchSize, -1)))
@@ -240,8 +240,8 @@ class BeamSearchDecoder[T: TF, State: OutputStructure, StateShape](
         rangeSize = vocabSize * beamWidth,
         gatherShape = Seq(-1),
         name = "NextBeamLogProbabilities")
-      val nextPredictedIDs = Math.mod(wordIndices, vocabSize, name = "NextBeamPredictedIDs").castTo[Int]
-      val nextParentIDs = Math.divide(wordIndices, vocabSize, name = "NextBeamParentIDs").castTo[Int]
+      val nextPredictedIDs = Math.mod(wordIndices, vocabSize, name = "NextBeamPredictedIDs").toInt
+      val nextParentIDs = Math.divide(wordIndices, vocabSize, name = "NextBeamParentIDs").toInt
 
       // Append the new IDs to the current predictions.
       val gatheredFinished = BeamSearchDecoder.gather(

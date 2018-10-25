@@ -17,6 +17,8 @@ package org.platanios.tensorflow.api.core
 
 import org.tensorflow.framework.DataType._
 
+import scala.annotation.implicitNotFound
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -73,6 +75,7 @@ package object types {
 
   //region Type Traits
 
+  @implicitNotFound(msg = "Cannot prove that ${T} is a supported TensorFlow data type.")
   trait TF[T] {
     @inline def dataType: org.platanios.tensorflow.api.core.types.DataType[T]
   }
