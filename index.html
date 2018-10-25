@@ -139,7 +139,7 @@ eaplatanios/tensorflow_scala
   <ul>
     <li><a href="guides/tensors.html" class="page">Tensors</a></li>
     <li><a href="guides/graph_construction.html" class="page">Graph Construction</a></li>
-    <li><a href="guides/learn.html" class="page">High-Level Learning</a></li>
+    <li><a href="guides/estimators.html" class="page">Estimators</a></li>
   </ul></li>
   <li><a href="contributing.html" class="page">Contributing</a></li>
   <li><a href="release_notes.html" class="page">Release Notes</a>
@@ -270,7 +270,7 @@ val estimator = InMemoryEstimator(
   tensorBoardConfig = TensorBoardConfig(summariesDir))
 estimator.train(() =&gt; trainData, StopCriteria(maxSteps = Some(100000)))</code></pre>
     <p>If you now browse to <code>https://127.0.0.1:6006</code> while training, you can see the training progress:</p>
-    <img src="img/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
+    <img src="assets/images/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
   </li>
   <li>
   <p>Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow session), we use a combination of weak references and a disposing thread running in the background. Please refer to <code>tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala</code>, for the implementation.</p></li>
@@ -296,9 +296,9 @@ estimator.train(() =&gt; trainData, StopCriteria(maxSteps = Some(100000)))</code
       <td align="center">Grant #: FA95501710218 </td>
     </tr>
     <tr>
-      <td align="center"><img src="img/cmu_logo.svg" height="113px" width="150px" /></td>
-      <td align="center"><img src="img/nsf_logo.svg" height="150px" width="150px" /></td>
-      <td align="center"><img src="img/afosr_logo.gif" height="150px" width="150px" /></td>
+      <td align="center"><img src="assets/images/cmu_logo.svg" height="113px" width="150px" /></td>
+      <td align="center"><img src="assets/images/nsf_logo.svg" height="150px" width="150px" /></td>
+      <td align="center"><img src="assets/images/afosr_logo.gif" height="150px" width="150px" /></td>
     </tr>
   </tbody>
 </table>
