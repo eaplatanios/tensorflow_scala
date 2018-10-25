@@ -33,8 +33,9 @@ various ops (e.g., `IsIntOrUInt[Int]`, `IsIntOrUInt[Long]`,
 general implementation of union types for Scala.
 
 Other new features include:
-- `data` module:
-  - Added support for the `mapAndBatch` transformation.
+
+  - `data` module:
+    - Added support for the `mapAndBatch` transformation.
 
 # 0.3.0 Static Data Types and More
 
@@ -56,20 +57,20 @@ val t5 = t3.any()       // Fails at compile-time because `any()` is only
 
 Other new features include:
 
-- Improvements to the high-level learn API:
-  - Layers can now provide and use their own parameter generator, and
-    can also access the current training step
-    (using `Layer.currentStep`).
-  - Layers now support `.map(...)`.
-  - Added support for batch normalization.
-- Added support for `tf.logSigmoid` and `tf.lrn`.
-- Added support for the following new metrics:
-  - Grouped precision.
-  - Precision-at-k.
-- `data` module:
-  - Added support for loading the extreme classification repository
-    datasets (i.e., `data.XCLoader`).
-  - Added support for randomly splitting datasets.
+  - Improvements to the high-level learn API:
+    - Layers can now provide and use their own parameter generator, and
+      can also access the current training step
+      (using `Layer.currentStep`).
+    - Layers now support `.map(...)`.
+    - Added support for batch normalization.
+  - Added support for `tf.logSigmoid` and `tf.lrn`.
+  - Added support for the following new metrics:
+    - Grouped precision.
+    - Precision-at-k.
+  - `data` module:
+    - Added support for loading the extreme classification repository
+      datasets (i.e., `data.XCLoader`).
+    - Added support for randomly splitting datasets.
 
 # 0.2.4 Minor Fix
 

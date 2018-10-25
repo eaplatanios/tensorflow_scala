@@ -111,7 +111,7 @@ are a few useful links:
 
     If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
 
-    <img src="assets/images/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
+    <img src="https://platanios.org/tensorflow_scala/assets/images/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
 
   - Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and
     managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow
