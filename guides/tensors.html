@@ -19,22 +19,22 @@
 
 
 <meta name="description" content="TensorFlow Scala - Documentation">
-<link rel="shortcut icon" href="favicon.ico">
-<title>Getting Started</title>
-<link rel="stylesheet" href="assets/stylesheets/application.451f80e5.css">
-<link rel="stylesheet" href="assets/stylesheets/application-palette.22915126.css">
-<link rel="stylesheet" href="lib/material__tabs/dist/mdc.tabs.min.css">
-<link rel="stylesheet" href="lib/prettify/prettify.css">
-<script src="assets/javascripts/modernizr.1aa3b519.js"></script>
+<link rel="shortcut icon" href="../favicon.ico">
+<title>Tensors · TensorFlow Scala</title>
+<link rel="stylesheet" href="../assets/stylesheets/application.451f80e5.css">
+<link rel="stylesheet" href="../assets/stylesheets/application-palette.22915126.css">
+<link rel="stylesheet" href="../lib/material__tabs/dist/mdc.tabs.min.css">
+<link rel="stylesheet" href="../lib/prettify/prettify.css">
+<script src="../assets/javascripts/modernizr.1aa3b519.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
 <style>
 body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}
 code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}
 </style>
-<link rel="stylesheet" href="assets/fonts/font-awesome.css">
-<link rel="stylesheet" href="assets/fonts/material-icons.css">
-<link rel="stylesheet" href="assets/stylesheets/paradox-material-theme.css">
-<link rel="stylesheet" href="assets/custom.css">
+<link rel="stylesheet" href="../assets/fonts/font-awesome.css">
+<link rel="stylesheet" href="../assets/fonts/material-icons.css">
+<link rel="stylesheet" href="../assets/stylesheets/paradox-material-theme.css">
+<link rel="stylesheet" href="../assets/custom.css">
 </head>
 <body
 data-md-color-primary="white"
@@ -47,8 +47,8 @@ data-md-color-accent="red"
 <nav class="md-header-nav md-grid">
 <div class="md-flex">
 <div class="md-flex__cell md-flex__cell--shrink">
-<a href="getting_started.html" title="Getting Started" class="md-header-nav__button md-logo">
-<img src="assets/images/logo.png" width="24" height="24">
+<a href="../index.html" title="TensorFlow Scala" class="md-header-nav__button md-logo">
+<img src="../assets/images/logo.png" width="24" height="24">
 </a>
 </div>
 <div class="md-flex__cell md-flex__cell--shrink">
@@ -56,7 +56,12 @@ data-md-color-accent="red"
 </div>
 <div class="md-flex__cell md-flex__cell--stretch">
 <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
-Getting Started
+<span class="md-header-nav__topic">
+TensorFlow Scala
+</span>
+<span class="md-header-nav__topic">
+Tensors
+</span>
 </div>
 </div>
 <div class="md-flex__cell md-flex__cell--shrink">
@@ -111,12 +116,12 @@ eaplatanios/tensorflow_scala
 <div class="md-sidebar__inner">
 <nav class="md-nav md-nav--primary" data-md-level="0" style="visibility: hidden">
 <label class="md-nav__title md-nav__title--site" for="drawer">
-<a href="getting_started.html" title="Getting Started" class="md-nav__button md-logo">
+<a href="../index.html" title="TensorFlow Scala" class="md-nav__button md-logo">
 <span class="md-nav__button md-logo">
-<img src="assets/images/logo.png" width="24" height="24">
+<img src="../assets/images/logo.png" width="24" height="24">
 </a>
-<a href="getting_started.html" title="Getting Started">
-Getting Started
+<a href="../index.html" title="TensorFlow Scala">
+TensorFlow Scala
 </a>
 </label>
 <div class="md-nav__source">
@@ -134,26 +139,37 @@ eaplatanios/tensorflow_scala
 
 </div>
 <ul>
+  <li><a href="../installation.html" class="page">Installation</a></li>
+  <li><a href="../guides.html" class="page">Guides</a>
+  <ul>
+    <li><a href="../guides/tensors.html" class="active page">Tensors</a></li>
+    <li><a href="../guides/graph_construction.html" class="page">Graph Construction</a></li>
+    <li><a href="../guides/learn.html" class="page">High-Level Learning</a></li>
+  </ul></li>
+  <li><a href="../contributing.html" class="page">Contributing</a></li>
+  <li><a href="../release_notes.html" class="page">Release Notes</a>
+  <ul>
+    <li><a href="../release_notes/0.4.0.html" class="page">Release 0.4.0</a></li>
+    <li><a href="../release_notes/0.3.0.html" class="page">Release 0.3.0</a></li>
+    <li><a href="../release_notes/0.2.4.html" class="page">Release 0.2.4</a></li>
+    <li><a href="../release_notes/0.2.3.html" class="page">Release 0.2.3</a></li>
+    <li><a href="../release_notes/0.2.2.html" class="page">Release 0.2.2</a></li>
+    <li><a href="../release_notes/0.2.1.html" class="page">Release 0.2.1</a></li>
+    <li><a href="../release_notes/0.2.0.html" class="page">Release 0.2.0</a></li>
+    <li><a href="../release_notes/0.1.1.html" class="page">Release 0.1.1</a></li>
+    <li><a href="../release_notes/0.1.0.html" class="page">Release 0.1.0</a></li>
+  </ul></li>
 </ul>
 <nav class="md-nav md-nav--secondary">
 <label class="md-nav__title" for="__toc">Table of contents</label>
 <ul>
-  <li><a href="getting_started.html#getting-started" class="header">Getting Started</a>
+  <li><a href="../guides/tensors.html#tensors" class="header">Tensors</a>
   <ul>
-    <li><a href="getting_started.html#tensors" class="header">Tensors</a>
-    <ul>
-      <li><a href="getting_started.html#data-type" class="header">Data Type</a></li>
-      <li><a href="getting_started.html#rank" class="header">Rank</a></li>
-      <li><a href="getting_started.html#shape" class="header">Shape</a></li>
-      <li><a href="getting_started.html#indexing-slicing" class="header">Indexing / Slicing</a></li>
-    </ul></li>
-    <li><a href="getting_started.html#neural-networks" class="header">Neural Networks</a></li>
-    <li><a href="getting_started.html#data" class="header">Data</a></li>
-    <li><a href="getting_started.html#core" class="header">Core</a>
-    <ul>
-      <li><a href="getting_started.html#graph" class="header">Graph</a></li>
-      <li><a href="getting_started.html#working-with-outputs" class="header">Working with Outputs</a></li>
-    </ul></li>
+    <li><a href="../guides/tensors.html#tensor-creation" class="header">Tensor Creation</a></li>
+    <li><a href="../guides/tensors.html#data-type" class="header">Data Type</a></li>
+    <li><a href="../guides/tensors.html#rank" class="header">Rank</a></li>
+    <li><a href="../guides/tensors.html#shape" class="header">Shape</a></li>
+    <li><a href="../guides/tensors.html#indexing-slicing" class="header">Indexing / Slicing</a></li>
   </ul></li>
 </ul>
 </nav>
@@ -175,22 +191,13 @@ eaplatanios/tensorflow_scala
 <nav class="md-nav md-nav--secondary">
 <label class="md-nav__title" for="__toc">Table of contents</label>
 <ul>
-  <li><a href="getting_started.html#getting-started" class="header">Getting Started</a>
+  <li><a href="../guides/tensors.html#tensors" class="header">Tensors</a>
   <ul>
-    <li><a href="getting_started.html#tensors" class="header">Tensors</a>
-    <ul>
-      <li><a href="getting_started.html#data-type" class="header">Data Type</a></li>
-      <li><a href="getting_started.html#rank" class="header">Rank</a></li>
-      <li><a href="getting_started.html#shape" class="header">Shape</a></li>
-      <li><a href="getting_started.html#indexing-slicing" class="header">Indexing / Slicing</a></li>
-    </ul></li>
-    <li><a href="getting_started.html#neural-networks" class="header">Neural Networks</a></li>
-    <li><a href="getting_started.html#data" class="header">Data</a></li>
-    <li><a href="getting_started.html#core" class="header">Core</a>
-    <ul>
-      <li><a href="getting_started.html#graph" class="header">Graph</a></li>
-      <li><a href="getting_started.html#working-with-outputs" class="header">Working with Outputs</a></li>
-    </ul></li>
+    <li><a href="../guides/tensors.html#tensor-creation" class="header">Tensor Creation</a></li>
+    <li><a href="../guides/tensors.html#data-type" class="header">Data Type</a></li>
+    <li><a href="../guides/tensors.html#rank" class="header">Rank</a></li>
+    <li><a href="../guides/tensors.html#shape" class="header">Shape</a></li>
+    <li><a href="../guides/tensors.html#indexing-slicing" class="header">Indexing / Slicing</a></li>
   </ul></li>
 </ul>
 </nav>
@@ -201,17 +208,6 @@ eaplatanios/tensorflow_scala
 <div class="md-content">
 <article class="md-content__inner md-typeset">
 <div class="md-content__searchable">
-<h1><a href="#getting-started" name="getting-started" class="anchor"><span class="anchor-link"></span></a>Getting Started</h1>
-<p>Similar to the <a href="https://www.tensorflow.org/get_started/get_started">TensorFlow Python API</a>, by Google, TensorFlow for Scala provides multiple APIs. The lowest level API &ndash; Core API &ndash; provides you with complete programming control. the core API is suitable for machine learning researchers and others who require fine levels of control over their models. The higher level APIs are built on top of the Core API. These higher level APIs are typically easier to learn and use. In addition, the higher level APIs make repetitive tasks easier and more consistent between different users. A high-level API like the Learn API helps you manage datasets, models, (distributed) training, and inference.</p>
-<p>The main APIs of TensorFlow for Scala introduced in this guide are:</p>
-<ul>
-  <li><strong><a href="#tensors-1">Tensor API:</a></strong> Provides a simple way for manipulating tensors and performing computations involving tensors. This is similar in functionality to the <a href="http://www.numpy.org">NumPy</a> library used by Python programmers.</li>
-  <li><strong><a href="#neural-networks-2">Learn API:</a></strong> High-level interface for creating, training, and using neural networks. This is similar in functionality to the <a href="https://keras.io">Keras</a> library used by Python programmers, with the main difference being that it is strongly-typed and offers a much richer functional interface for building neural networks. Furthermore, it supports distributed training in a way that is very similar to the <a href="https://www.tensorflow.org/programmers_guide/estimators">TensorFlow Estimators API</a>.</li>
-  <li><strong><a href="#core-3">Core API:</a></strong> Low-level graph construction interface, similar to that offered by the TensorFlow Python API, with the main difference being that this interface is strongly-typed wherever possible.</li>
-</ul>
-<p>The fact that this library is strongly-typed is mentioned a couple times in the above paragraph and that&rsquo;s because it is a very important feature. It means that many problems with the code you write will show themselves at compile time, which means that your chances of running into the experience of waiting for a neural network to train for a week only to find out that your evaluation code crashed and you lost everything, decrease significantly.</p>
-<p>This guide starts with an introduction of the <strong><a href="#tensors-1">Tensor API</a></strong> and goes from high-level to low-level concepts as you progress. Concepts such as the TensorFlow graph and sessions only appear in the <strong><a href="#core-3">Core API</a></strong> section.</p>
-<p><strong>NOTE:</strong> This guide borrows a lot of material from the official <a href="https://www.tensorflow.org/get_started/get_started">Python API documentation</a> of TensorFlow and adapts it for the purposes of TensorFlow for Scala. It also introduces a lot of new constructs specific to this library.</p>
 <h1><a href="#tensors" name="tensors" class="anchor"><span class="anchor-link"></span></a>Tensors</h1>
 <p>TensorFlow, as the name indicates, is a framework to define and run computations involving tensors. A tensor is a generalization of vectors and matrices to potentially higher dimensions. Internally, TensorFlow represents tensors as <code>n</code>-dimensional arrays of some underlying data type. A <a href="http://platanios.org/tensorflow_scala/api/api/org/platanios/tensorflow/api/Tensor.html">Tensor</a> has a <a href="http://platanios.org/tensorflow_scala/api/api/org/platanios/tensorflow/api/DataType.html">DataType</a> (e.g., <code>FLOAT32</code> which corresponds to 32-bit floating point numbers) and a <a href="http://platanios.org/tensorflow_scala/api/api/org/platanios/tensorflow/api/Shape.html">Shape</a> (that is, the number of dimensions it has and the size of each dimension &ndash; e.g., <code>Shape(10, 2)</code> which corresponds to a matrix with 10 rows and 2 columns) associated with it. Each element in the <a href="http://platanios.org/tensorflow_scala/api/api/org/platanios/tensorflow/api/Tensor.html">Tensor</a> has the same data type. For example, the following code creates an integer tensor filled with zeros with shape <code>[2, 5]</code> (i.e., a two-dimensional array holding integer values, where the first dimension size is 2 and the second is 5):</p>
 <pre class="prettyprint"><code class="language-scala">val tensor = Tensor.zeros[Int](Shape(2, 5))
@@ -219,8 +215,19 @@ eaplatanios/tensorflow_scala
 <p>You can print the contents of a tensor as follows:</p>
 <pre class="prettyprint"><code class="language-scala">tensor.summarize(flattened = true)
 </code></pre>
+<h2><a href="#tensor-creation" name="tensor-creation" class="anchor"><span class="anchor-link"></span></a>Tensor Creation</h2>
+<p>Tensors can be created using various constructors defined in the <code>Tensor</code> companion object. For example:</p>
+<pre class="prettyprint"><code class="language-scala">val a = Tensor(1, 2)      // Creates a Tensor[Int] with shape [2]
+val b = Tensor(1L, 2)     // Creates a Tensor[Long] with shape [2]
+val c = Tensor(3.0f)      // Creates a Tensor[Float] with shape [1]
+val d = Tensor(-4.0)      // Creates a Tensor[Double] with shape [1]
+val e = Tensor.empty[Int] // Creates an empty Tensor[Int] with shape [0]
+val z = Tensor.zeros[Float](Shape(5, 2))   // Creates a zeros Tensor[Float] with shape [5, 2]
+val r = Tensor.randn(Double, Shape(10, 3)) // Creates a Tensor[Double] with shape [10, 3] and
+                                           // elements drawn from the standard Normal distribution.
+</code></pre>
 <h2><a href="#data-type" name="data-type" class="anchor"><span class="anchor-link"></span></a>Data Type</h2>
-<p>As already mentioned, tensors have a data type. Various numeric data types are supported, as well as strings (i.e., tensors containing strings are supported). It is not possible to have a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a> with more than one data type. It is possible, however, to serialize arbitrary data structures as strings and store those in <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a>s.</p>
+<p>As already mentioned, tensors have a data type. Various numeric data types are supported, as well as strings (i.e., tensors containing strings are supported). It is not possible to have a [<code>Tensor</code>][tensor] with more than one data type. It is possible, however, to serialize arbitrary data structures as strings and store those in [<code>Tensor</code>][tensor]s.</p>
 <p>The list of all supported data types is:</p>
 <ul>
   <li><strong>STRING:</strong> String.</li>
@@ -245,23 +252,23 @@ eaplatanios/tensorflow_scala
   <li><strong>RESOURCE:</strong> Handle to a mutable resource.</li>
   <li><strong>VARIANT:</strong> Variant.</li>
 </ul>
-<p>It is also possible to cast <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a>s from one data type to another using the <code>toXXX</code> operator, or the <code>castTo[XXX]</code> operator:</p>
+<p>It is also possible to cast [<code>Tensor</code>][tensor]s from one data type to another using the <code>toXXX</code> operator, or the <code>castTo[XXX]</code> operator:</p>
 <pre class="prettyprint"><code class="language-scala">val floatTensor = Tensor[Float](1, 2, 3) // Floating point vector containing the elements: 1.0f, 2.0f, and 3.0f.
 floatTensor.toInt                        // Integer vector containing the elements: 1, 2, and 3.
 floatTensor.castTo[Int]                  // Integer vector containing the elements: 1, 2, and 3.
 </code></pre>
-<p><strong>NOTE:</strong> In general, all tensor-supported operations can be accessed as direct methods/operators of the <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a> object, or as static methods defined in the <code>tfi</code> package, which stands for <em>TensorFlow Imperative</em> (given the imperative nature of that API).</p>
-<p>A <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a>&rsquo;s data type can be inspected using:</p>
+<p><strong>NOTE:</strong> In general, all tensor-supported operations can be accessed as direct methods/operators of the [<code>Tensor</code>][tensor] object, or as static methods defined in the <code>tfi</code> package, which stands for <em>TensorFlow Imperative</em> (given the imperative nature of that API).</p>
+<p>A [<code>Tensor</code>][tensor]&rsquo;s data type can be inspected using:</p>
 <pre class="prettyprint"><code class="language-scala">floatTensor.dataType // Returns FLOAT32
 </code></pre>
-<p>When creating a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a> from a Scala objects you may optionally specify the data type. If you don&rsquo;t, TensorFlow chooses a data type that can represent your data. It converts Scala integers to <code>INT32</code> and Scala floating point numbers to either <code>FLOAT32</code> or <code>FLOAT64</code> depending on their precision.</p>
+<p>When creating a [<code>Tensor</code>][tensor] from a Scala objects you may optionally specify the data type. If you don&rsquo;t, TensorFlow chooses a data type that can represent your data. It converts Scala integers to <code>INT32</code> and Scala floating point numbers to either <code>FLOAT32</code> or <code>FLOAT64</code> depending on their precision.</p>
 <pre class="prettyprint"><code class="language-tut:silent">Tensor(1, 2, 3)      // INT32 tensor
 Tensor(1, 2L, 3)     // INT64 tensor
 Tensor(2.4f, -0.1f)  // FLOAT32 tensor
 Tensor(0.6f, 1.0)    // FLOAT64 tensor
 </code></pre>
 <h2><a href="#rank" name="rank" class="anchor"><span class="anchor-link"></span></a>Rank</h2>
-<p>The rank of a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a> is its number of dimensions. Synonyms for rank include order or degree or <code>n</code>-dimension. Note that rank in TensorFlow is not the same as matrix rank in mathematics. As the following table shows, each rank in TensorFlow corresponds to a different mathematical entity:</p>
+<p>The rank of a [<code>Tensor</code>][tensor] is its number of dimensions. Synonyms for rank include order or degree or <code>n</code>-dimension. Note that rank in TensorFlow is not the same as matrix rank in mathematics. As the following table shows, each rank in TensorFlow corresponds to a different mathematical entity:</p>
 <table>
   <thead>
     <tr>
@@ -310,7 +317,7 @@ tfi.rank(t4) // Also returns the value 2
 <p>Similar to NumPy, tensors can be indexed/sliced in various ways:</p>
 <p>An indexer can be one of:  - <code>Ellipsis</code>: Corresponds to a full slice over multiple dimensions of a tensor. Ellipses are used to represent  zero or more dimensions of a full-dimension indexer sequence.  - <code>NewAxis</code>: Corresponds to the addition of a new dimension.  - <code>Slice</code>: Corresponds to a slice over a single dimension of a tensor.</p>
 <p>Examples of constructing and using indexers are provided in the <code>Ellipsis</code> and the <code>Slice</code> class documentation. Here we provide examples of indexing over tensors using indexers:</p>
-<pre class="prettyprint"><code class="language-tut:silent">val t = Tensor.zeros(FLOAT32, Shape(4, 2, 3, 8))
+<pre class="prettyprint"><code class="language-scala">val t = Tensor.zeros[Float](Shape(4, 2, 3, 8))
 t(::, ::, 1, ::)            // Tensor with shape [4, 2, 1, 8]
 t(1 :: -2, ---, 2)          // Tensor with shape [1, 2, 3, 1]
 t(---)                      // Tensor with shape [4, 2, 3, 8]
@@ -319,40 +326,9 @@ t(1 ::, ---, NewAxis, 2)    // Tensor with shape [3, 2, 3, 1, 1]
 </code></pre>
 <p>where <code>---</code> corresponds to an ellipsis.</p>
 <p>Note that each indexing sequence is only allowed to contain at most one Ellipsis. Furthermore, if an ellipsis is not provided, then one is implicitly appended at the end of indexing sequence. For example, <code>foo(2 :: 4)</code> is equivalent to <code>foo(2 :: 4, ---)</code>.</p>
-<h1><a href="#neural-networks" name="neural-networks" class="anchor"><span class="anchor-link"></span></a>Neural Networks</h1>
-<h1><a href="#data" name="data" class="anchor"><span class="anchor-link"></span></a>Data</h1>
-<h1><a href="#core" name="core" class="anchor"><span class="anchor-link"></span></a>Core</h1>
-<p>The low level API can be used to define computations that will be executed at a later point, and potentially execute them. It can also be used to create custom layers for the <a href="#neural-networks-2">Learn API</a>. The main type of object underlying the low level API is the <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code>Output</code></a>, which represents the value of a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a> that has not yet been computed. Its name comes from the fact that it represents the <em>output</em> of some computation. An <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code>Output</code></a> object thus represents a partially defined computation that will eventually produce a value. Core TensorFlow programs work by first building a graph of <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code>Output</code></a> objects, detailing how each output is computed based on the other available outputs, and then by running parts of this graph to achieve the desired results.</p>
-<p>Similar to a <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/tensors/Tensor.html"><code>Tensor</code></a>, each element in an <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code>Output</code></a> has the same data type, and the data type is always known. However, the shape of an <a href="/tensorflow_scala/api/org/platanios/tensorflow/api/ops/Output.html"><code>Output</code></a> might be only partially known. Most operations produce tensors of fully-known shapes if the shapes of their inputs are also fully known, but in some cases it&rsquo;s only possible to find the shape of a tensor at graph execution time.</p>
-<p>It is important to understand the main concepts underlying the core API:</p>
-<ul>
-  <li><strong>Tensor:</strong></li>
-  <li><strong>Output:</strong>
-    <ul>
-      <li><strong>Sparse Output:</strong></li>
-      <li><strong>Placeholder:</strong></li>
-      <li><strong>Variable:</strong></li>
-    </ul>
-  </li>
-  <li><strong>Graph:</strong></li>
-  <li><strong>Session:</strong></li>
-</ul>
-<p>With the exception of <a href="/tensorflow_scala/api/ops/variables/Variable.html"><code>Variable</code></a>s, the value of outputs is immutable, which means that in the context of a single execution, outputs only have a single value. However, evaluating the same output twice can result in different values. For example, that tensor may be the result of reading data from disk, or generating a random number.</p>
-<h2><a href="#graph" name="graph" class="anchor"><span class="anchor-link"></span></a>Graph</h2>
-<h2><a href="#working-with-outputs" name="working-with-outputs" class="anchor"><span class="anchor-link"></span></a>Working with Outputs</h2>
-<h3><a href="#evaluating-outputs" name="evaluating-outputs" class="anchor"><span class="anchor-link"></span></a>Evaluating Outputs</h3>
-<h3><a href="#printing-outputs" name="printing-outputs" class="anchor"><span class="anchor-link"></span></a>Printing Outputs</h3>
-<h3><a href="#logging" name="logging" class="anchor"><span class="anchor-link"></span></a>Logging</h3>
-<p>Logging in the native TensorFlow library can be controlled by setting the <code>TF_CPP_MIN_LOG_LEVEL</code> environment variable:</p>
-<ul>
-  <li><code>0</code>: Debug level (default).</li>
-  <li><code>1</code>: Warning level.</li>
-  <li><code>2</code>: Error level.</li>
-  <li><code>3</code>: Fatal level.</li>
-</ul>
 </div>
 <div>
-<a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/docs/src/main/paradox/getting_started.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/docs/src/main/paradox/guides/tensors.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
@@ -366,6 +342,36 @@ Edit this page
 </div>
 </main>
 <footer class="md-footer">
+<div class="md-footer-nav">
+<nav class="md-footer-nav__inner md-grid">
+<a href="../guides.html" title="Guides" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+<div class="md-flex__cell md-flex__cell--shrink">
+<i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+</div>
+<div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+<span class="md-flex__ellipsis">
+<span class="md-footer-nav__direction">
+Previous
+</span>
+Guides
+</span>
+</div>
+</a>
+<a href="../guides/graph_construction.html" title="Graph Construction" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+<div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+<span class="md-flex__ellipsis">
+<span class="md-footer-nav__direction">
+Next
+</span>
+Graph Construction
+</span>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+</div>
+</a>
+</nav>
+</div>
 <div class="md-footer-meta md-typeset">
 <div class="md-footer-meta__inner md-grid">
 <div class="md-footer-copyright">
@@ -384,11 +390,11 @@ and
 </footer>
 
 </div>
-<script src="assets/javascripts/application.583bbe55.js"></script>
-<script src="assets/javascripts/paradox-material-theme.js"></script>
-<script>app.initialize({version:"0.17",url:{base:"."}})</script>
-<script type="text/javascript" src="lib/prettify/prettify.js"></script>
-<script type="text/javascript" src="lib/prettify/lang-scala.js"></script>
+<script src="../assets/javascripts/application.583bbe55.js"></script>
+<script src="../assets/javascripts/paradox-material-theme.js"></script>
+<script>app.initialize({version:"0.17",url:{base:"../."}})</script>
+<script type="text/javascript" src="../lib/prettify/prettify.js"></script>
+<script type="text/javascript" src="../lib/prettify/lang-scala.js"></script>
 <script type="text/javascript">
 document.addEventListener("DOMContentLoaded", function(event) {
 window.prettyPrint && prettyPrint();

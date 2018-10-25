@@ -20,7 +20,7 @@
 
 <meta name="description" content="TensorFlow Scala - Documentation">
 <link rel="shortcut icon" href="../favicon.ico">
-<title>Release 0.1.0 · TensorFlow Scala</title>
+<title>Graph Construction · TensorFlow Scala</title>
 <link rel="stylesheet" href="../assets/stylesheets/application.451f80e5.css">
 <link rel="stylesheet" href="../assets/stylesheets/application-palette.22915126.css">
 <link rel="stylesheet" href="../lib/material__tabs/dist/mdc.tabs.min.css">
@@ -60,7 +60,7 @@ data-md-color-accent="red"
 TensorFlow Scala
 </span>
 <span class="md-header-nav__topic">
-Release 0.1.0
+Graph Construction
 </span>
 </div>
 </div>
@@ -143,7 +143,7 @@ eaplatanios/tensorflow_scala
   <li><a href="../guides.html" class="page">Guides</a>
   <ul>
     <li><a href="../guides/tensors.html" class="page">Tensors</a></li>
-    <li><a href="../guides/graph_construction.html" class="page">Graph Construction</a></li>
+    <li><a href="../guides/graph_construction.html" class="active page">Graph Construction</a></li>
     <li><a href="../guides/learn.html" class="page">High-Level Learning</a></li>
   </ul></li>
   <li><a href="../contributing.html" class="page">Contributing</a></li>
@@ -157,10 +157,23 @@ eaplatanios/tensorflow_scala
     <li><a href="../release_notes/0.2.1.html" class="page">Release 0.2.1</a></li>
     <li><a href="../release_notes/0.2.0.html" class="page">Release 0.2.0</a></li>
     <li><a href="../release_notes/0.1.1.html" class="page">Release 0.1.1</a></li>
-    <li><a href="../release_notes/0.1.0.html" class="active page">Release 0.1.0</a></li>
+    <li><a href="../release_notes/0.1.0.html" class="page">Release 0.1.0</a></li>
   </ul></li>
 </ul>
 <nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="../guides/graph_construction.html#graph-construction" class="header">Graph Construction</a>
+  <ul>
+    <li><a href="../guides/graph_construction.html#graph" class="header">Graph</a></li>
+    <li><a href="../guides/graph_construction.html#working-with-outputs" class="header">Working with Outputs</a>
+    <ul>
+      <li><a href="../guides/graph_construction.html#evaluating-outputs" class="header">Evaluating Outputs</a></li>
+      <li><a href="../guides/graph_construction.html#printing-outputs" class="header">Printing Outputs</a></li>
+      <li><a href="../guides/graph_construction.html#logging" class="header">Logging</a></li>
+    </ul></li>
+  </ul></li>
+</ul>
 </nav>
 
 </nav>
@@ -174,14 +187,63 @@ eaplatanios/tensorflow_scala
 </div>
 </div>
 </div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">Table of contents</label>
+<ul>
+  <li><a href="../guides/graph_construction.html#graph-construction" class="header">Graph Construction</a>
+  <ul>
+    <li><a href="../guides/graph_construction.html#graph" class="header">Graph</a></li>
+    <li><a href="../guides/graph_construction.html#working-with-outputs" class="header">Working with Outputs</a>
+    <ul>
+      <li><a href="../guides/graph_construction.html#evaluating-outputs" class="header">Evaluating Outputs</a></li>
+      <li><a href="../guides/graph_construction.html#printing-outputs" class="header">Printing Outputs</a></li>
+      <li><a href="../guides/graph_construction.html#logging" class="header">Logging</a></li>
+    </ul></li>
+  </ul></li>
+</ul>
+</nav>
+
+</div>
+</div>
+</div>
 <div class="md-content">
 <article class="md-content__inner md-typeset">
 <div class="md-content__searchable">
-<h1><a href="#release-0-1-0" name="release-0-1-0" class="anchor"><span class="anchor-link"></span></a>Release 0.1.0</h1>
-<p>This is the first official release of TensorFlow for Scala. The library website will soon be updated with information about the functionality supported by this API. Most of the main TensorFlow Python API functionality is already supported.</p>
+<h1><a href="#graph-construction" name="graph-construction" class="anchor"><span class="anchor-link"></span></a>Graph Construction</h1>
+<p>The low level API can be used to define computations that will be executed at a later point, and potentially execute them. It can also be used to create custom layers for the <a href="#neural-networks-2">Learn API</a>. The main type of object underlying the low level API is the [<code>Output</code>][output], which represents the value of a [<code>Tensor</code>][tensor] that has not yet been computed. Its name comes from the fact that it represents the <em>output</em> of some computation. An [<code>Output</code>][output] object thus represents a partially defined computation that will eventually produce a value. Core TensorFlow programs work by first building a graph of [<code>Output</code>][output] objects, detailing how each output is computed based on the other available outputs, and then by running parts of this graph to achieve the desired results.</p>
+<p>Similar to a [<code>Tensor</code>][tensor], each element in an [<code>Output</code>][output] has the same data type, and the data type is always known. However, the shape of an [<code>Output</code>][output] might be only partially known. Most operations produce tensors of fully-known shapes if the shapes of their inputs are also fully known, but in some cases it&rsquo;s only possible to find the shape of a tensor at graph execution time.</p>
+<p>It is important to understand the main concepts underlying the core API:</p>
+<ul>
+  <li><strong>Tensor:</strong></li>
+  <li><strong>Output:</strong>
+    <ul>
+      <li><strong>Sparse Output:</strong></li>
+      <li><strong>Placeholder:</strong></li>
+      <li><strong>Variable:</strong></li>
+    </ul>
+  </li>
+  <li><strong>Graph:</strong></li>
+  <li><strong>Session:</strong></li>
+</ul>
+<p>With the exception of [<code>Variable</code>][variable]s, the value of outputs is immutable, which means that in the context of a single execution, outputs only have a single value. However, evaluating the same output twice can result in different values. For example, that tensor may be the result of reading data from disk, or generating a random number.</p>
+<h2><a href="#graph" name="graph" class="anchor"><span class="anchor-link"></span></a>Graph</h2>
+<h2><a href="#working-with-outputs" name="working-with-outputs" class="anchor"><span class="anchor-link"></span></a>Working with Outputs</h2>
+<h3><a href="#evaluating-outputs" name="evaluating-outputs" class="anchor"><span class="anchor-link"></span></a>Evaluating Outputs</h3>
+<h3><a href="#printing-outputs" name="printing-outputs" class="anchor"><span class="anchor-link"></span></a>Printing Outputs</h3>
+<h3><a href="#logging" name="logging" class="anchor"><span class="anchor-link"></span></a>Logging</h3>
+<p>Logging in the native TensorFlow library can be controlled by setting the <code>TF_CPP_MIN_LOG_LEVEL</code> environment variable:</p>
+<ul>
+  <li><code>0</code>: Debug level (default).</li>
+  <li><code>1</code>: Warning level.</li>
+  <li><code>2</code>: Error level.</li>
+  <li><code>3</code>: Fatal level.</li>
+</ul>
 </div>
 <div>
-<a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/docs/src/main/paradox/release_notes/0.1.0.md" title="Edit this page" class="md-source-file md-edit">
+<a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/docs/src/main/paradox/guides/graph_construction.md" title="Edit this page" class="md-source-file md-edit">
 Edit this page
 </a>
 </div>
@@ -197,7 +259,7 @@ Edit this page
 <footer class="md-footer">
 <div class="md-footer-nav">
 <nav class="md-footer-nav__inner md-grid">
-<a href="../release_notes/0.1.1.html" title="Release 0.1.1" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+<a href="../guides/tensors.html" title="Tensors" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
 <div class="md-flex__cell md-flex__cell--shrink">
 <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
 </div>
@@ -206,8 +268,21 @@ Edit this page
 <span class="md-footer-nav__direction">
 Previous
 </span>
-Release 0.1.1
+Tensors
 </span>
+</div>
+</a>
+<a href="../guides/learn.html" title="High-Level Learning" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+<div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+<span class="md-flex__ellipsis">
+<span class="md-footer-nav__direction">
+Next
+</span>
+High-Level Learning
+</span>
+</div>
+<div class="md-flex__cell md-flex__cell--shrink">
+<i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
 </div>
 </a>
 </nav>

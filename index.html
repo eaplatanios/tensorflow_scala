@@ -135,6 +135,12 @@ eaplatanios/tensorflow_scala
 </div>
 <ul>
   <li><a href="installation.html" class="page">Installation</a></li>
+  <li><a href="guides.html" class="page">Guides</a>
+  <ul>
+    <li><a href="guides/tensors.html" class="page">Tensors</a></li>
+    <li><a href="guides/graph_construction.html" class="page">Graph Construction</a></li>
+    <li><a href="guides/learn.html" class="page">High-Level Learning</a></li>
+  </ul></li>
   <li><a href="contributing.html" class="page">Contributing</a></li>
   <li><a href="release_notes.html" class="page">Release Notes</a>
   <ul>
@@ -207,23 +213,19 @@ t1 + t2 == Tensor(1.0, 5.6)</code></pre>
   </li>
   <li>
     <p>Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:</p>
-    <pre class="prettyprint"><code class="language-scala">import org.platanios.tensorflow.api._
-
-val inputs = tf.placeholder(FLOAT32, Shape(-1, 10))
-val outputs = tf.placeholder(FLOAT32, Shape(-1, 10))
-val predictions = tf.createWith(nameScope = &quot;Linear&quot;) {
-  val weights = tf.variable(&quot;weights&quot;, FLOAT32, Shape(10, 1), tf.zerosInitializer)
+    <pre class="prettyprint"><code class="language-scala">val inputs      = tf.placeholder[Float](Shape(-1, 10))
+val outputs     = tf.placeholder[Float](Shape(-1, 10))
+val predictions = tf.nameScope(&quot;Linear&quot;) {
+  val weights = tf.variable[Float](&quot;weights&quot;, Shape(10, 1), tf.ZerosInitializer)
   tf.matmul(inputs, weights)
 }
-val loss = tf.sum(tf.square(predictions - outputs))
-val optimizer = tf.train.AdaGrad(1.0)
-val trainOp = optimizer.minimize(loss)
-</code></pre>
+val loss        = tf.sum(tf.square(predictions - outputs))
+val optimizer   = tf.train.AdaGrad(1.0f)
+val trainOp     = optimizer.minimize(loss)</code></pre>
   </li>
   <li>
     <p>Numpy-like indexing/slicing for tensors. For example:</p>
-    <pre class="prettyprint"><code class="language-scala">tensor(2 :: 5, ---, 1) // is equivalent to numpy&#39;s &#39;tensor[2:5, ..., 1]&#39;
-</code></pre>
+    <pre class="prettyprint"><code class="language-scala">tensor(2 :: 5, ---, 1) // is equivalent to numpy&#39;s &#39;tensor[2:5, ..., 1]&#39;</code></pre>
   </li>
   <li>
     <p>High-level API for creating, training, and using neural networks. For example, the following code shows how simple it is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful features such as summary and checkpoint savers, for simplicity, but these are also very simple to use.</p>
