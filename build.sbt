@@ -387,7 +387,7 @@ lazy val publishSettings = Seq(
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    releaseStepCommandAndRemaining("+publishSigned"),
+    releaseStepCommandAndRemaining("publishSigned"),
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
