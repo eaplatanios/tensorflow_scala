@@ -13,7 +13,7 @@ the functionality provided by the official Python API, while at the same type be
 features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API
 should be relatively stable by now, but things are still likely to change.
 
-[![Chat Room](https://img.shields.io/badge/chat-examples-ed1965.svg?longCache=true&style=flat-square&logo=gitter)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Chat Room](https://img.shields.io/badge/chat-gitter-ed1965.svg?longCache=true&style=flat-square&logo=gitter)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 @@@index
 
@@ -72,3 +72,5 @@ Funding for the development of this library has been generously provided by the 
 |:---------------------------------------:|:---------------------------------:|:-----------------------------------------------:|
 | awarded to Emmanouil Antonios Platanios | Grant #: IIS1250956               | Grant #: FA95501710218                          |
 |<img src="assets/images/cmu_logo.svg" height="113px" width="150px" />|<img src="assets/images/nsf_logo.svg" height="150px" width="150px" />|<img src="assets/images/afosr_logo.gif" height="150px" width="150px" />|
+
+TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google Inc.

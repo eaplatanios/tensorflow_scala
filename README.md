@@ -17,7 +17,8 @@ the functionality provided by the official Python API, while at the same type be
 features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API
 should be relatively stable by now, but things are still likely to change.
 
-[![Chat Room](https://img.shields.io/badge/chat-examples-ed1965.svg?longCache=true&style=flat-square&logo=gitter)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Chat Room](https://img.shields.io/badge/chat-gitter-ed1965.svg?longCache=true&style=flat-square&logo=gitter)](https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Please refer to the main website for documentation and tutorials. Here
 are a few useful links:
 
@@ -28,97 +29,98 @@ are a few useful links:
 
 ## Main Features
 
-- Easy manipulation of tensors and computations involving tensors (similar to NumPy in Python):
-  
-  ```scala
-  val t1 = Tensor( 1.2, 4.5)
-  val t2 = Tensor(-0.2, 1.1)
-  t1 + t2 == Tensor(1.0, 5.6)
-  ```
-  
-- High-level API for creating, training, and using neural networks. For example, the following code shows how simple it 
-  is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful 
-  features such as summary and checkpoint savers, for simplicity, but these are also very simple to use.
-    
-  ```scala
-  import org.platanios.tensorflow.api._
-  import org.platanios.tensorflow.api.tf.learn._
-  import org.platanios.tensorflow.api.ops.training.optimizers.GradientDescent
-  import org.platanios.tensorflow.data.image.MNISTLoader
-  
-  // Load and batch data using pre-fetching.
-  val dataSet = MNISTLoader.load(Paths.get("/tmp"))
-  val trainImages = tf.data.TensorSlicesDataset(dataSet.trainImages)
-  val trainLabels = tf.data.TensorSlicesDataset(dataSet.trainLabels)
-  val trainData =
-    trainImages.zip(trainLabels)
-        .repeat()
-        .shuffle(10000)
-        .batch(256)
-        .prefetch(10)
-  
-  // Create the MLP model.
-  val input = Input(UINT8, Shape(-1, 28, 28))
-  val trainInput = Input(UINT8, Shape(-1))
-  val layer = Flatten("Input/Flatten") >> Cast(FLOAT32) >> 
-      Linear("Layer0", 128) >> ReLU("Layer0/Activation", 0.1f) >>
-      Linear("Layer1", 64) >> ReLU("Layer1/Activation", 0.1f) >>
-      Linear("Layer2", 32) >> ReLU("Layer2/Activation", 0.1f) >>
-      Linear("OutputLayer", 10)
-  val trainingInputLayer = Cast("TrainInput/Cast", INT64)
-  val loss = SparseSoftmaxCrossEntropy("Loss/CrossEntropy") >> Mean("Loss/Mean")
-  val optimizer = GradientDescent(1e-6)
-  val model = Model(input, layer, trainInput, trainingInputLayer, loss, optimizer)
-  
-  // Create an estimator and train the model.
-  val estimator = Estimator(model)
-  estimator.train(() => trainData, StopCriteria(maxSteps = Some(1000000)))
-  ```
-  
-  And by changing a few lines to the following code, you can get checkpoint capability, summaries, and seamless 
-  integration with TensorBoard:
-  
-  ```scala
-  loss = loss >> tf.learn.ScalarSummary("Loss/Summary", "Loss")  // Collect loss summaries for plotting
-  val summariesDir = Paths.get("/tmp/summaries")                 // Directory in which to save summaries and checkpoints
-  val estimator = Estimator(model, Configuration(Some(summariesDir)))
-  estimator.train(
-    trainData, StopCriteria(maxSteps = Some(1000000)),
-    Seq(
-      SummarySaverHook(summariesDir, StepHookTrigger(100)),      // Save summaries every 1000 steps
-      CheckpointSaverHook(summariesDir, StepHookTrigger(1000))), // Save checkpoint every 1000 steps
-    tensorBoardConfig = TensorBoardConfig(summariesDir))         // Launch TensorBoard server in the background
-  ```
-  
-  If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
-  
-  <img src="https://eaplatanios.github.io/tensorflow_scala/img/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
+  - Easy manipulation of tensors and computations involving tensors (similar to NumPy in Python):
 
-- Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:
+    ```scala
+    val t1 = Tensor(1.2, 4.5)
+    val t2 = Tensor(-0.2, 1.1)
+    t1 + t2 == Tensor(1.0, 5.6)
+    ```
 
-  ```scala
-  import org.platanios.tensorflow.api._
-  
-  val inputs = tf.placeholder(FLOAT32, Shape(-1, 10))
-  val outputs = tf.placeholder(FLOAT32, Shape(-1, 10))
-  val predictions = tf.createWith(nameScope = "Linear") {
-    val weights = tf.variable("weights", FLOAT32, Shape(10, 1), tf.zerosInitializer)
-    tf.matmul(inputs, weights)
-  }
-  val loss = tf.sum(tf.square(predictions - outputs))
-  val optimizer = tf.train.AdaGrad(1.0)
-  val trainOp = optimizer.minimize(loss)
-  ```
+  - Low-level graph construction API, similar to that of the Python API, but strongly typed wherever possible:
 
-- Numpy-like indexing/slicing for tensors. For example:
-  
-  ```scala
-  tensor(2 :: 5, ---, 1) // is equivalent to numpy's 'tensor[2:5, ..., 1]'
-  ```
-  
-- Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and 
-  managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow session), we use a combination of weak references and a disposing thread running in the background. Please refer to 
-  `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`, for the implementation.
+    ```scala
+    val inputs      = tf.placeholder[Float](Shape(-1, 10))
+    val outputs     = tf.placeholder[Float](Shape(-1, 10))
+    val predictions = tf.nameScope("Linear") {
+      val weights = tf.variable[Float]("weights", Shape(10, 1), tf.ZerosInitializer)
+      tf.matmul(inputs, weights)
+    }
+    val loss        = tf.sum(tf.square(predictions - outputs))
+    val optimizer   = tf.train.AdaGrad(1.0f)
+    val trainOp     = optimizer.minimize(loss)
+    ```
+
+  - Numpy-like indexing/slicing for tensors. For example:
+
+    ```scala
+    tensor(2 :: 5, ---, 1) // is equivalent to numpy's 'tensor[2:5, ..., 1]'
+    ```
+
+  - High-level API for creating, training, and using neural networks. For example, the following code shows how simple it
+    is to train a multi-layer perceptron for MNIST using TensorFlow for Scala. Here we omit a lot of very powerful
+    features such as summary and checkpoint savers, for simplicity, but these are also very simple to use.
+
+    ```scala
+    // Load and batch data using pre-fetching.
+    val dataset = MNISTLoader.load(Paths.get("/tmp"))
+    val trainImages = tf.data.datasetFromTensorSlices(dataset.trainImages.toFloat)
+    val trainLabels = tf.data.datasetFromTensorSlices(dataset.trainLabels.toLong)
+    val trainData =
+      trainImages.zip(trainLabels)
+          .repeat()
+          .shuffle(10000)
+          .batch(256)
+          .prefetch(10)
+
+    // Create the MLP model.
+    val input = Input(FLOAT32, Shape(-1, 28, 28))
+    val trainInput = Input(INT64, Shape(-1))
+    val layer = Flatten[Float]("Input/Flatten") >>
+        Linear[Float]("Layer_0", 128) >> ReLU[Float]("Layer_0/Activation", 0.1f) >>
+        Linear[Float]("Layer_1", 64) >> ReLU[Float]("Layer_1/Activation", 0.1f) >>
+        Linear[Float]("Layer_2", 32) >> ReLU[Float]("Layer_2/Activation", 0.1f) >>
+        Linear[Float]("OutputLayer", 10)
+    val loss = SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss") >>
+        Mean("Loss/Mean")
+    val optimizer = tf.train.GradientDescent(1e-6f)
+    val model = Model.simpleSupervised(input, trainInput, layer, loss, optimizer)
+
+    // Create an estimator and train the model.
+    val estimator = InMemoryEstimator(model)
+    estimator.train(() => trainData, StopCriteria(maxSteps = Some(1000000)))
+    ```
+
+    And by changing a few lines to the following code, you can get checkpoint capability, summaries, and seamless
+    integration with TensorBoard:
+
+    ```scala
+    val loss = SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss") >>
+        Mean("Loss/Mean") >>
+        ScalarSummary(name = "Loss", tag = "Loss")
+    val summariesDir = Paths.get("/tmp/summaries")
+    val estimator = InMemoryEstimator(
+      modelFunction = model,
+      configurationBase = Configuration(Some(summariesDir)),
+      trainHooks = Set(
+        SummarySaver(summariesDir, StepHookTrigger(100)),
+        CheckpointSaver(summariesDir, StepHookTrigger(1000))),
+      tensorBoardConfig = TensorBoardConfig(summariesDir))
+    estimator.train(() => trainData, StopCriteria(maxSteps = Some(100000)))
+    ```
+
+    If you now browse to `https://127.0.0.1:6006` while training, you can see the training progress:
+
+    <img src="assets/images/tensorboard_mnist_example_plot.png" alt="tensorboard_mnist_example_plot" width="600px">
+
+  - Efficient interaction with the native library that avoids unnecessary copying of data. All tensors are created and
+    managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow
+    session), we use a combination of weak references and a disposing thread running in the background. Please refer to
+    `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`, for the implementation.
+
+## Tutorials
+
+- [Object Detection using Pre-Trained Models](https://brunk.io/deep-learning-in-scala-part-3-object-detection.html)
 
 ## Funding
 

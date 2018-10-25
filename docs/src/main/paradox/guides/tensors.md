@@ -5,16 +5,16 @@ define and run computations involving tensors. A tensor is
 a generalization of vectors and matrices to potentially
 higher dimensions. Internally, TensorFlow represents
 tensors as `n`-dimensional arrays of some underlying data
-type. A @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor)
-has a @scaladoc[DataType](org.platanios.tensorflow.api.DataType)
+type. A @scaladoc[Tensor](org.platanios.tensorflow.api.tensors.Tensor)
+has a @scaladoc[DataType](org.platanios.tensorflow.api.core.types.DataType)
 (e.g., `FLOAT32`, which corresponds to 32-bit floating
 point numbers) and a
-@scaladoc[Shape](org.platanios.tensorflow.api.Shape) (that
+@scaladoc[Shape](org.platanios.tensorflow.api.core.Shape) (that
 is, the number of dimensions it has and the size of each
 dimension -- e.g., `Shape(10, 2)` which corresponds to a
 matrix with 10 rows and 2 columns) associated with it. Each
 element in the
-@scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) has
+@scaladoc[Tensor](org.platanios.tensorflow.api.tensors.Tensor) has
 the same data type. For example, the following code creates
 an integer tensor filled with zeros with shape `[2, 5]`
 (i.e., a two-dimensional array holding integer values, where the
@@ -29,7 +29,7 @@ You can print the contents of a tensor as follows:
 ## Tensor Creation
 
 Tensors can be created using various constructors defined in
-the @scaladoc[Tensor](org.platanios.tensorflow.api.Tensor)
+the @scaladoc[Tensor](org.platanios.tensorflow.api.tensors.Tensor)
 companion object. For example:
 
 @@snip [Tensors.scala](/docs/src/main/scala/Tensors.scala) { #tensor_creation_examples }
@@ -40,7 +40,7 @@ As already mentioned, tensors have a data type. Various
 numeric data types are supported, as well as strings (i.e.,
 tensors containing strings are supported). It is not
 possible to have a
-@scaladoc[Tensor](org.platanios.tensorflow.api.Tensor) with
+@scaladoc[Tensor](org.platanios.tensorflow.api.tensors.Tensor) with
 more than one data type. It is possible, however, to
 serialize arbitrary data structures as strings and store
 those in tensors.
@@ -90,7 +90,7 @@ A tensor's data type can be inspected using:
 
 In general, all tensor-supported operations can be accessed
 as direct methods/operators of the
-@scaladoc[Tensor](org.platanios.tensorflow.api.Tensor)
+@scaladoc[Tensor](org.platanios.tensorflow.api.tensors.Tensor)
 object, or as static methods defined in the
 @scaladoc[tfi](org.platanios.tensorflow.api.tfi) package,
 which stands for *TensorFlow Imperative*
