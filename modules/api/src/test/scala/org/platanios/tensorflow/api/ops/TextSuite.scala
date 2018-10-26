@@ -55,7 +55,7 @@ class TextSuite extends JUnitSuite {
       val output = Text.regexReplace(input, "", "x")
       val session = Session()
       val result = session.run(fetches = output)
-      assert(result.entriesIterator.toSeq.map(_.asInstanceOf[String]) == Seq("xaxbxcx", "x1x"))
+      assert(result.entriesIterator.toSeq == Seq("xaxbxcx", "x1x"))
     }
   }
 
@@ -65,9 +65,7 @@ class TextSuite extends JUnitSuite {
       val output = Text.regexReplace(input, "A[", "x")
       val session = Session()
       assert(intercept[InvalidArgumentException](session.run(fetches = output)).getMessage ===
-          "Invalid pattern: A[, error: missing ]: [\n\t " +
-              "[[{{node RegexReplace}} = RegexReplace[replace_global=true, " +
-              "_device=\"/job:localhost/replica:0/task:0/device:CPU:0\"](Constant, Constant_1, Constant_2)]]")
+          "Invalid pattern: A[, error: missing ]: [\n\t [[{{node RegexReplace}}]]")
     }
   }
 
@@ -77,7 +75,7 @@ class TextSuite extends JUnitSuite {
       val output = Text.regexReplace(input, "ab", "abc", replaceGlobal = true)
       val session = Session()
       val result = session.run(fetches = output)
-      assert(result.entriesIterator.toSeq.map(_.asInstanceOf[String]) == Seq("abcabcabcabcabc", "abccabccabcc", ""))
+      assert(result.entriesIterator.toSeq == Seq("abcabcabcabcabc", "abccabccabcc", ""))
     }
   }
 }
