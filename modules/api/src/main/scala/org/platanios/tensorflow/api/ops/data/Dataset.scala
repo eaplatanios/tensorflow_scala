@@ -701,13 +701,17 @@ abstract class Dataset[T: OutputStructure] { outer =>
       name: String = s"${this.name}/GroupByWindow"
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[T, D],
-      evOutputToShape: OutputToShape.Aux[T, S],
-      // These implicit helpers is used for Scala 2.11 support.
-      evOutputToDataType211Helper: OutputToDataType.Aux[(Output[Long], Dataset[T]), (DataType[Long], DataType[Variant])],
-      evOutputToShape211Helper: OutputToShape.Aux[(Output[Long], Dataset[T]), (Shape, Shape)]
+      evOutputToShape: OutputToShape.Aux[T, S]
   ): Dataset[T] = {
+    // For some reason this is necessary when compiling for Scala 2.11.
+    val outputToDataType211Helper: OutputToDataType.Aux[(Output[Long], Dataset[T]), (DataType[Long], DataType[Variant])] = OutputToDataType[(Output[Long], Dataset[T])]
+    val outputToShape211Helper: OutputToShape.Aux[(Output[Long], Dataset[T]), (Shape, Shape)] = OutputToShape[(Output[Long], Dataset[T])]
+
     val providedName = name
     new Dataset[T] {
+      implicit val evOutputToDataType211Helper: OutputToDataType.Aux[(Output[Long], Dataset[T]), (DataType[Long], DataType[Variant])] = outputToDataType211Helper
+      implicit val evOutputToShape211Helper: OutputToShape.Aux[(Output[Long], Dataset[T]), (Shape, Shape)] = outputToShape211Helper
+
       override val name: String = providedName
 
       private var instantiatedKeyFunction       : Option[InstantiatedFunction[T, Output[Long]]]                        = None
@@ -1381,16 +1385,20 @@ abstract class Dataset[T: OutputStructure] { outer =>
       shardIndex: Long
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[T, D],
-      evOutputToShape: OutputToShape.Aux[T, S],
-      // These implicit helpers is used for Scala 2.11 support.
-      evOutputToDataType211Helper: OutputToDataType.Aux[(T, Output[Long]), (D, DataType[Long])],
-      evOutputToShape211Helper: OutputToShape.Aux[(T, Output[Long]), (S, Shape)]
+      evOutputToShape: OutputToShape.Aux[T, S]
   ): Dataset[T] = {
+    // For some reason this is necessary when compiling for Scala 2.11.
+    val outputToDataType211Helper: OutputToDataType.Aux[(T, Output[Long]), (D, DataType[Long])] = OutputToDataType[(T, Output[Long])]
+    val outputToShape211Helper: OutputToShape.Aux[(T, Output[Long]), (S, Shape)] = OutputToShape[(T, Output[Long])]
+
     if (shardIndex >= numShards)
       throw InvalidArgumentException(s"'index' (= $shardIndex) must be smaller than 'numShards' (= $numShards).")
     if (numShards == 1) {
       this
     } else {
+      implicit val evOutputToDataType211Helper: OutputToDataType.Aux[(T, Output[Long]), (D, DataType[Long])] = outputToDataType211Helper
+      implicit val evOutputToShape211Helper: OutputToShape.Aux[(T, Output[Long]), (S, Shape)] = outputToShape211Helper
+
       this.zip(Data.datasetFromRange(0L, Long.MaxValue))
           .filter(t => Math.equal(Math.mod(t._2, numShards), shardIndex))
           .map(o => o._1)

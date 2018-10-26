@@ -146,13 +146,13 @@ object TensorToShape {
 
   implicit def fromHList[HT, HS, TT <: HList, TS <: HList](implicit
       evH: Strict[TensorToShape.Aux[HT, HS]],
-      evT: Strict[TensorToShape.Aux[TT, TS]]
+      evT: TensorToShape.Aux[TT, TS]
   ): TensorToShape.Aux[HT :: TT, HS :: TS] = {
     new TensorToShape[HT :: TT] {
       override type S = HS :: TS
 
       override def shape(output: HT :: TT): HS :: TS = {
-        evH.value.shape(output.head) :: evT.value.shape(output.tail)
+        evH.value.shape(output.head) :: evT.shape(output.tail)
       }
     }
   }

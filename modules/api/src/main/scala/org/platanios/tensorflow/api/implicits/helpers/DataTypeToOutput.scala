@@ -108,13 +108,13 @@ object DataTypeToOutput {
 
   implicit def fromHList[HD, HO, TD <: HList, TO <: HList](implicit
       evH: Strict[DataTypeToOutput.Aux[HD, HO]],
-      evT: Strict[DataTypeToOutput.Aux[TD, TO]]
+      evT: DataTypeToOutput.Aux[TD, TO]
   ): DataTypeToOutput.Aux[HD :: TD, HO :: TO] = {
     new DataTypeToOutput[HD :: TD] {
       override type O = HO :: TO
 
       override def dataTypeStructure: DataTypeStructure[HD :: TD] = {
-        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.value.dataTypeStructure)
+        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.dataTypeStructure)
       }
     }
   }

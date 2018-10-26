@@ -24,10 +24,10 @@ crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.7")
 
 organization in ThisBuild := "org.platanios"
 
+autoCompilerPlugins in ThisBuild := true
+
 val tensorFlowVersion = "1.11.0"
 val circeVersion = "0.10.0" // Use for working with JSON.
-
-autoCompilerPlugins in ThisBuild := true
 
 // addCompilerPlugin(MetalsPlugin.semanticdbScalac)
 

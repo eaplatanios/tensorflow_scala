@@ -283,17 +283,17 @@ object OutputToTensor {
 
   implicit def fromHList[HT, HV, TT <: HList, TV <: HList](implicit
       evH: Strict[OutputToTensor.Aux[HT, HV]],
-      evT: Strict[OutputToTensor.Aux[TT, TV]]
+      evT: OutputToTensor.Aux[TT, TV]
   ): OutputToTensor.Aux[HT :: TT, HV :: TV] = {
     new OutputToTensor[HT :: TT] {
       override type V = HV :: TV
 
       override def tensorStructure: TensorStructure[HV :: TV] = {
-        TensorStructure.fromHList[HV, TV](evH.value.tensorStructure, evT.value.tensorStructure)
+        TensorStructure.fromHList[HV, TV](evH.value.tensorStructure, evT.tensorStructure)
       }
 
       override def size(output: HT :: TT): Int = {
-        evH.value.size(output.head) + evT.value.size(output.tail)
+        evH.value.size(output.head) + evT.size(output.tail)
       }
 
       override def decodeTensor(
@@ -301,7 +301,7 @@ object OutputToTensor {
           tensors: Seq[Tensor[Any]]
       ): (HV :: TV, Seq[Tensor[Any]]) = {
         val (headOut, headRemaining) = evH.value.decodeTensor(output.head, tensors)
-        val (tailOut, tailRemaining) = evT.value.decodeTensor(output.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.decodeTensor(output.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }

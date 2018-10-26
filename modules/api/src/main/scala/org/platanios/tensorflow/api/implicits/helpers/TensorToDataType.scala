@@ -146,13 +146,13 @@ object TensorToDataType {
 
   implicit def fromHList[HT, HD, TT <: HList, TD <: HList](implicit
       evH: Strict[TensorToDataType.Aux[HT, HD]],
-      evT: Strict[TensorToDataType.Aux[TT, TD]]
+      evT: TensorToDataType.Aux[TT, TD]
   ): TensorToDataType.Aux[HT :: TT, HD :: TD] = {
     new TensorToDataType[HT :: TT] {
       override type D = HD :: TD
 
       override def dataType(output: HT :: TT): HD :: TD = {
-        evH.value.dataType(output.head) :: evT.value.dataType(output.tail)
+        evH.value.dataType(output.head) :: evT.dataType(output.tail)
       }
     }
   }

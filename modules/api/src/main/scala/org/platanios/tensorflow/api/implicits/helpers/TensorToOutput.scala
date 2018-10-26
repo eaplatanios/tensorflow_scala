@@ -163,17 +163,17 @@ object TensorToOutput {
 
   implicit def fromHList[HT, HO, TT <: HList, TO <: HList](implicit
       evH: Strict[TensorToOutput.Aux[HT, HO]],
-      evT: Strict[TensorToOutput.Aux[TT, TO]]
+      evT: TensorToOutput.Aux[TT, TO]
   ): TensorToOutput.Aux[HT :: TT, HO :: TO] = {
     new TensorToOutput[HT :: TT] {
       override type O = HO :: TO
 
       override def tensorStructure: TensorStructure[HT :: TT] = {
-        TensorStructure.fromHList[HT, TT](evH.value.tensorStructure, evT.value.tensorStructure)
+        TensorStructure.fromHList[HT, TT](evH.value.tensorStructure, evT.tensorStructure)
       }
 
       override def output(tensor: HT :: TT): HO :: TO = {
-        evH.value.output(tensor.head) :: evT.value.output(tensor.tail)
+        evH.value.output(tensor.head) :: evT.output(tensor.tail)
       }
     }
   }

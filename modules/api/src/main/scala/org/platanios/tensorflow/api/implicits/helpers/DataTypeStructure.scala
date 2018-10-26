@@ -167,15 +167,15 @@ object DataTypeStructure {
 
   implicit def fromHList[HD, TD <: HList](implicit
       evH: Strict[DataTypeStructure[HD]],
-      evT: Strict[DataTypeStructure[TD]]
+      evT: DataTypeStructure[TD]
   ): DataTypeStructure[HD :: TD] = {
     new DataTypeStructure[HD :: TD] {
       override def size(dataType: HD :: TD): Int = {
-        evH.value.size(dataType.head) + evT.value.size(dataType.tail)
+        evH.value.size(dataType.head) + evT.size(dataType.tail)
       }
 
       override def dataTypes(dataType: HD :: TD): Seq[DataType[Any]] = {
-        evH.value.dataTypes(dataType.head) ++ evT.value.dataTypes(dataType.tail)
+        evH.value.dataTypes(dataType.head) ++ evT.dataTypes(dataType.tail)
       }
 
       override def decodeDataType(
@@ -183,7 +183,7 @@ object DataTypeStructure {
           dataTypes: Seq[DataType[Any]]
       ): (HD :: TD, Seq[DataType[Any]]) = {
         val (headOut, headRemaining) = evH.value.decodeDataType(dataType.head, dataTypes)
-        val (tailOut, tailRemaining) = evT.value.decodeDataType(dataType.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.decodeDataType(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }

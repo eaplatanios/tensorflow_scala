@@ -24,7 +24,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.learn._
 import org.platanios.tensorflow.api.learn.hooks._
-import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output, UntypedOp}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
@@ -61,7 +61,7 @@ import scala.collection.mutable
   *
   * @author Emmanouil Antonios Platanios
   */
-class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn] private[estimators] (
+class InMemoryEstimator[In: OutputStructure, TrainIn: OutputStructure, Out: OutputStructure, TrainOut, Loss: TF : IsFloatOrDouble, EvalIn] private[estimators] (
     override protected val modelFunction: Estimator.ModelFunction[In, TrainIn, Out, TrainOut, Loss, EvalIn],
     override protected val configurationBase: Configuration = null,
     val stopCriteria: StopCriteria = StopCriteria(),
@@ -71,12 +71,6 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
     val evaluateHooks: Set[Hook] = Set.empty,
     val tensorBoardConfig: TensorBoardConfig = null,
     val evaluationMetrics: Seq[Metric[EvalIn, Output[Float]]] = Seq.empty
-)(implicit
-    evOutputStructureIn: OutputStructure[In],
-    evOutputStructureTrainIn: OutputStructure[TrainIn],
-    evOutputStructureOut: OutputStructure[Out],
-    // This implicit helps the Scala 2.11 compiler.
-    evOutputStructureInOut: OutputStructure[(In, Out)]
 ) extends Estimator[In, TrainIn, Out, TrainOut, Loss, EvalIn](modelFunction, configurationBase) {
   if (trainHooks.exists(_.isInstanceOf[Stopper])
       || trainChiefOnlyHooks.exists(_.isInstanceOf[Stopper])
@@ -269,10 +263,16 @@ class InMemoryEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble, 
       stopHook.reset(session)
       session.enableHooks()
       session.resetShouldStop()
+
+      // For some reason this is necessary when compiling for Scala 2.11.
+      val scala211Helper = implicitly[OutputStructure[(In, Out)]]
+
       ev.convertFetched(new Iterator[(InV, OutV)] {
         override def hasNext: Boolean = !session.shouldStop
         override def next(): (InV, OutV) = {
           try {
+            implicit val evScala211Helper: OutputStructure[(In, Out)] = scala211Helper
+
             // TODO: !!! There might be an issue with the stop criteria here.
             session.removeHooks(currentTrainHooks ++ evaluateHooks)
             val output = session.run(fetches = (inferenceOps.input, inferenceOps.output))

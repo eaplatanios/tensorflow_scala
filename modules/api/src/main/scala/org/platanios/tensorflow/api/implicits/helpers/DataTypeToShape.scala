@@ -164,13 +164,13 @@ object DataTypeToShape {
 
   implicit def fromHList[HD, HS, TD <: HList, TS <: HList](implicit
       evH: Strict[DataTypeToShape.Aux[HD, HS]],
-      evT: Strict[DataTypeToShape.Aux[TD, TS]]
+      evT: DataTypeToShape.Aux[TD, TS]
   ): DataTypeToShape.Aux[HD :: TD, HS :: TS] = {
     new DataTypeToShape[HD :: TD] {
       override type S = HS :: TS
 
       override def sizeFromDataType(dataType: HD :: TD): Int = {
-        evH.value.sizeFromDataType(dataType.head) + evT.value.sizeFromDataType(dataType.tail)
+        evH.value.sizeFromDataType(dataType.head) + evT.sizeFromDataType(dataType.tail)
       }
 
       override def decodeShape(
@@ -178,7 +178,7 @@ object DataTypeToShape {
           shapes: Seq[Shape]
       ): (HS :: TS, Seq[Shape]) = {
         val (headOut, headRemaining) = evH.value.decodeShape(dataType.head, shapes)
-        val (tailOut, tailRemaining) = evT.value.decodeShape(dataType.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.decodeShape(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }

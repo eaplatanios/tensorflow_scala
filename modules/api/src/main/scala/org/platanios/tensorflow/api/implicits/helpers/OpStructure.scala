@@ -119,12 +119,12 @@ trait NestedStructureOpsLowPriority {
 
   implicit def fromHList[H, T <: HList](implicit
       evH: Strict[OpStructure[H]],
-      evT: Strict[OpStructure[T]]
+      evT: OpStructure[T]
   ): OpStructure[H :: T] = {
     new OpStructure[H :: T] {
       override def ops(executable: H :: T): Set[UntypedOp] = {
         evH.value.ops(executable.head) ++
-            evT.value.ops(executable.tail)
+            evT.ops(executable.tail)
       }
     }
   }
