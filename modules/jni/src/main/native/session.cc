@@ -20,14 +20,10 @@
 #include <string>
 #include <memory>
 
-#include "tensorflow/c/c_api.h"
 #include "tensorflow/c/python_api.h"
 #include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/common_runtime/device.h"
 #include "tensorflow/core/common_runtime/device_factory.h"
-#include "tensorflow/core/framework/device_attributes.pb.h"
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/protobuf/config.pb.h"
 #include "tensorflow/core/public/session_options.h"
 
 namespace {

@@ -18,19 +18,7 @@ limitations under the License.
 #include "exception.h"
 #include "utilities.h"
 
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
-#include "tensorflow/c/c_api.h"
 #include "tensorflow/c/c_api_internal.h"
-#include "tensorflow/c/eager/c_api.h"
-#include "tensorflow/core/common_runtime/eager/tensor_handle.h"
-#include "tensorflow/core/framework/op.h"
-#include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/framework/kernel_def.pb_text.h"
-#include "tensorflow/core/framework/common_shape_fns.h"
-#include "tensorflow/core/lib/core/coding.h"
-#include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/platform/macros.h"
-#include "tensorflow/core/platform/mutex.h"
 
 namespace tensorflow {
 REGISTER_OP("JVMCallback")
@@ -89,6 +77,11 @@ struct TFE_TensorHandle {
   tensorflow::TensorHandle* handle;
 };
 
+Status TensorHandle::Tensor(const tensorflow::Tensor** t) {
+  *t = &tensor_;
+  return Status::OK();
+}
+
 namespace {
   // Given the 'call', prepares the inputs as a JNI long array that is appropriate for calling the registry.
   jlongArray MakeInputs(JVMCall* call) {
@@ -126,7 +119,7 @@ namespace {
         return;
       }
       if (!status->status.ok()) return;
-      const tensorflow::Tensor* t = nullptr;
+      const tensorflow::Tensor* t =  nullptr;
       status->status = h->handle->Tensor(&t);
       call->outputs.push_back(*t);
     }

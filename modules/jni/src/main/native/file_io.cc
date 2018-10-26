@@ -20,16 +20,9 @@
 #include <iostream>
 
 #include "tensorflow/c/tf_status_helper.h"
-#include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/buffered_inputstream.h"
-#include "tensorflow/core/lib/io/inputstream_interface.h"
-#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/platform/env.h"
-#include "tensorflow/core/platform/file_statistics.h"
-#include "tensorflow/core/platform/file_system.h"
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_FileIO_00024_fileExists(
     JNIEnv* env, jobject object, jstring filename) {

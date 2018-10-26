@@ -21,7 +21,6 @@
 #include "tensorflow/c/record_reader.h"
 #include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/lib/io/record_reader.h"
-#include "tensorflow/core/platform/env.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_RecordReader_00024_newRandomAccessFile(
     JNIEnv* env, jobject object, jstring filename) {

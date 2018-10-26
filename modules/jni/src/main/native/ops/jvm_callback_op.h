@@ -21,7 +21,7 @@
 #include <sstream>
 #include <vector>
 
-#include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/common_runtime/eager/tensor_handle.h"
 
 // A call to the registered JVM function.
 struct JVMCall {

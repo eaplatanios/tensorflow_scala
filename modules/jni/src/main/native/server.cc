@@ -20,7 +20,6 @@
 #include "tensorflow/c/tf_status_helper.h"
 #include "tensorflow/core/distributed_runtime/server_lib.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Server_00024_newServer(
     JNIEnv* env, jobject object, jbyteArray server_def_proto) {
