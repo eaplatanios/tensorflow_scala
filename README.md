@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/eaplatanios/tensorflow_scala/master/docs/images/logo.png"><br>
+  <img src="https://raw.githubusercontent.com/eaplatanios/tensorflow_scala/master/docs/images/logo.svg?sanitize=true" width="350px" height="242px"><br>
 </div>
 
 -----------------
