@@ -1523,11 +1523,71 @@ trait Manipulation {
     val inputShape = shape(op.input._1)
     if (indices.rank == 2 && indices.shape(-1) == 1) {
       (OutputIndexedSlices(
-        indices = Basic.squeeze(indices.toInt, axes = Seq(-1)),
+        indices = squeeze(indices.toInt, axes = Seq(-1)),
         values = outputGradient,
         denseShape = inputShape), null)
     } else {
       (scatterND(indices, outputGradient, inputShape.castTo[I]), null)
+    }
+  }
+
+  /** Gathers slices from `input` according to `indices` with a leading batch dimension.
+    *
+    * This operation assumes that the leading dimensions of `indices` are dense, and computes:
+    * {{{
+    *   result(i1, ..., in) = input(i1, ..., in-1, indices(i1, ..., in))
+    * }}}
+    *
+    * Therefore, if `input` has shape `[A1, ..., AN, B1, ..., BM]`, and `indices` has shape `[A1, ..., AN-1, C]`, then
+    * the resulting tensor will have shape `[A1, ..., AN-1, C, B1, ..., BM]`.
+    *
+    * In the case in which `indices` is a one-dimensional tensor, this operation is equivalent to `gather`.
+    *
+    * @param  input   Tensor from which to gather values.
+    * @param  indices Tensor specifying the indices for the gather. Its values elements must be in the interval
+    *                 `[0, input.shape(axis)]`, where `axis` is the last dimension of `indices` itself.
+    * @param  name    Namescope for the created ops.
+    * @return Tensor containing the gathered elements from `input`.
+    * @throws InvalidShapeException If `indices` has unknown rank.
+    */
+  @throws[InvalidShapeException]
+  def batchGather[T: TF, I: TF : IsIntOrLong](
+      input: Output[T],
+      indices: Output[I],
+      name: String = "BatchGather"
+  ): Output[T] = {
+    Op.nameScope(name) {
+      val inputShape = shape(input)
+      val castedInputShape = inputShape.castTo[I]
+      val indicesShape = shape(indices)
+
+      val indicesRank = indices.rank
+      if (indicesRank == -1)
+        throw InvalidShapeException("`batchGather` does not allow indices with unknown rank.")
+
+      var batchIndices = indices
+      var accumulatedDimValue = Constructors.ones[I](Shape())
+      for (i <- (indicesRank - 1) to 1 by -1) {
+        accumulatedDimValue *= castedInputShape(i)
+        val dimValue = castedInputShape(i - 1)
+        val zero = Constructors.zeros[I](Shape())
+        val one = Constructors.ones[I](Shape())
+        val dimIndices = accumulatedDimValue * Math.range(zero, dimValue, one)
+        val dimShape = stack((Seq.fill(i - 1)(one) :+ dimValue) ++ Seq.fill(indicesRank - i)(one))
+        batchIndices += reshape(dimIndices, dimShape)
+      }
+
+      val flatIndices = reshape(batchIndices, Shape(-1))
+      val outerShape = inputShape(indicesRank ::)
+      val flatInnerShape = Math.prod(inputShape(0 :: indicesRank), axes = 0, keepDims = false)
+      val flatInput = reshape(input, concatenate(Seq(flatInnerShape(NewAxis), outerShape), axis = 0))
+      val flatResult = gather(flatInput, flatIndices)
+      val result = reshape(flatResult, concatenate(Seq(indicesShape, outerShape), axis = 0))
+      var finalShape = indices.shape(0 :: indicesRank - 1).mergeWith(input.shape(0 :: indicesRank - 1))
+      finalShape += indices.shape(indicesRank - 1)
+      finalShape ++= input.shape(indicesRank ::)
+      result.setShape(finalShape)
+      result
     }
   }
 

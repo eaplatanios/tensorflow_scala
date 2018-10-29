@@ -1061,7 +1061,7 @@ trait Math extends math.API {
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
-    val twoOverRootPi = Basic.constant(2.0 / math.sqrt(math.Pi)).castTo[T]
+    val twoOverRootPi = Basic.constant(2.0 / scala.math.sqrt(scala.math.Pi)).castTo[T]
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       outputGradient * twoOverRootPi * exp(negate(square(conjugate(x))))
     }
@@ -1094,7 +1094,7 @@ trait Math extends math.API {
       outputGradient: Output[T]
   ): Output[T] = {
     val x = op.input
-    val minusTwoOverRootPi = Basic.constant(-2.0 / math.sqrt(math.Pi)).castTo[T]
+    val minusTwoOverRootPi = Basic.constant(-2.0 / scala.math.sqrt(scala.math.Pi)).castTo[T]
     Op.createWith(controlDependencies = Set(outputGradient.op)) {
       outputGradient * minusTwoOverRootPi * exp(negate(square(conjugate(x))))
     }
