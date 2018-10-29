@@ -400,6 +400,15 @@ final case class Output[T] private(
   def >=(other: Output[T])(implicit ev: IsNumeric[T]): Output[Boolean] = {
     Math.greaterEqual(this, other)
   }
+
+  def <<(other: Output[T])(implicit ev: IsIntOrUInt[T]): Output[T] = {
+    Math.bitwise.leftShift(this, other)
+  }
+
+  def >>(other: Output[T])(implicit ev: IsIntOrUInt[T]): Output[T] = {
+    Math.bitwise.rightShift(this, other)
+  }
+
   /** $OpDocMathNegate
     *
     * @group MathOps

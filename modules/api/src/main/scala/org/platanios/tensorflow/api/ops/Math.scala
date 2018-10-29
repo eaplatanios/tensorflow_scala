@@ -29,7 +29,7 @@ import scala.language.postfixOps
   *
   * @author Emmanouil Antonios Platanios
   */
-trait Math {
+trait Math extends math.API {
   /** $OpDocMathSelect
     *
     * @group MathOps
