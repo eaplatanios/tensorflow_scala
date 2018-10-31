@@ -182,13 +182,13 @@ object Zero {
 
   implicit def fromHList[HT, HS, TT <: HList, TS <: HList](implicit
       evH: Strict[Zero.Aux[HT, HS]],
-      evT: Zero.Aux[TT, TS]
+      evT: Strict[Zero.Aux[TT, TS]]
   ): Zero.Aux[HT :: TT, HS :: TS] = {
     new Zero[HT :: TT] {
       override type S = HS :: TS
 
       override def evOutputToShape: OutputToShape.Aux[HT :: TT, HS :: TS] = {
-        OutputToShape.fromHList[HT, HS, TT, TS](evH.value.evOutputToShape, evT.evOutputToShape)
+        OutputToShape.fromHList[HT, HS, TT, TS](evH.value.evOutputToShape, evT.value.evOutputToShape)
       }
 
       override def zero(
@@ -198,7 +198,7 @@ object Zero {
       ): HT :: TT = {
         Op.nameScope(name) {
           evH.value.zero(batchSize, shape.head) ::
-              evT.zero(batchSize, shape.tail)
+              evT.value.zero(batchSize, shape.tail)
         }
       }
     }

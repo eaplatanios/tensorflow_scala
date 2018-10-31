@@ -49,7 +49,7 @@ import scala.language.higherKinds
   *
   * @author Emmanouil Antonios Platanios
   */
-trait OutputStructure[T] {
+sealed trait OutputStructure[T] {
   def size(output: T): Int
   def outputs(output: T): Seq[Output[Any]]
   def decodeOutput(output: T, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
@@ -362,17 +362,17 @@ object OutputStructure {
 
   implicit def fromHList[HT, TT <: HList](implicit
       evH: Strict[OutputStructure[HT]],
-      evT: OutputStructure[TT]
+      evT: Strict[OutputStructure[TT]]
   ): OutputStructure[HT :: TT] = {
     new OutputStructure[HT :: TT] {
       override def size(output: HT :: TT): Int = {
         evH.value.size(output.head) +
-            evT.size(output.tail)
+            evT.value.size(output.tail)
       }
 
       override def outputs(output: HT :: TT): Seq[Output[Any]] = {
         evH.value.outputs(output.head) ++
-            evT.outputs(output.tail)
+            evT.value.outputs(output.tail)
       }
 
       override def decodeOutput(
@@ -380,7 +380,7 @@ object OutputStructure {
           outputs: Seq[Output[Any]]
       ): (HT :: TT, Seq[Output[Any]]) = {
         val (headOut, headRemaining) = evH.value.decodeOutput(output.head, outputs)
-        val (tailOut, tailRemaining) = evT.decodeOutput(output.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.value.decodeOutput(output.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
@@ -389,7 +389,7 @@ object OutputStructure {
           converter: OutputStructure.Converter
       ): HT :: TT = {
         evH.value.map(value.head, converter) ::
-            evT.map(value.tail, converter)
+            evT.value.map(value.tail, converter)
       }
     }
   }

@@ -452,27 +452,27 @@ object OutputToShape {
 
   implicit def fromHList[HT, HS, TT <: HList, TS <: HList](implicit
       evH: Strict[OutputToShape.Aux[HT, HS]],
-      evT: OutputToShape.Aux[TT, TS]
+      evT: Strict[OutputToShape.Aux[TT, TS]]
   ): OutputToShape.Aux[HT :: TT, HS :: TS] = {
     new OutputToShape[HT :: TT] {
       override type S = HS :: TS
 
       override def outputStructure: OutputStructure[HT :: TT] = {
         implicit val evOutputToShapeH: OutputStructure[HT] = evH.value.outputStructure
-        implicit val evOutputToShapeT: OutputStructure[TT] = evT.outputStructure
+        implicit val evOutputToShapeT: OutputStructure[TT] = evT.value.outputStructure
         OutputStructure[HT :: TT]
       }
 
       override def shapeStructure: ShapeStructure[HS :: TS] = {
-        ShapeStructure.fromHList[HS, TS](evH.value.shapeStructure, evT.shapeStructure)
+        ShapeStructure.fromHList[HS, TS](evH.value.shapeStructure, evT.value.shapeStructure)
       }
 
       override def sizeFromOutput(output: HT :: TT): Int = {
-        evH.value.sizeFromOutput(output.head) + evT.sizeFromOutput(output.tail)
+        evH.value.sizeFromOutput(output.head) + evT.value.sizeFromOutput(output.tail)
       }
 
       override def shape(output: HT :: TT): HS :: TS = {
-        evH.value.shape(output.head) :: evT.shape(output.tail)
+        evH.value.shape(output.head) :: evT.value.shape(output.tail)
       }
 
       override def decodeShape(
@@ -480,7 +480,7 @@ object OutputToShape {
           shapes: Seq[Shape]
       ): (HS :: TS, Seq[Shape]) = {
         val (headOut, headRemaining) = evH.value.decodeShape(output.head, shapes)
-        val (tailOut, tailRemaining) = evT.decodeShape(output.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.value.decodeShape(output.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
 
@@ -490,7 +490,7 @@ object OutputToShape {
           converter: OutputStructure.Converter
       ): HT :: TT = {
         evH.value.map(value.head, shape.map(_.head), converter) ::
-            evT.map(value.tail, shape.map(_.tail), converter)
+            evT.value.map(value.tail, shape.map(_.tail), converter)
       }
     }
   }

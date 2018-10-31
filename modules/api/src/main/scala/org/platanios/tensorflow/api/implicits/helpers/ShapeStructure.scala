@@ -163,15 +163,15 @@ object ShapeStructure {
 
   implicit def fromHList[HS, TS <: HList](implicit
       evH: Strict[ShapeStructure[HS]],
-      evT: ShapeStructure[TS]
+      evT: Strict[ShapeStructure[TS]]
   ): ShapeStructure[HS :: TS] = {
     new ShapeStructure[HS :: TS] {
       override def size(shape: HS :: TS): Int = {
-        evH.value.size(shape.head) + evT.size(shape.tail)
+        evH.value.size(shape.head) + evT.value.size(shape.tail)
       }
 
       override def shapes(shape: HS :: TS): Seq[Shape] = {
-        evH.value.shapes(shape.head) ++ evT.shapes(shape.tail)
+        evH.value.shapes(shape.head) ++ evT.value.shapes(shape.tail)
       }
 
       override def decodeShape(
@@ -179,7 +179,7 @@ object ShapeStructure {
           shapes: Seq[Shape]
       ): (HS :: TS, Seq[Shape]) = {
         val (headOut, headRemaining) = evH.value.decodeShape(shape.head, shapes)
-        val (tailOut, tailRemaining) = evT.decodeShape(shape.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.value.decodeShape(shape.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }

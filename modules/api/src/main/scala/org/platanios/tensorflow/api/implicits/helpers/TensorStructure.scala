@@ -98,11 +98,11 @@ object TensorStructure {
 
   implicit def fromHList[HT, TT <: HList](implicit
       evH: Strict[TensorStructure[HT]],
-      evT: TensorStructure[TT]
+      evT: Strict[TensorStructure[TT]]
   ): TensorStructure[HT :: TT] = {
     new TensorStructure[HT :: TT] {
       override def tensors(tensor: HT :: TT): Seq[Tensor[Any]] = {
-        evH.value.tensors(tensor.head) ++ evT.tensors(tensor.tail)
+        evH.value.tensors(tensor.head) ++ evT.value.tensors(tensor.tail)
       }
     }
   }

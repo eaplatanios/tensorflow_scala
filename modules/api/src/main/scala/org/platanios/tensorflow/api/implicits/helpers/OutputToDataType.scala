@@ -326,21 +326,21 @@ object OutputToDataType {
 
   implicit def fromHList[HT, HD, TT <: HList, TD <: HList](implicit
       evH: Strict[OutputToDataType.Aux[HT, HD]],
-      evT: OutputToDataType.Aux[TT, TD]
+      evT: Strict[OutputToDataType.Aux[TT, TD]]
   ): OutputToDataType.Aux[HT :: TT, HD :: TD] = {
     new OutputToDataType[HT :: TT] {
       override type D = HD :: TD
 
       override def dataTypeStructure: DataTypeStructure[HD :: TD] = {
-        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.dataTypeStructure)
+        DataTypeStructure.fromHList[HD, TD](evH.value.dataTypeStructure, evT.value.dataTypeStructure)
       }
 
       override def sizeFromDataType(dataType: HD :: TD): Int = {
-        evH.value.sizeFromDataType(dataType.head) + evT.sizeFromDataType(dataType.tail)
+        evH.value.sizeFromDataType(dataType.head) + evT.value.sizeFromDataType(dataType.tail)
       }
 
       override def dataType(output: HT :: TT): HD :: TD = {
-        evH.value.dataType(output.head) :: evT.dataType(output.tail)
+        evH.value.dataType(output.head) :: evT.value.dataType(output.tail)
       }
 
       override def decodeOutput(
@@ -348,7 +348,7 @@ object OutputToDataType {
           outputs: Seq[Output[Any]]
       ): (HT :: TT, Seq[Output[Any]]) = {
         val (headOut, headRemaining) = evH.value.decodeOutput(dataType.head, outputs)
-        val (tailOut, tailRemaining) = evT.decodeOutput(dataType.tail, headRemaining)
+        val (tailOut, tailRemaining) = evT.value.decodeOutput(dataType.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
       }
     }
