@@ -920,7 +920,7 @@ trait NN {
       if (computeFullLoss) {
         // Need to create constant tensors here so that their data types can be matched to that of the targets.
         val pointFive = Basic.constant(0.5).castTo[T]
-        val twoPi = Basic.constant(2 * math.Pi).castTo[T]
+        val twoPi = Basic.constant(2 * scala.math.Pi).castTo[T]
         val stirlingApproximation = (targets * Math.log(targets)) - targets + (pointFive * Math.log(twoPi * targets))
         val zeros = Basic.zerosLike(targets)
         val ones = Basic.onesLike(targets)

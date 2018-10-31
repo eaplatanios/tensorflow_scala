@@ -1114,7 +1114,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
           evOutputToShape: OutputToShape.Aux[T, S]
       ): Output[Variant] = {
         Op.Builder[(Output[Variant], Output[Variant]), Output[Variant]](
-          opType = "CacheDataset",
+          opType = "ConcatenateDataset",
           name = name,
           input = (outer.createHandle(), other.createHandle())
         ).setAttribute("output_types", flatOutputDataTypes.toArray)
