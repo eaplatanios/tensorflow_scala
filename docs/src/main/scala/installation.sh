@@ -1,7 +1,7 @@
 // #clone_repository
 git clone https://github.com/tensorflow/tensorflow.git <repository_directory>
 cd <repository_directory>
-git checkout r1.12
+git checkout 4b46a399d7a5a5c9cc262d08e0df1217364a5b9f
 // #clone_repository
 
 // #compile_tf
