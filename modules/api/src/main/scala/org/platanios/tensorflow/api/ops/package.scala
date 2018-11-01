@@ -78,7 +78,6 @@ package object ops {
           with ops.control_flow.API
           with ops.lookup.API
           with ops.rnn.API
-          with ops.seq2seq.API
           with ops.variables.API {
     object data extends ops.data.API
     object image extends Image

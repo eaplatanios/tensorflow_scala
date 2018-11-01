@@ -658,7 +658,7 @@ object Output {
   //endregion Constructors
 
   /** Returns the constant value of the given tensor, if efficiently calculable. */
-  private[api] def constantValue[T](output: Output[T]): Option[Tensor[T]] = {
+  def constantValue[T](output: Output[T]): Option[Tensor[T]] = {
     val value = using(output.graph.reference)(r => {
       val result = NativeOp.tryEvaluateConstant(
         r.nativeHandle, output.op.nativeHandle, output.index)
@@ -761,7 +761,7 @@ object Output {
     * @param  tensor One-dimensional tensor to be evaluated.
     * @return Shape based on the constant value of `tensor`.
     */
-  private[api] def constantValueAsShape[T](tensor: Output[T]): Option[Shape] = {
+  def constantValueAsShape[T](tensor: Output[T]): Option[Shape] = {
     if (tensor.rank == 0) {
       // TODO: Handle this better.
       Some(Shape(-1))
