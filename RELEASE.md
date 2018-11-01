@@ -1,3 +1,17 @@
+# 0.4.1
+
+Other new features include:
+
+  - `math` module:
+    - Added support for `batchGather`.
+    - Added support for bitwise ops.
+  - `rnn` module:
+    - Simplified the attention mechanisms functionality so that it is 
+      now not required to tile memory tensors for beam search outside 
+      the beam search decoder.
+  - Moved the `seq2seq` module to a separate repository (that of 
+    [Symphony Machine Translation](https://github.com/eaplatanios/symphony-mt)).
+
 # 0.4.0 More Static Data Types
 
 This is a major release with a lot of new features related to static

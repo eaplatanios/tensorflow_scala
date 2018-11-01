@@ -87,7 +87,7 @@ lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples, horovod)
+    .aggregate(jni, api, data, examples)
     .dependsOn(jni, api)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
