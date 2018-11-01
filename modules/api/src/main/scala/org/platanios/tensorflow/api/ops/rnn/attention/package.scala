@@ -37,7 +37,7 @@ package object attention {
       attention: Output[AttentionDataType],
       alignments: Seq[Output[AttentionDataType]],
       alignmentsHistory: Seq[TensorArray[AttentionDataType]],
-      attentionState: AttentionState)
+      attentionState: Seq[Attention.State[AttentionDataType, AttentionState]])
 
   private[rnn] trait API {
     type Attention[T, State, StateShape] = attention.Attention[T, State, StateShape]

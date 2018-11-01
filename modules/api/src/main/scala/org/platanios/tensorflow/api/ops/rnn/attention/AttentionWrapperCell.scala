@@ -23,10 +23,12 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
 
+import scala.language.postfixOps
+
 /** RNN cell that wraps another RNN cell and adds support for attention to it.
   *
   * @param  cell                   RNN cell being wrapped.
-  * @param  attentions             Attention mechanisms to use.
+  * @param  attentions             Map from memories to attention mechanisms to use for those memories.
   * @param  attentionLayerWeights  Attention layer weights to use for projecting the computed attention.
   * @param  cellInputFn            Function that takes the original cell input tensor and the attention tensor as inputs
   *                                and returns the mixed cell input to use. Defaults to concatenating the two tensors
@@ -46,7 +48,7 @@ import org.platanios.tensorflow.api.tensors.Tensor
   */
 class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, AttentionState, CellStateShape, AttentionStateShape] private[attention] (
     val cell: RNNCell[Output[T], CellState, Shape, CellStateShape],
-    val attentions: Seq[Attention[T, AttentionState, AttentionStateShape]], // TODO: [TYPES] Allow for varying supported types in the sequence.
+    val attentions: Seq[(Attention.Memory[T], Attention[T, AttentionState, AttentionStateShape])],
     val attentionLayerWeights: Seq[Output[T]] = null,
     val cellInputFn: (Output[T], Output[T]) => Output[T] = {
       (input: Output[T], attention: Output[T]) =>
@@ -58,7 +60,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
 )(implicit
     evOutputToShapeCellState: OutputToShape.Aux[CellState, CellStateShape],
     evOutputToShapeAttentionState: OutputToShape.Aux[AttentionState, AttentionStateShape]
-) extends RNNCell[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]], Shape, (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[AttentionStateShape])] {
+) extends RNNCell[Output[T], AttentionWrapperState[T, CellState, AttentionState], Shape, (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[Attention.StateShape[AttentionStateShape]])] {
   private val attentionLayersSize: Int = {
     if (attentionLayerWeights != null) {
       require(attentionLayerWeights.lengthCompare(attentions.size) == 0,
@@ -67,7 +69,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
       val sizes = attentionLayerWeights.map(_.shape(-1))
       if (sizes.contains(-1)) -1 else sizes.sum
     } else {
-      val sizes = attentions.map(_.values.shape(-1))
+      val sizes = attentions.map(_._1.values.shape(-1))
       if (sizes.contains(-1)) -1 else sizes.sum
     }
   }
@@ -79,7 +81,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
     */
   def initialState(
       initialCellState: CellState
-  ): AttentionWrapperState[T, CellState, Seq[AttentionState]] = {
+  ): AttentionWrapperState[T, CellState, AttentionState] = {
     if (initialCellState == null) {
       null
     } else {
@@ -91,10 +93,10 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
           else
             Basic.shape(state).castTo[Int].slice(0)
         }
-        val initialAlignments = attentions.map(_.initialAlignment)
+        val initialAlignments = attentions.map(_._2.initialAlignment(batchSize))
         AttentionWrapperState(
           cellState = initialCellState,
-          time = Basic.zeros[Int](Shape.scalar()),
+          time = Basic.zeros[Int](batchSize.expandDims(0)),
           attention = Basic.fill[T, Int](
             Basic.stack[Int](Seq(batchSize, attentionLayersSize))
           )(Tensor.zeros[T](Shape())),
@@ -110,7 +112,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
             else
               Seq.empty
           },
-          attentionState = attentions.map(_.initialState))
+          attentionState = attentions.map(a => a._2.initialState(batchSize, a._1)))
       }
     }
   }
@@ -122,21 +124,27 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
       cell.outputShape
   }
 
-  override def stateShape: (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[AttentionStateShape]) = {
-    (cell.stateShape, Shape(1), Shape(attentionLayersSize),
+  override def stateShape: (CellStateShape, Shape, Shape, Seq[Shape], Seq[Shape], Seq[Attention.StateShape[AttentionStateShape]]) = {
+    (cell.stateShape, Shape(), Shape(attentionLayersSize),
         attentions.map(a => {
-          Output.constantValueAsShape(a.alignmentSize.expandDims(0))
+          Output.constantValueAsShape(a._2.memorySize.expandDims(0))
               .getOrElse(Shape.unknown())
         }),
         attentions.map(a => {
           if (storeAlignmentsHistory) {
-            Output.constantValueAsShape(a.alignmentSize.expandDims(0))
+            Output.constantValueAsShape(a._2.memorySize.expandDims(0))
                 .getOrElse(Shape.unknown())
           } else {
             Shape.scalar()
           }
         }),
-        attentions.map(_.stateSize))
+        attentions.map(a => {
+          val memoryShape = a._1.values.shape(1 ::)
+          val keysShape = a._2.keysShape(a._1.values.shape)(1 ::)
+          val stateShape = a._2.stateShape
+          val memoryLengthsShape = a._1.lengths.map(_ => Shape())
+          (keysShape, memoryShape, stateShape, memoryLengthsShape)
+        }))
   }
 
   /** Performs a step using this attention-wrapped RNN cell.
@@ -154,16 +162,16 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
     * @return Next tuple.
     */
   override def forward(
-      input: Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]]
-  ): Tuple[Output[T], AttentionWrapperState[T, CellState, Seq[AttentionState]]] = {
+      input: Tuple[Output[T], AttentionWrapperState[T, CellState, AttentionState]]
+  ): Tuple[Output[T], AttentionWrapperState[T, CellState, AttentionState]] = {
     // Step 1: Calculate the true inputs to the cell based on the previous attention value.
     val cellInput = cellInputFn(input.output, input.state.attention)
     val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
     val output = nextTuple.output
     val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentions.map(_ => null)
     val (allAttentions, allAlignments, allStates) = (attentions, input.state.attentionState, weights).zipped.map {
-      case (mechanism, previousState, w) =>
-        val (alignments, state) = mechanism.alignment(output, previousState)
+      case (attentionPair, previousState, w) =>
+        val (alignments, state) = attentionPair._2.alignment(output, previousState)
         // Reshape from [batchSize, memoryTime] to [batchSize, 1, memoryTime]
         val expandedAlignments = alignments.expandDims(1)
         // Context is the inner product of alignments and values along the memory time dimension.
@@ -171,7 +179,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
         // The mechanism values shape is: [batchSize, memoryTime, memorySize]
         // The batched matrix multiplication is over `memoryTime` and so the output shape is: [batchSize, 1, memorySize]
         // We then squeeze out the singleton dimension.
-        val context = Math.matmul(expandedAlignments, mechanism.values).squeeze(Seq(1))
+        val context = Math.matmul(expandedAlignments, previousState.values).squeeze(Seq(1))
         val attention = {
           if (w != null)
             Math.matmul(Basic.concatenate(Seq(output, context), 1), w)
@@ -186,7 +194,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
       else
         input.state.alignmentsHistory
     }
-    val one = Basic.constant(1)
+    val one = Basic.ones[Int](Shape())
     val attention = Basic.concatenate(allAttentions, one)
     val nextState = AttentionWrapperState(
       nextTuple.state, input.state.time + one, attention, allAlignments, histories, allStates)
@@ -200,7 +208,7 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
 object AttentionWrapperCell {
   def apply[T: TF : IsNotQuantized, CellState: OutputStructure, AttentionState, CellStateShape, AttentionStateShape](
       cell: RNNCell[Output[T], CellState, Shape, CellStateShape],
-      attentions: Seq[Attention[T, AttentionState, AttentionStateShape]],
+      attentions: Seq[(Attention.Memory[T], Attention[T, AttentionState, AttentionStateShape])],
       attentionLayerWeights: Seq[Output[T]] = null,
       cellInputFn: (Output[T], Output[T]) => Output[T] = {
         (input: Output[T], attention: Output[T]) =>

@@ -49,13 +49,19 @@ case class TensorArray[T] private (
     handle: Output[Resource],
     flow: Output[Float],
     inferShape: Boolean,
-    private[ops] var elementShape: Option[Shape],
+    private var _elementShape: Option[Shape],
     colocateWithFirstWrite: Boolean = true,
     private var colocationOps: Seq[UntypedOp] = null
 )(implicit
     private[api] val evTTF: TF[T]
 ) {
   val dataType: DataType[T] = TF[T].dataType
+
+  /** A shape specifying the shape constraints of each of the elements of the tensor array.
+    * The shape need not be fully defined. */
+  def elementShape: Option[Shape] = {
+    _elementShape
+  }
 
   /** Changes the element shape of the array given a shape to merge with.
     *
@@ -64,12 +70,12 @@ case class TensorArray[T] private (
     */
   @throws[InvalidShapeException]
   private def mergeElementShape(shape: Shape): Unit = {
-    elementShape match {
+    _elementShape match {
       case Some(currentShape) =>
         if (!shape.isCompatibleWith(currentShape))
           throw InvalidShapeException(s"Expected shape '$currentShape' but got '$shape' (and inferShape = true).")
-        elementShape = Some(currentShape.mergeWith(shape))
-      case None => if (shape.rank != -1) elementShape = Some(shape)
+        _elementShape = Some(currentShape.mergeWith(shape))
+      case None => if (shape.rank != -1) _elementShape = Some(shape)
     }
   }
 
@@ -81,7 +87,7 @@ case class TensorArray[T] private (
   def identity: TensorArray[T] = {
     TensorArray(
       handle, Basic.identity(flow), inferShape,
-      elementShape, colocateWithFirstWrite, colocationOps)
+      _elementShape, colocateWithFirstWrite, colocationOps)
   }
 
   /** Creates an op that reads an element from this tensor array.
@@ -96,7 +102,7 @@ case class TensorArray[T] private (
   ): Output[T] = {
     Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       val value = TensorArray.readOp(handle, index, flow, name)(TF.fromDataType(dataType))
-      elementShape.foreach(value.setShape)
+      _elementShape.foreach(value.setShape)
       value
     }
   }
@@ -117,7 +123,7 @@ case class TensorArray[T] private (
       TensorArray.writeOp(handle, index, value, flow, name)
     }
     val returnValue = TensorArray[T](
-      handle, writeFlow, inferShape, elementShape,
+      handle, writeFlow, inferShape, _elementShape,
       colocateWithFirstWrite, colocationOps)
     if (inferShape)
       returnValue.mergeElementShape(value.shape)
@@ -140,9 +146,9 @@ case class TensorArray[T] private (
     Op.colocateWith(Set(handle.op), ignoreExisting = true) {
       val ind = if (indices.rank == 0) indices.expandDims(0) else indices
       val value = TensorArray.gatherOp(
-        handle, ind, flow, elementShape.getOrElse(Shape.unknown()), name)(TF.fromDataType(dataType))
-      if (elementShape.isDefined)
-        value.setShape(Shape(-1 +: elementShape.get.asArray: _*))
+        handle, ind, flow, _elementShape.getOrElse(Shape.unknown()), name)(TF.fromDataType(dataType))
+      if (_elementShape.isDefined)
+        value.setShape(Shape(-1 +: _elementShape.get.asArray: _*))
       value
     }
   }
@@ -166,7 +172,7 @@ case class TensorArray[T] private (
       TensorArray.scatterOp(handle, indices, value, flow, name)
     }
     val returnValue = TensorArray[T](
-      handle, scatterFlow, inferShape, elementShape,
+      handle, scatterFlow, inferShape, _elementShape,
       colocateWithFirstWrite, colocationOps)
     if (inferShape) {
       val valueShape = scatterFlow.op.inputsSeq(2).shape
@@ -231,11 +237,11 @@ case class TensorArray[T] private (
     * @return Tensor with all of the elements in the tensor array, concatenated along the first axis.
     */
   def concatenate(name: String = "TensorArrayConcatenate"): Output[T] = {
-    val shape = elementShape.map(s => {
+    val shape = _elementShape.map(s => {
       Shape.fromSeq(s.asArray.tail)
     }).getOrElse(Shape.unknown())
     val (value, _) = TensorArray.concatenateOp(handle, flow, shape, name)(TF.fromDataType(dataType))
-    if (elementShape.isDefined)
+    if (_elementShape.isDefined)
       value.setShape(Shape(-1 +: shape.asArray: _*))
     value
   }
@@ -257,7 +263,7 @@ case class TensorArray[T] private (
         TensorArray.splitOp(handle, input, lengths.castTo[Long], flow, name)
       }
       val returnValue = TensorArray[T](
-        handle, splitFlow, inferShape, elementShape,
+        handle, splitFlow, inferShape, _elementShape,
         colocateWithFirstWrite, colocationOps)
       if (inferShape) {
         val valueShape = splitFlow.op.inputsSeq(1).shape
@@ -342,7 +348,7 @@ case class TensorArray[T] private (
         }
         TensorArray[T](
           gradientHandle, gradientFlow, inferShape,
-          elementShape, colocateWithFirstWrite = false)
+          _elementShape, colocateWithFirstWrite = false)
       }
     }
   }
@@ -469,7 +475,7 @@ object TensorArray {
       handle = handle,
       flow = flow,
       inferShape = inferShape,
-      elementShape = if (elementShape.rank == -1) None else Some(elementShape),
+      _elementShape = if (elementShape.rank == -1) None else Some(elementShape),
       colocateWithFirstWrite = colocateWithFirstWrite
     )(TF.fromDataType(dataType))
   }
