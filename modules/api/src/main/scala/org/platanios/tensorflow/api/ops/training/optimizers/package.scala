@@ -23,6 +23,7 @@ package object optimizers {
       extends schedules.API {
     type Optimizer = optimizers.Optimizer
     type AdaDelta = optimizers.AdaDelta
+    type Adafactor = optimizers.Adafactor
     type AdaGrad = optimizers.AdaGrad
     type RMSProp = optimizers.RMSProp
     type Adam = optimizers.Adam
@@ -33,6 +34,7 @@ package object optimizers {
     type YellowFin = optimizers.YellowFin
 
     val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
+    val Adafactor      : optimizers.Adafactor.type       = optimizers.Adafactor
     val AdaGrad        : optimizers.AdaGrad.type         = optimizers.AdaGrad
     val RMSProp        : optimizers.RMSProp.type         = optimizers.RMSProp
     val Adam           : optimizers.Adam.type            = optimizers.Adam

@@ -118,7 +118,7 @@ class RMSProp protected (
         else
           DynamicConstantInitializer(Basic.onesLike(v.value))(evTF)
       }
-      getSlot("AccumulatorRMS", v, v.dataType, rmsInit, v.shape, name)(evTF, evTF)
+      getSlot("AccumulatorRMS", v, v.dataType, rmsInit, v.shape, name)(evTF)
       if (centered)
         zerosSlot("AccumulatorMeanGradient", v, name)(evTF)
       zerosSlot("AccumulatorMomentum", v, name)(evTF)

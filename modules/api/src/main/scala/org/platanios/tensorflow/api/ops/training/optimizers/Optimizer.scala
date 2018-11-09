@@ -332,7 +332,7 @@ trait Optimizer {
     * @param  variableScope Name to use when scoping the variable that needs to be created for the slot.
     * @return Requested slot variable.
     */
-  protected final def getSlot[T: TF, R: TF](
+  protected final def getSlot[T, R: TF](
       name: String,
       variable: Variable[T],
       dataType: DataType[R],
@@ -353,7 +353,7 @@ trait Optimizer {
     * @param  variable Slot primary variable.
     * @return Requested slot variable, or `null` if it cannot be found.
     */
-  protected final def getSlot[T: TF, R: TF](
+  protected final def getSlot[T, R: TF](
       name: String,
       variable: Variable[T]
   ): Variable[R] = {
@@ -409,7 +409,7 @@ trait Optimizer {
     * @param  graph Graph in which the variable is defined.
     * @return Obtained non-slot variable.
     */
-  protected final def getNonSlotVariable[T: TF](
+  protected final def getNonSlotVariable[T](
       name: String,
       graph: Graph = null
   ): Variable[T] = {

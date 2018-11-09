@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.variables.Variable
 
-/** Square root decay method.
+/** Reciprocal square root decay method.
   *
   * This method applies a square root decay function to a provided initial learning rate (i.e., `value`). It requires a
   * step value to be provided in it's application function, in order to compute the decayed learning rate. You may
@@ -38,11 +38,11 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * @author Emmanouil Antonios Platanios
   */
-class SqrtDecay protected (
+class RSqrtDecay protected (
     val decayFactor: Float = 500.0f,
     val decayThreshold: Float = 1.0f,
     val startStep: Long = 0L,
-    val name: String = "SqrtDecay"
+    val name: String = "RSqrtDecay"
 ) extends Schedule[Float] {
   /** Applies the decay method to `value`, the current iteration in the optimization loop is `step` and returns the
     * result.
@@ -81,17 +81,17 @@ class SqrtDecay protected (
       decayFactor: Output[Float],
       decayThreshold: Output[Float]
   ): Output[Float] = {
-    decayFactor / Math.sqrt(Math.maximum(step, decayThreshold))
+    decayFactor * Math.rsqrt(Math.maximum(step, decayThreshold))
   }
 }
 
-object SqrtDecay {
+object RSqrtDecay {
   def apply(
       decayFactor: Float = 500.0f,
       decayThreshold: Float = 1.0f,
       startStep: Long = 0L,
-      name: String = "SqrtDecay"
-  ): SqrtDecay = {
-    new SqrtDecay(decayFactor, decayThreshold, startStep, name)
+      name: String = "RSqrtDecay"
+  ): RSqrtDecay = {
+    new RSqrtDecay(decayFactor, decayThreshold, startStep, name)
   }
 }

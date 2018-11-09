@@ -1633,7 +1633,7 @@ trait Manipulation {
     * @param  name  Name for the created op.
     * @return Created op output.
     */
-  private[ops] def slice[T: TF, I: TF : IsIntOrLong](
+  def slice[T: TF, I: TF : IsIntOrLong](
       input: Output[T],
       begin: Output[I],
       size: Output[I],

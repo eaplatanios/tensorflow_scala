@@ -1192,7 +1192,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assign[T: TF](
+  def assign[T: TF](
       variable: Output[Resource],
       value: Output[T],
       name: String = "AssignVariable"
@@ -1215,7 +1215,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assignAdd[T: TF](
+  def assignAdd[T: TF](
       variable: Output[Resource],
       value: Output[T],
       name: String = "AssignAddVariable"
@@ -1237,7 +1237,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[ops] def assignSub[T: TF](
+  def assignSub[T: TF](
       variable: Output[Resource],
       value: Output[T],
       name: String = "AssignSubVariable"

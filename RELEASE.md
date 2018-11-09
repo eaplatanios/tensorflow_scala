@@ -2,6 +2,9 @@
 
 Other new features include:
 
+  - `optimizers` module:
+    - Added support for the Adafactor optimizer.
+    - Renamed `SqrtDecay` to `RSqrtDecay` which is more appropriate.
   - `math` module:
     - Added support for `batchGather`.
     - Added support for bitwise ops.

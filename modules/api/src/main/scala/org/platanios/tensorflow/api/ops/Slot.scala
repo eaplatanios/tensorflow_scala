@@ -39,7 +39,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def zeros[T: TF, R: TF](
+  def zeros[T, R: TF](
       primary: Variable[T],
       dataType: DataType[R],
       name: String,
@@ -57,7 +57,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def zerosForOutput[T: TF, R: TF](
+  def zerosForOutput[T, R: TF](
       primary: Output[T],
       dataType: DataType[R],
       name: String,
@@ -83,7 +83,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def create[T: TF, R: TF](
+  def create[T, R: TF](
       primary: Variable[T],
       dataType: DataType[R],
       initializer: Initializer,
@@ -119,7 +119,7 @@ object Slot {
     *                             variable.
     * @return Created slot variable.
     */
-  def createForOutput[T: TF, R: TF](
+  def createForOutput[T, R: TF](
       primary: Output[T],
       dataType: DataType[R],
       initializer: Initializer,
@@ -149,7 +149,7 @@ object Slot {
   }
 
   /** Helper function for creating slot variables. */
-  private def createSlotVariable[T: TF, R: TF](
+  private def createSlotVariable[T, R: TF](
       primary: Variable[T],
       dataType: DataType[R],
       shape: Shape,
@@ -173,7 +173,7 @@ object Slot {
   }
 
   /** Helper function for creating slot variables. */
-  private def createSlotVariable[T: TF, R: TF](
+  private def createSlotVariable[T, R: TF](
       primary: Output[T],
       dataType: DataType[R],
       shape: Shape,

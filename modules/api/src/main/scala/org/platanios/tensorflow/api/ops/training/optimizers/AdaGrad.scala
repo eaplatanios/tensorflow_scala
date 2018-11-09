@@ -72,7 +72,7 @@ class AdaGrad protected (
     variables.foreach(v => {
       val initializer = ConstantInitializer(epsilon)
       val evTF = TF.fromDataType(v.dataType)
-      getSlot("Accumulator", v, v.dataType, initializer, v.shape, name)(evTF, evTF)
+      getSlot("Accumulator", v, v.dataType, initializer, v.shape, name)(evTF)
     })
   }
 

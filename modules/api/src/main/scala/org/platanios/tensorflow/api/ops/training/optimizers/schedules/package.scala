@@ -26,7 +26,7 @@ package object schedules {
     type CycleLinear10xDecay = schedules.CycleLinear10xDecay
     type ExponentialDecay = schedules.ExponentialDecay
     type LuongExponentialDecay = schedules.LuongExponentialDecay
-    type SqrtDecay = schedules.SqrtDecay
+    type RSqrtDecay = schedules.RSqrtDecay
     type WarmUpExponentialSchedule = schedules.WarmUpExponentialSchedule
     type WarmUpLinearSchedule = schedules.WarmUpLinearSchedule
 
@@ -35,7 +35,7 @@ package object schedules {
     val CycleLinear10xDecay      : schedules.CycleLinear10xDecay.type       = schedules.CycleLinear10xDecay
     val ExponentialDecay         : schedules.ExponentialDecay.type          = schedules.ExponentialDecay
     val LuongExponentialDecay    : schedules.LuongExponentialDecay.type     = schedules.LuongExponentialDecay
-    val SqrtDecay                : schedules.SqrtDecay.type                 = schedules.SqrtDecay
+    val RSqrtDecay               : schedules.RSqrtDecay.type                = schedules.RSqrtDecay
     val WarmUpExponentialSchedule: schedules.WarmUpExponentialSchedule.type = schedules.WarmUpExponentialSchedule
     val WarmUpLinearSchedule     : schedules.WarmUpLinearSchedule.type      = schedules.WarmUpLinearSchedule
 
