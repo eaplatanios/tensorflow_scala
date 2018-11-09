@@ -220,7 +220,7 @@ object Model {
       evOutputToDataTypeTrainIn: OutputToDataType.Aux[TrainIn, _],
       evOutputToShapeTrainIn: OutputToShape.Aux[TrainIn, _]
   ): SupervisedTrainableModel[In, TrainIn, Out, Out, Loss] = {
-    val trainLayer = new Layer[(In, TrainIn), Out]("SimpleSupervisedTrainLayer") {
+    val trainLayer = new Layer[(In, TrainIn), Out]() {
       override val layerType: String = "SimpleSupervisedTrainLayer"
       override def forwardWithoutContext(
           input: (In, TrainIn)
@@ -229,7 +229,7 @@ object Model {
       }
     }
 
-    val lossLayer = new Layer[(Out, (In, TrainIn)), Output[Loss]]("SimpleSupervisedLossLayer") {
+    val lossLayer = new Layer[(Out, (In, TrainIn)), Output[Loss]]() {
         override val layerType: String = "SimpleSupervisedLossLayer"
         override def forwardWithoutContext(
           input: (Out, (In, TrainIn))

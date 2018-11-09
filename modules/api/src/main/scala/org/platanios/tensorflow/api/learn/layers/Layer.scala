@@ -31,7 +31,7 @@ import org.platanios.tensorflow.api.ops.variables._
   * @author Emmanouil Antonios Platanios
   */
 abstract class Layer[T, R](
-    val name: String
+    val name: String = null
 ) {
   val layerType: String
 

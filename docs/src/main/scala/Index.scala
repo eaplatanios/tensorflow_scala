@@ -65,7 +65,7 @@ trait IndexMNISTExample {
   // #mnist_example
 }
 
-trait IndexTensorBoard extends Index {
+trait IndexTensorBoard extends IndexMNISTExample {
   // #tensorboard_example
   val loss = SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss") >>
       Mean("Loss/Mean") >>
