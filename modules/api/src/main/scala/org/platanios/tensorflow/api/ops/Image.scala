@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.ops.Image._
+import org.platanios.tensorflow.api.utilities.DefaultsTo.{FloatDefault, UByteDefault}
 
 /** Contains functions for constructing ops related to processing image data.
   *
@@ -62,7 +63,7 @@ trait Image {
   /** $OpDocImageDecodeJpeg
     *
     * @group ImageOps
-    * @param  contents            0-D [[Output]] of containing the JPEG-encoded image.
+    * @param  contents            0-D [[Output]] containing the JPEG-encoded image.
     * @param  numChannels         Number of color channels for the decoded image. Defaults to 0.
     * @param  ratio               Downscaling ratio.
     * @param  fancyUpscaling      If `true` use a slower but nicer upscaling of the chroma planes (yuv420/422 only).
@@ -144,6 +145,70 @@ trait Image {
         .setAttribute("y_density", yDensity)
         .setAttribute("xmp_metadata", xmpMetadata)
         .build().output
+  }
+
+  /** $OpDocImageDecodePng
+    *
+    * @group ImageOps
+    * @param contents    0-D [[Output]] containing the JPEG-encoded image.
+    * @param numChannels Number of color channels for the decoded image. Defaults to 0.
+    * @param name        Name for the created op.
+    * @tparam T Tensor data type.
+    * @return 3-D tensor with shape `[height, width, numChannels]`.
+    */
+  def decodePng[T: UByteDefault : TF : IsUByteOrUShort](
+      contents: Output[String],
+      numChannels: Int = 0,
+      name: String = "DecodePng"
+  ): Output[T] = {
+    Op.Builder[Output[String], Output[T]](
+      opType = "DecodePng",
+      name = name,
+      input = contents
+    ).setAttribute("channels", numChannels)
+        .setAttribute("dtype", TF[T].dataType)
+        .build().output
+  }
+
+  /** $OpDocImageEncodePng
+    *
+    * @param image       3-D tensor with shape `[height, width, numChannels]`.
+    * @param compression Compression level between -1 (encoder default) and 9. Defaults to `-1`.
+    * @param name        Name for the created op.
+    * @tparam T Tensor data type.
+    * @return 0-D tensor containing the JPEG-encoded image.
+    */
+  def encodePng[T: UByteDefault : TF : IsUByteOrUShort](
+      image: Output[T],
+      compression: Int = -1,
+      name: String = "EncodePng"
+  ): Output[String] = {
+    Op.Builder[Output[T], Output[String]](
+      opType = "EncodePng",
+      name = name,
+      input = image
+    ).setAttribute("compression", compression)
+        .build().output
+  }
+
+  /** $OpDocDrawBoundingBoxes
+    *
+    * @param images 4-D tensor with shape `[batch, height, width, depth]`.
+    * @param boxes  3-D tensor with shape `[batch, num_bounding_boxes, 4]` containing bounding boxes.
+    * @param name   Name for the created op.
+    * @tparam T     Image tensor data type.
+    * @return 4-D tensor with shape `[batch, height, width, depth]`.
+    */
+  def drawBoundingBoxes[T: FloatDefault : TF : IsHalfOrFloat](
+      images: Output[T],
+      boxes: Output[Float],
+      name: String = "DrawBoundingBoxes"
+  ): Output[T] = {
+    Op.Builder[(Output[T], Output[Float]), Output[T]](
+      opType = "DrawBoundingBoxes",
+      name = name,
+      input = (images, boxes)
+    ).build().output
   }
 
   /** $OpDocImageResizeArea
@@ -330,8 +395,49 @@ object Image extends Image {
     *
     *   If `format` is set to [[ImageFormat.Default]], a default format is picked as a function of the number of
     *   channels in the `image` tensor:
-    *     1: Output a grayscale image.
-    *     3: Output an RGB image.
+    *     `1`: Output a grayscale image.
+    *     `3`: Output an RGB image.
+    *
+    * @define $OpDocImageDecodePng
+    *   The `encodePng` op decodes a PNG-encoded image to a [[UINT8]] or [[UINT16]] tensor.
+    *
+    *   The attribute `numChannels` indicates the desired number of color channels for the decoded image.
+    *
+    *   Accepted values are:
+    *     `0`: Use the number of channels in the PNG-encoded image.
+    *     `1`: output a grayscale image.
+    *     `3`: output an RGB image.
+    *     `4`: output an RGBA image.
+    *
+    *   If needed, the PNG-encoded image is transformed to match the requested number of color channels.
+    *
+    * @define OpDocImageEncodePng
+    *   The `encodePng` op encodes an image tensor as a PNG image.
+    *
+    *   `image` is a 3-D [[UINT8]] or [[UINT16]] Tensor of shape `[height, width, numChannels]` where `numChannels` is:
+    *     `1`: for grayscale.
+    *     `2`: for grayscale + alpha.
+    *     `3`: for RGB.
+    *     `4`: for RGBA.
+    *
+    *   If needed, the PNG-encoded image is transformed to match the requested number of color channels.
+    *
+    *   The ZLIB compression level, `compression`, can be -1 for the PNG-encoder default or a value from 0 to 9. 9 is
+    *   the highest compression level, generating the smallest output, but is slower.
+    *
+    * @define $OpDocDrawBoundingBoxes
+    *   The `drawBoundingBoxes` op draws bounding boxes on a batch of images.
+    *
+    *   Outputs a copy of `images` but draws on top of the pixels zero or more bounding boxes specified by the locations
+    *   in `boxes`. The coordinates of the each bounding box in `boxes` are encoded as `[y_min, x_min, y_max, x_max]`.
+    *   The bounding box coordinates are floats in `[0.0, 1.0]` relative to the width and height of the underlying
+    *   image.
+    *
+    *   For example, if an image is 100 x 200 pixels (height x width) and the bounding box is `[0.1, 0.2, 0.5, 0.9]`,
+    *   the upper-left and bottom-right coordinates of the bounding box will be `(40, 10)` to `(100, 50)` (in (x,y)
+    *   coordinates).
+    *
+    *   Parts of the bounding box may fall outside the image.
     *
     * @define OpDocImageResizeArea
     *   The `resizeArea` op resizes `images` to `size` using area interpolation.
