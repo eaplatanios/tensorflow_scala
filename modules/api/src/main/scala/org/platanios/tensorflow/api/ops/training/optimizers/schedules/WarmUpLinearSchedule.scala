@@ -25,7 +25,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * [Attention is All You Need (Section 5.3)](https://arxiv.org/pdf/1706.03762.pdf).
   *
   * For the first `warmUpSteps` steps the learning rate is multiplied by:
-  * `start + ((1.0f - start) / warmUpSteps) * step`.
+  * `warmUpOffset + ((1.0f - warmUpOffset) / warmUpSteps) * step`.
   *
   * @param  warmUpSteps  Number of warm-up steps.
   * @param  warmUpOffset Linear schedule offset.

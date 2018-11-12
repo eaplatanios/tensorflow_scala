@@ -329,12 +329,9 @@ class FunctionGraph(
     if (output.graph == this) {
       output
     } else if (captureByValue) {
-      addOutputAndParents(outerGraph match {
-        case g: FunctionGraph => g.capture(output)
-        case _ => output
-      })
+      addOutputAndParents(output)
     } else {
-      // Referring to a tensor from other graph
+      // Referring to a tensor from other graph.
       capturedOutputs.getOrElseUpdate(output, {
         // Substitute with a placeholder and hoist the new input placeholder out of any control flow context we might
         // currently be in.
@@ -342,10 +339,7 @@ class FunctionGraph(
           Basic.placeholder(output.shape)(TF.fromDataType(output.dataType))
         }
         extraArgs.append(placeholder)
-        extraInputs.append(outerGraph match {
-          case g: FunctionGraph => g.capture(output)
-          case _ => output
-        })
+        extraInputs.append(output)
         placeholder
       }).asInstanceOf[Output[T]]
     }
