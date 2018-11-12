@@ -443,7 +443,7 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
         randomSeed.foreach(graph.setRandomSeed)
         val evaluateOps = Op.nameScope("Model")(model.buildEvalOps(metrics))
         Counter.getOrCreate(Graph.Keys.GLOBAL_EPOCH, local = false)
-        val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+        val globalStep = Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false).value
         val evalStep = Counter.getOrCreate(Graph.Keys.EVAL_STEP, local = true)
         val evalStepUpdate = evalStep.assignAdd(1L)
         val evalUpdateOps = ControlFlow.group(evaluateOps.metricUpdates.map(_.op).toSet + evalStepUpdate.op)
@@ -471,7 +471,7 @@ class FileBasedEstimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
         FileBasedEstimator.logger.debug("Starting evaluation.")
         val (step, metricValues) = {
           try {
-            val step = session.run(fetches = globalStep.value).scalar
+            val step = session.run(fetches = globalStep).scalar
             while (!session.shouldStop)
               try {
                 session.run(targets = Set(evalUpdateOps))

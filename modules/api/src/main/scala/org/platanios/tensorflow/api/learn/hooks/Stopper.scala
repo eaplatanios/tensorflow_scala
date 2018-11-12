@@ -36,8 +36,8 @@ import scala.collection.mutable
   * @author Emmanouil Antonios Platanios
   */
 private[learn] class Stopper protected (protected var criteria: StopCriteria) extends Hook {
-  private var epoch: Variable[Long] = _
-  private var step : Variable[Long] = _
+  private var epoch: Output[Long] = _
+  private var step : Output[Long] = _
   private var loss : Output[Float]  = _
 
   private var startTime       : Long         = 0L
@@ -61,15 +61,15 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
   def reset(session: Session): Unit = {
     startTime = System.currentTimeMillis()
     if (criteria.needEpoch) {
-      val _lastEpoch = session.run(fetches = epoch.value).scalar.asInstanceOf[Long]
+      val _lastEpoch = session.run(fetches = epoch).scalar
       lastEpoch = if (criteria.restartCounting) criteria.maxEpochs.map(_ + _lastEpoch) else criteria.maxEpochs
     }
     if (criteria.needStep) {
-      val _lastStep = session.run(fetches = step.value).scalar.asInstanceOf[Long]
+      val _lastStep = session.run(fetches = step).scalar
       lastStep = if (criteria.restartCounting) criteria.maxSteps.map(_ + _lastStep) else criteria.maxSteps
     }
     if (criteria.needLoss)
-      lastLoss = session.run(fetches = loss).scalar.asInstanceOf[Float]
+      lastLoss = session.run(fetches = loss).scalar
     numStepsBelowTol = 0
   }
 
@@ -80,16 +80,18 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
     if (criteria.needEpoch) {
       epoch = Counter.get(Graph.Keys.GLOBAL_EPOCH, local = false, Op.currentGraph).getOrElse(
         throw new IllegalStateException(
-          s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopHook'."))
+          s"A ${Graph.Keys.GLOBAL_EPOCH.name} variable should be created in order to use the 'StopHook'.")
+      ).value
       epochFetchIndex = fetches.size
-      fetches.append(epoch.value)
+      fetches.append(epoch)
     }
     if (criteria.needStep) {
       step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false, Op.currentGraph).getOrElse(
         throw new IllegalStateException(
-          s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopHook'."))
+          s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use the 'StopHook'.")
+      ).value
       stepFetchIndex = fetches.size
-      fetches.append(step.value)
+      fetches.append(step)
     }
     if (criteria.needLoss) {
       loss = Math.addN(Op.currentGraph.getCollection(Graph.Keys.LOSSES).toSeq.map(_.toFloat))

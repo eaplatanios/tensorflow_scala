@@ -46,7 +46,7 @@ trait VariableLike[T] {
     * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
     * converting them to tensors.
     */
-  val value: Output[T]
+  def value: Output[T]
 
   /** Op responsible for initializing this variable. */
   val initializer: UntypedOp

@@ -20,7 +20,6 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
-import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import org.tensorflow.framework.RunOptions
@@ -41,19 +40,20 @@ abstract class TriggeredHook(
     triggerAtEnd: Boolean = true
 ) extends Hook {
   protected val internalTrigger: HookTrigger    = trigger.copy()
-  protected var step           : Variable[Long] = _
+  protected var step           : Output[Long]   = _
   protected var lastStep       : Long           = 0L
   protected var shouldTrigger  : Boolean        = false
 
   override private[learn] def internalBegin(): Unit = {
     internalTrigger.reset()
     step = Counter.get(Graph.Keys.GLOBAL_STEP, local = false).getOrElse(throw new IllegalStateException(
-      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use a triggered hook."))
+      s"A ${Graph.Keys.GLOBAL_STEP.name} variable should be created in order to use a triggered hook.")
+    ).value
     super.internalBegin()
   }
 
   override private[learn] def internalAfterSessionCreation(session: Session): Unit = {
-    lastStep = session.run(fetches = step.value).scalar
+    lastStep = session.run(fetches = step).scalar
     if (lastStep == 0L)
       lastStep = -1L
     super.internalAfterSessionCreation(session)
@@ -69,13 +69,13 @@ abstract class TriggeredHook(
       if (internalTrigger.lastTriggerStep().isEmpty)
         onFirstTrigger(runContext)
       Some(Hook.SessionRunArgs(
-        fetches = step.value.asInstanceOf[Output[Any]] +: fetches,
+        fetches = step.asInstanceOf[Output[Any]] +: fetches,
         targets = targets,
         options = runOptions,
         wantMetadata = wantMetadata))
     } else {
       Some(Hook.SessionRunArgs(
-        fetches = Seq[Output[Any]](step.value),
+        fetches = Seq[Output[Any]](step),
         targets = Set.empty))
     }
   }
@@ -97,7 +97,7 @@ abstract class TriggeredHook(
 
   override private[learn] def internalEnd(session: Session): Unit = {
     if (triggerAtEnd && lastStep.toInt != internalTrigger.lastTriggerStep().getOrElse(-1)) {
-      val lastStep = session.run(fetches = step.value).scalar
+      val lastStep = session.run(fetches = step).scalar
       val elapsed = internalTrigger.updateLastTrigger(lastStep.toInt)
       val results = session.run(fetches = fetches)
       onTrigger(lastStep, elapsed, Hook.SessionRunResult(results, None), session)

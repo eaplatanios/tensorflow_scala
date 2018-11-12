@@ -137,7 +137,7 @@ class InMemoryEstimator[In: OutputStructure, TrainIn: OutputStructure, Out: Outp
           hook.setModelInstance(evaluateModelInstance)
         case _ => ()
       }
-      (globalStep, trainOps, inferOps, evaluateOps, evalUpdateOps)
+      (globalStep.value, trainOps, inferOps, evaluateOps, evalUpdateOps)
     }
   }
 
@@ -351,7 +351,7 @@ class InMemoryEstimator[In: OutputStructure, TrainIn: OutputStructure, Out: Outp
         InMemoryEstimator.logger.debug("Starting evaluation.")
         val (step, metricValues) = {
           try {
-            val step = session.run(fetches = globalStep.value).scalar
+            val step = session.run(fetches = globalStep).scalar
             while (!session.shouldStop)
               try {
                 session.run(targets = Set(evaluationUpdateOps))

@@ -98,7 +98,7 @@ case class Variable[T] private (
     * NOTE: You usually do not need to use this field as all ops that need a reference to the variable call it
     * automatically.
     */
-  private[api] val handle: Output[Resource] = {
+  val handle: Output[Resource] = {
     variableHandle
   }
 
@@ -109,11 +109,11 @@ case class Variable[T] private (
     * NOTE: You usually do not need to call this method directly, as all ops that use variables do so by internally
     * converting them to tensors.
     */
-  override val value: Output[T] = {
+  override def value: Output[T] = {
     if (cachedValue != null) {
       cachedValue
     } else {
-      Op.createWith(graph = graph, device = handle.device) {
+      Op.createWith(device = handle.device) {
         Op.colocateWith(Set(handle.op), ignoreExisting = true) {
           Variable.readVariable(handle, dataType)
         }
@@ -217,7 +217,6 @@ case class Variable[T] private (
       name: String = "Assign"
   ): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.assign(handle, value, name)
       )) {
@@ -237,7 +236,6 @@ case class Variable[T] private (
       name: String = "AssignAdd"
   ): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.assignAdd(handle, value, name)
       )) {
@@ -257,7 +255,6 @@ case class Variable[T] private (
       name: String = "AssignSub"
   ): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.assignSub(handle, value, name)
       )) {
@@ -279,7 +276,6 @@ case class Variable[T] private (
       name: String = "AssignScatter"
   ): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.scatterUpdate(handle, indices, values, name)
       )) {
@@ -301,7 +297,6 @@ case class Variable[T] private (
       name: String = "AssignScatterAdd"
   )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.scatterAdd(handle, indices, values, name)
       )) {
@@ -324,7 +319,6 @@ case class Variable[T] private (
       name: String = "AssignScatterSub"
   )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.scatterSub(handle, indices, values, name)
       )) {
@@ -347,7 +341,6 @@ case class Variable[T] private (
       name: String = "AssignScatterMul"
   )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.scatterMul(handle, indices, values, name)
       )) {
@@ -370,7 +363,6 @@ case class Variable[T] private (
       name: String = "AssignScatterDiv"
   )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.scatterDiv(handle, indices, values, name)
       )) {
@@ -393,7 +385,6 @@ case class Variable[T] private (
       name: String = "AssignScatterMin"
   )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.scatterMin(handle, indices, values, name)
       )) {
@@ -416,7 +407,6 @@ case class Variable[T] private (
       name: String = "AssignScatterMax"
   )(implicit evTIsNumeric: IsNumeric[T]): Output[T] = {
     Op.createWith(
-      graph = graph,
       controlDependencies = Set(
         Variable.scatterMax(handle, indices, values, name)
       )) {
@@ -477,7 +467,7 @@ case class Variable[T] private (
 }
 
 /** Contains helper functions and classes for creating and dealing with [[Variable]] objects. */
-private[api] object Variable {
+object Variable {
   /** Gets an existing variable with the specified name or creates a new one.
     *
     * This function prefixes the name with the current variable scope and performs variable reuse checks.
@@ -593,7 +583,7 @@ private[api] object Variable {
       Op.createWith(nameScope = name) {
         val nameScope = Op.currentNameScope
         val trueName = Op.convertNameScopeToName(nameScope)
-        val variableHandle = variable(shape, dataType, sharedName = trueName, name = nameScope)
+        val variableHandle = createVariable(shape, dataType, sharedName = trueName, name = nameScope)
         val initialValue = Op.createWith(nameScope = "Initializer") {
           Op.colocateWith(Set(variableHandle.op), ignoreExisting = true) {
             initializer[T](shape, null)
@@ -1062,7 +1052,7 @@ private[api] object Variable {
     * @param  name       Name for the created variable op.
     * @return Created variable op.
     */
-  private[variables] def variable[T: TF](
+  def createVariable[T: TF](
       shape: Shape,
       dataType: DataType[T],
       container: String = "",
@@ -1112,7 +1102,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[variables] def readVariable[T: TF](
+  def readVariable[T: TF](
       variable: Output[Resource],
       dataType: DataType[T],
       name: String = "ReadVariable"
@@ -1146,7 +1136,7 @@ private[api] object Variable {
     * @param  name     Name for the created op.
     * @return Created op.
     */
-  private[variables] def unsafeReadVariable[T: TF](
+  def unsafeReadVariable[T: TF](
       variable: Output[Resource],
       dataType: DataType[T],
       name: String = "UnsafeReadVariable"
@@ -1169,7 +1159,7 @@ private[api] object Variable {
     * @param  name              Name for the created op.
     * @return Created op.
     */
-  private[variables] def destroyVariable(
+  def destroyVariable(
       variable: Output[Resource],
       ignoreLookupError: Boolean = true,
       name: String = "DestroyVariable"
