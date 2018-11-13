@@ -2,6 +2,8 @@
 
 Other new features include:
 
+  - `data` module:
+    - Added support for `Dataset.shuffleAndRepeat`.
   - `optimizers` module:
     - Added support for the Adafactor optimizer.
     - Renamed `SqrtDecay` to `RSqrtDecay` which is more appropriate.

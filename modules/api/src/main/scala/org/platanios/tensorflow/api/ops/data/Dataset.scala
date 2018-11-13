@@ -86,7 +86,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
   //region Transformations
 
-  // TODO: [DATA] Add dynamic version (i.e., passing in `Output`s) for the `repeat`, `shuffle`, `interleave`, `paddedBatch` datasets.
+  // TODO: [DATA] Add dynamic version (i.e., passing in `Output`s) for the `repeat`, `shuffle`, `shuffleAndRepeat`, `interleave`, `paddedBatch` datasets.
 
   /** Creates a new dataset that repeats this dataset a specified number of times. If the provided number of times to
     * repeat is set to `-1` (the default), then the dataset is repeated indefinitely.
@@ -146,6 +146,53 @@ abstract class Dataset[T: OutputStructure] { outer =>
           opType = "ShuffleDataset",
           name = name,
           input = (outer.createHandle(), bs, s1, s2)
+        ).setAttribute("output_types", flatOutputDataTypes.toArray)
+            .setAttribute("output_shapes", flatOutputShapes.toArray)
+            .build().output
+      }
+
+      override def outputDataTypes[D](implicit ev: OutputToDataType.Aux[T, D]): D = {
+        outer.outputDataTypes
+      }
+
+      override def outputShapes[S](implicit ev: OutputToShape.Aux[T, S]): S = {
+        outer.outputShapes
+      }
+    }
+  }
+
+  /** Creates a new dataset that produces the elements of this dataset, in random order, and also repeats this dataset a
+    * specified number of times. If the provided number of times to repeat is set to `-1` (the default), then the
+    * dataset is repeated indefinitely.
+    *
+    * This `dataset.shuffleAndRepeat(bufferSize, count)` is equivalent to this
+    * `dataset.shuffle(bufferSize).repeat(count)`, with the only difference that the latter dataset is not serializable.
+    * So, if you need to checkpoint an input pipeline with reshuffling, you must use this implementation.
+    *
+    * @param  bufferSize Buffer size, meaning the number of output elements to buffer before shuffling them.
+    * @param  count      Number of times to repeat the input dataset. A value of `-1` corresponds to repeating it
+    *                    indefinitely.
+    * @param  seed       Seed value for the random number generator. If not provided, a random seed is used.
+    * @return Created dataset.
+    */
+  def shuffleAndRepeat(bufferSize: Long, count: Long = -1L, seed: Option[Int] = None): Dataset[T] = {
+    new Dataset[T] {
+      override val name: String = s"${outer.name}/ShuffleAndRepeat"
+
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[T, D],
+          evOutputToShape: OutputToShape.Aux[T, S]
+      ): Output[Variant] = {
+        val (bs, s1, s2) = Op.nameScope(name) {
+          val bs = Basic.constant(bufferSize)
+          val (s1, s2) = Dataset.randomSeeds(seed, s"$name/RandomSeeds")
+          (bs, s1, s2)
+        }
+        val c = Op.nameScope(name)(Basic.constant(count))
+        Op.Builder[(Output[Variant], Output[Long], Output[Long], Output[Long], Output[Long]), Output[Variant]](
+          opType = "ShuffleAndRepeatDataset",
+          name = name,
+          input = (outer.createHandle(), bs, s1, s2, c)
         ).setAttribute("output_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
