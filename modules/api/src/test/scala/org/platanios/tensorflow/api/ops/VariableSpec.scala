@@ -25,43 +25,42 @@ import org.scalatest._
 class VariableSpec extends FlatSpec with Matchers {
   "Variable creation" must "work" in {
     val graph = Graph()
-    val variable = tf.createWith(graph = graph) {
+    tf.createWith(graph = graph) {
       val initializer = tf.ConstantInitializer(Tensor(Tensor(2, 3)))
-      tf.variable[Long]("variable", Shape(1, 2), initializer)
+      val variable = tf.variable[Long]("variable", Shape(1, 2), initializer)
+      assert(variable.dataType == INT64)
+      assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
+      assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
+      val session = Session(graph = graph)
+      session.run(targets = Set(variable.initializer))
+      val outputs = session.run(fetches = variable.value)
+      val expectedResult = Tensor[Long](Tensor(2, 3))
+      assert(outputs(0, 0).scalar == expectedResult(0, 0).scalar)
+      assert(outputs(0, 1).scalar == expectedResult(0, 1).scalar)
+      session.close()
     }
-    assert(variable.dataType == INT64)
-    assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
-    assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
-    val session = Session(graph = graph)
-    session.run(targets = Set(variable.initializer))
-    val outputs = session.run(fetches = variable.value)
-    val expectedResult = Tensor[Long](Tensor(2, 3))
-    assert(outputs(0, 0).scalar == expectedResult(0, 0).scalar)
-    assert(outputs(0, 1).scalar == expectedResult(0, 1).scalar)
-    session.close()
     graph.close()
   }
 
   "Variable assignment" must "work" in {
     val graph = Graph()
-    val (variable, variableAssignment) = tf.createWith(graph = graph) {
+    tf.createWith(graph = graph) {
       val a = tf.constant(Tensor(Tensor(5L, 7L)), name = "A")
       val initializer = tf.ConstantInitializer(Tensor(Tensor(2, 3)))
       val variable = tf.variable[Long]("variable", Shape(1, 2), initializer)
       val variableAssignment = variable.assign(a)
-      (variable, variableAssignment)
+      assert(variable.dataType == INT64)
+      assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
+      assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
+      val session = Session(graph = graph)
+      session.run(targets = Set(variable.initializer))
+      session.run(targets = Set(variableAssignment))
+      val output = session.run(fetches = variable.value)
+      val expectedResult = Tensor[Long](Tensor(5, 7))
+      assert(output(0, 0).scalar == expectedResult(0, 0).scalar)
+      assert(output(0, 1).scalar == expectedResult(0, 1).scalar)
+      session.close()
     }
-    assert(variable.dataType == INT64)
-    assert(graph.getCollection(Graph.Keys.GLOBAL_VARIABLES).contains(variable))
-    assert(graph.getCollection(Graph.Keys.TRAINABLE_VARIABLES).contains(variable))
-    val session = Session(graph = graph)
-    session.run(targets = Set(variable.initializer))
-    session.run(targets = Set(variableAssignment))
-    val output = session.run(fetches = variable.value)
-    val expectedResult = Tensor[Long](Tensor(5, 7))
-    assert(output(0, 0).scalar == expectedResult(0, 0).scalar)
-    assert(output(0, 1).scalar == expectedResult(0, 1).scalar)
-    session.close()
     graph.close()
   }
 }

@@ -38,18 +38,18 @@ class GradientDescentSpec extends FlatSpec with Matchers {
         val gdOp = GradientDescent(3.0f).applyGradients(Seq(
           (gradient0, variable0.asInstanceOf[Variable[Any]]),
           (gradient1, variable1.asInstanceOf[Variable[Any]])))
-        (variable0, variable1, gdOp)
+        (variable0.value, variable1.value, gdOp)
       }
       val session = Session(graph)
       session.run(targets = graph.trainableVariablesInitializer())
-      var variable0Value = session.run(fetches = variable0.value)
-      var variable1Value = session.run(fetches = variable1.value)
+      var variable0Value = session.run(fetches = variable0)
+      var variable1Value = session.run(fetches = variable1)
       // TODO: !!! ??? [TENSORS]
       // assert(variable0Value === value0 +- 1e-6)
       // assert(variable1Value === value1 +- 1e-6)
       session.run(targets = gdOp)
-      variable0Value = session.run(fetches = variable0.value)
-      variable1Value = session.run(fetches = variable1.value)
+      variable0Value = session.run(fetches = variable0)
+      variable1Value = session.run(fetches = variable1)
       // assert(variable0Value === updatedValue0 +- 1e-6)
       // assert(variable1Value === updatedValue1 +- 1e-6)
   }
