@@ -150,10 +150,10 @@ trait Image {
   /** $OpDocImageDecodePng
     *
     * @group ImageOps
-    * @param contents    0-D [[Output]] containing the JPEG-encoded image.
-    * @param numChannels Number of color channels for the decoded image. Defaults to 0.
-    * @param name        Name for the created op.
-    * @tparam T Tensor data type.
+    * @param  contents    0-D tensor that contains the PNG-encoded image.
+    * @param  numChannels Number of color channels for the decoded image. Defaults to 0.
+    * @param  name        Name for the created op.
+    * @tparam T           Image tensor data type.
     * @return 3-D tensor with shape `[height, width, numChannels]`.
     */
   def decodePng[T: UByteDefault : TF : IsUByteOrUShort](
@@ -172,11 +172,12 @@ trait Image {
 
   /** $OpDocImageEncodePng
     *
+    * @group ImageOps
     * @param image       3-D tensor with shape `[height, width, numChannels]`.
     * @param compression Compression level between -1 (encoder default) and 9. Defaults to `-1`.
     * @param name        Name for the created op.
-    * @tparam T Tensor data type.
-    * @return 0-D tensor containing the JPEG-encoded image.
+    * @tparam            T Image tensor data type.
+    * @return 0-D tensor containing the PNG-encoded image.
     */
   def encodePng[T: UByteDefault : TF : IsUByteOrUShort](
       image: Output[T],
@@ -193,10 +194,10 @@ trait Image {
 
   /** $OpDocDrawBoundingBoxes
     *
-    * @param images 4-D tensor with shape `[batch, height, width, depth]`.
-    * @param boxes  3-D tensor with shape `[batch, num_bounding_boxes, 4]` containing bounding boxes.
-    * @param name   Name for the created op.
-    * @tparam T     Image tensor data type.
+    * @param  images 4-D tensor with shape `[batch, height, width, depth]`.
+    * @param  boxes  3-D tensor with shape `[batch, numBoundingBoxes, 4]` containing bounding boxes.
+    * @param  name   Name for the created op.
+    * @tparam T      Image tensor data type.
     * @return 4-D tensor with shape `[batch, height, width, depth]`.
     */
   def drawBoundingBoxes[T: FloatDefault : TF : IsHalfOrFloat](
@@ -399,13 +400,14 @@ object Image extends Image {
     *     `3`: Output an RGB image.
     *
     * @define $OpDocImageDecodePng
-    *   The `encodePng` op decodes a PNG-encoded image to a [[UINT8]] or [[UINT16]] tensor.
+    *   The `decodePng` op decodes a PNG-encoded image to a [[UINT8]] or [[UINT16]] tensor.
     *
     *   The attribute `numChannels` indicates the desired number of color channels for the decoded image.
     *
     *   Accepted values are:
     *     `0`: Use the number of channels in the PNG-encoded image.
     *     `1`: output a grayscale image.
+    *     `2`: output a grayscale + alpha image.
     *     `3`: output an RGB image.
     *     `4`: output an RGBA image.
     *
@@ -429,7 +431,7 @@ object Image extends Image {
     *   The `drawBoundingBoxes` op draws bounding boxes on a batch of images.
     *
     *   Outputs a copy of `images` but draws on top of the pixels zero or more bounding boxes specified by the locations
-    *   in `boxes`. The coordinates of the each bounding box in `boxes` are encoded as `[y_min, x_min, y_max, x_max]`.
+    *   in `boxes`. The coordinates of the each bounding box in `boxes` are encoded as `[yMin, xMin, yMax, xMax]`.
     *   The bounding box coordinates are floats in `[0.0, 1.0]` relative to the width and height of the underlying
     *   image.
     *
