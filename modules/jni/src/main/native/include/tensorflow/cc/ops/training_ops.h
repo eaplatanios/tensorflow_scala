@@ -74,6 +74,7 @@ class ApplyAdadelta {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -138,6 +139,7 @@ class ApplyAdagrad {
     return Attrs().UpdateSlots(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -195,12 +197,13 @@ class ApplyAdagradDA {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
 /// Update '*var' according to the Adam algorithm.
 ///
-/// $$lr_t := \text{learning_rate} * \sqrt{(1 - beta_2^t) / (1 - beta_1^t)}$$
+/// $$lr_t := \text{learning\_rate} * \sqrt{1 - beta_2^t} / (1 - beta_1^t)$$
 /// $$m_t := beta_1 * m_{t-1} + (1 - beta_1) * g$$
 /// $$v_t := beta_2 * v_{t-1} + (1 - beta_2) * g * g$$
 /// $$variable := variable - lr_t * m_t / (\sqrt{v_t} + \epsilon)$$
@@ -275,6 +278,7 @@ class ApplyAdam {
     return Attrs().UseNesterov(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -334,6 +338,7 @@ class ApplyAddSign {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -412,6 +417,7 @@ class ApplyCenteredRMSProp {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -475,6 +481,7 @@ class ApplyFtrl {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -542,6 +549,7 @@ class ApplyFtrlV2 {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -588,6 +596,7 @@ class ApplyGradientDescent {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -663,6 +672,7 @@ class ApplyMomentum {
     return Attrs().UseNesterov(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -723,6 +733,7 @@ class ApplyPowerSign {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -780,6 +791,7 @@ class ApplyProximalAdagrad {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -835,6 +847,7 @@ class ApplyProximalGradientDescent {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -903,6 +916,7 @@ class ApplyRMSProp {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -1086,7 +1100,7 @@ class ResourceApplyAdagradDA {
 
 /// Update '*var' according to the Adam algorithm.
 ///
-/// $$lr_t := \text{learning_rate} * \sqrt{(1 - beta_2^t) / (1 - beta_1^t)}$$
+/// $$lr_t := \text{learning\_rate} * \sqrt{1 - beta_2^t} / (1 - beta_1^t)$$
 /// $$m_t := beta_1 * m_{t-1} + (1 - beta_1) * g$$
 /// $$v_t := beta_2 * v_{t-1} + (1 - beta_2) * g * g$$
 /// $$variable := variable - lr_t * m_t / (\sqrt{v_t} + \epsilon)$$
@@ -2524,6 +2538,7 @@ class SparseApplyAdadelta {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -2591,6 +2606,7 @@ class SparseApplyAdagrad {
     return Attrs().UpdateSlots(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -2651,6 +2667,7 @@ class SparseApplyAdagradDA {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -2732,6 +2749,7 @@ class SparseApplyCenteredRMSProp {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -2799,6 +2817,7 @@ class SparseApplyFtrl {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -2870,6 +2889,7 @@ class SparseApplyFtrlV2 {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -2950,6 +2970,7 @@ class SparseApplyMomentum {
     return Attrs().UseNesterov(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -3012,6 +3033,7 @@ class SparseApplyProximalAdagrad {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -3072,6 +3094,7 @@ class SparseApplyProximalGradientDescent {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 
@@ -3142,6 +3165,7 @@ class SparseApplyRMSProp {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 

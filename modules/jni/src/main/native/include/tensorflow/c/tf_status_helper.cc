@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "c_api_internal.h"
+
 #include "tf_status_helper.h"
 
 namespace tensorflow {

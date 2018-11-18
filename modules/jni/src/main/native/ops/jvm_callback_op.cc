@@ -279,16 +279,7 @@ private:
   TF_DISALLOW_COPY_AND_ASSIGN(JVMCallbackOp);
 };
 
-namespace kernel_factory {
-struct KernelRegistration {
-  KernelRegistration(const KernelDef& d, StringPiece c,
-                     kernel_factory::OpKernelRegistrar::Factory f)
-      : def(d), kernel_class_name(c), factory(f) {}
-  const KernelDef def;
-  const string kernel_class_name;
-  const kernel_factory::OpKernelRegistrar::Factory factory;
-};
-
+namespace jvm_callback_kernel_factory {
 auto jvmCallbackOpInitializer = []{
   if (GetRegisteredKernelsForOp("JVMCallback").kernel_size() == 0) {
     REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);

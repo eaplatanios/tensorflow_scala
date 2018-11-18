@@ -47,6 +47,7 @@ class Cholesky {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -74,6 +75,7 @@ class CholeskyGrad {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -102,6 +104,7 @@ class LogMatrixDeterminant {
   LogMatrixDeterminant(const ::tensorflow::Scope& scope, ::tensorflow::Input
                      input);
 
+  Operation operation;
   ::tensorflow::Output sign;
   ::tensorflow::Output log_abs_determinant;
 };
@@ -125,39 +128,7 @@ class MatrixDeterminant {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
-  ::tensorflow::Output output;
-};
-
-/// Computes the matrix exponential of one or more square matrices:
-///
-/// \\(exp(A) = \sum_{n=0}^\infty A^n/n!\\)
-///
-/// The exponential is computed using a combination of the scaling and squaring
-/// method and the Pade approximation. Details can be founds in:
-/// Nicholas J. Higham, "The scaling and squaring method for the matrix exponential
-/// revisited," SIAM J. Matrix Anal. Applic., 26:1179-1193, 2005.
-///
-/// The input is a tensor of shape `[..., M, M]` whose inner-most 2 dimensions
-/// form square matrices. The output is a tensor of the same shape as the input
-/// containing the exponential for all input submatrices `[..., :, :]`.
-///
-/// Arguments:
-/// * scope: A Scope object
-/// * input: Shape is `[..., M, M]`.
-///
-/// Returns:
-/// * `Output`: Shape is `[..., M, M]`.
-///
-/// @compatibility(scipy)
-/// Equivalent to scipy.linalg.expm
-/// @end_compatibility
-class MatrixExponential {
- public:
-  MatrixExponential(const ::tensorflow::Scope& scope, ::tensorflow::Input input);
-  operator ::tensorflow::Output() const { return output; }
-  operator ::tensorflow::Input() const { return output; }
-  ::tensorflow::Node* node() const { return output.node(); }
-
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -209,6 +180,7 @@ class MatrixInverse {
     return Attrs().Adjoint(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -260,6 +232,7 @@ class MatrixSolve {
     return Attrs().Adjoint(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -338,6 +311,46 @@ class MatrixSolveLs {
     return Attrs().Fast(x);
   }
 
+  Operation operation;
+  ::tensorflow::Output output;
+};
+
+/// Computes the matrix square root of one or more square matrices:
+///
+/// matmul(sqrtm(A), sqrtm(A)) = A
+///
+/// The input matrix should be invertible. If the input matrix is real, it should
+/// have no eigenvalues which are real and negative (pairs of complex conjugate
+/// eigenvalues are allowed).
+///
+/// The matrix square root is computed by first reducing the matrix to
+/// quasi-triangular form with the real Schur decomposition. The square root
+/// of the quasi-triangular matrix is then computed directly. Details of
+/// the algorithm can be found in: Nicholas J. Higham, "Computing real
+/// square roots of a real matrix", Linear Algebra Appl., 1987.
+///
+/// The input is a tensor of shape `[..., M, M]` whose inner-most 2 dimensions
+/// form square matrices. The output is a tensor of the same shape as the input
+/// containing the matrix square root for all input submatrices `[..., :, :]`.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * input: Shape is `[..., M, M]`.
+///
+/// Returns:
+/// * `Output`: Shape is `[..., M, M]`.
+///
+/// @compatibility(scipy)
+/// Equivalent to scipy.linalg.sqrtm
+/// @end_compatibility
+class MatrixSquareRoot {
+ public:
+  MatrixSquareRoot(const ::tensorflow::Scope& scope, ::tensorflow::Input input);
+  operator ::tensorflow::Output() const { return output; }
+  operator ::tensorflow::Input() const { return output; }
+  ::tensorflow::Node* node() const { return output.node(); }
+
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -423,6 +436,7 @@ class MatrixTriangularSolve {
     return Attrs().Adjoint(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -478,6 +492,7 @@ class Qr {
     return Attrs().FullMatrices(x);
   }
 
+  Operation operation;
   ::tensorflow::Output q;
   ::tensorflow::Output r;
 };
@@ -531,6 +546,7 @@ class SelfAdjointEig {
     return Attrs().ComputeV(x);
   }
 
+  Operation operation;
   ::tensorflow::Output e;
   ::tensorflow::Output v;
 };
@@ -610,6 +626,7 @@ class Svd {
     return Attrs().FullMatrices(x);
   }
 
+  Operation operation;
   ::tensorflow::Output s;
   ::tensorflow::Output u;
   ::tensorflow::Output v;

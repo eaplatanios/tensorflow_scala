@@ -103,6 +103,7 @@ class AddManySparseToTensorsMap {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sparse_handles;
 };
 
@@ -181,6 +182,7 @@ class AddSparseToTensorsMap {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sparse_handle;
 };
 
@@ -243,6 +245,7 @@ class DeserializeManySparse {
   DeserializeManySparse(const ::tensorflow::Scope& scope, ::tensorflow::Input
                       serialized_sparse, DataType dtype);
 
+  Operation operation;
   ::tensorflow::Output sparse_indices;
   ::tensorflow::Output sparse_values;
   ::tensorflow::Output sparse_shape;
@@ -307,6 +310,7 @@ class DeserializeSparse {
   DeserializeSparse(const ::tensorflow::Scope& scope, ::tensorflow::Input
                   serialized_sparse, DataType dtype);
 
+  Operation operation;
   ::tensorflow::Output sparse_indices;
   ::tensorflow::Output sparse_values;
   ::tensorflow::Output sparse_shape;
@@ -365,6 +369,7 @@ class SerializeManySparse {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output serialized_sparse;
 };
 
@@ -413,6 +418,7 @@ class SerializeSparse {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output serialized_sparse;
 };
 
@@ -454,6 +460,7 @@ class SparseAdd {
           ::tensorflow::Input b_indices, ::tensorflow::Input b_values,
           ::tensorflow::Input b_shape, ::tensorflow::Input thresh);
 
+  Operation operation;
   ::tensorflow::Output sum_indices;
   ::tensorflow::Output sum_values;
   ::tensorflow::Output sum_shape;
@@ -486,6 +493,7 @@ class SparseAddGrad {
               backprop_val_grad, ::tensorflow::Input a_indices,
               ::tensorflow::Input b_indices, ::tensorflow::Input sum_indices);
 
+  Operation operation;
   ::tensorflow::Output a_val_grad;
   ::tensorflow::Output b_val_grad;
 };
@@ -552,6 +560,7 @@ class SparseConcat {
              ::tensorflow::InputList values, ::tensorflow::InputList shapes,
              int64 concat_dim);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
   ::tensorflow::Output output_shape;
@@ -622,6 +631,7 @@ class SparseCross {
             num_buckets, int64 hash_key, DataType out_type, DataType
             internal_type);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
   ::tensorflow::Output output_shape;
@@ -657,6 +667,7 @@ class SparseDenseCwiseAdd {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -684,6 +695,7 @@ class SparseDenseCwiseDiv {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -715,6 +727,7 @@ class SparseDenseCwiseMul {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -778,6 +791,7 @@ class SparseFillEmptyRows {
                     indices, ::tensorflow::Input values, ::tensorflow::Input
                     dense_shape, ::tensorflow::Input default_value);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
   ::tensorflow::Output empty_row_indicator;
@@ -808,6 +822,7 @@ class SparseFillEmptyRowsGrad {
   SparseFillEmptyRowsGrad(const ::tensorflow::Scope& scope, ::tensorflow::Input
                         reverse_index_map, ::tensorflow::Input grad_values);
 
+  Operation operation;
   ::tensorflow::Output d_values;
   ::tensorflow::Output d_default_value;
 };
@@ -871,6 +886,7 @@ class SparseReduceMax {
     return Attrs().KeepDims(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -933,6 +949,7 @@ class SparseReduceMaxSparse {
     return Attrs().KeepDims(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
   ::tensorflow::Output output_shape;
@@ -997,6 +1014,7 @@ class SparseReduceSum {
     return Attrs().KeepDims(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1059,6 +1077,7 @@ class SparseReduceSumSparse {
     return Attrs().KeepDims(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
   ::tensorflow::Output output_shape;
@@ -1092,6 +1111,7 @@ class SparseReorder {
               input_indices, ::tensorflow::Input input_values,
               ::tensorflow::Input input_shape);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
 };
@@ -1133,6 +1153,7 @@ class SparseReshape {
               input_indices, ::tensorflow::Input input_shape,
               ::tensorflow::Input new_shape);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_shape;
 };
@@ -1177,6 +1198,7 @@ class SparseSlice {
             ::tensorflow::Input values, ::tensorflow::Input shape,
             ::tensorflow::Input start, ::tensorflow::Input size);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
   ::tensorflow::Output output_shape;
@@ -1208,6 +1230,7 @@ class SparseSliceGrad {
   operator ::tensorflow::Input() const { return val_grad; }
   ::tensorflow::Node* node() const { return val_grad.node(); }
 
+  Operation operation;
   ::tensorflow::Output val_grad;
 };
 
@@ -1246,6 +1269,7 @@ class SparseSoftmax {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1273,6 +1297,7 @@ class SparseSparseMaximum {
                     ::tensorflow::Input a_shape, ::tensorflow::Input b_indices,
                     ::tensorflow::Input b_values, ::tensorflow::Input b_shape);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
 };
@@ -1301,6 +1326,7 @@ class SparseSparseMinimum {
                     ::tensorflow::Input a_shape, ::tensorflow::Input b_indices,
                     ::tensorflow::Input b_values, ::tensorflow::Input b_shape);
 
+  Operation operation;
   ::tensorflow::Output output_indices;
   ::tensorflow::Output output_values;
 };
@@ -1348,6 +1374,7 @@ class SparseSplit {
             ::tensorflow::Input indices, ::tensorflow::Input values,
             ::tensorflow::Input shape, int64 num_split);
 
+  Operation operation;
   ::tensorflow::OutputList output_indices;
   ::tensorflow::OutputList output_values;
   ::tensorflow::OutputList output_shape;
@@ -1375,6 +1402,7 @@ class SparseTensorDenseAdd {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1450,6 +1478,7 @@ class SparseTensorDenseMatMul {
     return Attrs().AdjointB(x);
   }
 
+  Operation operation;
   ::tensorflow::Output product;
 };
 
@@ -1523,6 +1552,7 @@ class SparseToDense {
     return Attrs().ValidateIndices(x);
   }
 
+  Operation operation;
   ::tensorflow::Output dense;
 };
 
@@ -1636,6 +1666,7 @@ class TakeManySparseFromTensorsMap {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sparse_indices;
   ::tensorflow::Output sparse_values;
   ::tensorflow::Output sparse_shape;

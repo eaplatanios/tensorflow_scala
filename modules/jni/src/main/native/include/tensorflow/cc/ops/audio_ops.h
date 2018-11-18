@@ -88,6 +88,7 @@ class AudioSpectrogram {
     return Attrs().MagnitudeSquared(x);
   }
 
+  Operation operation;
   ::tensorflow::Output spectrogram;
 };
 
@@ -155,6 +156,7 @@ class DecodeWav {
     return Attrs().DesiredSamples(x);
   }
 
+  Operation operation;
   ::tensorflow::Output audio;
   ::tensorflow::Output sample_rate;
 };
@@ -184,6 +186,7 @@ class EncodeWav {
   operator ::tensorflow::Input() const { return contents; }
   ::tensorflow::Node* node() const { return contents.node(); }
 
+  Operation operation;
   ::tensorflow::Output contents;
 };
 
@@ -280,6 +283,7 @@ class Mfcc {
     return Attrs().DctCoefficientCount(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 

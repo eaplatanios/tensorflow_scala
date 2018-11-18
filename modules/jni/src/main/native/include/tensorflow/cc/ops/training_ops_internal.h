@@ -81,6 +81,7 @@ class ApplyAdaMax {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
 };
 

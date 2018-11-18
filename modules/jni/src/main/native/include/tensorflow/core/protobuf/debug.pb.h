@@ -377,6 +377,12 @@ class DebugOptions : public ::google::protobuf::Message /* @@protoc_insertion_po
   const ::google::protobuf::RepeatedPtrField< ::tensorflow::DebugTensorWatch >&
       debug_tensor_watch_opts() const;
 
+  // bool reset_disk_byte_usage = 11;
+  void clear_reset_disk_byte_usage();
+  static const int kResetDiskByteUsageFieldNumber = 11;
+  bool reset_disk_byte_usage() const;
+  void set_reset_disk_byte_usage(bool value);
+
   // int64 global_step = 10;
   void clear_global_step();
   static const int kGlobalStepFieldNumber = 10;
@@ -391,6 +397,7 @@ class DebugOptions : public ::google::protobuf::Message /* @@protoc_insertion_po
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::google::protobuf::RepeatedPtrField< ::tensorflow::DebugTensorWatch > debug_tensor_watch_opts_;
+  bool reset_disk_byte_usage_;
   ::google::protobuf::int64 global_step_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2fdebug_2eproto::TableStruct;
@@ -1013,6 +1020,20 @@ inline void DebugOptions::set_global_step(::google::protobuf::int64 value) {
   
   global_step_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.DebugOptions.global_step)
+}
+
+// bool reset_disk_byte_usage = 11;
+inline void DebugOptions::clear_reset_disk_byte_usage() {
+  reset_disk_byte_usage_ = false;
+}
+inline bool DebugOptions::reset_disk_byte_usage() const {
+  // @@protoc_insertion_point(field_get:tensorflow.DebugOptions.reset_disk_byte_usage)
+  return reset_disk_byte_usage_;
+}
+inline void DebugOptions::set_reset_disk_byte_usage(bool value) {
+  
+  reset_disk_byte_usage_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.DebugOptions.reset_disk_byte_usage)
 }
 
 // -------------------------------------------------------------------

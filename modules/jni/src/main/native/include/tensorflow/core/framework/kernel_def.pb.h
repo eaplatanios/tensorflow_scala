@@ -423,6 +423,12 @@ class KernelDef : public ::google::protobuf::Message /* @@protoc_insertion_point
   void unsafe_arena_set_allocated_label(
       ::std::string* label);
 
+  // int32 priority = 6;
+  void clear_priority();
+  static const int kPriorityFieldNumber = 6;
+  ::google::protobuf::int32 priority() const;
+  void set_priority(::google::protobuf::int32 value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.KernelDef)
  private:
 
@@ -435,6 +441,7 @@ class KernelDef : public ::google::protobuf::Message /* @@protoc_insertion_point
   ::google::protobuf::internal::ArenaStringPtr op_;
   ::google::protobuf::internal::ArenaStringPtr device_type_;
   ::google::protobuf::internal::ArenaStringPtr label_;
+  ::google::protobuf::int32 priority_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fframework_2fkernel_5fdef_2eproto::TableStruct;
 };
@@ -1033,6 +1040,20 @@ inline void KernelDef::unsafe_arena_set_allocated_label(
   label_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       label, GetArenaNoVirtual());
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.KernelDef.label)
+}
+
+// int32 priority = 6;
+inline void KernelDef::clear_priority() {
+  priority_ = 0;
+}
+inline ::google::protobuf::int32 KernelDef::priority() const {
+  // @@protoc_insertion_point(field_get:tensorflow.KernelDef.priority)
+  return priority_;
+}
+inline void KernelDef::set_priority(::google::protobuf::int32 value) {
+  
+  priority_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.KernelDef.priority)
 }
 
 // -------------------------------------------------------------------

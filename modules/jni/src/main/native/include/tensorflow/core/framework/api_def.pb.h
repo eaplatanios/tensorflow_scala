@@ -228,6 +228,12 @@ class ApiDef_Endpoint : public ::google::protobuf::Message /* @@protoc_insertion
   bool deprecated() const;
   void set_deprecated(bool value);
 
+  // int32 deprecation_version = 4;
+  void clear_deprecation_version();
+  static const int kDeprecationVersionFieldNumber = 4;
+  ::google::protobuf::int32 deprecation_version() const;
+  void set_deprecation_version(::google::protobuf::int32 value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.ApiDef.Endpoint)
  private:
 
@@ -237,6 +243,7 @@ class ApiDef_Endpoint : public ::google::protobuf::Message /* @@protoc_insertion
   typedef void DestructorSkippable_;
   ::google::protobuf::internal::ArenaStringPtr name_;
   bool deprecated_;
+  ::google::protobuf::int32 deprecation_version_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fframework_2fapi_5fdef_2eproto::TableStruct;
 };
@@ -971,6 +978,12 @@ class ApiDef : public ::google::protobuf::Message /* @@protoc_insertion_point(cl
   ::tensorflow::ApiDef_Visibility visibility() const;
   void set_visibility(::tensorflow::ApiDef_Visibility value);
 
+  // int32 deprecation_version = 13;
+  void clear_deprecation_version();
+  static const int kDeprecationVersionFieldNumber = 13;
+  ::google::protobuf::int32 deprecation_version() const;
+  void set_deprecation_version(::google::protobuf::int32 value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.ApiDef)
  private:
 
@@ -990,6 +1003,7 @@ class ApiDef : public ::google::protobuf::Message /* @@protoc_insertion_point(cl
   ::google::protobuf::internal::ArenaStringPtr description_suffix_;
   ::google::protobuf::internal::ArenaStringPtr deprecation_message_;
   int visibility_;
+  ::google::protobuf::int32 deprecation_version_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fframework_2fapi_5fdef_2eproto::TableStruct;
 };
@@ -1215,6 +1229,20 @@ inline void ApiDef_Endpoint::set_deprecated(bool value) {
   
   deprecated_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.ApiDef.Endpoint.deprecated)
+}
+
+// int32 deprecation_version = 4;
+inline void ApiDef_Endpoint::clear_deprecation_version() {
+  deprecation_version_ = 0;
+}
+inline ::google::protobuf::int32 ApiDef_Endpoint::deprecation_version() const {
+  // @@protoc_insertion_point(field_get:tensorflow.ApiDef.Endpoint.deprecation_version)
+  return deprecation_version_;
+}
+inline void ApiDef_Endpoint::set_deprecation_version(::google::protobuf::int32 value) {
+  
+  deprecation_version_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.ApiDef.Endpoint.deprecation_version)
 }
 
 // -------------------------------------------------------------------
@@ -1886,6 +1914,20 @@ inline void ApiDef::unsafe_arena_set_allocated_deprecation_message(
   deprecation_message_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       deprecation_message, GetArenaNoVirtual());
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.ApiDef.deprecation_message)
+}
+
+// int32 deprecation_version = 13;
+inline void ApiDef::clear_deprecation_version() {
+  deprecation_version_ = 0;
+}
+inline ::google::protobuf::int32 ApiDef::deprecation_version() const {
+  // @@protoc_insertion_point(field_get:tensorflow.ApiDef.deprecation_version)
+  return deprecation_version_;
+}
+inline void ApiDef::set_deprecation_version(::google::protobuf::int32 value) {
+  
+  deprecation_version_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.ApiDef.deprecation_version)
 }
 
 // .tensorflow.ApiDef.Visibility visibility = 2;

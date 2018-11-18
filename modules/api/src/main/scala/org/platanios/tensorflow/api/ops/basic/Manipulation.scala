@@ -98,7 +98,7 @@ trait Manipulation {
         }
       case o: OutputIndexedSlices[T] =>
         Op.nameScope(name) {
-          Math.prod(o.denseShape, Seq(0))
+          Math.prod(o.denseShape.toLong, Seq(0))
         }
       case o: SparseOutput[T] =>
         Op.nameScope(name) {

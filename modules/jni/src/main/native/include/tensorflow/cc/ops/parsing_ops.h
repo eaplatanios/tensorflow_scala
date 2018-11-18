@@ -29,7 +29,8 @@ namespace ops {
 /// * records: Each string is a record/row in the csv and all records should have
 /// the same format.
 /// * record_defaults: One tensor per column of the input record, with either a
-/// scalar default value for that column or empty if the column is required.
+/// scalar default value for that column or an empty vector if the column is
+/// required.
 ///
 /// Optional attributes (see `Attrs`):
 /// * field_delim: char delimiter to separate fields in a record.
@@ -106,6 +107,7 @@ class DecodeCSV {
     return Attrs().SelectCols(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList output;
 };
 
@@ -156,6 +158,7 @@ class DecodeCompressed {
     return Attrs().CompressionType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -184,6 +187,7 @@ class DecodeJSONExample {
   operator ::tensorflow::Input() const { return binary_examples; }
   ::tensorflow::Node* node() const { return binary_examples.node(); }
 
+  Operation operation;
   ::tensorflow::Output binary_examples;
 };
 
@@ -231,6 +235,7 @@ class DecodeRaw {
     return Attrs().LittleEndian(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -291,10 +296,235 @@ class ParseExample {
              dense_defaults, const DataTypeSlice& sparse_types, const
              gtl::ArraySlice<PartialTensorShape>& dense_shapes);
 
+  Operation operation;
   ::tensorflow::OutputList sparse_indices;
   ::tensorflow::OutputList sparse_values;
   ::tensorflow::OutputList sparse_shapes;
   ::tensorflow::OutputList dense_values;
+};
+
+/// Transforms a vector of brain.SequenceExample protos (as strings) into typed tensors.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * serialized: A vector containing binary serialized SequenceExample protos.
+/// * debug_name: A vector containing the names of the serialized protos.
+/// May contain, for example, table key (descriptive) name for the
+/// corresponding serialized proto.  This is purely useful for debugging
+/// purposes, and the presence of values here has no effect on the output.
+/// May also be an empty vector if no name is available.
+/// * context_dense_defaults: A list of Ncontext_dense Tensors (some may be empty).
+/// context_dense_defaults[j] provides default values
+/// when the SequenceExample's context map lacks context_dense_key[j].
+/// If an empty Tensor is provided for context_dense_defaults[j],
+/// then the Feature context_dense_keys[j] is required.
+/// The input type is inferred from context_dense_defaults[j], even when it's
+/// empty.  If context_dense_defaults[j] is not empty, its shape must match
+/// context_dense_shapes[j].
+/// * feature_list_dense_missing_assumed_empty: A vector listing the
+/// FeatureList keys which may be missing from the SequenceExamples.  If the
+/// associated FeatureList is missing, it is treated as empty.  By default,
+/// any FeatureList not listed in this vector must exist in the SequenceExamples.
+/// * context_sparse_keys: A list of Ncontext_sparse string Tensors (scalars).
+/// The keys expected in the Examples' features associated with context_sparse
+/// values.
+/// * context_dense_keys: A list of Ncontext_dense string Tensors (scalars).
+/// The keys expected in the SequenceExamples' context features associated with
+/// dense values.
+/// * feature_list_sparse_keys: A list of Nfeature_list_sparse string Tensors
+/// (scalars).  The keys expected in the FeatureLists associated with sparse
+/// values.
+/// * feature_list_dense_keys: A list of Nfeature_list_dense string Tensors (scalars).
+/// The keys expected in the SequenceExamples' feature_lists associated
+/// with lists of dense values.
+///
+/// Optional attributes (see `Attrs`):
+/// * context_sparse_types: A list of Ncontext_sparse types; the data types of data in
+/// each context Feature given in context_sparse_keys.
+/// Currently the ParseSingleSequenceExample supports DT_FLOAT (FloatList),
+/// DT_INT64 (Int64List), and DT_STRING (BytesList).
+/// * context_dense_shapes: A list of Ncontext_dense shapes; the shapes of data in
+/// each context Feature given in context_dense_keys.
+/// The number of elements in the Feature corresponding to context_dense_key[j]
+/// must always equal context_dense_shapes[j].NumEntries().
+/// The shape of context_dense_values[j] will match context_dense_shapes[j].
+/// * feature_list_sparse_types: A list of Nfeature_list_sparse types; the data types
+/// of data in each FeatureList given in feature_list_sparse_keys.
+/// Currently the ParseSingleSequenceExample supports DT_FLOAT (FloatList),
+/// DT_INT64 (Int64List), and DT_STRING (BytesList).
+/// * feature_list_dense_shapes: A list of Nfeature_list_dense shapes; the shapes of
+/// data in each FeatureList given in feature_list_dense_keys.
+/// The shape of each Feature in the FeatureList corresponding to
+/// feature_list_dense_key[j] must always equal
+/// feature_list_dense_shapes[j].NumEntries().
+///
+/// Returns:
+/// * `OutputList` context_sparse_indices
+/// * `OutputList` context_sparse_values
+/// * `OutputList` context_sparse_shapes
+/// * `OutputList` context_dense_values
+/// * `OutputList` feature_list_sparse_indices
+/// * `OutputList` feature_list_sparse_values
+/// * `OutputList` feature_list_sparse_shapes
+/// * `OutputList` feature_list_dense_values
+/// * `OutputList` feature_list_dense_lengths
+class ParseSequenceExample {
+ public:
+  /// Optional attribute setters for ParseSequenceExample
+  struct Attrs {
+    /// Defaults to 0
+    TF_MUST_USE_RESULT Attrs NcontextSparse(int64 x) {
+      Attrs ret = *this;
+      ret.Ncontext_sparse_ = x;
+      return ret;
+    }
+
+    /// Defaults to 0
+    TF_MUST_USE_RESULT Attrs NcontextDense(int64 x) {
+      Attrs ret = *this;
+      ret.Ncontext_dense_ = x;
+      return ret;
+    }
+
+    /// Defaults to 0
+    TF_MUST_USE_RESULT Attrs NfeatureListSparse(int64 x) {
+      Attrs ret = *this;
+      ret.Nfeature_list_sparse_ = x;
+      return ret;
+    }
+
+    /// Defaults to 0
+    TF_MUST_USE_RESULT Attrs NfeatureListDense(int64 x) {
+      Attrs ret = *this;
+      ret.Nfeature_list_dense_ = x;
+      return ret;
+    }
+
+    /// A list of Ncontext_sparse types; the data types of data in
+    /// each context Feature given in context_sparse_keys.
+    /// Currently the ParseSingleSequenceExample supports DT_FLOAT (FloatList),
+    /// DT_INT64 (Int64List), and DT_STRING (BytesList).
+    ///
+    /// Defaults to []
+    TF_MUST_USE_RESULT Attrs ContextSparseTypes(const DataTypeSlice& x) {
+      Attrs ret = *this;
+      ret.context_sparse_types_ = x;
+      return ret;
+    }
+
+    /// Defaults to []
+    TF_MUST_USE_RESULT Attrs FeatureListDenseTypes(const DataTypeSlice& x) {
+      Attrs ret = *this;
+      ret.feature_list_dense_types_ = x;
+      return ret;
+    }
+
+    /// A list of Ncontext_dense shapes; the shapes of data in
+    /// each context Feature given in context_dense_keys.
+    /// The number of elements in the Feature corresponding to context_dense_key[j]
+    /// must always equal context_dense_shapes[j].NumEntries().
+    /// The shape of context_dense_values[j] will match context_dense_shapes[j].
+    ///
+    /// Defaults to []
+    TF_MUST_USE_RESULT Attrs ContextDenseShapes(const gtl::ArraySlice<PartialTensorShape>& x) {
+      Attrs ret = *this;
+      ret.context_dense_shapes_ = x;
+      return ret;
+    }
+
+    /// A list of Nfeature_list_sparse types; the data types
+    /// of data in each FeatureList given in feature_list_sparse_keys.
+    /// Currently the ParseSingleSequenceExample supports DT_FLOAT (FloatList),
+    /// DT_INT64 (Int64List), and DT_STRING (BytesList).
+    ///
+    /// Defaults to []
+    TF_MUST_USE_RESULT Attrs FeatureListSparseTypes(const DataTypeSlice& x) {
+      Attrs ret = *this;
+      ret.feature_list_sparse_types_ = x;
+      return ret;
+    }
+
+    /// A list of Nfeature_list_dense shapes; the shapes of
+    /// data in each FeatureList given in feature_list_dense_keys.
+    /// The shape of each Feature in the FeatureList corresponding to
+    /// feature_list_dense_key[j] must always equal
+    /// feature_list_dense_shapes[j].NumEntries().
+    ///
+    /// Defaults to []
+    TF_MUST_USE_RESULT Attrs FeatureListDenseShapes(const gtl::ArraySlice<PartialTensorShape>& x) {
+      Attrs ret = *this;
+      ret.feature_list_dense_shapes_ = x;
+      return ret;
+    }
+
+    int64 Ncontext_sparse_ = 0;
+    int64 Ncontext_dense_ = 0;
+    int64 Nfeature_list_sparse_ = 0;
+    int64 Nfeature_list_dense_ = 0;
+    DataTypeSlice context_sparse_types_ = {};
+    DataTypeSlice feature_list_dense_types_ = {};
+    gtl::ArraySlice<PartialTensorShape> context_dense_shapes_ = {};
+    DataTypeSlice feature_list_sparse_types_ = {};
+    gtl::ArraySlice<PartialTensorShape> feature_list_dense_shapes_ = {};
+  };
+  ParseSequenceExample(const ::tensorflow::Scope& scope, ::tensorflow::Input
+                     serialized, ::tensorflow::Input debug_name,
+                     ::tensorflow::InputList context_dense_defaults, const
+                     gtl::ArraySlice<string>&
+                     feature_list_dense_missing_assumed_empty, const
+                     gtl::ArraySlice<string>& context_sparse_keys, const
+                     gtl::ArraySlice<string>& context_dense_keys, const
+                     gtl::ArraySlice<string>& feature_list_sparse_keys, const
+                     gtl::ArraySlice<string>& feature_list_dense_keys);
+  ParseSequenceExample(const ::tensorflow::Scope& scope, ::tensorflow::Input
+                     serialized, ::tensorflow::Input debug_name,
+                     ::tensorflow::InputList context_dense_defaults, const
+                     gtl::ArraySlice<string>&
+                     feature_list_dense_missing_assumed_empty, const
+                     gtl::ArraySlice<string>& context_sparse_keys, const
+                     gtl::ArraySlice<string>& context_dense_keys, const
+                     gtl::ArraySlice<string>& feature_list_sparse_keys, const
+                     gtl::ArraySlice<string>& feature_list_dense_keys, const
+                     ParseSequenceExample::Attrs& attrs);
+
+  static Attrs NcontextSparse(int64 x) {
+    return Attrs().NcontextSparse(x);
+  }
+  static Attrs NcontextDense(int64 x) {
+    return Attrs().NcontextDense(x);
+  }
+  static Attrs NfeatureListSparse(int64 x) {
+    return Attrs().NfeatureListSparse(x);
+  }
+  static Attrs NfeatureListDense(int64 x) {
+    return Attrs().NfeatureListDense(x);
+  }
+  static Attrs ContextSparseTypes(const DataTypeSlice& x) {
+    return Attrs().ContextSparseTypes(x);
+  }
+  static Attrs FeatureListDenseTypes(const DataTypeSlice& x) {
+    return Attrs().FeatureListDenseTypes(x);
+  }
+  static Attrs ContextDenseShapes(const gtl::ArraySlice<PartialTensorShape>& x) {
+    return Attrs().ContextDenseShapes(x);
+  }
+  static Attrs FeatureListSparseTypes(const DataTypeSlice& x) {
+    return Attrs().FeatureListSparseTypes(x);
+  }
+  static Attrs FeatureListDenseShapes(const gtl::ArraySlice<PartialTensorShape>& x) {
+    return Attrs().FeatureListDenseShapes(x);
+  }
+
+  Operation operation;
+  ::tensorflow::OutputList context_sparse_indices;
+  ::tensorflow::OutputList context_sparse_values;
+  ::tensorflow::OutputList context_sparse_shapes;
+  ::tensorflow::OutputList context_dense_values;
+  ::tensorflow::OutputList feature_list_sparse_indices;
+  ::tensorflow::OutputList feature_list_sparse_values;
+  ::tensorflow::OutputList feature_list_sparse_shapes;
+  ::tensorflow::OutputList feature_list_dense_values;
+  ::tensorflow::OutputList feature_list_dense_lengths;
 };
 
 /// Transforms a tf.Example proto (as a string) into typed tensors.
@@ -346,6 +576,7 @@ class ParseSingleExample {
                    DataTypeSlice& sparse_types, const
                    gtl::ArraySlice<PartialTensorShape>& dense_shapes);
 
+  Operation operation;
   ::tensorflow::OutputList sparse_indices;
   ::tensorflow::OutputList sparse_values;
   ::tensorflow::OutputList sparse_shapes;
@@ -519,6 +750,7 @@ class ParseSingleSequenceExample {
     return Attrs().FeatureListDenseShapes(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList context_sparse_indices;
   ::tensorflow::OutputList context_sparse_values;
   ::tensorflow::OutputList context_sparse_shapes;
@@ -547,6 +779,7 @@ class ParseTensor {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -565,6 +798,7 @@ class SerializeTensor {
   operator ::tensorflow::Input() const { return serialized; }
   ::tensorflow::Node* node() const { return serialized.node(); }
 
+  Operation operation;
   ::tensorflow::Output serialized;
 };
 
@@ -608,6 +842,7 @@ class StringToNumber {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 

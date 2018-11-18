@@ -38,7 +38,7 @@ namespace protobuf_tensorflow_2fcore_2fkernels_2fboosted_5ftrees_2fboosted_5ftre
 struct TableStruct {
   static const ::google::protobuf::internal::ParseTableField entries[];
   static const ::google::protobuf::internal::AuxillaryParseTableField aux[];
-  static const ::google::protobuf::internal::ParseTable schema[12];
+  static const ::google::protobuf::internal::ParseTable schema[13];
   static const ::google::protobuf::internal::FieldMetadata field_metadata[];
   static const ::google::protobuf::internal::SerializationTable serialization_table[];
   static const ::google::protobuf::uint32 offsets[];
@@ -50,6 +50,9 @@ namespace boosted_trees {
 class BucketizedSplit;
 class BucketizedSplitDefaultTypeInternal;
 extern BucketizedSplitDefaultTypeInternal _BucketizedSplit_default_instance_;
+class CategoricalSplit;
+class CategoricalSplitDefaultTypeInternal;
+extern CategoricalSplitDefaultTypeInternal _CategoricalSplit_default_instance_;
 class DebugOutput;
 class DebugOutputDefaultTypeInternal;
 extern DebugOutputDefaultTypeInternal _DebugOutput_default_instance_;
@@ -88,6 +91,7 @@ extern VectorDefaultTypeInternal _Vector_default_instance_;
 namespace google {
 namespace protobuf {
 template<> ::tensorflow::boosted_trees::BucketizedSplit* Arena::CreateMaybeMessage<::tensorflow::boosted_trees::BucketizedSplit>(Arena*);
+template<> ::tensorflow::boosted_trees::CategoricalSplit* Arena::CreateMaybeMessage<::tensorflow::boosted_trees::CategoricalSplit>(Arena*);
 template<> ::tensorflow::boosted_trees::DebugOutput* Arena::CreateMaybeMessage<::tensorflow::boosted_trees::DebugOutput>(Arena*);
 template<> ::tensorflow::boosted_trees::GrowingMetadata* Arena::CreateMaybeMessage<::tensorflow::boosted_trees::GrowingMetadata>(Arena*);
 template<> ::tensorflow::boosted_trees::Leaf* Arena::CreateMaybeMessage<::tensorflow::boosted_trees::Leaf>(Arena*);
@@ -144,6 +148,7 @@ class Node : public ::google::protobuf::Message /* @@protoc_insertion_point(clas
   enum NodeCase {
     kLeaf = 1,
     kBucketizedSplit = 2,
+    kCategoricalSplit = 3,
     NODE_NOT_SET = 0,
   };
 
@@ -256,12 +261,28 @@ class Node : public ::google::protobuf::Message /* @@protoc_insertion_point(clas
       ::tensorflow::boosted_trees::BucketizedSplit* bucketized_split);
   ::tensorflow::boosted_trees::BucketizedSplit* unsafe_arena_release_bucketized_split();
 
+  // .tensorflow.boosted_trees.CategoricalSplit categorical_split = 3;
+  bool has_categorical_split() const;
+  void clear_categorical_split();
+  static const int kCategoricalSplitFieldNumber = 3;
+  private:
+  const ::tensorflow::boosted_trees::CategoricalSplit& _internal_categorical_split() const;
+  public:
+  const ::tensorflow::boosted_trees::CategoricalSplit& categorical_split() const;
+  ::tensorflow::boosted_trees::CategoricalSplit* release_categorical_split();
+  ::tensorflow::boosted_trees::CategoricalSplit* mutable_categorical_split();
+  void set_allocated_categorical_split(::tensorflow::boosted_trees::CategoricalSplit* categorical_split);
+  void unsafe_arena_set_allocated_categorical_split(
+      ::tensorflow::boosted_trees::CategoricalSplit* categorical_split);
+  ::tensorflow::boosted_trees::CategoricalSplit* unsafe_arena_release_categorical_split();
+
   void clear_node();
   NodeCase node_case() const;
   // @@protoc_insertion_point(class_scope:tensorflow.boosted_trees.Node)
  private:
   void set_has_leaf();
   void set_has_bucketized_split();
+  void set_has_categorical_split();
 
   inline bool has_node() const;
   inline void clear_has_node();
@@ -275,6 +296,7 @@ class Node : public ::google::protobuf::Message /* @@protoc_insertion_point(clas
     NodeUnion() {}
     ::tensorflow::boosted_trees::Leaf* leaf_;
     ::tensorflow::boosted_trees::BucketizedSplit* bucketized_split_;
+    ::tensorflow::boosted_trees::CategoricalSplit* categorical_split_;
   } node_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   ::google::protobuf::uint32 _oneof_case_[1];
@@ -988,6 +1010,145 @@ class BucketizedSplit : public ::google::protobuf::Message /* @@protoc_insertion
 };
 // -------------------------------------------------------------------
 
+class CategoricalSplit : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.boosted_trees.CategoricalSplit) */ {
+ public:
+  CategoricalSplit();
+  virtual ~CategoricalSplit();
+
+  CategoricalSplit(const CategoricalSplit& from);
+
+  inline CategoricalSplit& operator=(const CategoricalSplit& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  #if LANG_CXX11
+  CategoricalSplit(CategoricalSplit&& from) noexcept
+    : CategoricalSplit() {
+    *this = ::std::move(from);
+  }
+
+  inline CategoricalSplit& operator=(CategoricalSplit&& from) noexcept {
+    if (GetArenaNoVirtual() == from.GetArenaNoVirtual()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+  #endif
+  inline ::google::protobuf::Arena* GetArena() const final {
+    return GetArenaNoVirtual();
+  }
+  inline void* GetMaybeArenaPointer() const final {
+    return MaybeArenaPtr();
+  }
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const CategoricalSplit& default_instance();
+
+  static void InitAsDefaultInstance();  // FOR INTERNAL USE ONLY
+  static inline const CategoricalSplit* internal_default_instance() {
+    return reinterpret_cast<const CategoricalSplit*>(
+               &_CategoricalSplit_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    6;
+
+  void UnsafeArenaSwap(CategoricalSplit* other);
+  void Swap(CategoricalSplit* other);
+  friend void swap(CategoricalSplit& a, CategoricalSplit& b) {
+    a.Swap(&b);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline CategoricalSplit* New() const final {
+    return CreateMaybeMessage<CategoricalSplit>(NULL);
+  }
+
+  CategoricalSplit* New(::google::protobuf::Arena* arena) const final {
+    return CreateMaybeMessage<CategoricalSplit>(arena);
+  }
+  void CopyFrom(const ::google::protobuf::Message& from) final;
+  void MergeFrom(const ::google::protobuf::Message& from) final;
+  void CopyFrom(const CategoricalSplit& from);
+  void MergeFrom(const CategoricalSplit& from);
+  void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input) final;
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const final;
+  ::google::protobuf::uint8* InternalSerializeWithCachedSizesToArray(
+      bool deterministic, ::google::protobuf::uint8* target) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(CategoricalSplit* other);
+  protected:
+  explicit CategoricalSplit(::google::protobuf::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::google::protobuf::Arena* arena);
+  private:
+  inline ::google::protobuf::Arena* GetArenaNoVirtual() const {
+    return _internal_metadata_.arena();
+  }
+  inline void* MaybeArenaPtr() const {
+    return _internal_metadata_.raw_arena_ptr();
+  }
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const final;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // int32 feature_id = 1;
+  void clear_feature_id();
+  static const int kFeatureIdFieldNumber = 1;
+  ::google::protobuf::int32 feature_id() const;
+  void set_feature_id(::google::protobuf::int32 value);
+
+  // int32 value = 2;
+  void clear_value();
+  static const int kValueFieldNumber = 2;
+  ::google::protobuf::int32 value() const;
+  void set_value(::google::protobuf::int32 value);
+
+  // int32 left_id = 3;
+  void clear_left_id();
+  static const int kLeftIdFieldNumber = 3;
+  ::google::protobuf::int32 left_id() const;
+  void set_left_id(::google::protobuf::int32 value);
+
+  // int32 right_id = 4;
+  void clear_right_id();
+  static const int kRightIdFieldNumber = 4;
+  ::google::protobuf::int32 right_id() const;
+  void set_right_id(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:tensorflow.boosted_trees.CategoricalSplit)
+ private:
+
+  ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
+  template <typename T> friend class ::google::protobuf::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::google::protobuf::int32 feature_id_;
+  ::google::protobuf::int32 value_;
+  ::google::protobuf::int32 left_id_;
+  ::google::protobuf::int32 right_id_;
+  mutable ::google::protobuf::internal::CachedSize _cached_size_;
+  friend struct ::protobuf_tensorflow_2fcore_2fkernels_2fboosted_5ftrees_2fboosted_5ftrees_2eproto::TableStruct;
+};
+// -------------------------------------------------------------------
+
 class Tree : public ::google::protobuf::Message /* @@protoc_insertion_point(class_definition:tensorflow.boosted_trees.Tree) */ {
  public:
   Tree();
@@ -1029,7 +1190,7 @@ class Tree : public ::google::protobuf::Message /* @@protoc_insertion_point(clas
                &_Tree_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    6;
+    7;
 
   void UnsafeArenaSwap(Tree* other);
   void Swap(Tree* other);
@@ -1153,7 +1314,7 @@ class TreeMetadata_PostPruneNodeUpdate : public ::google::protobuf::Message /* @
                &_TreeMetadata_PostPruneNodeUpdate_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    7;
+    8;
 
   void UnsafeArenaSwap(TreeMetadata_PostPruneNodeUpdate* other);
   void Swap(TreeMetadata_PostPruneNodeUpdate* other);
@@ -1278,7 +1439,7 @@ class TreeMetadata : public ::google::protobuf::Message /* @@protoc_insertion_po
                &_TreeMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    8;
+    9;
 
   void UnsafeArenaSwap(TreeMetadata* other);
   void Swap(TreeMetadata* other);
@@ -1418,7 +1579,7 @@ class GrowingMetadata : public ::google::protobuf::Message /* @@protoc_insertion
                &_GrowingMetadata_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    9;
+    10;
 
   void UnsafeArenaSwap(GrowingMetadata* other);
   void Swap(GrowingMetadata* other);
@@ -1557,7 +1718,7 @@ class TreeEnsemble : public ::google::protobuf::Message /* @@protoc_insertion_po
                &_TreeEnsemble_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    10;
+    11;
 
   void UnsafeArenaSwap(TreeEnsemble* other);
   void Swap(TreeEnsemble* other);
@@ -1724,7 +1885,7 @@ class DebugOutput : public ::google::protobuf::Message /* @@protoc_insertion_poi
                &_DebugOutput_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    11;
+    12;
 
   void UnsafeArenaSwap(DebugOutput* other);
   void Swap(DebugOutput* other);
@@ -1965,6 +2126,74 @@ inline ::tensorflow::boosted_trees::BucketizedSplit* Node::mutable_bucketized_sp
   }
   // @@protoc_insertion_point(field_mutable:tensorflow.boosted_trees.Node.bucketized_split)
   return node_.bucketized_split_;
+}
+
+// .tensorflow.boosted_trees.CategoricalSplit categorical_split = 3;
+inline bool Node::has_categorical_split() const {
+  return node_case() == kCategoricalSplit;
+}
+inline void Node::set_has_categorical_split() {
+  _oneof_case_[0] = kCategoricalSplit;
+}
+inline void Node::clear_categorical_split() {
+  if (has_categorical_split()) {
+    if (GetArenaNoVirtual() == NULL) {
+      delete node_.categorical_split_;
+    }
+    clear_has_node();
+  }
+}
+inline const ::tensorflow::boosted_trees::CategoricalSplit& Node::_internal_categorical_split() const {
+  return *node_.categorical_split_;
+}
+inline ::tensorflow::boosted_trees::CategoricalSplit* Node::release_categorical_split() {
+  // @@protoc_insertion_point(field_release:tensorflow.boosted_trees.Node.categorical_split)
+  if (has_categorical_split()) {
+    clear_has_node();
+      ::tensorflow::boosted_trees::CategoricalSplit* temp = node_.categorical_split_;
+    if (GetArenaNoVirtual() != NULL) {
+      temp = ::google::protobuf::internal::DuplicateIfNonNull(temp);
+    }
+    node_.categorical_split_ = NULL;
+    return temp;
+  } else {
+    return NULL;
+  }
+}
+inline const ::tensorflow::boosted_trees::CategoricalSplit& Node::categorical_split() const {
+  // @@protoc_insertion_point(field_get:tensorflow.boosted_trees.Node.categorical_split)
+  return has_categorical_split()
+      ? *node_.categorical_split_
+      : *reinterpret_cast< ::tensorflow::boosted_trees::CategoricalSplit*>(&::tensorflow::boosted_trees::_CategoricalSplit_default_instance_);
+}
+inline ::tensorflow::boosted_trees::CategoricalSplit* Node::unsafe_arena_release_categorical_split() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.boosted_trees.Node.categorical_split)
+  if (has_categorical_split()) {
+    clear_has_node();
+    ::tensorflow::boosted_trees::CategoricalSplit* temp = node_.categorical_split_;
+    node_.categorical_split_ = NULL;
+    return temp;
+  } else {
+    return NULL;
+  }
+}
+inline void Node::unsafe_arena_set_allocated_categorical_split(::tensorflow::boosted_trees::CategoricalSplit* categorical_split) {
+  clear_node();
+  if (categorical_split) {
+    set_has_categorical_split();
+    node_.categorical_split_ = categorical_split;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.boosted_trees.Node.categorical_split)
+}
+inline ::tensorflow::boosted_trees::CategoricalSplit* Node::mutable_categorical_split() {
+  if (!has_categorical_split()) {
+    clear_node();
+    set_has_categorical_split();
+    node_.categorical_split_ = CreateMaybeMessage< ::tensorflow::boosted_trees::CategoricalSplit >(
+        GetArenaNoVirtual());
+  }
+  // @@protoc_insertion_point(field_mutable:tensorflow.boosted_trees.Node.categorical_split)
+  return node_.categorical_split_;
 }
 
 // .tensorflow.boosted_trees.NodeMetadata metadata = 777;
@@ -2447,6 +2676,66 @@ inline void BucketizedSplit::set_right_id(::google::protobuf::int32 value) {
 
 // -------------------------------------------------------------------
 
+// CategoricalSplit
+
+// int32 feature_id = 1;
+inline void CategoricalSplit::clear_feature_id() {
+  feature_id_ = 0;
+}
+inline ::google::protobuf::int32 CategoricalSplit::feature_id() const {
+  // @@protoc_insertion_point(field_get:tensorflow.boosted_trees.CategoricalSplit.feature_id)
+  return feature_id_;
+}
+inline void CategoricalSplit::set_feature_id(::google::protobuf::int32 value) {
+  
+  feature_id_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.boosted_trees.CategoricalSplit.feature_id)
+}
+
+// int32 value = 2;
+inline void CategoricalSplit::clear_value() {
+  value_ = 0;
+}
+inline ::google::protobuf::int32 CategoricalSplit::value() const {
+  // @@protoc_insertion_point(field_get:tensorflow.boosted_trees.CategoricalSplit.value)
+  return value_;
+}
+inline void CategoricalSplit::set_value(::google::protobuf::int32 value) {
+  
+  value_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.boosted_trees.CategoricalSplit.value)
+}
+
+// int32 left_id = 3;
+inline void CategoricalSplit::clear_left_id() {
+  left_id_ = 0;
+}
+inline ::google::protobuf::int32 CategoricalSplit::left_id() const {
+  // @@protoc_insertion_point(field_get:tensorflow.boosted_trees.CategoricalSplit.left_id)
+  return left_id_;
+}
+inline void CategoricalSplit::set_left_id(::google::protobuf::int32 value) {
+  
+  left_id_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.boosted_trees.CategoricalSplit.left_id)
+}
+
+// int32 right_id = 4;
+inline void CategoricalSplit::clear_right_id() {
+  right_id_ = 0;
+}
+inline ::google::protobuf::int32 CategoricalSplit::right_id() const {
+  // @@protoc_insertion_point(field_get:tensorflow.boosted_trees.CategoricalSplit.right_id)
+  return right_id_;
+}
+inline void CategoricalSplit::set_right_id(::google::protobuf::int32 value) {
+  
+  right_id_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.boosted_trees.CategoricalSplit.right_id)
+}
+
+// -------------------------------------------------------------------
+
 // Tree
 
 // repeated .tensorflow.boosted_trees.Node nodes = 1;
@@ -2859,6 +3148,8 @@ DebugOutput::mutable_logits_path() {
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

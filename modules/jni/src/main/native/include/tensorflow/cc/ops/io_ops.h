@@ -133,6 +133,7 @@ class FixedLengthRecordReader {
     return Attrs().Encoding(x);
   }
 
+  Operation operation;
   ::tensorflow::Output reader_handle;
 };
 
@@ -193,6 +194,7 @@ class IdentityReader {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output reader_handle;
 };
 
@@ -249,6 +251,7 @@ class LMDBReader {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output reader_handle;
 };
 
@@ -271,6 +274,7 @@ class MatchingFiles {
   operator ::tensorflow::Input() const { return filenames; }
   ::tensorflow::Node* node() const { return filenames.node(); }
 
+  Operation operation;
   ::tensorflow::Output filenames;
 };
 
@@ -339,6 +343,7 @@ class ReadFile {
   operator ::tensorflow::Input() const { return contents; }
   ::tensorflow::Node* node() const { return contents.node(); }
 
+  Operation operation;
   ::tensorflow::Output contents;
 };
 
@@ -361,6 +366,7 @@ class ReaderNumRecordsProduced {
   operator ::tensorflow::Input() const { return records_produced; }
   ::tensorflow::Node* node() const { return records_produced.node(); }
 
+  Operation operation;
   ::tensorflow::Output records_produced;
 };
 
@@ -380,6 +386,7 @@ class ReaderNumWorkUnitsCompleted {
   operator ::tensorflow::Input() const { return units_completed; }
   ::tensorflow::Node* node() const { return units_completed.node(); }
 
+  Operation operation;
   ::tensorflow::Output units_completed;
 };
 
@@ -405,6 +412,7 @@ class ReaderReadUpTo {
                reader_handle, ::tensorflow::Input queue_handle,
                ::tensorflow::Input num_records);
 
+  Operation operation;
   ::tensorflow::Output keys;
   ::tensorflow::Output values;
 };
@@ -428,6 +436,7 @@ class ReaderRead {
   ReaderRead(const ::tensorflow::Scope& scope, ::tensorflow::Input reader_handle,
            ::tensorflow::Input queue_handle);
 
+  Operation operation;
   ::tensorflow::Output key;
   ::tensorflow::Output value;
 };
@@ -490,6 +499,7 @@ class ReaderSerializeState {
   operator ::tensorflow::Input() const { return state; }
   ::tensorflow::Node* node() const { return state.node(); }
 
+  Operation operation;
   ::tensorflow::Output state;
 };
 
@@ -555,6 +565,7 @@ class Restore {
     return Attrs().PreferredShard(x);
   }
 
+  Operation operation;
   ::tensorflow::Output tensor;
 };
 
@@ -613,6 +624,7 @@ class RestoreSlice {
     return Attrs().PreferredShard(x);
   }
 
+  Operation operation;
   ::tensorflow::Output tensor;
 };
 
@@ -652,6 +664,7 @@ class RestoreV2 {
   ::tensorflow::Output operator[](size_t index) const { return tensors[index]; }
 
 
+  Operation operation;
   ::tensorflow::OutputList tensors;
 };
 
@@ -769,6 +782,7 @@ class ShardedFilename {
   operator ::tensorflow::Input() const { return filename; }
   ::tensorflow::Node* node() const { return filename.node(); }
 
+  Operation operation;
   ::tensorflow::Output filename;
 };
 
@@ -787,6 +801,7 @@ class ShardedFilespec {
   operator ::tensorflow::Input() const { return filename; }
   ::tensorflow::Node* node() const { return filename.node(); }
 
+  Operation operation;
   ::tensorflow::Output filename;
 };
 
@@ -855,6 +870,7 @@ class TFRecordReader {
     return Attrs().CompressionType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output reader_handle;
 };
 
@@ -926,6 +942,7 @@ class TextLineReader {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output reader_handle;
 };
 
@@ -986,6 +1003,7 @@ class WholeFileReader {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output reader_handle;
 };
 

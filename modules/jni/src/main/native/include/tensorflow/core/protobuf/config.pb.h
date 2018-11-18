@@ -438,6 +438,29 @@ class GPUOptions_Experimental : public ::google::protobuf::Message /* @@protoc_i
   const ::google::protobuf::RepeatedPtrField< ::tensorflow::GPUOptions_Experimental_VirtualDevices >&
       virtual_devices() const;
 
+  // string collective_ring_order = 4;
+  void clear_collective_ring_order();
+  static const int kCollectiveRingOrderFieldNumber = 4;
+  const ::std::string& collective_ring_order() const;
+  void set_collective_ring_order(const ::std::string& value);
+  #if LANG_CXX11
+  void set_collective_ring_order(::std::string&& value);
+  #endif
+  void set_collective_ring_order(const char* value);
+  void set_collective_ring_order(const char* value, size_t size);
+  ::std::string* mutable_collective_ring_order();
+  ::std::string* release_collective_ring_order();
+  void set_allocated_collective_ring_order(::std::string* collective_ring_order);
+  PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  ::std::string* unsafe_arena_release_collective_ring_order();
+  PROTOBUF_RUNTIME_DEPRECATED("The unsafe_arena_ accessors for"
+  "    string fields are deprecated and will be removed in a"
+  "    future release.")
+  void unsafe_arena_set_allocated_collective_ring_order(
+      ::std::string* collective_ring_order);
+
   // bool use_unified_memory = 2;
   void clear_use_unified_memory();
   static const int kUseUnifiedMemoryFieldNumber = 2;
@@ -458,6 +481,7 @@ class GPUOptions_Experimental : public ::google::protobuf::Message /* @@protoc_i
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::google::protobuf::RepeatedPtrField< ::tensorflow::GPUOptions_Experimental_VirtualDevices > virtual_devices_;
+  ::google::protobuf::internal::ArenaStringPtr collective_ring_order_;
   bool use_unified_memory_;
   ::google::protobuf::int32 num_dev_to_dev_copy_streams_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
@@ -1511,11 +1535,17 @@ class ConfigProto_Experimental : public ::google::protobuf::Message /* @@protoc_
   void unsafe_arena_set_allocated_executor_type(
       ::std::string* executor_type);
 
-  // bool client_handles_error_formatting = 2;
-  void clear_client_handles_error_formatting();
-  static const int kClientHandlesErrorFormattingFieldNumber = 2;
-  bool client_handles_error_formatting() const;
-  void set_client_handles_error_formatting(bool value);
+  // int32 recv_buf_max_chunk = 4;
+  void clear_recv_buf_max_chunk();
+  static const int kRecvBufMaxChunkFieldNumber = 4;
+  ::google::protobuf::int32 recv_buf_max_chunk() const;
+  void set_recv_buf_max_chunk(::google::protobuf::int32 value);
+
+  // bool use_numa_affinity = 5;
+  void clear_use_numa_affinity();
+  static const int kUseNumaAffinityFieldNumber = 5;
+  bool use_numa_affinity() const;
+  void set_use_numa_affinity(bool value);
 
   // @@protoc_insertion_point(class_scope:tensorflow.ConfigProto.Experimental)
  private:
@@ -1526,7 +1556,8 @@ class ConfigProto_Experimental : public ::google::protobuf::Message /* @@protoc_
   typedef void DestructorSkippable_;
   ::google::protobuf::internal::ArenaStringPtr collective_group_leader_;
   ::google::protobuf::internal::ArenaStringPtr executor_type_;
-  bool client_handles_error_formatting_;
+  ::google::protobuf::int32 recv_buf_max_chunk_;
+  bool use_numa_affinity_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2fconfig_2eproto::TableStruct;
 };
@@ -1937,6 +1968,12 @@ class RunOptions_Experimental : public ::google::protobuf::Message /* @@protoc_i
   ::google::protobuf::int64 collective_graph_key() const;
   void set_collective_graph_key(::google::protobuf::int64 value);
 
+  // bool use_run_handler_pool = 2;
+  void clear_use_run_handler_pool();
+  static const int kUseRunHandlerPoolFieldNumber = 2;
+  bool use_run_handler_pool() const;
+  void set_use_run_handler_pool(bool value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.RunOptions.Experimental)
  private:
 
@@ -1945,6 +1982,7 @@ class RunOptions_Experimental : public ::google::protobuf::Message /* @@protoc_i
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::google::protobuf::int64 collective_graph_key_;
+  bool use_run_handler_pool_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2fconfig_2eproto::TableStruct;
 };
@@ -2865,6 +2903,81 @@ inline void GPUOptions_Experimental::set_num_dev_to_dev_copy_streams(::google::p
   // @@protoc_insertion_point(field_set:tensorflow.GPUOptions.Experimental.num_dev_to_dev_copy_streams)
 }
 
+// string collective_ring_order = 4;
+inline void GPUOptions_Experimental::clear_collective_ring_order() {
+  collective_ring_order_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline const ::std::string& GPUOptions_Experimental::collective_ring_order() const {
+  // @@protoc_insertion_point(field_get:tensorflow.GPUOptions.Experimental.collective_ring_order)
+  return collective_ring_order_.Get();
+}
+inline void GPUOptions_Experimental::set_collective_ring_order(const ::std::string& value) {
+  
+  collective_ring_order_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set:tensorflow.GPUOptions.Experimental.collective_ring_order)
+}
+#if LANG_CXX11
+inline void GPUOptions_Experimental::set_collective_ring_order(::std::string&& value) {
+  
+  collective_ring_order_.Set(
+    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_rvalue:tensorflow.GPUOptions.Experimental.collective_ring_order)
+}
+#endif
+inline void GPUOptions_Experimental::set_collective_ring_order(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  
+  collective_ring_order_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value),
+              GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_char:tensorflow.GPUOptions.Experimental.collective_ring_order)
+}
+inline void GPUOptions_Experimental::set_collective_ring_order(const char* value,
+    size_t size) {
+  
+  collective_ring_order_.Set(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(
+      reinterpret_cast<const char*>(value), size), GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_pointer:tensorflow.GPUOptions.Experimental.collective_ring_order)
+}
+inline ::std::string* GPUOptions_Experimental::mutable_collective_ring_order() {
+  
+  // @@protoc_insertion_point(field_mutable:tensorflow.GPUOptions.Experimental.collective_ring_order)
+  return collective_ring_order_.Mutable(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline ::std::string* GPUOptions_Experimental::release_collective_ring_order() {
+  // @@protoc_insertion_point(field_release:tensorflow.GPUOptions.Experimental.collective_ring_order)
+  
+  return collective_ring_order_.Release(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
+}
+inline void GPUOptions_Experimental::set_allocated_collective_ring_order(::std::string* collective_ring_order) {
+  if (collective_ring_order != NULL) {
+    
+  } else {
+    
+  }
+  collective_ring_order_.SetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), collective_ring_order,
+      GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_set_allocated:tensorflow.GPUOptions.Experimental.collective_ring_order)
+}
+inline ::std::string* GPUOptions_Experimental::unsafe_arena_release_collective_ring_order() {
+  // @@protoc_insertion_point(field_unsafe_arena_release:tensorflow.GPUOptions.Experimental.collective_ring_order)
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  
+  return collective_ring_order_.UnsafeArenaRelease(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      GetArenaNoVirtual());
+}
+inline void GPUOptions_Experimental::unsafe_arena_set_allocated_collective_ring_order(
+    ::std::string* collective_ring_order) {
+  GOOGLE_DCHECK(GetArenaNoVirtual() != NULL);
+  if (collective_ring_order != NULL) {
+    
+  } else {
+    
+  }
+  collective_ring_order_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
+      collective_ring_order, GetArenaNoVirtual());
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.GPUOptions.Experimental.collective_ring_order)
+}
+
 // -------------------------------------------------------------------
 
 // GPUOptions
@@ -3674,20 +3787,6 @@ inline void ConfigProto_Experimental::unsafe_arena_set_allocated_collective_grou
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.ConfigProto.Experimental.collective_group_leader)
 }
 
-// bool client_handles_error_formatting = 2;
-inline void ConfigProto_Experimental::clear_client_handles_error_formatting() {
-  client_handles_error_formatting_ = false;
-}
-inline bool ConfigProto_Experimental::client_handles_error_formatting() const {
-  // @@protoc_insertion_point(field_get:tensorflow.ConfigProto.Experimental.client_handles_error_formatting)
-  return client_handles_error_formatting_;
-}
-inline void ConfigProto_Experimental::set_client_handles_error_formatting(bool value) {
-  
-  client_handles_error_formatting_ = value;
-  // @@protoc_insertion_point(field_set:tensorflow.ConfigProto.Experimental.client_handles_error_formatting)
-}
-
 // string executor_type = 3;
 inline void ConfigProto_Experimental::clear_executor_type() {
   executor_type_.ClearToEmpty(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), GetArenaNoVirtual());
@@ -3761,6 +3860,34 @@ inline void ConfigProto_Experimental::unsafe_arena_set_allocated_executor_type(
   executor_type_.UnsafeArenaSetAllocated(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
       executor_type, GetArenaNoVirtual());
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.ConfigProto.Experimental.executor_type)
+}
+
+// int32 recv_buf_max_chunk = 4;
+inline void ConfigProto_Experimental::clear_recv_buf_max_chunk() {
+  recv_buf_max_chunk_ = 0;
+}
+inline ::google::protobuf::int32 ConfigProto_Experimental::recv_buf_max_chunk() const {
+  // @@protoc_insertion_point(field_get:tensorflow.ConfigProto.Experimental.recv_buf_max_chunk)
+  return recv_buf_max_chunk_;
+}
+inline void ConfigProto_Experimental::set_recv_buf_max_chunk(::google::protobuf::int32 value) {
+  
+  recv_buf_max_chunk_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.ConfigProto.Experimental.recv_buf_max_chunk)
+}
+
+// bool use_numa_affinity = 5;
+inline void ConfigProto_Experimental::clear_use_numa_affinity() {
+  use_numa_affinity_ = false;
+}
+inline bool ConfigProto_Experimental::use_numa_affinity() const {
+  // @@protoc_insertion_point(field_get:tensorflow.ConfigProto.Experimental.use_numa_affinity)
+  return use_numa_affinity_;
+}
+inline void ConfigProto_Experimental::set_use_numa_affinity(bool value) {
+  
+  use_numa_affinity_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.ConfigProto.Experimental.use_numa_affinity)
 }
 
 // -------------------------------------------------------------------
@@ -4331,6 +4458,20 @@ inline void RunOptions_Experimental::set_collective_graph_key(::google::protobuf
   
   collective_graph_key_ = value;
   // @@protoc_insertion_point(field_set:tensorflow.RunOptions.Experimental.collective_graph_key)
+}
+
+// bool use_run_handler_pool = 2;
+inline void RunOptions_Experimental::clear_use_run_handler_pool() {
+  use_run_handler_pool_ = false;
+}
+inline bool RunOptions_Experimental::use_run_handler_pool() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RunOptions.Experimental.use_run_handler_pool)
+  return use_run_handler_pool_;
+}
+inline void RunOptions_Experimental::set_use_run_handler_pool(bool value) {
+  
+  use_run_handler_pool_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RunOptions.Experimental.use_run_handler_pool)
 }
 
 // -------------------------------------------------------------------

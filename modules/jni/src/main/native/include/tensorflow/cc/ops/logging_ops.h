@@ -114,6 +114,7 @@ class AudioSummary {
     return Attrs().MaxOutputs(x);
   }
 
+  Operation operation;
   ::tensorflow::Output summary;
 };
 
@@ -140,6 +141,7 @@ class HistogramSummary {
   operator ::tensorflow::Input() const { return summary; }
   ::tensorflow::Node* node() const { return summary.node(); }
 
+  Operation operation;
   ::tensorflow::Output summary;
 };
 
@@ -231,6 +233,7 @@ class ImageSummary {
     return Attrs().BadColor(x);
   }
 
+  Operation operation;
   ::tensorflow::Output summary;
 };
 
@@ -258,6 +261,7 @@ class MergeSummary {
   operator ::tensorflow::Input() const { return summary; }
   ::tensorflow::Node* node() const { return summary.node(); }
 
+  Operation operation;
   ::tensorflow::Output summary;
 };
 
@@ -330,7 +334,48 @@ class Print {
     return Attrs().Summarize(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
+};
+
+/// Prints a string scalar.
+///
+/// Prints a string scalar to the desired output_stream.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * input: The string scalar to print.
+///
+/// Optional attributes (see `Attrs`):
+/// * output_stream: A string specifying the output stream or logging level to print to.
+///
+/// Returns:
+/// * the created `Operation`
+class PrintV2 {
+ public:
+  /// Optional attribute setters for PrintV2
+  struct Attrs {
+    /// A string specifying the output stream or logging level to print to.
+    ///
+    /// Defaults to "stderr"
+    TF_MUST_USE_RESULT Attrs OutputStream(StringPiece x) {
+      Attrs ret = *this;
+      ret.output_stream_ = x;
+      return ret;
+    }
+
+    StringPiece output_stream_ = "stderr";
+  };
+  PrintV2(const ::tensorflow::Scope& scope, ::tensorflow::Input input);
+  PrintV2(const ::tensorflow::Scope& scope, ::tensorflow::Input input, const
+        PrintV2::Attrs& attrs);
+  operator ::tensorflow::Operation() const { return operation; }
+
+  static Attrs OutputStream(StringPiece x) {
+    return Attrs().OutputStream(x);
+  }
+
+  Operation operation;
 };
 
 /// Outputs a `Summary` protocol buffer with scalar values.
@@ -353,6 +398,7 @@ class ScalarSummary {
   operator ::tensorflow::Input() const { return summary; }
   ::tensorflow::Node* node() const { return summary.node(); }
 
+  Operation operation;
   ::tensorflow::Output summary;
 };
 
@@ -425,6 +471,7 @@ class TensorSummary {
     return Attrs().DisplayName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output summary;
 };
 
@@ -448,6 +495,7 @@ class TensorSummaryV2 {
   operator ::tensorflow::Input() const { return summary; }
   ::tensorflow::Node* node() const { return summary.node(); }
 
+  Operation operation;
   ::tensorflow::Output summary;
 };
 
@@ -470,6 +518,7 @@ class Timestamp {
   operator ::tensorflow::Input() const { return ts; }
   ::tensorflow::Node* node() const { return ts.node(); }
 
+  Operation operation;
   ::tensorflow::Output ts;
 };
 

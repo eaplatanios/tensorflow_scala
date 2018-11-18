@@ -86,6 +86,7 @@ class Multinomial {
     return Attrs().OutputDtype(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -161,6 +162,7 @@ class ParameterizedTruncatedNormal {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -229,6 +231,7 @@ class RandomGamma {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -314,6 +317,7 @@ class RandomPoissonV2 {
     return Attrs().Dtype(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -383,6 +387,7 @@ class RandomShuffle {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -445,6 +450,7 @@ class RandomNormal {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -508,6 +514,7 @@ class RandomUniform {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -578,6 +585,7 @@ class RandomUniformInt {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -643,6 +651,7 @@ class TruncatedNormal {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 

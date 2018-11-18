@@ -81,6 +81,7 @@ class Assign {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -129,6 +130,7 @@ class AssignAdd {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -177,6 +179,7 @@ class AssignSub {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -199,6 +202,7 @@ class CountUpTo {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -228,6 +232,7 @@ class DestroyTemporaryVariable {
   operator ::tensorflow::Input() const { return value; }
   ::tensorflow::Node* node() const { return value.node(); }
 
+  Operation operation;
   ::tensorflow::Output value;
 };
 
@@ -249,6 +254,7 @@ class IsVariableInitialized {
   operator ::tensorflow::Input() const { return is_initialized; }
   ::tensorflow::Node* node() const { return is_initialized.node(); }
 
+  Operation operation;
   ::tensorflow::Output is_initialized;
 };
 
@@ -271,6 +277,7 @@ class ResourceCountUpTo {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -309,7 +316,7 @@ class ResourceCountUpTo {
 ///
 ///     [1, 12, 3, 14, 14, 6, 7, 20]
 ///
-/// See @{tf.scatter_nd} for more details about how to make updates to
+/// See `tf.scatter_nd` for more details about how to make updates to
 /// slices.
 ///
 /// Arguments:
@@ -393,7 +400,7 @@ class ResourceScatterNdAdd {
 ///
 ///     [1, 11, 3, 10, 9, 6, 7, 12]
 ///
-/// See @{tf.scatter_nd} for more details about how to make updates to
+/// See `tf.scatter_nd` for more details about how to make updates to
 /// slices.
 ///
 /// Arguments:
@@ -510,6 +517,7 @@ class ScatterAdd {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -578,6 +586,7 @@ class ScatterDiv {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -648,6 +657,7 @@ class ScatterMax {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -718,6 +728,7 @@ class ScatterMin {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -786,6 +797,7 @@ class ScatterMul {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -820,7 +832,7 @@ class ScatterMul {
 ///
 ///     [1, 13, 3, 14, 14, 6, 7, 20]
 ///
-/// See @{tf.scatter_nd} for more details about how to make updates to
+/// See `tf.scatter_nd` for more details about how to make updates to
 /// slices.
 ///
 /// Arguments:
@@ -869,6 +881,7 @@ class ScatterNdAdd {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -903,7 +916,7 @@ class ScatterNdAdd {
 ///
 ///     [1, -9, 3, -6, -4, 6, 7, -4]
 ///
-/// See @{tf.scatter_nd} for more details about how to make updates to
+/// See `tf.scatter_nd` for more details about how to make updates to
 /// slices.
 ///
 /// Arguments:
@@ -952,6 +965,7 @@ class ScatterNdSub {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -988,8 +1002,10 @@ class ScatterNdSub {
 ///
 ///     [1, 11, 3, 10, 9, 6, 7, 12]
 ///
-/// See @{tf.scatter_nd} for more details about how to make updates to
+/// See `tf.scatter_nd` for more details about how to make updates to
 /// slices.
+///
+/// See also `tf.scatter_update` and `tf.batch_scatter_update`.
 ///
 /// Arguments:
 /// * scope: A Scope object
@@ -1037,6 +1053,7 @@ class ScatterNdUpdate {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -1107,6 +1124,7 @@ class ScatterSub {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -1137,6 +1155,8 @@ class ScatterSub {
 /// <div style="width:70%; margin:auto; margin-bottom:10px; margin-top:20px;">
 /// <img style="width:100%" src="https://www.tensorflow.org/images/ScatterUpdate.png" alt>
 /// </div>
+///
+/// See also `tf.batch_scatter_update` and `tf.scatter_nd_update`.
 ///
 /// Arguments:
 /// * scope: A Scope object
@@ -1180,6 +1200,7 @@ class ScatterUpdate {
     return Attrs().UseLocking(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -1239,6 +1260,7 @@ class TemporaryVariable {
     return Attrs().VarName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output ref;
 };
 
@@ -1303,6 +1325,7 @@ class Variable {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output ref;
 };
 

@@ -80,6 +80,7 @@ class Enter {
     return Attrs().ParallelIterations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -100,6 +101,7 @@ class Exit {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -161,6 +163,7 @@ class RefEnter {
     return Attrs().ParallelIterations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -181,6 +184,7 @@ class RefExit {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -203,6 +207,7 @@ class RefMerge {
  public:
   RefMerge(const ::tensorflow::Scope& scope, ::tensorflow::InputList inputs);
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output value_index;
 };

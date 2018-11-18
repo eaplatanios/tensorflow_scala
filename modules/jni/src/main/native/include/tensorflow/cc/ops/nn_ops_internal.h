@@ -76,6 +76,7 @@ class AvgPoolGrad {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -97,6 +98,7 @@ class EluGrad {
   operator ::tensorflow::Input() const { return backprops; }
   ::tensorflow::Node* node() const { return backprops.node(); }
 
+  Operation operation;
   ::tensorflow::Output backprops;
 };
 
@@ -171,6 +173,7 @@ class FractionalAvgPoolGrad {
     return Attrs().Overlapping(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -242,6 +245,7 @@ class FractionalMaxPoolGrad {
     return Attrs().Overlapping(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -328,7 +332,82 @@ class LRNGrad {
     return Attrs().Beta(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
+};
+
+/// Computes rectified linear: `max(features, features * alpha)`.
+///
+/// Arguments:
+/// * scope: A Scope object
+///
+/// Returns:
+/// * `Output`: The activations tensor.
+class LeakyRelu {
+ public:
+  /// Optional attribute setters for LeakyRelu
+  struct Attrs {
+    /// Defaults to 0.2
+    TF_MUST_USE_RESULT Attrs Alpha(float x) {
+      Attrs ret = *this;
+      ret.alpha_ = x;
+      return ret;
+    }
+
+    float alpha_ = 0.2f;
+  };
+  LeakyRelu(const ::tensorflow::Scope& scope, ::tensorflow::Input features);
+  LeakyRelu(const ::tensorflow::Scope& scope, ::tensorflow::Input features, const
+          LeakyRelu::Attrs& attrs);
+  operator ::tensorflow::Output() const { return activations; }
+  operator ::tensorflow::Input() const { return activations; }
+  ::tensorflow::Node* node() const { return activations.node(); }
+
+  static Attrs Alpha(float x) {
+    return Attrs().Alpha(x);
+  }
+
+  Operation operation;
+  ::tensorflow::Output activations;
+};
+
+/// Computes rectified linear gradients for a LeakyRelu operation.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * gradients: The backpropagated gradients to the corresponding LeakyRelu operation.
+/// * features: The features passed as input to the corresponding LeakyRelu operation,
+/// OR the outputs of that operation (both work equivalently).
+///
+/// Returns:
+/// * `Output`: `gradients * (features > 0) + alpha * gradients * (featurs <= 0)`.
+class LeakyReluGrad {
+ public:
+  /// Optional attribute setters for LeakyReluGrad
+  struct Attrs {
+    /// Defaults to 0.2
+    TF_MUST_USE_RESULT Attrs Alpha(float x) {
+      Attrs ret = *this;
+      ret.alpha_ = x;
+      return ret;
+    }
+
+    float alpha_ = 0.2f;
+  };
+  LeakyReluGrad(const ::tensorflow::Scope& scope, ::tensorflow::Input gradients,
+              ::tensorflow::Input features);
+  LeakyReluGrad(const ::tensorflow::Scope& scope, ::tensorflow::Input gradients,
+              ::tensorflow::Input features, const LeakyReluGrad::Attrs& attrs);
+  operator ::tensorflow::Output() const { return backprops; }
+  operator ::tensorflow::Input() const { return backprops; }
+  ::tensorflow::Node* node() const { return backprops.node(); }
+
+  static Attrs Alpha(float x) {
+    return Attrs().Alpha(x);
+  }
+
+  Operation operation;
+  ::tensorflow::Output backprops;
 };
 
 /// Computes gradients of the maxpooling function.
@@ -387,6 +466,7 @@ class MaxPoolGrad {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -415,6 +495,7 @@ class MaxPoolGradWithArgmax {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -437,6 +518,7 @@ class Relu6Grad {
   operator ::tensorflow::Input() const { return backprops; }
   ::tensorflow::Node* node() const { return backprops.node(); }
 
+  Operation operation;
   ::tensorflow::Output backprops;
 };
 
@@ -458,6 +540,7 @@ class ReluGrad {
   operator ::tensorflow::Input() const { return backprops; }
   ::tensorflow::Node* node() const { return backprops.node(); }
 
+  Operation operation;
   ::tensorflow::Output backprops;
 };
 
@@ -479,6 +562,7 @@ class SeluGrad {
   operator ::tensorflow::Input() const { return backprops; }
   ::tensorflow::Node* node() const { return backprops.node(); }
 
+  Operation operation;
   ::tensorflow::Output backprops;
 };
 
@@ -499,6 +583,7 @@ class SoftplusGrad {
   operator ::tensorflow::Input() const { return backprops; }
   ::tensorflow::Node* node() const { return backprops.node(); }
 
+  Operation operation;
   ::tensorflow::Output backprops;
 };
 
@@ -519,6 +604,7 @@ class SoftsignGrad {
   operator ::tensorflow::Input() const { return backprops; }
   ::tensorflow::Node* node() const { return backprops.node(); }
 
+  Operation operation;
   ::tensorflow::Output backprops;
 };
 

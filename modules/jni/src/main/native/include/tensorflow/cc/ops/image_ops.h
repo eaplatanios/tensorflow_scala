@@ -45,6 +45,7 @@ class AdjustContrast {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -72,6 +73,7 @@ class AdjustHue {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -99,6 +101,7 @@ class AdjustSaturation {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -193,6 +196,7 @@ class CropAndResize {
     return Attrs().ExtrapolationValue(x);
   }
 
+  Operation operation;
   ::tensorflow::Output crops;
 };
 
@@ -253,6 +257,7 @@ class CropAndResizeGradBoxes {
     return Attrs().Method(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -314,6 +319,7 @@ class CropAndResizeGradImage {
     return Attrs().Method(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -461,6 +467,7 @@ class DecodeAndCropJpeg {
     return Attrs().DctMethod(x);
   }
 
+  Operation operation;
   ::tensorflow::Output image;
 };
 
@@ -505,6 +512,7 @@ class DecodeBmp {
     return Attrs().Channels(x);
   }
 
+  Operation operation;
   ::tensorflow::Output image;
 };
 
@@ -531,6 +539,7 @@ class DecodeGif {
   operator ::tensorflow::Input() const { return image; }
   ::tensorflow::Node* node() const { return image.node(); }
 
+  Operation operation;
   ::tensorflow::Output image;
 };
 
@@ -675,6 +684,7 @@ class DecodeJpeg {
     return Attrs().DctMethod(x);
   }
 
+  Operation operation;
   ::tensorflow::Output image;
 };
 
@@ -742,6 +752,7 @@ class DecodePng {
     return Attrs().Dtype(x);
   }
 
+  Operation operation;
   ::tensorflow::Output image;
 };
 
@@ -776,6 +787,7 @@ class DrawBoundingBoxes {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -947,6 +959,7 @@ class EncodeJpeg {
     return Attrs().XmpMetadata(x);
   }
 
+  Operation operation;
   ::tensorflow::Output contents;
 };
 
@@ -999,6 +1012,7 @@ class EncodePng {
     return Attrs().Compression(x);
   }
 
+  Operation operation;
   ::tensorflow::Output contents;
 };
 
@@ -1105,6 +1119,7 @@ class ExtractGlimpse {
     return Attrs().UniformNoise(x);
   }
 
+  Operation operation;
   ::tensorflow::Output glimpse;
 };
 
@@ -1150,6 +1165,7 @@ class ExtractJpegShape {
     return Attrs().OutputType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output image_shape;
 };
 
@@ -1174,6 +1190,7 @@ class HSVToRGB {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1241,6 +1258,7 @@ class NonMaxSuppression {
     return Attrs().IouThreshold(x);
   }
 
+  Operation operation;
   ::tensorflow::Output selected_indices;
 };
 
@@ -1287,6 +1305,7 @@ class NonMaxSuppressionV2 {
   operator ::tensorflow::Input() const { return selected_indices; }
   ::tensorflow::Node* node() const { return selected_indices.node(); }
 
+  Operation operation;
   ::tensorflow::Output selected_indices;
 };
 
@@ -1335,6 +1354,7 @@ class NonMaxSuppressionV3 {
   operator ::tensorflow::Input() const { return selected_indices; }
   ::tensorflow::Node* node() const { return selected_indices.node(); }
 
+  Operation operation;
   ::tensorflow::Output selected_indices;
 };
 
@@ -1409,6 +1429,7 @@ class NonMaxSuppressionV4 {
     return Attrs().PadToMaxOutputSize(x);
   }
 
+  Operation operation;
   ::tensorflow::Output selected_indices;
   ::tensorflow::Output valid_outputs;
 };
@@ -1457,6 +1478,7 @@ class NonMaxSuppressionWithOverlaps {
   operator ::tensorflow::Input() const { return selected_indices; }
   ::tensorflow::Node* node() const { return selected_indices.node(); }
 
+  Operation operation;
   ::tensorflow::Output selected_indices;
 };
 
@@ -1507,6 +1529,7 @@ class QuantizedResizeBilinear {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output resized_images;
   ::tensorflow::Output out_min;
   ::tensorflow::Output out_max;
@@ -1535,6 +1558,7 @@ class RGBToHSV {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1593,6 +1617,7 @@ class ResizeArea {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output resized_images;
 };
 
@@ -1641,6 +1666,7 @@ class ResizeBicubic {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output resized_images;
 };
 
@@ -1689,6 +1715,7 @@ class ResizeBilinear {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output resized_images;
 };
 
@@ -1736,6 +1763,7 @@ class ResizeNearestNeighbor {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output resized_images;
 };
 
@@ -1938,6 +1966,7 @@ class SampleDistortedBoundingBox {
     return Attrs().UseImageIfNoBoundingBoxes(x);
   }
 
+  Operation operation;
   ::tensorflow::Output begin;
   ::tensorflow::Output size;
   ::tensorflow::Output bboxes;
@@ -2128,6 +2157,7 @@ class SampleDistortedBoundingBoxV2 {
     return Attrs().UseImageIfNoBoundingBoxes(x);
   }
 
+  Operation operation;
   ::tensorflow::Output begin;
   ::tensorflow::Output size;
   ::tensorflow::Output bboxes;

@@ -36,6 +36,7 @@ class IgammaGradA {
   operator ::tensorflow::Input() const { return z; }
   ::tensorflow::Node* node() const { return z.node(); }
 
+  Operation operation;
   ::tensorflow::Output z;
 };
 
@@ -57,6 +58,7 @@ class InvGrad {
   operator ::tensorflow::Input() const { return z; }
   ::tensorflow::Node* node() const { return z.node(); }
 
+  Operation operation;
   ::tensorflow::Output z;
 };
 
@@ -78,6 +80,7 @@ class ReciprocalGrad {
   operator ::tensorflow::Input() const { return z; }
   ::tensorflow::Node* node() const { return z.node(); }
 
+  Operation operation;
   ::tensorflow::Output z;
 };
 
@@ -99,6 +102,7 @@ class RsqrtGrad {
   operator ::tensorflow::Input() const { return z; }
   ::tensorflow::Node* node() const { return z.node(); }
 
+  Operation operation;
   ::tensorflow::Output z;
 };
 
@@ -120,6 +124,7 @@ class SigmoidGrad {
   operator ::tensorflow::Input() const { return z; }
   ::tensorflow::Node* node() const { return z.node(); }
 
+  Operation operation;
   ::tensorflow::Output z;
 };
 
@@ -141,6 +146,7 @@ class SqrtGrad {
   operator ::tensorflow::Input() const { return z; }
   ::tensorflow::Node* node() const { return z.node(); }
 
+  Operation operation;
   ::tensorflow::Output z;
 };
 
@@ -162,6 +168,7 @@ class TanhGrad {
   operator ::tensorflow::Input() const { return z; }
   ::tensorflow::Node* node() const { return z.node(); }
 
+  Operation operation;
   ::tensorflow::Output z;
 };
 

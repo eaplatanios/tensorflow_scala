@@ -66,6 +66,7 @@ class ResizeBicubicGrad {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -114,6 +115,7 @@ class ResizeBilinearGrad {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -161,6 +163,7 @@ class ResizeNearestNeighborGrad {
     return Attrs().AlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 

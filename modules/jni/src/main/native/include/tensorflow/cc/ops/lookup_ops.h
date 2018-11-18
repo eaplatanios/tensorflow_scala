@@ -95,6 +95,7 @@ class HashTable {
     return Attrs().UseNodeNameSharing(x);
   }
 
+  Operation operation;
   ::tensorflow::Output table_handle;
 };
 
@@ -205,6 +206,7 @@ class LookupTableExport {
   LookupTableExport(const ::tensorflow::Scope& scope, ::tensorflow::Input
                   table_handle, DataType Tkeys, DataType Tvalues);
 
+  Operation operation;
   ::tensorflow::Output keys;
   ::tensorflow::Output values;
 };
@@ -234,6 +236,7 @@ class LookupTableFind {
   operator ::tensorflow::Input() const { return values; }
   ::tensorflow::Node* node() const { return values.node(); }
 
+  Operation operation;
   ::tensorflow::Output values;
 };
 
@@ -299,6 +302,7 @@ class LookupTableSize {
   operator ::tensorflow::Input() const { return size; }
   ::tensorflow::Node* node() const { return size.node(); }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -398,10 +402,11 @@ class MutableDenseHashTable {
     float max_load_factor_ = 0.8f;
   };
   MutableDenseHashTable(const ::tensorflow::Scope& scope, ::tensorflow::Input
-                      empty_key, DataType value_dtype);
+                      empty_key, ::tensorflow::Input deleted_key, DataType
+                      value_dtype);
   MutableDenseHashTable(const ::tensorflow::Scope& scope, ::tensorflow::Input
-                      empty_key, DataType value_dtype, const
-                      MutableDenseHashTable::Attrs& attrs);
+                      empty_key, ::tensorflow::Input deleted_key, DataType
+                      value_dtype, const MutableDenseHashTable::Attrs& attrs);
   operator ::tensorflow::Output() const { return table_handle; }
   operator ::tensorflow::Input() const { return table_handle; }
   ::tensorflow::Node* node() const { return table_handle.node(); }
@@ -425,6 +430,7 @@ class MutableDenseHashTable {
     return Attrs().MaxLoadFactor(x);
   }
 
+  Operation operation;
   ::tensorflow::Output table_handle;
 };
 
@@ -512,6 +518,7 @@ class MutableHashTableOfTensors {
     return Attrs().ValueShape(x);
   }
 
+  Operation operation;
   ::tensorflow::Output table_handle;
 };
 
@@ -592,6 +599,7 @@ class MutableHashTable {
     return Attrs().UseNodeNameSharing(x);
   }
 
+  Operation operation;
   ::tensorflow::Output table_handle;
 };
 

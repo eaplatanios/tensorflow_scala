@@ -21,6 +21,27 @@ namespace internal {
 /// @defgroup lookup_ops_internal Lookup Ops Internal
 /// @{
 
+/// Removes keys and its associated values from a table.
+///
+/// The tensor `keys` must of the same type as the keys of the table. Keys not
+/// already in the table are silently ignored.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * table_handle: Handle to the table.
+/// * keys: Any shape.  Keys of the elements to remove.
+///
+/// Returns:
+/// * the created `Operation`
+class LookupTableRemove {
+ public:
+  LookupTableRemove(const ::tensorflow::Scope& scope, ::tensorflow::Input
+                  table_handle, ::tensorflow::Input keys);
+  operator ::tensorflow::Operation() const { return operation; }
+
+  Operation operation;
+};
+
 }  // namespace internal
 }  // namespace ops
 }  // namespace tensorflow

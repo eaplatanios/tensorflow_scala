@@ -105,6 +105,7 @@ class LoopCond {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -127,6 +128,7 @@ class Merge {
  public:
   Merge(const ::tensorflow::Scope& scope, ::tensorflow::InputList inputs);
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output value_index;
 };
@@ -146,6 +148,7 @@ class NextIteration {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -164,6 +167,7 @@ class RefNextIteration {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -184,6 +188,7 @@ class RefSelect {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -207,6 +212,7 @@ class RefSwitch {
   RefSwitch(const ::tensorflow::Scope& scope, ::tensorflow::Input data,
           ::tensorflow::Input pred);
 
+  Operation operation;
   ::tensorflow::Output output_false;
   ::tensorflow::Output output_true;
 };
@@ -231,6 +237,7 @@ class Switch {
   Switch(const ::tensorflow::Scope& scope, ::tensorflow::Input data,
        ::tensorflow::Input pred);
 
+  Operation operation;
   ::tensorflow::Output output_false;
   ::tensorflow::Output output_true;
 };

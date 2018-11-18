@@ -929,6 +929,18 @@ class AdamParameters : public ::google::protobuf::Message /* @@protoc_insertion_
   float initial_v() const;
   void set_initial_v(float value);
 
+  // bool use_non_lazy_adam = 8;
+  void clear_use_non_lazy_adam();
+  static const int kUseNonLazyAdamFieldNumber = 8;
+  bool use_non_lazy_adam() const;
+  void set_use_non_lazy_adam(bool value);
+
+  // bool use_sum_inside_sqrt = 10;
+  void clear_use_sum_inside_sqrt();
+  static const int kUseSumInsideSqrtFieldNumber = 10;
+  bool use_sum_inside_sqrt() const;
+  void set_use_sum_inside_sqrt(bool value);
+
   // @@protoc_insertion_point(class_scope:tensorflow.tpu.AdamParameters)
  private:
 
@@ -938,6 +950,8 @@ class AdamParameters : public ::google::protobuf::Message /* @@protoc_insertion_
   float epsilon_;
   float initial_m_;
   float initial_v_;
+  bool use_non_lazy_adam_;
+  bool use_sum_inside_sqrt_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcontrib_2ftpu_2fproto_2foptimization_5fparameters_2eproto::TableStruct;
 };
@@ -1914,6 +1928,12 @@ class OptimizationParameters : public ::google::protobuf::Message /* @@protoc_in
   bool use_gradient_accumulation() const;
   void set_use_gradient_accumulation(bool value);
 
+  // float weight_decay_factor = 16;
+  void clear_weight_decay_factor();
+  static const int kWeightDecayFactorFieldNumber = 16;
+  float weight_decay_factor() const;
+  void set_weight_decay_factor(float value);
+
   // .tensorflow.tpu.AdagradParameters adagrad = 3;
   bool has_adagrad() const;
   void clear_adagrad();
@@ -2057,6 +2077,7 @@ class OptimizationParameters : public ::google::protobuf::Message /* @@protoc_in
   ::tensorflow::tpu::ClippingLimits* gradient_clipping_limits_;
   ::tensorflow::tpu::LearningRate* learning_rate_;
   bool use_gradient_accumulation_;
+  float weight_decay_factor_;
   union ParametersUnion {
     ParametersUnion() {}
     ::tensorflow::tpu::AdagradParameters* adagrad_;
@@ -2801,6 +2822,34 @@ inline void AdamParameters::set_initial_v(float value) {
   // @@protoc_insertion_point(field_set:tensorflow.tpu.AdamParameters.initial_v)
 }
 
+// bool use_non_lazy_adam = 8;
+inline void AdamParameters::clear_use_non_lazy_adam() {
+  use_non_lazy_adam_ = false;
+}
+inline bool AdamParameters::use_non_lazy_adam() const {
+  // @@protoc_insertion_point(field_get:tensorflow.tpu.AdamParameters.use_non_lazy_adam)
+  return use_non_lazy_adam_;
+}
+inline void AdamParameters::set_use_non_lazy_adam(bool value) {
+  
+  use_non_lazy_adam_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.tpu.AdamParameters.use_non_lazy_adam)
+}
+
+// bool use_sum_inside_sqrt = 10;
+inline void AdamParameters::clear_use_sum_inside_sqrt() {
+  use_sum_inside_sqrt_ = false;
+}
+inline bool AdamParameters::use_sum_inside_sqrt() const {
+  // @@protoc_insertion_point(field_get:tensorflow.tpu.AdamParameters.use_sum_inside_sqrt)
+  return use_sum_inside_sqrt_;
+}
+inline void AdamParameters::set_use_sum_inside_sqrt(bool value) {
+  
+  use_sum_inside_sqrt_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.tpu.AdamParameters.use_sum_inside_sqrt)
+}
+
 // -------------------------------------------------------------------
 
 // MomentumParameters
@@ -3493,6 +3542,20 @@ inline void OptimizationParameters::set_allocated_gradient_clipping_limits(::ten
   }
   gradient_clipping_limits_ = gradient_clipping_limits;
   // @@protoc_insertion_point(field_set_allocated:tensorflow.tpu.OptimizationParameters.gradient_clipping_limits)
+}
+
+// float weight_decay_factor = 16;
+inline void OptimizationParameters::clear_weight_decay_factor() {
+  weight_decay_factor_ = 0;
+}
+inline float OptimizationParameters::weight_decay_factor() const {
+  // @@protoc_insertion_point(field_get:tensorflow.tpu.OptimizationParameters.weight_decay_factor)
+  return weight_decay_factor_;
+}
+inline void OptimizationParameters::set_weight_decay_factor(float value) {
+  
+  weight_decay_factor_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.tpu.OptimizationParameters.weight_decay_factor)
 }
 
 // bool use_gradient_accumulation = 15;

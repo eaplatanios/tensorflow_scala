@@ -146,25 +146,33 @@ class RecvBufRespExtra : public ::google::protobuf::Message /* @@protoc_insertio
 
   // accessors -------------------------------------------------------
 
-  // bytes tensor_content = 1;
+  // repeated bytes tensor_content = 1;
+  int tensor_content_size() const;
   void clear_tensor_content();
   static const int kTensorContentFieldNumber = 1;
-  const ::std::string& tensor_content() const;
-  void set_tensor_content(const ::std::string& value);
+  const ::std::string& tensor_content(int index) const;
+  ::std::string* mutable_tensor_content(int index);
+  void set_tensor_content(int index, const ::std::string& value);
   #if LANG_CXX11
-  void set_tensor_content(::std::string&& value);
+  void set_tensor_content(int index, ::std::string&& value);
   #endif
-  void set_tensor_content(const char* value);
-  void set_tensor_content(const void* value, size_t size);
-  ::std::string* mutable_tensor_content();
-  ::std::string* release_tensor_content();
-  void set_allocated_tensor_content(::std::string* tensor_content);
+  void set_tensor_content(int index, const char* value);
+  void set_tensor_content(int index, const void* value, size_t size);
+  ::std::string* add_tensor_content();
+  void add_tensor_content(const ::std::string& value);
+  #if LANG_CXX11
+  void add_tensor_content(::std::string&& value);
+  #endif
+  void add_tensor_content(const char* value);
+  void add_tensor_content(const void* value, size_t size);
+  const ::google::protobuf::RepeatedPtrField< ::std::string>& tensor_content() const;
+  ::google::protobuf::RepeatedPtrField< ::std::string>* mutable_tensor_content();
 
   // @@protoc_insertion_point(class_scope:tensorflow.RecvBufRespExtra)
  private:
 
   ::google::protobuf::internal::InternalMetadataWithArena _internal_metadata_;
-  ::google::protobuf::internal::ArenaStringPtr tensor_content_;
+  ::google::protobuf::RepeatedPtrField< ::std::string> tensor_content_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2ftransport_5foptions_2eproto::TableStruct;
 };
@@ -179,57 +187,73 @@ class RecvBufRespExtra : public ::google::protobuf::Message /* @@protoc_insertio
 #endif  // __GNUC__
 // RecvBufRespExtra
 
-// bytes tensor_content = 1;
+// repeated bytes tensor_content = 1;
+inline int RecvBufRespExtra::tensor_content_size() const {
+  return tensor_content_.size();
+}
 inline void RecvBufRespExtra::clear_tensor_content() {
-  tensor_content_.ClearToEmptyNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+  tensor_content_.Clear();
 }
-inline const ::std::string& RecvBufRespExtra::tensor_content() const {
+inline const ::std::string& RecvBufRespExtra::tensor_content(int index) const {
   // @@protoc_insertion_point(field_get:tensorflow.RecvBufRespExtra.tensor_content)
-  return tensor_content_.GetNoArena();
+  return tensor_content_.Get(index);
 }
-inline void RecvBufRespExtra::set_tensor_content(const ::std::string& value) {
-  
-  tensor_content_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), value);
+inline ::std::string* RecvBufRespExtra::mutable_tensor_content(int index) {
+  // @@protoc_insertion_point(field_mutable:tensorflow.RecvBufRespExtra.tensor_content)
+  return tensor_content_.Mutable(index);
+}
+inline void RecvBufRespExtra::set_tensor_content(int index, const ::std::string& value) {
   // @@protoc_insertion_point(field_set:tensorflow.RecvBufRespExtra.tensor_content)
+  tensor_content_.Mutable(index)->assign(value);
 }
 #if LANG_CXX11
-inline void RecvBufRespExtra::set_tensor_content(::std::string&& value) {
-  
-  tensor_content_.SetNoArena(
-    &::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::move(value));
-  // @@protoc_insertion_point(field_set_rvalue:tensorflow.RecvBufRespExtra.tensor_content)
+inline void RecvBufRespExtra::set_tensor_content(int index, ::std::string&& value) {
+  // @@protoc_insertion_point(field_set:tensorflow.RecvBufRespExtra.tensor_content)
+  tensor_content_.Mutable(index)->assign(std::move(value));
 }
 #endif
-inline void RecvBufRespExtra::set_tensor_content(const char* value) {
+inline void RecvBufRespExtra::set_tensor_content(int index, const char* value) {
   GOOGLE_DCHECK(value != NULL);
-  
-  tensor_content_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), ::std::string(value));
+  tensor_content_.Mutable(index)->assign(value);
   // @@protoc_insertion_point(field_set_char:tensorflow.RecvBufRespExtra.tensor_content)
 }
-inline void RecvBufRespExtra::set_tensor_content(const void* value, size_t size) {
-  
-  tensor_content_.SetNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(),
-      ::std::string(reinterpret_cast<const char*>(value), size));
+inline void RecvBufRespExtra::set_tensor_content(int index, const void* value, size_t size) {
+  tensor_content_.Mutable(index)->assign(
+    reinterpret_cast<const char*>(value), size);
   // @@protoc_insertion_point(field_set_pointer:tensorflow.RecvBufRespExtra.tensor_content)
 }
-inline ::std::string* RecvBufRespExtra::mutable_tensor_content() {
-  
-  // @@protoc_insertion_point(field_mutable:tensorflow.RecvBufRespExtra.tensor_content)
-  return tensor_content_.MutableNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline ::std::string* RecvBufRespExtra::add_tensor_content() {
+  // @@protoc_insertion_point(field_add_mutable:tensorflow.RecvBufRespExtra.tensor_content)
+  return tensor_content_.Add();
 }
-inline ::std::string* RecvBufRespExtra::release_tensor_content() {
-  // @@protoc_insertion_point(field_release:tensorflow.RecvBufRespExtra.tensor_content)
-  
-  return tensor_content_.ReleaseNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited());
+inline void RecvBufRespExtra::add_tensor_content(const ::std::string& value) {
+  tensor_content_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add:tensorflow.RecvBufRespExtra.tensor_content)
 }
-inline void RecvBufRespExtra::set_allocated_tensor_content(::std::string* tensor_content) {
-  if (tensor_content != NULL) {
-    
-  } else {
-    
-  }
-  tensor_content_.SetAllocatedNoArena(&::google::protobuf::internal::GetEmptyStringAlreadyInited(), tensor_content);
-  // @@protoc_insertion_point(field_set_allocated:tensorflow.RecvBufRespExtra.tensor_content)
+#if LANG_CXX11
+inline void RecvBufRespExtra::add_tensor_content(::std::string&& value) {
+  tensor_content_.Add(std::move(value));
+  // @@protoc_insertion_point(field_add:tensorflow.RecvBufRespExtra.tensor_content)
+}
+#endif
+inline void RecvBufRespExtra::add_tensor_content(const char* value) {
+  GOOGLE_DCHECK(value != NULL);
+  tensor_content_.Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:tensorflow.RecvBufRespExtra.tensor_content)
+}
+inline void RecvBufRespExtra::add_tensor_content(const void* value, size_t size) {
+  tensor_content_.Add()->assign(reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:tensorflow.RecvBufRespExtra.tensor_content)
+}
+inline const ::google::protobuf::RepeatedPtrField< ::std::string>&
+RecvBufRespExtra::tensor_content() const {
+  // @@protoc_insertion_point(field_list:tensorflow.RecvBufRespExtra.tensor_content)
+  return tensor_content_;
+}
+inline ::google::protobuf::RepeatedPtrField< ::std::string>*
+RecvBufRespExtra::mutable_tensor_content() {
+  // @@protoc_insertion_point(field_mutable_list:tensorflow.RecvBufRespExtra.tensor_content)
+  return &tensor_content_;
 }
 
 #ifdef __GNUC__

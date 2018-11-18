@@ -116,6 +116,7 @@ class BatchToSpace {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -253,6 +254,7 @@ class BatchToSpaceND {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -284,6 +286,7 @@ class Bitcast {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -305,6 +308,7 @@ class BroadcastDynamicShape {
   operator ::tensorflow::Input() const { return r0; }
   ::tensorflow::Node* node() const { return r0.node(); }
 
+  Operation operation;
   ::tensorflow::Output r0;
 };
 
@@ -343,6 +347,7 @@ class BroadcastTo {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -365,6 +370,7 @@ class CheckNumerics {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -389,6 +395,7 @@ class Concat {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -411,6 +418,7 @@ class ConjugateTranspose {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -433,6 +441,7 @@ class DebugGradientIdentity {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -455,6 +464,7 @@ class DebugGradientRefIdentity {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -474,6 +484,7 @@ class DeepCopy {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -600,6 +611,7 @@ class DepthToSpace {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -612,7 +624,7 @@ class DepthToSpace {
 /// In 'MIN_COMBINED' mode, each value of the tensor will undergo the following:
 ///
 /// ```
-/// if T == qint8, in[i] += (range(T) + 1)/ 2.0
+/// if T == qint8: in[i] += (range(T) + 1)/ 2.0
 /// out[i] = min_range + (in[i]* (max_range - min_range) / range(T))
 /// ```
 /// here `range(T) = numeric_limits<T>::max() - numeric_limits<T>::min()`
@@ -712,6 +724,7 @@ class Dequantize {
     return Attrs().Mode(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -748,6 +761,7 @@ class Diag {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -785,6 +799,7 @@ class DiagPart {
   operator ::tensorflow::Input() const { return diagonal; }
   ::tensorflow::Node* node() const { return diagonal.node(); }
 
+  Operation operation;
   ::tensorflow::Output diagonal;
 };
 
@@ -882,6 +897,7 @@ class EditDistance {
     return Attrs().Normalize(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -925,6 +941,31 @@ class Empty {
     return Attrs().Init(x);
   }
 
+  Operation operation;
+  ::tensorflow::Output output;
+};
+
+/// Ensures that the tensor's shape matches the expected shape.
+///
+/// Raises an error if the input tensor's shape does not match the specified shape.
+/// Returns the input tensor otherwise.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * input: A tensor, whose shape is to be validated.
+/// * shape: The expected (possibly partially specified) shape of the input tensor.
+///
+/// Returns:
+/// * `Output`: A tensor with the same shape and contents as the input tensor or value.
+class EnsureShape {
+ public:
+  EnsureShape(const ::tensorflow::Scope& scope, ::tensorflow::Input input,
+            PartialTensorShape shape);
+  operator ::tensorflow::Output() const { return output; }
+  operator ::tensorflow::Input() const { return output; }
+  ::tensorflow::Node* node() const { return output.node(); }
+
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -978,6 +1019,7 @@ class ExpandDims {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1020,6 +1062,43 @@ class ExtractImagePatches {
   operator ::tensorflow::Input() const { return patches; }
   ::tensorflow::Node* node() const { return patches.node(); }
 
+  Operation operation;
+  ::tensorflow::Output patches;
+};
+
+/// Extract `patches` from `input` and put them in the "depth" output dimension. 3D extension of `extract_image_patches`.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * input: 5-D Tensor with shape `[batch, in_planes, in_rows, in_cols, depth]`.
+/// * ksizes: The size of the sliding window for each dimension of `input`.
+/// * strides: 1-D of length 5. How far the centers of two consecutive patches are in
+/// `input`. Must be: `[1, stride_planes, stride_rows, stride_cols, 1]`.
+/// * padding: The type of padding algorithm to use.
+///
+/// We specify the size-related attributes as:
+///
+/// ```python
+///       ksizes = [1, ksize_planes, ksize_rows, ksize_cols, 1]
+///       strides = [1, stride_planes, strides_rows, strides_cols, 1]
+/// ```
+///
+/// Returns:
+/// * `Output`: 5-D Tensor with shape `[batch, out_planes, out_rows, out_cols,
+/// ksize_planes * ksize_rows * ksize_cols * depth]` containing patches
+/// with size `ksize_planes x ksize_rows x ksize_cols x depth` vectorized
+/// in the "depth" dimension. Note `out_planes`, `out_rows` and `out_cols`
+/// are the dimensions of the output patches.
+class ExtractVolumePatches {
+ public:
+  ExtractVolumePatches(const ::tensorflow::Scope& scope, ::tensorflow::Input
+                     input, const gtl::ArraySlice<int>& ksizes, const
+                     gtl::ArraySlice<int>& strides, StringPiece padding);
+  operator ::tensorflow::Output() const { return patches; }
+  operator ::tensorflow::Input() const { return patches; }
+  ::tensorflow::Node* node() const { return patches.node(); }
+
+  Operation operation;
   ::tensorflow::Output patches;
 };
 
@@ -1096,6 +1175,7 @@ class FakeQuantWithMinMaxArgs {
     return Attrs().NarrowRange(x);
   }
 
+  Operation operation;
   ::tensorflow::Output outputs;
 };
 
@@ -1170,6 +1250,7 @@ class FakeQuantWithMinMaxArgsGradient {
     return Attrs().NarrowRange(x);
   }
 
+  Operation operation;
   ::tensorflow::Output backprops;
 };
 
@@ -1229,6 +1310,7 @@ class FakeQuantWithMinMaxVars {
     return Attrs().NarrowRange(x);
   }
 
+  Operation operation;
   ::tensorflow::Output outputs;
 };
 
@@ -1293,6 +1375,7 @@ class FakeQuantWithMinMaxVarsGradient {
     return Attrs().NarrowRange(x);
   }
 
+  Operation operation;
   ::tensorflow::Output backprops_wrt_input;
   ::tensorflow::Output backprop_wrt_min;
   ::tensorflow::Output backprop_wrt_max;
@@ -1359,6 +1442,7 @@ class FakeQuantWithMinMaxVarsPerChannel {
     return Attrs().NarrowRange(x);
   }
 
+  Operation operation;
   ::tensorflow::Output outputs;
 };
 
@@ -1429,6 +1513,7 @@ class FakeQuantWithMinMaxVarsPerChannelGradient {
     return Attrs().NarrowRange(x);
   }
 
+  Operation operation;
   ::tensorflow::Output backprops_wrt_input;
   ::tensorflow::Output backprop_wrt_min;
   ::tensorflow::Output backprop_wrt_max;
@@ -1445,6 +1530,16 @@ class FakeQuantWithMinMaxVarsPerChannelGradient {
 /// fill([2, 3], 9) ==> [[9, 9, 9]
 ///                      [9, 9, 9]]
 /// ```
+///
+/// `tf.fill` differs from `tf.constant` in a few ways:
+///
+/// *   `tf.fill` only supports scalar contents, whereas `tf.constant` supports
+///     Tensor values.
+/// *   `tf.fill` creates an Op in the computation graph that constructs the actual
+///     Tensor value at runtime. This is in contrast to `tf.constant` which embeds
+///     the entire Tensor into the graph with a `Const` node.
+/// *   Because `tf.fill` evaluates at graph runtime, it supports dynamic shapes
+///     based on other runtime Tensors, unlike `tf.constant`.
 ///
 /// Arguments:
 /// * scope: A Scope object
@@ -1465,6 +1560,7 @@ class Fill {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1526,6 +1622,7 @@ class Gather {
     return Attrs().ValidateIndices(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1537,7 +1634,7 @@ class Gather {
 ///
 ///     output[\\(i_0, ..., i_{K-2}\\)] = params[indices[\\(i_0, ..., i_{K-2}\\)]]
 ///
-/// Whereas in @{tf.gather} `indices` defines slices into the first
+/// Whereas in `tf.gather` `indices` defines slices into the first
 /// dimension of `params`, in `tf.gather_nd`, `indices` defines slices into the
 /// first `N` dimensions of `params`, where `N = indices.shape[-1]`.
 ///
@@ -1634,6 +1731,8 @@ class Gather {
 ///     output = [['b0', 'b1'], ['d0', 'c1']]
 /// ```
 ///
+/// See also `tf.gather` and `tf.batch_gather`.
+///
 /// Arguments:
 /// * scope: A Scope object
 /// * params: The tensor from which to gather values.
@@ -1650,6 +1749,7 @@ class GatherNd {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1681,6 +1781,8 @@ class GatherNd {
 /// On GPU, if an out of bound index is found, a 0 is stored in the
 /// corresponding output value.
 ///
+/// See also `tf.batch_gather` and `tf.gather_nd`.
+///
 /// Arguments:
 /// * scope: A Scope object
 /// * params: The tensor from which to gather values. Must be at least rank
@@ -1700,6 +1802,7 @@ class GatherV2 {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1724,6 +1827,7 @@ class GuaranteeConst {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1741,6 +1845,7 @@ class Identity {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1773,6 +1878,7 @@ class IdentityN {
   ::tensorflow::Output operator[](size_t index) const { return output[index]; }
 
 
+  Operation operation;
   ::tensorflow::OutputList output;
 };
 
@@ -1797,6 +1903,7 @@ class ImmutableConst {
   operator ::tensorflow::Input() const { return tensor; }
   ::tensorflow::Node* node() const { return tensor.node(); }
 
+  Operation operation;
   ::tensorflow::Output tensor;
 };
 
@@ -1820,6 +1927,7 @@ class InplaceAdd {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -1843,6 +1951,7 @@ class InplaceSub {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -1866,6 +1975,7 @@ class InplaceUpdate {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -1900,6 +2010,7 @@ class InvertPermutation {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -1957,6 +2068,7 @@ class SetDiff1D {
     return Attrs().OutIdx(x);
   }
 
+  Operation operation;
   ::tensorflow::Output out;
   ::tensorflow::Output idx;
 };
@@ -2021,6 +2133,7 @@ class MatrixBandPart {
   operator ::tensorflow::Input() const { return band; }
   ::tensorflow::Node* node() const { return band.node(); }
 
+  Operation operation;
   ::tensorflow::Output band;
 };
 
@@ -2066,6 +2179,7 @@ class MatrixDiag {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2114,6 +2228,7 @@ class MatrixDiagPart {
   operator ::tensorflow::Input() const { return diagonal; }
   ::tensorflow::Node* node() const { return diagonal.node(); }
 
+  Operation operation;
   ::tensorflow::Output diagonal;
 };
 
@@ -2147,6 +2262,7 @@ class MatrixSetDiag {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2199,6 +2315,7 @@ class MirrorPad {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2334,6 +2451,7 @@ class OneHot {
     return Attrs().Axis(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2352,6 +2470,7 @@ class OnesLike {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -2414,6 +2533,7 @@ class Stack {
     return Attrs().Axis(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2456,6 +2576,7 @@ class Pad {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2499,6 +2620,7 @@ class PadV2 {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2538,6 +2660,7 @@ class ParallelConcat {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2584,6 +2707,7 @@ class Placeholder {
     return Attrs().Shape(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2604,6 +2728,7 @@ class PlaceholderWithDefault {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2654,6 +2779,7 @@ class PreventGradient {
     return Attrs().Message(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2708,6 +2834,8 @@ class PreventGradient {
 /// following to each value in the 'input' tensor.
 ///
 /// output = round(clamp(value, input_min, input_max) * scale_factor) / scale_factor.
+///
+/// The above round function uses half to even rounding.
 ///
 ///
 /// Arguments:
@@ -2785,6 +2913,7 @@ class QuantizeAndDequantizeV2 {
     return Attrs().RangeGiven(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2838,6 +2967,7 @@ class QuantizeAndDequantizeV3 {
     return Attrs().RangeGiven(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2853,7 +2983,7 @@ class QuantizeAndDequantizeV3 {
 ///
 /// ```
 /// out[i] = (in[i] - min_range) * range(T) / (max_range - min_range)
-/// if T == qint8, out[i] -= (range(T) + 1) / 2.0
+/// if T == qint8: out[i] -= (range(T) + 1) / 2.0
 /// ```
 ///
 /// here `range(T) = numeric_limits<T>::max() - numeric_limits<T>::min()`
@@ -2986,6 +3116,7 @@ class QuantizeV2 {
     return Attrs().RoundMode(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output output_min;
   ::tensorflow::Output output_max;
@@ -3015,6 +3146,7 @@ class QuantizedConcat {
                 ::tensorflow::InputList input_mins, ::tensorflow::InputList
                 input_maxes);
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output output_min;
   ::tensorflow::Output output_max;
@@ -3120,6 +3252,7 @@ class QuantizedInstanceNorm {
     return Attrs().MinSeparation(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
   ::tensorflow::Output y_min;
   ::tensorflow::Output y_max;
@@ -3145,6 +3278,7 @@ class QuantizedReshape {
                  ::tensorflow::Input shape, ::tensorflow::Input input_min,
                  ::tensorflow::Input input_max);
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output output_min;
   ::tensorflow::Output output_max;
@@ -3178,6 +3312,7 @@ class Rank {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3254,6 +3389,7 @@ class Reshape {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3443,6 +3579,7 @@ class ReverseSequence {
     return Attrs().BatchDim(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3511,6 +3648,7 @@ class Reverse {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3519,7 +3657,7 @@ class Reverse {
 /// Creates a new tensor by applying sparse `updates` to individual values or
 /// slices within a tensor (initially zero for numeric, empty for string) of
 /// the given `shape` according to indices.  This operator is the inverse of the
-/// @{tf.gather_nd} operator which extracts values or slices from a given tensor.
+/// `tf.gather_nd` operator which extracts values or slices from a given tensor.
 ///
 /// If `indices` contains duplicates, then their updates are accumulated (summed).
 ///
@@ -3612,6 +3750,7 @@ class ScatterNd {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3649,7 +3788,7 @@ class ScatterNd {
 ///
 ///     [1, 13, 3, 14, 14, 6, 7, 20]
 ///
-/// See @{tf.scatter_nd} for more details about how to make updates to slices.
+/// See `tf.scatter_nd` for more details about how to make updates to slices.
 ///
 /// Arguments:
 /// * scope: A Scope object
@@ -3671,6 +3810,7 @@ class ScatterNdNonAliasingAdd {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3714,6 +3854,7 @@ class Shape {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3749,6 +3890,7 @@ class ShapeN {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList output;
 };
 
@@ -3793,6 +3935,7 @@ class Size {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3824,6 +3967,7 @@ class Slice {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3841,6 +3985,7 @@ class Snapshot {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -3953,6 +4098,7 @@ class SpaceToBatch {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4091,6 +4237,7 @@ class SpaceToBatchND {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4211,6 +4358,7 @@ class SpaceToDepth {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4235,6 +4383,7 @@ class Split {
   ::tensorflow::Output operator[](size_t index) const { return output[index]; }
 
 
+  Operation operation;
   ::tensorflow::OutputList output;
 };
 
@@ -4261,6 +4410,7 @@ class SplitV {
   ::tensorflow::Output operator[](size_t index) const { return output[index]; }
 
 
+  Operation operation;
   ::tensorflow::OutputList output;
 };
 
@@ -4325,6 +4475,7 @@ class Squeeze {
     return Attrs().Axis(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4362,6 +4513,7 @@ class StopGradient {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4475,7 +4627,7 @@ class StopGradient {
 /// Optional attributes (see `Attrs`):
 /// * begin_mask: a bitmask where a bit i being 1 means to ignore the begin
 /// value and instead use the largest interval possible. At runtime
-/// begin[i] will be replaced with `[0, n-1) if `stride[i] > 0` or
+/// begin[i] will be replaced with `[0, n-1)` if `stride[i] > 0` or
 /// `[-1, n-1]` if `stride[i] < 0`
 /// * end_mask: analogous to `begin_mask`
 /// * ellipsis_mask: a bitmask where bit `i` being 1 means the `i`th
@@ -4502,7 +4654,7 @@ class StridedSlice {
   struct Attrs {
     /// a bitmask where a bit i being 1 means to ignore the begin
     /// value and instead use the largest interval possible. At runtime
-    /// begin[i] will be replaced with `[0, n-1) if `stride[i] > 0` or
+    /// begin[i] will be replaced with `[0, n-1)` if `stride[i] > 0` or
     /// `[-1, n-1]` if `stride[i] < 0`
     ///
     /// Defaults to 0
@@ -4592,6 +4744,7 @@ class StridedSlice {
     return Attrs().ShrinkAxisMask(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4681,6 +4834,7 @@ class StridedSliceAssign {
     return Attrs().ShrinkAxisMask(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output_ref;
 };
 
@@ -4772,6 +4926,7 @@ class StridedSliceGrad {
     return Attrs().ShrinkAxisMask(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4798,6 +4953,7 @@ class Tile {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -4819,6 +4975,7 @@ class Transpose {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -4868,6 +5025,7 @@ class Unique {
     return Attrs().OutIdx(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
   ::tensorflow::Output idx;
 };
@@ -4950,6 +5108,7 @@ class UniqueV2 {
     return Attrs().OutIdx(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
   ::tensorflow::Output idx;
 };
@@ -5003,6 +5162,7 @@ class UniqueWithCounts {
     return Attrs().OutIdx(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
   ::tensorflow::Output idx;
   ::tensorflow::Output count;
@@ -5092,6 +5252,7 @@ class UniqueWithCountsV2 {
     return Attrs().OutIdx(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
   ::tensorflow::Output idx;
   ::tensorflow::Output count;
@@ -5148,6 +5309,7 @@ class Unstack {
     return Attrs().Axis(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList output;
 };
 
@@ -5177,6 +5339,7 @@ class UnravelIndex {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -5254,6 +5417,7 @@ class Where {
   operator ::tensorflow::Input() const { return index; }
   ::tensorflow::Node* node() const { return index.node(); }
 
+  Operation operation;
   ::tensorflow::Output index;
 };
 
@@ -5272,6 +5436,7 @@ class ZerosLike {
   operator ::tensorflow::Input() const { return y; }
   ::tensorflow::Node* node() const { return y.node(); }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 

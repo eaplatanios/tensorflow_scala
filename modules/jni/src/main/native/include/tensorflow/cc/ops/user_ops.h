@@ -32,6 +32,7 @@ class Fact {
   operator ::tensorflow::Input() const { return fact; }
   ::tensorflow::Node* node() const { return fact.node(); }
 
+  Operation operation;
   ::tensorflow::Output fact;
 };
 

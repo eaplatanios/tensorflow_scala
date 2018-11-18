@@ -870,12 +870,6 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::tensorflow::RewriterConfig_Toggle layout_optimizer() const;
   void set_layout_optimizer(::tensorflow::RewriterConfig_Toggle value);
 
-  // bool disable_model_pruning = 2;
-  void clear_disable_model_pruning();
-  static const int kDisableModelPruningFieldNumber = 2;
-  bool disable_model_pruning() const;
-  void set_disable_model_pruning(bool value);
-
   // .tensorflow.RewriterConfig.Toggle constant_folding = 3;
   void clear_constant_folding();
   static const int kConstantFoldingFieldNumber = 3;
@@ -936,6 +930,24 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::tensorflow::RewriterConfig_Toggle remapping() const;
   void set_remapping(::tensorflow::RewriterConfig_Toggle value);
 
+  // bool disable_model_pruning = 2;
+  void clear_disable_model_pruning();
+  static const int kDisableModelPruningFieldNumber = 2;
+  bool disable_model_pruning() const;
+  void set_disable_model_pruning(bool value);
+
+  // bool disable_meta_optimizer = 19;
+  void clear_disable_meta_optimizer();
+  static const int kDisableMetaOptimizerFieldNumber = 19;
+  bool disable_meta_optimizer() const;
+  void set_disable_meta_optimizer(bool value);
+
+  // bool fail_on_optimizer_errors = 21;
+  void clear_fail_on_optimizer_errors();
+  static const int kFailOnOptimizerErrorsFieldNumber = 21;
+  bool fail_on_optimizer_errors() const;
+  void set_fail_on_optimizer_errors(bool value);
+
   // .tensorflow.RewriterConfig.Toggle scoped_allocator_optimization = 15;
   void clear_scoped_allocator_optimization();
   static const int kScopedAllocatorOptimizationFieldNumber = 15;
@@ -947,6 +959,18 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   static const int kMinGraphNodesFieldNumber = 17;
   ::google::protobuf::int32 min_graph_nodes() const;
   void set_min_graph_nodes(::google::protobuf::int32 value);
+
+  // int64 meta_optimizer_timeout_ms = 20;
+  void clear_meta_optimizer_timeout_ms();
+  static const int kMetaOptimizerTimeoutMsFieldNumber = 20;
+  ::google::protobuf::int64 meta_optimizer_timeout_ms() const;
+  void set_meta_optimizer_timeout_ms(::google::protobuf::int64 value);
+
+  // .tensorflow.RewriterConfig.Toggle pin_to_host_optimization = 18;
+  void clear_pin_to_host_optimization();
+  static const int kPinToHostOptimizationFieldNumber = 18;
+  ::tensorflow::RewriterConfig_Toggle pin_to_host_optimization() const;
+  void set_pin_to_host_optimization(::tensorflow::RewriterConfig_Toggle value);
 
   // @@protoc_insertion_point(class_scope:tensorflow.RewriterConfig)
  private:
@@ -961,7 +985,6 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   ::tensorflow::AutoParallelOptions* auto_parallel_;
   ::tensorflow::ScopedAllocatorOptions* scoped_allocator_opts_;
   int layout_optimizer_;
-  bool disable_model_pruning_;
   int constant_folding_;
   int memory_optimization_;
   int arithmetic_optimization_;
@@ -972,8 +995,13 @@ class RewriterConfig : public ::google::protobuf::Message /* @@protoc_insertion_
   int meta_optimizer_iterations_;
   int shape_optimization_;
   int remapping_;
+  bool disable_model_pruning_;
+  bool disable_meta_optimizer_;
+  bool fail_on_optimizer_errors_;
   int scoped_allocator_optimization_;
   ::google::protobuf::int32 min_graph_nodes_;
+  ::google::protobuf::int64 meta_optimizer_timeout_ms_;
+  int pin_to_host_optimization_;
   mutable ::google::protobuf::internal::CachedSize _cached_size_;
   friend struct ::protobuf_tensorflow_2fcore_2fprotobuf_2frewriter_5fconfig_2eproto::TableStruct;
 };
@@ -1343,6 +1371,34 @@ inline void RewriterConfig::set_scoped_allocator_optimization(::tensorflow::Rewr
   // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.scoped_allocator_optimization)
 }
 
+// .tensorflow.RewriterConfig.Toggle pin_to_host_optimization = 18;
+inline void RewriterConfig::clear_pin_to_host_optimization() {
+  pin_to_host_optimization_ = 0;
+}
+inline ::tensorflow::RewriterConfig_Toggle RewriterConfig::pin_to_host_optimization() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.pin_to_host_optimization)
+  return static_cast< ::tensorflow::RewriterConfig_Toggle >(pin_to_host_optimization_);
+}
+inline void RewriterConfig::set_pin_to_host_optimization(::tensorflow::RewriterConfig_Toggle value) {
+  
+  pin_to_host_optimization_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.pin_to_host_optimization)
+}
+
+// bool disable_meta_optimizer = 19;
+inline void RewriterConfig::clear_disable_meta_optimizer() {
+  disable_meta_optimizer_ = false;
+}
+inline bool RewriterConfig::disable_meta_optimizer() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.disable_meta_optimizer)
+  return disable_meta_optimizer_;
+}
+inline void RewriterConfig::set_disable_meta_optimizer(bool value) {
+  
+  disable_meta_optimizer_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.disable_meta_optimizer)
+}
+
 // .tensorflow.RewriterConfig.NumIterationsType meta_optimizer_iterations = 12;
 inline void RewriterConfig::clear_meta_optimizer_iterations() {
   meta_optimizer_iterations_ = 0;
@@ -1460,6 +1516,20 @@ inline void RewriterConfig::unsafe_arena_set_allocated_memory_optimizer_target_n
   // @@protoc_insertion_point(field_unsafe_arena_set_allocated:tensorflow.RewriterConfig.memory_optimizer_target_node_name_scope)
 }
 
+// int64 meta_optimizer_timeout_ms = 20;
+inline void RewriterConfig::clear_meta_optimizer_timeout_ms() {
+  meta_optimizer_timeout_ms_ = GOOGLE_LONGLONG(0);
+}
+inline ::google::protobuf::int64 RewriterConfig::meta_optimizer_timeout_ms() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.meta_optimizer_timeout_ms)
+  return meta_optimizer_timeout_ms_;
+}
+inline void RewriterConfig::set_meta_optimizer_timeout_ms(::google::protobuf::int64 value) {
+  
+  meta_optimizer_timeout_ms_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.meta_optimizer_timeout_ms)
+}
+
 // .tensorflow.AutoParallelOptions auto_parallel = 5;
 inline bool RewriterConfig::has_auto_parallel() const {
   return this != internal_default_instance() && auto_parallel_ != NULL;
@@ -1523,6 +1593,20 @@ inline void RewriterConfig::set_allocated_auto_parallel(::tensorflow::AutoParall
   }
   auto_parallel_ = auto_parallel;
   // @@protoc_insertion_point(field_set_allocated:tensorflow.RewriterConfig.auto_parallel)
+}
+
+// bool fail_on_optimizer_errors = 21;
+inline void RewriterConfig::clear_fail_on_optimizer_errors() {
+  fail_on_optimizer_errors_ = false;
+}
+inline bool RewriterConfig::fail_on_optimizer_errors() const {
+  // @@protoc_insertion_point(field_get:tensorflow.RewriterConfig.fail_on_optimizer_errors)
+  return fail_on_optimizer_errors_;
+}
+inline void RewriterConfig::set_fail_on_optimizer_errors(bool value) {
+  
+  fail_on_optimizer_errors_ = value;
+  // @@protoc_insertion_point(field_set:tensorflow.RewriterConfig.fail_on_optimizer_errors)
 }
 
 // .tensorflow.ScopedAllocatorOptions scoped_allocator_opts = 16;

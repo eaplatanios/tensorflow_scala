@@ -122,6 +122,7 @@ class AsString {
     return Attrs().Fill(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -143,6 +144,7 @@ class DecodeBase64 {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -190,6 +192,7 @@ class EncodeBase64 {
     return Attrs().Pad(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -274,6 +277,7 @@ class ReduceJoin {
     return Attrs().Separator(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -289,7 +293,7 @@ class ReduceJoin {
 /// Arguments:
 /// * scope: A Scope object
 /// * input: A string tensor of the text to be processed.
-/// * pattern: A 1-D string tensor of the regular expression to match the input.
+/// * pattern: A scalar string tensor containing the regular expression to match the input.
 ///
 /// Returns:
 /// * `Output`: A bool tensor with the same shape as `input`.
@@ -301,6 +305,7 @@ class RegexFullMatch {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -349,6 +354,78 @@ class RegexReplace {
     return Attrs().ReplaceGlobal(x);
   }
 
+  Operation operation;
+  ::tensorflow::Output output;
+};
+
+/// Formats a string template using a list of tensors.
+///
+/// Formats a string template using a list of tensors, pretty-printing tensor summaries.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * inputs: The list of tensors to format into the placeholder string.
+///
+/// Optional attributes (see `Attrs`):
+/// * template_: A string, the template to format tensor summaries into.
+/// * placeholder: A string, at each placeholder in the template a subsequent tensor summary will be inserted.
+/// * summarize: When formatting the tensor summaries print the first and last summarize entries of each tensor dimension.
+///
+/// Returns:
+/// * `Output`: = The resulting string scalar.
+class StringFormat {
+ public:
+  /// Optional attribute setters for StringFormat
+  struct Attrs {
+    /// A string, the template to format tensor summaries into.
+    ///
+    /// Defaults to "%s"
+    TF_MUST_USE_RESULT Attrs Template(StringPiece x) {
+      Attrs ret = *this;
+      ret.template_ = x;
+      return ret;
+    }
+
+    /// A string, at each placeholder in the template a subsequent tensor summary will be inserted.
+    ///
+    /// Defaults to "%s"
+    TF_MUST_USE_RESULT Attrs Placeholder(StringPiece x) {
+      Attrs ret = *this;
+      ret.placeholder_ = x;
+      return ret;
+    }
+
+    /// When formatting the tensor summaries print the first and last summarize entries of each tensor dimension.
+    ///
+    /// Defaults to 3
+    TF_MUST_USE_RESULT Attrs Summarize(int64 x) {
+      Attrs ret = *this;
+      ret.summarize_ = x;
+      return ret;
+    }
+
+    StringPiece template_ = "%s";
+    StringPiece placeholder_ = "%s";
+    int64 summarize_ = 3;
+  };
+  StringFormat(const ::tensorflow::Scope& scope, ::tensorflow::InputList inputs);
+  StringFormat(const ::tensorflow::Scope& scope, ::tensorflow::InputList inputs,
+             const StringFormat::Attrs& attrs);
+  operator ::tensorflow::Output() const { return output; }
+  operator ::tensorflow::Input() const { return output; }
+  ::tensorflow::Node* node() const { return output.node(); }
+
+  static Attrs Template(StringPiece x) {
+    return Attrs().Template(x);
+  }
+  static Attrs Placeholder(StringPiece x) {
+    return Attrs().Placeholder(x);
+  }
+  static Attrs Summarize(int64 x) {
+    return Attrs().Summarize(x);
+  }
+
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -393,6 +470,59 @@ class StringJoin {
     return Attrs().Separator(x);
   }
 
+  Operation operation;
+  ::tensorflow::Output output;
+};
+
+/// String lengths of `input`.
+///
+/// Computes the length of each string given in the input tensor.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * input: The string for which to compute the length.
+///
+/// Optional attributes (see `Attrs`):
+/// * unit: The unit that is counted to compute string length.  One of: `"BYTE"` (for
+/// the number of bytes in each string) or `"UTF8_CHAR"` (for the number of UTF-8
+/// encoded Unicode code points in each string).  Results are undefined
+/// if `unit=UTF8_CHAR` and the `input` strings do not contain structurally
+/// valid UTF-8.
+///
+/// Returns:
+/// * `Output`: Integer tensor that has the same shape as `input`. The output contains the
+/// element-wise string lengths of `input`.
+class StringLength {
+ public:
+  /// Optional attribute setters for StringLength
+  struct Attrs {
+    /// The unit that is counted to compute string length.  One of: `"BYTE"` (for
+    /// the number of bytes in each string) or `"UTF8_CHAR"` (for the number of UTF-8
+    /// encoded Unicode code points in each string).  Results are undefined
+    /// if `unit=UTF8_CHAR` and the `input` strings do not contain structurally
+    /// valid UTF-8.
+    ///
+    /// Defaults to "BYTE"
+    TF_MUST_USE_RESULT Attrs Unit(StringPiece x) {
+      Attrs ret = *this;
+      ret.unit_ = x;
+      return ret;
+    }
+
+    StringPiece unit_ = "BYTE";
+  };
+  StringLength(const ::tensorflow::Scope& scope, ::tensorflow::Input input);
+  StringLength(const ::tensorflow::Scope& scope, ::tensorflow::Input input, const
+             StringLength::Attrs& attrs);
+  operator ::tensorflow::Output() const { return output; }
+  operator ::tensorflow::Input() const { return output; }
+  ::tensorflow::Node* node() const { return output.node(); }
+
+  static Attrs Unit(StringPiece x) {
+    return Attrs().Unit(x);
+  }
+
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -457,6 +587,7 @@ class StringSplit {
     return Attrs().SkipEmpty(x);
   }
 
+  Operation operation;
   ::tensorflow::Output indices;
   ::tensorflow::Output values;
   ::tensorflow::Output shape;
@@ -525,6 +656,7 @@ class StringSplitV2 {
     return Attrs().Maxsplit(x);
   }
 
+  Operation operation;
   ::tensorflow::Output indices;
   ::tensorflow::Output values;
   ::tensorflow::Output shape;
@@ -545,6 +677,7 @@ class StringStrip {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -571,6 +704,7 @@ class StringToHashBucket {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -598,6 +732,7 @@ class StringToHashBucketFast {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -632,6 +767,7 @@ class StringToHashBucketStrong {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -643,8 +779,10 @@ class StringToHashBucketStrong {
 /// If `len` defines a substring that would extend beyond the length of the input
 /// string, then as many characters as possible are used.
 ///
-/// If `pos` is negative or specifies a character index larger than any of the input
-/// strings, then an `InvalidArgumentError` is thrown.
+/// A negative `pos` indicates distance within the string backwards from the end.
+///
+/// If `pos` specifies an index which is out of range for any of the input strings,
+/// then an `InvalidArgumentError` is thrown.
 ///
 /// `pos` and `len` must have the same shape, otherwise a `ValueError` is thrown on
 /// Op creation.
@@ -717,16 +855,203 @@ class StringToHashBucketStrong {
 /// * pos: Scalar defining the position of first character in each substring
 /// * len: Scalar defining the number of characters to include in each substring
 ///
+/// Optional attributes (see `Attrs`):
+/// * unit: The unit that is used to create the substring.  One of: `"BYTE"` (for
+/// defining position and length by bytes) or `"UTF8_CHAR"` (for the UTF-8
+/// encoded Unicode code points).  The default is `"BYTE"`. Results are undefined if
+/// `unit=UTF8_CHAR` and the `input` strings do not contain structurally valid
+/// UTF-8.
+///
 /// Returns:
 /// * `Output`: Tensor of substrings
 class Substr {
  public:
+  /// Optional attribute setters for Substr
+  struct Attrs {
+    /// The unit that is used to create the substring.  One of: `"BYTE"` (for
+    /// defining position and length by bytes) or `"UTF8_CHAR"` (for the UTF-8
+    /// encoded Unicode code points).  The default is `"BYTE"`. Results are undefined if
+    /// `unit=UTF8_CHAR` and the `input` strings do not contain structurally valid
+    /// UTF-8.
+    ///
+    /// Defaults to "BYTE"
+    TF_MUST_USE_RESULT Attrs Unit(StringPiece x) {
+      Attrs ret = *this;
+      ret.unit_ = x;
+      return ret;
+    }
+
+    StringPiece unit_ = "BYTE";
+  };
   Substr(const ::tensorflow::Scope& scope, ::tensorflow::Input input,
        ::tensorflow::Input pos, ::tensorflow::Input len);
+  Substr(const ::tensorflow::Scope& scope, ::tensorflow::Input input,
+       ::tensorflow::Input pos, ::tensorflow::Input len, const Substr::Attrs&
+       attrs);
   operator ::tensorflow::Output() const { return output; }
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  static Attrs Unit(StringPiece x) {
+    return Attrs().Unit(x);
+  }
+
+  Operation operation;
+  ::tensorflow::Output output;
+};
+
+/// Determine the script codes of a given tensor of Unicode integer code points.
+///
+/// This operation converts Unicode code points to script codes corresponding to
+/// each code point. Script codes correspond to International Components for
+/// Unicode (ICU) UScriptCode values. See http://icu-project.org/apiref/icu4c/uscript_8h.html.
+/// Returns -1 (USCRIPT_INVALID_CODE) for invalid codepoints. Output shape will
+/// match input shape.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * input: A Tensor of int32 Unicode code points.
+///
+/// Returns:
+/// * `Output`: A Tensor of int32 script codes corresponding to each input code point.
+class UnicodeScript {
+ public:
+  UnicodeScript(const ::tensorflow::Scope& scope, ::tensorflow::Input input);
+  operator ::tensorflow::Output() const { return output; }
+  operator ::tensorflow::Input() const { return output; }
+  ::tensorflow::Node* node() const { return output.node(); }
+
+  Operation operation;
+  ::tensorflow::Output output;
+};
+
+/// Transcode the input text from a source encoding to a destination encoding.
+///
+/// The input is a string tensor of any shape. The output is a string tensor of
+/// the same shape containing the transcoded strings. Output strings are always
+/// valid unicode. If the input contains invalid encoding positions, the
+/// `errors` attribute sets the policy for how to deal with them. If the default
+/// error-handling policy is used, invalid formatting will be substituted in the
+/// output by the `replacement_char`. If the errors policy is to `ignore`, any
+/// invalid encoding positions in the input are skipped and not included in the
+/// output. If it set to `strict` then any invalid formatting will result in an
+/// InvalidArgument error.
+///
+/// This operation can be used with `output_encoding = input_encoding` to enforce
+/// correct formatting for inputs even if they are already in the desired encoding.
+///
+/// If the input is prefixed by a Byte Order Mark needed to determine encoding
+/// (e.g. if the encoding is UTF-16 and the BOM indicates big-endian), then that
+/// BOM will be consumed and not emitted into the output. If the input encoding
+/// is marked with an explicit endianness (e.g. UTF-16-BE), then the BOM is
+/// interpreted as a non-breaking-space and is preserved in the output (including
+/// always for UTF-8).
+///
+/// The end result is that if the input is marked as an explicit endianness the
+/// transcoding is faithful to all codepoints in the source. If it is not marked
+/// with an explicit endianness, the BOM is not considered part of the string itself
+/// but as metadata, and so is not preserved in the output.
+///
+/// Arguments:
+/// * scope: A Scope object
+/// * input: The text to be processed. Can have any shape.
+/// * input_encoding: Text encoding of the input strings. This is any of the encodings supported
+/// by ICU ucnv algorithmic converters. Examples: `"UTF-16", "US ASCII", "UTF-8"`.
+/// * output_encoding: The unicode encoding to use in the output. Must be one of
+/// `"UTF-8", "UTF-16-BE", "UTF-32-BE"`. Multi-byte encodings will be big-endian.
+///
+/// Optional attributes (see `Attrs`):
+/// * errors: Error handling policy when there is invalid formatting found in the input.
+/// The value of 'strict' will cause the operation to produce a InvalidArgument
+/// error on any invalid input formatting. A value of 'replace' (the default) will
+/// cause the operation to replace any invalid formatting in the input with the
+/// `replacement_char` codepoint. A value of 'ignore' will cause the operation to
+/// skip any invalid formatting in the input and produce no corresponding output
+/// character.
+/// * replacement_char: The replacement character codepoint to be used in place of any invalid
+/// formatting in the input when `errors='replace'`. Any valid unicode codepoint may
+/// be used. The default value is the default unicode replacement character is
+/// 0xFFFD or U+65533.)
+///
+/// Note that for UTF-8, passing a replacement character expressible in 1 byte, such
+/// as ' ', will preserve string alignment to the source since invalid bytes will be
+/// replaced with a 1-byte replacement. For UTF-16-BE and UTF-16-LE, any 1 or 2 byte
+/// replacement character will preserve byte alignment to the source.
+/// * replace_control_characters: Whether to replace the C0 control characters (00-1F) with the
+/// `replacement_char`. Default is false.
+///
+/// Returns:
+/// * `Output`: A string tensor containing unicode text encoded using `output_encoding`.
+class UnicodeTranscode {
+ public:
+  /// Optional attribute setters for UnicodeTranscode
+  struct Attrs {
+    /// Error handling policy when there is invalid formatting found in the input.
+    /// The value of 'strict' will cause the operation to produce a InvalidArgument
+    /// error on any invalid input formatting. A value of 'replace' (the default) will
+    /// cause the operation to replace any invalid formatting in the input with the
+    /// `replacement_char` codepoint. A value of 'ignore' will cause the operation to
+    /// skip any invalid formatting in the input and produce no corresponding output
+    /// character.
+    ///
+    /// Defaults to "replace"
+    TF_MUST_USE_RESULT Attrs Errors(StringPiece x) {
+      Attrs ret = *this;
+      ret.errors_ = x;
+      return ret;
+    }
+
+    /// The replacement character codepoint to be used in place of any invalid
+    /// formatting in the input when `errors='replace'`. Any valid unicode codepoint may
+    /// be used. The default value is the default unicode replacement character is
+    /// 0xFFFD or U+65533.)
+    ///
+    /// Note that for UTF-8, passing a replacement character expressible in 1 byte, such
+    /// as ' ', will preserve string alignment to the source since invalid bytes will be
+    /// replaced with a 1-byte replacement. For UTF-16-BE and UTF-16-LE, any 1 or 2 byte
+    /// replacement character will preserve byte alignment to the source.
+    ///
+    /// Defaults to 65533
+    TF_MUST_USE_RESULT Attrs ReplacementChar(int64 x) {
+      Attrs ret = *this;
+      ret.replacement_char_ = x;
+      return ret;
+    }
+
+    /// Whether to replace the C0 control characters (00-1F) with the
+    /// `replacement_char`. Default is false.
+    ///
+    /// Defaults to false
+    TF_MUST_USE_RESULT Attrs ReplaceControlCharacters(bool x) {
+      Attrs ret = *this;
+      ret.replace_control_characters_ = x;
+      return ret;
+    }
+
+    StringPiece errors_ = "replace";
+    int64 replacement_char_ = 65533;
+    bool replace_control_characters_ = false;
+  };
+  UnicodeTranscode(const ::tensorflow::Scope& scope, ::tensorflow::Input input,
+                 StringPiece input_encoding, StringPiece output_encoding);
+  UnicodeTranscode(const ::tensorflow::Scope& scope, ::tensorflow::Input input,
+                 StringPiece input_encoding, StringPiece output_encoding, const
+                 UnicodeTranscode::Attrs& attrs);
+  operator ::tensorflow::Output() const { return output; }
+  operator ::tensorflow::Input() const { return output; }
+  ::tensorflow::Node* node() const { return output.node(); }
+
+  static Attrs Errors(StringPiece x) {
+    return Attrs().Errors(x);
+  }
+  static Attrs ReplacementChar(int64 x) {
+    return Attrs().ReplacementChar(x);
+  }
+  static Attrs ReplaceControlCharacters(bool x) {
+    return Attrs().ReplaceControlCharacters(x);
+  }
+
+  Operation operation;
   ::tensorflow::Output output;
 };
 

@@ -97,6 +97,7 @@ class AllCandidateSampler {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sampled_candidates;
   ::tensorflow::Output true_expected_count;
   ::tensorflow::Output sampled_expected_count;
@@ -169,6 +170,7 @@ class ComputeAccidentalHits {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output indices;
   ::tensorflow::Output ids;
   ::tensorflow::Output weights;
@@ -378,6 +380,7 @@ class FixedUnigramCandidateSampler {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sampled_candidates;
   ::tensorflow::Output true_expected_count;
   ::tensorflow::Output sampled_expected_count;
@@ -466,6 +469,7 @@ class LearnedUnigramCandidateSampler {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sampled_candidates;
   ::tensorflow::Output true_expected_count;
   ::tensorflow::Output sampled_expected_count;
@@ -552,6 +556,7 @@ class LogUniformCandidateSampler {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sampled_candidates;
   ::tensorflow::Output true_expected_count;
   ::tensorflow::Output sampled_expected_count;
@@ -638,6 +643,7 @@ class UniformCandidateSampler {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output sampled_candidates;
   ::tensorflow::Output true_expected_count;
   ::tensorflow::Output sampled_expected_count;

@@ -72,6 +72,7 @@ class AvgPool {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -128,6 +129,7 @@ class AvgPool3D {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -187,6 +189,7 @@ class AvgPool3DGrad {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -244,6 +247,7 @@ class BiasAdd {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -300,6 +304,7 @@ class BiasAddGrad {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -419,6 +424,7 @@ class Conv2D {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -522,6 +528,7 @@ class Conv2DBackpropFilter {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -624,6 +631,7 @@ class Conv2DBackpropInput {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -713,6 +721,7 @@ class Conv3D {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -803,6 +812,7 @@ class Conv3DBackpropFilterV2 {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -893,6 +903,7 @@ class Conv3DBackpropInputV2 {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -950,6 +961,7 @@ class DataFormatDimMap {
     return Attrs().DstFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -1006,6 +1018,7 @@ class DataFormatVecPermute {
     return Attrs().DstFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
 };
 
@@ -1106,6 +1119,7 @@ class DepthwiseConv2dNative {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1206,6 +1220,7 @@ class DepthwiseConv2dNativeBackpropFilter {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1306,6 +1321,7 @@ class DepthwiseConv2dNativeBackpropInput {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1356,6 +1372,7 @@ class Dilation2D {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -1385,6 +1402,7 @@ class Dilation2DBackpropFilter {
   operator ::tensorflow::Input() const { return filter_backprop; }
   ::tensorflow::Node* node() const { return filter_backprop.node(); }
 
+  Operation operation;
   ::tensorflow::Output filter_backprop;
 };
 
@@ -1413,6 +1431,7 @@ class Dilation2DBackpropInput {
   operator ::tensorflow::Input() const { return in_backprop; }
   ::tensorflow::Node* node() const { return in_backprop.node(); }
 
+  Operation operation;
   ::tensorflow::Output in_backprop;
 };
 
@@ -1433,6 +1452,7 @@ class Elu {
   operator ::tensorflow::Input() const { return activations; }
   ::tensorflow::Node* node() const { return activations.node(); }
 
+  Operation operation;
   ::tensorflow::Output activations;
 };
 
@@ -1571,6 +1591,7 @@ class FractionalAvgPool {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output row_pooling_sequence;
   ::tensorflow::Output col_pooling_sequence;
@@ -1735,6 +1756,7 @@ class FractionalMaxPool {
     return Attrs().Seed2(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output row_pooling_sequence;
   ::tensorflow::Output col_pooling_sequence;
@@ -1825,6 +1847,7 @@ class FusedBatchNorm {
     return Attrs().IsTraining(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
   ::tensorflow::Output batch_mean;
   ::tensorflow::Output batch_variance;
@@ -1923,6 +1946,7 @@ class FusedBatchNormGrad {
     return Attrs().IsTraining(x);
   }
 
+  Operation operation;
   ::tensorflow::Output x_backprop;
   ::tensorflow::Output scale_backprop;
   ::tensorflow::Output offset_backprop;
@@ -2021,6 +2045,7 @@ class FusedBatchNormGradV2 {
     return Attrs().IsTraining(x);
   }
 
+  Operation operation;
   ::tensorflow::Output x_backprop;
   ::tensorflow::Output scale_backprop;
   ::tensorflow::Output offset_backprop;
@@ -2113,6 +2138,7 @@ class FusedBatchNormV2 {
     return Attrs().IsTraining(x);
   }
 
+  Operation operation;
   ::tensorflow::Output y;
   ::tensorflow::Output batch_mean;
   ::tensorflow::Output batch_variance;
@@ -2157,6 +2183,7 @@ class FusedPadConv2D {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2226,6 +2253,7 @@ class FusedResizeAndPadConv2D {
     return Attrs().ResizeAlignCorners(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2262,6 +2290,7 @@ class InTopK {
   operator ::tensorflow::Input() const { return precision; }
   ::tensorflow::Node* node() const { return precision.node(); }
 
+  Operation operation;
   ::tensorflow::Output precision;
 };
 
@@ -2298,6 +2327,7 @@ class InTopKV2 {
   operator ::tensorflow::Input() const { return precision; }
   ::tensorflow::Node* node() const { return precision.node(); }
 
+  Operation operation;
   ::tensorflow::Output precision;
 };
 
@@ -2320,6 +2350,7 @@ class L2Loss {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2414,6 +2445,7 @@ class LRN {
     return Attrs().Beta(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2436,6 +2468,7 @@ class LogSoftmax {
   operator ::tensorflow::Input() const { return logsoftmax; }
   ::tensorflow::Node* node() const { return logsoftmax.node(); }
 
+  Operation operation;
   ::tensorflow::Output logsoftmax;
 };
 
@@ -2491,6 +2524,7 @@ class MaxPool {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2547,6 +2581,7 @@ class MaxPool3D {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2607,6 +2642,7 @@ class MaxPool3DGrad {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2668,6 +2704,7 @@ class MaxPool3DGradGrad {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2728,6 +2765,7 @@ class MaxPoolGradGrad {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2788,6 +2826,7 @@ class MaxPoolGradGradV2 {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2816,6 +2855,7 @@ class MaxPoolGradGradWithArgmax {
   operator ::tensorflow::Input() const { return output; }
   ::tensorflow::Node* node() const { return output.node(); }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2875,6 +2915,7 @@ class MaxPoolGradV2 {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2930,6 +2971,7 @@ class MaxPoolV2 {
     return Attrs().DataFormat(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
 };
 
@@ -2980,6 +3022,7 @@ class MaxPoolWithArgmax {
     return Attrs().Targmax(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output argmax;
 };
@@ -3034,6 +3077,7 @@ class NthElement {
     return Attrs().Reverse(x);
   }
 
+  Operation operation;
   ::tensorflow::Output values;
 };
 
@@ -3061,6 +3105,7 @@ class QuantizedAvgPool {
                  const gtl::ArraySlice<int>& ksize, const gtl::ArraySlice<int>&
                  strides, StringPiece padding);
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output min_output;
   ::tensorflow::Output max_output;
@@ -3125,6 +3170,7 @@ class QuantizedBatchNormWithGlobalNormalization {
                                           variance_epsilon, bool
                                           scale_after_normalization);
 
+  Operation operation;
   ::tensorflow::Output result;
   ::tensorflow::Output result_min;
   ::tensorflow::Output result_max;
@@ -3153,6 +3199,7 @@ class QuantizedBiasAdd {
                  ::tensorflow::Input max_input, ::tensorflow::Input min_bias,
                  ::tensorflow::Input max_bias, DataType out_type);
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output min_out;
   ::tensorflow::Output max_out;
@@ -3238,6 +3285,7 @@ class QuantizedConv2D {
     return Attrs().Dilations(x);
   }
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output min_output;
   ::tensorflow::Output max_output;
@@ -3267,6 +3315,7 @@ class QuantizedMaxPool {
                  const gtl::ArraySlice<int>& ksize, const gtl::ArraySlice<int>&
                  strides, StringPiece padding);
 
+  Operation operation;
   ::tensorflow::Output output;
   ::tensorflow::Output min_output;
   ::tensorflow::Output max_output;
@@ -3307,6 +3356,7 @@ class QuantizedRelu {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output activations;
   ::tensorflow::Output min_activations;
   ::tensorflow::Output max_activations;
@@ -3347,6 +3397,7 @@ class QuantizedRelu6 {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output activations;
   ::tensorflow::Output min_activations;
   ::tensorflow::Output max_activations;
@@ -3388,6 +3439,7 @@ class QuantizedReluX {
     return Attrs().OutType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output activations;
   ::tensorflow::Output min_activations;
   ::tensorflow::Output max_activations;
@@ -3407,6 +3459,7 @@ class Relu {
   operator ::tensorflow::Input() const { return activations; }
   ::tensorflow::Node* node() const { return activations.node(); }
 
+  Operation operation;
   ::tensorflow::Output activations;
 };
 
@@ -3424,6 +3477,7 @@ class Relu6 {
   operator ::tensorflow::Input() const { return activations; }
   ::tensorflow::Node* node() const { return activations.node(); }
 
+  Operation operation;
   ::tensorflow::Output activations;
 };
 
@@ -3449,6 +3503,7 @@ class Selu {
   operator ::tensorflow::Input() const { return activations; }
   ::tensorflow::Node* node() const { return activations.node(); }
 
+  Operation operation;
   ::tensorflow::Output activations;
 };
 
@@ -3471,6 +3526,7 @@ class Softmax {
   operator ::tensorflow::Input() const { return softmax; }
   ::tensorflow::Node* node() const { return softmax.node(); }
 
+  Operation operation;
   ::tensorflow::Output softmax;
 };
 
@@ -3494,6 +3550,7 @@ class SoftmaxCrossEntropyWithLogits {
                               ::tensorflow::Input features, ::tensorflow::Input
                               labels);
 
+  Operation operation;
   ::tensorflow::Output loss;
   ::tensorflow::Output backprop;
 };
@@ -3512,6 +3569,7 @@ class Softplus {
   operator ::tensorflow::Input() const { return activations; }
   ::tensorflow::Node* node() const { return activations.node(); }
 
+  Operation operation;
   ::tensorflow::Output activations;
 };
 
@@ -3529,6 +3587,7 @@ class Softsign {
   operator ::tensorflow::Input() const { return activations; }
   ::tensorflow::Node* node() const { return activations.node(); }
 
+  Operation operation;
   ::tensorflow::Output activations;
 };
 
@@ -3556,6 +3615,7 @@ class SparseSoftmaxCrossEntropyWithLogits {
                                     ::tensorflow::Input features,
                                     ::tensorflow::Input labels);
 
+  Operation operation;
   ::tensorflow::Output loss;
   ::tensorflow::Output backprop;
 };
@@ -3611,6 +3671,7 @@ class TopK {
     return Attrs().Sorted(x);
   }
 
+  Operation operation;
   ::tensorflow::Output values;
   ::tensorflow::Output indices;
 };

@@ -56,6 +56,7 @@ class AccumulatorNumAccumulated {
   operator ::tensorflow::Input() const { return num_accumulated; }
   ::tensorflow::Node* node() const { return num_accumulated.node(); }
 
+  Operation operation;
   ::tensorflow::Output num_accumulated;
 };
 
@@ -106,6 +107,7 @@ class AccumulatorTakeGradient {
   operator ::tensorflow::Input() const { return average; }
   ::tensorflow::Node* node() const { return average.node(); }
 
+  Operation operation;
   ::tensorflow::Output average;
 };
 
@@ -207,6 +209,7 @@ class Barrier {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -276,6 +279,7 @@ class BarrierIncompleteSize {
   operator ::tensorflow::Input() const { return size; }
   ::tensorflow::Node* node() const { return size.node(); }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -322,6 +326,7 @@ class BarrierReadySize {
   operator ::tensorflow::Input() const { return size; }
   ::tensorflow::Node* node() const { return size.node(); }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -409,6 +414,7 @@ class BarrierTakeMany {
     return Attrs().TimeoutMs(x);
   }
 
+  Operation operation;
   ::tensorflow::Output indices;
   ::tensorflow::Output keys;
   ::tensorflow::OutputList values;
@@ -460,8 +466,16 @@ class ConditionalAccumulator {
       return ret;
     }
 
+    /// Defaults to "MEAN"
+    TF_MUST_USE_RESULT Attrs ReductionType(StringPiece x) {
+      Attrs ret = *this;
+      ret.reduction_type_ = x;
+      return ret;
+    }
+
     StringPiece container_ = "";
     StringPiece shared_name_ = "";
+    StringPiece reduction_type_ = "MEAN";
   };
   ConditionalAccumulator(const ::tensorflow::Scope& scope, DataType dtype,
                        PartialTensorShape shape);
@@ -478,7 +492,11 @@ class ConditionalAccumulator {
   static Attrs SharedName(StringPiece x) {
     return Attrs().SharedName(x);
   }
+  static Attrs ReductionType(StringPiece x) {
+    return Attrs().ReductionType(x);
+  }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -553,6 +571,7 @@ class DynamicPartition {
   ::tensorflow::Output operator[](size_t index) const { return outputs[index]; }
 
 
+  Operation operation;
   ::tensorflow::OutputList outputs;
 };
 
@@ -634,6 +653,7 @@ class DynamicStitch {
   operator ::tensorflow::Input() const { return merged; }
   ::tensorflow::Node* node() const { return merged.node(); }
 
+  Operation operation;
   ::tensorflow::Output merged;
 };
 
@@ -729,6 +749,7 @@ class FIFOQueue {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -748,6 +769,7 @@ class GetSessionHandle {
   operator ::tensorflow::Input() const { return handle; }
   ::tensorflow::Node* node() const { return handle.node(); }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -767,6 +789,7 @@ class GetSessionHandleV2 {
   operator ::tensorflow::Input() const { return handle; }
   ::tensorflow::Node* node() const { return handle.node(); }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -787,6 +810,7 @@ class GetSessionTensor {
   operator ::tensorflow::Input() const { return value; }
   ::tensorflow::Node* node() const { return value.node(); }
 
+  Operation operation;
   ::tensorflow::Output value;
 };
 
@@ -920,6 +944,7 @@ class MapIncompleteSize {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -991,6 +1016,7 @@ class MapPeek {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList values;
 };
 
@@ -1058,6 +1084,7 @@ class MapSize {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -1215,6 +1242,7 @@ class MapUnstage {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList values;
 };
 
@@ -1285,6 +1313,7 @@ class MapUnstageNoKey {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output key;
   ::tensorflow::OutputList values;
 };
@@ -1419,6 +1448,7 @@ class OrderedMapIncompleteSize {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -1491,6 +1521,7 @@ class OrderedMapPeek {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList values;
 };
 
@@ -1558,6 +1589,7 @@ class OrderedMapSize {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -1718,6 +1750,7 @@ class OrderedMapUnstage {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList values;
 };
 
@@ -1788,6 +1821,7 @@ class OrderedMapUnstageNoKey {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output key;
   ::tensorflow::OutputList values;
 };
@@ -1896,6 +1930,7 @@ class PaddingFIFOQueue {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -1976,6 +2011,7 @@ class ParallelDynamicStitch {
   operator ::tensorflow::Input() const { return merged; }
   ::tensorflow::Node* node() const { return merged.node(); }
 
+  Operation operation;
   ::tensorflow::Output merged;
 };
 
@@ -2075,6 +2111,7 @@ class PriorityQueue {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -2182,6 +2219,7 @@ class QueueDequeueMany {
     return Attrs().TimeoutMs(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList components;
 };
 
@@ -2247,6 +2285,7 @@ class QueueDequeueUpTo {
     return Attrs().TimeoutMs(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList components;
 };
 
@@ -2300,6 +2339,7 @@ class QueueDequeue {
     return Attrs().TimeoutMs(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList components;
 };
 
@@ -2428,6 +2468,7 @@ class QueueIsClosed {
   operator ::tensorflow::Input() const { return is_closed; }
   ::tensorflow::Node* node() const { return is_closed.node(); }
 
+  Operation operation;
   ::tensorflow::Output is_closed;
 };
 
@@ -2449,6 +2490,7 @@ class QueueIsClosedV2 {
   operator ::tensorflow::Input() const { return is_closed; }
   ::tensorflow::Node* node() const { return is_closed.node(); }
 
+  Operation operation;
   ::tensorflow::Output is_closed;
 };
 
@@ -2467,6 +2509,7 @@ class QueueSize {
   operator ::tensorflow::Input() const { return size; }
   ::tensorflow::Node* node() const { return size.node(); }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -2610,6 +2653,7 @@ class RandomShuffleQueue {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -2724,6 +2768,7 @@ class RecordInput {
     return Attrs().CompressionType(x);
   }
 
+  Operation operation;
   ::tensorflow::Output records;
 };
 
@@ -2786,6 +2831,7 @@ class SparseAccumulatorTakeGradient {
                               ::tensorflow::Input handle, ::tensorflow::Input
                               num_required, DataType dtype);
 
+  Operation operation;
   ::tensorflow::Output indices;
   ::tensorflow::Output values;
   ::tensorflow::Output shape;
@@ -2837,8 +2883,16 @@ class SparseConditionalAccumulator {
       return ret;
     }
 
+    /// Defaults to "MEAN"
+    TF_MUST_USE_RESULT Attrs ReductionType(StringPiece x) {
+      Attrs ret = *this;
+      ret.reduction_type_ = x;
+      return ret;
+    }
+
     StringPiece container_ = "";
     StringPiece shared_name_ = "";
+    StringPiece reduction_type_ = "MEAN";
   };
   SparseConditionalAccumulator(const ::tensorflow::Scope& scope, DataType dtype,
                              PartialTensorShape shape);
@@ -2855,7 +2909,11 @@ class SparseConditionalAccumulator {
   static Attrs SharedName(StringPiece x) {
     return Attrs().SharedName(x);
   }
+  static Attrs ReductionType(StringPiece x) {
+    return Attrs().ReductionType(x);
+  }
 
+  Operation operation;
   ::tensorflow::Output handle;
 };
 
@@ -3082,6 +3140,7 @@ class StagePeek {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList values;
 };
 
@@ -3149,6 +3208,7 @@ class StageSize {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -3231,6 +3291,7 @@ class TensorArrayConcat {
     return Attrs().ElementShapeExcept0(x);
   }
 
+  Operation operation;
   ::tensorflow::Output value;
   ::tensorflow::Output lengths;
 };
@@ -3285,6 +3346,7 @@ class TensorArrayGather {
     return Attrs().ElementShape(x);
   }
 
+  Operation operation;
   ::tensorflow::Output value;
 };
 
@@ -3342,6 +3404,7 @@ class TensorArrayGrad {
   TensorArrayGrad(const ::tensorflow::Scope& scope, ::tensorflow::Input handle,
                 ::tensorflow::Input flow_in, StringPiece source);
 
+  Operation operation;
   ::tensorflow::Output grad_handle;
   ::tensorflow::Output flow_out;
 };
@@ -3373,6 +3436,7 @@ class TensorArrayGradWithShape {
                          ::tensorflow::Input shape_to_prepend, StringPiece
                          source);
 
+  Operation operation;
   ::tensorflow::Output grad_handle;
   ::tensorflow::Output flow_out;
 };
@@ -3396,6 +3460,7 @@ class TensorArrayRead {
   operator ::tensorflow::Input() const { return value; }
   ::tensorflow::Node* node() const { return value.node(); }
 
+  Operation operation;
   ::tensorflow::Output value;
 };
 
@@ -3421,6 +3486,7 @@ class TensorArrayScatter {
   operator ::tensorflow::Input() const { return flow_out; }
   ::tensorflow::Node* node() const { return flow_out.node(); }
 
+  Operation operation;
   ::tensorflow::Output flow_out;
 };
 
@@ -3441,6 +3507,7 @@ class TensorArraySize {
   operator ::tensorflow::Input() const { return size; }
   ::tensorflow::Node* node() const { return size.node(); }
 
+  Operation operation;
   ::tensorflow::Output size;
 };
 
@@ -3483,6 +3550,7 @@ class TensorArraySplit {
   operator ::tensorflow::Input() const { return flow_out; }
   ::tensorflow::Node* node() const { return flow_out.node(); }
 
+  Operation operation;
   ::tensorflow::Output flow_out;
 };
 
@@ -3605,6 +3673,7 @@ class TensorArray {
     return Attrs().TensorArrayName(x);
   }
 
+  Operation operation;
   ::tensorflow::Output handle;
   ::tensorflow::Output flow;
 };
@@ -3629,6 +3698,7 @@ class TensorArrayWrite {
   operator ::tensorflow::Input() const { return flow_out; }
   ::tensorflow::Node* node() const { return flow_out.node(); }
 
+  Operation operation;
   ::tensorflow::Output flow_out;
 };
 
@@ -3698,6 +3768,7 @@ class Unstage {
     return Attrs().SharedName(x);
   }
 
+  Operation operation;
   ::tensorflow::OutputList values;
 };
 
