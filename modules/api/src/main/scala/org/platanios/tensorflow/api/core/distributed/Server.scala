@@ -55,16 +55,38 @@ class Server private[distributed] (
     start()
 
   /** Starts this server. */
-  def start(): Unit = NativeServer.startServer(nativeHandle)
+  def start(): Unit = NativeHandleLock.synchronized {
+    NativeServer.startServer(nativeHandle)
+  }
 
   /** Stops this server. */
-  def stop(): Unit = NativeServer.stopServer(nativeHandle)
+  def stop(): Unit = NativeHandleLock.synchronized {
+    NativeServer.stopServer(nativeHandle)
+  }
 
   /** Blocks until the server has shut down. This method currently blocks forever. */
-  def join(): Unit = NativeServer.joinServer(nativeHandle)
+  def join(): Unit = {
+    var handle = 0L
+    NativeHandleLock.synchronized {
+      handle = nativeHandle
+      if (handle != 0)
+        nativeHandleWrapper.referenceCount += 1
+    }
+    try {
+      NativeServer.joinServer(nativeHandle)
+    } finally {
+      NativeHandleLock.synchronized {
+        if (handle != 0)
+          nativeHandleWrapper.referenceCount -= 1
+        NativeHandleLock.notifyAll()
+      }
+    }
+  }
 
   /** Returns the target for a [[Session]] to connect to this server. */
-  def target: String = NativeServer.target(nativeHandle)
+  def target: String = NativeHandleLock.synchronized {
+    NativeServer.target(nativeHandle)
+  }
 
   /** Constructs and returns a [[ServerDef]] object that represents this session.
     *
@@ -94,8 +116,13 @@ object Server {
     * @return Created server.
     */
   def apply(
-      clusterConfig: ClusterConfig, job: String = null, task: Int = -1, protocol: Protocol = GRPC,
-      sessionConfig: SessionConfig = null, startImmediately: Boolean = true): Server = {
+      clusterConfig: ClusterConfig,
+      job: String = null,
+      task: Int = -1,
+      protocol: Protocol = GRPC,
+      sessionConfig: SessionConfig = null,
+      startImmediately: Boolean = true
+  ): Server = {
     val serverDef: ServerDef = {
       val _job = {
         val jobs = clusterConfig.jobs
@@ -123,10 +150,11 @@ object Server {
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
       nativeHandleWrapper.Lock.synchronized {
-        if (nativeHandleWrapper.handle != 0) {
-          NativeServer.deleteServer(nativeHandleWrapper.handle)
-          nativeHandleWrapper.handle = 0
-        }
+        NativeServer.stopServer(nativeHandleWrapper.handle)
+        while (nativeHandleWrapper.referenceCount > 0)
+          nativeHandleWrapper.Lock.wait()
+        NativeServer.deleteServer(nativeHandleWrapper.handle)
+        nativeHandleWrapper.handle = 0
       }
     }
     val server = new Server(serverDef, startImmediately, nativeHandleWrapper, closeFn)

@@ -17,65 +17,52 @@
 #include "server.h"
 #include "utilities.h"
 
-#include "tensorflow/c/tf_status_helper.h"
-#include "tensorflow/core/distributed_runtime/server_lib.h"
-#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/c/c_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Server_00024_newServer(
     JNIEnv* env, jobject object, jbyteArray server_def_proto) {
-  tensorflow::ServerDef server_def;
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
   jbyte* c_server_def_proto = env->GetByteArrayElements(server_def_proto, nullptr);
-  tensorflow::Status status;
-  if (!server_def.ParseFromArray(c_server_def_proto, static_cast<size_t>(env->GetArrayLength(server_def_proto))))
-    status = tensorflow::errors::InvalidArgument("Unparsable ServerDef proto.");
-  std::unique_ptr<tensorflow::ServerInterface>* server;
-  if (status.ok())
-    status = tensorflow::NewServer(server_def, server);
-  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> c_status(TF_NewStatus(), TF_DeleteStatus);
+  TF_Server* server = TF_NewServer(
+    c_server_def_proto, static_cast<size_t>(env->GetArrayLength(server_def_proto)), status.get());
   if (server_def_proto != nullptr)
     env->ReleaseByteArrayElements(server_def_proto, c_server_def_proto, JNI_ABORT);
-  tensorflow::Set_TF_Status_from_Status(c_status.get(), status);
-  CHECK_STATUS(env, c_status.get(), 0);
-  return reinterpret_cast<jlong>(server->release());
+  CHECK_STATUS(env, status.get(), 0);
+  return reinterpret_cast<jlong>(server);
 }
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_Server_00024_target(
     JNIEnv* env, jobject object, jlong server_handle) {
-  typedef tensorflow::ServerInterface ServerInterface;
-  REQUIRE_HANDLE(server, ServerInterface, server_handle, nullptr);
-  return env->NewStringUTF(server->target().c_str());
+  REQUIRE_HANDLE(server, TF_Server, server_handle, nullptr);
+  return env->NewStringUTF(TF_ServerTarget(server));
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Server_00024_startServer(
     JNIEnv* env, jobject object, jlong server_handle) {
-  typedef tensorflow::ServerInterface ServerInterface;
-  REQUIRE_HANDLE(server, ServerInterface, server_handle, void());
+  REQUIRE_HANDLE(server, TF_Server, server_handle, void());
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  tensorflow::Set_TF_Status_from_Status(status.get(), server->Start());
-  throw_exception_if_not_ok(env, status.get());
+  TF_ServerStart(server, status.get());
+  CHECK_STATUS(env, status.get(), void());
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Server_00024_stopServer(
     JNIEnv* env, jobject object, jlong server_handle) {
-  typedef tensorflow::ServerInterface ServerInterface;
-  REQUIRE_HANDLE(server, ServerInterface, server_handle, void());
+  REQUIRE_HANDLE(server, TF_Server, server_handle, void());
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  tensorflow::Set_TF_Status_from_Status(status.get(), server->Stop());
-  throw_exception_if_not_ok(env, status.get());
+  TF_ServerStop(server, status.get());
+  CHECK_STATUS(env, status.get(), void());
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Server_00024_joinServer(
     JNIEnv* env, jobject object, jlong server_handle) {
-  typedef tensorflow::ServerInterface ServerInterface;
-  REQUIRE_HANDLE(server, ServerInterface, server_handle, void());
+  REQUIRE_HANDLE(server, TF_Server, server_handle, void());
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  tensorflow::Set_TF_Status_from_Status(status.get(), server->Join());
-  throw_exception_if_not_ok(env, status.get());
+  TF_ServerJoin(server, status.get());
+  CHECK_STATUS(env, status.get(), void());
 }
 
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Server_00024_deleteServer(
     JNIEnv* env, jobject object, jlong server_handle) {
-  typedef tensorflow::ServerInterface ServerInterface;
-  REQUIRE_HANDLE(server, ServerInterface, server_handle, void());
-  delete server;
+  REQUIRE_HANDLE(server, TF_Server, server_handle, void());
+  TF_DeleteServer(server);
 }
