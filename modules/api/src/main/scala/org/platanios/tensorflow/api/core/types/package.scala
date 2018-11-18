@@ -144,6 +144,7 @@ package object types {
   //endregion Union Types Support
 
   type FloatOrDouble = Union[Float]#or[Double]#create
+  type HalfOrFloat = Union[Half]#or[Float]#create
   type HalfOrFloatOrDouble = Union[Half]#or[Float]#or[Double]#create
   type TruncatedHalfOrFloatOrDouble = Union[TruncatedHalf]#or[Float]#or[Double]#create
   type TruncatedHalfOrHalfOrFloat = Union[TruncatedHalf]#or[Half]#or[Float]#create
@@ -154,6 +155,7 @@ package object types {
   type IntOrLongOrUByte = Union[Int]#or[Long]#or[UByte]#create
   type SignedInteger = Union[Byte]#or[Short]#or[Int]#or[Long]#create
   type UnsignedInteger = Union[UByte]#or[UShort]#or[UInt]#or[ULong]#create
+  type UByteOrUShort = Union[UByte]#or[UShort]#create
   type Integer = Union[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
   type StringOrInteger = Union[String]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
   type Real = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
@@ -164,6 +166,7 @@ package object types {
   type BooleanOrNumeric = Union[Boolean]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
 
   type IsFloatOrDouble[T] = Contains[T, FloatOrDouble]
+  type IsHalfOrFloat[T] = Contains[T, HalfOrFloat]
   type IsHalfOrFloatOrDouble[T] = Contains[T, HalfOrFloatOrDouble]
   type IsTruncatedHalfOrFloatOrDouble[T] = Contains[T, TruncatedHalfOrFloatOrDouble]
   type IsTruncatedHalfOrHalfOrFloat[T] = Contains[T, TruncatedHalfOrHalfOrFloat]
@@ -173,6 +176,7 @@ package object types {
   type IsIntOrLongOrHalfOrFloatOrDouble[T] = Contains[T, IntOrLongOrHalfOrFloatOrDouble]
   type IsIntOrLongOrUByte[T] = Contains[T, IntOrLongOrUByte]
   type IsIntOrUInt[T] = Contains[T, Integer]
+  type IsUByteOrUShort[T] = Contains[T, UByteOrUShort]
   type IsStringOrIntOrUInt[T] = Contains[T, StringOrInteger]
   type IsReal[T] = Contains[T, Real]
   type IsComplex[T] = Contains[T, Complex]
@@ -183,6 +187,10 @@ package object types {
 
   object IsFloatOrDouble {
     def apply[T: IsFloatOrDouble]: IsFloatOrDouble[T] = implicitly[IsFloatOrDouble[T]]
+  }
+
+  object IsHalfOrFloat {
+    def apply[T: IsHalfOrFloat]: IsHalfOrFloat[T] = implicitly[IsHalfOrFloat[T]]
   }
 
   object IsHalfOrFloatOrDouble {
@@ -219,6 +227,10 @@ package object types {
 
   object IsIntOrUInt {
     def apply[T: IsIntOrUInt]: IsIntOrUInt[T] = implicitly[IsIntOrUInt[T]]
+  }
+
+  object IsUByteOrUShort {
+    def apply[T: IsUByteOrUShort]: IsUByteOrUShort[T] = implicitly[IsUByteOrUShort[T]]
   }
 
   object IsStringOrIntOrUInt {
