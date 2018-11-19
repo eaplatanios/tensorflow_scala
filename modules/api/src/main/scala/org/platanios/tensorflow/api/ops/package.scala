@@ -82,6 +82,7 @@ package object ops {
     object data extends ops.data.API
     object image extends Image
     object metrics extends ops.metrics.API
+    object sparse extends Sparse
     object train extends training.API
 
     object summary extends Summary {

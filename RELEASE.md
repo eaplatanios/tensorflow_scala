@@ -2,20 +2,24 @@
 
 Other new features include:
 
-  - `data` module:
-    - Added support for `Dataset.shuffleAndRepeat`.
-  - `optimizers` module:
-    - Added support for the Adafactor optimizer.
-    - Renamed `SqrtDecay` to `RSqrtDecay` which is more appropriate.
-  - `math` module:
-    - Added support for `batchGather`.
-    - Added support for bitwise ops.
-  - `rnn` module:
-    - Simplified the attention mechanisms functionality so that it is 
-      now not required to tile memory tensors for beam search outside 
-      the beam search decoder.
-  - Moved the `seq2seq` module to a separate repository (that of 
-    [Symphony Machine Translation](https://github.com/eaplatanios/symphony-mt)).
+  - `ops` module:
+    - Added a new ops namespace, `sparse`, that includes all sparse ops.
+    - Added support for `sparse.reorder` and `sparse.merge`.
+    - Added support for parsing TF records.
+    - `data` module:
+      - Added support for `Dataset.shuffleAndRepeat`.
+    - `optimizers` module:
+      - Added support for the Adafactor optimizer.
+      - Renamed `SqrtDecay` to `RSqrtDecay` which is more appropriate.
+    - `math` module:
+      - Added support for `batchGather`.
+      - Added support for bitwise ops.
+    - `rnn` module:
+      - Simplified the attention mechanisms functionality so that it is
+        now not required to tile memory tensors for beam search outside
+        the beam search decoder.
+    - Moved the `seq2seq` module to a separate repository (that of
+      [Symphony Machine Translation](https://github.com/eaplatanios/symphony-mt)).
 
 # 0.4.0 More Static Data Types
 

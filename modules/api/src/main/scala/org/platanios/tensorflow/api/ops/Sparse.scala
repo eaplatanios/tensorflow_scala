@@ -15,8 +15,10 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.core.types.{TF, IsNumeric, IsReal}
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
+import org.platanios.tensorflow.api.core.types.{IsIntOrLong, IsNumeric, IsReal, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Contains functions for constructing ops related to sparse tensors.
   *
@@ -34,7 +36,7 @@ trait Sparse {
     * @param  name      Name for the created op.
     * @return Created op output.
     */
-  def sparseAdd[T: TF : IsNumeric, TR: TF : IsReal](
+  def add[T: TF : IsNumeric, TR: TF : IsReal](
       x: SparseOutput[T],
       y: SparseOutput[T],
       threshold: Output[TR],
@@ -55,7 +57,7 @@ trait Sparse {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def sparseDenseAdd[T: TF : IsNumeric](
+  def denseAdd[T: TF : IsNumeric](
       x: SparseOutput[T],
       y: Output[T],
       name: String = "SparseDenseAdd"
@@ -65,6 +67,71 @@ trait Sparse {
       name = name,
       input = (x, y)
     ).build().output
+  }
+
+  /** $OpDocSparseReorder
+    *
+    * @group SparseOps
+    * @param  sparseInput Sparse input tensor.
+    * @param  name        Name prefix for the created ops.
+    * @return Sparse tensor with the same shape as `sparseInput`, but in canonical ordering.
+    */
+  def reorder[T: TF](
+      sparseInput: SparseOutput[T],
+      name: String = "SparseReorder"
+  ): SparseOutput[T] = {
+    Op.nameScope(name) {
+      val (reorderedIndices, reorderedValues) = Op.Builder[SparseOutput[T], (Output[Long], Output[T])](
+        opType = "SparseReorder",
+        name = name,
+        input = sparseInput
+      ).build().output
+      if (sparseInput.shape.isFullyDefined)
+        SparseTensor(reorderedIndices, reorderedValues, sparseInput.shape.toOutput)
+      else
+        SparseTensor(reorderedIndices, reorderedValues, Basic.identity(sparseInput.denseShape))
+    }
+  }
+
+  /** $OpDocSparseMerge
+    *
+    * @group SparseOps
+    * @param  sparseIndices Sparse tensors containing the sparse indices.
+    * @param  sparseValues  Sparse tensor of any type.
+    * @param  depths        Sequence of tensors containing the new sizes for the last dimensions, with
+    *                       `0 <= sparseIndices(i).values < depths(i)`, for all `i`.
+    * @param  alreadySorted Boolean that indicates whether the per-batch values in `sparseValues` are already sorted.
+    *                       If so, sorting is skipped.
+    * @param  name          Name prefix for the created ops.
+    * @return Sparse tensor with the same shape as `sparseInput`, but in canonical ordering.
+    */
+  @throws[InvalidArgumentException]
+  def merge[T: TF : IsNumeric, I: TF: IsIntOrLong](
+      sparseIndices: Seq[SparseOutput[I]],
+      sparseValues: SparseOutput[T],
+      depths: Seq[Tensor[Long]],
+      alreadySorted: Boolean = false,
+      name: String = "SparseMerge"
+  ): SparseOutput[T] = {
+    if (sparseIndices.length != depths.length)
+      throw InvalidArgumentException("The provided 'sparseIndices' and 'depths' must have the same length.")
+    Op.nameScope(name) {
+      val indices = sparseIndices.map(_.values.toLong.expandDims(axis = 1))
+
+      // To obtain the new indices, we slice off the last dimension of the sparse indices,
+      // and then we tack on the indices.
+      val indicesColumnsToPreserve = sparseIndices.head.indices(::, 0 :: -1)
+
+      val result = SparseOutput(
+        indices = Basic.concatenate(indicesColumnsToPreserve +: indices, axis = 1),
+        values = sparseValues.values,
+        denseShape = Basic.concatenate(sparseIndices.head.denseShape(0 :: -1) +: depths.map(_.toOutput), axis = 0))
+
+      if (alreadySorted)
+        result
+      else
+        reorder(result)
+    }
   }
 }
 
@@ -102,7 +169,7 @@ object Sparse extends Sparse {
           threshold: Output[TR],
           name: String = "SparseAdd"
       )(implicit ev: IsNumeric[T]): SparseOutput[T] = {
-        Sparse.sparseAdd(sparseOutput, other, threshold, name)
+        Sparse.add(sparseOutput, other, threshold, name)
       }
 
       /** $OpDocSparseSparseDenseAdd
@@ -116,7 +183,7 @@ object Sparse extends Sparse {
           other: Output[T],
           name: String = "SparseDenseAdd"
       )(implicit ev: IsNumeric[T]): Output[T] = {
-        Sparse.sparseDenseAdd(sparseOutput, other, name)
+        Sparse.denseAdd(sparseOutput, other, name)
       }
     }
   }
@@ -137,7 +204,79 @@ object Sparse extends Sparse {
     *   The `sparseDenseAdd` op adds a dense tensor to a sparse tensor, producing a dense tensor.
     *
     *   The input sparse tensor's indices are not required to be ordered in any particular way.
-    *
+    * 
+    * @define OpDocSparseReorder
+    *   The `sparse.reorder` op reorders a sparse tensor into the canonical, row-major ordering.
+    *   
+    *   Note that by convention, all sparse ops preserve the canonical ordering along increasing dimension number. The 
+    *   only time ordering can be violated is during manual manipulation of the indices and values to add entries. 
+    *   Reordering does not affect the shape of the sparse tensor. For example, if `sparseInput` has shape `[4, 5]` and 
+    *   `indices` / `values`:
+    *   {{{
+    *     [0, 3]: b
+    *     [0, 1]: a
+    *     [3, 1]: d
+    *     [2, 0]: c
+    *   }}}
+    *   then the output will be a sparse tensor with shape `[4, 5]` and `indices` / `values`:
+    *   {{{
+    *     [0, 1]: a
+    *     [0, 3]: b
+    *     [2, 0]: c
+    *     [3, 1]: d
+    *   }}}
+    * 
+    * @define OpDocSparseMerge
+    *   The `sparse.merge` op combines a batch of feature indices and values into a single sparse tensor.
+    * 
+    *   The most common use case for this op occurs when feature indices and their corresponding values are stored in 
+    *   `Example` protos on disk. The `parseExample` op will return a batch of indices and a batch of values, and this 
+    *   op joins them into a single logical sparse tensor which has the following properties:
+    * 
+    *     - `indices` is equivalent to `sparseIndices.indices` with the last dimension discarded 
+    *        and replaced by `sparseIndices.values`.
+    *     - `values` is simply `sparseValues.values`.
+    *     - If `sparseIndices.denseShape = [D0, D1, ..., Dn, K]`, then `output.shape = [D0, D1, ..., Dn, depths]`.
+    * 
+    *   For example, consider the following feature vectors:
+    *   {{{
+    *     vector1 = [-3, 0, 0, 0, 0, 0]
+    *     vector2 = [ 0, 1, 0, 4, 1, 0]
+    *     vector3 = [ 5, 0, 0, 9, 0, 0]
+    *   }}}
+    *   These might be stored sparsely in the following `Example` protos by storing only the feature indices (column 
+    *   number if the vectors are treated as a single matrix) of the non-zero elements and their corresponding values:
+    *   {{{
+    *     examples = [Example(features={
+    *                     "ids": Feature(int64_list=Int64List(value=[0])),
+    *                     "values": Feature(float_list=FloatList(value=[-3]))}),
+    *                 Example(features={
+    *                     "ids": Feature(int64_list=Int64List(value=[1, 4, 3])),
+    *                     "values": Feature(float_list=FloatList(value=[1, 1, 4]))}),
+    *                 Example(features={
+    *                     "ids": Feature(int64_list=Int64List(value=[0, 3])),
+    *                     "values": Feature(float_list=FloatList(value=[5, 9]))})]
+    *   }}}
+    *   The result of calling `parseExample` on these examples will produce a map with entries for `indices` and 
+    *   `values`. Passing those two objects to this op along with `depths = Seq(6)`, will produce a sparse tensor that
+    *   sparsely represents all three instances. Namely, the `indices` property will contain the coordinates of the 
+    *   non-zero entries in the feature matrix (the first dimension is the row number in the matrix, i.e., the index 
+    *   within the batch, and the second dimension is the column number, i.e., the feature id); `values` will contain 
+    *   the actual values. `shape` will be the shape of the original matrix, i.e., `(3, 6)`. For our example above, the 
+    *   output will be equal to:
+    *   {{{
+    *     SparseOutput(
+    *       indices = [[0, 0], [1, 1], [1, 3], [1, 4], [2, 0], [2, 3]],
+    *       values = [-3, 1, 4, 1, 5, 9],
+    *       denseShape = [3, 6])
+    *   }}}
+    *   This method generalizes to higher-dimensions by simply providing a sequence for both the `sparseIndices` as well 
+    *   as the `depths`. In this case, the resulting sparse tensor has the following properties:
+    * 
+    *     - `indices` is equivalent to `sparseIndices.head.indices` with the last dimension discarded 
+    *        and replaced by `sparseIndices(0).values`, `sparseIndices(1).values`, ....
+    *     - `values` is simply `sparseValues.values`.
+    *     - If `sparseIndices.denseShape = [D0, D1, ..., Dn, K]`, then `output.shape = [D0, D1, ..., Dn] + depths`.
     */
   private[ops] trait Documentation
 }

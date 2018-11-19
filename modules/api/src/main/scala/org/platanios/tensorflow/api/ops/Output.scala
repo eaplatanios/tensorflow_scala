@@ -564,11 +564,11 @@ object Output {
   }
 
   def constant[T: TF](
-      tensor: Tensor[T],
+      value: Tensor[T],
       shape: Shape = null,
       name: String = "Constant"
   ): Output[T] = {
-    Basic.constant[T](tensor, shape, name)
+    Basic.constant[T](value, shape, name)
   }
 
   def guaranteeConstant[T: TF](

@@ -699,6 +699,10 @@ object Tensor {
     Tensor.allocate[T](Shape(0))
   }
 
+  def empty[T](dataType: DataType[T]): Tensor[T] = {
+    Tensor.allocate[T](Shape(0))(TF.fromDataType(dataType))
+  }
+
   def apply[T: TF](): Tensor[T] = {
     empty[T]
   }
