@@ -177,7 +177,7 @@ trait Parsing {
       name: String = "ParseExample"
   )(implicit ev: Parsing.Features.Aux[T, R]): R = {
     Op.nameScope(name) {
-      val rawParameters = ev.toRawParameters(ev.prependBatchDimension(features, parsingSingleExample = false))
+      val rawParameters = ev.toRawParameters(features)
       val output = Op.Builder[(Output[String], Output[String], Seq[Output[String]], Seq[Output[String]], Seq[Output[Any]]), Seq[Output[Any]]](
         opType = "ParseExample",
         name = name,
@@ -193,6 +193,7 @@ trait Parsing {
                 name = s"Padding${Op.normalizeNameScope(default._1)}")(TF.fromDataType(default._2.dataType))
             }))
       ).setAttribute("sparse_types", rawParameters.sparseTypes.toArray)
+          .setAttribute("Tdense", rawParameters.denseTypes.toArray)
           .setAttribute("dense_shapes", rawParameters.denseShapes.toArray)
           .build().output
       val (sparseIndices, sparseValues, sparseShapes, denseValues) = {
@@ -215,7 +216,7 @@ trait Parsing {
       name: String = "ParseSingleExample"
   )(implicit ev: Parsing.Features.Aux[T, R]): R = {
     Op.nameScope(name) {
-      val rawParameters = ev.toRawParameters(ev.prependBatchDimension(features, parsingSingleExample = true))
+      val rawParameters = ev.toRawParameters(features)
       val output = Op.Builder[(Output[String], Seq[Output[Any]]), Seq[Output[Any]]](
         opType = "ParseSingleExample",
         name = name,
@@ -230,6 +231,7 @@ trait Parsing {
           .setAttribute("sparse_keys", rawParameters.sparseKeys.toArray)
           .setAttribute("dense_keys", rawParameters.denseKeys.toArray)
           .setAttribute("sparse_types", rawParameters.sparseTypes.toArray)
+          .setAttribute("Tdense", rawParameters.denseTypes.toArray)
           .setAttribute("dense_shapes", rawParameters.denseShapes.toArray)
           .build().output
       val (sparseIndices, sparseValues, sparseShapes, denseValues) = {
@@ -267,31 +269,6 @@ object Parsing extends Parsing {
     require(defaultValue.isEmpty || defaultValue.get.shape == shape,
       s"The default value shape (${defaultValue.get.shape}) does not match the expected $shape.")
   }
-
-  /** Configuration for parsing a fixed-length sequence input feature.
-    *
-    * The resulting [[Tensor]] from parsing a single `Example` or `SequenceExample` has static `shape` `[None] + shape`
-    * and the specified `dataType`. The resulting [[Tensor]] from parsing `batchSize` many `Example`s has static `shape`
-    * `[batchSize, None] + shape` and the specified `dataType`. The entries in the batch from different `Example`s will
-    * be padded with `defaultValue` to the maximum length present in the batch.
-    *
-    * To treat sparse input as dense, set `allowMissing` to `true`. Otherwise, the parsing functions will fail on any
-    * examples missing this feature.
-    *
-    * @param  shape        Shape of the input feature.
-    * @param  allowMissing Boolean value specifying whether to allow this feature to be missing from a feature list
-    *                      item. It is available only for parsing `SequenceExample`s, but not for parsing `Example`s.
-    * @param  defaultValue Scalar value to be used to pad multiple `Example`s to their maximum length. It is irrelevant
-    *                      for parsing a single `Example` or `SequenceExample`. Defaults to `""` for data type
-    *                      [[STRING]] and to `0` otherwise.
-    * @tparam T Data type of the input feature.
-    */
-  case class FixedLengthSequenceFeature[T: TF](
-      key: String,
-      shape: Shape,
-      allowMissing: Boolean = false,
-      defaultValue: Option[Tensor[T]] = None
-  ) extends Feature
 
   /** Configuration for parsing a variable-length input feature.
     *
@@ -364,9 +341,6 @@ object Parsing extends Parsing {
     type Result
 
     @throws[InvalidArgumentException]
-    def prependBatchDimension(features: T, parsingSingleExample: Boolean): T
-
-    @throws[InvalidArgumentException]
     def toRawParameters(features: T): Features.RawParameters
 
     def fromParsed(
@@ -386,71 +360,18 @@ object Parsing extends Parsing {
         override type Result = Output[T]
 
         @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: FixedLengthFeature[T],
-            parsingSingleExample: Boolean
-        ): FixedLengthFeature[T] = {
-          features.copy()
-        }
-
-        @throws[InvalidArgumentException]
         override def toRawParameters(features: FixedLengthFeature[T]): RawParameters = {
-          if (features.shape.rank > -1 && features.shape(0) == -1) {
-            throw InvalidArgumentException(
-              s"First dimension of the '${features.key}' feature has unknown size. " +
-                  "Consider using 'FixedLengthSequenceFeature' instead.")
-          }
-          if (!features.shape.isFullyDefined) {
-            throw InvalidArgumentException(
-              s"All dimensions of the '${features.key}' feature have to be of known size, " +
-                  s"but where '${features.shape}' instead.")
-          }
-          RawParameters(
+          prepareRawParameters(Seq(RawParameters(
             denseKeys = Seq(features.key),
             denseTypes = Seq(TF[T].dataType),
             denseShapes = Seq(features.shape),
             denseDefaults = features.defaultValue
                 .map(v => ListMap(features.key -> v.asInstanceOf[Tensor[Any]]))
-                .getOrElse(ListMap.empty))
+                .getOrElse(ListMap.empty))))
         }
 
         override def fromParsed(
             features: FixedLengthFeature[T],
-            sparseParsed: Map[String, SparseOutput[Any]],
-            denseParsed: Map[String, Output[Any]]
-        ): Output[T] = {
-          denseParsed(features.key).asInstanceOf[Output[T]]
-        }
-      }
-    }
-
-    implicit def fromFixedLengthSequenceFeature[T: TF]: Features.Aux[FixedLengthSequenceFeature[T], Output[T]] = {
-      new Features[FixedLengthSequenceFeature[T]] {
-        override type Result = Output[T]
-
-        @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: FixedLengthSequenceFeature[T],
-            parsingSingleExample: Boolean
-        ): FixedLengthSequenceFeature[T] = {
-          if (!features.allowMissing && !parsingSingleExample)
-            throw InvalidArgumentException("'FixedLengthSequenceFeature' requires 'allowMissing' to be set to 'true'.")
-          features.copy(shape = Shape(-1) ++ features.shape)
-        }
-
-        @throws[InvalidArgumentException]
-        override def toRawParameters(features: FixedLengthSequenceFeature[T]): RawParameters = {
-          RawParameters(
-            denseKeys = Seq(features.key),
-            denseTypes = Seq(TF[T].dataType),
-            denseShapes = Seq(features.shape),
-            denseDefaults = features.defaultValue
-                .map(v => ListMap(features.key -> v.asInstanceOf[Tensor[Any]]))
-                .getOrElse(ListMap.empty))
-        }
-
-        override def fromParsed(
-            features: FixedLengthSequenceFeature[T],
             sparseParsed: Map[String, SparseOutput[Any]],
             denseParsed: Map[String, Output[Any]]
         ): Output[T] = {
@@ -464,18 +385,10 @@ object Parsing extends Parsing {
         override type Result = SparseOutput[T]
 
         @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: VariableLengthFeature[T],
-            parsingSingleExample: Boolean
-        ): VariableLengthFeature[T] = {
-          features.copy()
-        }
-
-        @throws[InvalidArgumentException]
         override def toRawParameters(features: VariableLengthFeature[T]): RawParameters = {
-          RawParameters(
+          prepareRawParameters(Seq(RawParameters(
             sparseKeys = Seq(features.key),
-            sparseTypes = Seq(TF[T].dataType))
+            sparseTypes = Seq(TF[T].dataType))))
         }
 
         override def fromParsed(
@@ -491,14 +404,6 @@ object Parsing extends Parsing {
     implicit def fromSparseFeature[T: TF]: Features.Aux[SparseFeature[T], SparseOutput[T]] = {
       new Features[SparseFeature[T]] {
         override type Result = SparseOutput[T]
-
-        @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: SparseFeature[T],
-            parsingSingleExample: Boolean
-        ): SparseFeature[T] = {
-          features.copy()
-        }
 
         @throws[InvalidArgumentException]
         override def toRawParameters(features: SparseFeature[T]): RawParameters = {
@@ -523,9 +428,9 @@ object Parsing extends Parsing {
             sparseKeys.append(features.valueKey)
             sparseTypes.append(valueDataType)
           }
-          RawParameters(
+          prepareRawParameters(Seq(RawParameters(
             sparseKeys = sparseKeys,
-            sparseTypes = sparseTypes)
+            sparseTypes = sparseTypes)))
         }
 
         override def fromParsed(
@@ -548,16 +453,8 @@ object Parsing extends Parsing {
         override type Result = Option[R]
 
         @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: Option[T],
-            parsingSingleExample: Boolean
-        ): Option[T] = {
-          features.map(f => ev.prependBatchDimension(f, parsingSingleExample))
-        }
-
-        @throws[InvalidArgumentException]
         override def toRawParameters(features: Option[T]): RawParameters = {
-          features.map(ev.toRawParameters).getOrElse(RawParameters())
+          features.map(ev.toRawParameters).getOrElse(prepareRawParameters(Seq(RawParameters())))
         }
 
         override def fromParsed(
@@ -575,16 +472,8 @@ object Parsing extends Parsing {
         override type Result = Seq[R]
 
         @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: Seq[T],
-            parsingSingleExample: Boolean
-        ): Seq[T] = {
-          features.map(f => ev.prependBatchDimension(f, parsingSingleExample))
-        }
-
-        @throws[InvalidArgumentException]
         override def toRawParameters(features: Seq[T]): RawParameters = {
-          mergeRawParameters(features.map(ev.toRawParameters))
+          prepareRawParameters(features.map(ev.toRawParameters))
         }
 
         override def fromParsed(
@@ -602,16 +491,8 @@ object Parsing extends Parsing {
         override type Result = Map[K, R]
 
         @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: Map[K, T],
-            parsingSingleExample: Boolean
-        ): Map[K, T] = {
-          features.mapValues(f => ev.prependBatchDimension(f, parsingSingleExample))
-        }
-
-        @throws[InvalidArgumentException]
         override def toRawParameters(features: Map[K, T]): RawParameters = {
-          mergeRawParameters(features.values.toSeq.map(ev.toRawParameters))
+          prepareRawParameters(features.values.toSeq.map(ev.toRawParameters))
         }
 
         override def fromParsed(
@@ -629,16 +510,8 @@ object Parsing extends Parsing {
         override type Result = HNil
 
         @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: HNil,
-            parsingSingleExample: Boolean
-        ): HNil = {
-          HNil
-        }
-
-        @throws[InvalidArgumentException]
         override def toRawParameters(features: HNil): RawParameters = {
-          RawParameters()
+          prepareRawParameters(Seq(RawParameters()))
         }
 
         override def fromParsed(
@@ -659,17 +532,8 @@ object Parsing extends Parsing {
         override type Result = HR :: TR
 
         @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: HT :: TT,
-            parsingSingleExample: Boolean
-        ): HT :: TT = {
-          evH.value.prependBatchDimension(features.head, parsingSingleExample) ::
-              evT.value.prependBatchDimension(features.tail, parsingSingleExample)
-        }
-
-        @throws[InvalidArgumentException]
         override def toRawParameters(features: HT :: TT): RawParameters = {
-          mergeRawParameters(Seq(evH.value.toRawParameters(features.head), evT.value.toRawParameters(features.tail)))
+          prepareRawParameters(Seq(evH.value.toRawParameters(features.head), evT.value.toRawParameters(features.tail)))
         }
 
         override def fromParsed(
@@ -690,14 +554,6 @@ object Parsing extends Parsing {
     ): Features.Aux[PT, PR] = {
       new Features[PT] {
         override type Result = PR
-
-        @throws[InvalidArgumentException]
-        override def prependBatchDimension(
-            features: PT,
-            parsingSingleExample: Boolean
-        ): PT = {
-          genT.from(evT.value.prependBatchDimension(genT.to(features), parsingSingleExample))
-        }
 
         @throws[InvalidArgumentException]
         override def toRawParameters(features: PT): RawParameters = {
@@ -726,7 +582,7 @@ object Parsing extends Parsing {
         denseDefaults: ListMap[String, Tensor[Any]] = ListMap.empty)
 
     @throws[InvalidArgumentException]
-    private[Parsing] def mergeRawParameters(
+    private[Parsing] def prepareRawParameters(
         rawParameters: Seq[RawParameters]
     ): RawParameters = {
       val sparseKeys = mutable.ListBuffer.empty[String]
@@ -799,7 +655,7 @@ object Parsing extends Parsing {
           // For a variable stride dense shape, the default value should be a scalar padding value.
           default match {
             case None =>
-              Tensor.zeros(dataType, Shape())
+              default = Some(Tensor.zeros(dataType, Shape()))
             case Some(value) =>
               // Reshape to a scalar to ensure the user gets an error if they provide a tensor that is not intended to
               // used as a padding value (i.e., containing zero or more than 2 elements).
