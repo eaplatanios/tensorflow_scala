@@ -16,10 +16,15 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.Shape
+import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
 
+import shapeless._
+import shapeless.ops.hlist.Tupler
+
 import scala.collection.immutable.ListMap
+import scala.collection.mutable
 
 /** Contains functions for constructing ops related to parsing data.
   *
@@ -161,16 +166,89 @@ trait Parsing {
       input = jsonExamples
     ).build().output
   }
+
+  // TODO: [OPS] [PARSING] Document the following two methods.
+  // TODO: [OPS] [PARSING] Add support for parsing `SequenceExample`s.
+
+  def parseExample[T, R](
+      serialized: Output[String],
+      features: T,
+      debugNames: Output[String] = "",
+      name: String = "ParseExample"
+  )(implicit ev: Parsing.Features.Aux[T, R]): R = {
+    Op.nameScope(name) {
+      val rawParameters = ev.toRawParameters(ev.prependBatchDimension(features, parsingSingleExample = false))
+      val output = Op.Builder[(Output[String], Output[String], Seq[Output[String]], Seq[Output[String]], Seq[Output[Any]]), Seq[Output[Any]]](
+        opType = "ParseExample",
+        name = name,
+        input = (
+            serialized,
+            debugNames,
+            rawParameters.sparseKeys.map(key => Output.constant[String](key, name = s"SparseKeys/$key")),
+            rawParameters.denseKeys.map(key => Output.constant[String](key, name = s"DenseKeys/$key")),
+            rawParameters.denseDefaults.toSeq.map(default => {
+
+              Output.constant(
+                value = default._2,
+                name = s"Padding${Op.normalizeNameScope(default._1)}")(TF.fromDataType(default._2.dataType))
+            }))
+      ).setAttribute("sparse_types", rawParameters.sparseTypes.toArray)
+          .setAttribute("dense_shapes", rawParameters.denseShapes.toArray)
+          .build().output
+      val (sparseIndices, sparseValues, sparseShapes, denseValues) = {
+        val numSparse = rawParameters.sparseKeys.size
+        (output.take(numSparse).map(_.asInstanceOf[Output[Long]]),
+            output.slice(numSparse, 2 * numSparse),
+            output.slice(2 * numSparse, 3 * numSparse).map(_.asInstanceOf[Output[Long]]),
+            output.drop(3 * numSparse))
+      }
+      val sparseComposedValues = (sparseIndices, sparseValues, sparseShapes).zipped.map(SparseOutput(_, _, _))
+      val sparseParsed = rawParameters.sparseKeys.zip(sparseComposedValues).toMap
+      val denseParsed = rawParameters.denseKeys.zip(denseValues).toMap
+      ev.fromParsed(features, sparseParsed, denseParsed)
+    }
+  }
+
+  def parseSingleExample[T, R](
+      serialized: Output[String],
+      features: T,
+      name: String = "ParseSingleExample"
+  )(implicit ev: Parsing.Features.Aux[T, R]): R = {
+    Op.nameScope(name) {
+      val rawParameters = ev.toRawParameters(ev.prependBatchDimension(features, parsingSingleExample = true))
+      val output = Op.Builder[(Output[String], Seq[Output[Any]]), Seq[Output[Any]]](
+        opType = "ParseSingleExample",
+        name = name,
+        input = (
+            serialized,
+            rawParameters.denseDefaults.toSeq.map(default => {
+              Output.constant(
+                value = default._2,
+                name = s"Padding${Op.normalizeNameScope(default._1)}")(TF.fromDataType(default._2.dataType))
+            }))
+      ).setAttribute("num_sparse", rawParameters.sparseKeys.size)
+          .setAttribute("sparse_keys", rawParameters.sparseKeys.toArray)
+          .setAttribute("dense_keys", rawParameters.denseKeys.toArray)
+          .setAttribute("sparse_types", rawParameters.sparseTypes.toArray)
+          .setAttribute("dense_shapes", rawParameters.denseShapes.toArray)
+          .build().output
+      val (sparseIndices, sparseValues, sparseShapes, denseValues) = {
+        val numSparse = rawParameters.sparseKeys.size
+        (output.take(numSparse).map(_.asInstanceOf[Output[Long]]),
+            output.slice(numSparse, 2 * numSparse),
+            output.slice(2 * numSparse, 3 * numSparse).map(_.asInstanceOf[Output[Long]]),
+            output.drop(3 * numSparse))
+      }
+      val sparseComposedValues = (sparseIndices, sparseValues, sparseShapes).zipped.map(SparseOutput(_, _, _))
+      val sparseParsed = rawParameters.sparseKeys.zip(sparseComposedValues).toMap
+      val denseParsed = rawParameters.denseKeys.zip(denseValues).toMap
+      ev.fromParsed(features, sparseParsed, denseParsed)
+    }
+  }
 }
 
 object Parsing extends Parsing {
   sealed trait Feature
-
-  /** Configuration for parsing a variable-length input feature.
-    *
-    * @param  dataType Data type of the input feature.
-    */
-  case class VariableLengthFeature(dataType: DataType[_]) extends Feature
 
   /** Configuration for parsing a fixed-length input feature.
     *
@@ -182,11 +260,12 @@ object Parsing extends Parsing {
     * @tparam T Data type of the input feature.
     */
   case class FixedLengthFeature[T: TF](
+      key: String,
       shape: Shape,
-      defaultValue: Tensor[T] = null
+      defaultValue: Option[Tensor[T]] = None
   ) extends Feature {
-    require(defaultValue == null || defaultValue.shape == shape,
-      s"The default value shape (${defaultValue.shape}) does not match the expected $shape.")
+    require(defaultValue.isEmpty || defaultValue.get.shape == shape,
+      s"The default value shape (${defaultValue.get.shape}) does not match the expected $shape.")
   }
 
   /** Configuration for parsing a fixed-length sequence input feature.
@@ -208,29 +287,39 @@ object Parsing extends Parsing {
     * @tparam T Data type of the input feature.
     */
   case class FixedLengthSequenceFeature[T: TF](
+      key: String,
       shape: Shape,
       allowMissing: Boolean = false,
-      defaultValue: Tensor[T] = null
+      defaultValue: Option[Tensor[T]] = None
+  ) extends Feature
+
+  /** Configuration for parsing a variable-length input feature.
+    *
+    * @param  dataType Data type of the input feature.
+    */
+  case class VariableLengthFeature[T: TF](
+      key: String,
+      dataType: DataType[T]
   ) extends Feature
 
   /** Configuration for parsing a sparse input feature.
     *
     * '''NOTE:''' Preferably use [[VariableLengthFeature]] (possibly in combination with a `SequenceExample`) in order
-    * to parse out [[SparseTensor]]s instead of [[SparseFeature]] due to its simplicity.
+    * to parse [[SparseTensor]]s instead of [[SparseFeature]] due to its simplicity.
     *
     * Closely mimicking the [[SparseTensor]] that will be obtained by parsing an `Example` with a [[SparseFeature]]
     * configuration, a [[SparseFeature]] contains:
     *
     *   - An `indexKey`, which is a sequence of names -- one for each dimension in the resulting [[SparseTensor]], whose
-    *     `indices(i)(dim)` indicating the position of `i`-th value in the `dim` dimension will be equal to the `i`-th
-    *     value in the feature with key names `indexKey(dim)` in the `Example`.
-    *   - A `valueKey`, which is the name of a key for a `Feature` in the `Example`, whose parsed [[Tensor]] will be the
+    *     `indices(i)(j)` indicate the position of the `i`-th value in the `j`-th dimension will be equal to the `i`-th
+    *     value in the feature with key names `indexKey(j)` in the `Example`.
+    *   - A `valueKey`, which is the name of a key for a `Feature` in the `Example`, whose parsed tensor will be the
     *     resulting [[SparseTensor]]'s values.
-    *   - A `dataType`, which is the resulting [[SparseTensor]]'s data type.
+    *   - A `dataType`, which is the resulting sparse tensor's data type.
     *   - A `size`, which is a sequence of integers, matching in length the `indexKey`, and corresponding to the
-    *     resulting [[SparseTensor]]'s dense shape.
+    *     resulting sparse tensor's dense shape.
     *
-    * For example,  we can represent the following 2D [[SparseTensor]]:
+    * For example, we can represent the following 2D sparse tensor:
     * {{{
     *   SparseTensor(
     *     indices = Tensor(Tensor(3, 1), Tensor(20, 0)),
@@ -247,10 +336,9 @@ object Parsing extends Parsing {
     * }}}
     * and a `SparseFeature` configuration with two index keys:
     * {{{
-    *   SparseFeature(
+    *   SparseFeature[Float](
     *     indexKey = Seq("ix0", "ix1"),
     *     valueKey = "val",
-    *     dataType = FLOAT32,
     *     size = Seq(100, 3))
     * }}}
     *
@@ -258,7 +346,7 @@ object Parsing extends Parsing {
     *                       be [[INT64]] and its length must always match the rank of the `valueKey` feature's value.
     * @param  valueKey      Name of the value feature. The underlying feature's type must be `dataType` and its rank
     *                       must always match that of all the `indexKey`s' features.
-    * @param  size          Sequence of integers specifying the dense shape of the [[SparseTensor]]. The length of this
+    * @param  size          Sequence of integers specifying the dense shape of the sparse tensor. The length of this
     *                       sequence must be equal to the length of the `indexKey` sequence. For each entry `i`, all
     *                       values in the `indexKey(i)`-th feature must be in the interval `[0, size(i))`.
     * @param  alreadySorted Boolean value specifying whether the values in `valueKey` are already sorted by their index
@@ -266,280 +354,472 @@ object Parsing extends Parsing {
     * @tparam T Data type of the `valueKey` feature.
     */
   case class SparseFeature[T: TF](
-      indexKey: Seq[String],
+      indexKeys: Seq[String],
       valueKey: String,
-      size: Seq[Int],
+      size: Seq[Long],
       alreadySorted: Boolean = false
   ) extends Feature
 
-  /** Represents the raw parameters parsed from a set features that we pass to the parsing ops. Note that we use a
-    * [[ListMap]] for `denseDefaults` because ignoring the ordering would cause graph equality to fail in some tests. */
-  private[this] case class RawParameters(
-      sparseKeys: Seq[String],
-      sparseTypes: Seq[DataType[_]],
-      denseKeys: Seq[String],
-      denseTypes: Seq[DataType[_]],
-      denseShapes: Seq[Shape],
-      denseDefaults: ListMap[String, Tensor[_]])
+  sealed trait Features[T] {
+    type Result
 
-//  /** Converts the provides features into a [[RawParameters]] object to be fed into the parsing ops. */
-//  @throws[IllegalArgumentException]
-//  private def featuresToRawParameters(
-//      features: Map[String, Feature]
-//  ): RawParameters = {
-//    val sparseKeys = mutable.ListBuffer.empty[String]
-//    val sparseTypes = mutable.ListBuffer.empty[DataType[_]]
-//    val denseKeys = mutable.ListBuffer.empty[String]
-//    val denseTypes = mutable.ListBuffer.empty[DataType[_]]
-//    val denseShapes = mutable.ListBuffer.empty[Shape]
-//    val denseDefaults = mutable.ListBuffer.empty[(String, Tensor[_])]
-//    // We iterate over sorted keys to keep things deterministic.
-//    features.toSeq.sortBy(_._1).foreach({
-//      case (key, VariableLengthFeature(dataType)) =>
-//        sparseKeys.append(key)
-//        sparseTypes.append(dataType)
-//      case (key, FixedLengthFeature(dataType, shape, defaultValue)) =>
-//        if (!shape.isFullyDefined)
-//          throw new IllegalArgumentException(
-//            s"All dimensions of shape for feature '$key' need to be known, but received $shape.")
-//        denseKeys.append(key)
-//        denseTypes.append(dataType)
-//        denseShapes.append(shape)
-//        if (defaultValue != null)
-//          denseDefaults.append((key, defaultValue))
-//      case (key, FixedLengthSequenceFeature(dataType, shape, allowMissing, defaultValue)) =>
-//        denseKeys.append(key)
-//        denseTypes.append(dataType)
-//        denseShapes.append(shape)
-//        if (allowMissing || defaultValue != null)
-//          denseDefaults.append((key, defaultValue))
-//      case (_, SparseFeature(indexKey, valueKey, dataType, _, _)) =>
-//        indexKey.sorted.foreach(k => {
-//          if (sparseKeys.contains(k)) {
-//            val dType = sparseTypes(sparseKeys.indexOf(k))
-//            if (dType != INT64)
-//              throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $k.")
-//          } else {
-//            sparseKeys.append(k)
-//            sparseTypes.append(INT64)
-//          }
-//        })
-//        if (sparseKeys.contains(valueKey)) {
-//          val dType = sparseTypes(sparseKeys.indexOf(valueKey))
-//          if (dType != INT64)
-//            throw new IllegalArgumentException(s"Conflicting type $dType vs INT64 for feature $valueKey.")
-//        } else {
-//          sparseKeys.append(valueKey)
-//          sparseTypes.append(dataType)
-//        }
-//    })
-//    RawParameters(
-//      sparseKeys.toList, sparseTypes.toList, denseKeys.toList, denseTypes.toList, denseShapes.toList,
-//      ListMap(denseDefaults: _*))
-//  }
-//
-//  /** Creates an op that transforms a vector of `Example` protos (represented as strings) into typed tensors.
-//    *
-//    * @param  bytes         Tensor containing containing a batch of binary serialized `Example` protos.
-//    * @param  sparseKeys    Rank-0 tensors containing the keys expected in the `Example` features associated
-//    *                       with sparse values.
-//    * @param  sparseTypes   Data types of the `Example` features associated with sparse values.
-//    * @param  denseKeys     Rank-0 tensors containing the keys expected in the `Example` features associated
-//    *                       with dense values.
-//    * @param  denseShapes   Rank-1 tensors containing the shapes of the values in each feature given in `denseKeys`. The
-//    *                       number of elements in the feature corresponding to `denseKeys(j)` must always be equal to
-//    *                       `denseShapes(j).size`. If `denseShapes(j) == (D0, D1, ..., DN)` then the shape of the output
-//    *                       tensor `denseValues(j)` will be `(|bytes|, D0, D1, ..., DN)`: the dense outputs are just the
-//    *                       inputs row-stacked by batch. This works for `denseShapes(j) = (-1, D1, ..., DN)`. In this
-//    *                       case, the shape of the output tensor `denseValues(j)` will be `(|bytes|, M, D1, .., DN)`,
-//    *                       where `M` is the maximum number of blocks of elements of length `D1 * .... * DN`, across all
-//    *                       minibatch entries in the input. Any minibatch entry with less than `M` blocks of elements of
-//    *                       length `D1 * ... * DN` will be padded with the corresponding `denseDefaults` scalar element
-//    *                       along the second dimension.
-//    * @param  denseDefaults Tensors (some of which may be empty) containing default dense values. `denseDefaults(j)`
-//    *                       provides default values when the example's feature map lacks `denseKeys(j)`. If an empty
-//    *                       tensor is provided for `denseDefaults(j)`, then the feature `denseKeys(j)` is required. The
-//    *                       input type is inferred from `denseDefaults(j)`, even when it's empty. If `denseDefaults(j)`
-//    *                       is not empty, and `denseShapes(j)` is fully defined, then the shape of `denseDefaults(j)`
-//    *                       must match that of `denseShapes(j)`. If `denseShapes(j)` has an undefined major dimension
-//    *                       (variable strides dense feature), `denseDefaults(j)` must contain a single element: the
-//    *                       padding element.
-//    * @param  debugNames    [[STRING]] rank-1 tensor containing the names of the serialized protos. May contain, for
-//    *                       example, table key (descriptive) names for the corresponding serialized protos. These are
-//    *                       purely useful for debugging purposes, and the presence of values here has no effect on the
-//    *                       output. May also be an empty vector if no names are available. If non-empty, this vector
-//    *                       must have the same length as `bytes`.
-//    * @param  name          Name for the created op.
-//    * @return Tuple containing:
-//    *         1. Sparse tensor indices.
-//    *         2. Sparse tensor values.
-//    *         3. Sparse tensor shapes.
-//    *         4. Dense tensor values.
-//    * @throws IllegalArgumentException If any of the input arguments has invalid data type or size.
-//    */
-//  @throws[IllegalArgumentException]
-//  private[Parsing] def parseExample(
-//      bytes: Output[String],
-//      sparseKeys: Seq[Output[String]],
-//      sparseTypes: Seq[DataType[_]],
-//      denseKeys: Seq[Output[String]],
-//      denseShapes: Seq[Shape],
-//      denseDefaults: Seq[Output[_]],
-//      debugNames: Output[String],
-//      name: String = "ParseExample"
-//  ): (Seq[Output[Long]], Seq[Output[_]], Seq[Output[Long]], Seq[Output[_]]) = {
-//    require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
-//    require(!sparseKeys.exists(_.dataType == STRING), "The sparse keys must all be STRING tensors.")
-//    require(!denseKeys.exists(_.dataType == STRING), "The dense keys must all be STRING tensors.")
-//    require(sparseKeys.length == sparseTypes.length, "The number of sparse keys does not match that of sparse types.")
-//    require(denseKeys.length == denseShapes.length, "The number of dense keys does not match that of dense shapes.")
-//    require(denseKeys.length == denseDefaults.length, "The number of dense keys does not match that of dense defaults.")
-//    require(debugNames.dataType == STRING, s"Tensor data type was ${debugNames.dataType}, while STRING was expected.")
-//    val numSparse = sparseKeys.length
-//    val numDense = denseKeys.length
-//    val outputs = Op.Builder(opType = "ParseExample", name = name)
-//        .addInput(bytes)
-//        .addInput(debugNames)
-//        .addInputList(sparseKeys)
-//        .addInputList(denseKeys)
-//        .addInputList(denseDefaults)
-//        .setAttribute("sparse_types", sparseTypes.toArray)
-//        .setAttribute("dense_shapes", denseShapes.toArray)
-//        .build().outputs
-//    val sparseIndices = outputs.take(numSparse)
-//    val sparseValues = outputs.slice(numSparse, 2 * numSparse)
-//    val sparseShapes = outputs.slice(2 * numSparse, 3 * numSparse)
-//    val denseValues = outputs.takeRight(numDense)
-//    (sparseIndices, sparseValues, sparseShapes, denseValues)
-//  }
-//
-//  /** Creates an op that transforms a scalar `SequenceExample` protos (represented as strings) into typed tensors.
-//    *
-//    * @param  bytes                               [[STRING]] tensor containing containing the binary serialized
-//    *                                             `SequenceExample` proto.
-//    * @param  contextSparseKeys                   [[STRING]] rank-0 tensors containing the keys expected in the
-//    *                                             `SequenceExample` features associated with context sparse values.
-//    * @param  contextSparseTypes                  Data types of the `SequenceExample` features associated with context
-//    *                                             sparse values.
-//    * @param  contextDenseKeys                    [[STRING]] rank-0 tensors containing the keys expected in the
-//    *                                             `SequenceExample` features associated with context dense values.
-//    * @param  contextDenseShapes                  Rank-1 tensors containing the shapes of the values in each context
-//    *                                             feature given in `contextDenseKeys`. The  number of elements in the
-//    *                                             feature corresponding to `contextDenseKeys(j)` must always be equal to
-//    *                                             `contextDenseShapes(j).size`. The shape of `contextDenseValues(j)`
-//    *                                             will match `contextDenseShapes(j)`.
-//    * @param  contextDenseDefaults                Tensors (some of which may be empty) containing default context dense
-//    *                                             values. `contextDenseDefaults(j)` provides default values when the
-//    *                                             sequence example's feature map lacks `contextDenseKeys(j)`. If an
-//    *                                             empty tensor is provided for `contextDenseDefaults(j)`, then the
-//    *                                             feature `contextDenseKeys(j)` is required. The input type is inferred
-//    *                                             from `contextDenseDefaults(j)`, even when it's empty. If
-//    *                                             `contextDenseDefaults(j)` is not empty, its shape must match
-//    *                                             `contextDenseShapes(j)`.
-//    * @param  featureListSparseKeys               [[STRING]] rank-0 tensors containing the keys expected in the
-//    *                                             `FeatureList`s associated with sparse values.
-//    * @param  featureListSparseTypes              Data types of data in each `FeatureList` given in
-//    *                                             `featureListSparseKeys`.
-//    * @param  featureListDenseKeys                [[STRING]] rank-0 tensors containing the keys expected in the
-//    *                                             `SequenceExample` feature lists associated with lists of dense values.
-//    * @param  featureListDenseShapes              Rank-1 tensors containing the shapes of the values in each feature
-//    *                                             list given in `featureListDenseKeys`. The  number of elements in the
-//    *                                             feature corresponding to `featureListDenseKeys(j)` must always be
-//    *                                             equal to `featureListDenseShapes(j).size`. The shape of
-//    *                                             `featureListDenseValues(j)` will match `featureListDenseShapes(j)`.
-//    * @param  featureListDenseMissingAssumedEmpty [[STRING]] rank-1 tensor containing the `FeatureList` keys which may
-//    *                                             be missing from the `SequenceExample`. If the associated `FeatureList`
-//    *                                             is missing, it is treated as empty. By default, any `FeatureList` not
-//    *                                             listed in this vector must exist in the `SequenceExample`.
-//    * @param  debugName                           [[STRING]] rank-0 tensor containing the name of the serialized proto.
-//    *                                             May contain, for example, a table key (descriptive) name for the
-//    *                                             corresponding serialized proto. This is purely useful for debugging
-//    *                                             purposes, and the presence of values here has no effect on the output.
-//    *                                             May also be an empty scalar if no name is available.
-//    * @param  name                                Name for the created op.
-//    * @return Tuple containing:
-//    *         1. Context sparse tensor indices.
-//    *         2. Context sparse tensor values.
-//    *         3. Context sparse tensor shapes.
-//    *         4. Context dense tensor values.
-//    *         5. Feature list sparse tensor indices.
-//    *         6. Feature list sparse tensor values.
-//    *         7. Feature list sparse tensor shapes.
-//    *         8. Feature list dense tensor values.
-//    * @throws IllegalArgumentException If any of the input arguments has invalid data type or size.
-//    */
-//  private[Parsing] def parseSingleSequenceExample(
-//      bytes: Output,
-//      contextSparseKeys: Seq[Output],
-//      contextSparseTypes: Seq[DataType[_]],
-//      contextDenseKeys: Seq[Output],
-//      contextDenseShapes: Seq[Shape],
-//      contextDenseDefaults: Seq[Output],
-//      featureListSparseKeys: Seq[Output],
-//      featureListSparseTypes: Seq[DataType[_]],
-//      featureListDenseKeys: Seq[Output],
-//      featureListDenseShapes: Seq[Shape],
-//      featureListDenseMissingAssumedEmpty: Output,
-//      debugName: Output,
-//      name: String = "ParseSingleSequenceExample"
-//  ): (Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output], Seq[Output]) = {
-//    require(bytes.dataType == STRING, s"Tensor data type was ${bytes.dataType}, while STRING was expected.")
-//    require(!contextSparseKeys.exists(_.dataType == STRING), "The context sparse keys must all be STRING tensors.")
-//    require(!contextDenseKeys.exists(_.dataType == STRING), "The context dense keys must all be STRING tensors.")
-//    require(!featureListSparseKeys.exists(_.dataType == STRING),
-//      "The feature list sparse keys must all be STRING tensors.")
-//    require(!featureListDenseKeys.exists(_.dataType == STRING),
-//      "The feature list dense keys must all be STRING tensors.")
-//    require(contextSparseKeys.length == contextSparseTypes.length,
-//      "The number of context sparse keys does not match that of context sparse types.")
-//    require(contextDenseKeys.length == featureListDenseShapes.length,
-//      "The number of context dense keys does not match that of context dense shapes.")
-//    require(contextDenseKeys.length == contextDenseDefaults.length,
-//      "The number of context dense keys does not match that of context dense defaults.")
-//    require(featureListSparseKeys.length == featureListSparseTypes.length,
-//      "The number of feature list sparse keys does not match that of feature list sparse types.")
-//    require(featureListDenseKeys.length == featureListDenseShapes.length,
-//      "The number of feature list dense keys does not match that of feature list dense shapes.")
-//    require(featureListDenseMissingAssumedEmpty.dataType == STRING,
-//      s"Tensor data type was ${featureListDenseMissingAssumedEmpty.dataType}, while STRING was expected.")
-//    require(debugName.dataType == STRING, s"Tensor data type was ${debugName.dataType}, while STRING was expected.")
-//    val numContextSparse = contextSparseKeys.length
-//    val numContextDense = contextDenseKeys.length
-//    val numFeatureListSparse = featureListSparseKeys.length
-//    val numFeatureListDense = featureListDenseKeys.length
-//    val outputs = Op.Builder(opType = "ParseSingleSequenceExample", name = name)
-//        .addInput(bytes)
-//        .addInput(featureListDenseMissingAssumedEmpty)
-//        .addInputList(contextSparseKeys)
-//        .addInputList(contextDenseKeys)
-//        .addInputList(featureListSparseKeys)
-//        .addInputList(featureListDenseKeys)
-//        .addInputList(contextDenseDefaults)
-//        .addInput(debugName)
-//        .setAttribute("context_sparse_types", contextSparseTypes.toArray)
-//        .setAttribute("context_dense_shapes", contextDenseShapes.toArray)
-//        .setAttribute("feature_list_sparse_types", featureListSparseTypes.toArray)
-//        .setAttribute("feature_list_dense_shapes", featureListDenseShapes.toArray)
-//        .build().outputs
-//    var index = 0
-//    val contextSparseIndices = outputs.take(index + numContextSparse)
-//    index += numContextSparse
-//    val contextSparseValues = outputs.slice(index, index + numContextSparse)
-//    index += numContextSparse
-//    val contextSparseShapes = outputs.slice(index, index + numContextSparse)
-//    index += numContextSparse
-//    val contextDenseValues = outputs.slice(index, index + numContextDense)
-//    index += numContextDense
-//    val featureListSparseIndices = outputs.slice(index, index + numFeatureListSparse)
-//    index += numFeatureListSparse
-//    val featureListSparseValues = outputs.slice(index, index + numFeatureListSparse)
-//    index += numFeatureListSparse
-//    val featureListSparseShapes = outputs.slice(index, index + numFeatureListSparse)
-//    index += numFeatureListSparse
-//    val featureListDenseValues = outputs.slice(index, index + numFeatureListDense)
-//    (contextSparseIndices, contextSparseValues, contextSparseShapes, contextDenseValues,
-//        featureListSparseIndices, featureListSparseValues, featureListSparseShapes, featureListDenseValues)
-//  }
+    @throws[InvalidArgumentException]
+    def prependBatchDimension(features: T, parsingSingleExample: Boolean): T
+
+    @throws[InvalidArgumentException]
+    def toRawParameters(features: T): Features.RawParameters
+
+    def fromParsed(
+        features: T,
+        sparseParsed: Map[String, SparseOutput[Any]],
+        denseParsed: Map[String, Output[Any]]
+    ): Result
+  }
+
+  object Features {
+    type Aux[T, R] = Features[T] {
+      type Result = R
+    }
+
+    implicit def fromFixedLengthFeature[T: TF]: Features.Aux[FixedLengthFeature[T], Output[T]] = {
+      new Features[FixedLengthFeature[T]] {
+        override type Result = Output[T]
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: FixedLengthFeature[T],
+            parsingSingleExample: Boolean
+        ): FixedLengthFeature[T] = {
+          features.copy()
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: FixedLengthFeature[T]): RawParameters = {
+          if (features.shape.rank > -1 && features.shape(0) == -1) {
+            throw InvalidArgumentException(
+              s"First dimension of the '${features.key}' feature has unknown size. " +
+                  "Consider using 'FixedLengthSequenceFeature' instead.")
+          }
+          if (!features.shape.isFullyDefined) {
+            throw InvalidArgumentException(
+              s"All dimensions of the '${features.key}' feature have to be of known size, " +
+                  s"but where '${features.shape}' instead.")
+          }
+          RawParameters(
+            denseKeys = Seq(features.key),
+            denseTypes = Seq(TF[T].dataType),
+            denseShapes = Seq(features.shape),
+            denseDefaults = features.defaultValue
+                .map(v => ListMap(features.key -> v.asInstanceOf[Tensor[Any]]))
+                .getOrElse(ListMap.empty))
+        }
+
+        override def fromParsed(
+            features: FixedLengthFeature[T],
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): Output[T] = {
+          denseParsed(features.key).asInstanceOf[Output[T]]
+        }
+      }
+    }
+
+    implicit def fromFixedLengthSequenceFeature[T: TF]: Features.Aux[FixedLengthSequenceFeature[T], Output[T]] = {
+      new Features[FixedLengthSequenceFeature[T]] {
+        override type Result = Output[T]
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: FixedLengthSequenceFeature[T],
+            parsingSingleExample: Boolean
+        ): FixedLengthSequenceFeature[T] = {
+          if (!features.allowMissing && !parsingSingleExample)
+            throw InvalidArgumentException("'FixedLengthSequenceFeature' requires 'allowMissing' to be set to 'true'.")
+          features.copy(shape = Shape(-1) ++ features.shape)
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: FixedLengthSequenceFeature[T]): RawParameters = {
+          RawParameters(
+            denseKeys = Seq(features.key),
+            denseTypes = Seq(TF[T].dataType),
+            denseShapes = Seq(features.shape),
+            denseDefaults = features.defaultValue
+                .map(v => ListMap(features.key -> v.asInstanceOf[Tensor[Any]]))
+                .getOrElse(ListMap.empty))
+        }
+
+        override def fromParsed(
+            features: FixedLengthSequenceFeature[T],
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): Output[T] = {
+          denseParsed(features.key).asInstanceOf[Output[T]]
+        }
+      }
+    }
+
+    implicit def fromVariableLengthFeature[T: TF]: Features.Aux[VariableLengthFeature[T], SparseOutput[T]] = {
+      new Features[VariableLengthFeature[T]] {
+        override type Result = SparseOutput[T]
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: VariableLengthFeature[T],
+            parsingSingleExample: Boolean
+        ): VariableLengthFeature[T] = {
+          features.copy()
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: VariableLengthFeature[T]): RawParameters = {
+          RawParameters(
+            sparseKeys = Seq(features.key),
+            sparseTypes = Seq(TF[T].dataType))
+        }
+
+        override def fromParsed(
+            features: VariableLengthFeature[T],
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): SparseOutput[T] = {
+          sparseParsed(features.key).asInstanceOf[SparseOutput[T]]
+        }
+      }
+    }
+
+    implicit def fromSparseFeature[T: TF]: Features.Aux[SparseFeature[T], SparseOutput[T]] = {
+      new Features[SparseFeature[T]] {
+        override type Result = SparseOutput[T]
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: SparseFeature[T],
+            parsingSingleExample: Boolean
+        ): SparseFeature[T] = {
+          features.copy()
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: SparseFeature[T]): RawParameters = {
+          val sparseKeys = mutable.ArrayBuffer.empty[String]
+          val sparseTypes = mutable.ArrayBuffer.empty[DataType[Any]]
+          features.indexKeys.foreach(indexKey => {
+            val index = sparseKeys.indexOf(indexKey)
+            if (index == -1) {
+              sparseKeys.append(indexKey)
+              sparseTypes.append(INT64)
+            }
+          })
+          val valueDataType = TF[T].dataType
+          val valueKeyIndex = sparseKeys.indexOf(features.valueKey)
+          if (valueKeyIndex > -1) {
+            val dataType = sparseTypes(valueKeyIndex)
+            if (dataType != valueDataType) {
+              throw InvalidArgumentException(
+                s"Conflicting type '$dataType' vs '$valueDataType' for feature ${features.valueKey}.")
+            }
+          } else {
+            sparseKeys.append(features.valueKey)
+            sparseTypes.append(valueDataType)
+          }
+          RawParameters(
+            sparseKeys = sparseKeys,
+            sparseTypes = sparseTypes)
+        }
+
+        override def fromParsed(
+            features: SparseFeature[T],
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): SparseOutput[T] = {
+          Sparse.merge[T, Long](
+            sparseIndices = features.indexKeys.map(k => sparseParsed(k).asInstanceOf[SparseOutput[Long]]),
+            sparseValues = sparseParsed(features.valueKey).asInstanceOf[SparseOutput[T]],
+            depths = features.size.map(s => s: Tensor[Long]),
+            alreadySorted = features.alreadySorted,
+            name = s"${features.valueKey}/SparseMerge")
+        }
+      }
+    }
+
+    implicit def fromOption[T, R](implicit ev: Features.Aux[T, R]): Features.Aux[Option[T], Option[R]] = {
+      new Features[Option[T]] {
+        override type Result = Option[R]
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: Option[T],
+            parsingSingleExample: Boolean
+        ): Option[T] = {
+          features.map(f => ev.prependBatchDimension(f, parsingSingleExample))
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: Option[T]): RawParameters = {
+          features.map(ev.toRawParameters).getOrElse(RawParameters())
+        }
+
+        override def fromParsed(
+            features: Option[T],
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): Option[R] = {
+          features.map(f => ev.fromParsed(f, sparseParsed, denseParsed))
+        }
+      }
+    }
+
+    implicit def fromSeq[T, R](implicit ev: Features.Aux[T, R]): Features.Aux[Seq[T], Seq[R]] = {
+      new Features[Seq[T]] {
+        override type Result = Seq[R]
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: Seq[T],
+            parsingSingleExample: Boolean
+        ): Seq[T] = {
+          features.map(f => ev.prependBatchDimension(f, parsingSingleExample))
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: Seq[T]): RawParameters = {
+          mergeRawParameters(features.map(ev.toRawParameters))
+        }
+
+        override def fromParsed(
+            features: Seq[T],
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): Seq[R] = {
+          features.map(f => ev.fromParsed(f, sparseParsed, denseParsed))
+        }
+      }
+    }
+
+    implicit def fromMap[K, T, R](implicit ev: Features.Aux[T, R]): Features.Aux[Map[K, T], Map[K, R]] = {
+      new Features[Map[K, T]] {
+        override type Result = Map[K, R]
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: Map[K, T],
+            parsingSingleExample: Boolean
+        ): Map[K, T] = {
+          features.mapValues(f => ev.prependBatchDimension(f, parsingSingleExample))
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: Map[K, T]): RawParameters = {
+          mergeRawParameters(features.values.toSeq.map(ev.toRawParameters))
+        }
+
+        override def fromParsed(
+            features: Map[K, T],
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): Map[K, R] = {
+          features.mapValues(f => ev.fromParsed(f, sparseParsed, denseParsed))
+        }
+      }
+    }
+
+    implicit val fromHNil: Features.Aux[HNil, HNil] = {
+      new Features[HNil] {
+        override type Result = HNil
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: HNil,
+            parsingSingleExample: Boolean
+        ): HNil = {
+          HNil
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: HNil): RawParameters = {
+          RawParameters()
+        }
+
+        override def fromParsed(
+            features: HNil,
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): HNil = {
+          HNil
+        }
+      }
+    }
+
+    implicit def fromHList[HT, HR, TT <: HList, TR <: HList](implicit
+        evH: Strict[Features.Aux[HT, HR]],
+        evT: Strict[Features.Aux[TT, TR]]
+    ): Features.Aux[HT :: TT, HR :: TR] = {
+      new Features[HT :: TT] {
+        override type Result = HR :: TR
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: HT :: TT,
+            parsingSingleExample: Boolean
+        ): HT :: TT = {
+          evH.value.prependBatchDimension(features.head, parsingSingleExample) ::
+              evT.value.prependBatchDimension(features.tail, parsingSingleExample)
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: HT :: TT): RawParameters = {
+          mergeRawParameters(Seq(evH.value.toRawParameters(features.head), evT.value.toRawParameters(features.tail)))
+        }
+
+        override def fromParsed(
+            features: HT :: TT,
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): HR :: TR = {
+          evH.value.fromParsed(features.head, sparseParsed, denseParsed) ::
+              evT.value.fromParsed(features.tail, sparseParsed, denseParsed)
+        }
+      }
+    }
+
+    implicit def fromProduct[PT <: Product, PR <: Product, HT <: HList, HR <: HList](implicit
+        genT: Generic.Aux[PT, HT],
+        evT: Strict[Features.Aux[HT, HR]],
+        tuplerR: Tupler.Aux[HR, PR]
+    ): Features.Aux[PT, PR] = {
+      new Features[PT] {
+        override type Result = PR
+
+        @throws[InvalidArgumentException]
+        override def prependBatchDimension(
+            features: PT,
+            parsingSingleExample: Boolean
+        ): PT = {
+          genT.from(evT.value.prependBatchDimension(genT.to(features), parsingSingleExample))
+        }
+
+        @throws[InvalidArgumentException]
+        override def toRawParameters(features: PT): RawParameters = {
+          evT.value.toRawParameters(genT.to(features))
+        }
+
+        override def fromParsed(
+            features: PT,
+            sparseParsed: Map[String, SparseOutput[Any]],
+            denseParsed: Map[String, Output[Any]]
+        ): PR = {
+          tuplerR(evT.value.fromParsed(genT.to(features), sparseParsed, denseParsed))
+        }
+      }
+    }
+
+    /** Represents the raw parameters parsed from a set features that we pass to the parsing ops.
+      * Note that we use a [[ListMap]] for `denseDefaults` because ignoring the ordering would cause graph equality to
+      * fail in some tests. */
+    private[Parsing] case class RawParameters(
+        sparseKeys: Seq[String] = Seq.empty,
+        sparseTypes: Seq[DataType[Any]] = Seq.empty,
+        denseKeys: Seq[String] = Seq.empty,
+        denseTypes: Seq[DataType[Any]] = Seq.empty,
+        denseShapes: Seq[Shape] = Seq.empty,
+        denseDefaults: ListMap[String, Tensor[Any]] = ListMap.empty)
+
+    @throws[InvalidArgumentException]
+    private[Parsing] def mergeRawParameters(
+        rawParameters: Seq[RawParameters]
+    ): RawParameters = {
+      val sparseKeys = mutable.ListBuffer.empty[String]
+      val sparseTypes = mutable.ListBuffer.empty[DataType[Any]]
+      val denseKeys = mutable.ListBuffer.empty[String]
+      val denseTypes = mutable.ListBuffer.empty[DataType[Any]]
+      val denseShapes = mutable.ListBuffer.empty[Shape]
+      val denseDefaults = mutable.ListMap.empty[String, Tensor[Any]]
+
+      rawParameters.foreach(parameters => {
+        // Process sparse keys and types.
+        parameters.sparseKeys.indices.foreach(keyIndex => {
+          val key = parameters.sparseKeys(keyIndex)
+          val dataType = parameters.sparseTypes(keyIndex)
+          val index = sparseKeys.indexOf(key)
+          if (index > -1) {
+            if (sparseTypes(index) != dataType) {
+              throw InvalidArgumentException(
+                s"Found mismatching data types ('${sparseTypes(index)}' vs '$dataType'), for the same key ('$key').")
+            }
+          } else {
+            sparseKeys.append(key)
+            sparseTypes.append(dataType)
+          }
+        })
+
+        // Process dense keys, types, shapes, and defaults.
+        parameters.denseKeys.indices.foreach(keyIndex => {
+          val key = parameters.denseKeys(keyIndex)
+          val dataType = parameters.denseTypes(keyIndex)
+          val shape = parameters.denseShapes(keyIndex)
+          val default = parameters.denseDefaults.get(key)
+          val index = denseKeys.indexOf(key)
+          if (index > -1) {
+            if (denseTypes(index) != dataType) {
+              throw InvalidArgumentException(
+                s"Found mismatching data types ('${denseTypes(index)}' vs '$dataType'), for the same key ('$key').")
+            }
+            if (!denseShapes(index).isCompatibleWith(shape)) {
+              throw InvalidArgumentException(
+                s"Found incompatible shapes ('${denseShapes(index)}' vs '$shape'), for the same key ('$key').")
+            }
+            default.foreach(d => {
+              if (denseDefaults.getOrElseUpdate(key, d) != d)
+                throw InvalidArgumentException(s"Mismatching default values for the same key ('$key').")
+            })
+          } else {
+            denseKeys.append(key)
+            denseTypes.append(dataType)
+            denseShapes.append(shape)
+            default.foreach(d => denseDefaults.put(key, d))
+          }
+        })
+      })
+
+      if (sparseKeys.isEmpty && denseKeys.isEmpty)
+        throw InvalidArgumentException("Must provide at least one dense or sparse feature.")
+
+      val intersection = sparseKeys.intersect(denseKeys)
+      if (intersection.nonEmpty)
+        throw InvalidArgumentException(s"Dense keys and sparse keys must not intersect. Intersection: $intersection.")
+
+      // Process the default dense values.
+      var processedDenseDefaults = ListMap.empty[String, Tensor[Any]]
+      for ((key, index) <- denseKeys.zipWithIndex) {
+        val dataType = denseTypes(index)
+        val shape = denseShapes(index)
+        var default = denseDefaults.get(key)
+        if (shape.rank > 0 && shape(0) == -1) {
+          // For a variable stride dense shape, the default value should be a scalar padding value.
+          default match {
+            case None =>
+              Tensor.zeros(dataType, Shape())
+            case Some(value) =>
+              // Reshape to a scalar to ensure the user gets an error if they provide a tensor that is not intended to
+              // used as a padding value (i.e., containing zero or more than 2 elements).
+              default = Some(value.reshape(Shape()))
+          }
+        } else if (default.isEmpty) {
+          default = Some(Tensor.empty(dataType))
+        }
+        processedDenseDefaults += key -> default.get
+      }
+
+      RawParameters(
+        sparseKeys = sparseKeys,
+        sparseTypes = sparseTypes,
+        denseKeys = denseKeys,
+        denseTypes = denseTypes,
+        denseShapes = denseShapes,
+        denseDefaults = processedDenseDefaults)
+    }
+  }
 
   /** @define OpDocParsingEncodeTensor
     *   The `encodeTensor` op transforms a tensor into a serialized `TensorProto` proto.

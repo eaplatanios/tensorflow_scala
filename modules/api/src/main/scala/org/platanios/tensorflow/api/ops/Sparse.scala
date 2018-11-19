@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.ops
 
+import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{IsIntOrLong, IsNumeric, IsReal, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
@@ -87,9 +88,9 @@ trait Sparse {
         input = sparseInput
       ).build().output
       if (sparseInput.shape.isFullyDefined)
-        SparseTensor(reorderedIndices, reorderedValues, sparseInput.shape.toOutput)
+        SparseOutput(reorderedIndices, reorderedValues, sparseInput.shape.toOutput.toLong)
       else
-        SparseTensor(reorderedIndices, reorderedValues, Basic.identity(sparseInput.denseShape))
+        SparseOutput(reorderedIndices, reorderedValues, Basic.identity(sparseInput.denseShape))
     }
   }
 
@@ -106,7 +107,7 @@ trait Sparse {
     * @return Sparse tensor with the same shape as `sparseInput`, but in canonical ordering.
     */
   @throws[InvalidArgumentException]
-  def merge[T: TF : IsNumeric, I: TF: IsIntOrLong](
+  def merge[T: TF, I: TF: IsIntOrLong](
       sparseIndices: Seq[SparseOutput[I]],
       sparseValues: SparseOutput[T],
       depths: Seq[Tensor[Long]],
