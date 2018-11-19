@@ -81,6 +81,7 @@ package object ops {
           with ops.variables.API {
     object data extends ops.data.API
     object image extends Image
+    object io extends Files
     object metrics extends ops.metrics.API
     object sparse extends Sparse
     object train extends training.API
