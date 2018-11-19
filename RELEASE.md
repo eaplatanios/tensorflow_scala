@@ -2,6 +2,8 @@
 
 Other new features include:
 
+  - `io` module:
+    - Added support for a new `TFRecordWriter`.
   - `ops` module:
     - Added a new ops namespace, `sparse`, that includes all sparse ops.
     - Added support for `sparse.reorder` and `sparse.merge`.
