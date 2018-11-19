@@ -17,6 +17,8 @@
 #include "server.h"
 #include "utilities.h"
 
+#include <memory>
+
 #include "tensorflow/c/c_api.h"
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_Server_00024_newServer(
