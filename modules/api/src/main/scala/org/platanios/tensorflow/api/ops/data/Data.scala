@@ -448,16 +448,16 @@ trait Data extends Experimental {
     }
   }
 
-  /** Creates a dataset with elements read from files that contain TensorFlow records.
+  /** Creates a dataset with elements read from a file that contains TensorFlow records.
     *
-    * @param  filenames       Names of the files to be read.
+    * @param  filenames       Name of the file to be read.
     * @param  compressionType Compression type for the files.
     * @param  bufferSize      Number of bytes to buffer while reading from files.
     * @param  name            Name for this dataset.
     * @return Created dataset.
     */
   def datasetFromTFRecordFiles(
-      filenames: Seq[String],
+      filename: String,
       compressionType: CompressionType = NoCompression,
       bufferSize: Long = 256 * 1024,
       name: String = "TFRecordsDataset"
@@ -474,7 +474,49 @@ trait Data extends Experimental {
           opType = "TFRecordDataset",
           name = name,
           input = (
-              Basic.constant(filenames, name = s"$name/FileNames"),
+              Basic.constant(filename, name = s"$name/Filename"),
+              Basic.constant(compressionType.name, name = s"$name/CompressionType"),
+              Basic.constant(bufferSize, name = s"$name/BufferSize"))
+        ).build().output
+      }
+
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[Output[String], D]): D = {
+        STRING.asInstanceOf[D]
+      }
+
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[Output[String], S]): S = {
+        Shape().asInstanceOf[S]
+      }
+    }
+  }
+
+  /** Creates a dataset with elements read from a file that contains TensorFlow records.
+    *
+    * @param  filename        Name of the file to be read.
+    * @param  compressionType Compression type for the files.
+    * @param  bufferSize      Number of bytes to buffer while reading from files.
+    * @param  name            Name for this dataset.
+    * @return Created dataset.
+    */
+  def datasetFromDynamicTFRecordFiles(
+      filename: Output[String],
+      compressionType: CompressionType = NoCompression,
+      bufferSize: Long = 256 * 1024,
+      name: String = "TFRecordsDataset"
+  ): Dataset[Output[String]] = {
+    val datasetName = name
+    new Dataset[Output[String]] {
+      override val name: String = datasetName
+
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[Output[String], D],
+          evOutputToShape: OutputToShape.Aux[Output[String], S]
+      ): Output[Variant] = {
+        Op.Builder[(Output[String], Output[String], Output[Long]), Output[Variant]](
+          opType = "TFRecordDataset",
+          name = name,
+          input = (
+              filename,
               Basic.constant(compressionType.name, name = s"$name/CompressionType"),
               Basic.constant(bufferSize, name = s"$name/BufferSize"))
         ).build().output
