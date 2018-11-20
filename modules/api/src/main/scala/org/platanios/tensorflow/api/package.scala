@@ -212,7 +212,8 @@ package object api extends implicits.Implicits with Documentation {
   type IsIntOrLongOrHalfOrFloatOrDouble[T] = core.types.IsIntOrLongOrHalfOrFloatOrDouble[T]
   type IsIntOrLongOrUByte[T] = core.types.IsIntOrLongOrUByte[T]
   type IsIntOrUInt[T] = core.types.IsIntOrUInt[T]
-  type IsStringOrIntOrUInt[T] = core.types.IsStringOrIntOrUInt[T]
+  type IsStringOrInteger[T] = core.types.IsStringOrInteger[T]
+  type IsStringOrFloatOrLong[T] = core.types.IsStringOrFloatOrLong[T]
   type IsReal[T] = core.types.IsReal[T]
   type IsComplex[T] = core.types.IsComplex[T]
   type IsNotQuantized[T] = core.types.IsNotQuantized[T]
@@ -231,7 +232,7 @@ package object api extends implicits.Implicits with Documentation {
   val IsIntOrLongOrHalfOrFloatOrDouble: core.types.IsIntOrLongOrHalfOrFloatOrDouble.type = core.types.IsIntOrLongOrHalfOrFloatOrDouble
   val IsIntOrLongOrUByte              : core.types.IsIntOrLongOrUByte.type               = core.types.IsIntOrLongOrUByte
   val IsIntOrUInt                     : core.types.IsIntOrUInt.type                      = core.types.IsIntOrUInt
-  val IsStringOrIntOrUInt             : core.types.IsStringOrIntOrUInt.type              = core.types.IsStringOrIntOrUInt
+  val IsStringOrFloatOrLong           : core.types.IsStringOrFloatOrLong.type            = core.types.IsStringOrFloatOrLong
   val IsReal                          : core.types.IsReal.type                           = core.types.IsReal
   val IsComplex                       : core.types.IsComplex.type                        = core.types.IsComplex
   val IsNotQuantized                  : core.types.IsNotQuantized.type                   = core.types.IsNotQuantized

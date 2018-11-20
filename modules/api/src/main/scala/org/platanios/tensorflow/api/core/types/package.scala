@@ -158,6 +158,7 @@ package object types {
   type UByteOrUShort = Union[UByte]#or[UShort]#create
   type Integer = Union[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
   type StringOrInteger = Union[String]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
+  type StringOrFloatOrLong = Union[String]#or[Float]#or[Long]#create
   type Real = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#create
   type Complex = Union[ComplexFloat]#or[ComplexDouble]#create
   type NotQuantized = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#create
@@ -177,7 +178,8 @@ package object types {
   type IsIntOrLongOrUByte[T] = Contains[T, IntOrLongOrUByte]
   type IsIntOrUInt[T] = Contains[T, Integer]
   type IsUByteOrUShort[T] = Contains[T, UByteOrUShort]
-  type IsStringOrIntOrUInt[T] = Contains[T, StringOrInteger]
+  type IsStringOrInteger[T] = Contains[T, StringOrInteger]
+  type IsStringOrFloatOrLong[T] = Contains[T, StringOrFloatOrLong]
   type IsReal[T] = Contains[T, Real]
   type IsComplex[T] = Contains[T, Complex]
   type IsNotQuantized[T] = Contains[T, NotQuantized]
@@ -233,8 +235,12 @@ package object types {
     def apply[T: IsUByteOrUShort]: IsUByteOrUShort[T] = implicitly[IsUByteOrUShort[T]]
   }
 
-  object IsStringOrIntOrUInt {
-    def apply[T: IsStringOrIntOrUInt]: IsStringOrIntOrUInt[T] = implicitly[IsStringOrIntOrUInt[T]]
+  object IsStringOrInteger {
+    def apply[T: IsStringOrInteger]: IsStringOrInteger[T] = implicitly[IsStringOrInteger[T]]
+  }
+
+  object IsStringOrFloatOrLong {
+    def apply[T: IsStringOrFloatOrLong]: IsStringOrFloatOrLong[T] = implicitly[IsStringOrFloatOrLong[T]]
   }
 
   object IsReal {

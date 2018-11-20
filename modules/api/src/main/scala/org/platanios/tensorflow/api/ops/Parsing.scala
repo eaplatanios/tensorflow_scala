@@ -272,7 +272,7 @@ object Parsing extends Parsing {
     * @param  defaultValue Value to be used if an example is missing this feature. It must match the specified `shape`.
     * @tparam T Data type of the input feature.
     */
-  case class FixedLengthFeature[T: TF](
+  case class FixedLengthFeature[T: TF : IsStringOrFloatOrLong](
       key: String,
       shape: Shape,
       defaultValue: Option[Tensor[T]] = None
@@ -285,7 +285,7 @@ object Parsing extends Parsing {
     *
     * @param  dataType Data type of the input feature.
     */
-  case class VariableLengthFeature[T: TF](
+  case class VariableLengthFeature[T: TF : IsStringOrFloatOrLong](
       key: String,
       dataType: DataType[T]
   ) extends Feature
@@ -341,7 +341,7 @@ object Parsing extends Parsing {
     *                       position. If so, we skip sorting.
     * @tparam T Data type of the `valueKey` feature.
     */
-  case class SparseFeature[T: TF](
+  case class SparseFeature[T: TF : IsStringOrFloatOrLong](
       indexKeys: Seq[String],
       valueKey: String,
       size: Seq[Long],
