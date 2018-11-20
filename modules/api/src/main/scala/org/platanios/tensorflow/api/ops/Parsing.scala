@@ -170,6 +170,7 @@ trait Parsing {
   // TODO: [OPS] [PARSING] Document the following two methods.
   // TODO: [OPS] [PARSING] Add support for parsing `SequenceExample`s.
 
+  @throws[InvalidArgumentException]
   def parseExample[T, R](
       serialized: Output[String],
       features: T,
@@ -178,6 +179,9 @@ trait Parsing {
   )(implicit ev: Parsing.Features.Aux[T, R]): R = {
     Op.nameScope(name) {
       val rawParameters = ev.toRawParameters(features)
+      if (rawParameters.sparseKeys.isEmpty && rawParameters.denseKeys.isEmpty)
+        throw InvalidArgumentException("Must provide at least one dense or sparse feature.")
+
       val output = Op.Builder[(Output[String], Output[String], Seq[Output[String]], Seq[Output[String]], Seq[Output[Any]]), Seq[Output[Any]]](
         opType = "ParseExample",
         name = name,
@@ -196,6 +200,7 @@ trait Parsing {
           .setAttribute("Tdense", rawParameters.denseTypes.toArray)
           .setAttribute("dense_shapes", rawParameters.denseShapes.toArray)
           .build().output
+
       val (sparseIndices, sparseValues, sparseShapes, denseValues) = {
         val numSparse = rawParameters.sparseKeys.size
         (output.take(numSparse).map(_.asInstanceOf[Output[Long]]),
@@ -203,6 +208,7 @@ trait Parsing {
             output.slice(2 * numSparse, 3 * numSparse).map(_.asInstanceOf[Output[Long]]),
             output.drop(3 * numSparse))
       }
+
       val sparseComposedValues = (sparseIndices, sparseValues, sparseShapes).zipped.map(SparseOutput(_, _, _))
       val sparseParsed = rawParameters.sparseKeys.zip(sparseComposedValues).toMap
       val denseParsed = rawParameters.denseKeys.zip(denseValues).toMap
@@ -210,6 +216,7 @@ trait Parsing {
     }
   }
 
+  @throws[InvalidArgumentException]
   def parseSingleExample[T, R](
       serialized: Output[String],
       features: T,
@@ -217,6 +224,9 @@ trait Parsing {
   )(implicit ev: Parsing.Features.Aux[T, R]): R = {
     Op.nameScope(name) {
       val rawParameters = ev.toRawParameters(features)
+      if (rawParameters.sparseKeys.isEmpty && rawParameters.denseKeys.isEmpty)
+        throw InvalidArgumentException("Must provide at least one dense or sparse feature.")
+
       val output = Op.Builder[(Output[String], Seq[Output[Any]]), Seq[Output[Any]]](
         opType = "ParseSingleExample",
         name = name,
@@ -234,6 +244,7 @@ trait Parsing {
           .setAttribute("Tdense", rawParameters.denseTypes.toArray)
           .setAttribute("dense_shapes", rawParameters.denseShapes.toArray)
           .build().output
+
       val (sparseIndices, sparseValues, sparseShapes, denseValues) = {
         val numSparse = rawParameters.sparseKeys.size
         (output.take(numSparse).map(_.asInstanceOf[Output[Long]]),
@@ -637,9 +648,6 @@ object Parsing extends Parsing {
           }
         })
       })
-
-      if (sparseKeys.isEmpty && denseKeys.isEmpty)
-        throw InvalidArgumentException("Must provide at least one dense or sparse feature.")
 
       val intersection = sparseKeys.intersect(denseKeys)
       if (intersection.nonEmpty)
