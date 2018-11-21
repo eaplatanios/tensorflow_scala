@@ -1,6 +1,7 @@
 # 0.4.1
 
-Other new features include:
+Fixed the precompiled TensorFlow binaries, and also added the following
+new features:
 
   - `io` module:
     - Added support for a new `TFRecordWriter`.

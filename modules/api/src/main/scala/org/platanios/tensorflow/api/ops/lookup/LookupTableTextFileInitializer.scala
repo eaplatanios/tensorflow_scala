@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.lookup
 
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
-import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF, IsStringOrIntOrUInt}
+import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF, IsStringOrInteger}
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 
 /** Lookup table initializer that uses a text file.
@@ -132,7 +132,7 @@ case object TextFileLineNumber extends TextFileFieldExtractor[Long] {
 
 /** Text file field extractor that extracts the whole line as a field. */
 case class TextFileWholeLine[+K: TF]()(implicit
-    ev: IsStringOrIntOrUInt[K]
+    ev: IsStringOrInteger[K]
 ) extends TextFileFieldExtractor[K] {
   override val name : String = "WHOLE_LINE"
   override val value: Int    = -2
