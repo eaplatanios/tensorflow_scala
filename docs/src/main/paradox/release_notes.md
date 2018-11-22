@@ -4,6 +4,7 @@
 
 @@@ index
 
+ - [0.4.1](release_notes/0.4.1.md)
  - [0.4.0](release_notes/0.4.0.md)
  - [0.3.0](release_notes/0.3.0.md)
  - [0.2.4](release_notes/0.2.4.md)

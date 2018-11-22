@@ -1,4 +1,4 @@
-# 0.4.1
+# 0.4.1 Fixed Precompiled TF Binaries and Some New Features
 
 Fixed the precompiled TensorFlow binaries, and also added the following
 new features:
