@@ -103,14 +103,14 @@ object JniCrossPackage extends AutoPlugin {
             IO.createDirectory(platformTargetDir / "docker")
             IO.createDirectory(platformTargetDir / "lib")
 
-            // Generate Dockerfile
+            // Generate Dockerfile.
             platform.dockerfile.foreach(d => {
               val dockerfilePath = platformTargetDir / "docker" / "Dockerfile"
               log.info(s"Generating Dockerfile in '$dockerfilePath'.")
               IO.write(dockerfilePath, d)
             })
 
-            // Compile and generate binaries
+            // Compile and generate binaries.
             log.info(s"Generating binaries in '$platformTargetDir'.")
             val dockerContainer = s"${moduleName.value}_${platform.name}"
             val exitCode = platform.build(
@@ -119,7 +119,10 @@ object JniCrossPackage extends AutoPlugin {
               srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
               tgtDir = platformTargetDir.getPath,
               libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
+
+            // Clean up.
             log.info("Cleaning up after build.")
+            IO.deleteFilesEmptyDirs(IO.listFiles(platformTargetDir / "code"))
             platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
             if (exitCode.getOrElse(0) != 0)
               sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
