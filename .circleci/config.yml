@@ -13,8 +13,8 @@ jobs:
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
-       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.4.0-SNAPSHOT/tensorflow_2.12-0.4.0-SNAPSHOT-linux-cpu-x86_64.jar
-       - run: jar xf tensorflow_2.12-0.4.0-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.4.1-SNAPSHOT/tensorflow_2.12-0.4.1-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: jar xf tensorflow_2.12-0.4.1-SNAPSHOT-linux-cpu-x86_64.jar
        - run: mv libtensorflow.so /usr/lib/libtensorflow.so
        - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
        - run: cd ..
@@ -40,8 +40,8 @@ jobs:
 #     steps:
 #       - checkout
 #       - run: mkdir downloads && cd downloads
-#       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.4.0-SNAPSHOT/tensorflow_2.12-0.4.0-SNAPSHOT-linux-gpu-x86_64.jar
-#       - run: jar xf tensorflow_2.12-0.4.0-SNAPSHOT-linux-gpu-x86_64.jar
+#       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.12/0.4.1-SNAPSHOT/tensorflow_2.12-0.4.1-SNAPSHOT-linux-gpu-x86_64.jar
+#       - run: jar xf tensorflow_2.12-0.4.1-SNAPSHOT-linux-gpu-x86_64.jar
 #       - run: mv libtensorflow.so /usr/lib/libtensorflow.so
 #       - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
 #       - run: cd ..
