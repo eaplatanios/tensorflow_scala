@@ -66,7 +66,6 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @param  decay                  Learning rate decay method to use for each update.
   * @param  beta1                  Exponential decay rate for the first moment estimates.
   * @param  beta2                  Exponential decay rate for the second moment estimates.
-  * @param  useNesterov            If `true`, Nesterov momentum is used for the updates.
   * @param  epsilon                Small constant used for numerical stability. This epsilon corresponds to
   *                                "epsilon hat" in the Kingma and Ba paper (in the formula just before Section 2.1),
   *                                and not to the epsilon in Algorithm 1 of the paper.
@@ -84,14 +83,12 @@ class LazyAMSGrad protected (
     override val decay: Schedule[Float] = FixedSchedule[Float](),
     override val beta1: Float = 0.9f,
     override val beta2: Float = 0.999f,
-    override val useNesterov: Boolean = false,
     override val epsilon: Float = 1e-8f,
     override val useLocking: Boolean = false,
     override val learningRateSummaryTag: String = null,
     override val name: String = "LazyAMSGrad"
 ) extends AMSGrad(
-  learningRate, decay, beta1, beta2, useNesterov,
-  epsilon, useLocking, learningRateSummaryTag, name
+  learningRate, decay, beta1, beta2, epsilon, useLocking, learningRateSummaryTag, name
 ) {
   override val ignoreDuplicateSparseIndices: Boolean = true
 
@@ -138,14 +135,11 @@ object LazyAMSGrad {
       decay: Schedule[Float] = FixedSchedule[Float](),
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
-      useNesterov: Boolean = false,
       epsilon: Float = 1e-8f,
       useLocking: Boolean = false,
       learningRateSummaryTag: String = null,
       name: String = "LazyAMSGrad"
   ): LazyAMSGrad = {
-    new LazyAMSGrad(
-      learningRate, decay, beta1, beta2, useNesterov,
-      epsilon, useLocking, learningRateSummaryTag, name)
+    new LazyAMSGrad(learningRate, decay, beta1, beta2, epsilon, useLocking, learningRateSummaryTag, name)
   }
 }

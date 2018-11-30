@@ -622,21 +622,7 @@ object Gradients {
       // TODO: [TYPES] !!! Super hacky. Remove in the future.
       implicit val ev: IsNumeric[T] = null
 
-      if (gradients.forall(_.isInstanceOf[Output[T]])) {
-        // This function adds op outputs from potentially different devices.
-        // We add the tensors of each device separately first, and we then add up the partial results.
-        val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
-          case (_, outputs) =>
-            Op.colocateWithForGradient(
-              Set(gradients.head.op),
-              gradientUID,
-              ignoreExisting = true
-            ) {
-              Math.addN(outputs.map(_.asInstanceOf[Output[T]]))
-            }
-        }
-        Math.addN(deviceContributions)
-      } else if (gradients.forall(_.isInstanceOf[OutputIndexedSlices[T]])) {
+      if (gradients.forall(_.isInstanceOf[OutputIndexedSlices[T]])) {
         def addNOutputIndexedSlices(
             gradients: Seq[OutputIndexedSlices[T]]
         ): OutputIndexedSlices[T] = {
@@ -659,9 +645,19 @@ object Gradients {
         }
         addNOutputIndexedSlices(deviceContributions)
       } else {
-        throw new IllegalArgumentException(
-          "The gradients being aggregated need to be all " +
-              "of type 'Output' or 'OutputIndexedSlices'.")
+        // This function adds op outputs from potentially different devices.
+        // We add the tensors of each device separately first, and we then add up the partial results.
+        val deviceContributions = gradients.groupBy(_.device).toSeq.sortBy(_._1).map {
+          case (_, outputs) =>
+            Op.colocateWithForGradient(
+              Set(gradients.head.op),
+              gradientUID,
+              ignoreExisting = true
+            ) {
+              Math.addN(outputs.map(_.toOutput.asInstanceOf[Output[T]]))
+            }
+        }
+        Math.addN(deviceContributions)
       }
     }
   }
