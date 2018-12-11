@@ -654,7 +654,7 @@ object Gradients {
               gradientUID,
               ignoreExisting = true
             ) {
-              Math.addN(outputs.map(_.toOutput.asInstanceOf[Output[T]]))
+              Math.addN(outputs.map(_.toOutput))
             }
         }
         Math.addN(deviceContributions)

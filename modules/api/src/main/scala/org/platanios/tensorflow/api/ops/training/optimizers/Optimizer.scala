@@ -197,7 +197,9 @@ trait Optimizer {
         // We colocate all ops created for variable application on the same device as the variable.
         Op.createWith(nameScope = s"Update/${v.op.name}") {
           Op.colocateWith(Set(v.op), ignoreExisting = true) {
-            updateOps.add(p.updateOp(this, g.castTo(v.dataType), iteration))
+            implicit val evRTF: TF[Any] = TF.fromDataType(v.dataType)
+            val castedGradient = Cast.cast[T, Any, OutputLike](g)
+            updateOps.add(p.updateOp(this, castedGradient, iteration))
           }
         }
       }
