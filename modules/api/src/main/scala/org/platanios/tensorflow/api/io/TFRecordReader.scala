@@ -13,22 +13,21 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.io.events
+package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.exception.{DataLossException, OutOfRangeException}
-import org.platanios.tensorflow.api.io.{CompressionType, Loader, NoCompression}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{RecordReader => NativeReader}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.util.Event
+import org.tensorflow.example.Example
 
 import java.nio.file.Path
 
-/** Event file reader.
+/** TensorFlow record file reader.
   *
-  * An event file reader is used to create iterators over the events stored in the file at the provided path (i.e.,
+  * An TF record reader is used to create iterators over the examples stored in the file at the provided path (i.e.,
   * `filePath`).
   *
   * Note that this reader ignores any corrupted records at the end of the file. That is to allow for "live tracking" of
@@ -39,57 +38,57 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class EventFileReader protected (
+class TFRecordReader protected (
     val filePath: Path,
     val compressionType: CompressionType = NoCompression,
     private[this] val nativeHandleWrapper: NativeHandleWrapper,
     override protected val closeFn: () => Unit
-) extends Closeable with Loader[Event] {
+) extends Closeable with Loader[Example] {
   /** Lock for the native handle. */
-  private[EventFileReader] def NativeHandleLock = nativeHandleWrapper.Lock
+  private[TFRecordReader] def NativeHandleLock = nativeHandleWrapper.Lock
 
   /** Native handle of this tensor. */
   private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
-  def load(): Iterator[Event] = new Iterator[Event] {
-    /** Caches the next event stored in the file. */
-    private[this] var nextEvent: Event = _
+  def load(): Iterator[Example] = new Iterator[Example] {
+    /** Caches the next example stored in the file. */
+    private[this] var nextExample: Example = _
 
-    /** Reads the next event stored in the file. */
-    private[this] def readNext(): Event = {
+    /** Reads the next example stored in the file. */
+    private[this] def readNext(): Example = {
       try {
-        Event.parseFrom(NativeReader.recordReaderWrapperReadNext(nativeHandle))
+        Example.parseFrom(NativeReader.recordReaderWrapperReadNext(nativeHandle))
       } catch {
         case _: OutOfRangeException | _: DataLossException =>
           // We ignore partial read exceptions, because a record may be truncated. The record reader holds the offset
           // prior to the failed read, and so retrying will succeed.
-          EventFileReader.logger.info(s"No more events stored at '${filePath.toAbsolutePath}'.")
+          TFRecordReader.logger.info(s"No more TF records stored at '${filePath.toAbsolutePath}'.")
           null
       }
     }
 
     override def hasNext: Boolean = {
-      if (nextEvent == null)
-        nextEvent = readNext()
-      nextEvent != null
+      if (nextExample == null)
+        nextExample = readNext()
+      nextExample != null
     }
 
-    override def next(): Event = {
-      val event = {
-        if (nextEvent == null)
+    override def next(): Example = {
+      val example = {
+        if (nextExample == null)
           readNext()
         else
-          nextEvent
+          nextExample
       }
-      if (event != null)
-        nextEvent = readNext()
-      event
+      if (example != null)
+        nextExample = readNext()
+      example
     }
   }
 }
 
-private[io] object EventFileReader {
-  private[EventFileReader] val logger: Logger = Logger(LoggerFactory.getLogger("Event File Reader"))
+private[io] object TFRecordReader {
+  private[TFRecordReader] val logger: Logger = Logger(LoggerFactory.getLogger("TF Record Reader"))
 
   /** Creates a new events file reader.
     *
@@ -97,8 +96,8 @@ private[io] object EventFileReader {
     * @param  compressionType Compression type used for the file.
     * @return Newly constructed events file reader.
     */
-  def apply(filePath: Path, compressionType: CompressionType = NoCompression): EventFileReader = {
-    EventFileReader.logger.info(s"Opening a TensorFlow events file located at '${filePath.toAbsolutePath}'.")
+  def apply(filePath: Path, compressionType: CompressionType = NoCompression): TFRecordReader = {
+    TFRecordReader.logger.info(s"Opening a TensorFlow records file located at '${filePath.toAbsolutePath}'.")
     val nativeHandle = NativeReader.newRecordReaderWrapper(filePath.toAbsolutePath.toString, compressionType.name, 0)
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
@@ -109,8 +108,8 @@ private[io] object EventFileReader {
         }
       }
     }
-    val eventFileReader = new EventFileReader(filePath, compressionType, nativeHandleWrapper, closeFn)
-    // Keep track of references in the Scala side and notify the native library when the event file reader is not
+    val eventFileReader = new TFRecordReader(filePath, compressionType, nativeHandleWrapper, closeFn)
+    // Keep track of references in the Scala side and notify the native library when the TF record file reader is not
     // referenced anymore anywhere in the Scala side. This will let the native library free the allocated resources and
     // prevent a potential memory leak.
     Disposer.add(eventFileReader, closeFn)

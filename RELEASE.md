@@ -1,3 +1,7 @@
+# 0.4.2
+
+  - Added support for a TF records reader.
+
 # 0.4.1 Fixed Precompiled TF Binaries and Added Some New Features
 
 Fixed the precompiled TensorFlow binaries, and also added the following
