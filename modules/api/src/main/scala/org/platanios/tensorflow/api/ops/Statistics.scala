@@ -121,7 +121,7 @@ trait Statistics {
         var mean = Math.mean(input, axes = dynamicAxes, keepDims = true, name = "Mean")
         // Compute the sample variance (i.e., not an unbiased variance estimate).
         var variance = Math.mean(
-          Math.squaredDifference(input, Basic.stopGradient(input)),
+          Math.squaredDifference(input, Basic.stopGradient(mean)),
           axes = dynamicAxes, keepDims = true, name = "Variance")
         if (!keepDims) {
           mean = Basic.squeeze(mean, axes)
