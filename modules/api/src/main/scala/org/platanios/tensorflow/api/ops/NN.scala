@@ -1586,7 +1586,7 @@ trait NN {
     Op.nameScope(name) {
       val inv = Math.rsqrt(variance + epsilon)
       val scaledInv = scale.map(inv * _).getOrElse(inv)
-      x * inv + offset.map(_ - mean * scaledInv).getOrElse(-mean * scaledInv)
+      x * scaledInv + offset.map(_ - mean * scaledInv).getOrElse(-mean * scaledInv)
     }
   }
 
