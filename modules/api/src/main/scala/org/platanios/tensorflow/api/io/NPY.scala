@@ -113,7 +113,8 @@ object NPY {
 
     val resolvedHandle = tensor.resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
-    val dataBytes = buffer.array()
+    val dataBytes = Array.ofDim[Byte](buffer.remaining())
+    buffer.get(dataBytes)
     tensor.NativeHandleLock synchronized {
       if (resolvedHandle != 0)
         NativeTensor.delete(resolvedHandle)

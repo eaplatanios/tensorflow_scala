@@ -1047,7 +1047,7 @@ object Tensor {
         } else {
           val direct = ByteBuffer.allocateDirect(numBytes.toInt)
           val bufferCopy = buffer.duplicate()
-          direct.put(bufferCopy.limit(numBytes.toInt).asInstanceOf[ByteBuffer])
+          direct.put(bufferCopy.limit(bufferCopy.position + numBytes.toInt).asInstanceOf[ByteBuffer])
           direct
         }
       }
