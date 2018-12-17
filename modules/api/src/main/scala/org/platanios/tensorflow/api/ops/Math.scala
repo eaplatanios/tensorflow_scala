@@ -2292,7 +2292,7 @@ trait Math extends math.API {
       x: Output[Int],
       y: Output[Int]
   ): Output[Int] = {
-    truncateDivide[Int](x, maximum[Int](y, Basic.ones[Int](Tensor.empty[Int])))
+    truncateDivide[Long](x.toLong, maximum[Long](y.toLong, Basic.ones[Long](Tensor.empty[Int]))).toInt
   }
 
   /** $OpDocMathSum
@@ -2337,7 +2337,7 @@ trait Math extends math.API {
     } else if (rank != -1
         && axes.op.opType == "Const"
         && Output.constantValue(axes).exists(a => {
-      a.castTo[Int].entriesIterator.toArray[Int].sameElements((0 until rank).toArray[Int])
+      a.toInt.entriesIterator.toArray[Int].sameElements((0 until rank).toArray[Int])
     })) {
       // In this case the reduction was over all dimensions.
       val reshapedOutputGradient = Basic.reshape(outputGradient, Shape(Array.fill(rank)(1)))
@@ -2350,7 +2350,7 @@ trait Math extends math.API {
       }
       (Basic.tile(reshapedOutputGradient, inputShape), null)
     } else {
-      val inputShape = Basic.shape(input).castTo[Int]
+      val inputShape = Basic.shape(input)
       val outputShapeKeptDimensions = Math.reducedShape(inputShape, axes)
       val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDimensions)
       val reshapedOutputGradient = Basic.reshape(outputGradient, outputShapeKeptDimensions)
