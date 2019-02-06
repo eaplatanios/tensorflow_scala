@@ -1494,11 +1494,11 @@ object Op {
     implicit def seqOutputEvidence[T]: OpOutput[Seq[Output[T]]] = {
       new OpOutput[Seq[Output[T]]] {
         @inline override def fromOutputs(outputs: Seq[Output[Any]]): Seq[Output[T]] = {
-          outputs.map(_.asInstanceOf[Output[T]])
+          outputs.map(o => if (o == null) null else o.toOutput.asInstanceOf[Output[T]])
         }
 
         @inline override def fromOutputLikes(outputs: Seq[OutputLike[Any]]): Seq[Output[T]] = {
-          outputs.map(_.toOutput.asInstanceOf[Output[T]])
+          outputs.map(o => if (o == null) null else o.toOutput.asInstanceOf[Output[T]])
         }
       }
     }
