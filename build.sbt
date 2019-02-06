@@ -19,15 +19,15 @@ import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.7"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.7")
+scalaVersion in ThisBuild := "2.12.8"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
 
 organization in ThisBuild := "org.platanios"
 
 autoCompilerPlugins in ThisBuild := true
 
 val tensorFlowVersion = "1.11.0"
-val circeVersion = "0.10.0" // Use for working with JSON.
+val circeVersion = "0.10.1" // Use for working with JSON.
 
 // addCompilerPlugin(MetalsPlugin.semanticdbScalac)
 
@@ -72,7 +72,7 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
+  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(

@@ -22,10 +22,9 @@ val tensorFlowVersion = "1.11.0"
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.ow2.asm" % "asm" % "6.2.1",
-  "org.tensorflow" % "proto" % tensorFlowVersion,
-  "io.circe" %% "circe-core" % "0.8.0" force())
+  "org.tensorflow" % "proto" % tensorFlowVersion)
 
-addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.0.0")
+addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.2.5")
 
 // addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "1.6.0-RC4")
 // addSbtPlugin("org.scalameta" % "sbt-metals" % "0.1.0-M1+267-28b92d0a")
@@ -46,25 +45,3 @@ addSbtPlugin("org.xerial.sbt"    % "sbt-sonatype" % "2.3")
 
 // Generally useful plugins
 // addSbtPlugin("io.get-coursier" %  "sbt-coursier" % "1.1.0-M4") // Provides fast dependency resolution.
-
-// If enabled, add the Hydra compiler plugin.
-val useHydra = Option(System.getenv().get("SBT_USE_HYDRA") == "1").getOrElse(false)
-
-resolvers ++= {
-  if (useHydra) {
-    Seq(Resolver.url("Triplequote Plugins Releases",
-      url("https://repo.triplequote.com/artifactory/sbt-plugins-release/"))(Resolver.ivyStylePatterns))
-  } else {
-    Seq.empty
-  }
-}
-
-libraryDependencies ++= {
-  if (useHydra) {
-    val sbtV = (sbtBinaryVersion in pluginCrossBuild).value
-    val scalaV = (scalaBinaryVersion in update).value
-    Seq(sbtPluginExtra("com.triplequote" % "sbt-hydra" % "1.1.1", sbtV, scalaV))
-  } else {
-    Seq.empty
-  }
-}

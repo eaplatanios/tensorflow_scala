@@ -61,7 +61,7 @@ abstract class Layer[T, R](
 
   def map[MR](mapFn: R => MR): Layer[T, MR] = Map(s"$name/Map", this, mapFn)
 
-  final def getParameter[P: TF](
+  def getParameter[P: TF](
       name: String,
       shape: Shape,
       initializer: Initializer = null,

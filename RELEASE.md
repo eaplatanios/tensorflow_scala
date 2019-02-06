@@ -1,6 +1,7 @@
 # 0.4.2
 
   - Added support for a TF records reader.
+  - Fixed a bug related to reading and writing NPY files.
 
 # 0.4.1 Fixed Precompiled TF Binaries and Added Some New Features
 
