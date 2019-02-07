@@ -2682,7 +2682,7 @@ trait Math extends math.API {
     *
     * @group MathOps
     * @param  input          Input tensor.
-    * @param  axes           Tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes           Tensor containing the axes to reduce.
     * @param  outputDataType Data type for the output tensor.
     * @param  name           Name for the created op.
     * @return Created op output.
@@ -2705,7 +2705,7 @@ trait Math extends math.API {
     *
     * @group MathOps
     * @param  input          Input tensor.
-    * @param  axes           Tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes           Tensor containing the axes to reduce.
     * @param  outputDataType Data type for the output tensor.
     * @param  name           Name for the created op.
     * @return Created op output.
@@ -5386,7 +5386,7 @@ object Math extends Math {
       /** $OpDocMathArgmin
         *
         * @group MathOps
-        * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  axes Integer tensor containing the axes to reduce.
         * @return Result as a new tensor.
         */
       def argmin[I: TF : IsIntOrLong](
@@ -5398,7 +5398,7 @@ object Math extends Math {
       /** $OpDocMathArgmin
         *
         * @group MathOps
-        * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  axes           Integer tensor containing the axes to reduce.
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */
@@ -5412,7 +5412,7 @@ object Math extends Math {
       /** $OpDocMathArgmax
         *
         * @group MathOps
-        * @param  axes Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  axes Integer tensor containing the axes to reduce.
         * @return Result as a new tensor.
         */
       def argmax[I: TF : IsIntOrLong](
@@ -5424,7 +5424,7 @@ object Math extends Math {
       /** $OpDocMathArgmax
         *
         * @group MathOps
-        * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+        * @param  axes           Integer tensor containing the axes to reduce.
         * @param  outputDataType Data type for the output tensor.
         * @return Result as a new tensor.
         */

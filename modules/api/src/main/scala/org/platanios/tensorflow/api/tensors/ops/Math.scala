@@ -1237,7 +1237,7 @@ trait Math {
     *
     * @group MathOps
     * @param  input Input tensor.
-    * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes  Integer tensor containing the axes to reduce.
     * @return Result as a new tensor.
     */
   def argmin[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
@@ -1251,7 +1251,7 @@ trait Math {
     *
     * @group MathOps
     * @param  input          Input tensor.
-    * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes           Integer tensor containing the axes to reduce.
     * @param  outputDataType Data type for the output tensor.
     * @return Result as a new tensor.
     */
@@ -1268,7 +1268,7 @@ trait Math {
     *
     * @group MathOps
     * @param  input Input tensor.
-    * @param  axes  Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes  Integer tensor containing the axes to reduce.
     * @return Result as a new tensor.
     */
   def argmax[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
@@ -1282,7 +1282,7 @@ trait Math {
     *
     * @group MathOps
     * @param  input          Input tensor.
-    * @param  axes           Integer tensor containing the axes to reduce. If `null`, then all axes are reduced.
+    * @param  axes           Integer tensor containing the axes to reduce.
     * @param  outputDataType Data type for the output tensor.
     * @return Result as a new tensor.
     */
