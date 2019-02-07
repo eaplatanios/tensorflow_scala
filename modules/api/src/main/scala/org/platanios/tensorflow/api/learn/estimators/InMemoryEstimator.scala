@@ -160,9 +160,9 @@ class InMemoryEstimator[In: OutputStructure, TrainIn: OutputStructure, Out: Outp
       val allHooks = allTrainHooks.toSet ++
           inferHooks.filter(!_.isInstanceOf[Stopper]) ++
           evaluateHooks.filter(!_.isInstanceOf[Stopper])
-      val allChiefOnlyHooks = allTrainChiefOnlyHooks.toSet.filter(!_.isInstanceOf[Stopper])
       if (tensorBoardConfig != null)
         allTrainChiefOnlyHooks += TensorBoardHook(tensorBoardConfig)
+      val allChiefOnlyHooks = allTrainChiefOnlyHooks.toSet.filter(!_.isInstanceOf[Stopper])
       val saver = getOrCreateSaver()
       Estimator.monitoredTrainingSession(
         configuration = configuration, hooks = allHooks, chiefOnlyHooks = allChiefOnlyHooks,
