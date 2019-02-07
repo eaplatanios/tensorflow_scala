@@ -67,11 +67,11 @@ trait IndexMNISTExample {
 
 trait IndexTensorBoard extends IndexMNISTExample {
   // #tensorboard_example
-  val loss = SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss") >>
+  override val loss = SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss") >>
       Mean("Loss/Mean") >>
       ScalarSummary(name = "Loss", tag = "Loss")
   val summariesDir = Paths.get("/tmp/summaries")
-  val estimator = InMemoryEstimator(
+  override val estimator = InMemoryEstimator(
     modelFunction = model,
     configurationBase = Configuration(Some(summariesDir)),
     trainHooks = Set(
