@@ -181,12 +181,12 @@ object NPY {
     case FLOAT64 => "f8"
     case INT8 => "i1"
     case INT16 => "i2"
-    case INT32 => "i3"
-    case INT64 => "i4"
+    case INT32 => "i4"
+    case INT64 => "i8"
     case UINT8 => "u1"
     case UINT16 => "u2"
-    case UINT32 => "u3"
-    case UINT64 => "u4"
+    case UINT32 => "u4"
+    case UINT64 => "u8"
     case t => throw InvalidDataTypeException(s"TensorFlow data type '$t' cannot be converted to a Numpy data type.")
   }
 }
