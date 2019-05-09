@@ -1,4 +1,4 @@
-/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-19, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -43,7 +43,7 @@ object TensorFlowGenerateTensorOps extends AutoPlugin {
   import autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    scalaPackage in generateTensorOps := s"tensors",
+    scalaPackage in generateTensorOps := "tensors",
     target in generateTensorOps := target.value,
     ops in generateTensorOps := Map.empty,
     clean in generateTensorOps := {
@@ -68,13 +68,19 @@ object TensorFlowGenerateTensorOps extends AutoPlugin {
             .foreach(Files.deleteIfExists)
     },
     generateTensorOps := {
-      streams.value.log.info("Generating TensorFlow tensor op files.")
-      generateFiles(
-        (target in generateTensorOps).value.toPath,
-        (ops in generateTensorOps).value,
-        s"org.platanios.tensorflow.jni.generated.${(scalaPackage in generateTensorOps).value}")
-    }
-  )
+      val log = streams.value.log
+      val opsPBFile = (target in generateTensorOps).value / "resources" / "ops.pbtxt"
+      val cachedFunction = FileFunction.cached(streams.value.cacheDirectory)(opsFiles => {
+        log.info("Generating TensorFlow tensor op files.")
+        generateFiles(
+          opsFiles.head,
+          (target in generateTensorOps).value.toPath,
+          (ops in generateTensorOps).value,
+          s"org.platanios.tensorflow.jni.generated.${(scalaPackage in generateTensorOps).value}")
+        Set.empty
+      })
+      cachedFunction(Set(opsPBFile))
+    })
 
   override lazy val projectSettings: Seq[Setting[_]] = settings
 }

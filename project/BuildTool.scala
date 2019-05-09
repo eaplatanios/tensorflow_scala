@@ -47,7 +47,10 @@ object BuildTool {
       val baseDirectory : File
       val buildDirectory: File
 
-      def clean(): Unit = if (buildDirectory.list().contains("Makefile")) Process("make clean", buildDirectory) ! log
+      def clean(): Unit = {
+        if (buildDirectory.list().contains("Makefile"))
+          Process("make clean", buildDirectory) ! log
+      }
 
       def configure(targetDirectory: File): ProcessBuilder
 
@@ -56,9 +59,11 @@ object BuildTool {
       def install(): ProcessBuilder = Process("make install", buildDirectory)
 
       def libraries(targetDirectory: File): Seq[File] = {
-        val exitCode: Int = (configure(targetDirectory) #&& make() #&& install()) ! log
-        if (exitCode != 0)
-          sys.error(s"Failed to build the native library. Exit code: $exitCode.")
+        try {
+          (configure(targetDirectory) #&& make() #&& install()).lineStream.foreach(log.info(_))
+        } catch {
+          case t: Throwable => sys.error(s"Failed to build the native library: $t.")
+        }
         val products: List[File] = (targetDirectory ** ("*.so" | "*.dylib" | "*.dll")).get.filter(_.isFile).toList
         if (products == Nil)
           sys.error(s"No files were created during compilation, something went wrong with the $name configuration.")

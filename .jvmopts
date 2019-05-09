@@ -1,12 +1,7 @@
 -Dfile.encoding=UTF8
 -Xms1G
--Xmx6G
--Xms6G
--Xss2M
--XX:ReservedCodeCacheSize=256M
--XX:MaxDirectMemorySize=16384M
--XX:MaxMetaspaceSize=512M
--XX:+TieredCompilation
--XX:-UseGCOverheadLimit
--XX:+CMSClassUnloadingEnabled
--XX:+UseConcMarkSweepGC
+-Xmx4G
+-Xss8M
+-XX:ReservedCodeCacheSize=512M
+-XX:MaxDirectMemorySize=16G
+-XX:MaxMetaspaceSize=1G

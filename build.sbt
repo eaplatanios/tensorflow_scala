@@ -1,4 +1,4 @@
-/* Copyright 2017-18, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-19, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -14,97 +14,82 @@
  */
 
 import ReleaseTransformations._
-import TensorFlowNativePackage._
+import JniCrossPackage._
 import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.5"
-crossScalaVersions in ThisBuild := Seq("2.11.11", "2.12.5")
+scalaVersion in ThisBuild := "2.12.8"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
 
 organization in ThisBuild := "org.platanios"
 
-val tensorFlowVersion = "1.7.0"
-val circeVersion = "0.9.1" // Use for working with JSON.
-
 autoCompilerPlugins in ThisBuild := true
+
+val tensorFlowVersion = "1.11.0"
+val circeVersion = "0.10.1" // Use for working with JSON.
 
 // addCompilerPlugin(MetalsPlugin.semanticdbScalac)
 
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
   "-encoding", "UTF-8",
+  // "-explaintypes",              // Explain type errors in more detail.
   "-feature",
-  "-language:existentials",
-  "-language:higherKinds",
-  "-language:implicitConversions",
-  "-unchecked",
+  "-language:existentials",        // Existential types (besides wildcard types) can be written and inferred.
+  "-language:experimental.macros", // Allow macro definition (besides implementation and application)
+  "-language:higherKinds",         // Allow higher-kinded types.
+  "-language:implicitConversions", // Allow definition of implicit functions called views.
+  "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
   "-Yno-adapted-args",
+  "-Ypartial-unification",
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture"
-//  "-P:splain:all",
-//  "-P:splain:infix",
-//  "-P:splain:foundreq",
-//  "-P:splain:implicits",
-//  "-P:splain:color",
-//  "-P:splain:tree"
-//  "-P:splain:boundsimplicits:false"
+  "-Xfuture", // Turn on future language features.
+  // "-P:splain:all",
+  // "-P:splain:infix",
+  // "-P:splain:foundreq",
+  // "-P:splain:implicits",
+  // "-P:splain:color",
+  // "-P:splain:tree",
+  // "-P:splain:boundsimplicits:false"
 )
 
-// TODO: Find a way to better deal with cross-compiling. Current issues:
-//       - publish, publishLocal, publishSigned, and publishLocalSigned do not account for cross-compiling.
-//       - publishLocalCrossCompiled is a sort-of hacky alternative to deal with one of these cases.
+val scalacProfilingEnabled: SettingKey[Boolean] =
+  settingKey[Boolean]("Flag specifying whether to enable profiling for the Scala compiler.")
+
+scalacProfilingEnabled in ThisBuild := false
+nativeCrossCompilationEnabled in ThisBuild := false
 
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
-    "com.typesafe.scala-logging" %% "scala-logging"   % "3.7.2",
-    "ch.qos.logback"             %  "logback-classic" % "1.2.3")
-)
+    "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
+    "ch.qos.logback"             %  "logback-classic" % "1.2.3"))
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  // addCompilerPlugin("io.tryp"  % "splain" % "0.2.7" cross CrossVersion.patch)
+  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
 )
 
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
-    "junit"         %  "junit" %   "4.12",
-    "org.scalactic" %% "scalactic" % "3.0.4",
-    "org.scalatest" %% "scalatest" % "3.0.4" % "test"),
+    "junit"         %  "junit"     % "4.12",
+    "org.scalactic" %% "scalactic" % "3.0.5",
+    "org.scalatest" %% "scalatest" % "3.0.5" % "test"),
   logBuffered in Test := false,
   fork in test := false,
   testForkedParallel in Test := false,
   parallelExecution in Test := false,
-  testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
-)
-
-lazy val crossCompilationPackagingSettings = Seq(
-  nativeCompile in jni := {
-    (nativeCrossCompile in CrossCompile in jni).value
-    Seq.empty
-  },
-  resourceGenerators in Compile in jni += Def.task {
-    jniLibraries(
-      (nativeCrossCompile in CrossCompile in jni).value,
-      (resourceManaged in Compile in jni).value)
-  }.taskValue,
-  packagedArtifacts ++= {
-    (nativeCrossCompile in CrossCompile in jni).value.map { case (platform, ((dir, nativeLibs), _)) =>
-      Artifact("tensorflow", platform.tag) -> nativeLibsToJar(
-        platform, dir, nativeLibs, (tensorFlowBinaryVersion in CrossCompile in jni).value, streams.value.log)
-    }
-  }
-)
+  testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples, site)
+    .aggregate(jni, api, data, examples)
     .dependsOn(jni, api)
-    .settings(moduleName := "tensorflow", name := "TensorFlow for Scala")
+    .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
     .settings(publishSettings)
     .settings(
@@ -113,21 +98,18 @@ lazy val all = (project in file("."))
       unmanagedSourceDirectories in Test := Nil,
       unmanagedResourceDirectories in Compile := Nil,
       unmanagedResourceDirectories in Test := Nil,
-      nativeCompile := Seq.empty,
-      nativeCrossCompile in CrossCompile := Map.empty,
-      commands ++= Seq(
-        publishCrossCompiled,
-        publishLocalCrossCompiled,
-        publishSignedCrossCompiled,
-        publishLocalSignedCrossCompiled),
-      releaseProcess := ReleaseStep(reapply(crossCompilationPackagingSettings, _)) +: releaseProcess.value,
-      publishArtifact := true
-    )
+      publishArtifact := true,
+      packagedArtifacts ++= {
+        (nativeCrossCompile in JniCross in jni).value
+            .map(p => p._1 -> getPackagedArtifacts(p._1, p._2))
+            .filter(_._2.isDefined).map {
+          case (platform, file) => Artifact((nativeArtifactName in JniCross in jni).value, platform.tag) -> file.get
+        }
+      })
 
-lazy val jni = (project in file("./jni"))
-    .enablePlugins(JniNative, TensorFlowGenerateTensorOps, TensorFlowNativePackage)
-    .configs(CrossCompile)
-    .settings(moduleName := "tensorflow-jni", name := "TensorFlow for Scala JNI Bindings")
+lazy val jni = (project in file("./modules/jni"))
+    .enablePlugins(JniNative, TensorFlowGenerateTensorOps, JniCrossPackage, TensorFlowNativePackage)
+    .settings(moduleName := "tensorflow-jni", name := "TensorFlow Scala - JNI Bindings")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
@@ -170,7 +152,8 @@ lazy val jni = (project in file("./jni"))
           "BatchNormWithGlobalNormalization", "FusedBatchNorm", "QuantizedBiasAdd", "QuantizedRelu", "QuantizedRelu6",
           "QuantizedReluX", "QuantizedAvgPool", "QuantizedMaxPool", "QuantizedConv2D",
           "QuantizedBatchNormWithGlobalNormalization"),
-        "Random" -> Seq("RandomUniform", "RandomUniformInt", "RandomStandardNormal", "TruncatedNormal"),
+        "Random" -> Seq(
+          "RandomShuffle", "RandomUniform", "RandomUniformInt", "RandomStandardNormal", "TruncatedNormal"),
         "Sparse" -> Seq("SparseToDense"),
         "Text" -> Seq(
           "StringJoin", "StringSplit", "EncodeBase64", "DecodeBase64", "StringToHashBucket", "StringToHashBucketFast",
@@ -181,121 +164,176 @@ lazy val jni = (project in file("./jni"))
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
-      target in CrossCompile := target.value / "native",
-      nativePlatforms in CrossCompile := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tensorFlowBinaryVersion in CrossCompile := "nightly", // tensorFlowVersion
-      compileTFLib in CrossCompile := false,
-      tfLibRepository in CrossCompile := "https://github.com/tensorflow/tensorflow.git",
-      tfLibRepositoryBranch := "master",
+      target in JniCross := target.value / "native",
+      nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
+      tfBinaryVersion in JniCross := "nightly", // tensorFlowVersion,
+      tfLibCompile in JniCross := false,
+      tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
+      tfLibRepositoryBranch in JniCross := "master",
       // Specify the order in which the different compilation tasks are executed
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value
-    )
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
 
-lazy val api = (project in file("./api"))
+lazy val api = (project in file("./modules/api"))
     .dependsOn(jni)
     .enablePlugins(ProtobufPlugin)
-    .settings(moduleName := "tensorflow-api", name := "TensorFlow for Scala API")
+    .settings(moduleName := "tensorflow-api", name := "TensorFlow Scala - API")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.typelevel" %% "spire" % "0.14.1",
-      libraryDependencies += "org.tensorflow" % "proto" % tensorFlowVersion,
-      libraryDependencies += "com.chuusai" %% "shapeless" % "2.3.3",
+      libraryDependencies ++= Seq(
+        "org.tensorflow" % "proto" % tensorFlowVersion,
+        "com.chuusai" %% "shapeless" % "2.3.3",
+        compilerPlugin("com.github.ghik" %% "silencer-plugin" % "0.6"),
+        "com.github.ghik" %% "silencer-lib" % "0.6"),
       libraryDependencies ++= Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",
         "io.circe" %% "circe-parser"
       ).map(_ % circeVersion),
-      // Protobuf settings
-      version in ProtobufConfig := "3.4.0",
+      // Scalac Profiling Settings
+      libraryDependencies ++= {
+        if (scalacProfilingEnabled.value)
+          Seq(compilerPlugin("ch.epfl.scala" %% "scalac-profiling" % "1.0.0"))
+        else
+          Seq.empty
+      },
+      scalacOptions ++= {
+        if (scalacProfilingEnabled.value) {
+          Seq(
+            "-Ystatistics:typer",
+            // Scala profiler plugin options
+            "-P:scalac-profiling:no-profiledb",
+            "-P:scalac-profiling:show-profiles",
+            "-P:scalac-profiling:show-concrete-implicit-tparams")
+        } else {
+          Seq.empty
+        }
+      },
+      // Protobuf Settings
+      version in ProtobufConfig := "3.5.1",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
-      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value
-    )
+      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value)
 
-lazy val data = (project in file("./data"))
-    .dependsOn(api)
-    .settings(moduleName := "tensorflow-data", name := "TensorFlow for Scala Data")
+lazy val horovod = (project in file("./modules/horovod"))
+    .dependsOn(jni, api)
+    .enablePlugins(JniNative, JniCrossPackage)
+    .settings(moduleName := "tensorflow-horovod", name := "TensorFlow Scala - Horovod")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15"
-    )
+      // Native bindings compilation settings
+      target in javah := sourceDirectory.value / "main" / "native" / "include",
+      sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
+      target in nativeCompile := target.value / "native" / nativePlatform.value,
+      dockerImagePrefix in JniCross := "tensorflow-jni",
+      nativeArtifactName in JniCross := "horovod",
+      nativeLibPath in JniCross := {
+        (nativeCrossCompile in JniCross in jni).value
+        val tfVersion = (tfBinaryVersion in JniCross in jni).value
+        val tfJniTarget = (target in JniCross in jni).value
+        val log = streams.value.log
+        val targetDir = (target in nativeCrossCompile in JniCross).value
+        IO.createDirectory(targetDir)
+        (nativePlatforms in nativeCrossCompile in JniCross).value.map(platform => {
+          val platformTargetDir = targetDir / platform.name
+          IO.createDirectory(platformTargetDir / "downloads")
+          IO.createDirectory(platformTargetDir / "downloads" / "lib")
 
-lazy val examples = (project in file("./examples"))
-    .dependsOn(api, data)
-    .settings(moduleName := "tensorflow-examples", name := "TensorFlow for Scala Examples")
-    .settings(commonSettings)
-    .settings(publishSettings)
+          // Download the native TensorFlow library
+          log.info(s"Downloading the TensorFlow native library.")
+          val exitCode = TensorFlowNativePackage.downloadTfLib(
+            platform, (tfJniTarget / platform.name).getPath, tfVersion
+          ).map(_ ! log)
 
-lazy val site = (project in file("./site"))
+          if (exitCode.getOrElse(0) != 0) {
+            sys.error(
+              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. " +
+                  s"Exit code: $exitCode.")
+          }
+
+          platform -> tfJniTarget / platform.name
+        }).toMap
+      })
+
+lazy val data = (project in file("./modules/data"))
     .dependsOn(api)
-    .enablePlugins(ScalaUnidocPlugin, MicrositesPlugin)
-    .settings(moduleName := "tensorflow-site", name := "TensorFlow for Scala Site")
+    .settings(moduleName := "tensorflow-data", name := "TensorFlow Scala - Data")
+    .settings(commonSettings)
+    .settings(testSettings)
+    .settings(publishSettings)
+    .settings(
+      libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15")
+
+lazy val examples = (project in file("./modules/examples"))
+    .dependsOn(api, data)
+    .settings(moduleName := "tensorflow-examples", name := "TensorFlow Scala - Examples")
     .settings(commonSettings)
     .settings(publishSettings)
-    .settings(noPublishSettings)
+
+val JNI = config("jni")
+val API = config("api")
+val DATA = config("data")
+val EXAMPLES = config("examples")
+
+lazy val docs = (project in file("docs"))
+    .dependsOn(api, jni, data, examples)
+    .enablePlugins(SiteScaladocPlugin, ParadoxSitePlugin, ParadoxMaterialThemePlugin, GhpagesPlugin)
+    .settings(moduleName := "tensorflow-docs", name := "TensorFlow Scala - Documentation")
+    .settings(ParadoxMaterialThemePlugin.paradoxMaterialThemeSettings(Paradox))
     .settings(
+      ghpagesNoJekyll := true,
+      sourceDirectory in Paradox := sourceDirectory.value / "main" / "paradox",
+      paradoxProperties in Paradox ++= Map(
+        "scaladoc.base_url" -> "http://platanios.org/tensorflow_scala/api/",
+        "scaladoc.org.platanios.tensorflow.api.base_url" -> "http://platanios.org/tensorflow_scala/api/api/",
+        "github.base_url" -> "https://github.com/eaplatanios/tensorflow_scala",
+        "snip.github_link" -> "false"),
+      paradoxNavigationDepth in Paradox := 3,
+      makeSite := makeSite.dependsOn(paradox in Paradox).value,
+      mappings in makeSite in Paradox ++= Seq(
+        file("LICENSE") -> "LICENSE",
+        file("assets/favicon.ico") -> "favicon.ico"),
+      scmInfo := Some(ScmInfo(
+        url("https://github.com/eaplatanios/tensorflow_scala"),
+        "git@github.com:eaplatanios/tensorflow_scala.git")),
+      git.remoteRepo := scmInfo.value.get.connection,
+      paradoxMaterialTheme in Paradox ~= {
+        _.withColor("white", "red")
+            .withFavicon("favicon.ico")
+            .withLogo("assets/images/logo.png")
+            // .withGoogleAnalytics("UA-107934279-1")
+            .withRepository(uri("https://github.com/eaplatanios/tensorflow_scala"))
+            .withSocial(
+              uri("https://github.com/eaplatanios"),
+              uri("https://twitter.com/eaplatanios"))
+            .withLanguage(java.util.Locale.ENGLISH)
+            .withCustomStylesheet("assets/custom.css")
+      },
       autoAPIMappings := true,
-      siteSubdirName in ScalaUnidoc := "api",
-      unidocProjectFilter in (ScalaUnidoc, unidoc) := inProjects(jni, api, data, examples),
-      addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc),
-      ghpagesNoJekyll := false,
-      fork in (ScalaUnidoc, unidoc) := true,
-      scalacOptions in (ScalaUnidoc, unidoc) ++= Seq(
+      siteSubdirName in SiteScaladoc := "api/docs",
+      SiteScaladocPlugin.scaladocSettings(JNI, mappings in (Compile, packageDoc) in jni, "api/jni"),
+      SiteScaladocPlugin.scaladocSettings(API, mappings in (Compile, packageDoc) in api, "api/api"),
+      SiteScaladocPlugin.scaladocSettings(DATA, mappings in (Compile, packageDoc) in data, "api/data"),
+      SiteScaladocPlugin.scaladocSettings(EXAMPLES, mappings in (Compile, packageDoc) in examples, "api/examples"),
+      scalacOptions in (SiteScaladoc, packageDoc) ++= Seq(
         //"-Xfatal-warnings",
         "-doc-source-url", scmInfo.value.get.browseUrl + "/tree/master€{FILE_PATH}.scala",
         "-sourcepath", baseDirectory.in(LocalRootProject).value.getAbsolutePath,
         // "=diagrams",
         "-groups",
         "-implicits-show-all"
-      ),
-      // libraryDependencies += "org.scalameta" %% "scalameta" % "1.8.0" % Provided,
-      // libraryDependencies += "org.scalameta" %% "contrib" % "1.8.0",
-      tutSourceDirectory := (sourceDirectory in Compile).value / "site",
-      fork in tut := true,
-      scalacOptions in Tut ~= (_.filterNot(Set("-Ywarn-unused-import", "-Ywarn-dead-code"))),
-      micrositeName := "TensorFlow for Scala",
-      micrositeDescription := "Scala API for TensorFlow",
-      micrositeBaseUrl := "tensorflow_scala",
-      micrositeDocumentationUrl := "api/",
-      micrositeAuthor := "Emmanouil Antonios Platanios",
-      micrositeHomepage := "http://eaplatanios.github.io/tensorflow_scala/",
-      micrositeOrganizationHomepage := "http://eaplatanios.github.io",
-      micrositeGithubOwner := "eaplatanios",
-      micrositeGithubRepo := "tensorflow_scala",
-      micrositePushSiteWith := GHPagesPlugin,
-      micrositeGitterChannel := true,
-      micrositeGitterChannelUrl := "eaplatanios/tensorflow_scala",
-      micrositeHighlightTheme := "hybrid",
-      micrositeImgDirectory := (resourceDirectory in Compile).value / "site" / "img",
-      micrositeCssDirectory := (resourceDirectory in Compile).value / "site" / "css",
-      micrositeJsDirectory := (resourceDirectory in Compile).value / "site" / "js",
-      micrositePalette := Map(
-        "brand-primary"     -> "rgb(239, 108, 0)",
-        "brand-secondary"   -> "#455A64",
-        "brand-tertiary"    -> "#39474E", // "#303C42",
-        "gray-dark"         -> "#453E46",
-        "gray"              -> "#837F84",
-        "gray-light"        -> "#E3E2E3",
-        "gray-lighter"      -> "#F4F3F4",
-        "white-color"       -> "#FFFFFF"),
-      micrositeFooterText := None,
-      includeFilter in makeSite :=
-          "*.html" | "*.css" | "*.png" | "*.jpg" | "*.gif" | "*.js" | "*.swf" | "*.yml" | "*.md" | "*.svg",
-      includeFilter in Jekyll := (includeFilter in makeSite).value
-    )
+      ))
 
 lazy val noPublishSettings = Seq(
   publish := Unit,
   publishLocal := Unit,
   publishArtifact := false,
   skip in publish := true,
-  releaseProcess := Nil
-)
+  releaseProcess := Nil)
 
 val deletedPublishedSnapshots = taskKey[Unit]("Delete published snapshots.")
 
@@ -310,8 +348,7 @@ lazy val publishSettings = Seq(
       id="eaplatanios",
       name="Emmanouil Antonios Platanios",
       email="e.a.platanios@gmail.com",
-      url=url("http://platanios.org/"))
-  ),
+      url=url("http://platanios.org/"))),
   autoAPIMappings := true,
   apiURL := Some(url("http://eaplatanios.github.io/tensorflow_scala/api/")),
   releaseCrossBuild := true,
@@ -321,17 +358,20 @@ lazy val publishSettings = Seq(
     s"v${if (releaseUseGlobalVersion.value) buildVersionValue else versionValue}"
   },
   releaseVersionBump := sbtrelease.Version.Bump.Next,
+  releaseVersionFile := baseDirectory.value / "version.sbt",
   releaseUseGlobalVersion := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseVcs := Vcs.detect(baseDirectory.value),
   releaseVcsSign := true,
   releaseIgnoreUntrackedFiles := true,
   useGpg := true,  // Bouncy Castle has bugs with sub-keys, so we use gpg instead
-  pgpPassphrase := sys.env.get("PGP_PASSWORD").map(_.toArray),
-  pgpPublicRing := file("~/.gnupg/pubring.gpg"),
-  pgpSecretRing := file("~/.gnupg/secring.gpg"),
+  PgpKeys.pgpSigner := new CommandLineGpgSigner(
+    command = "gpg",
+    agent = true,
+    secRing = file("~/.gnupg/secring.gpg").getPath,
+    optKey = pgpSigningKey.value,
+    optPassphrase = sys.env.get("PGP_PASSWORD").map(_.toCharArray)),
   publishMavenStyle := true,
-  // publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
   publishTo := Some(
     if (isSnapshot.value)
@@ -347,12 +387,14 @@ lazy val publishSettings = Seq(
     setReleaseVersion,
     commitReleaseVersion,
     tagRelease,
-    publishArtifacts,
+    releaseStepCommandAndRemaining("publishSigned"),
     setNextVersion,
     commitNextVersion,
     releaseStepCommand("sonatypeReleaseAll"),
-    pushChanges
-  ),
+    pushChanges),
+  // The following 2 lines are needed to get around this: https://github.com/sbt/sbt/issues/4275
+  publishConfiguration := publishConfiguration.value.withOverwrite(true),
+  publishLocalConfiguration := publishLocalConfiguration.value.withOverwrite(true),
   // For Travis CI - see http://www.cakesolutions.net/teamblogs/publishing-artefacts-to-oss-sonatype-nexus-using-sbt-and-travis-ci
   credentials ++= (for {
     username <- Option(System.getenv().get("SONATYPE_USERNAME"))
@@ -366,31 +408,3 @@ lazy val publishSettings = Seq(
           s"${Opts.resolver.sonatypeSnapshots.root}/${organization.value.replace(".", "/")}/" :: Nil) ! streams.value.log
   }
 )
-
-lazy val publishCrossCompiled = Command.command("publishCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(publish in extracted.get(thisProjectRef), newState)
-  state
-}
-
-lazy val publishLocalCrossCompiled = Command.command("publishLocalCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(publishLocal in extracted.get(thisProjectRef), newState)
-  state
-}
-
-lazy val publishSignedCrossCompiled = Command.command("publishSignedCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(PgpKeys.publishSigned in extracted.get(thisProjectRef), newState)
-  state
-}
-
-lazy val publishLocalSignedCrossCompiled = Command.command("publishLocalSignedCrossCompiled") { state =>
-  val newState = reapply(crossCompilationPackagingSettings, state)
-  val extracted = Project.extract(newState)
-  extracted.runAggregated(PgpKeys.publishLocalSigned in extracted.get(thisProjectRef), newState)
-  state
-}
