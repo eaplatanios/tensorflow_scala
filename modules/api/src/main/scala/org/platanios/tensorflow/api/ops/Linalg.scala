@@ -88,16 +88,16 @@ trait Linalg {
 
   /**
     * Solves systems of linear equations Ax = b.
-    * The matrix M must be of shape [..., M, M] whose inner-most 2 dimensions 
+    * The matrix M must be of shape [..., M, M] whose inner-most 2 dimensions
     * form square matrices.
-    * 
-    * The right hand side b is a tensor of shape [..., M, K]. 
+    *
+    * The right hand side b is a tensor of shape [..., M, K].
     * The output x is a tensor shape [..., M, K]
-    * 
-    * If `adjoint` is `True` then each output matrix satisfies 
+    *
+    * If `adjoint` is `True` then each output matrix satisfies
     * adjoint(A[..., :, :]) * x[..., :, :] = b[..., :, :].
-    * 
-    * If `adjoint` is `False` then each output matrix satisfies 
+    *
+    * If `adjoint` is `False` then each output matrix satisfies
     * A[..., :, :] * x[..., :, :] = b[..., :, :].
     *
     * @tparam T The underlying scala type of the matrix elements.
@@ -118,5 +118,37 @@ trait Linalg {
         name = name,
         input = (matrix, rhs)
       ).setAttribute("adjoint", adjoint).build().output
+
+  /**
+    * Solves systems of linear equations Ax = b, in the regularised 
+    * least squares sense.
+    * 
+    * The matrix M must be of shape [..., M, N] whose inner-most 2 dimensions
+    * form square matrices.
+    *
+    * The right hand side b is a tensor of shape [..., M, K].
+    * The output x is a tensor shape [..., N, K]
+    *
+    *
+    * @tparam T The underlying scala type of the matrix elements.
+    * @param matrix The matrix (A) on the left hand side.
+    * @param rhs The right hand side (b).
+    * @param reg The L2 regularisation constant.
+    * @param fast Defaults to true.
+    * @param name An optional name to assign to the op.
+    *
+    */
+  def matrixSolveLS[T: TF: IsRealOrComplex](
+      matrix: Output[T],
+      rhs: Output[T],
+      reg: Output[T],
+      fast: Boolean = true,
+      name: String = "MatrixSolveLs"
+  ): Output[T] =
+    Op.Builder[(Output[T], Output[T], Output[T]), Output[T]](
+        opType = "MatrixSolve",
+        name = name,
+        input = (matrix, rhs, reg)
+      ).setAttribute("fast", fast).build().output
 
 }

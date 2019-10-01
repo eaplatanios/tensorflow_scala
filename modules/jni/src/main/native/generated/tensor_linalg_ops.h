@@ -39,6 +39,14 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Lina
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_matrixSolve
   (JNIEnv *, jobject, jlong, jlong, jlong, jboolean);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Linalg__
+ * Method:    matrixSolveLs
+ * Signature: (JJJJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_matrixSolveLs
+  (JNIEnv *, jobject, jlong, jlong, jlong, jlong, jboolean);
+
 #ifdef __cplusplus
 }
 #endif

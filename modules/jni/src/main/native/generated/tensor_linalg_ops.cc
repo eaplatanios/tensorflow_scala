@@ -165,3 +165,54 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Lina
 
   return reinterpret_cast<jlong>(outputs[0]);
 }
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_matrixSolveLs(
+    JNIEnv* env, jobject object, jlong context_handle, jlong matrix, jlong rhs, jlong l2_regularizer, jboolean fast) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "MatrixSolveLs", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(matrix_handle, TFE_TensorHandle, matrix, 0);
+  TFE_OpAddInput(op.get(), matrix_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(rhs_handle, TFE_TensorHandle, rhs, 0);
+  TFE_OpAddInput(op.get(), rhs_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(l2_regularizer_handle, TFE_TensorHandle, l2_regularizer, 0);
+  TFE_OpAddInput(op.get(), l2_regularizer_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_matrix_handle, TFE_TensorHandle, matrix, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_matrix_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_T_rhs_handle, TFE_TensorHandle, rhs, 0);
+  const TF_DataType attr_T_rhs = TFE_TensorHandleDataType(attr_T_rhs_handle);
+  if (attr_T != attr_T_rhs) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'rhs' of 'matrixSolveLs' op with data type '"
+          << attr_T_rhs
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'matrix'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  TFE_OpSetAttrBool(op.get(), "fast", static_cast<unsigned char>(fast));
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
