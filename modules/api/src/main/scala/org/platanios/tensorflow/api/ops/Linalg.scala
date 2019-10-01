@@ -40,7 +40,19 @@ trait Linalg {
       ).build().output
   }
 
-  def logMatrixDeterminant[T: TF: IsRealOrComplex](matrix: Output[T], name: String = "LogMatrixDeterminant"): (Output[T], Output[T]) = {
+  /**
+    * Computes (sign(det(x)) log(|det(x)|)) for an input x.
+    *
+    * @param matrix A matrix of shape [N, M, M]
+    * @param name An optional name to assign to the op.
+    *
+    * @return A tuple having the results.
+    *
+    */
+  def logMatrixDeterminant[T: TF: IsRealOrComplex](
+      matrix: Output[T],
+      name: String = "LogMatrixDeterminant"
+  ): (Output[T], Output[T]) = {
     Op.Builder[Output[T], (Output[T], Output[T])](
         opType = "LogMatrixDeterminant",
         name = name,

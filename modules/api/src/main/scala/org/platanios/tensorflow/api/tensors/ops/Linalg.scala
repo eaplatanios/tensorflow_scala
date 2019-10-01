@@ -38,6 +38,14 @@ trait Linalg {
     )
   }
 
+  /**
+    * Computes (sign(det(x)) log(|det(x)|)) for an input x.
+    *
+    * @param matrix A matrix of shape [N, M, M]
+    * 
+    * @return A tuple having the results.
+    *
+    */
   def logMatrixDeterminant[T: TF: IsRealOrComplex](matrix: Tensor[T]): (Tensor[T], Tensor[T]) = {
     val results = NativeTensorOpsLinAlg
       .logMatrixDeterminant(executionContext.value.nativeHandle, matrix.nativeHandle).map(
