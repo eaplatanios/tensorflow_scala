@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     org_platanios_tensorflow_jni_generated_tensors_Linalg__
+ * Method:    logMatrixDeterminant
+ * Signature: (JJ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_logMatrixDeterminant
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Linalg__
  * Method:    matrixDeterminant
  * Signature: (JJ)J
  */

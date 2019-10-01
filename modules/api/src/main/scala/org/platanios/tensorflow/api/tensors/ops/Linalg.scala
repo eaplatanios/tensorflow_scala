@@ -38,4 +38,12 @@ trait Linalg {
     )
   }
 
+  def logMatrixDeterminant[T: TF: IsRealOrComplex](matrix: Tensor[T]): (Tensor[T], Tensor[T]) = {
+    val results = NativeTensorOpsLinAlg
+      .logMatrixDeterminant(executionContext.value.nativeHandle, matrix.nativeHandle).map(
+        h => Tensor.fromNativeHandle[T](h)
+      )
+    (results.head, results.last)
+  }
+
 }

@@ -22,5 +22,6 @@ import org.platanios.tensorflow.jni.TensorFlow
 object Linalg {
   TensorFlow.load()
 
+  @native def logMatrixDeterminant(contextHandle: Long, input: Long): Array[Long]
   @native def matrixDeterminant(contextHandle: Long, input: Long): Long
 }
