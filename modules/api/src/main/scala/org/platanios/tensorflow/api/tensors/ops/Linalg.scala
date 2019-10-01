@@ -114,4 +114,21 @@ trait Linalg {
     )
   }
 
+  def matrixTriangularSolve[T: TF: IsRealOrComplex](
+      matrix: Tensor[T],
+      rhs: Tensor[T],
+      lower: Boolean = true,
+      adjoint: Boolean = false
+  ): Tensor[T] = {
+    Tensor.fromNativeHandle[T](
+      NativeTensorOpsLinAlg.matrixTriangularSolve(
+        executionContext.value.nativeHandle,
+        matrix.nativeHandle,
+        rhs.nativeHandle,
+        lower,
+        adjoint
+      )
+    )
+  }
+
 }

@@ -27,4 +27,5 @@ object Linalg {
   @native def matrixInverse(contextHandle: Long, input: Long, adjoint: Boolean): Long
   @native def matrixSolve(contextHandle: Long, matrix: Long, rhs: Long, adjoint: Boolean): Long
   @native def matrixSolveLs(contextHandle: Long, matrix: Long, rhs: Long, l2_regularizer: Long, fast: Boolean): Long
+  @native def matrixTriangularSolve(contextHandle: Long, matrix: Long, rhs: Long, lower: Boolean, adjoint: Boolean): Long
 }

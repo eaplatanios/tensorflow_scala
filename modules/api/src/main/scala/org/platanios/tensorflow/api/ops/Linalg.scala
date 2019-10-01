@@ -120,9 +120,9 @@ trait Linalg {
       ).setAttribute("adjoint", adjoint).build().output
 
   /**
-    * Solves systems of linear equations Ax = b, in the regularised 
+    * Solves systems of linear equations Ax = b, in the regularised
     * least squares sense.
-    * 
+    *
     * The matrix M must be of shape [..., M, N] whose inner-most 2 dimensions
     * form square matrices.
     *
@@ -146,9 +146,30 @@ trait Linalg {
       name: String = "MatrixSolveLs"
   ): Output[T] =
     Op.Builder[(Output[T], Output[T], Output[T]), Output[T]](
-        opType = "MatrixSolve",
+        opType = "MatrixSolveLs",
         name = name,
         input = (matrix, rhs, reg)
       ).setAttribute("fast", fast).build().output
+
+  /* def matrixSquareRoot[T: TF: IsRealOrComplex](matrix: Output[T], name: String = "MatrixSquareRoot"): Output[T] = {
+    Op.Builder[Output[T], Output[T]](
+        opType = "MatrixSquareRoot",
+        name = name,
+        input = matrix
+      ).build().output
+  } */
+
+  def matrixTriangularSolve[T: TF: IsRealOrComplex](
+      matrix: Output[T],
+      rhs: Output[T],
+      lower: Boolean = true,
+      adjoint: Boolean = false,
+      name: String = "MatrixTriangularSolve"
+  ): Output[T] =
+    Op.Builder[(Output[T], Output[T]), Output[T]](
+        opType = "MatrixTriangularSolve",
+        name = name,
+        input = (matrix, rhs)
+      ).setAttribute("lower", lower).setAttribute("adjoint", adjoint).build().output
 
 }
