@@ -72,76 +72,76 @@ package object api extends implicits.Implicits with Documentation {
   val Shape: core.Shape.type = core.Shape
 
   type Indexer = core.Indexer
-  type Index = core.Index
-  type Slice = core.Slice
+  type Index   = core.Index
+  type Slice   = core.Slice
 
   val ---    : Indexer = core.Ellipsis
   val NewAxis: Indexer = core.NewAxis
   val ::     : Slice   = core.Slice.::
 
-  type TensorLike[T] = tensors.TensorLike[T]
-  type Tensor[T] = tensors.Tensor[T]
+  type TensorLike[T]          = tensors.TensorLike[T]
+  type Tensor[T]              = tensors.Tensor[T]
   type TensorIndexedSlices[T] = tensors.TensorIndexedSlices[T]
-  type SparseTensor[T] = tensors.SparseTensor[T]
+  type SparseTensor[T]        = tensors.SparseTensor[T]
 
-  val Tensor             : tensors.Tensor.type              = tensors.Tensor
+  val Tensor:              tensors.Tensor.type              = tensors.Tensor
   val TensorIndexedSlices: tensors.TensorIndexedSlices.type = tensors.TensorIndexedSlices
-  val SparseTensor       : tensors.SparseTensor.type        = tensors.SparseTensor
+  val SparseTensor:        tensors.SparseTensor.type        = tensors.SparseTensor
 
-  type Op[I, O] = ops.Op[I, O]
+  type Op[I, O]  = ops.Op[I, O]
   type UntypedOp = ops.UntypedOp
 
-  type OutputLike[T] = ops.OutputLike[T]
-  type Output[T] = ops.Output[T]
+  type OutputLike[T]          = ops.OutputLike[T]
+  type Output[T]              = ops.Output[T]
   type OutputIndexedSlices[T] = ops.OutputIndexedSlices[T]
-  type SparseOutput[T] = ops.SparseOutput[T]
+  type SparseOutput[T]        = ops.SparseOutput[T]
 
   type TensorArray[T] = ops.TensorArray[T]
 
-  val Op                 : ops.Op.type                  = ops.Op
-  val Output             : ops.Output.type              = ops.Output
+  val Op:                  ops.Op.type                  = ops.Op
+  val Output:              ops.Output.type              = ops.Output
   val OutputIndexedSlices: ops.OutputIndexedSlices.type = ops.OutputIndexedSlices
-  val SparseOutput       : ops.SparseOutput.type        = ops.SparseOutput
-  val TensorArray        : ops.TensorArray.type         = ops.TensorArray
+  val SparseOutput:        ops.SparseOutput.type        = ops.SparseOutput
+  val TensorArray:         ops.TensorArray.type         = ops.TensorArray
 
   type VariableLike[T] = ops.variables.VariableLike[T]
-  type Variable[T] = ops.variables.Variable[T]
+  type Variable[T]     = ops.variables.Variable[T]
 
   //region Types
 
   //region Value Classes
 
-  type Half = core.types.Half
+  type Half          = core.types.Half
   type TruncatedHalf = core.types.TruncatedHalf
-  type ComplexFloat = core.types.ComplexFloat
+  type ComplexFloat  = core.types.ComplexFloat
   type ComplexDouble = core.types.ComplexDouble
-  type UByte = core.types.UByte
-  type UShort = core.types.UShort
-  type UInt = core.types.UInt
-  type ULong = core.types.ULong
-  type QByte = core.types.QByte
-  type QShort = core.types.QShort
-  type QInt = core.types.QInt
-  type QUByte = core.types.QUByte
-  type QUShort = core.types.QUShort
-  type Resource = core.types.Resource
-  type Variant = core.types.Variant
+  type UByte         = core.types.UByte
+  type UShort        = core.types.UShort
+  type UInt          = core.types.UInt
+  type ULong         = core.types.ULong
+  type QByte         = core.types.QByte
+  type QShort        = core.types.QShort
+  type QInt          = core.types.QInt
+  type QUByte        = core.types.QUByte
+  type QUShort       = core.types.QUShort
+  type Resource      = core.types.Resource
+  type Variant       = core.types.Variant
 
-  val Half         : core.types.Half.type          = core.types.Half
+  val Half:          core.types.Half.type          = core.types.Half
   val TruncatedHalf: core.types.TruncatedHalf.type = core.types.TruncatedHalf
-  val ComplexFloat : core.types.ComplexFloat.type  = core.types.ComplexFloat
+  val ComplexFloat:  core.types.ComplexFloat.type  = core.types.ComplexFloat
   val ComplexDouble: core.types.ComplexDouble.type = core.types.ComplexDouble
-  val UByte        : core.types.UByte.type         = core.types.UByte
-  val UShort       : core.types.UShort.type        = core.types.UShort
-  val UInt         : core.types.UInt.type          = core.types.UInt
-  val ULong        : core.types.ULong.type         = core.types.ULong
-  val QByte        : core.types.QByte.type         = core.types.QByte
-  val QShort       : core.types.QShort.type        = core.types.QShort
-  val QInt         : core.types.QInt.type          = core.types.QInt
-  val QUByte       : core.types.QUByte.type        = core.types.QUByte
-  val QUShort      : core.types.QUShort.type       = core.types.QUShort
-  val Resource     : core.types.Resource.type      = core.types.Resource
-  val Variant      : core.types.Variant.type       = core.types.Variant
+  val UByte:         core.types.UByte.type         = core.types.UByte
+  val UShort:        core.types.UShort.type        = core.types.UShort
+  val UInt:          core.types.UInt.type          = core.types.UInt
+  val ULong:         core.types.ULong.type         = core.types.ULong
+  val QByte:         core.types.QByte.type         = core.types.QByte
+  val QShort:        core.types.QShort.type        = core.types.QShort
+  val QInt:          core.types.QInt.type          = core.types.QInt
+  val QUByte:        core.types.QUByte.type        = core.types.QUByte
+  val QUShort:       core.types.QUShort.type       = core.types.QUShort
+  val Resource:      core.types.Resource.type      = core.types.Resource
+  val Variant:       core.types.Variant.type       = core.types.Variant
 
   //endregion Value Classes
 
@@ -149,96 +149,100 @@ package object api extends implicits.Implicits with Documentation {
 
   type DataType[T] = core.types.DataType[T]
 
-  type STRING = core.types.DataType[String]
-  type BOOLEAN = core.types.DataType[Boolean]
-  type FLOAT16 = core.types.DataType[core.types.Half]
-  type FLOAT32 = core.types.DataType[Float]
-  type FLOAT64 = core.types.DataType[Double]
-  type BFLOAT16 = core.types.DataType[core.types.TruncatedHalf]
-  type COMPLEX64 = core.types.DataType[core.types.ComplexFloat]
+  type STRING     = core.types.DataType[String]
+  type BOOLEAN    = core.types.DataType[Boolean]
+  type FLOAT16    = core.types.DataType[core.types.Half]
+  type FLOAT32    = core.types.DataType[Float]
+  type FLOAT64    = core.types.DataType[Double]
+  type BFLOAT16   = core.types.DataType[core.types.TruncatedHalf]
+  type COMPLEX64  = core.types.DataType[core.types.ComplexFloat]
   type COMPLEX128 = core.types.DataType[core.types.ComplexDouble]
-  type INT8 = core.types.DataType[Byte]
-  type INT16 = core.types.DataType[Short]
-  type INT32 = core.types.DataType[Int]
-  type INT64 = core.types.DataType[Long]
-  type UINT8 = core.types.DataType[core.types.UByte]
-  type UINT16 = core.types.DataType[core.types.UShort]
-  type UINT32 = core.types.DataType[core.types.UInt]
-  type UINT64 = core.types.DataType[core.types.ULong]
-  type QINT8 = core.types.DataType[core.types.QByte]
-  type QINT16 = core.types.DataType[core.types.QShort]
-  type QINT32 = core.types.DataType[core.types.QInt]
-  type QUINT8 = core.types.DataType[core.types.QUByte]
-  type QUINT16 = core.types.DataType[core.types.QUShort]
-  type RESOURCE = core.types.DataType[core.types.Resource]
-  type VARIANT = core.types.DataType[core.types.Variant]
+  type INT8       = core.types.DataType[Byte]
+  type INT16      = core.types.DataType[Short]
+  type INT32      = core.types.DataType[Int]
+  type INT64      = core.types.DataType[Long]
+  type UINT8      = core.types.DataType[core.types.UByte]
+  type UINT16     = core.types.DataType[core.types.UShort]
+  type UINT32     = core.types.DataType[core.types.UInt]
+  type UINT64     = core.types.DataType[core.types.ULong]
+  type QINT8      = core.types.DataType[core.types.QByte]
+  type QINT16     = core.types.DataType[core.types.QShort]
+  type QINT32     = core.types.DataType[core.types.QInt]
+  type QUINT8     = core.types.DataType[core.types.QUByte]
+  type QUINT16    = core.types.DataType[core.types.QUShort]
+  type RESOURCE   = core.types.DataType[core.types.Resource]
+  type VARIANT    = core.types.DataType[core.types.Variant]
 
-  val STRING    : STRING     = core.types.STRING
-  val BOOLEAN   : BOOLEAN    = core.types.BOOLEAN
-  val FLOAT16   : FLOAT16    = core.types.FLOAT16
-  val FLOAT32   : FLOAT32    = core.types.FLOAT32
-  val FLOAT64   : FLOAT64    = core.types.FLOAT64
-  val BFLOAT16  : BFLOAT16   = core.types.BFLOAT16
-  val COMPLEX64 : COMPLEX64  = core.types.COMPLEX64
+  val STRING:     STRING     = core.types.STRING
+  val BOOLEAN:    BOOLEAN    = core.types.BOOLEAN
+  val FLOAT16:    FLOAT16    = core.types.FLOAT16
+  val FLOAT32:    FLOAT32    = core.types.FLOAT32
+  val FLOAT64:    FLOAT64    = core.types.FLOAT64
+  val BFLOAT16:   BFLOAT16   = core.types.BFLOAT16
+  val COMPLEX64:  COMPLEX64  = core.types.COMPLEX64
   val COMPLEX128: COMPLEX128 = core.types.COMPLEX128
-  val INT8      : INT8       = core.types.INT8
-  val INT16     : INT16      = core.types.INT16
-  val INT32     : INT32      = core.types.INT32
-  val INT64     : INT64      = core.types.INT64
-  val UINT8     : UINT8      = core.types.UINT8
-  val UINT16    : UINT16     = core.types.UINT16
-  val UINT32    : UINT32     = core.types.UINT32
-  val UINT64    : UINT64     = core.types.UINT64
-  val QINT8     : QINT8      = core.types.QINT8
-  val QINT16    : QINT16     = core.types.QINT16
-  val QINT32    : QINT32     = core.types.QINT32
-  val QUINT8    : QUINT8     = core.types.QUINT8
-  val QUINT16   : QUINT16    = core.types.QUINT16
-  val RESOURCE  : RESOURCE   = core.types.RESOURCE
-  val VARIANT   : VARIANT    = core.types.VARIANT
+  val INT8:       INT8       = core.types.INT8
+  val INT16:      INT16      = core.types.INT16
+  val INT32:      INT32      = core.types.INT32
+  val INT64:      INT64      = core.types.INT64
+  val UINT8:      UINT8      = core.types.UINT8
+  val UINT16:     UINT16     = core.types.UINT16
+  val UINT32:     UINT32     = core.types.UINT32
+  val UINT64:     UINT64     = core.types.UINT64
+  val QINT8:      QINT8      = core.types.QINT8
+  val QINT16:     QINT16     = core.types.QINT16
+  val QINT32:     QINT32     = core.types.QINT32
+  val QUINT8:     QUINT8     = core.types.QUINT8
+  val QUINT16:    QUINT16    = core.types.QUINT16
+  val RESOURCE:   RESOURCE   = core.types.RESOURCE
+  val VARIANT:    VARIANT    = core.types.VARIANT
 
   //endregion Data Type Instances
 
   //region Type Traits
 
-  type TF[T] = core.types.TF[T]
-  type IsFloatOrDouble[T] = core.types.IsFloatOrDouble[T]
-  type IsHalfOrFloatOrDouble[T] = core.types.IsHalfOrFloatOrDouble[T]
-  type IsTruncatedHalfOrFloatOrDouble[T] = core.types.IsTruncatedHalfOrFloatOrDouble[T]
-  type IsTruncatedHalfOrHalfOrFloat[T] = core.types.IsTruncatedHalfOrHalfOrFloat[T]
-  type IsDecimal[T] = core.types.IsDecimal[T]
-  type IsIntOrLong[T] = core.types.IsIntOrLong[T]
-  type IsIntOrLongOrFloatOrDouble[T] = core.types.IsIntOrLongOrFloatOrDouble[T]
+  type TF[T]                               = core.types.TF[T]
+  type IsFloatOrDouble[T]                  = core.types.IsFloatOrDouble[T]
+  type IsHalfOrFloatOrDouble[T]            = core.types.IsHalfOrFloatOrDouble[T]
+  type IsTruncatedHalfOrFloatOrDouble[T]   = core.types.IsTruncatedHalfOrFloatOrDouble[T]
+  type IsTruncatedHalfOrHalfOrFloat[T]     = core.types.IsTruncatedHalfOrHalfOrFloat[T]
+  type IsDecimal[T]                        = core.types.IsDecimal[T]
+  type IsIntOrLong[T]                      = core.types.IsIntOrLong[T]
+  type IsIntOrLongOrFloatOrDouble[T]       = core.types.IsIntOrLongOrFloatOrDouble[T]
   type IsIntOrLongOrHalfOrFloatOrDouble[T] = core.types.IsIntOrLongOrHalfOrFloatOrDouble[T]
-  type IsIntOrLongOrUByte[T] = core.types.IsIntOrLongOrUByte[T]
-  type IsIntOrUInt[T] = core.types.IsIntOrUInt[T]
-  type IsStringOrInteger[T] = core.types.IsStringOrInteger[T]
-  type IsStringOrFloatOrLong[T] = core.types.IsStringOrFloatOrLong[T]
-  type IsReal[T] = core.types.IsReal[T]
-  type IsComplex[T] = core.types.IsComplex[T]
-  type IsNotQuantized[T] = core.types.IsNotQuantized[T]
-  type IsQuantized[T] = core.types.IsQuantized[T]
-  type IsNumeric[T] = core.types.IsNumeric[T]
-  type IsBooleanOrNumeric[T] = core.types.IsBooleanOrNumeric[T]
+  type IsIntOrLongOrUByte[T]               = core.types.IsIntOrLongOrUByte[T]
+  type IsIntOrUInt[T]                      = core.types.IsIntOrUInt[T]
+  type IsStringOrInteger[T]                = core.types.IsStringOrInteger[T]
+  type IsStringOrFloatOrLong[T]            = core.types.IsStringOrFloatOrLong[T]
+  type IsReal[T]                           = core.types.IsReal[T]
+  type IsComplex[T]                        = core.types.IsComplex[T]
+  type IsNotQuantized[T]                   = core.types.IsNotQuantized[T]
+  type IsQuantized[T]                      = core.types.IsQuantized[T]
+  type IsNumeric[T]                        = core.types.IsNumeric[T]
+  type IsBooleanOrNumeric[T]               = core.types.IsBooleanOrNumeric[T]
 
-  val TF                              : core.types.TF.type                               = core.types.TF
-  val IsFloatOrDouble                 : core.types.IsFloatOrDouble.type                  = core.types.IsFloatOrDouble
-  val IsHalfOrFloatOrDouble           : core.types.IsHalfOrFloatOrDouble.type            = core.types.IsHalfOrFloatOrDouble
-  val IsTruncatedHalfOrFloatOrDouble  : core.types.IsTruncatedHalfOrFloatOrDouble.type   = core.types.IsTruncatedHalfOrFloatOrDouble
-  val IsTruncatedHalfOrHalfOrFloat    : core.types.IsTruncatedHalfOrHalfOrFloat.type     = core.types.IsTruncatedHalfOrHalfOrFloat
-  val IsDecimal                       : core.types.IsDecimal.type                        = core.types.IsDecimal
-  val IsIntOrLong                     : core.types.IsIntOrLong.type                      = core.types.IsIntOrLong
-  val IsIntOrLongOrFloatOrDouble      : core.types.IsIntOrLongOrFloatOrDouble.type       = core.types.IsIntOrLongOrFloatOrDouble
-  val IsIntOrLongOrHalfOrFloatOrDouble: core.types.IsIntOrLongOrHalfOrFloatOrDouble.type = core.types.IsIntOrLongOrHalfOrFloatOrDouble
-  val IsIntOrLongOrUByte              : core.types.IsIntOrLongOrUByte.type               = core.types.IsIntOrLongOrUByte
-  val IsIntOrUInt                     : core.types.IsIntOrUInt.type                      = core.types.IsIntOrUInt
-  val IsStringOrFloatOrLong           : core.types.IsStringOrFloatOrLong.type            = core.types.IsStringOrFloatOrLong
-  val IsReal                          : core.types.IsReal.type                           = core.types.IsReal
-  val IsComplex                       : core.types.IsComplex.type                        = core.types.IsComplex
-  val IsNotQuantized                  : core.types.IsNotQuantized.type                   = core.types.IsNotQuantized
-  val IsQuantized                     : core.types.IsQuantized.type                      = core.types.IsQuantized
-  val IsNumeric                       : core.types.IsNumeric.type                        = core.types.IsNumeric
-  val IsBooleanOrNumeric              : core.types.IsBooleanOrNumeric.type               = core.types.IsBooleanOrNumeric
+  val TF:                    core.types.TF.type                    = core.types.TF
+  val IsFloatOrDouble:       core.types.IsFloatOrDouble.type       = core.types.IsFloatOrDouble
+  val IsHalfOrFloatOrDouble: core.types.IsHalfOrFloatOrDouble.type = core.types.IsHalfOrFloatOrDouble
+  val IsTruncatedHalfOrFloatOrDouble: core.types.IsTruncatedHalfOrFloatOrDouble.type =
+    core.types.IsTruncatedHalfOrFloatOrDouble
+  val IsTruncatedHalfOrHalfOrFloat: core.types.IsTruncatedHalfOrHalfOrFloat.type =
+    core.types.IsTruncatedHalfOrHalfOrFloat
+  val IsDecimal:                  core.types.IsDecimal.type                  = core.types.IsDecimal
+  val IsIntOrLong:                core.types.IsIntOrLong.type                = core.types.IsIntOrLong
+  val IsIntOrLongOrFloatOrDouble: core.types.IsIntOrLongOrFloatOrDouble.type = core.types.IsIntOrLongOrFloatOrDouble
+  val IsIntOrLongOrHalfOrFloatOrDouble: core.types.IsIntOrLongOrHalfOrFloatOrDouble.type =
+    core.types.IsIntOrLongOrHalfOrFloatOrDouble
+  val IsIntOrLongOrUByte:    core.types.IsIntOrLongOrUByte.type    = core.types.IsIntOrLongOrUByte
+  val IsIntOrUInt:           core.types.IsIntOrUInt.type           = core.types.IsIntOrUInt
+  val IsStringOrFloatOrLong: core.types.IsStringOrFloatOrLong.type = core.types.IsStringOrFloatOrLong
+  val IsReal:                core.types.IsReal.type                = core.types.IsReal
+  val IsComplex:             core.types.IsComplex.type             = core.types.IsComplex
+  val IsNotQuantized:        core.types.IsNotQuantized.type        = core.types.IsNotQuantized
+  val IsQuantized:           core.types.IsQuantized.type           = core.types.IsQuantized
+  val IsNumeric:             core.types.IsNumeric.type             = core.types.IsNumeric
+  val IsBooleanOrNumeric:    core.types.IsBooleanOrNumeric.type    = core.types.IsBooleanOrNumeric
+  val IsRealOrComplex:       core.types.IsRealOrComplex.type       = core.types.IsRealOrComplex
 
   //endregion Type Traits
 
@@ -291,9 +295,7 @@ package object api extends implicits.Implicits with Documentation {
     * @groupname CallbackOps    Ops / Callback
     * @groupprio CallbackOps    280
     */
-  object tf
-      extends core.API
-          with ops.API {
+  object tf extends core.API with ops.API {
     object learn extends api.learn.API
   }
 
@@ -336,7 +338,5 @@ package object api extends implicits.Implicits with Documentation {
     * @groupname CallbackOps    Ops / Callback
     * @groupprio CallbackOps    280
     */
-  object tfi
-      extends core.API
-          with tensors.API
+  object tfi extends core.API with tensors.API
 }

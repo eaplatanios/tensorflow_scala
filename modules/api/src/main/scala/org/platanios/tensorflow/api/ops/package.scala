@@ -67,6 +67,7 @@ package object ops {
           with Logging
           with Math
           with NN
+          with Linalg
           with Parsing
           with Random
           with Resources
