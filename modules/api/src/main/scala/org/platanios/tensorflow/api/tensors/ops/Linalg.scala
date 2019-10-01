@@ -70,4 +70,30 @@ trait Linalg {
     )
   }
 
+  /**
+    * Solves systems of linear equations Ax = b.
+    * The matrix M must be of shape [..., M, M] whose inner-most 2 dimensions 
+    * form square matrices.
+    * 
+    * The right hand side b is a tensor of shape [..., M, K]. 
+    * The output x is a tensor shape [..., M, K]
+    * 
+    * If `adjoint` is `True` then each output matrix satisfies 
+    * adjoint(A[..., :, :]) * x[..., :, :] = b[..., :, :].
+    * 
+    * If `adjoint` is `False` then each output matrix satisfies 
+    * A[..., :, :] * x[..., :, :] = b[..., :, :].
+    *
+    * @tparam T The underlying scala type of the matrix elements.
+    * @param matrix The matrix (A) on the left hand side.
+    * @param rhs The right hand side (b).
+    * @param adjoint Defaults to false.
+    * 
+    */
+  def matrixSolve[T: TF: IsRealOrComplex](matrix: Tensor[T], rhs: Tensor[T], adjoint: Boolean = false): Tensor[T] = {
+    Tensor.fromNativeHandle[T](
+      NativeTensorOpsLinAlg.matrixSolve(executionContext.value.nativeHandle, matrix.nativeHandle, rhs.nativeHandle, adjoint)
+    )
+  }
+
 }
