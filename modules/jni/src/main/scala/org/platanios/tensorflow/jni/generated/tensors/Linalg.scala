@@ -24,4 +24,5 @@ object Linalg {
 
   @native def logMatrixDeterminant(contextHandle: Long, input: Long): Array[Long]
   @native def matrixDeterminant(contextHandle: Long, input: Long): Long
+  @native def matrixInverse(contextHandle: Long, input: Long, adjoint: Boolean): Long
 }

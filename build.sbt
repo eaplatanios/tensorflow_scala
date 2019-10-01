@@ -158,7 +158,7 @@ lazy val jni = (project in file("./modules/jni"))
         "Text" -> Seq(
           "StringJoin", "StringSplit", "EncodeBase64", "DecodeBase64", "StringToHashBucket", "StringToHashBucketFast",
           "StringToHashBucketStrong"),
-        "Linalg" -> Seq("LogMatrixDeterminant", "MatrixDeterminant")
+        "Linalg" -> Seq("LogMatrixDeterminant", "MatrixDeterminant", "MatrixInverse")
       ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings

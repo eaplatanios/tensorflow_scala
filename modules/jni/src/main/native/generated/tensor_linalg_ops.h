@@ -23,6 +23,14 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_matrixDeterminant
   (JNIEnv *, jobject, jlong, jlong);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Linalg__
+ * Method:    matrixInverse
+ * Signature: (JJZ)J
+ */
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_matrixInverse
+  (JNIEnv *, jobject, jlong, jlong, jboolean);
+
 #ifdef __cplusplus
 }
 #endif

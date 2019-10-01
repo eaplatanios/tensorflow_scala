@@ -41,8 +41,9 @@ trait Linalg {
   /**
     * Computes (sign(det(x)) log(|det(x)|)) for an input x.
     *
+    * @tparam T The underlying scala type of the matrix elements.
     * @param matrix A matrix of shape [N, M, M]
-    * 
+    *
     * @return A tuple having the results.
     *
     */
@@ -52,6 +53,21 @@ trait Linalg {
         h => Tensor.fromNativeHandle[T](h)
       )
     (results.head, results.last)
+  }
+
+  /**
+    * Computes inv(A), assuming matrix A is invertible and of shape [..., M, M]
+    *
+    * @tparam T The underlying scala type of the matrix elements.
+    * @param matrix The matrix to invert.
+    * @param adjoint If set to true, returns the adjoint, defaults to false.
+    *
+    *
+    */
+  def matrixInverse[T: TF: IsRealOrComplex](matrix: Tensor[T], adjoint: Boolean = false): Tensor[T] = {
+    Tensor.fromNativeHandle[T](
+      NativeTensorOpsLinAlg.matrixInverse(executionContext.value.nativeHandle, matrix.nativeHandle, adjoint)
+    )
   }
 
 }

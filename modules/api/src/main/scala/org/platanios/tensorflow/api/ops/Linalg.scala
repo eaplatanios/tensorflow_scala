@@ -21,8 +21,12 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
+//import com.google.protobuf.ByteString.Output
+
+import org.tensorflow.framework.AttrValue
 
 import scala.language.postfixOps
+import com.google.protobuf.Descriptors.FieldDescriptor
 
 /**
   * Defines linear algebra ops similar to the
@@ -43,6 +47,8 @@ trait Linalg {
   /**
     * Computes (sign(det(x)) log(|det(x)|)) for an input x.
     *
+    * @tparam T The underlying scala type of the matrix elements.
+    * 
     * @param matrix A matrix of shape [N, M, M]
     * @param name An optional name to assign to the op.
     *
@@ -59,5 +65,25 @@ trait Linalg {
         input = matrix
       ).build().output
   }
+
+  /**
+    * Computes inv(A), assuming matrix A is invertible and of shape [..., M, M]
+    *
+    * @tparam T The underlying scala type of the matrix elements.
+    * @param matrix The matrix to invert.
+    * @param adjoint If set to true, returns the adjoint, defaults to false.
+    * @param name An optional name to assign to the op.
+    *
+    */
+  def matrixInverse[T: TF: IsRealOrComplex](
+      matrix: Output[T],
+      adjoint: Boolean = false,
+      name: String = "MatrixInverse"
+  ): Output[T] =
+    Op.Builder[Output[T], Output[T]](
+        opType = "MatrixInverse",
+        name = name,
+        input = matrix
+      ).setAttribute("adjoint", adjoint).build().output
 
 }
