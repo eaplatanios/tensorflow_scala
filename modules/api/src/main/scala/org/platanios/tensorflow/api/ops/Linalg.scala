@@ -36,6 +36,29 @@ import com.google.protobuf.Descriptors.FieldDescriptor
   */
 trait Linalg {
 
+  /**
+    * Performs cholesky decomposition of one or more self-adjoint matrices.
+    *
+    * The input is a tensor of shape [..., M, M] whose inner-most 2 
+    * dimensions form square matrices.
+    *
+    * The input has to be symmetric and positive definite. Only the lower-triangular 
+    * part of the input will be used for this operation. The upper-triangular part 
+    * will not be read. The output is a tensor of the same shape as the input 
+    * containing the Cholesky decompositions for all input submatrices `[..., :, :]`. 
+    * **Note**: The gradient computation on GPU is faster for large matrices but 
+    * not for large batch dimensions when the submatrices are small. In this 
+    * case it might be faster to use the CPU.
+    * 
+    * Returns: 
+    * Output of shape [M, M]
+    *
+    * @tparam T The underlying scala type of the matrix elements.
+    * @param matrix The input.
+    * 
+    * @param name An optional name to assign to the op.
+    *
+    */
   def cholesky[T: TF: IsRealOrComplex](matrix: Output[T], name: String = "Cholesky"): Output[T] =
     Op.Builder[Output[T], Output[T]](
         opType = "Cholesky",
@@ -140,7 +163,7 @@ trait Linalg {
     * Solves systems of linear equations Ax = b, in the regularised
     * least squares sense.
     *
-    * The matrix M must be of shape [..., M, N] whose inner-most 2 dimensions
+    * The matrix A must be of shape [..., M, N] whose inner-most 2 dimensions
     * form square matrices.
     *
     * The right hand side b is a tensor of shape [..., M, K].
@@ -189,6 +212,28 @@ trait Linalg {
         input = (matrix, rhs)
       ).setAttribute("lower", lower).setAttribute("adjoint", adjoint).build().output
 
+  /**
+    * Performs QR decomposition of a matrix.
+    *
+    * The matrix must be of [..., M, N] whose inner-most 2 dimensions
+    * form matrices of size [M, N]. Let P be the minimum of M and N.
+    *
+    * Returns:
+    * q: Orthonormal basis for range of the input matrix. If
+    * full_matrices is `False` then shape is [..., M, P];
+    * if full_matrices is `True` then shape is [..., M, M].
+    * r: Triangular factor. If full_matrices is `False` then shape is
+    * [..., P, N]. If full_matrices is `True` then shape is [..., M, N].
+    *
+    *
+    * @tparam T The underlying scala type of the matrix elements.
+    * @param matrix The input.
+    * @param full_matrices If true, compute full-sized q and r.
+    *                      If false (the default), compute only the
+    *                      leading P columns of q.
+    * @param name An optional name to assign to the op.
+    *
+    */
   def qr[T: TF: IsRealOrComplex](
       matrix: Output[T],
       full_matrices: Boolean = false,
@@ -211,6 +256,32 @@ trait Linalg {
         input = matrix
       ).setAttribute("compute_v", compute_v).build().output
 
+  /**
+    * Performs singular value decomposition of a matrix.
+    *
+    * The matrix must be of [..., M, N] whose inner-most 2 dimensions
+    * form matrices of size [M, N]. Let P be the minimum of M and N.
+    *
+    * Returns: 
+    * s: Singular values. Shape is [..., P]. 
+    * u: Left singular vectors. If full_matrices is False then shape is 
+    * [..., M, P]; if full_matrices is True then shape is 
+    * [..., M, M]. Undefined if compute_uv is False. 
+    * v: Left singular vectors. If full_matrices is False then shape is 
+    * [..., N, P]. If full_matrices is True then shape is [..., N, N]. 
+    * Undefined if compute_uv is false.
+    *
+    *
+    * @tparam T The underlying scala type of the matrix elements.
+    * @param matrix The matrix to decompose.
+    * @param full_matrices If true, compute full-sized u and v.
+    *                      If false (the default), compute only the
+    *                      leading P singular vectors.
+    * @param compute_uv If true, left and right singular vectors will be 
+    *                   computed and returned in u and v, respectively.
+    * @param name An optional name to assign to the op.
+    *
+    */
   def svd[T: TF: IsRealOrComplex](
       matrix: Output[T],
       compute_uv: Boolean = true,
