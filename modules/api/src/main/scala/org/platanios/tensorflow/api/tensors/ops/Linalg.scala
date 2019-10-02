@@ -136,7 +136,7 @@ trait Linalg {
     )
   }
 
-  def qr[T: TF: IsReal](matrix: Tensor[T], full_matrices: Boolean = false): (Tensor[T], Tensor[T]) = {
+  def qr[T: TF: IsRealOrComplex](matrix: Tensor[T], full_matrices: Boolean = false): (Tensor[T], Tensor[T]) = {
 
     val results = NativeTensorOpsLinAlg
       .qr(executionContext.value.nativeHandle, matrix.nativeHandle, full_matrices).map(
@@ -145,4 +145,24 @@ trait Linalg {
     (results.head, results.last)
   }
 
+  def selfAdjointEig[T: TF: IsRealOrComplex](matrix: Tensor[T], compute_v: Boolean = true): (Tensor[T], Tensor[T]) = {
+    val results = NativeTensorOpsLinAlg
+      .selfAdjointEigV2(executionContext.value.nativeHandle, matrix.nativeHandle, compute_v).map(
+        h => Tensor.fromNativeHandle[T](h)
+      )
+    (results.head, results.last)
+  }
+
+  def svd[T: TF: IsRealOrComplex](
+      matrix: Tensor[T],
+      compute_uv: Boolean = true,
+      full_matrices: Boolean = false
+  ): (Tensor[T], Tensor[T], Tensor[T]) = {
+
+    val results = NativeTensorOpsLinAlg
+      .svd(executionContext.value.nativeHandle, matrix.nativeHandle, compute_uv, full_matrices).map(
+        h => Tensor.fromNativeHandle[T](h)
+      )
+    (results.head, results(1), results.last)
+  }
 }

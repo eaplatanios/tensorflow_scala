@@ -79,6 +79,22 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Lina
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_qr
   (JNIEnv *, jobject, jlong, jlong, jboolean);
 
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Linalg__
+ * Method:    selfAdjointEigV2
+ * Signature: (JJZ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_selfAdjointEigV2
+  (JNIEnv *, jobject, jlong, jlong, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_generated_tensors_Linalg__
+ * Method:    svd
+ * Signature: (JJZZ)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_svd
+  (JNIEnv *, jobject, jlong, jlong, jboolean, jboolean);
+
 #ifdef __cplusplus
 }
 #endif

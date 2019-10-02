@@ -31,4 +31,6 @@ object Linalg {
   @native def matrixSolveLs(contextHandle: Long, matrix: Long, rhs: Long, l2_regularizer: Long, fast: Boolean): Long
   @native def matrixTriangularSolve(contextHandle: Long, matrix: Long, rhs: Long, lower: Boolean, adjoint: Boolean): Long
   @native def qr(contextHandle: Long, input: Long, full_matrices: Boolean): Array[Long]
+  @native def selfAdjointEigV2(contextHandle: Long, input: Long, compute_v: Boolean): Array[Long]
+  @native def svd(contextHandle: Long, input: Long, compute_uv: Boolean, full_matrices: Boolean): Array[Long]
 }

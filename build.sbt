@@ -161,7 +161,8 @@ lazy val jni = (project in file("./modules/jni"))
         "Linalg" -> Seq(
           "Cholesky", "CholeskyGrad", "LogMatrixDeterminant", "MatrixDeterminant", 
           "MatrixInverse", "MatrixSolve", "MatrixSolveLs", 
-          /* "MatrixSquareRoot", */ "MatrixTriangularSolve", "Qr")
+          /* "MatrixSquareRoot", */ "MatrixTriangularSolve", "Qr", 
+          "SelfAdjointEigV2", "Svd")
       ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings

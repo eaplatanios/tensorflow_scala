@@ -155,7 +155,7 @@ trait Linalg {
     * @param name An optional name to assign to the op.
     *
     */
-  def matrixSolveLS[T: TF: IsReal](
+  def matrixSolveLS[T: TF: IsRealOrComplex](
       matrix: Output[T],
       rhs: Output[T],
       reg: Output[T],
@@ -189,7 +189,7 @@ trait Linalg {
         input = (matrix, rhs)
       ).setAttribute("lower", lower).setAttribute("adjoint", adjoint).build().output
 
-  def qr[T: TF: IsReal](
+  def qr[T: TF: IsRealOrComplex](
       matrix: Output[T],
       full_matrices: Boolean = false,
       name: String = "Qr"
@@ -200,4 +200,26 @@ trait Linalg {
         input = matrix
       ).setAttribute("full_matrices", full_matrices).build().output
 
+  def selfAdjointEig[T: TF: IsRealOrComplex](
+      matrix: Output[T],
+      compute_v: Boolean = true,
+      name: String = "SelfAdjointEigV2"
+  ): (Output[T], Output[T]) =
+    Op.Builder[Output[T], (Output[T], Output[T])](
+        opType = "SelfAdjointEigV2",
+        name = name,
+        input = matrix
+      ).setAttribute("compute_v", compute_v).build().output
+
+  def svd[T: TF: IsRealOrComplex](
+      matrix: Output[T],
+      compute_uv: Boolean = true,
+      full_matrices: Boolean = false,
+      name: String = "Svd"
+  ): (Output[T], Output[T], Output[T]) =
+    Op.Builder[Output[T], (Output[T], Output[T], Output[T])](
+        opType = "Svd",
+        name = name,
+        input = matrix
+      ).setAttribute("compute_uv", compute_uv).setAttribute("full_matrices", full_matrices).build().output
 }
