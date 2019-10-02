@@ -36,6 +36,23 @@ import com.google.protobuf.Descriptors.FieldDescriptor
   */
 trait Linalg {
 
+  def cholesky[T: TF: IsRealOrComplex](matrix: Output[T], name: String = "Cholesky"): Output[T] =
+    Op.Builder[Output[T], Output[T]](
+        opType = "Cholesky",
+        name = name,
+        input = matrix
+      ).setGradientFn(choleskyGrad(_, _)(TF[T], IsRealOrComplex[T])).build().output
+
+  protected def choleskyGrad[T: TF: IsRealOrComplex](
+      l: Op[Output[T], Output[T]],
+      outputGradient: Output[T]
+  ): Output[T] =
+    Op.Builder[(Output[T], Output[T]), Output[T]](
+        opType = "CholeskyGrad",
+        name = "CholeskyGrad",
+        input = (l.output, outputGradient)
+      ).build().output
+
   def matrixDeterminant[T: TF: IsRealOrComplex](matrix: Output[T], name: String = "MatrixDeterminant"): Output[T] = {
     Op.Builder[Output[T], Output[T]](
         opType = "MatrixDeterminant",
@@ -138,7 +155,7 @@ trait Linalg {
     * @param name An optional name to assign to the op.
     *
     */
-  def matrixSolveLS[T: TF: IsRealOrComplex](
+  def matrixSolveLS[T: TF: IsReal](
       matrix: Output[T],
       rhs: Output[T],
       reg: Output[T],
@@ -171,5 +188,16 @@ trait Linalg {
         name = name,
         input = (matrix, rhs)
       ).setAttribute("lower", lower).setAttribute("adjoint", adjoint).build().output
+
+  def qr[T: TF: IsReal](
+      matrix: Output[T],
+      full_matrices: Boolean = false,
+      name: String = "Qr"
+  ): (Output[T], Output[T]) =
+    Op.Builder[Output[T], (Output[T], Output[T])](
+        opType = "Qr",
+        name = name,
+        input = matrix
+      ).setAttribute("full_matrices", full_matrices).build().output
 
 }

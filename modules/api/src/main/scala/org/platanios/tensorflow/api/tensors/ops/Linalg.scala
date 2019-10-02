@@ -32,6 +32,11 @@ import scala.language.postfixOps
   */
 trait Linalg {
 
+  def cholesky[T: TF: IsRealOrComplex](matrix: Tensor[T]): Tensor[T] =
+    Tensor.fromNativeHandle[T](
+      NativeTensorOpsLinAlg.cholesky(executionContext.value.nativeHandle, matrix.nativeHandle)
+    )
+
   def matrixDeterminant[T: TF: IsRealOrComplex](matrix: Tensor[T]): Tensor[T] = {
     Tensor.fromNativeHandle[T](
       NativeTensorOpsLinAlg.matrixDeterminant(executionContext.value.nativeHandle, matrix.nativeHandle)
@@ -129,6 +134,15 @@ trait Linalg {
         adjoint
       )
     )
+  }
+
+  def qr[T: TF: IsReal](matrix: Tensor[T], full_matrices: Boolean = false): (Tensor[T], Tensor[T]) = {
+
+    val results = NativeTensorOpsLinAlg
+      .qr(executionContext.value.nativeHandle, matrix.nativeHandle, full_matrices).map(
+        h => Tensor.fromNativeHandle[T](h)
+      )
+    (results.head, results.last)
   }
 
 }

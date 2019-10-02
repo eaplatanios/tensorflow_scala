@@ -27,6 +27,79 @@
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/c/eager/c_api.h"
 
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_cholesky(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "Cholesky", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, 0);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_input_handle, TFE_TensorHandle, input, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_choleskyGrad(
+    JNIEnv* env, jobject object, jlong context_handle, jlong l, jlong grad) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, 0);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "CholeskyGrad", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), 0);
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(l_handle, TFE_TensorHandle, l, 0);
+  TFE_OpAddInput(op.get(), l_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(grad_handle, TFE_TensorHandle, grad, 0);
+  TFE_OpAddInput(op.get(), grad_handle, status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  REQUIRE_HANDLE(attr_T_l_handle, TFE_TensorHandle, l, 0);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_l_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  REQUIRE_HANDLE(attr_T_grad_handle, TFE_TensorHandle, grad, 0);
+  const TF_DataType attr_T_grad = TFE_TensorHandleDataType(attr_T_grad_handle);
+  if (attr_T != attr_T_grad) {
+      std::stringstream error_msg;
+      error_msg
+          << "Argument 'grad' of 'choleskyGrad' op with data type '"
+          << attr_T_grad
+          << "' must match data type '"
+          << attr_T
+          << "' of argument 'l'";
+      throw_exception(env, tf_invalid_argument_exception, error_msg.str().c_str());
+  }
+
+  const int num_outputs = 1;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), 0);
+
+  return reinterpret_cast<jlong>(outputs[0]);
+}
+
 JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_logMatrixDeterminant(
     JNIEnv* env, jobject object, jlong context_handle, jlong input) {
   REQUIRE_HANDLE(context, TFE_Context, context_handle, nullptr);
@@ -264,4 +337,40 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Lina
   CHECK_STATUS(env, status.get(), 0);
 
   return reinterpret_cast<jlong>(outputs[0]);
+}
+
+JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_generated_tensors_Linalg_00024_qr(
+    JNIEnv* env, jobject object, jlong context_handle, jlong input, jboolean full_matrices) {
+  REQUIRE_HANDLE(context, TFE_Context, context_handle, nullptr);
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+  std::unique_ptr<TFE_Op, decltype(&TFE_DeleteOp)> op(
+      TFE_NewOp(context, "Qr", status.get()), TFE_DeleteOp);
+  CHECK_STATUS(env, status.get(), nullptr);
+  TFE_OpSetDevice(op.get(), "/job:localhost/replica:0/task:0/device:CPU:0", status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+
+  REQUIRE_HANDLE(input_handle, TFE_TensorHandle, input, nullptr);
+  TFE_OpAddInput(op.get(), input_handle, status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+
+  REQUIRE_HANDLE(attr_T_input_handle, TFE_TensorHandle, input, nullptr);
+  const TF_DataType attr_T = TFE_TensorHandleDataType(attr_T_input_handle);
+  TFE_OpSetAttrType(op.get(), "T", attr_T);
+
+  TFE_OpSetAttrBool(op.get(), "full_matrices", static_cast<unsigned char>(full_matrices));
+
+  const int num_outputs = 2;
+  std::unique_ptr<TFE_TensorHandle* []> outputs(new TFE_TensorHandle* [num_outputs]);
+  std::unique_ptr<int[]> actual_num_outputs(new int[1] {num_outputs});
+  TFE_Execute(op.get(), outputs.get(), actual_num_outputs.get(), status.get());
+  CHECK_STATUS(env, status.get(), nullptr);
+
+  jlongArray outputs_array = env->NewLongArray(static_cast<jsize>(num_outputs));
+  jlong* output_elems = env->GetLongArrayElements(outputs_array, nullptr);
+  for (int i = 0; i < num_outputs; ++i) {
+    output_elems[i] = reinterpret_cast<jlong>(outputs[i]);
+  }
+  env->ReleaseLongArrayElements(outputs_array, output_elems, 0);
+  return outputs_array;
 }
