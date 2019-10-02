@@ -165,6 +165,7 @@ package object types {
   type Quantized = Union[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
   type Numeric = Union[TruncatedHalf]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
   type BooleanOrNumeric = Union[Boolean]#or[Half]#or[Float]#or[Double]#or[Byte]#or[Short]#or[Int]#or[Long]#or[UByte]#or[UShort]#or[UInt]#or[ULong]#or[ComplexFloat]#or[ComplexDouble]#or[QByte]#or[QShort]#or[QInt]#or[QUByte]#or[QUShort]#create
+  type RealOrComplex = Union[Float]#or[Double]#or[ComplexFloat]#or[ComplexDouble]#create
 
   type IsFloatOrDouble[T] = Contains[T, FloatOrDouble]
   type IsHalfOrFloat[T] = Contains[T, HalfOrFloat]
@@ -186,6 +187,7 @@ package object types {
   type IsQuantized[T] = Contains[T, Quantized]
   type IsNumeric[T] = Contains[T, Numeric]
   type IsBooleanOrNumeric[T] = Contains[T, BooleanOrNumeric]
+  type IsRealOrComplex[T] = Contains[T, RealOrComplex]
 
   object IsFloatOrDouble {
     def apply[T: IsFloatOrDouble]: IsFloatOrDouble[T] = implicitly[IsFloatOrDouble[T]]
@@ -265,5 +267,9 @@ package object types {
 
   object IsBooleanOrNumeric {
     def apply[T: IsBooleanOrNumeric]: IsBooleanOrNumeric[T] = implicitly[IsBooleanOrNumeric[T]]
+  }
+
+  object IsRealOrComplex {
+    def apply[T: IsRealOrComplex]: IsRealOrComplex[T] = implicitly[IsRealOrComplex[T]]
   }
 }

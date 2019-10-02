@@ -26,7 +26,7 @@ organization in ThisBuild := "org.platanios"
 
 autoCompilerPlugins in ThisBuild := true
 
-val tensorFlowVersion = "1.11.0"
+val tensorFlowVersion = "1.12.0"
 val circeVersion = "0.10.1" // Use for working with JSON.
 
 // addCompilerPlugin(MetalsPlugin.semanticdbScalac)
@@ -157,7 +157,12 @@ lazy val jni = (project in file("./modules/jni"))
         "Sparse" -> Seq("SparseToDense"),
         "Text" -> Seq(
           "StringJoin", "StringSplit", "EncodeBase64", "DecodeBase64", "StringToHashBucket", "StringToHashBucketFast",
-          "StringToHashBucketStrong")
+          "StringToHashBucketStrong"),
+        "Linalg" -> Seq(
+          "Cholesky", "CholeskyGrad", "LogMatrixDeterminant", "MatrixDeterminant", 
+          "MatrixInverse", "MatrixSolve", "MatrixSolveLs", 
+          /* "MatrixSquareRoot", */ "MatrixTriangularSolve", "Qr", 
+          "SelfAdjointEigV2", "Svd")
       ),
       scalaPackage in generateTensorOps := "tensors",
       // Native bindings compilation settings

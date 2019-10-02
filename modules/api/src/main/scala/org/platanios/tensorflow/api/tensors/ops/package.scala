@@ -25,4 +25,5 @@ package object ops {
           with Math
           with NN
           with Random
+          with Linalg
 }
