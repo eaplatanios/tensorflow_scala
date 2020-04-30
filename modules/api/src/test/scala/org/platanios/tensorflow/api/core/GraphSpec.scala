@@ -24,12 +24,13 @@ import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
 import org.platanios.tensorflow.api.ops.Math.add
 import org.platanios.tensorflow.api.tensors.Tensor
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class GraphSpec extends FlatSpec with Matchers {
+class GraphSpec extends AnyFlatSpec with Matchers {
   private[this] def prepareGraph(): (Graph, Array[UntypedOp]) = {
     val graph = Graph()
     val ops = createWith(graph = graph) {

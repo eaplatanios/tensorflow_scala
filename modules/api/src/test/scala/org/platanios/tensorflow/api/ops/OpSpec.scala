@@ -19,12 +19,13 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.Math.matmul
 import org.platanios.tensorflow.api.tf._
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class OpSpec extends FlatSpec with Matchers {
+class OpSpec extends AnyFlatSpec with Matchers {
   "'Output.setShape'" must "always work" in {
     createWith(graph = Graph()) {
       val a = placeholder[Int](Shape(-1, -1, 3))

@@ -18,12 +18,13 @@ package org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.tf.InvalidShapeException
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class ShapeSpec extends FlatSpec with Matchers {
+class ShapeSpec extends AnyFlatSpec with Matchers {
   "Shape construction" must "work for completely unknown shapes" in {
     val shape = Shape.unknown()
     assert(shape.rank == -1)

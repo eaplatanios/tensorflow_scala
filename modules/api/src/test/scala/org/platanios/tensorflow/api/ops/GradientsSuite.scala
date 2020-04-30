@@ -23,7 +23,7 @@ import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
 import scala.collection.mutable

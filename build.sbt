@@ -19,15 +19,15 @@ import sbtrelease.Vcs
 
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.8"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
+scalaVersion in ThisBuild := "2.12.11"
+crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.11")
 
 organization in ThisBuild := "org.platanios"
 
 autoCompilerPlugins in ThisBuild := true
 
-val tensorFlowVersion = "1.11.0"
-val circeVersion = "0.10.1" // Use for working with JSON.
+val tensorFlowVersion = "1.15.0"
+val circeVersion = "0.12.3" // Use for working with JSON.
 
 // addCompilerPlugin(MetalsPlugin.semanticdbScalac)
 
@@ -43,8 +43,6 @@ scalacOptions in ThisBuild ++= Seq(
   "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
-  "-Yno-adapted-args",
-  "-Ypartial-unification",
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
@@ -59,6 +57,14 @@ scalacOptions in ThisBuild ++= Seq(
   // "-P:splain:boundsimplicits:false"
 )
 
+scalacOptions in ThisBuild ++= {
+  if (!scalaVersion.value.startsWith("2.13")) {
+    Seq("-Yno-adapted-args", "-Ypartial-unification")
+  } else {
+    Seq()
+  }
+}
+
 val scalacProfilingEnabled: SettingKey[Boolean] =
   settingKey[Boolean]("Flag specifying whether to enable profiling for the Scala compiler.")
 
@@ -67,7 +73,7 @@ nativeCrossCompilationEnabled in ThisBuild := false
 
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
-    "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
+    "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.2",
     "ch.qos.logback"             %  "logback-classic" % "1.2.3"))
 
 lazy val commonSettings = loggingSettings ++ Seq(
@@ -78,8 +84,9 @@ lazy val commonSettings = loggingSettings ++ Seq(
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
     "junit"         %  "junit"     % "4.12",
-    "org.scalactic" %% "scalactic" % "3.0.5",
-    "org.scalatest" %% "scalatest" % "3.0.5" % "test"),
+//    "org.scalactic" %% "scalactic" % "3.1.1",
+    "org.scalatest" %% "scalatest" % "3.1.1" % "test",
+    "org.scalatestplus" %% "junit-4-12" % "3.1.1.0" % "test"),
   logBuffered in Test := false,
   fork in test := false,
   testForkedParallel in Test := false,
@@ -184,8 +191,8 @@ lazy val api = (project in file("./modules/api"))
       libraryDependencies ++= Seq(
         "org.tensorflow" % "proto" % tensorFlowVersion,
         "com.chuusai" %% "shapeless" % "2.3.3",
-        compilerPlugin("com.github.ghik" %% "silencer-plugin" % "0.6"),
-        "com.github.ghik" %% "silencer-lib" % "0.6"),
+        compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full),
+        "com.github.ghik" % "silencer-lib" % "1.6.0" % Provided cross CrossVersion.full),
       libraryDependencies ++= Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",
@@ -211,7 +218,7 @@ lazy val api = (project in file("./modules/api"))
         }
       },
       // Protobuf Settings
-      version in ProtobufConfig := "3.5.1",
+      version in ProtobufConfig := "3.11.4",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",

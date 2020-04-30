@@ -21,7 +21,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
 /**

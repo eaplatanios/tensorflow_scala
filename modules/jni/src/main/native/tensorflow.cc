@@ -14,6 +14,7 @@
  */
 
 #include "exception.h"
+#include "python_api.h"
 #include "tensorflow.h"
 #include "utilities.h"
 
@@ -22,7 +23,6 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
-#include "tensorflow/c/python_api.h"
 
 namespace {
 template <class T>

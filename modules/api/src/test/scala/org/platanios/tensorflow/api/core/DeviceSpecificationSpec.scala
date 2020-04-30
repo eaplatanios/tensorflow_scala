@@ -17,12 +17,13 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.tf.InvalidDeviceException
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class DeviceSpecificationSpec extends FlatSpec with Matchers {
+class DeviceSpecificationSpec extends AnyFlatSpec with Matchers {
   "An device specification" must "be represented using an empty string when empty" in {
     assert(DeviceSpecification().toString === "")
     assert(DeviceSpecification.fromString("").toString === "")

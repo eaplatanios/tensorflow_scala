@@ -64,18 +64,19 @@ A stateless version of `JVMCallback`.
 )doc");
 
 struct TFE_TensorHandle {
-  TFE_TensorHandle(const tensorflow::Tensor& t, tensorflow::Device* d,
-                   tensorflow::Device* op_device)
-      : handle(new tensorflow::TensorHandle(t, d, op_device, nullptr)) {}
+  TFE_TensorHandle(tensorflow::Tensor& t, tensorflow::Device* d,
+                   tensorflow::Device* op_device) {
+      handle = tensorflow::TensorHandle::CreateLocalHandle(std::move(t), d, op_device, nullptr);
+  }
 
   TFE_TensorHandle(tensorflow::TensorHandle* handle) : handle(handle) {}
 
   tensorflow::TensorHandle* handle;
 };
 
-Status TensorHandle::Tensor(const tensorflow::Tensor** t) {
-  *t = &tensor_;
-  return Status::OK();
+Status TensorHandle::Tensor(const tensorflow::Tensor** t) const {
+  auto& data = absl::get<LocalTensorHandleData>(data_);
+  return data.Tensor(t);
 }
 
 namespace {
@@ -85,7 +86,7 @@ namespace {
     jlongArray inputs = call->env->NewLongArray(static_cast<jsize>(n));
     jlong* inputs_array = call->env->GetLongArrayElements(inputs, nullptr);
     for (int64 i = 0; i < n; ++i) {
-      const Tensor& t = call->inputs[i];
+      Tensor& t = call->inputs[i];
       TFE_TensorHandle* tensor;
       if (call->gpu) {
         tensor = new TFE_TensorHandle(t, call->device, call->device);

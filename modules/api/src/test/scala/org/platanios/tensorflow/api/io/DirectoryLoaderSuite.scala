@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.io
 
 import org.junit.{Before, Rule, Test}
 import org.junit.rules.TemporaryFolder
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 
 import java.io.InputStream
 import java.nio.file.{Files, Path, StandardOpenOption}

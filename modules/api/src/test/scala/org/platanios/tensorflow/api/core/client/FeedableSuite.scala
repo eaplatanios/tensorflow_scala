@@ -19,7 +19,7 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices}
 import org.platanios.tensorflow.api.tensors.TensorIndexedSlices
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
 /**

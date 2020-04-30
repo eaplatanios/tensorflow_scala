@@ -701,9 +701,9 @@ object Saver {
   ): Unit = {
     // Writes the "checkpoint" file for the coordinator for later restoration.
     val coordinatorCheckpointStateFilename = directory.resolve(checkpointStateFilename)
-    val state = {
+    val state                              = {
       if (saveRelativePaths) {
-        val modelCheckpointRelativePath = {
+        val modelCheckpointRelativePath     = {
           if (modelCheckpointPath.isAbsolute)
             directory.relativize(modelCheckpointPath)
           else
@@ -733,9 +733,7 @@ object Saver {
             "Please use a different save path.")
 
     // Preventing potential read/write race condition by atomically writing to a file.
-    FileIO.writeStringToFileAtomic(
-      coordinatorCheckpointStateFilename,
-      TextFormat.printToString(state))
+    FileIO.writeStringToFileAtomic(coordinatorCheckpointStateFilename, state.toString)
   }
 
   /** Loads the checkpoint state stored in the file named `checkpointStateFilename`, in the specified directory.

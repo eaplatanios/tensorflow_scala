@@ -22,7 +22,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
 /**

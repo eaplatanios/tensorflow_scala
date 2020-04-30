@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.utilities
 
 import org.junit.Test
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random

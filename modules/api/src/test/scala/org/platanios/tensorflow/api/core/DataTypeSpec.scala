@@ -18,14 +18,15 @@ package org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.DataType
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.nio.ByteBuffer
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class DataTypeSpec extends FlatSpec with Matchers {
+class DataTypeSpec extends AnyFlatSpec with Matchers {
   "'DataType.fromCValue'" must "work correctly when valid C values are provided" in {
     assert(DataType.fromCValue(1) == FLOAT32)
     assert(DataType.fromCValue(2) == FLOAT64)

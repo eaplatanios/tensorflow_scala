@@ -27,9 +27,9 @@ import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 
 import com.google.protobuf.TextFormat
-import org.scalatest.Matchers
-import org.scalatest.junit.JUnitSuite
 import org.junit.Test
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.junit.JUnitSuite
 import org.tensorflow.framework.{CondContextDef, GraphDef, NodeDef, WhileContextDef}
 
 import scala.collection.JavaConverters._

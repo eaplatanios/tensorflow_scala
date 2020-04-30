@@ -42,7 +42,7 @@ object Proto {
     }
     val filePath = directory.resolve(filename)
     if (asText)
-      FileIO.writeStringToFileAtomic(filePath, TextFormat.printToString(message))
+      FileIO.writeStringToFileAtomic(filePath, message.toString)
     else
       message.writeTo(Files.newOutputStream(filePath))
     filePath
