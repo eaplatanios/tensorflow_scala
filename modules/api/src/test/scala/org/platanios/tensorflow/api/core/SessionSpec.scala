@@ -17,12 +17,13 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api._
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class SessionSpec extends FlatSpec with Matchers {
+class SessionSpec extends AnyFlatSpec with Matchers {
   "Session run fetch by name" should "return the correct result" in {
     val graph = Graph()
     tf.createWith(graph = graph) {

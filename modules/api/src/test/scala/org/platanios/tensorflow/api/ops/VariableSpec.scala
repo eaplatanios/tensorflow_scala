@@ -17,12 +17,13 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class VariableSpec extends FlatSpec with Matchers {
+class VariableSpec extends AnyFlatSpec with Matchers {
   "Variable creation" must "work" in {
     val graph = Graph()
     tf.createWith(graph = graph) {

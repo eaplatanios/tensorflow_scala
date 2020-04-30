@@ -12,6 +12,10 @@
 [![Data Docs](https://img.shields.io/badge/docs-data-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/data)
 [![Examples Docs](https://img.shields.io/badge/docs-examples-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/examples)
 
+```bash
+bazel build //tensorflow:install_headers
+```
+
 This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of
 the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new
 features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API
@@ -176,7 +180,7 @@ sbt docs/ghpagesPushSite # To publish the website
 ```
 
 ```bash
-find . -name '*.h' | cpio -pdmu ../tensorflow_scala/jni/src/main/native/include/
+find . -name '*.h' | cpio -pdmu ../tensorflow_scala/modules/jni/src/main/native/include/
 ```
 
 -->

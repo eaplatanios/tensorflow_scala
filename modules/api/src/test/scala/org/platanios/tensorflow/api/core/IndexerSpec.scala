@@ -18,14 +18,15 @@ package org.platanios.tensorflow.api.core
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.exception.InvalidIndexerException
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.language.postfixOps
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class IndexerSpec extends FlatSpec with Matchers {
+class IndexerSpec extends AnyFlatSpec with Matchers {
   private def indexerImplicitsHelper(indexer: Indexer): Indexer = indexer
 
   "Ellipsis" must "be representable using '---'" in {
