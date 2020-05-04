@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "tensorflow/c/kernels.h"
 #include "tensorflow/c/eager/c_api.h"
+#include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 
 namespace tensorflow {
@@ -35,7 +36,7 @@ REGISTER_OP("JVMCallback")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >=0")
     .SetIsStateful()
-    // .SetShapeFn(shape_inference::UnknownShape)
+    .SetShapeFn(shape_inference::UnknownShape)
     .Doc(R"doc(
 Invokes a JVM callback function, `f` to compute `f(input)->output`.
 
@@ -71,7 +72,7 @@ REGISTER_OP("JVMCallbackStateless")
     .Attr("registry_pointer_lower: int")
     .Attr("Tin: list(type) >= 0")
     .Attr("Tout: list(type) >= 0")
-    // .SetShapeFn(shape_inference::UnknownShape)
+    .SetShapeFn(shape_inference::UnknownShape)
     .Doc(R"doc(
 A stateless version of `JVMCallback`.
 )doc");
@@ -230,25 +231,27 @@ struct JVMCallbackKernel {
 };
 
 static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
-  JNIEnv* env = jvm_thread.env;
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
   struct JVMCallbackKernel* k = new struct JVMCallbackKernel;
 
   TF_OpKernelConstruction_GetAttrInt32(ctx, "id", &(k->id_), status.get());
-  CHECK_STATUS(env, status.get(), nullptr);
+  // CHECK_STATUS(env, status.get(), nullptr);
 
   // Get the JVM pointer.
   int32_t jvm_pointer_upper;
   int32_t jvm_pointer_lower;
   TF_OpKernelConstruction_GetAttrInt32(ctx, "jvm_pointer_upper", &jvm_pointer_upper, status.get());
-  CHECK_STATUS(env, status.get(), nullptr);
+  // CHECK_STATUS(env, status.get(), nullptr);
   TF_OpKernelConstruction_GetAttrInt32(ctx, "jvm_pointer_lower", &jvm_pointer_lower, status.get());
-  CHECK_STATUS(env, status.get(), nullptr);
+  // CHECK_STATUS(env, status.get(), nullptr);
   int64_t jvm_pointer = (((int64_t) jvm_pointer_upper) << 32) | (int64_t) jvm_pointer_lower;
   k->jvm_ = reinterpret_cast<JavaVM*>(jvm_pointer);
   std::lock_guard<std::mutex> guard(get_jvm_wrapper(k->jvm_).lock);
   jvm_thread.set_jvm(k->jvm_);
+
+  // Obtain a handle to the JVM environment.
+  JNIEnv* env = jvm_thread.env;
 
   // Get the call method ID.
   int32_t registry_pointer_upper;
