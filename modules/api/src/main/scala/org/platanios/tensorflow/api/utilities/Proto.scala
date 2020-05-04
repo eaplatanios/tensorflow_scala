@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.utilities
 
 import org.platanios.tensorflow.api.io.FileIO
 
-import com.google.protobuf.{GeneratedMessageV3, TextFormat}
+import com.google.protobuf.GeneratedMessageV3
 
 import java.nio.file.{Files, Path}
 

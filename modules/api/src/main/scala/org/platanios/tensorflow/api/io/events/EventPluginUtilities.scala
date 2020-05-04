@@ -16,9 +16,11 @@
 package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, NotFoundException}
-import org.platanios.tensorflow.api.io.FileIO
 
-import java.nio.file.Path
+import java.nio.charset.Charset
+import java.nio.file.{Files, Path}
+
+import scala.collection.JavaConverters._
 
 /** Contains utilities for managing event plugins (e.g., TensorBoard plugins).
   *
@@ -39,10 +41,12 @@ object EventPluginUtilities {
     */
   def listPluginDirs(logDir: Path): Seq[Path] = {
     val pluginsDir = logDir.resolve(PLUGINS_DIR)
-    if (!FileIO.isDirectory(pluginsDir)) {
+    if (!Files.isDirectory(pluginsDir)) {
       Seq.empty[Path]
     } else {
-      FileIO.listDirectories(pluginsDir).filter(d => FileIO.isDirectory(pluginsDir.resolve(d)))
+      Files.walk(pluginsDir, 1).iterator().asScala
+          .filter(d => Files.isDirectory(pluginsDir.resolve(d)))
+          .toSeq
     }
   }
 
@@ -53,10 +57,12 @@ object EventPluginUtilities {
     */
   def listPluginAssets(logDir: Path, pluginName: String): Seq[Path] = {
     val pluginsDir = pluginDir(logDir, pluginName)
-    if (!FileIO.isDirectory(pluginsDir)) {
+    if (!Files.isDirectory(pluginsDir)) {
       Seq.empty[Path]
     } else {
-      FileIO.listDirectories(pluginsDir).filter(d => FileIO.isDirectory(pluginsDir.resolve(d)))
+      Files.walk(pluginsDir, 1).iterator().asScala
+          .filter(d => Files.isDirectory(pluginsDir.resolve(d)))
+          .toSeq
     }
   }
 
@@ -64,10 +70,7 @@ object EventPluginUtilities {
   def retrievePluginAsset(logDir: Path, pluginName: String, assetName: String): String = {
     val assetPath = pluginDir(logDir, pluginName).resolve(assetName)
     try {
-      val fileIO = FileIO(assetPath, FileIO.READ)
-      val content = fileIO.read()
-      fileIO.close()
-      content
+      new String(Files.readAllBytes(assetPath), Charset.forName("UTF-8"))
     } catch {
       case _: NotFoundException => throw InvalidArgumentException(s"Asset path '$assetPath' not found.")
       case t: Throwable => throw InvalidArgumentException(s"Could not read asset path '$assetPath'.", t)

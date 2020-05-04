@@ -22,7 +22,7 @@ import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, SummaryMetadata}
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import scala.collection.mutable
 
@@ -136,7 +136,7 @@ case class EventMultiplexer(
   @throws[InvalidArgumentException]
   def addRunsFromDirectory(directory: Path, name: String = null): EventMultiplexer = {
     EventMultiplexer.logger.info(s"Adding runs from directory '$directory'.")
-    if (FileIO.exists(directory) && !FileIO.isDirectory(directory))
+    if (Files.exists(directory) && !Files.isDirectory(directory))
       throw InvalidArgumentException(s"Path '$directory' exists but is not a directory.")
     FileIO.walk(directory)
         .filter(_._3.exists(_.getFileName.toString.contains("tfevents")))
