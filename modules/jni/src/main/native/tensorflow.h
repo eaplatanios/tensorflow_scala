@@ -12,7 +12,7 @@ extern "C" {
  * Method:    jvmPointer
  * Signature: ()V
  */
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPointer
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPointer
   (JNIEnv *, jobject);
 
 /*
@@ -20,7 +20,7 @@ JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvm
  * Method:    callbackRegistryPointer
  * Signature: ()V
  */
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_callbackRegistryPointer
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_callbackRegistryPointer
   (JNIEnv *, jobject);
 
 /*

@@ -77,9 +77,13 @@ trait Callback {
           input = OutputStructure[IT].outputs(input))
       }
     }
+    val currentJvmPointer = NativeLibrary.currentJvmPointer
+    val currentCallbackRegistryPointer = NativeLibrary.currentCallbackRegistryPointer
     builder.setAttribute("id", id)
-    builder.setAttribute("jvm_pointer", NativeLibrary.currentJvmPointer)
-    builder.setAttribute("registry_pointer", NativeLibrary.currentCallbackRegistryPointer)
+    builder.setAttribute("jvm_pointer_upper", (currentJvmPointer >> 32).toInt)
+    builder.setAttribute("jvm_pointer_lower", currentJvmPointer.toInt)
+    builder.setAttribute("registry_pointer_upper", (currentCallbackRegistryPointer >> 32).toInt)
+    builder.setAttribute("registry_pointer_lower", currentCallbackRegistryPointer.toInt)
     builder.setAttribute("Tout", evOutputToDataType.dataTypeStructure.dataTypes(outputDataType).toArray)
     evOutputToDataType.decodeOutput(outputDataType, builder.build().output)._1
   }
