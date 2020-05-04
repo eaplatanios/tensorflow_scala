@@ -21,7 +21,8 @@
 #include <sstream>
 #include <vector>
 
-#include "tensorflow/core/common_runtime/eager/tensor_handle.h"
+#include "tensorflow/c/c_api.h"
+#include "tensorflow/c/kernels.h"
 
 // A call to the registered JVM function.
 struct JVMCall {
@@ -29,8 +30,7 @@ struct JVMCall {
   jclass registry;
   jmethodID call_method_id;
 
-  // The device on which tensors are stored.
-  tensorflow::Device* device;
+  TF_OpKernelContext* ctx;
 
   // True if and only if this op has been placed on a GPU.
   bool gpu;
@@ -39,8 +39,8 @@ struct JVMCall {
   int id;
 
   // Inputs and outputs of this function invocation.
-  std::vector<tensorflow::Tensor> inputs;
-  std::vector<tensorflow::Tensor> outputs;
+  std::vector<TF_Tensor*> inputs;
+  std::vector<TF_Tensor*> outputs;
 };
 
 #endif  // TENSORFLOW_JVM_CALLBACK_OP_H_
