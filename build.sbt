@@ -27,7 +27,7 @@ organization in ThisBuild := "org.platanios"
 autoCompilerPlugins in ThisBuild := true
 
 val tensorFlowVersion = "1.15.0"
-val circeVersion = "0.12.3" // Use for working with JSON.
+val circeVersion = "0.12.3" // Used for working with JSON.
 
 // addCompilerPlugin(MetalsPlugin.semanticdbScalac)
 

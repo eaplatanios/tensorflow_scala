@@ -15,14 +15,35 @@ limitations under the License.
 
 #include "python_api.h"
 
-#include "tensorflow/c/c_api_internal.h"
+#include "tensorflow/c/c_api.h"
+#include "tensorflow/core/common_runtime/shape_refiner.h"
+#include "tensorflow/core/graph/graph.h"
+#include "tensorflow/core/platform/mutex.h"
+#include "tensorflow/core/platform/thread_annotations.h"
+
+struct TF_Status {
+  tensorflow::Status status;
+};
+
+struct TF_Graph {
+  TF_Graph();
+  tensorflow::mutex mu;
+  tensorflow::Graph graph;
+  tensorflow::ShapeRefiner refiner;
+};
+
+struct TF_Operation {
+  tensorflow::Node node;
+};
 
 namespace tensorflow {
+
+class Status;
 
 void AddControlInput(TF_Graph* graph, TF_Operation* op, TF_Operation* input) {
   mutex_lock l(graph->mu);
   graph->graph.AddControlEdge(&input->node, &op->node);
-  RecordMutation(graph, *op, "adding control input");
+  // TODO: RecordMutation(graph, *op, "adding control input");
 }
 
 void SetAttr(TF_Graph* graph, TF_Operation* op, const char* attr_name,
@@ -37,7 +58,7 @@ void SetAttr(TF_Graph* graph, TF_Operation* op, const char* attr_name,
 
   mutex_lock l(graph->mu);
   op->node.AddAttr(attr_name, attr_val);
-  RecordMutation(graph, *op, "setting attribute");
+  // TODO: RecordMutation(graph, *op, "setting attribute");
 }
 
 void ClearAttr(TF_Graph* graph, TF_Operation* op, const char* attr_name,
@@ -45,13 +66,13 @@ void ClearAttr(TF_Graph* graph, TF_Operation* op, const char* attr_name,
 
   mutex_lock l(graph->mu);
   op->node.ClearAttr(attr_name);
-  RecordMutation(graph, *op, "clearing attribute");
+  // TODO: RecordMutation(graph, *op, "clearing attribute");
 }
 
 void SetRequestedDevice(TF_Graph* graph, TF_Operation* op, const char* device) {
   mutex_lock l(graph->mu);
   op->node.set_requested_device(device);
-  RecordMutation(graph, *op, "setting device");
+  // TODO: RecordMutation(graph, *op, "setting device");
 }
 
 void UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst,
@@ -91,7 +112,7 @@ void UpdateEdge(TF_Graph* graph, TF_Output new_src, TF_Input dst,
     // This modification only updates the destination node for
     // the purposes of running this graph in a session. Thus, we don't
     // record the source node as being modified.
-    RecordMutation(graph, *dst.oper, "updating input tensor");
+    // TODO: RecordMutation(graph, *dst.oper, "updating input tensor");
   }
 }
 
@@ -112,10 +133,10 @@ void SetRequireShapeInferenceFns(TF_Graph* graph, bool require) {
   graph->refiner.set_require_shape_inference_fns(require);
 }
 
-void ExtendSession(TF_Session* session, TF_Status* status) {
-  ExtendSessionGraphHelper(session, status);
-  session->extend_before_run = false;
-}
+//void ExtendSession(TF_Session* session, TF_Status* status) {
+//  ExtendSessionGraphHelper(session, status);
+//  session->extend_before_run = false;
+//}
 
 //std::string GetHandleShapeAndType(TF_Graph* graph, TF_Output output) {
 //  Node* node = &output.oper->node;
@@ -176,7 +197,7 @@ void AddWhileInputHack(TF_Graph* graph, TF_Output new_src, TF_Operation* dst,
     // This modification only updates the destination node for
     // the purposes of running this graph in a session. Thus, we don't
     // record the source node as being modified.
-    RecordMutation(graph, *dst, "adding input tensor");
+    // TODO: RecordMutation(graph, *dst, "adding input tensor");
   }
 }
 

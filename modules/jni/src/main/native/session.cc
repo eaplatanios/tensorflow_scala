@@ -144,13 +144,13 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_run
   return return_array;
 }
 
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend(
-    JNIEnv* env, jobject object, jlong handle) {
-  REQUIRE_HANDLE(session, TF_Session, handle, void());
-  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  tensorflow::ExtendSession(session, status.get());
-  CHECK_STATUS(env, status.get(), void());
-}
+//JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend(
+//    JNIEnv* env, jobject object, jlong handle) {
+//  REQUIRE_HANDLE(session, TF_Session, handle, void());
+//  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+//  tensorflow::ExtendSession(session, status.get());
+//  CHECK_STATUS(env, status.get(), void());
+//}
 
 JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_deviceList(
     JNIEnv* env, jobject object, jlong handle) {

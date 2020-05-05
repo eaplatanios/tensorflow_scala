@@ -1,82 +1,29 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+/* Copyright 2017-19, Emmanouil Antonios Platanios. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 
 #include "jvm_callback_op.h"
 
 #include "exception.h"
 #include "utilities.h"
 
+#include "tensorflow/c/ops.h"
 #include "tensorflow/c/kernels.h"
 #include "tensorflow/c/eager/c_api.h"
-#include "tensorflow/core/framework/common_shape_fns.h"
 #include "tensorflow/core/framework/op.h"
 
 namespace tensorflow {
-
-REGISTER_OP("JVMCallback")
-    .Input("input: Tin")
-    .Output("output: Tout")
-    .Attr("id: int")
-    .Attr("jvm_pointer_upper: int")
-    .Attr("jvm_pointer_lower: int")
-    .Attr("registry_pointer_upper: int")
-    .Attr("registry_pointer_lower: int")
-    .Attr("Tin: list(type) >= 0")
-    .Attr("Tout: list(type) >=0")
-    .SetIsStateful()
-    .SetShapeFn(shape_inference::UnknownShape)
-    .Doc(R"doc(
-Invokes a JVM callback function, `f` to compute `f(input)->output`.
-
-This operation is considered stateful. For a stateless version, see
-`JVMCallback`.
-
-id: A unique ID representing a registered JVM callback function
-  in this address space.
-jvm_pointer_upper: Upper 32 bits of a pointer to an existing JVM
-  instance, represented as an integer. This is the JVM that will be
-  used when invoking this JVM callback.
-jvm_pointer_lower: Lower 32 bits of a pointer to an existing JVM
-  instance, represented as an integer. This is the JVM that will be
-  used when invoking this JVM callback.
-registry_pointer_upper: Upper 32 bits of a pointer to the JVM
-  callbacks registry class, represented as an integer.
-registry_pointer_lower: Lower 32 bits of a pointer to the JVM
-  callbacks registry class, represented as an integer.
-input: List of tensors that will provide input to the op.
-output: Output tensors from the op.
-Tin: Data types of the inputs to the op.
-Tout: Data types of the outputs from the op.
-      The length of the list specifies the number of outputs.
-)doc");
-
-REGISTER_OP("JVMCallbackStateless")
-    .Input("input: Tin")
-    .Output("output: Tout")
-    .Attr("id: int")
-    .Attr("jvm_pointer_upper: int")
-    .Attr("jvm_pointer_lower: int")
-    .Attr("registry_pointer_upper: int")
-    .Attr("registry_pointer_lower: int")
-    .Attr("Tin: list(type) >= 0")
-    .Attr("Tout: list(type) >= 0")
-    .SetShapeFn(shape_inference::UnknownShape)
-    .Doc(R"doc(
-A stateless version of `JVMCallback`.
-)doc");
-
 namespace {
   // Given the 'call', prepares the inputs as a JNI long array that is appropriate for calling the registry.
   jlongArray MakeInputs(JVMCall* call) {
@@ -325,7 +272,49 @@ static void JVMCallbackKernel_Delete(void* kernel) {
   delete k;
 };
 
-auto jvmCallbackOpInitializer = []{
+void RegisterJVMCallbackOp() {
+  TF_Status* status = TF_NewStatus();
+  TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallback");
+  TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
+  TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
+  TF_OpDefinitionBuilderSetIsStateful(op_builder, true);
+  TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
+  TF_RegisterOpDefinition(op_builder, status);
+  CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback op registration failed: " << TF_Message(status);
+
+  op_builder = TF_NewOpDefinitionBuilder("JVMCallbackStateless");
+  TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
+  TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
+  TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
+  TF_OpDefinitionBuilderSetIsStateful(op_builder, false);
+  TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
+  TF_RegisterOpDefinition(op_builder, status);
+  CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback stateless op registration failed: " << TF_Message(status);
+
+  TF_DeleteStatus(status);
+}
+
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpRegistered = []() {
+  if (SHOULD_REGISTER_OP("JVMCallback")) {
+    RegisterJVMCallbackOp();
+  }
+  return true;
+}();
+
+void RegisterJVMCallbackOpKernel() {
   std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
     TF_NewStatus(), TF_DeleteStatus);
 
@@ -333,18 +322,25 @@ auto jvmCallbackOpInitializer = []{
     "JVMCallback", "CPU", &JVMCallbackKernel_Create,
     &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
 
-  TF_KernelBuilder* builder_cpu_stateless = TF_NewKernelBuilder(
-    "JVMCallbackStateless", "CPU", &JVMCallbackKernel_Create,
-    &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+//  TF_KernelBuilder* builder_cpu_stateless = TF_NewKernelBuilder(
+//    "JVMCallbackStateless", "CPU", &JVMCallbackKernel_Create,
+//    &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
 
   TF_RegisterKernelBuilder("JVMCallbackKernel", builder_cpu, status.get());
   // CHECK_STATUS(env, status.get(), 0);
-  TF_RegisterKernelBuilder("JVMCallbackKernel", builder_cpu_stateless, status.get());
+//  TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_cpu_stateless, status.get());
   // CHECK_STATUS(env, status.get(), 0);
 
   // TODO: [CALLBACK] Add GPU support.
+}
 
-  return 0;
+// A dummy static variable initialized by a lambda whose side-effect is to
+// register the JVM callback op kernel.
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpKernelRegistered = []() {
+  if (SHOULD_REGISTER_OP_KERNEL("JVMCallback")) {
+    RegisterJVMCallbackOpKernel();
+  }
+  return true;
 }();
 
 }  // namespace tensorflow
