@@ -47,7 +47,17 @@ file(GLOB OP_LIB_SRC
   "ops/*.cc"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+# Find Python and get the TensorFlow header files from there.
+execute_process(COMMAND python3 -c
+  "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_compile_flags()))"
+  OUTPUT_VARIABLE TF_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND python3 -c
+  "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_link_flags()))"
+  OUTPUT_VARIABLE TF_LFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 ${TF_CFLAGS} ${TF_LFLAGS}")
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH 1)
 if(${APPLE})
