@@ -42,7 +42,7 @@ object FileIO {
   def walk(dirPath: Path, inOrder: Boolean = true): Stream[(Path, Seq[Path], Seq[Path])] = {
     val children: Seq[Path] = {
       try {
-        Files.walk(dirPath, 1).iterator().asScala.toSeq
+        Files.walk(dirPath, 1).iterator().asScala.drop(1).toSeq
       } catch {
         case _: NotFoundException => Seq.empty[Path]
       }

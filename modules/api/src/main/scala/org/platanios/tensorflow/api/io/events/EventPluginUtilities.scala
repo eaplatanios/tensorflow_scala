@@ -44,7 +44,7 @@ object EventPluginUtilities {
     if (!Files.isDirectory(pluginsDir)) {
       Seq.empty[Path]
     } else {
-      Files.walk(pluginsDir, 1).iterator().asScala
+      Files.walk(pluginsDir, 1).iterator().asScala.drop(1)
           .filter(d => Files.isDirectory(pluginsDir.resolve(d)))
           .toSeq
     }
@@ -60,7 +60,7 @@ object EventPluginUtilities {
     if (!Files.isDirectory(pluginsDir)) {
       Seq.empty[Path]
     } else {
-      Files.walk(pluginsDir, 1).iterator().asScala
+      Files.walk(pluginsDir, 1).iterator().asScala.drop(1)
           .filter(d => Files.isDirectory(pluginsDir.resolve(d)))
           .toSeq
     }

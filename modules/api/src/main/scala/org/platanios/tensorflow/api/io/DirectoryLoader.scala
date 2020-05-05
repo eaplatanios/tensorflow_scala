@@ -157,7 +157,7 @@ case class DirectoryLoader[T](
   /** Gets the next path to load entries from. This method also does the checking for out-of-order writes as it iterates
     * through the paths. */
   private[this] def nextPath(): Path = {
-    val sortedPaths = Files.walk(directory, 1).iterator().asScala
+    val sortedPaths = Files.walk(directory, 1).iterator().asScala.drop(1)
         .map(directory.resolve)
         .filter(pathFilter)
         .toSeq
