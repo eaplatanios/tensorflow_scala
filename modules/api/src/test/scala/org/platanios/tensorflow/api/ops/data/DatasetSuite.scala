@@ -131,22 +131,22 @@ class DatasetSuite extends JUnitSuite {
     }
   }
 
-  @Test def testDatasetFromGenerator(): Unit = using(Graph()) { graph =>
-    Op.createWith(graph) {
-      val dataset = Data.datasetFromGenerator(() => {
-        Stream(0, 1, 2, 3).map(Tensor[Int](_))
-      }, INT32, Shape(1))
-      val iterator = dataset.createInitializableIterator()
-      val initOp = iterator.initializer
-      val nextOutput = iterator.next()
-      assert(nextOutput.shape == Shape(1))
-      val session = Session()
-      session.run(targets = initOp)
-      assert(session.run(fetches = nextOutput) == Tensor[Int](0))
-      assert(session.run(fetches = nextOutput) == Tensor[Int](1))
-      assert(session.run(fetches = nextOutput) == Tensor[Int](2))
-      assert(session.run(fetches = nextOutput) == Tensor[Int](3))
-      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
-    }
-  }
+//  @Test def testDatasetFromGenerator(): Unit = using(Graph()) { graph =>
+//    Op.createWith(graph) {
+//      val dataset = Data.datasetFromGenerator(() => {
+//        Stream(0, 1, 2, 3).map(Tensor[Int](_))
+//      }, INT32, Shape(1))
+//      val iterator = dataset.createInitializableIterator()
+//      val initOp = iterator.initializer
+//      val nextOutput = iterator.next()
+//      assert(nextOutput.shape == Shape(1))
+//      val session = Session()
+//      session.run(targets = initOp)
+//      assert(session.run(fetches = nextOutput) == Tensor[Int](0))
+//      assert(session.run(fetches = nextOutput) == Tensor[Int](1))
+//      assert(session.run(fetches = nextOutput) == Tensor[Int](2))
+//      assert(session.run(fetches = nextOutput) == Tensor[Int](3))
+//      assertThrows[OutOfRangeException](session.run(fetches = nextOutput))
+//    }
+//  }
 }
