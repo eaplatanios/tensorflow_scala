@@ -20,7 +20,7 @@ import sbtrelease.Vcs
 import scala.sys.process.Process
 
 scalaVersion in ThisBuild := "2.12.11"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.11")
+crossScalaVersions in ThisBuild := Seq("2.12.11")
 
 organization in ThisBuild := "org.platanios"
 
