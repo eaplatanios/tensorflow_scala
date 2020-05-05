@@ -27,7 +27,7 @@ import org.tensorflow.example.Example
   *
   * @author Emmanouil Antonios Platanios
   */
-class TFRecordWriter(val filePath: Path) {
+case class TFRecordWriter(filePath: Path) {
   protected var fileStream: BufferedOutputStream = {
     new BufferedOutputStream(Files.newOutputStream(
       filePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND))
