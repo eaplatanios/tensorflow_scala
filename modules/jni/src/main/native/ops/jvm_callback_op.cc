@@ -272,74 +272,69 @@ static void JVMCallbackKernel_Delete(void* kernel) {
   delete k;
 };
 
-void RegisterJVMCallbackOp() {
-  TF_Status* status = TF_NewStatus();
-  TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallback");
-  TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
-  TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
-  TF_OpDefinitionBuilderSetIsStateful(op_builder, true);
-  TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
-  TF_RegisterOpDefinition(op_builder, status);
-  CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback op registration failed: " << TF_Message(status);
-
-  op_builder = TF_NewOpDefinitionBuilder("JVMCallbackStateless");
-  TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
-  TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
-  TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
-  TF_OpDefinitionBuilderSetIsStateful(op_builder, false);
-  TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
-  TF_RegisterOpDefinition(op_builder, status);
-  CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback stateless op registration failed: " << TF_Message(status);
-
-  TF_DeleteStatus(status);
-}
-
 TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpRegistered = []() {
   if (SHOULD_REGISTER_OP("JVMCallback")) {
-    RegisterJVMCallbackOp();
+    TF_Status* status = TF_NewStatus();
+    TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallback");
+    TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
+    TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
+    TF_OpDefinitionBuilderSetIsStateful(op_builder, true);
+    TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
+    TF_RegisterOpDefinition(op_builder, status);
+    CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback op registration failed: " << TF_Message(status);
+    TF_DeleteStatus(status);
   }
+  if (SHOULD_REGISTER_OP("JVMCallbackStateless")) {
+      TF_Status* status = TF_NewStatus();
+      TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallbackStateless");
+      TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
+      TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
+      TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
+      TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
+      TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
+      TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
+      TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
+      TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
+      TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
+      TF_OpDefinitionBuilderSetIsStateful(op_builder, false);
+      TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
+      TF_RegisterOpDefinition(op_builder, status);
+      CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback stateless op registration failed: " << TF_Message(status);
+      TF_DeleteStatus(status);
+    }
   return true;
 }();
-
-void RegisterJVMCallbackOpKernel() {
-  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
-    TF_NewStatus(), TF_DeleteStatus);
-
-  TF_KernelBuilder* builder_cpu = TF_NewKernelBuilder(
-    "JVMCallback", "CPU", &JVMCallbackKernel_Create,
-    &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
-
-//  TF_KernelBuilder* builder_cpu_stateless = TF_NewKernelBuilder(
-//    "JVMCallbackStateless", "CPU", &JVMCallbackKernel_Create,
-//    &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
-
-  TF_RegisterKernelBuilder("JVMCallbackKernel", builder_cpu, status.get());
-  // CHECK_STATUS(env, status.get(), 0);
-//  TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_cpu_stateless, status.get());
-  // CHECK_STATUS(env, status.get(), 0);
-
-  // TODO: [CALLBACK] Add GPU support.
-}
 
 // A dummy static variable initialized by a lambda whose side-effect is to
 // register the JVM callback op kernel.
 TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpKernelRegistered = []() {
   if (SHOULD_REGISTER_OP_KERNEL("JVMCallback")) {
-    RegisterJVMCallbackOpKernel();
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
+      TF_NewStatus(), TF_DeleteStatus);
+    TF_KernelBuilder* builder_cpu = TF_NewKernelBuilder(
+      "JVMCallback", "CPU", &JVMCallbackKernel_Create,
+      &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    TF_RegisterKernelBuilder("JVMCallbackKernel", builder_cpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
+    // TODO: [CALLBACK] Add GPU support.
   }
+  if (SHOULD_REGISTER_OP_KERNEL("JVMCallbackStateless")) {
+      std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
+        TF_NewStatus(), TF_DeleteStatus);
+      TF_KernelBuilder* builder_cpu = TF_NewKernelBuilder(
+        "JVMCallbackStateless", "CPU", &JVMCallbackKernel_Create,
+        &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+      TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_cpu, status.get());
+      // CHECK_STATUS(env, status.get(), 0);
+      // TODO: [CALLBACK] Add GPU support.
+    }
   return true;
 }();
 
