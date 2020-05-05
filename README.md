@@ -12,10 +12,6 @@
 [![Data Docs](https://img.shields.io/badge/docs-data-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/data)
 [![Examples Docs](https://img.shields.io/badge/docs-examples-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white)](http://platanios.org/tensorflow_scala/api/examples)
 
-```bash
-bazel build //tensorflow:install_headers
-```
-
 This library is a Scala API for [https://www.tensorflow.org](https://www.tensorflow.org). It attempts to provide most of
 the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new
 features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API
@@ -121,6 +117,15 @@ are a few useful links:
     managed by the native TensorFlow library. When they are passed to the Scala API (e.g., fetched from a TensorFlow
     session), we use a combination of weak references and a disposing thread running in the background. Please refer to
     `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`, for the implementation.
+
+## Compiling from Source
+
+Note that in order to compile TensorFlow Scala on your
+machine you will need to first install the TensorFlow
+Python API. You also need to make sure that you have a
+`python3` alias for your python binary. This is used by
+CMake to find the TensorFlow header files in your
+installation.
 
 ## Tutorials
 
