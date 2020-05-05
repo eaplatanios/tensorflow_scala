@@ -15,14 +15,12 @@
 
 package org.platanios.tensorflow.data.image
 
-import java.nio.file.{Files, Path, Paths}
-
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class MNISTLoaderSpec extends FlatSpec with Matchers {
+class MNISTLoaderSpec extends AnyFlatSpec {
   // val directory: Path = Paths.get("/Users/Anthony/Development/GitHub/tensorflow_scala/temp/data/mnist")
   // Files.createDirectories(directory)
 
