@@ -31,13 +31,13 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_delete
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Session_00024_run
   (JNIEnv *, jobject, jlong, jbyteArray, jlongArray, jlongArray, jintArray, jlongArray, jintArray, jlongArray, jboolean, jlongArray);
 
-/*
- * Class:     org_platanios_tensorflow_jni_Session__
- * Method:    extend
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend
-  (JNIEnv *, jobject, jlong);
+///*
+// * Class:     org_platanios_tensorflow_jni_Session__
+// * Method:    extend
+// * Signature: (J)V
+// */
+//JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Session_00024_extend
+//  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     org_platanios_tensorflow_jni_Session__

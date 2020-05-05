@@ -1,5 +1,10 @@
+# 0.5.0
+
+This release introduces support for TensorFlow 2.x.
+
 # 0.4.2
 
+Minor release that:
   - Added support for a TF records reader.
   - Fixed a bug related to reading and writing NPY files.
 
