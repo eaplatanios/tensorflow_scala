@@ -127,7 +127,7 @@ object JniCrossPackage extends AutoPlugin {
             if (exitCode.getOrElse(0) != 0)
               sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
 
-            val sharedLibraryFilter = "*.so" | "*.dylib" | "*.dll"
+            val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll*"
             platform -> CrossCompilationOutput(
               managedResources = (platformTargetDir / "bin" ** sharedLibraryFilter).get.filter(_.isFile).toSet,
               packagedArtifactsDir = platformTargetDir / "lib",
