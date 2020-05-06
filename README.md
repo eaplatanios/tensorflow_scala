@@ -193,6 +193,18 @@ command:
 sbt jni/cross:nativeCrossCompile
 ```
 
+Compile the TensorFlow dynamic libraries from source using:
+
+```bash
+bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 //tensorflow:libtensorflow.so
+```
+
+On Ubuntu 18.04 you may get some linking errors, in which case you should use:
+
+```bash
+bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --noincompatible_do_not_split_linking_cmdline //tensorflow:libtensorflow.so
+```
+
 To publish the documentation website we use the following commands:
 
 ```bash

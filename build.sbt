@@ -68,6 +68,7 @@ scalacOptions in ThisBuild ++= {
 val scalacProfilingEnabled: SettingKey[Boolean] =
   settingKey[Boolean]("Flag specifying whether to enable profiling for the Scala compiler.")
 
+fork in ThisBuild := true
 scalacProfilingEnabled in ThisBuild := false
 nativeCrossCompilationEnabled in ThisBuild := false
 
@@ -84,11 +85,9 @@ lazy val commonSettings = loggingSettings ++ Seq(
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
     "junit"         %  "junit"     % "4.12",
-//    "org.scalactic" %% "scalactic" % "3.1.1",
     "org.scalatest" %% "scalatest" % "3.1.1" % "test",
     "org.scalatestplus" %% "junit-4-12" % "3.1.1.0" % "test"),
   logBuffered in Test := false,
-  fork in test := false,
   testForkedParallel in Test := false,
   parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))

@@ -77,9 +77,9 @@ object TensorFlow {
       val classLoader = Thread.currentThread.getContextClassLoader
 
       // Check if a TensorFlow native framework library resource is provided and load it.
-      Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME)))
+      Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME) + ".2"))
           .map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory))
-      Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
+      Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME) + ".2"))
           .map(extractResource(LIB_NAME, _, tempDirectory))
 
       // Load the TensorFlow JNI bindings from the appropriate resource.
@@ -103,7 +103,6 @@ object TensorFlow {
       // Load the TensorFlow ops library from the appropriate resource.
       val opsResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(OPS_LIB_NAME)))
       val opsPath = opsResourceStream.map(extractResource(OPS_LIB_NAME, _, tempDirectory))
-      // TODO: !!! For some reason this can be called twice.
       opsPath.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
     }
   }
