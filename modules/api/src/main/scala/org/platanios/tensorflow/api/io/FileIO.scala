@@ -119,7 +119,7 @@ object FileIO {
     }
 
     // Get all the matching paths.
-    Files.newDirectoryStream(directory, glob).asScala.toSet[Path]
+    Files.newDirectoryStream(directory, glob).asScala.toSeq.toSet[Path]
   }
 
   /** Deletes all the matching paths to the path pattern provided.

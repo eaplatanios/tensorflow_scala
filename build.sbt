@@ -24,7 +24,9 @@ crossScalaVersions in ThisBuild := Seq("2.12.11")
 
 organization in ThisBuild := "org.platanios"
 
+fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
+nativeCrossCompilationEnabled in ThisBuild := false
 
 val tensorFlowVersion = "1.15.0"
 val circeVersion = "0.12.3" // Used for working with JSON.
@@ -68,9 +70,7 @@ scalacOptions in ThisBuild ++= {
 val scalacProfilingEnabled: SettingKey[Boolean] =
   settingKey[Boolean]("Flag specifying whether to enable profiling for the Scala compiler.")
 
-fork in ThisBuild := true
 scalacProfilingEnabled in ThisBuild := false
-nativeCrossCompilationEnabled in ThisBuild := false
 
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(

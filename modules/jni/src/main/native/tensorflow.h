@@ -17,14 +17,6 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPo
 
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__
- * Method:    callbackRegistryPointer
- * Signature: ()V
- */
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_callbackRegistryPointer
-  (JNIEnv *, jobject);
-
-/*
- * Class:     org_platanios_tensorflow_jni_TensorFlow__
  * Method:    version
  * Signature: ()Ljava/lang/String;
  */

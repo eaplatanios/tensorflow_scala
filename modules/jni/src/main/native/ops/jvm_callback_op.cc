@@ -126,11 +126,11 @@ namespace {
   struct JVMWrapper {
     JavaVM* jvm_;
     std::mutex lock;
-
 	  JVMWrapper(JavaVM* jvm_) : jvm_(jvm_) { }
   };
 
   static std::vector<JVMWrapper*> jvms;
+  static std::mutex lock;
 
   struct JVMThreadHelper {
     JNIEnv* env;
@@ -139,8 +139,9 @@ namespace {
     JVMThreadHelper() : jvm_(nullptr) { }
 
     ~JVMThreadHelper() {
-      if (jvm_ != nullptr)
+      if (jvm_ != nullptr) {
         jvm_->DetachCurrentThread();
+      }
     }
 
     void set_jvm(JavaVM* jvm) {
@@ -150,13 +151,23 @@ namespace {
 	       return;
       }
       jvm_ = jvm;
-      int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
-      if (jvmEnvStatus == JNI_EDETACHED)
-        jvm_->AttachCurrentThread((void**) &env, nullptr);
+      jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
+      jvm_->AttachCurrentThread((void**) &env, nullptr);
+	  }
+
+	  void unset_jvm(JavaVM* jvm) {
+	    if (jvm_ != nullptr) {
+        if (jvm_ != jvm)
+          throw "Multiple JVMs detected per thread.";
+         return;
+      }
+      jvm_ = jvm;
+      jvm_->DetachCurrentThread();
 	  }
   };
 
   JVMWrapper& get_jvm_wrapper(JavaVM* jvm_) {
+    std::lock_guard<std::mutex> guard(lock);
     for (JVMWrapper* wrapper : jvms)
       if (wrapper->jvm_ == jvm_)
         return *wrapper;
@@ -197,19 +208,9 @@ static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
   std::lock_guard<std::mutex> guard(get_jvm_wrapper(k->jvm_).lock);
   jvm_thread.set_jvm(k->jvm_);
 
-  // Obtain a handle to the JVM environment.
+  // Obtain a handle to the JVM environment and the callbacks registry class.
   JNIEnv* env = jvm_thread.env;
-
-  // Get the call method ID.
-  int32_t registry_pointer_upper;
-  int32_t registry_pointer_lower;
-  TF_OpKernelConstruction_GetAttrInt32(ctx, "registry_pointer_upper", &registry_pointer_upper, status.get());
-  CHECK_STATUS(env, status.get(), nullptr);
-  TF_OpKernelConstruction_GetAttrInt32(ctx, "registry_pointer_lower", &registry_pointer_lower, status.get());
-  CHECK_STATUS(env, status.get(), nullptr);
-  int64_t registry_pointer = (((int64_t) registry_pointer_upper) << 32) | (int64_t) registry_pointer_lower;
-  k->registry_ = reinterpret_cast<jclass>(registry_pointer);
-
+  k->registry_ = env->FindClass("org/platanios/tensorflow/jni/ScalaCallbacksRegistry");
   k->call_method_id_ = env->GetStaticMethodID(k->registry_, "call", "(I[J)[J");
   return k;
 };
@@ -281,8 +282,6 @@ TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpRegistered = []() {
     TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
     TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
     TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
-    TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
-    TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
     TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
     TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
     TF_OpDefinitionBuilderSetIsStateful(op_builder, true);
@@ -291,24 +290,26 @@ TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpRegistered = []() {
     CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback op registration failed: " << TF_Message(status);
     TF_DeleteStatus(status);
   }
+  return true;
+}();
+
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackStatelessOpRegistered = []() {
   if (SHOULD_REGISTER_OP("JVMCallbackStateless")) {
-      TF_Status* status = TF_NewStatus();
-      TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallbackStateless");
-      TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
-      TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
-      TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
-      TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
-      TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
-      TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_upper: int");
-      TF_OpDefinitionBuilderAddAttr(op_builder, "registry_pointer_lower: int");
-      TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
-      TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
-      TF_OpDefinitionBuilderSetIsStateful(op_builder, false);
-      TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
-      TF_RegisterOpDefinition(op_builder, status);
-      CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback stateless op registration failed: " << TF_Message(status);
-      TF_DeleteStatus(status);
-    }
+    TF_Status* status = TF_NewStatus();
+    TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallbackStateless");
+    TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
+    TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
+    TF_OpDefinitionBuilderSetIsStateful(op_builder, false);
+    TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
+    TF_RegisterOpDefinition(op_builder, status);
+    CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback stateless op registration failed: " << TF_Message(status);
+    TF_DeleteStatus(status);
+  }
   return true;
 }();
 
@@ -323,18 +324,34 @@ TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpKernelRegistered = []() {
       &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
     TF_RegisterKernelBuilder("JVMCallbackKernel", builder_cpu, status.get());
     // CHECK_STATUS(env, status.get(), 0);
-    // TODO: [CALLBACK] Add GPU support.
+
+    // TODO: [CALLBACK] Register GPU kernel.
+    // TF_KernelBuilder* builder_gpu = TF_NewKernelBuilder(
+    //   "JVMCallback", "GPU", &JVMCallbackKernel_Create,
+    //   &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    // TF_RegisterKernelBuilder("JVMCallbackKernel", builder_gpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
   }
+  return true;
+}();
+
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackStatelessOpKernelRegistered = []() {
   if (SHOULD_REGISTER_OP_KERNEL("JVMCallbackStateless")) {
-      std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
-        TF_NewStatus(), TF_DeleteStatus);
-      TF_KernelBuilder* builder_cpu = TF_NewKernelBuilder(
-        "JVMCallbackStateless", "CPU", &JVMCallbackKernel_Create,
-        &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
-      TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_cpu, status.get());
-      // CHECK_STATUS(env, status.get(), 0);
-      // TODO: [CALLBACK] Add GPU support.
-    }
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
+      TF_NewStatus(), TF_DeleteStatus);
+    TF_KernelBuilder* builder_cpu = TF_NewKernelBuilder(
+      "JVMCallbackStateless", "CPU", &JVMCallbackKernel_Create,
+      &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_cpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
+
+    // TODO: [CALLBACK] Register GPU kernel.
+    // TF_KernelBuilder* builder_gpu = TF_NewKernelBuilder(
+    //   "JVMCallbackStateless", "GPU", &JVMCallbackKernel_Create,
+    //   &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    // TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_gpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
+  }
   return true;
 }();
 

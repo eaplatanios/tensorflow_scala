@@ -54,12 +54,6 @@ JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPo
   return reinterpret_cast<jlong>(jvm);
 }
 
-JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_callbackRegistryPointer(
-    JNIEnv* env, jobject object) {
-  jclass registry = env->FindClass("org/platanios/tensorflow/jni/ScalaCallbacksRegistry");
-  return reinterpret_cast<jlong>(env->NewGlobalRef(reinterpret_cast<jobject>(registry)));
-}
-
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_version(
   JNIEnv* env,
   jobject object
