@@ -19,8 +19,6 @@
 # Pass --without_cmake to prevent cmake from being installed with apt-get
 
 set -e
-ubuntu_version=$(cat /etc/issue | grep -i ubuntu | awk '{print $2}' | \
-  awk -F'.' '{print $1}')
 
 if [[ "$1" != "" ]] && [[ "$1" != "--without_cmake" ]]; then
   echo "Unknown argument '$1'"
@@ -28,21 +26,13 @@ if [[ "$1" != "" ]] && [[ "$1" != "--without_cmake" ]]; then
 fi
 
 # Install dependencies from ubuntu deb repository.
-apt-key adv --keyserver keyserver.ubuntu.com --recv 084ECFC5828AB726
 apt-get update
-
-if [[ "$ubuntu_version" == "14" ]]; then
-  # specifically for trusty linked from ffmpeg.org
-  add-apt-repository -y ppa:mc3man/trusty-media
-  apt-get update
-  apt-get dist-upgrade -y
-fi
 
 apt-get install -y --no-install-recommends \
     autoconf \
     automake \
     build-essential \
-    clang-format-3.8 \
+    clang-format-3.9 \
     curl \
     ffmpeg \
     git \
@@ -53,11 +43,9 @@ apt-get install -y --no-install-recommends \
     openjdk-8-jdk \
     openjdk-8-jre-headless \
     pkg-config \
-    python-dev \
-    python-setuptools \
-    python-virtualenv \
     python3-dev \
     python3-setuptools \
+    python3-pip \
     rsync \
     sudo \
     subversion \

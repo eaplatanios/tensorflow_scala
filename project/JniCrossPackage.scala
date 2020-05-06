@@ -250,7 +250,7 @@ object JniCrossPackage extends AutoPlugin {
     // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
     override val dockerfile: Option[String] = Some(
       """
-        |FROM eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.2.0
+        |FROM eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.0
         |WORKDIR /root
       """.stripMargin)
   }
@@ -262,7 +262,7 @@ object JniCrossPackage extends AutoPlugin {
     // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
     override val dockerfile: Option[String] = Some(
       """
-        |FROM eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.2.0
+        |FROM eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.0
         |WORKDIR /root
       """.stripMargin)
   }

@@ -177,6 +177,22 @@ TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google 
 - Website margins are a little large relative to the content in mobile
 - Make the code blocks scroll rather than wrap
 
+To publish a signed snapshot version of the package that is 
+cross-compiled, we use the following commands from within
+an SBT shell:
+
+```sbt
+set nativeCrossCompilationEnabled in jni := true
+publishSigned
+```
+
+You can also test cross-compilation using the following
+command:
+
+```bash
+sbt jni/cross:nativeCrossCompile
+```
+
 To publish the documentation website we use the following commands:
 
 ```bash

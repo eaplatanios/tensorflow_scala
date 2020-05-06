@@ -48,7 +48,7 @@ object TensorFlowNativeCrossCompiler {
   }
 
   implicit class RichPlatform(platform: Platform) {
-    private[this] val ciBuildScript = "tensorflow/tools/ci_build/ci_build.sh "
+    private[this] val ciBuildScript = "tensorflow/tools/ci_build/ci_build.sh"
 
     def compileScript: String = platform match {
       case LINUX_x86_64 => "tensorflow/tools/ci_build/linux/libtensorflow_cpu.sh"

@@ -17,6 +17,7 @@
 #include "session.h"
 #include "utilities.h"
 
+#include <cstring>
 #include <string>
 #include <memory>
 

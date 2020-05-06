@@ -77,8 +77,8 @@ object TensorFlowNativePackage extends AutoPlugin {
             tfLibRepositoryBranchValue, platform) ! log
         }
 
-        // Download the native TensorFlow library
-        log.info(s"Downloading the TensorFlow native library.")
+        // Download the native TensorFlow library.
+        log.info(s"Downloading the TensorFlow native library for platform '${platform.name}'.")
         val exitCode = downloadTfLib(platform, platformTargetDir.getPath, tfVersion).map(_ ! log)
 
         if (exitCode.getOrElse(0) != 0) {
