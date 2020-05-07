@@ -22,6 +22,7 @@
 #include "tensorflow/c/kernels.h"
 #include "tensorflow/c/eager/c_api.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/platform/mutex.h"
 
 namespace tensorflow {
 namespace {
@@ -125,12 +126,12 @@ namespace {
 
   struct JVMWrapper {
     JavaVM* jvm_;
-    std::mutex lock;
+    mutex lock;
 	  JVMWrapper(JavaVM* jvm_) : jvm_(jvm_) { }
   };
 
   static std::vector<JVMWrapper*> jvms;
-  static std::mutex lock;
+  static mutex lock;
 
   struct JVMThreadHelper {
     JNIEnv* env;
@@ -167,7 +168,7 @@ namespace {
   };
 
   JVMWrapper& get_jvm_wrapper(JavaVM* jvm_) {
-    std::lock_guard<std::mutex> guard(lock);
+    mutex_lock guard(lock);
     for (JVMWrapper* wrapper : jvms)
       if (wrapper->jvm_ == jvm_)
         return *wrapper;
@@ -205,7 +206,7 @@ static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
   // CHECK_STATUS(env, status.get(), nullptr);
   int64_t jvm_pointer = (((int64_t) jvm_pointer_upper) << 32) | (int64_t) jvm_pointer_lower;
   k->jvm_ = reinterpret_cast<JavaVM*>(jvm_pointer);
-  std::lock_guard<std::mutex> guard(get_jvm_wrapper(k->jvm_).lock);
+  mutex_lock guard(get_jvm_wrapper(k->jvm_).lock);
   jvm_thread.set_jvm(k->jvm_);
 
   // Obtain a handle to the JVM environment and the callbacks registry class.
@@ -218,7 +219,7 @@ static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
 static void JVMCallbackKernel_Compute(void* kernel, TF_OpKernelContext* ctx) {
   struct JVMCallbackKernel* k = static_cast<struct JVMCallbackKernel*>(kernel);
   if (ctx != nullptr) {
-    std::lock_guard<std::mutex> guard(get_jvm_wrapper(k->jvm_).lock);
+    mutex_lock guard(get_jvm_wrapper(k->jvm_).lock);
     jvm_thread.set_jvm(k->jvm_);
     JNIEnv* env = jvm_thread.env;
 
