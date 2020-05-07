@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.core
 
-import org.tensorflow.framework.DataType._
+import org.platanios.tensorflow.proto.DataType._
 
 import scala.annotation.implicitNotFound
 

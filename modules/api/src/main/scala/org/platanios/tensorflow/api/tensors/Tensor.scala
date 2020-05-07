@@ -29,11 +29,11 @@ import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
 import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOpsRandom}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
+import org.platanios.tensorflow.proto.TensorProto
 
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.TensorProto
 
 import java.nio._
 import java.nio.charset.Charset

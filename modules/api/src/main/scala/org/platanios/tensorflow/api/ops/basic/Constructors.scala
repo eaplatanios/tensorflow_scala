@@ -19,8 +19,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{DataType, IsIntOrLong, IsNumeric, TF}
 import org.platanios.tensorflow.api.ops.{Math, Op, Output, SparseOutput}
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import org.tensorflow.framework.AttrValue
+import org.platanios.tensorflow.proto.AttrValue
 
 /** Contains ops related to constructing tensors.
   *

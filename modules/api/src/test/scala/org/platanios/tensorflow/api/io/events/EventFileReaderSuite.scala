@@ -15,10 +15,11 @@
 
 package org.platanios.tensorflow.api.io.events
 
+import org.platanios.tensorflow.proto.Event
+
 import org.junit.{Rule, Test}
 import org.junit.rules.TemporaryFolder
 import org.scalatestplus.junit.JUnitSuite
-import org.tensorflow.util.Event
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 

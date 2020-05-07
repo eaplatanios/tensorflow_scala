@@ -20,8 +20,7 @@ import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputTo
 import org.platanios.tensorflow.api.learn.SessionWrapper
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import org.tensorflow.framework.{RunMetadata, RunOptions}
+import org.platanios.tensorflow.proto.{RunMetadata, RunOptions}
 
 /** Hook to extend calls to `MonitoredSession.run()`.
   *

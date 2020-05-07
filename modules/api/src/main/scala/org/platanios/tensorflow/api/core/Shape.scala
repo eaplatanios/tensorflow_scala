@@ -20,8 +20,7 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.{Basic, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
-
-import org.tensorflow.framework.TensorShapeProto
+import org.platanios.tensorflow.proto.TensorShapeProto
 
 import scala.collection.JavaConverters._
 

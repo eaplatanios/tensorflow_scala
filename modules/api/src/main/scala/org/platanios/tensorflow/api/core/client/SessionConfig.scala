@@ -18,9 +18,9 @@ package org.platanios.tensorflow.api.core.client
 import org.platanios.tensorflow.api.config.ClusterConfig
 import org.platanios.tensorflow.api.core.client.SessionConfig._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.proto._
 
 import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.framework._
 
 import scala.collection.JavaConverters._
 

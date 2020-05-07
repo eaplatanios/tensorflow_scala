@@ -17,13 +17,11 @@ package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.io.DirectoryLoader
 import org.platanios.tensorflow.api.utilities.Reservoir
+import org.platanios.tensorflow.proto._
 
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework._
-import org.tensorflow.util.Event
-import org.tensorflow.util.SessionLog.SessionStatus
 
 import java.nio.file.{Files, Path}
 
@@ -387,7 +385,7 @@ case class EventAccumulator(
     * @param  event Event to use as reference for the purge.
     */
   private[this] def checkForRestartAndMaybePurge(event: Event): Unit = {
-    if (event.getSessionLog != null && event.getSessionLog.getStatus == SessionStatus.START)
+    if (event.getSessionLog != null && event.getSessionLog.getStatus == SessionLog.SessionStatus.START)
       purge(event, byTags = false)
   }
 

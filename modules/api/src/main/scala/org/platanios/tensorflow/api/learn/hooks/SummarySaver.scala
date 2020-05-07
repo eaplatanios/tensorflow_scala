@@ -20,8 +20,7 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.ops.{Output, Summary, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import org.tensorflow.util.SessionLog
+import org.platanios.tensorflow.proto.SessionLog
 
 import java.nio.file.Path
 

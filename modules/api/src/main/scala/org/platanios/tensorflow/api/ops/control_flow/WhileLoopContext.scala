@@ -23,10 +23,10 @@ import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.proto.{AttrValue, CollectionDef, WhileContextDef}
+import org.platanios.tensorflow.proto.CollectionDef.BytesList
 
 import com.google.protobuf.{ByteString, GeneratedMessageV3}
-import org.tensorflow.framework.{AttrValue, CollectionDef, WhileContextDef}
-import org.tensorflow.framework.CollectionDef.BytesList
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._

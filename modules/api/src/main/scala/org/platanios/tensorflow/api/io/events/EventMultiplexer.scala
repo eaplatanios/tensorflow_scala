@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.io.{DirectoryLoader, FileIO}
+import org.platanios.tensorflow.proto.{GraphDef, MetaGraphDef, RunMetadata, SummaryMetadata}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, SummaryMetadata}
 
 import java.nio.file.{Files, Path, Paths}
 

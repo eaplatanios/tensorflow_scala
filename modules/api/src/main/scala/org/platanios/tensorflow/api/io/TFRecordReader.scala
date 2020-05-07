@@ -17,10 +17,10 @@ package org.platanios.tensorflow.api.io
 
 import org.platanios.tensorflow.api.core.exception.{DataLossException, OutOfRangeException}
 import org.platanios.tensorflow.api.utilities.{CRC32C, Coding}
+import org.platanios.tensorflow.proto.Example
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.example.Example
 
 import java.io.BufferedInputStream
 import java.nio.file.{Files, Path, StandardOpenOption}

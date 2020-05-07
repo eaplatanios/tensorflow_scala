@@ -16,19 +16,16 @@
 import ReleaseTransformations._
 import JniCrossPackage._
 import sbtrelease.Vcs
-
 import scala.sys.process.Process
 
+organization in ThisBuild := "org.platanios"
 scalaVersion in ThisBuild := "2.12.11"
 crossScalaVersions in ThisBuild := Seq("2.12.11")
-
-organization in ThisBuild := "org.platanios"
 
 fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
 nativeCrossCompilationEnabled in ThisBuild := false
 
-val tensorFlowVersion = "1.15.0"
 val circeVersion = "0.12.3" // Used for working with JSON.
 
 // addCompilerPlugin(MetalsPlugin.semanticdbScalac)
@@ -93,8 +90,8 @@ lazy val testSettings = Seq(
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples)
-    .dependsOn(jni, api)
+    .aggregate(jni, api, proto, data, examples)
+    .dependsOn(jni, api, proto)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -172,7 +169,7 @@ lazy val jni = (project in file("./modules/jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
       nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tfBinaryVersion in JniCross := "nightly", // tensorFlowVersion,
+      tfBinaryVersion in JniCross := "nightly", // "2.1.0",
       tfLibCompile in JniCross := false,
       tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch in JniCross := "master",
@@ -180,15 +177,13 @@ lazy val jni = (project in file("./modules/jni"))
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
 
 lazy val api = (project in file("./modules/api"))
-    .dependsOn(jni)
-    .enablePlugins(ProtobufPlugin)
+    .dependsOn(jni, proto)
     .settings(moduleName := "tensorflow-api", name := "TensorFlow Scala - API")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= Seq(
-        "org.tensorflow" % "proto" % tensorFlowVersion,
         "com.chuusai" %% "shapeless" % "2.3.3",
         compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full),
         "com.github.ghik" % "silencer-lib" % "1.6.0" % Provided cross CrossVersion.full),
@@ -215,8 +210,12 @@ lazy val api = (project in file("./modules/api"))
         } else {
           Seq.empty
         }
-      },
-      // Protobuf Settings
+      })
+
+lazy val proto = (project in file("./modules/proto"))
+    .enablePlugins(ProtobufPlugin)
+    .settings(moduleName := "tensorflow-proto", name := "TensorFlow Scala - Proto")
+    .settings(
       version in ProtobufConfig := "3.11.4",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),

@@ -17,13 +17,12 @@
 package org.platanios.tensorflow.data.models
 
 import org.platanios.tensorflow.api.{Graph, Output}
-import org.platanios.tensorflow.api.core.types.{FLOAT32, UINT8}
 import org.platanios.tensorflow.data.Loader
 import org.platanios.tensorflow.data.utilities.CompressedFiles
+import org.platanios.tensorflow.proto.GraphDef
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.GraphDef
 
 import java.io.{BufferedInputStream, FileInputStream}
 import java.nio.file.{Files, Path}

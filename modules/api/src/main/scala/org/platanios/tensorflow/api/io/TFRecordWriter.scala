@@ -15,11 +15,11 @@
 
 package org.platanios.tensorflow.api.io
 
+import org.platanios.tensorflow.api.utilities.{CRC32C, Coding}
+import org.platanios.tensorflow.proto.Example
+
 import java.io.BufferedOutputStream
 import java.nio.file.{Files, Path, StandardOpenOption}
-
-import org.platanios.tensorflow.api.utilities.{CRC32C, Coding}
-import org.tensorflow.example.Example
 
 /** Helper used to write `Example` protocol buffers to TensorFlow record files.
   *

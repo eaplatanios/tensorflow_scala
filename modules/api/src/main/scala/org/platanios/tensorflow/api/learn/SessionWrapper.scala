@@ -20,10 +20,10 @@ import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OpStruct
 import org.platanios.tensorflow.api.learn.hooks.Hook
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.proto.{DebugOptions, RunMetadata, RunOptions}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.{DebugOptions, RunMetadata, RunOptions}
 
 import scala.collection.mutable
 import scala.util.Try

@@ -23,11 +23,11 @@ import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
+import org.platanios.tensorflow.proto.{AttrValue, NodeDef, OpDef}
 
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.{AttrValue, NodeDef, OpDef}
 
 import java.nio.charset.{Charset, StandardCharsets}
 

@@ -18,9 +18,9 @@ package org.platanios.tensorflow.api.ops.control_flow
 import org.platanios.tensorflow.api.ProtoSerializable
 import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.proto.ValuesDef
 
 import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.framework.ValuesDef
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._

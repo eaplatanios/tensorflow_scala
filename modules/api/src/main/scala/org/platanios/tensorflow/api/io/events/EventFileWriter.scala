@@ -16,10 +16,10 @@
 package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.utilities.{CRC32C, Coding}
+import org.platanios.tensorflow.proto.Event
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.util.Event
 
 import java.io.BufferedOutputStream
 import java.nio.file.{Files, Path, StandardOpenOption}

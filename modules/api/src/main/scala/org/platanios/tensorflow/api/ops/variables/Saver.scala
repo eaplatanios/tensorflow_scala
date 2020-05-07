@@ -22,18 +22,18 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.FileIO
 import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.variables.CheckpointStateProto.CheckpointState
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.proto.CheckpointStateProto.CheckpointState
+import org.platanios.tensorflow.proto.MetaGraphDef
+import org.platanios.tensorflow.proto.SaverDef
+import org.platanios.tensorflow.proto.SaverDef.CheckpointFormatVersion
 
 import com.github.ghik.silencer.silent
 import com.google.protobuf.TextFormat
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.MetaGraphDef
-import org.tensorflow.util.SaverDef
-import org.tensorflow.util.SaverDef.CheckpointFormatVersion
 
 import java.nio.file.{Files, Path}
 import java.util.UUID

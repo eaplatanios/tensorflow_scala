@@ -21,8 +21,7 @@ import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, DefaultsTo, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
-
-import org.tensorflow.framework.{RunMetadata, RunOptions}
+import org.platanios.tensorflow.proto.{RunMetadata, RunOptions}
 
 import scala.collection.mutable
 

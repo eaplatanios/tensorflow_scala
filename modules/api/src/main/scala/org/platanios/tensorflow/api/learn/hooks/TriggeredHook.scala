@@ -21,8 +21,7 @@ import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputTo
 import org.platanios.tensorflow.api.learn.Counter
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import org.tensorflow.framework.RunOptions
+import org.platanios.tensorflow.proto.RunOptions
 
 /** Hook that may be triggered at certain steps or time points.
   *

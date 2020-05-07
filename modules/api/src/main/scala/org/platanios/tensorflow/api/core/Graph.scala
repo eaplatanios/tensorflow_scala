@@ -25,12 +25,11 @@ import org.platanios.tensorflow.api.ops.variables.{Saver, Variable, VariableScop
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph, TensorFlow => NativeLibrary}
+import org.platanios.tensorflow.proto.CollectionDef.{BytesList, Int64List, NodeList}
+import org.platanios.tensorflow.proto.MetaGraphDef.MetaInfoDef
+import org.platanios.tensorflow.proto._
 
 import com.google.protobuf.ByteString
-import org.tensorflow.framework.CollectionDef.{BytesList, Int64List, NodeList}
-import org.tensorflow.framework.MetaGraphDef.MetaInfoDef
-import org.tensorflow.framework._
-import org.tensorflow.util.SaverDef
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

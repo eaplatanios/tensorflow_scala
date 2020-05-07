@@ -17,12 +17,11 @@ import sbt.Defaults.sbtPluginExtra
 
 logLevel := Level.Warn
 
-val tensorFlowVersion = "1.15.0"
-
 libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "org.ow2.asm" % "asm" % "6.2.1",
-  "org.tensorflow" % "proto" % tensorFlowVersion)
+  // The following is needed to automatically generate the eager ops.
+  "org.tensorflow" % "proto" % "1.15.0")
 
 addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.2.5")
 

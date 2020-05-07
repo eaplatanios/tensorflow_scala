@@ -20,10 +20,10 @@ import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.helpers.OutputStructure
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.proto.{CollectionDef, CondContextDef}
+import org.platanios.tensorflow.proto.CollectionDef.BytesList
 
 import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.framework.{CollectionDef, CondContextDef}
-import org.tensorflow.framework.CollectionDef.BytesList
 
 import scala.collection.JavaConverters._
 import scala.language.higherKinds

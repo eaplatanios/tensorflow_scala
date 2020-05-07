@@ -18,8 +18,7 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.io.events.{SummaryFileWriter, SummaryFileWriterCache}
 import org.platanios.tensorflow.api.tensors.Tensor
-
-import org.tensorflow.framework.{HistogramProto, Summary}
+import org.platanios.tensorflow.proto.{HistogramProto, Summary}
 
 import java.nio.file.Path
 

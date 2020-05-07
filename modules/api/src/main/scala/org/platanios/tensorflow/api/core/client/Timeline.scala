@@ -15,12 +15,13 @@
 
 package org.platanios.tensorflow.api.core.client
 
+import org.platanios.tensorflow.proto.StepStats
+
 import com.typesafe.scalalogging.Logger
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.StepStats
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._

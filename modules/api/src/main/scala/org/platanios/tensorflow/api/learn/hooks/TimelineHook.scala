@@ -18,10 +18,10 @@ package org.platanios.tensorflow.api.learn.hooks
 import org.platanios.tensorflow.api.core.client.{Session, Timeline}
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.proto.RunOptions
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.RunOptions
 
 import java.nio.file.{Files, Path, StandardOpenOption}
 

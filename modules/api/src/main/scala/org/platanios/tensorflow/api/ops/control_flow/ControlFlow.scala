@@ -24,8 +24,7 @@ import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
-
-import org.tensorflow.framework.AttrValue
+import org.platanios.tensorflow.proto.AttrValue
 
 /** Contains functions for constructing ops related to control flow.
   *

@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.core.types
 
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor, TensorFlow => NativeLibrary}
+import org.platanios.tensorflow.proto.TensorProto
 
 import com.google.protobuf.ByteString
-import org.tensorflow.framework.TensorProto
 
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
@@ -37,7 +37,7 @@ case class DataType[T] private[types](
     name: String,
     private[api] val cValue: Int,
     byteSize: Option[Int],
-    protoType: org.tensorflow.framework.DataType
+    protoType: org.platanios.tensorflow.proto.DataType
 ) {
   //region Data Type Properties
 

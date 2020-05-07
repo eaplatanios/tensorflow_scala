@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.config
 
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.proto.{ClusterDef, JobDef}
 
 import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.distruntime.{ClusterDef, JobDef}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap

@@ -24,7 +24,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
-import org.tensorflow.framework.FunctionDef
+import org.platanios.tensorflow.proto.FunctionDef
 
 import scala.collection.mutable
 import scala.collection.JavaConverters._
