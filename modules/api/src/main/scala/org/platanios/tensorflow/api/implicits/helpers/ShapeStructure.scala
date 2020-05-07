@@ -27,57 +27,34 @@ import shapeless._
 sealed trait ShapeStructure[S] {
   def size(shape: S): Int
   def shapes(shape: S): Seq[Shape]
+  def map(shape: S, converter: Shape => Shape): S
   def decodeShape(shape: S, shapes: Seq[Shape]): (S, Seq[Shape])
 }
 
 object ShapeStructure {
   implicit val fromUnit: ShapeStructure[Unit] = {
     new ShapeStructure[Unit] {
-      override def size(shape: Unit): Int = {
-        0
-      }
-
-      override def shapes(shape: Unit): Seq[Shape] = {
-        Seq.empty
-      }
-
-      override def decodeShape(
-          shape: Unit,
-          shapes: Seq[Shape]
-      ): (Unit, Seq[Shape]) = {
-        ((), shapes)
-      }
+      override def size(shape: Unit): Int = 0
+      override def shapes(shape: Unit): Seq[Shape] = Seq.empty
+      override def map(shape: Unit, converter: Shape => Shape): Unit = ()
+      override def decodeShape(shape: Unit, shapes: Seq[Shape]): (Unit, Seq[Shape]) = ((), shapes)
     }
   }
 
   implicit def fromOutput[T]: ShapeStructure[Shape] = {
     new ShapeStructure[Shape] {
-      override def size(shape: Shape): Int = {
-        1
-      }
-
-      override def shapes(shape: Shape): Seq[Shape] = {
-        Seq(shape)
-      }
-
-      override def decodeShape(
-          shape: Shape,
-          shapes: Seq[Shape]
-      ): (Shape, Seq[Shape]) = {
-        (shapes.head, shapes.tail)
-      }
+      override def size(shape: Shape): Int = 1
+      override def shapes(shape: Shape): Seq[Shape] = Seq(shape)
+      override def map(shape: Shape, converter: Shape => Shape): Shape = converter(shape)
+      override def decodeShape(shape: Shape, shapes: Seq[Shape]): (Shape, Seq[Shape]) = (shapes.head, shapes.tail)
     }
   }
 
   implicit def fromOption[D](implicit ev: ShapeStructure[D]): ShapeStructure[Option[D]] = {
     new ShapeStructure[Option[D]] {
-      override def size(shape: Option[D]): Int = {
-        shape.map(ev.size).sum
-      }
-
-      override def shapes(shape: Option[D]): Seq[Shape] = {
-        shape.toSeq.flatMap(ev.shapes)
-      }
+      override def size(shape: Option[D]): Int = shape.map(ev.size).sum
+      override def shapes(shape: Option[D]): Seq[Shape] = shape.toSeq.flatMap(ev.shapes)
+      override def map(shape: Option[D], converter: Shape => Shape): Option[D] = shape.map(ev.map(_, converter))
 
       override def decodeShape(
           shape: Option[D],
@@ -93,17 +70,11 @@ object ShapeStructure {
     }
   }
 
-  implicit def fromSeq[D](implicit
-      ev: ShapeStructure[D]
-  ): ShapeStructure[Seq[D]] = {
+  implicit def fromSeq[D](implicit ev: ShapeStructure[D]): ShapeStructure[Seq[D]] = {
     new ShapeStructure[Seq[D]] {
-      override def size(shape: Seq[D]): Int = {
-        shape.map(ev.size).sum
-      }
-
-      override def shapes(shape: Seq[D]): Seq[Shape] = {
-        shape.flatMap(ev.shapes)
-      }
+      override def size(shape: Seq[D]): Int = shape.map(ev.size).sum
+      override def shapes(shape: Seq[D]): Seq[Shape] = shape.flatMap(ev.shapes)
+      override def map(shape: Seq[D], converter: Shape => Shape): Seq[D] = shape.map(ev.map(_, converter))
 
       override def decodeShape(
           shape: Seq[D],
@@ -117,17 +88,11 @@ object ShapeStructure {
     }
   }
 
-  implicit def fromMap[K, D](implicit
-      ev: ShapeStructure[D]
-  ): ShapeStructure[Map[K, D]] = {
+  implicit def fromMap[K, D](implicit ev: ShapeStructure[D]): ShapeStructure[Map[K, D]] = {
     new ShapeStructure[Map[K, D]] {
-      override def size(shape: Map[K, D]): Int = {
-        shape.values.map(ev.size).sum
-      }
-
-      override def shapes(shape: Map[K, D]): Seq[Shape] = {
-        shape.values.flatMap(ev.shapes).toSeq
-      }
+      override def size(shape: Map[K, D]): Int = shape.values.map(ev.size).sum
+      override def shapes(shape: Map[K, D]): Seq[Shape] = shape.values.flatMap(ev.shapes).toSeq
+      override def map(shape: Map[K, D], converter: Shape => Shape): Map[K, D] = shape.mapValues(ev.map(_, converter))
 
       override def decodeShape(
           shape: Map[K, D],
@@ -144,20 +109,10 @@ object ShapeStructure {
 
   implicit val fromHNil: ShapeStructure[HNil] = {
     new ShapeStructure[HNil] {
-      override def size(shape: HNil): Int = {
-        0
-      }
-
-      override def shapes(shape: HNil): Seq[Shape] = {
-        Seq.empty
-      }
-
-      override def decodeShape(
-          shape: HNil,
-          shapes: Seq[Shape]
-      ): (HNil, Seq[Shape]) = {
-        (HNil, shapes)
-      }
+      override def size(shape: HNil): Int = 0
+      override def shapes(shape: HNil): Seq[Shape] = Seq.empty
+      override def map(shape: HNil, converter: Shape => Shape): HNil = HNil
+      override def decodeShape(shape: HNil, shapes: Seq[Shape]): (HNil, Seq[Shape]) = (HNil, shapes)
     }
   }
 
@@ -166,18 +121,14 @@ object ShapeStructure {
       evT: Strict[ShapeStructure[TS]]
   ): ShapeStructure[HS :: TS] = {
     new ShapeStructure[HS :: TS] {
-      override def size(shape: HS :: TS): Int = {
-        evH.value.size(shape.head) + evT.value.size(shape.tail)
+      override def size(shape: HS :: TS): Int = evH.value.size(shape.head) + evT.value.size(shape.tail)
+      override def shapes(shape: HS :: TS): Seq[Shape] = evH.value.shapes(shape.head) ++ evT.value.shapes(shape.tail)
+
+      override def map(shape: HS :: TS, converter: Shape => Shape): HS :: TS = {
+        evH.value.map(shape.head, converter) :: evT.value.map(shape.tail, converter)
       }
 
-      override def shapes(shape: HS :: TS): Seq[Shape] = {
-        evH.value.shapes(shape.head) ++ evT.value.shapes(shape.tail)
-      }
-
-      override def decodeShape(
-          shape: HS :: TS,
-          shapes: Seq[Shape]
-      ): (HS :: TS, Seq[Shape]) = {
+      override def decodeShape(shape: HS :: TS, shapes: Seq[Shape]): (HS :: TS, Seq[Shape]) = {
         val (headOut, headRemaining) = evH.value.decodeShape(shape.head, shapes)
         val (tailOut, tailRemaining) = evT.value.decodeShape(shape.tail, headRemaining)
         (headOut :: tailOut, tailRemaining)
@@ -190,18 +141,11 @@ object ShapeStructure {
       evD: Strict[ShapeStructure[HS]]
   ): ShapeStructure[PS] = {
     new ShapeStructure[PS] {
-      override def size(shape: PS): Int = {
-        evD.value.size(genD.to(shape))
-      }
+      override def size(shape: PS): Int = evD.value.size(genD.to(shape))
+      override def shapes(shape: PS): Seq[Shape] = evD.value.shapes(genD.to(shape))
+      override def map(shape: PS, converter: Shape => Shape): PS = genD.from(evD.value.map(genD.to(shape), converter))
 
-      override def shapes(shape: PS): Seq[Shape] = {
-        evD.value.shapes(genD.to(shape))
-      }
-
-      override def decodeShape(
-          shape: PS,
-          shapes: Seq[Shape]
-      ): (PS, Seq[Shape]) = {
+      override def decodeShape(shape: PS, shapes: Seq[Shape]): (PS, Seq[Shape]) = {
         val (out, remaining) = evD.value.decodeShape(genD.to(shape), shapes)
         (genD.from(out), remaining)
       }

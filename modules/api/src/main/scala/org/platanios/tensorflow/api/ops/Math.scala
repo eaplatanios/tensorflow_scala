@@ -2124,7 +2124,7 @@ trait Math extends math.API {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def equal[T: TF : IsNumeric](
+  def equal[T: TF](
       x: Output[T],
       y: Output[T],
       name: String = "Equal"
@@ -2144,7 +2144,7 @@ trait Math extends math.API {
     * @param  name Name for the created op.
     * @return Created op output.
     */
-  def notEqual[T: TF : IsNumeric](
+  def notEqual[T: TF](
       x: Output[T],
       y: Output[T],
       name: String = "NotEqual"
