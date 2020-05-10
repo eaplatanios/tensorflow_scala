@@ -125,11 +125,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
   /** Creates a new dataset that produces the elements of this dataset, in random order.
     *
-    * @param  bufferSize Buffer size, meaning the number of output elements to buffer before shuffling them.
-    * @param  seed       Seed value for the random number generator. If not provided, a random seed is used.
+    * @param  bufferSize             Buffer size, meaning the number of output elements to buffer before shuffling them.
+    * @param  reshuffleEachIteration Controls whether the shuffle order should be different for each epoch.
+    * @param  seed                   Seed value for the random number generator. If not provided, a random seed is used.
     * @return Created dataset.
     */
-  def shuffle(bufferSize: Long, seed: Option[Int] = None): Dataset[T] = {
+  def shuffle(bufferSize: Long, reshuffleEachIteration: Boolean = true, seed: Option[Int] = None): Dataset[T] = {
     new Dataset[T] {
       override val name: String = s"${outer.name}/Shuffle"
 
@@ -143,10 +144,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
           (bs, s1, s2)
         }
         Op.Builder[(Output[Variant], Output[Long], Output[Long], Output[Long]), Output[Variant]](
-          opType = "ShuffleDataset",
+          opType = "ShuffleDatasetV3",
           name = name,
           input = (outer.createHandle(), bs, s1, s2)
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
+        ).setAttribute("reshuffle_each_iteration", reshuffleEachIteration)
+            .setAttribute("output_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
       }
