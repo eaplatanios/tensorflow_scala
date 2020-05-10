@@ -117,7 +117,7 @@ lazy val jni = (project in file("./modules/jni"))
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      // Tensor op code generation settings
+      // Tensor op code generation settings.
       target in generateTensorOps := sourceDirectory.value / "main",
       ops in generateTensorOps := Map(
         "Basic" -> Seq(
@@ -163,7 +163,7 @@ lazy val jni = (project in file("./modules/jni"))
           "StringToHashBucketStrong")
       ),
       scalaPackage in generateTensorOps := "tensors",
-      // Native bindings compilation settings
+      // Native bindings compilation settings.
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
@@ -173,7 +173,7 @@ lazy val jni = (project in file("./modules/jni"))
       tfLibCompile in JniCross := false,
       tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch in JniCross := "master",
-      // Specify the order in which the different compilation tasks are executed
+      // Specify the order in which the different compilation tasks are executed.
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
 
 lazy val api = (project in file("./modules/api"))
@@ -230,11 +230,10 @@ lazy val horovod = (project in file("./modules/horovod"))
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      // Native bindings compilation settings
+      // Native bindings compilation settings.
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
-      dockerImagePrefix in JniCross := "tensorflow-jni",
       nativeArtifactName in JniCross := "horovod",
       nativeLibPath in JniCross := {
         (nativeCrossCompile in JniCross in jni).value
@@ -248,7 +247,7 @@ lazy val horovod = (project in file("./modules/horovod"))
           IO.createDirectory(platformTargetDir / "downloads")
           IO.createDirectory(platformTargetDir / "downloads" / "lib")
 
-          // Download the native TensorFlow library
+          // Download the native TensorFlow library.
           log.info(s"Downloading the TensorFlow native library.")
           val exitCode = TensorFlowNativePackage.downloadTfLib(
             platform, (tfJniTarget / platform.name).getPath, tfVersion

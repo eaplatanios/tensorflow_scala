@@ -28,22 +28,18 @@ object TensorFlowNativePackage extends AutoPlugin {
   override def requires: Plugins = JniCrossPackage && plugins.JvmPlugin
 
   object autoImport {
-    val tfBinaryVersion: SettingKey[String] =
-      settingKey[String]("###")
+    val tfBinaryVersion: SettingKey[String] = settingKey[String](
+      "Version of the TensorFlow pre-compiled binaries to (optionally) download.")
 
-    val tfLibCompile: SettingKey[Boolean] =
-      settingKey[Boolean](
-        "If `true`, the native TensorFlow library will be compiled on this machine. If `false`, pre-compiled " +
-            "binaries will be downloaded from the TensorFlow CI server.")
+    val tfLibCompile: SettingKey[Boolean] = settingKey[Boolean](
+      "If `true`, the native TensorFlow library will be compiled on this machine. If `false`, pre-compiled " +
+          "binaries will be downloaded from the TensorFlow CI server.")
 
-    val tfLibRepository: SettingKey[String] =
-      settingKey[String](
-        "Git repository from which to obtain the sources of the native TensorFlow library, if it is to be compiled.")
+    val tfLibRepository: SettingKey[String] = settingKey[String](
+      "Git repository from which to obtain the sources of the TensorFlow library, if it is to be compiled.")
 
-    val tfLibRepositoryBranch: SettingKey[String] =
-      settingKey[String](
-        "Git repository branch from which to obtain the sources of the native TensorFlow library, if it is to be " +
-            "compiled.")
+    val tfLibRepositoryBranch: SettingKey[String] = settingKey[String](
+      "Git repository branch from which to obtain the sources of the TensorFlow library, if it is to be compiled.")
   }
 
   import autoImport._
@@ -54,7 +50,6 @@ object TensorFlowNativePackage extends AutoPlugin {
     tfLibCompile := false,
     tfLibRepository := "https://github.com/tensorflow/tensorflow.git",
     tfLibRepositoryBranch := "master",
-    dockerImagePrefix := "tensorflow-jni",
     nativeArtifactName := "tensorflow",
     nativeLibPath := {
       val log = streams.value.log
