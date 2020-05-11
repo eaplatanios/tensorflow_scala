@@ -126,7 +126,7 @@ namespace {
 
   struct JVMWrapper {
     mutex lock;
-    JavaVM* jvm_ TF_GUARDED_BY(lock);
+    JavaVM* jvm_;
 	  JVMWrapper(JavaVM* jvm_) : jvm_(jvm_) { }
   };
 
@@ -193,8 +193,8 @@ namespace {
 struct JVMCallbackKernel {
   int id_;
   JVMWrapper* jvm_wrapper_;
-  jclass registry_ TF_GUARDED_BY(jvm_wrapper_->lock);
-  jmethodID call_method_id_ TF_GUARDED_BY(jvm_wrapper_->lock);
+  jclass registry_;
+  jmethodID call_method_id_;
 };
 
 static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
