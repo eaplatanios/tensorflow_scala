@@ -18,15 +18,14 @@ jobs:
        - run: mv libtensorflow.* /usr/lib/
        - run: mv libtensorflow_framework.* /usr/lib/
        - run: cd ..
-#       - restore_cache:
-#           keys:
-#             - v0.5.0-dependencies-{{ checksum "build.sbt" }}
-#             - v0.5.0-dependencies-
+       - restore_cache:
+           keys:
+             - v0.5.0-dependencies-{{ checksum "build.sbt" }}
        - run: cat /dev/null | sbt +test:compile
-#       - save_cache:
-#           paths:
-#             - ~/.ivy2
-#           key: v0.5.0-dependencies--{{ checksum "build.sbt" }}
+       - save_cache:
+           paths:
+             - ~/.ivy2
+           key: v0.5.0-dependencies--{{ checksum "build.sbt" }}
        - run: cat /dev/null | sbt +test:test
    build-linux-gpu-x86_64:
      docker:
@@ -45,15 +44,14 @@ jobs:
        - run: mv libtensorflow.* /usr/lib/
        - run: mv libtensorflow_framework.* /usr/lib/
        - run: cd ..
-#       - restore_cache:
-#           keys:
-#             - v0.5.0-dependencies-{{ checksum "build.sbt" }}
-#             - v0.5.0-dependencies-
+       - restore_cache:
+           keys:
+             - v0.5.0-dependencies-{{ checksum "build.sbt" }}
        - run: cat /dev/null | sbt +test:compile
-#       - save_cache:
-#           paths:
-#             - ~/.ivy2
-#           key: v0.5.0-dependencies--{{ checksum "build.sbt" }}
+       - save_cache:
+           paths:
+             - ~/.ivy2
+           key: v0.5.0-dependencies--{{ checksum "build.sbt" }}
        - run: cat /dev/null | sbt +test:test
 
 workflows:
