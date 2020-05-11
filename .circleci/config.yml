@@ -27,6 +27,7 @@ jobs:
              - ~/.ivy2
            key: v0.5.0-dependencies--{{ checksum "build.sbt" }}
        - run: cat /dev/null | sbt +test:test
+
    build-linux-gpu-x86_64:
      docker:
        - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.0
