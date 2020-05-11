@@ -221,7 +221,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_controlI
   jlong* ops = env->GetLongArrayElements(return_array, nullptr);
   for (int i = 0; i < numControlInputs; ++i)
     ops[i] = reinterpret_cast<jlong>(controlInputs[i]);
-  env->ReleaseLongArrayElements(return_array, ops, 0);
+  env->ReleaseLongArrayElements(return_array, ops, JNI_ABORT);
   return return_array;
 }
 
@@ -238,7 +238,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_controlO
   jlong* ops = env->GetLongArrayElements(return_array, nullptr);
   for (int i = 0; i < numControlOutputs; ++i)
     ops[i] = reinterpret_cast<jlong>(controlOutputs[i]);
-  env->ReleaseLongArrayElements(return_array, ops, 0);
+  env->ReleaseLongArrayElements(return_array, ops, JNI_ABORT);
   return return_array;
 }
 
@@ -345,7 +345,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_shape(
   jlong *dims = env->GetLongArrayElements(return_array, nullptr);
   for (int i = 0; i < num_dims; ++i)
     dims[i] = static_cast<jlong>(cdims[i]);
-  env->ReleaseLongArrayElements(return_array, dims, 0);
+  env->ReleaseLongArrayElements(return_array, dims, JNI_ABORT);
   return return_array;
 }
 
@@ -509,7 +509,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
     jtype *ret_elements = env->Get##jname##ArrayElements(return_array, NULL);                       \
     for (int i = 0; i < list_size; i++)                                                             \
       ret_elements[i] = static_cast<jtype>(attr_values[i]);                                         \
-    env->Release##jname##ArrayElements(return_array, ret_elements, NULL);                           \
+    env->Release##jname##ArrayElements(return_array, ret_elements, JNI_ABORT);                      \
     return return_array;                                                                            \
   }
 
@@ -584,7 +584,7 @@ JNIEXPORT jlongArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAttrS
   jlong *dims = env->GetLongArrayElements(return_array, nullptr);
   for (int i = 0; i < num_dims; ++i)
     dims[i] = static_cast<jlong>(cdims[i]);
-  env->ReleaseLongArrayElements(return_array, dims, 0);
+  env->ReleaseLongArrayElements(return_array, dims, JNI_ABORT);
   return return_array;
 }
 
