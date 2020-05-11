@@ -1643,7 +1643,7 @@ abstract class Saveable protected(val saveSpecifications: Seq[SaveSpecification]
   ): UntypedOp
 }
 
-private[ops] object Saveable {
+object Saveable {
   /** Wrapper saveable object that allows variables to be saved. */
   implicit class VariableSaveable(variable: Variable[Any])
       extends Saveable(
