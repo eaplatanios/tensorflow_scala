@@ -215,6 +215,9 @@ lazy val api = (project in file("./modules/api"))
 lazy val proto = (project in file("./modules/proto"))
     .enablePlugins(ProtobufPlugin)
     .settings(moduleName := "tensorflow-proto", name := "TensorFlow Scala - Proto")
+    .settings(commonSettings)
+    .settings(testSettings)
+    .settings(publishSettings)
     .settings(
       version in ProtobufConfig := "3.11.4",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",

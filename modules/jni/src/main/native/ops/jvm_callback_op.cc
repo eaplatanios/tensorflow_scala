@@ -125,12 +125,12 @@ namespace {
   }
 
   struct JVMWrapper {
-    JavaVM* jvm_;
     mutex lock;
+    JavaVM* jvm_ TF_GUARDED_BY(lock);
 	  JVMWrapper(JavaVM* jvm_) : jvm_(jvm_) { }
   };
 
-  static std::vector<JVMWrapper*> jvms;
+  static std::map<JavaVM*, JVMWrapper*> jvms;
   static mutex lock;
 
   struct JVMThreadHelper {
@@ -167,15 +167,23 @@ namespace {
 	  }
   };
 
-  JVMWrapper& get_jvm_wrapper(JavaVM* jvm_) {
+  JVMWrapper* get_jvm_wrapper(JavaVM* jvm_) {
     mutex_lock guard(lock);
-    for (JVMWrapper* wrapper : jvms)
-      if (wrapper->jvm_ == jvm_)
-        return *wrapper;
+    std::map<JavaVM*, JVMWrapper*>::iterator it = jvms.find(jvm_);
+    if (it != jvms.end())
+      return it->second;
+    JVMWrapper* jvm_wrapper_ = new JVMWrapper(jvm_);
+    jvms[jvm_] = jvm_wrapper_;
+    return jvm_wrapper_;
+  }
 
-    /* the JVM isn't in the array */
-    jvms.push_back(new JVMWrapper(jvm_));
-    return **jvms.rbegin();
+  void delete_jvm_wrapper(JavaVM* jvm_) {
+    mutex_lock guard(lock);
+    std::map<JavaVM*, JVMWrapper*>::iterator it = jvms.find(jvm_);
+    if (it != jvms.end()) {
+      jvms.erase(jvm_);
+      delete it->second;
+    }
   }
 
   thread_local JVMThreadHelper jvm_thread;
@@ -184,9 +192,9 @@ namespace {
 
 struct JVMCallbackKernel {
   int id_;
-  JavaVM* jvm_;
-  jclass registry_;
-  jmethodID call_method_id_;
+  JVMWrapper* jvm_wrapper_;
+  jclass registry_ TF_GUARDED_BY(jvm_wrapper_->lock);
+  jmethodID call_method_id_ TF_GUARDED_BY(jvm_wrapper_->lock);
 };
 
 static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
@@ -205,9 +213,10 @@ static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
   TF_OpKernelConstruction_GetAttrInt32(ctx, "jvm_pointer_lower", &jvm_pointer_lower, status.get());
   // CHECK_STATUS(env, status.get(), nullptr);
   int64_t jvm_pointer = (((int64_t) jvm_pointer_upper) << 32) | (int64_t) jvm_pointer_lower;
-  k->jvm_ = reinterpret_cast<JavaVM*>(jvm_pointer);
-  mutex_lock guard(get_jvm_wrapper(k->jvm_).lock);
-  jvm_thread.set_jvm(k->jvm_);
+  JavaVM* jvm_ = reinterpret_cast<JavaVM*>(jvm_pointer);
+  k->jvm_wrapper_ = get_jvm_wrapper(jvm_);
+  mutex_lock guard(k->jvm_wrapper_->lock);
+  jvm_thread.set_jvm(k->jvm_wrapper_->jvm_);
 
   // Obtain a handle to the JVM environment and the callbacks registry class.
   JNIEnv* env = jvm_thread.env;
@@ -219,8 +228,8 @@ static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
 static void JVMCallbackKernel_Compute(void* kernel, TF_OpKernelContext* ctx) {
   struct JVMCallbackKernel* k = static_cast<struct JVMCallbackKernel*>(kernel);
   if (ctx != nullptr) {
-    mutex_lock guard(get_jvm_wrapper(k->jvm_).lock);
-    jvm_thread.set_jvm(k->jvm_);
+    mutex_lock guard(k->jvm_wrapper_->lock);
+    jvm_thread.set_jvm(k->jvm_wrapper_->jvm_);
     JNIEnv* env = jvm_thread.env;
 
     JVMCall call;
@@ -271,6 +280,7 @@ static void JVMCallbackKernel_Compute(void* kernel, TF_OpKernelContext* ctx) {
 
 static void JVMCallbackKernel_Delete(void* kernel) {
   struct JVMCallbackKernel* k = static_cast<struct JVMCallbackKernel*>(kernel);
+  delete_jvm_wrapper(k->jvm_wrapper_->jvm_);
   delete k;
 };
 
