@@ -140,7 +140,7 @@ abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
       val saver = Saver(
         sharded = true,
         maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
-        keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
+        keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours.toFloat,
         saveRelativePaths = true)
       graph.addToCollection(Graph.Keys.SAVERS)(saver)
       Some(saver)

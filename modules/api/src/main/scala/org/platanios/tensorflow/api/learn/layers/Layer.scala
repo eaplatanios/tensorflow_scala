@@ -77,7 +77,7 @@ abstract class Layer[T, R](
   }
 
   final def currentStep: Output[Long] = {
-    Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false)
+    Counter.getOrCreate(Graph.Keys.GLOBAL_STEP, local = false).value
   }
 
   override def toString: String = layerType

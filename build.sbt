@@ -19,16 +19,14 @@ import sbtrelease.Vcs
 import scala.sys.process.Process
 
 organization in ThisBuild := "org.platanios"
-scalaVersion in ThisBuild := "2.12.11"
-crossScalaVersions in ThisBuild := Seq("2.12.11")
+scalaVersion in ThisBuild := "2.13.2"
+crossScalaVersions in ThisBuild := Seq("2.12.11", "2.13.2")
 
 fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
 nativeCrossCompilationEnabled in ThisBuild := false
 
 val circeVersion = "0.12.3" // Used for working with JSON.
-
-// addCompilerPlugin(MetalsPlugin.semanticdbScalac)
 
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
@@ -46,21 +44,20 @@ scalacOptions in ThisBuild ++= Seq(
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture", // Turn on future language features.
-  // "-P:splain:all",
-  // "-P:splain:infix",
-  // "-P:splain:foundreq",
-  // "-P:splain:implicits",
-  // "-P:splain:color",
-  // "-P:splain:tree",
-  // "-P:splain:boundsimplicits:false"
+//  "-P:splain:all",
+//  "-P:splain:infix",
+//  "-P:splain:foundreq",
+//  "-P:splain:implicits",
+//  "-P:splain:color",
+//  "-P:splain:tree",
+//  "-P:splain:boundsimplicits:false"
 )
 
 scalacOptions in ThisBuild ++= {
   if (!scalaVersion.value.startsWith("2.13")) {
     Seq("-Yno-adapted-args", "-Ypartial-unification")
   } else {
-    Seq()
+    Seq("-Xfuture") // Turn on future language features.
   }
 }
 
@@ -76,7 +73,9 @@ lazy val loggingSettings = Seq(
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
+  addCompilerPlugin("io.tryp"  % "splain" % "0.5.5" cross CrossVersion.patch),
+  libraryDependencies ++= Seq(
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6")
 )
 
 lazy val testSettings = Seq(

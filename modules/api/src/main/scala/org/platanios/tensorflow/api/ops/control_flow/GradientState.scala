@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.control_flow
 
-import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.core.types.TF
+import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
 
 import scala.collection.mutable
 
@@ -106,7 +107,7 @@ private[ops] class GradientState private[control_flow] () {
         if (value.shape.isFullyDefined) {
           // If the shape is known statically, we just create a zeros tensor with the right shape in the right context.
           gradientLoopState.backwardContext.enter()
-          val result = Basic.zeros[T](value.shape)
+          val result = Basic.zeros[T](value.shape.toOutput)
           gradientLoopState.backwardContext.exit()
           result
         } else {
@@ -127,7 +128,7 @@ private[ops] class GradientState private[control_flow] () {
         // This is not a nested loop.
         if (value.shape.isFullyDefined) {
           // If the shape is known statically, we just create a zeros tensor with the right shape.
-          Basic.zeros[T](value.shape)
+          Basic.zeros[T](value.shape.toOutput)
         } else {
           Basic.zerosLike(value, optimize = false)
         }
@@ -156,8 +157,9 @@ private[ops] class GradientState private[control_flow] () {
           // `op` is in a while loop that is part of `gradients()`.
           val value = op.outputsSeq(index)
           if (value.shape.isFullyDefined) {
-            // If the shape is known statically, we just create a zeros tensor with the right shape in the right context.
-            val result = Basic.zeros(value.dataType, value.shape)
+            // If the shape is known statically, we just create a zeros tensor
+            // with the right shape in the right context.
+            val result = Basic.zeros(value.dataType, value.shape.toOutput)
             if (deadBranch) {
               // `op` is a conditional switch and so we guard the zero tensor with a switch.
               op.controlFlowContext.flatMap(c => {
@@ -284,7 +286,7 @@ private[ops] class GradientState private[control_flow] () {
           if (shape.isFullyDefined) {
             gradientLoopState.backwardContext.enter()
             // Create a zeros tensor and use it for iterations > 0.
-            val gradientValue = Basic.zeros[Any](merge.op.inputsSeq(0).dataType, shape)
+            val gradientValue = Basic.zeros[Any](merge.op.inputsSeq(0).dataType, shape.toOutput)
             val nextGradientValue = ControlFlow.nextIteration(gradientValue)(TF.fromDataType(gradientValue.dataType))
             gradientLoopState.backwardContext.exit()
             nextGradientValue

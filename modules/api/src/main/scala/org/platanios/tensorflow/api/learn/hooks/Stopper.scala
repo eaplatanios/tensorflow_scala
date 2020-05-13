@@ -20,8 +20,8 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.learn.{Counter, StopCriteria}
-import org.platanios.tensorflow.api.ops.{Math, Op, Output}
-import org.platanios.tensorflow.api.ops.variables.Variable
+import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import com.typesafe.scalalogging.Logger
@@ -98,7 +98,7 @@ private[learn] class Stopper protected (protected var criteria: StopCriteria) ex
       lossFetchIndex = fetches.size
       fetches.append(loss)
     }
-    sessionFetches = fetches
+    sessionFetches = fetches.toSeq
   }
 
   override protected def afterSessionCreation(session: Session): Unit = {

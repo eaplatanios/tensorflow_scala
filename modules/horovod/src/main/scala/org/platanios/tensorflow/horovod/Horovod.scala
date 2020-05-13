@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory
 import java.io.{IOException, InputStream}
 import java.nio.file.{Files, Path, StandardCopyOption}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.sys.process._
 
 /**
@@ -40,7 +40,7 @@ private[horovod] object Horovod {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) {
       // Hack to check if CUDA is installed in the system.
-      val result = Process("nvidia-smi").lineStream
+      val result = Process("nvidia-smi").lazyLines
       if (result.isEmpty || result.exists(_.contains("command not found"))) {
         logger.info("Detected Linux x86-64 without CUDA support.")
         "linux"

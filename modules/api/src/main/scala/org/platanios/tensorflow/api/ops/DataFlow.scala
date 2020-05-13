@@ -16,7 +16,8 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF}
-import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 
 /** Contains functions for constructing ops related to data flow.
   *

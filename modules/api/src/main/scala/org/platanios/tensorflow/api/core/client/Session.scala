@@ -23,6 +23,7 @@ import org.platanios.tensorflow.api.utilities.{Closeable, DefaultsTo, Disposer, 
 import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
 import org.platanios.tensorflow.proto.{RunMetadata, RunOptions}
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.collection.mutable
 
 /** Sessions provide the client interface for interacting with TensorFlow computations.
@@ -162,11 +163,11 @@ class Session private[api](
         targetOpHandles = targetOpHandles,
         wantRunMetadata = wantMetadata,
         outputTensorHandles = outputTensorHandles)
-      val outputs: V = resultsBuilder(outputTensorHandles.map(handle => {
+      val outputs: V = resultsBuilder(ArraySeq.unsafeWrapArray(outputTensorHandles.map(handle => {
         val tensor = Tensor.fromHostNativeHandle[Any](handle)
         NativeTensor.delete(handle)
         tensor
-      }))
+      })))
       inputTensorHandles.foreach(NativeTensor.delete)
       (outputs, Option(metadata).map(RunMetadata.parseFrom))
     } catch {
@@ -266,6 +267,6 @@ object Session {
       uniqueFetches += f
       uniqueFetches.length - 1
     }))
-    (uniqueFetches, indices)
+    (uniqueFetches.toSeq, indices)
   }
 }

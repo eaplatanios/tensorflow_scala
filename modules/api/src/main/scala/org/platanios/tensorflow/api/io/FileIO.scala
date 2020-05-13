@@ -22,7 +22,8 @@ import java.nio.file._
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import scala.collection.JavaConverters._
+import scala.collection.compat.immutable.LazyList
+import scala.jdk.CollectionConverters._
 
 /** Contains helper functions for dealing with file IO.
   *
@@ -39,7 +40,7 @@ object FileIO {
     * @return Stream over tuples containing: (i) the path for the directory, (ii) a sequence containing all of its
     *         subdirectories, and (iii) a sequence containing all files in that directory.
     */
-  def walk(dirPath: Path, inOrder: Boolean = true): Stream[(Path, Seq[Path], Seq[Path])] = {
+  def walk(dirPath: Path, inOrder: Boolean = true): LazyList[(Path, Seq[Path], Seq[Path])] = {
     val children: Seq[Path] = {
       try {
         Files.walk(dirPath, 1).iterator().asScala.drop(1).toSeq
@@ -56,9 +57,9 @@ object FileIO {
       else
         subDirs :+= child
     })
-    val hereStream = Stream((dirPath, subDirs, files))
-    val subDirsStream = subDirs.toStream.map(s => walk(dirPath.resolve(s), inOrder))
-        .foldLeft(Stream.empty[(Path, Seq[Path], Seq[Path])])(_ ++ _)
+    val hereStream = LazyList((dirPath, subDirs, files))
+    val subDirsStream = subDirs.toList.map(s => walk(dirPath.resolve(s), inOrder))
+        .foldLeft(LazyList.empty[(Path, Seq[Path], Seq[Path])])(_ ++ _)
     if (inOrder) {
       hereStream ++ subDirsStream
     } else {
@@ -153,7 +154,7 @@ object FileIO {
     * The atomic write is achieved by first writing to a temporary file and then renaming that file.
     */
   def writeStringToFileAtomic(filePath: Path, content: String, overwrite: Boolean = true): Unit = {
-    val temporaryFilePath = filePath.resolveSibling(filePath + s".tmp${UUID.randomUUID().toString}")
+    val temporaryFilePath = filePath.resolveSibling(filePath.toString + s".tmp${UUID.randomUUID().toString}")
     Files.write(
       temporaryFilePath,
       content.getBytes(Charset.forName("UTF-8")),

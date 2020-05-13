@@ -25,8 +25,7 @@ import org.platanios.tensorflow.proto.CollectionDef.BytesList
 
 import com.google.protobuf.GeneratedMessageV3
 
-import scala.collection.JavaConverters._
-import scala.language.higherKinds
+import scala.jdk.CollectionConverters._
 
 /** Control flow context for the conditional construct.
   *
@@ -109,7 +108,7 @@ private[api] case class CondContext private[control_flow] (
       result.graph.preventFetching(result.op)
       result.op.controlFlowContext = Some(this)
       values += result.name
-      externalValues += output.name -> result
+      externalValues += output.name -> result.asUntyped
       result
     }
   }
@@ -142,7 +141,7 @@ private[api] case class CondContext private[control_flow] (
       }).getOrElse(output)
       val realValue = branch.selectSwitchResult(
         ControlFlow.colocatedSwitch(switchInput, predicate)(TF.fromDataType(switchInput.dataType)))
-      externalValues += output.name -> realValue
+      externalValues += output.name -> realValue.asUntyped
       realValue.asInstanceOf[Output[T]]
     } else {
       externalValues.getOrElse(output.name, output).asInstanceOf[Output[T]]
@@ -339,7 +338,7 @@ trait CondArgLowPriority {
           output: Op[I, O],
           context: CondContext
       ): Seq[Output[Any]] = {
-        Seq(context.processOp(output))
+        Seq(context.processOp(output.asUntyped).asUntyped)
       }
 
       override def decodeOutputFromOutput(

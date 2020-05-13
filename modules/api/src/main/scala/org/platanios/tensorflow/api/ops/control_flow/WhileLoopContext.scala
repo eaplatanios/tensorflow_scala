@@ -21,6 +21,8 @@ import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.proto.{AttrValue, CollectionDef, WhileContextDef}
@@ -28,8 +30,10 @@ import org.platanios.tensorflow.proto.CollectionDef.BytesList
 
 import com.google.protobuf.{ByteString, GeneratedMessageV3}
 
+import scala.collection.compat._
+import scala.collection.compat.immutable.ArraySeq
 import scala.collection.mutable
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 
 /** Control flow context for the while-loop construct.
@@ -515,7 +519,7 @@ private[api] case class WhileLoopContext private[control_flow] (
         val indicesAcc = Output.zeros[T](g.dataType, Output[Int](1))
         val valuesAcc = {
           if (g.values.shape.isFullyDefined) {
-            val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*).toOutput
+            val zerosShape = Shape(1 +: ArraySeq.unsafeWrapArray(g.values.shape.asArray).tail: _*).toOutput
             Output.zeros[T](g.dataType, zerosShape)
           } else {
             val value = op.inputsSeq(0)
@@ -754,7 +758,7 @@ object WhileLoopContext {
   ): Unit = {
     // Check that the shapes of the inputs are less than the shape invariants, and set the shapes of the enter tensors
     // to the shape invariants.
-    for ((input, enter, shape) <- (inputTensors, enterTensors, shapes).zipped) {
+    for ((input, enter, shape) <- inputTensors.lazyZip(enterTensors).lazyZip(shapes)) {
       (input, enter) match {
         case (i: Output[_], e: Output[_]) =>
           if (!shapeLessThanOrEqual(i.shape, shape))
@@ -875,10 +879,10 @@ object WhileLoopContext {
         .asInstanceOf[Output[Boolean]]
     val pivotForPredicate = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForPredName))
     val pivotForBody = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForBodyName))
-    val loopEnters = mutable.Set(whileContextDef.getLoopEnterNamesList.asScala.map(name => {
+    val loopEnters = mutable.Set(whileContextDef.getLoopEnterNamesList.asScala.toSeq.map(name => {
       graph.getOutputByName(Op.prependNameScope(importScope, name))
     }): _*)
-    val loopExits = mutable.Set(whileContextDef.getLoopExitNamesList.asScala.map(name => {
+    val loopExits = mutable.Set(whileContextDef.getLoopExitNamesList.asScala.toSeq.map(name => {
       graph.getOutputByName(Op.prependNameScope(importScope, name))
     }): _*)
     val (values, externalValues) = Context.fromValuesDef(whileContextDef.getValuesDef, importScope)

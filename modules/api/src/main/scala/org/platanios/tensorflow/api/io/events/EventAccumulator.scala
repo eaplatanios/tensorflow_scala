@@ -25,8 +25,9 @@ import org.slf4j.LoggerFactory
 
 import java.nio.file.{Files, Path}
 
-import scala.collection.JavaConverters._
+import scala.collection.compat._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** Accumulates event values collected from the provided path.
   *
@@ -326,7 +327,8 @@ case class EventAccumulator(
               val histogram = value.getHisto
               val histogramValue = HistogramValue(
                 histogram.getMin, histogram.getMax, histogram.getNum, histogram.getSum, histogram.getSumSquares,
-                histogram.getBucketLimitList.asScala.map(_.toDouble), histogram.getBucketList.asScala.map(_.toDouble))
+                histogram.getBucketLimitList.asScala.map(_.toDouble).toSeq,
+                histogram.getBucketList.asScala.map(_.toDouble).toSeq)
               val record = HistogramEventRecord(event.getWallTime, event.getStep, histogramValue)
               _reservoirs(HistogramEventType).asInstanceOf[Reservoir[String, HistogramEventRecord]].add(value.getTag, record)
             // TODO: [EVENTS] Compress histogram and add to the compressed histograms reservoir.
@@ -427,9 +429,9 @@ case class EventAccumulator(
     val expiredPerType = {
       if (byTags) {
         val tags = event.getSummary.getValueList.asScala.map(_.getTag)
-        _reservoirs.mapValues(r => tags.map(t => r.filter(notExpired, Some(t))).sum)
+        _reservoirs.view.mapValues(r => tags.map(t => r.filter(notExpired, Some(t))).sum).toMap
       } else {
-        _reservoirs.mapValues(_.filter(notExpired))
+        _reservoirs.view.mapValues(_.filter(notExpired)).toMap
       }
     }
     if (expiredPerType.values.sum > 0) {

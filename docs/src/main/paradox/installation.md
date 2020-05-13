@@ -1,8 +1,8 @@
 # Installation
 
 TensorFlow for Scala is currently available for Scala 
-2.11.x and for 2.12.x. The main line of development is 
-version 2.12.7. Binary release artifacts are published to 
+2.12 and for 2.13. The main line of development is
+version 2.12.11. Binary release artifacts are published to
 the [Sonatype OSS Repository Hosting service](https://oss.sonatype.org/index.html#nexus-search;quick~platanios) 
 and synced to Maven Central. Currently, given the beta 
 status of this project, only snapshot releases are 

@@ -15,8 +15,10 @@
 
 package org.platanios.tensorflow.api.ops.lookup
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{DataType, INT64, IsStringOrInteger, TF}
 import org.platanios.tensorflow.api.ops.{Op, UntypedOp}
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Contains functions for constructing ops related to lookup tables.
   *
@@ -84,14 +86,18 @@ trait Lookup {
           s"hash_table_${filename}_${TextFileWholeLine}_$TextFileLineNumber"
       }
       val initializer = LookupTableTextFileInitializer(
-        filename = filename,
+        filename = Tensor.fill[String](Shape())(filename).toOutput,
         keysDataType = keysDataType,
         valuesDataType = INT64,
         keysExtractor = TextFileWholeLine[K],
         valuesExtractor = TextFileLineNumber,
         delimiter = delimiter,
         vocabularySize = vocabularySize)
-      val table = HashTable(initializer, defaultValue, sharedName = sharedName, name = "Table")
+      val table = HashTable(
+        initializer,
+        Tensor.fill[Long](Shape())(defaultValue).toOutput,
+        sharedName = sharedName,
+        name = "Table")
       if (numOOVBuckets > 0)
         IDLookupTableWithHashBuckets(table, numOOVBuckets, hashSpecification)
       else

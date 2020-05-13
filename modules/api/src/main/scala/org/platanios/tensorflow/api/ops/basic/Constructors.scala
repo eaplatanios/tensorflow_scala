@@ -17,7 +17,8 @@ package org.platanios.tensorflow.api.ops.basic
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{DataType, IsIntOrLong, IsNumeric, TF}
-import org.platanios.tensorflow.api.ops.{Math, Op, Output, SparseOutput}
+import org.platanios.tensorflow.api.ops.{Op, Output, SparseOutput}
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.proto.AttrValue
 
@@ -157,7 +158,7 @@ trait Constructors {
     */
   def zeros[T: TF](shape: Output[Int]): Output[T] = {
     Op.nameScope("Zeros") {
-      fill[T, Int](shape)(Tensor.zeros[T](Shape()))
+      fill[T, Int](shape)(Tensor.zeros[T](Shape()).toOutput)
     }
   }
 
@@ -171,7 +172,7 @@ trait Constructors {
     */
   def zeros[T: TF, I: TF : IsIntOrLong](shape: Output[I]): Output[T] = {
     Op.nameScope("Zeros") {
-      fill[T, I](shape)(Tensor.zeros[T](Shape()))
+      fill[T, I](shape)(Tensor.zeros[T](Shape()).toOutput)
     }
   }
 
@@ -186,7 +187,7 @@ trait Constructors {
   def zeros[T](dataType: DataType[T], shape: Output[Int]): Output[T] = {
     implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Op.nameScope("Zeros") {
-      fill[T, Int](shape)(Tensor.zeros[T](Shape()))
+      fill[T, Int](shape)(Tensor.zeros[T](Shape()).toOutput)
     }
   }
 
@@ -205,7 +206,7 @@ trait Constructors {
   ): Output[T] = {
     implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Op.nameScope("Zeros") {
-      fill[T, I](shape)(Tensor.zeros[T](Shape()))
+      fill[T, I](shape)(Tensor.zeros[T](Shape()).toOutput)
     }
   }
 
@@ -227,7 +228,7 @@ trait Constructors {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a zeros tensor independent of the value of 'tensor' since the shape is known statically.
       Op.nameScope(name) {
-        zeros(input.dataType, input.shape)
+        zeros(input.dataType, input.shape.toOutput)
       }
     } else {
       Op.Builder[Output[T], Output[T]](
@@ -247,7 +248,7 @@ trait Constructors {
     */
   def ones[T: TF](shape: Output[Int]): Output[T] = {
     Op.nameScope("Ones") {
-      fill[T, Int](shape)(Tensor.ones[T](Shape()))
+      fill[T, Int](shape)(Tensor.ones[T](Shape()).toOutput)
     }
   }
 
@@ -261,7 +262,7 @@ trait Constructors {
     */
   def ones[T: TF, I: TF : IsIntOrLong](shape: Output[I]): Output[T] = {
     Op.nameScope("Ones") {
-      fill[T, I](shape)(Tensor.ones[T](Shape()))
+      fill[T, I](shape)(Tensor.ones[T](Shape()).toOutput)
     }
   }
 
@@ -276,7 +277,7 @@ trait Constructors {
   def ones[T](dataType: DataType[T], shape: Output[Int]): Output[T] = {
     implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Op.nameScope("Ones") {
-      fill[T, Int](shape)(Tensor.ones[T](Shape()))
+      fill[T, Int](shape)(Tensor.ones[T](Shape()).toOutput)
     }
   }
 
@@ -295,7 +296,7 @@ trait Constructors {
   ): Output[T] = {
     implicit val evTF: TF[T] = TF.fromDataType(dataType)
     Op.nameScope("Ones") {
-      fill[T, I](shape)(Tensor.ones[T](Shape()))
+      fill[T, I](shape)(Tensor.ones[T](Shape()).toOutput)
     }
   }
 
@@ -317,7 +318,7 @@ trait Constructors {
     if (optimize && input.shape.isFullyDefined) {
       // We can produce a ones tensor independent of the value of 'tensor' since the shape is known statically.
       Op.nameScope(name) {
-        ones(input.dataType, input.shape)
+        ones(input.dataType, input.shape.toOutput)
       }
     } else {
       Op.Builder[Output[T], Output[T]](

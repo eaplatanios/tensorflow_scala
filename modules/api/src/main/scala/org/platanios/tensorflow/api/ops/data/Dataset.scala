@@ -21,8 +21,11 @@ import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.language.postfixOps
 
 /** Represents a potentially large set of elements.
@@ -1147,12 +1150,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
         if (mostSpecificFlattenedShapes.isEmpty) {
           mostSpecificFlattenedShapes = Some(
             outer.flatOutputShapes.zip(other.flatOutputShapes).map(p => {
-              Shape.fromSeq(p._1.asArray.zip(p._2.asArray).map {
+              Shape.fromSeq(ArraySeq.unsafeWrapArray(p._1.asArray.zip(p._2.asArray).map {
                 case (d1, d2) if d1 == d2 => d1
                 case (d1, d2) if d1 == -1 => d2
                 case (d1, d2) if d2 == -1 => d1
                 case _ => -1
-              })
+              }))
             }))
         }
         mostSpecificFlattenedShapes.get

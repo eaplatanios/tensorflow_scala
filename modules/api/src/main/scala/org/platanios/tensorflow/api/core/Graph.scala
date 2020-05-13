@@ -31,8 +31,9 @@ import org.platanios.tensorflow.proto._
 
 import com.google.protobuf.ByteString
 
-import scala.collection.JavaConverters._
+import scala.collection.compat._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 import scala.util.DynamicVariable
 import scala.util.matching.Regex
@@ -503,7 +504,8 @@ class Graph private[api](
     */
   @throws[InvalidArgumentException]
   def getOpByName(name: String): Op[Seq[Output[Any]], Seq[Output[Any]]] = {
-    getByName(name = name, allowOp = true, allowOutput = false).left.get
+    getByName(name = name, allowOp = true, allowOutput = false).swap
+        .getOrElse(throw new NoSuchElementException(s"Op '$name' not found in the graph.'"))
   }
 
   /** Returns the op output referred to by the provided name, in this graph.
@@ -517,7 +519,8 @@ class Graph private[api](
     */
   @throws[InvalidArgumentException]
   def getOutputByName(name: String): Output[Any] = {
-    getByName(name = name, allowOp = false, allowOutput = true).right.get
+    getByName(name = name, allowOp = false, allowOutput = true)
+        .getOrElse(throw new NoSuchElementException(s"Output '$name' not found in the graph.'"))
   }
 
   /** Returns the [[Op]] or [[Output]] referred to by the provided name, in this graph.
@@ -1159,7 +1162,10 @@ object Graph {
     }
 
     // Check the attributes
-    var node1Attributes = nodeDef1.getAttrMap.asScala.filterKeys(k => !ignoreInternalAttributes || !k.startsWith("_"))
+    var node1Attributes = nodeDef1.getAttrMap.asScala
+        .view
+        .filterKeys(k => !ignoreInternalAttributes || !k.startsWith("_"))
+        .toMap
     for ((name, value) <- nodeDef2.getAttrMap.asScala) {
       if (!ignoreInternalAttributes || !name.startsWith("_")) {
         if (!node1Attributes.contains(name))

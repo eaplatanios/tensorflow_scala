@@ -64,7 +64,7 @@ trait NestedStructureOpsLowPriority {
   implicit def fromOp[I, O]: OpStructure[Op[I, O]] = {
     new OpStructure[Op[I, O]] {
       override def ops(executable: Op[I, O]): Set[UntypedOp] = {
-        Set(executable)
+        Set(executable.asUntyped)
       }
     }
   }

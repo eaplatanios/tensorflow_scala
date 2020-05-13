@@ -21,6 +21,7 @@ import java.io.IOException
 import java.net.URL
 import java.nio.file.{Files, Path}
 
+import scala.collection.compat.immutable.LazyList
 import scala.io.Source
 import scala.util.matching.Regex
 
@@ -70,7 +71,7 @@ trait Loader {
     val buffer = new Array[Byte](bufferSize)
     var progress = 0L
     var progressLogTime = System.currentTimeMillis
-    Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(numBytes => {
+    LazyList.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(numBytes => {
       outputStream.write(buffer, 0, numBytes)
       progress += numBytes
       val time = System.currentTimeMillis

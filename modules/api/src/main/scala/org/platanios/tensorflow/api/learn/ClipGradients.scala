@@ -17,8 +17,9 @@ package org.platanios.tensorflow.api.learn
 
 import org.platanios.tensorflow.api.core.types.{IsFloatOrDouble, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Clip, Op, OutputLike}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.variables.Variable
-import org.platanios.tensorflow.api.ops.{Basic, Clip, Op, OutputLike}
 
 /** Represents a gradient-clipping method that can be used while training.
   *

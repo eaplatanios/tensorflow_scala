@@ -38,8 +38,8 @@ trait SessionCreator {
   def removeInitOp(op: UntypedOp): Unit = extraInitOps -= op
   def removeLocalInitOp(op: UntypedOp): Unit = extraLocalInitOps -= op
 
-  protected lazy val initOp: UntypedOp = ControlFlow.noOp("InitOp")
-  protected lazy val localInitOp: UntypedOp = ControlFlow.noOp("LocalInitOp")
+  protected lazy val initOp: UntypedOp = ControlFlow.noOp("InitOp").asUntyped
+  protected lazy val localInitOp: UntypedOp = ControlFlow.noOp("LocalInitOp").asUntyped
 
   /** Creates a new [[Session]]. */
   def createSession(): Session
@@ -70,14 +70,14 @@ case class ChiefSessionCreator(
     if (extraInitOps.isEmpty)
       builtSessionScaffold.initOp
     else
-      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init")
+      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init").asUntyped
   }
 
   override protected lazy val localInitOp: UntypedOp = {
     if (extraLocalInitOps.isEmpty)
       builtSessionScaffold.localInitOp
     else
-      ControlFlow.group(extraLocalInitOps.toSet + builtSessionScaffold.localInitOp, name = "LocalInit")
+      ControlFlow.group(extraLocalInitOps.toSet + builtSessionScaffold.localInitOp, name = "LocalInit").asUntyped
   }
 
   override def createSession(): Session = {
@@ -125,14 +125,14 @@ case class WorkerSessionCreator(
     if (extraInitOps.isEmpty)
       builtSessionScaffold.initOp
     else
-      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init")
+      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init").asUntyped
   }
 
   override protected lazy val localInitOp: UntypedOp = {
     if (extraLocalInitOps.isEmpty)
       builtSessionScaffold.localInitOp
     else
-      ControlFlow.group(extraLocalInitOps.toSet + builtSessionScaffold.localInitOp, name = "LocalInit")
+      ControlFlow.group(extraLocalInitOps.toSet + builtSessionScaffold.localInitOp, name = "LocalInit").asUntyped
   }
 
   override def createSession(): Session = {

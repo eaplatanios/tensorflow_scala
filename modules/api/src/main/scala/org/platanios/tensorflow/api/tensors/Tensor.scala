@@ -21,7 +21,8 @@ import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.NPY
-import org.platanios.tensorflow.api.ops.{Op, Output, Basic => OutputBasic}
+import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.basic.{Basic => OutputBasic}
 import org.platanios.tensorflow.api.tensors.ops.{Basic, Cast, Math}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
@@ -38,8 +39,9 @@ import org.slf4j.LoggerFactory
 import java.nio._
 import java.nio.charset.Charset
 import java.nio.file.Path
+import java.util.ConcurrentModificationException
 
-import scala.compat.Platform.ConcurrentModificationException
+import scala.collection.compat.immutable.ArraySeq
 import scala.language.{higherKinds, postfixOps}
 
 /** Represents tensor-like objects.
@@ -123,7 +125,7 @@ class Tensor[T] protected (
 
   /** Shape of this tensor. */
   override val shape: Shape = {
-    Shape.fromSeq(NativeTensor.eagerShape(nativeHandle).map(_.toInt))
+    Shape.fromSeq(ArraySeq.unsafeWrapArray(NativeTensor.eagerShape(nativeHandle).map(_.toInt)))
   }
 
   /** Rank of this tensor (i.e., number of dimensions). */
@@ -221,7 +223,6 @@ class Tensor[T] protected (
       private var i        : Int = 0
       private var remaining: Int = Tensor.this.size.ensuring(_ <= Int.MaxValue).toInt
 
-      override def hasDefiniteSize: Boolean = true
       override def size: Int = remaining
 
       private val buffer: ByteBuffer = {

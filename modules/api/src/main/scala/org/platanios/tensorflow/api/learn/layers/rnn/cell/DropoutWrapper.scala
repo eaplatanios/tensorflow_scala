@@ -15,10 +15,12 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn.cell
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape}
 import org.platanios.tensorflow.api.learn.{Mode, TRAINING}
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Basic
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /** RNN cell that applies dropout to the provided RNN cell.
   *
@@ -68,9 +70,9 @@ class DropoutWrapper[Out: OutputStructure, State: OutputStructure, OutShape, Sta
       case TRAINING =>
         ops.rnn.cell.DropoutWrapper(
           createdCell,
-          Basic.constant(inputKeepProbability, name = "InputKeepProbability"),
-          Basic.constant(outputKeepProbability, name = "OutputKeepProbability"),
-          Basic.constant(stateKeepProbability, name = "StateKeepProbability"), seed,
+          Basic.constant(Tensor.fill[Float](Shape())(inputKeepProbability), name = "InputKeepProbability"),
+          Basic.constant(Tensor.fill[Float](Shape())(outputKeepProbability), name = "OutputKeepProbability"),
+          Basic.constant(Tensor.fill[Float](Shape())(stateKeepProbability), name = "StateKeepProbability"), seed,
           name)
       case _ => createdCell
     }

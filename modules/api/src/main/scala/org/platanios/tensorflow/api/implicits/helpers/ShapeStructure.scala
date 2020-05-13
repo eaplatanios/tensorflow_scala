@@ -20,6 +20,8 @@ import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
 
+import scala.collection.compat._
+
 /** Type trait used to represent nested structures over shapes.
   *
   * @author Emmanouil Antonios Platanios
@@ -92,7 +94,10 @@ object ShapeStructure {
     new ShapeStructure[Map[K, D]] {
       override def size(shape: Map[K, D]): Int = shape.values.map(ev.size).sum
       override def shapes(shape: Map[K, D]): Seq[Shape] = shape.values.flatMap(ev.shapes).toSeq
-      override def map(shape: Map[K, D], converter: Shape => Shape): Map[K, D] = shape.mapValues(ev.map(_, converter))
+
+      override def map(shape: Map[K, D], converter: Shape => Shape): Map[K, D] = {
+        shape.view.mapValues(ev.map(_, converter)).toMap
+      }
 
       override def decodeShape(
           shape: Map[K, D],

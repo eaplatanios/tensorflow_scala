@@ -15,13 +15,11 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.Tensor
-
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import java.nio.file.Path
 
 import scala.util.matching.Regex
@@ -50,8 +48,12 @@ trait Summary {
       family: String = null
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
-      val summary = Summary.tensorSummary(tensor, tag, Tensor.empty[String], scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
+      val summary = Summary.tensorSummary(
+        tensor,
+        Tensor.fill[String](Shape())(tag).toOutput,
+        Tensor.empty[String].toOutput,
+        scope)
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary.asInstanceOf[Output[Any]]))
       summary
     }, name, family)
   }
@@ -73,8 +75,8 @@ trait Summary {
       family: String = null
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
-      val summary = Summary.scalarSummary(value, tag, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
+      val summary = Summary.scalarSummary(value, Tensor.fill[String](Shape())(tag).toOutput, scope)
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary.asInstanceOf[Output[Any]]))
       summary
     }, name, family)
   }
@@ -96,8 +98,8 @@ trait Summary {
       family: String = null
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
-      val summary = Summary.histogramSummary(values, tag, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
+      val summary = Summary.histogramSummary(values, Tensor.fill[String](Shape())(tag).toOutput, scope)
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary.asInstanceOf[Output[Any]]))
       summary
     }, name, family)
   }
@@ -118,14 +120,18 @@ trait Summary {
   def image[T: TF : IsReal](
       name: String,
       tensor: Output[T],
-      badColor: Tensor[UByte] = Tensor(UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
+      badColor: Tensor[UByte] = Tensor(
+        Tensor.fill[UByte](Shape())(UByte(255.toByte)),
+        Tensor.fill[UByte](Shape())(UByte(0.toByte)),
+        Tensor.fill[UByte](Shape())(UByte(0.toByte)),
+        Tensor.fill[UByte](Shape())(UByte(255.toByte))),
       maxOutputs: Int = 3,
       collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES),
       family: String = null
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
-      val summary = Summary.imageSummary(tensor, badColor, tag, maxOutputs, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
+      val summary = Summary.imageSummary(tensor, badColor, Tensor.fill[String](Shape())(tag).toOutput, maxOutputs, scope)
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary.asInstanceOf[Output[Any]]))
       summary
     }, name, family)
   }
@@ -152,8 +158,8 @@ trait Summary {
       family: String = null
   ): Output[String] = {
     Summary.scoped((scope, tag) => {
-      val summary = Summary.audioSummary(tensor, samplingRate, tag, maxOutputs, scope)
-      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary))
+      val summary = Summary.audioSummary(tensor, samplingRate, Tensor.fill[String](Shape())(tag).toOutput, maxOutputs, scope)
+      collections.foreach(key => Op.currentGraph.addToCollection(key)(summary.asInstanceOf[Output[Any]]))
       summary
     }, name, family)
   }
@@ -177,7 +183,7 @@ trait Summary {
     val cleanedName = Summary.sanitizeName(name)
     Op.nameScope(cleanedName) {
       val merged = Summary.mergeSummaries(summaries.toSeq, cleanedName)
-      collections.foreach(k => Op.currentGraph.addToCollection(k)(merged))
+      collections.foreach(k => Op.currentGraph.addToCollection(k)(merged.asInstanceOf[Output[Any]]))
       merged
     }
   }
@@ -441,7 +447,12 @@ object Summary extends Summary {
     Op.Builder[(Output[Resource], Output[String], Output[Int], Output[Int], Output[String]), Unit](
       opType = "CreateSummaryFileWriter",
       name = name,
-      input = (writerHandle, workingDir.toString, queueCapacity, flushFrequency, filenameSuffix)
+      input = (
+          writerHandle,
+          Tensor.fill[String](Shape())(workingDir.toString).toOutput,
+          Tensor.fill[Int](Shape())(queueCapacity).toOutput,
+          Tensor.fill[Int](Shape())(flushFrequency).toOutput,
+          Tensor.fill[String](Shape())(filenameSuffix).toOutput)
     ).build()
   }
 

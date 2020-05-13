@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
 import java.util.zip.GZIPInputStream
 
+import scala.collection.compat._
 import scala.collection.mutable
 
 /** Loader for the PTB raw data from
@@ -131,11 +132,11 @@ object PTBLoader extends Loader {
       tokens ++= line.replace("\n", "<eos>").split("\\s+").toSeq
       line = reader.readLine()
     }
-    tokens
+    tokens.toSeq
   }
 
   private def buildVocabulary(tokens: Seq[String]): Map[String, Int] = {
-    val counts = tokens.groupBy(identity).mapValues(_.size)
+    val counts = tokens.groupBy(identity).view.mapValues(_.size).toMap
     val sorted = counts.toSeq.sortBy(-_._2)
     sorted.map(_._1).zipWithIndex.toMap
   }

@@ -18,7 +18,10 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
-import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
+import org.platanios.tensorflow.api.ops.{NN, Op, Output}
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /** The Gated Recurrent Unit (GRU) cell.
   *
@@ -62,12 +65,18 @@ class GRUCell[T: TF : IsNotQuantized] protected (
         throw new IllegalArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
       if (output.shape(1) == -1)
         throw new IllegalArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
-      val gateIn = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, state), axis = 1), gateKernel), gateBias)
-      val value = Basic.splitEvenly(Math.sigmoid(gateIn), 2, axis = 1)
+      val gateIn = NN.addBias(Math.matmul(
+        Basic.concatenate(Seq(output, state), axis = Tensor.ones[Int](Shape()).toOutput),
+        gateKernel
+      ), gateBias)
+      val value = Basic.splitEvenly(Math.sigmoid(gateIn), 2, axis = Tensor.ones[Int](Shape()).toOutput)
       val (r, u) = (value(0), value(1))
       val rState = Math.multiply(r, state)
-      val c = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, rState), axis = 1), candidateKernel), candidateBias)
-      val newH = Math.add(Math.multiply(u, state), Math.multiply(Basic.ones[T](Shape()) - u, c))
+      val c = NN.addBias(Math.matmul(
+        Basic.concatenate(Seq(output, rState), axis = Tensor.ones[Int](Shape()).toOutput),
+        candidateKernel
+      ), candidateBias)
+      val newH = Math.add(Math.multiply(u, state), Math.multiply(Basic.ones[T](Shape().toOutput) - u, c))
       Tuple(newH, newH)
     }
   }

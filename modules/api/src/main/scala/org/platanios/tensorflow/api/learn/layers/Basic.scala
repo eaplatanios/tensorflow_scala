@@ -22,9 +22,7 @@ import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.ops.Output
 
-import scala.collection.TraversableLike
-import scala.collection.generic.CanBuildFrom
-import scala.language.higherKinds
+import scala.collection.compat.Factory
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -35,7 +33,7 @@ object Basic {
     type Compose[T, R, S] = layers.Compose[T, R, S]
     type Concatenate[T, R] = layers.Concatenate[T, R]
     type Map[T, R, MR] = layers.Map[T, R, MR]
-    type MapSeq[T, R, S, CC[A] <: TraversableLike[A, CC[A]]] = layers.MapSeq[T, R, S, CC]
+    type MapSeq[T, R, S, CC[A] <: Iterable[A]] = layers.MapSeq[T, R, S, CC]
     type Squeeze[T] = layers.Squeeze[T]
     type Stack[T] = layers.Stack[T]
     type Flatten[T] = layers.Flatten[T]
@@ -98,19 +96,17 @@ case class Map[T, R, MR](
   }
 }
 
-case class MapSeq[T, R, S, CC[A] <: TraversableLike[A, CC[A]]](
+case class MapSeq[T, R, S, CC[A] <: Iterable[A]](
     override val name: String,
     layer: Layer[CC[T], CC[R]],
     mapLayer: Layer[R, S]
 )(implicit
-    cbfRS: CanBuildFrom[CC[R], S, CC[S]]
+    ccFactory: Factory[S, CC[S]]
 ) extends Layer[CC[T], CC[S]](name) {
   override val layerType: String = s"Map[$layer]"
 
   override def forwardWithoutContext(input: CC[T])(implicit mode: Mode): CC[S] = {
-    layer(input)
-        .asInstanceOf[TraversableLike[R, CC[R]]]
-        .map[S, CC[S]](mapLayer(_))(cbfRS)
+    layer(input).asInstanceOf[Iterable[R]].map(mapLayer(_)).to(ccFactory)
   }
 }
 
@@ -123,7 +119,7 @@ case class Squeeze[T: TF](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Basic.squeeze(input, axes, name = name)
+    ops.basic.Basic.squeeze(input, axes, name = name)
   }
 }
 
@@ -135,7 +131,7 @@ case class Stack[T: TF](
   override def forwardWithoutContext(
       input: Seq[Output[T]]
   )(implicit mode: Mode): Output[T] = {
-    ops.Basic.stack(input, axis, name = name)
+    ops.basic.Basic.stack(input, axis, name = name)
   }
 }
 
@@ -150,9 +146,9 @@ case class Flatten[T: TF](
     if (input.rank == 1) {
       input
     } else if (input.rank > -1 && input.shape(0) > -1) {
-      ops.Basic.reshape(input, Shape(input.shape(0), -1), name = name)
+      ops.basic.Basic.reshape(input, Shape(input.shape(0), -1), name = name)
     } else {
-      ops.Basic.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
+      ops.basic.Basic.reshape(input, Shape(-1) + input.shape.asArray.tail.product, name = name)
     }
   }
 }
@@ -166,7 +162,7 @@ case class Reshape[T: TF](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Basic.reshape(input, shape, name = name)
+    ops.basic.Basic.reshape(input, shape, name = name)
   }
 }
 
@@ -179,7 +175,7 @@ case class Transpose[T: TF](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Basic.transpose(input, permutation, name = name)
+    ops.basic.Basic.transpose(input, permutation, name = name)
   }
 }
 
@@ -192,6 +188,6 @@ case class OneHot[T: TF, I: TF : IsIntOrLongOrUByte](
   override def forwardWithoutContext(
       input: Output[I]
   )(implicit mode: Mode): Output[T] = {
-    ops.Basic.oneHot[T, I](input, numberOfLabels, name = name)
+    ops.basic.Basic.oneHot[T, I](input, numberOfLabels, name = name)
   }
 }

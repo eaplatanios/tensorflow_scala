@@ -28,6 +28,8 @@ import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.file.{Files, Path}
 import java.util.zip.GZIPInputStream
 
+import scala.collection.compat.immutable.LazyList
+
 /**
   * @author Emmanouil Antonios Platanios
   */
@@ -89,7 +91,7 @@ object MNISTLoader extends Loader {
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
-    Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+    LazyList.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
     val byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     outputStream.close()
     inputStream.close()
@@ -111,7 +113,7 @@ object MNISTLoader extends Loader {
     val inputStream = new GZIPInputStream(Files.newInputStream(path))
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
-    Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+    LazyList.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
     val byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
     outputStream.close()
     inputStream.close()

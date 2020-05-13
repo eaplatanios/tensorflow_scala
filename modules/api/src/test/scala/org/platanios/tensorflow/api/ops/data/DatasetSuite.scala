@@ -21,12 +21,15 @@ import org.platanios.tensorflow.api.core.exception.OutOfRangeException
 import org.platanios.tensorflow.api.core.types.INT32
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 
 import org.junit.Test
 import org.scalatestplus.junit.JUnitSuite
+
+import scala.collection.compat.immutable.LazyList
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -134,7 +137,7 @@ class DatasetSuite extends JUnitSuite {
   @Test def testDatasetFromGenerator(): Unit = using(Graph()) { graph =>
     Op.createWith(graph) {
       val dataset = Data.datasetFromGenerator(() => {
-        Stream(0, 1, 2, 3).map(Tensor[Int](_))
+        LazyList(0, 1, 2, 3).map(Tensor[Int](_))
       }, INT32, Shape(1))
       val iterator = dataset.createInitializableIterator()
       val initOp = iterator.initializer

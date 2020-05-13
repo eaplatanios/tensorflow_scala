@@ -19,9 +19,12 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
+
+import scala.collection.compat._
 
 /** Represents types that have a "zero" value (e.g., RNN states).
   *
@@ -156,7 +159,7 @@ object Zero {
           name: String
       ): Map[K, T] = {
         Op.nameScope(name) {
-          shape.mapValues(ev.zero(batchSize, _))
+          shape.view.mapValues(ev.zero(batchSize, _)).toMap
         }
       }
     }

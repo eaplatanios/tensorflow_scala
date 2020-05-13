@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory
 
 import java.nio.file.{Files, Path}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /** A directory loader that wraps a loader factory to load entries from a sequence of paths.
   *

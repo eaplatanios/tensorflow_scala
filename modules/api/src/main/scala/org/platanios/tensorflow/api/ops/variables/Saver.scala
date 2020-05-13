@@ -20,7 +20,8 @@ import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.types.{DataType, TF, IsIntOrLong}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.io.FileIO
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output, Text, UntypedOp}
+import org.platanios.tensorflow.api.ops.{Op, Output, Text, UntypedOp}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto
@@ -39,8 +40,8 @@ import java.nio.file.{Files, Path}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** A saver can save and restore variables and other saveable objects.
   *
@@ -258,7 +259,7 @@ class Saver private(
   /** Returns the sequence of the latest and not-yet-deleted checkpoint filenames, sorted from oldest to newest. You can
     * pass any of the returned values to `restore`. */
   def latestCheckpoints: Seq[Path] = {
-    lastCheckpoints.map(_._1)
+    lastCheckpoints.toSeq.map(_._1)
   }
 
   /** Recovers the internal saver state (holding the last checkpoints) after a crash.

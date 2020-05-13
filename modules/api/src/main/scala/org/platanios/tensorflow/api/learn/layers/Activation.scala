@@ -62,7 +62,7 @@ case class Sigmoid[T: TF : IsNotQuantized](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Math.sigmoid(input)
+    ops.math.Math.sigmoid(input)
   }
 }
 
@@ -74,7 +74,7 @@ case class LogSigmoid[T: TF : IsDecimal](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Math.logSigmoid(input)
+    ops.math.Math.logSigmoid(input)
   }
 }
 

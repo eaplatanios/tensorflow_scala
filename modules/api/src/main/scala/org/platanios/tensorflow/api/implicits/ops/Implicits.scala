@@ -13,10 +13,13 @@
  * the License.
  */
 
-package org.platanios.tensorflow.api.ops
+package org.platanios.tensorflow.api.implicits.ops
 
+import org.platanios.tensorflow.api.UntypedOp
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types._
+import org.platanios.tensorflow.api.ops.{Output, OutputLike, TensorArray}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 
@@ -24,17 +27,17 @@ import org.platanios.tensorflow.api.tensors.Tensor
   *
   * @author Emmanouil Antonios Platanios
   */
-private[api] trait Implicits
+trait Implicits
     extends Priority5Implicits
-        with control_flow.Implicits
-        with Basic.Implicits
-        with Clip.Implicits
-        with Embedding.Implicits
-        with Math.Implicits
-        with NN.Implicits
-        with Sparse.Implicits
-        with Statistics.Implicits
-        with Text.Implicits {
+        with ControlFlowImplicits
+        with BasicImplicits
+        with ClipImplicits
+        with EmbeddingImplicits
+        with MathImplicits
+        with NNImplicits
+        with SparseImplicits
+        with StatisticsImplicits
+        with TextImplicits {
   implicit def opFromOutputLike[T: TF](value: OutputLike[T]): UntypedOp = {
     if (value == null) null else value.op
   }

@@ -18,10 +18,14 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.{Graph, Indexer, Shape}
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.{Tensor, TensorOps}
 import org.platanios.tensorflow.api.tensors.ops.{Basic => TensorBasic, Cast => TensorCast, Math => TensorMath}
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp}
+
+import scala.collection.compat.immutable.ArraySeq
 
 /** Trait representing outputs of an op's computation.
   *
@@ -150,7 +154,7 @@ final case class Output[T] private(
     if (s == null) {
       Shape.unknown()
     } else {
-      Shape.fromSeq(s.map(_.toInt))
+      Shape.fromSeq(ArraySeq.unsafeWrapArray(s.map(_.toInt)))
     }
   }
 

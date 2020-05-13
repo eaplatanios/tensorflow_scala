@@ -20,6 +20,8 @@ import org.platanios.tensorflow.api.core.types.Variant
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
 import org.platanios.tensorflow.api.ops.{Op, Output}
 
+import scala.collection.compat.immutable.ArraySeq
+
 /** Contains implementations for some experimental dataset ops.
   *
   * @author Emmanouil Antonios Platanios
@@ -69,12 +71,12 @@ trait Experimental {
           inputDatasets.map(_.flatOutputShapes).reduceLeft[Seq[Shape]] {
             case (specificShapes, shapes) =>
               specificShapes.zip(shapes).map(p => {
-                Shape.fromSeq(p._1.asArray.zip(p._2.asArray).map {
+                Shape.fromSeq(ArraySeq.unsafeWrapArray(p._1.asArray.zip(p._2.asArray).map {
                   case (d1, d2) if d1 == d2 => d1
                   case (d1, d2) if d1 == -1 => d2
                   case (d1, d2) if d2 == -1 => d1
                   case _ => -1
-                })
+                }))
               })
           })
         Op.Builder[(Output[Variant], Seq[Output[Variant]]), Output[Variant]](

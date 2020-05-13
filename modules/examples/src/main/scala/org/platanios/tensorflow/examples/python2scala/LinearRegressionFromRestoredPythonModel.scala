@@ -90,8 +90,8 @@ object LinearRegressionFromRestoredPythonModel {
       inputs += input
       outputs += weight * input
     }
-    (tfi.reshape(tfi.stack[Double](inputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)),
-        tfi.reshape(tfi.stack[Double](outputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)))
+    (tfi.reshape(tfi.stack[Double](inputs.map(Tensor[Double](_)).toSeq), Tensor[Int](-1, 1)),
+        tfi.reshape(tfi.stack[Double](outputs.map(Tensor[Double](_)).toSeq), Tensor[Int](-1, 1)))
   }
 
   def printRestoredNodesAndOperations(

@@ -56,7 +56,7 @@ class SummarySaver protected (
     summaryWriter.foreach(_.flush())
   }
 
-  override protected def fetches: Seq[Output[Any]] = summary.toSeq
+  override protected def fetches: Seq[Output[Any]] = summary.toSeq.map(_.asUntyped)
   override protected def targets: Set[UntypedOp] = Set.empty
 
   override protected def onTrigger(

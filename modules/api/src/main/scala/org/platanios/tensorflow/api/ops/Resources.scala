@@ -15,8 +15,11 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.types.Resource
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
+import org.platanios.tensorflow.api.tensors
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Represents a TensorFlow resource.
@@ -90,7 +93,7 @@ object Resources extends Resources {
         val resourcesMask = Math.logicalNot(Basic.stack(resources.map(_.isInitialized).toSeq))
         // Get a 1-D string tensor containing all the resource names.
         val resourcesList = resources.map(_.handle.name).toSeq
-        val resourceNames = Basic.constant(resourcesList: Tensor[String])
+        val resourceNames = Basic.constant(tensors.ops.Basic.stack(resourcesList.map(Tensor.fill[String](Shape()))))
         // Return a 1-D tensor containing the names of all uninitialized resources.
         Basic.booleanMask(resourceNames, resourcesMask)
       }

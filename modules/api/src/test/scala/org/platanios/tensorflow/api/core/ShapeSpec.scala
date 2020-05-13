@@ -62,7 +62,7 @@ class ShapeSpec extends AnyFlatSpec with Matchers {
   }
 
   it must "work when creating shapes from sequences" in {
-    val shape = Shape.fromSeq(Array[Int](45, 2356, 54, 2))
+    val shape = Shape.fromSeq(Seq[Int](45, 2356, 54, 2))
     assert(shape.rank == 4)
     assert(shape.asArray sameElements Array[Int](45, 2356, 54, 2))
   }

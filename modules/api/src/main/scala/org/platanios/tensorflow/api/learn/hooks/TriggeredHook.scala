@@ -74,7 +74,7 @@ abstract class TriggeredHook(
         wantMetadata = wantMetadata))
     } else {
       Some(Hook.SessionRunArgs(
-        fetches = Seq[Output[Any]](step),
+        fetches = Seq[Output[Any]](step.asUntyped),
         targets = Set.empty))
     }
   }

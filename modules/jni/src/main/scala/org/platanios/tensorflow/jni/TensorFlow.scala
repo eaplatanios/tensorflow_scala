@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory
 import java.io.{IOException, InputStream}
 import java.nio.file.{Files, Path, StandardCopyOption}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * @author Emmanouil Antonios Platanios

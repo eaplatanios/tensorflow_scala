@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.ops.basic
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.TF
-import org.platanios.tensorflow.api.ops.{Basic, Op, Output}
+import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Contains ops related to in-place tensor operations.
@@ -62,8 +63,8 @@ trait Inplace {
     i match {
       case Some(index) if index.rank == 0 =>
         // Single 0-dim update.
-        val reshapedIndex = Basic.reshape(index, Tensor[Int](1))
-        val reshapedValues = Basic.expandDims(v, axis = 0)
+        val reshapedIndex = Basic.reshape(index, Tensor.ones[Int](Shape()).toOutput)
+        val reshapedValues = Basic.expandDims(v, axis = Tensor.zeros[Int](Shape()).toOutput)
         Op.Builder[(Output[T], Output[Int], Output[T]), Output[T]](
           opType = opType,
           name = name,
@@ -77,13 +78,13 @@ trait Inplace {
         ).build().output
       case None =>
         // Full tensor.
-        val reshapedInput = Basic.reshape(x, Tensor[Int](1, -1))
-        val reshapedValue = Basic.reshape(v, Tensor[Int](1, -1))
-        val indices = Tensor[Int](0)
+        val reshapedInput = Basic.reshape(x, Tensor(Tensor.ones[Int](Shape()), Tensor.fill[Int](Shape())(-1)).toOutput)
+        val reshapedValue = Basic.reshape(v, Tensor(Tensor.ones[Int](Shape()), Tensor.fill[Int](Shape())(-1)).toOutput)
+        val indices = Tensor.zeros[Int](Shape())
         val result = Op.Builder[(Output[T], Output[Int], Output[T]), Output[T]](
           opType = opType,
           name = name,
-          input = (reshapedInput, indices, reshapedValue)
+          input = (reshapedInput, indices.toOutput, reshapedValue)
         ).build().output
         Basic.reshape(result, Basic.shape(x))
     }

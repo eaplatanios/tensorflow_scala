@@ -29,6 +29,7 @@ import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.file.{Files, Path}
 import java.util.zip.GZIPInputStream
 
+import scala.collection.compat.immutable.LazyList
 import scala.collection.mutable
 
 /**
@@ -84,7 +85,7 @@ object STL10Loader extends Loader {
             val shape = Shape(numSamplesToRead, imageChannels, imageHeight, imageWidth)
             val outputStream = new ByteArrayOutputStream()
             var numBytesRead = 0
-            Stream.continually(inputStream.read(buffer))
+            LazyList.continually(inputStream.read(buffer))
                 .takeWhile(_ => numBytesRead <= numBytesToRead)
                 .foreach(numBytes => {
                   outputStream.write(buffer, 0, numBytes)
@@ -96,14 +97,14 @@ object STL10Loader extends Loader {
             parts.append(tensor.transpose(Tensor(0, 3, 2, 1)))
             numRemainingBytes -= numBytesToRead
           }
-          dataset = dataset.copy(unlabeledImages = tfi.concatenate(parts, axis = 0))
+          dataset = dataset.copy(unlabeledImages = tfi.concatenate(parts.toSeq, axis = 0))
         }
       } else if (Set(
         trainImagesFilename, trainLabelsFilename,
         testImagesFilename, testLabelsFilename).contains(entry.getName)) {
         val outputStream = new ByteArrayOutputStream(entry.getSize.toInt)
         val buffer = new Array[Byte](bufferSize)
-        Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+        LazyList.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
         val byteBuffer = ByteBuffer.wrap(outputStream.toByteArray).order(ByteOrder.BIG_ENDIAN)
         outputStream.close()
         entry.getName match {

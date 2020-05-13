@@ -18,11 +18,13 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types._
-import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor}
+import org.platanios.tensorflow.api.tensors
+import org.platanios.tensorflow.api.tensors.Tensor
 
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
+import scala.collection.compat._
 import scala.collection.immutable.ListMap
 import scala.collection.mutable
 
@@ -174,7 +176,7 @@ trait Parsing {
   def parseExample[T, R](
       serialized: Output[String],
       features: T,
-      debugNames: Output[String] = "",
+      debugNames: Output[String] = Tensor.fill[String](Shape())("").toOutput,
       name: String = "ParseExample"
   )(implicit ev: Parsing.Features.Aux[T, R]): R = {
     Op.nameScope(name) {
@@ -188,10 +190,11 @@ trait Parsing {
         input = (
             serialized,
             debugNames,
-            rawParameters.sparseKeys.map(key => Output.constant[String](key, name = s"SparseKeys/$key")),
-            rawParameters.denseKeys.map(key => Output.constant[String](key, name = s"DenseKeys/$key")),
+            rawParameters.sparseKeys.map(key =>
+              Output.constant[String](Tensor.fill[String](Shape())(key), name = s"SparseKeys/$key")),
+            rawParameters.denseKeys.map(key =>
+              Output.constant[String](Tensor.fill[String](Shape())(key), name = s"DenseKeys/$key")),
             rawParameters.denseDefaults.toSeq.map(default => {
-
               Output.constant(
                 value = default._2,
                 name = s"Padding${Op.normalizeNameScope(default._1)}")(TF.fromDataType(default._2.dataType))
@@ -209,7 +212,7 @@ trait Parsing {
             output.drop(3 * numSparse))
       }
 
-      val sparseComposedValues = (sparseIndices, sparseValues, sparseShapes).zipped.map(SparseOutput(_, _, _))
+      val sparseComposedValues = sparseIndices.lazyZip(sparseValues).lazyZip(sparseShapes).map(SparseOutput(_, _, _))
       val sparseParsed = rawParameters.sparseKeys.zip(sparseComposedValues).toMap
       val denseParsed = rawParameters.denseKeys.zip(denseValues).toMap
       ev.fromParsed(features, sparseParsed, denseParsed)
@@ -252,7 +255,7 @@ trait Parsing {
             output.slice(2 * numSparse, 3 * numSparse).map(_.asInstanceOf[Output[Long]]),
             output.drop(3 * numSparse))
       }
-      val sparseComposedValues = (sparseIndices, sparseValues, sparseShapes).zipped.map(SparseOutput(_, _, _))
+      val sparseComposedValues = sparseIndices.lazyZip(sparseValues).lazyZip(sparseShapes).map(SparseOutput(_, _, _))
       val sparseParsed = rawParameters.sparseKeys.zip(sparseComposedValues).toMap
       val denseParsed = rawParameters.denseKeys.zip(denseValues).toMap
       ev.fromParsed(features, sparseParsed, denseParsed)
@@ -374,7 +377,7 @@ object Parsing extends Parsing {
         override def toRawParameters(features: FixedLengthFeature[T]): RawParameters = {
           prepareRawParameters(Seq(RawParameters(
             denseKeys = Seq(features.key),
-            denseTypes = Seq(TF[T].dataType),
+            denseTypes = Seq(TF[T].dataType.asInstanceOf[DataType[Any]]),
             denseShapes = Seq(features.shape),
             denseDefaults = features.defaultValue
                 .map(v => ListMap(features.key -> v.asInstanceOf[Tensor[Any]]))
@@ -399,7 +402,7 @@ object Parsing extends Parsing {
         override def toRawParameters(features: VariableLengthFeature[T]): RawParameters = {
           prepareRawParameters(Seq(RawParameters(
             sparseKeys = Seq(features.key),
-            sparseTypes = Seq(TF[T].dataType))))
+            sparseTypes = Seq(TF[T].dataType.asInstanceOf[DataType[Any]]))))
         }
 
         override def fromParsed(
@@ -418,13 +421,13 @@ object Parsing extends Parsing {
 
         @throws[InvalidArgumentException]
         override def toRawParameters(features: SparseFeature[T]): RawParameters = {
-          val sparseKeys = mutable.ArrayBuffer.empty[String]
+          val sparseKeys  = mutable.ArrayBuffer.empty[String]
           val sparseTypes = mutable.ArrayBuffer.empty[DataType[Any]]
           features.indexKeys.foreach(indexKey => {
             val index = sparseKeys.indexOf(indexKey)
             if (index == -1) {
               sparseKeys.append(indexKey)
-              sparseTypes.append(INT64)
+              sparseTypes.append(INT64.asInstanceOf[DataType[Any]])
             }
           })
           val valueDataType = TF[T].dataType
@@ -437,11 +440,11 @@ object Parsing extends Parsing {
             }
           } else {
             sparseKeys.append(features.valueKey)
-            sparseTypes.append(valueDataType)
+            sparseTypes.append(valueDataType.asInstanceOf[DataType[Any]])
           }
           prepareRawParameters(Seq(RawParameters(
-            sparseKeys = sparseKeys,
-            sparseTypes = sparseTypes)))
+            sparseKeys = sparseKeys.toSeq,
+            sparseTypes = sparseTypes.toSeq)))
         }
 
         override def fromParsed(
@@ -452,7 +455,7 @@ object Parsing extends Parsing {
           Sparse.merge[T, Long](
             sparseIndices = features.indexKeys.map(k => sparseParsed(k).asInstanceOf[SparseOutput[Long]]),
             sparseValues = sparseParsed(features.valueKey).asInstanceOf[SparseOutput[T]],
-            depths = features.size.map(s => s: Tensor[Long]),
+            depths = features.size.map(Tensor.fill[Long](Shape())),
             alreadySorted = features.alreadySorted,
             name = s"${features.valueKey}/SparseMerge")
         }
@@ -511,7 +514,7 @@ object Parsing extends Parsing {
             sparseParsed: Map[String, SparseOutput[Any]],
             denseParsed: Map[String, Output[Any]]
         ): Map[K, R] = {
-          features.mapValues(f => ev.fromParsed(f, sparseParsed, denseParsed))
+          features.view.mapValues(f => ev.fromParsed(f, sparseParsed, denseParsed)).toMap
         }
       }
     }
@@ -596,19 +599,19 @@ object Parsing extends Parsing {
     private[Parsing] def prepareRawParameters(
         rawParameters: Seq[RawParameters]
     ): RawParameters = {
-      val sparseKeys = mutable.ListBuffer.empty[String]
-      val sparseTypes = mutable.ListBuffer.empty[DataType[Any]]
-      val denseKeys = mutable.ListBuffer.empty[String]
-      val denseTypes = mutable.ListBuffer.empty[DataType[Any]]
-      val denseShapes = mutable.ListBuffer.empty[Shape]
-      val denseDefaults = mutable.ListMap.empty[String, Tensor[Any]]
+      val sparseKeys    = mutable.ListBuffer.empty[String]
+      val sparseTypes   = mutable.ListBuffer.empty[DataType[Any]]
+      val denseKeys     = mutable.ListBuffer.empty[String]
+      val denseTypes    = mutable.ListBuffer.empty[DataType[Any]]
+      val denseShapes   = mutable.ListBuffer.empty[Shape]
+      val denseDefaults = mutable.TreeMap.empty[String, Tensor[Any]]
 
       rawParameters.foreach(parameters => {
         // Process sparse keys and types.
         parameters.sparseKeys.indices.foreach(keyIndex => {
-          val key = parameters.sparseKeys(keyIndex)
+          val key      = parameters.sparseKeys(keyIndex)
           val dataType = parameters.sparseTypes(keyIndex)
-          val index = sparseKeys.indexOf(key)
+          val index    = sparseKeys.indexOf(key)
           if (index > -1) {
             if (sparseTypes(index) != dataType) {
               throw InvalidArgumentException(
@@ -622,11 +625,11 @@ object Parsing extends Parsing {
 
         // Process dense keys, types, shapes, and defaults.
         parameters.denseKeys.indices.foreach(keyIndex => {
-          val key = parameters.denseKeys(keyIndex)
+          val key      = parameters.denseKeys(keyIndex)
           val dataType = parameters.denseTypes(keyIndex)
-          val shape = parameters.denseShapes(keyIndex)
-          val default = parameters.denseDefaults.get(key)
-          val index = denseKeys.indexOf(key)
+          val shape    = parameters.denseShapes(keyIndex)
+          val default  = parameters.denseDefaults.get(key)
+          val index    = denseKeys.indexOf(key)
           if (index > -1) {
             if (denseTypes(index) != dataType) {
               throw InvalidArgumentException(
@@ -657,8 +660,8 @@ object Parsing extends Parsing {
       var processedDenseDefaults = ListMap.empty[String, Tensor[Any]]
       for ((key, index) <- denseKeys.zipWithIndex) {
         val dataType = denseTypes(index)
-        val shape = denseShapes(index)
-        var default = denseDefaults.get(key)
+        val shape    = denseShapes(index)
+        var default  = denseDefaults.get(key)
         if (shape.rank > 0 && shape(0) == -1) {
           // For a variable stride dense shape, the default value should be a scalar padding value.
           default match {
@@ -667,7 +670,8 @@ object Parsing extends Parsing {
             case Some(value) =>
               // Reshape to a scalar to ensure the user gets an error if they provide a tensor that is not intended to
               // used as a padding value (i.e., containing zero or more than 2 elements).
-              default = Some(value.reshape(Shape()))
+              implicit val evTF: TF[Any] = TF.fromDataType(value.dataType)
+              default = Some(tensors.ops.Basic.reshape(value, Shape().toTensor))
           }
         } else if (default.isEmpty) {
           default = Some(Tensor.empty(dataType))
@@ -676,11 +680,11 @@ object Parsing extends Parsing {
       }
 
       RawParameters(
-        sparseKeys = sparseKeys,
-        sparseTypes = sparseTypes,
-        denseKeys = denseKeys,
-        denseTypes = denseTypes,
-        denseShapes = denseShapes,
+        sparseKeys = sparseKeys.toSeq,
+        sparseTypes = sparseTypes.toSeq,
+        denseKeys = denseKeys.toSeq,
+        denseTypes = denseTypes.toSeq,
+        denseShapes = denseShapes.toSeq,
         denseDefaults = processedDenseDefaults)
     }
   }

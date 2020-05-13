@@ -184,7 +184,9 @@ case class BatchNormalization[T: TF : IsDecimal](
   ): Output[Float] = {
     Op.nameScope(s"${variable.name}/AssignMovingAverage") {
       Op.colocateWith(Set(variable.op), ignoreExisting = true) {
-        val updateDelta = ops.Math.multiply(ops.Math.subtract(variable.value, value), ops.Math.subtract(1.0f, momentum))
+        val updateDelta = ops.math.Math.multiply(
+          ops.math.Math.subtract(variable.value, value),
+          ops.math.Math.subtract(1.0f, momentum))
         variable.assignSub(updateDelta)
       }
     }

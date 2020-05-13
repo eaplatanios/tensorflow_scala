@@ -83,7 +83,7 @@ class InMemoryEstimator[In: OutputStructure, TrainIn: OutputStructure, Out: Outp
   protected val model: TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn] = modelFunction(configuration)
 
   protected val stopHook              : Stopper                 = Stopper(stopCriteria)
-  protected var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*) + stopHook
+  protected var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*).union(Set(stopHook))
   protected var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
   protected val (globalStep, trainingOps, inferenceOps, evaluationOps, evaluationUpdateOps) = {

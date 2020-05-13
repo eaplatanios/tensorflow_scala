@@ -18,8 +18,10 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{TF, IsIntOrLong, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, OutputIndexedSlices, UntypedOp}
+import org.platanios.tensorflow.api.ops.{OutputIndexedSlices, UntypedOp}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.training.optimizers.schedules.{FixedSchedule, Schedule}
 import org.platanios.tensorflow.api.ops.variables.Variable
 

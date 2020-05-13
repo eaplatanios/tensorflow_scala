@@ -16,13 +16,14 @@
 package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
-import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Output}
+import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.proto.TensorShapeProto
 
-import scala.collection.JavaConverters._
+import scala.collection.compat.immutable.ArraySeq
+import scala.jdk.CollectionConverters._
 
 /** Represents the shape of a tensor computed by an op.
   *
@@ -322,7 +323,7 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
     if (slice == null)
       throw new IllegalArgumentException("The provided slice should not be 'null'.")
     if (array != null)
-      Shape.fromSeq(slice.toArray(rank).map(i => array(i)))
+      Shape.fromSeq(ArraySeq.unsafeWrapArray(slice.toArray(rank).map(i => array(i))))
     else
       Shape.unknown(slice.length(rank))
   }
@@ -458,6 +459,6 @@ object Shape {
     if (tensorShapeProto.getUnknownRank)
       Shape.unknown()
     else
-      fromSeq(tensorShapeProto.getDimList.asScala.map(_.getSize.toInt))
+      fromSeq(tensorShapeProto.getDimList.asScala.map(_.getSize.toInt).toSeq)
   }
 }

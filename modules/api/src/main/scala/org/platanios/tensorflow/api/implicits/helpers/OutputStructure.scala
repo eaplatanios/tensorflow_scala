@@ -23,6 +23,7 @@ import org.platanios.tensorflow.api.utilities.Collections
 
 import shapeless._
 
+import scala.collection.compat._
 import scala.language.higherKinds
 
 /** Data that can be emitted by [[Dataset]]s (i.e., the element types of all [[Dataset]]s are [[NestedStructure]]).
@@ -102,7 +103,7 @@ object OutputStructure {
       }
 
       override def outputs(output: Output[T]): Seq[Output[Any]] = {
-        Seq(output)
+        Seq(output.asUntyped)
       }
 
       override def decodeOutput(
@@ -128,7 +129,7 @@ object OutputStructure {
       }
 
       override def outputs(output: OutputIndexedSlices[T]): Seq[Output[Any]] = {
-        Seq(output.indices, output.values, output.denseShape)
+        Seq(output.indices.asUntyped, output.values.asUntyped, output.denseShape.asUntyped)
       }
 
       override def decodeOutput(
@@ -158,7 +159,7 @@ object OutputStructure {
       }
 
       override def outputs(output: SparseOutput[T]): Seq[Output[Any]] = {
-        Seq(output.indices, output.values, output.denseShape)
+        Seq(output.indices.asUntyped, output.values.asUntyped, output.denseShape.asUntyped)
       }
 
       override def decodeOutput(
@@ -188,7 +189,7 @@ object OutputStructure {
       }
 
       override def outputs(output: TensorArray[T]): Seq[Output[Any]] = {
-        Seq(output.flow)
+        Seq(output.flow.asUntyped)
       }
 
       override def decodeOutput(
@@ -221,7 +222,7 @@ object OutputStructure {
       }
 
       override def outputs(arg: Dataset[T]): Seq[Output[Any]] = {
-        Seq(arg.createHandle())
+        Seq(arg.createHandle().asUntyped)
       }
 
       override def decodeOutput(
@@ -329,7 +330,7 @@ object OutputStructure {
           value: Map[K, T],
           converter: OutputStructure.Converter
       ): Map[K, T] = {
-        value.mapValues(ev.map(_, converter))
+        value.view.mapValues(ev.map(_, converter)).toMap
       }
     }
   }

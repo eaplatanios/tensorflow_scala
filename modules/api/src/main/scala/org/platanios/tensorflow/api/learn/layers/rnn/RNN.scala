@@ -59,7 +59,7 @@ class RNN[Out: OutputStructure, State: OutputStructure, OutShape, StateShape](
 
   override def forwardWithoutContext(input: Out)(implicit mode: Mode): Tuple[Out, State] = {
     val state = if (initialState == null) None else Some(initialState())
-    val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
+    val lengths = if (sequenceLengths == null) null else ops.basic.Basic.constant(sequenceLengths)
     val createdCell = cell.createCell(mode, evOutputToShapeOut.shape(input))
     ops.rnn.RNN.dynamicRNN(
       createdCell, input, state, timeMajor, parallelIterations,

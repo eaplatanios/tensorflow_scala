@@ -19,12 +19,14 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.api.tensors.ops.Basic
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 
 import java.nio.{ByteBuffer, ByteOrder}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, StandardOpenOption}
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.util.matching.Regex
 
 /** Contains helpers for dealing with Numpy (i.e., `.npy`) files.
@@ -53,7 +55,7 @@ object NPY {
 
     override def toString: String = {
       val fortran = if (fortranOrder) "True" else "False"
-      val shapeStr = if (shape.numElements == 1L) shape(0) + "," else shape.asArray.mkString(", ")
+      val shapeStr = if (shape.numElements == 1L) shape(0).toString + "," else shape.asArray.mkString(", ")
       s"{'descr': '$description', 'fortran_order': $fortran, 'shape': ($shapeStr), }"
     }
   }
@@ -91,7 +93,7 @@ object NPY {
       case headerPattern(description, fortranOrderString, shapeString) =>
         val fortranOrder = fortranOrderString == "True"
         val shape = shapeString.trim.split(", ").map(_.toInt)
-        Header[T](description, fortranOrder, Shape.fromSeq(shape))
+        Header[T](description, fortranOrder, Shape.fromSeq(ArraySeq.unsafeWrapArray(shape)))
       case _ => throw new Exception("wrong header")
     }
 
@@ -99,7 +101,10 @@ object NPY {
     byteBuffer.order(header.byteOrder)
     val numBytes = header.shape.numElements * header.dataType.byteSize.get
     if (header.fortranOrder)
-      Tensor.fromBuffer[T](Shape.fromSeq(header.shape.asArray.reverse), numBytes, byteBuffer).transpose()
+      Basic.transpose(Tensor.fromBuffer[T](
+        Shape.fromSeq(ArraySeq.unsafeWrapArray(header.shape.asArray.reverse)),
+        numBytes,
+        byteBuffer))
     else
       Tensor.fromBuffer[T](header.shape, numBytes, byteBuffer)
   }

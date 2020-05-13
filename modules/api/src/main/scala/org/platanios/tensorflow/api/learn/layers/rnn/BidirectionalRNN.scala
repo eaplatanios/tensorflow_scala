@@ -15,13 +15,14 @@
 
 package org.platanios.tensorflow.api.learn.layers.rnn
 
+import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape, Zero}
 import org.platanios.tensorflow.api.learn.Mode
 import org.platanios.tensorflow.api.learn.layers.Layer
 import org.platanios.tensorflow.api.learn.layers.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Basic
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Creates a bidirectional dynamic RNN layer.
@@ -68,7 +69,7 @@ class BidirectionalRNN[Out: OutputStructure, State: OutputStructure, OutShape, S
   override def forwardWithoutContext(input: Out)(implicit mode: Mode): (Tuple[Out, State], Tuple[Out, State]) = {
     val stateFw = if (initialStateFw == null) None else Some(initialStateFw())
     val stateBw = if (initialStateBw == null) None else Some(initialStateBw())
-    val lengths = if (sequenceLengths == null) null else ops.Basic.constant(sequenceLengths)
+    val lengths = if (sequenceLengths == null) null else ops.basic.Basic.constant(sequenceLengths)
     val inputShape = evOutputToShapeOut.shape(input)
     val createdCellFw = cellFw.createCell(mode, inputShape)
     val createdCellBw = cellBw.createCell(mode, inputShape)
@@ -86,7 +87,7 @@ class BidirectionalRNN[Out: OutputStructure, State: OutputStructure, OutShape, S
         val output = OutputStructure[Out].decodeOutput(
           raw._1.output,
           OutputStructure[Out].outputs(raw._1.output).zip(OutputStructure[Out].outputs(raw._2.output)).map(o => {
-            Basic.concatenate(Seq(o._1, o._2), -1)(TF.fromDataType(o._1.dataType))
+            Basic.concatenate(Seq(o._1, o._2), Tensor.fill[Int](Shape())(-1).toOutput)(TF.fromDataType(o._1.dataType))
           }))._1
         Tuple(output, (raw._1.state, raw._2.state))
       }

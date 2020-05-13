@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory
 
 import java.nio.file.{Files, Path, Paths}
 
+import scala.collection.compat._
 import scala.collection.mutable
 
 /** An [[EventMultiplexer]] manages access to multiple [[EventAccumulator]]s.
@@ -246,7 +247,9 @@ case class EventMultiplexer(
         .map(run => run -> accumulator(run).flatMap(_.pluginTagToContent(pluginName)))
         .filter(_._2.isDefined)
         .toMap
+        .view
         .mapValues(_.get)
+        .toMap
   }
 
   /** Returns a map from runs to sequences with paths to all the registered assets for the provided plugin name, for

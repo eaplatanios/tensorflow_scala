@@ -59,32 +59,57 @@ case class DataType[T] private[types](
 
   /** Returns `true` if this data type represents a non-quantized floating-point data type. */
   def isFloatingPoint: Boolean = {
-    Set[DataType[Any]](FLOAT16, FLOAT32, FLOAT64)
-        .contains(this.asInstanceOf[DataType[Any]])
+    Set[DataType[Any]](
+      FLOAT16.asInstanceOf[DataType[Any]],
+      FLOAT32.asInstanceOf[DataType[Any]],
+      FLOAT64.asInstanceOf[DataType[Any]]
+    ).contains(this.asInstanceOf[DataType[Any]])
   }
 
   /** Returns `true` if this data type represents a complex data types. */
   def isComplex: Boolean = {
-    Set[DataType[Any]](COMPLEX64, COMPLEX128)
-        .contains(this.asInstanceOf[DataType[Any]])
+    Set[DataType[Any]](
+      COMPLEX64.asInstanceOf[DataType[Any]],
+      COMPLEX128.asInstanceOf[DataType[Any]]
+    ).contains(this.asInstanceOf[DataType[Any]])
   }
 
   /** Returns `true` if this data type represents a non-quantized integer data type. */
   def isInteger: Boolean = {
-    Set[DataType[Any]](INT8, INT16, INT32, INT64, UINT8, UINT16, UINT32, UINT64)
-        .contains(this.asInstanceOf[DataType[Any]])
+    Set[DataType[Any]](
+      INT8.asInstanceOf[DataType[Any]],
+      INT16.asInstanceOf[DataType[Any]],
+      INT32.asInstanceOf[DataType[Any]],
+      INT64.asInstanceOf[DataType[Any]],
+      UINT8.asInstanceOf[DataType[Any]],
+      UINT16.asInstanceOf[DataType[Any]],
+      UINT32.asInstanceOf[DataType[Any]],
+      UINT64.asInstanceOf[DataType[Any]]
+    ).contains(this.asInstanceOf[DataType[Any]])
   }
 
   /** Returns `true` if this data type represents a quantized data type. */
   def isQuantized: Boolean = {
-    Set[DataType[Any]](BFLOAT16, QINT8, QINT16, QINT32, QUINT8, QUINT16)
-        .contains(this.asInstanceOf[DataType[Any]])
+    Set[DataType[Any]](
+      BFLOAT16.asInstanceOf[DataType[Any]],
+      QINT8.asInstanceOf[DataType[Any]],
+      QINT16.asInstanceOf[DataType[Any]],
+      QINT32.asInstanceOf[DataType[Any]],
+      QUINT8.asInstanceOf[DataType[Any]],
+      QUINT16.asInstanceOf[DataType[Any]]
+    ).contains(this.asInstanceOf[DataType[Any]])
   }
 
   /** Returns `true` if this data type represents a non-quantized unsigned data type. */
   def isUnsigned: Boolean = {
-    Set[DataType[Any]](UINT8, UINT16, UINT32, UINT64, QUINT8, QUINT16)
-        .contains(this.asInstanceOf[DataType[Any]])
+    Set[DataType[Any]](
+      UINT8.asInstanceOf[DataType[Any]],
+      UINT16.asInstanceOf[DataType[Any]],
+      UINT32.asInstanceOf[DataType[Any]],
+      UINT64.asInstanceOf[DataType[Any]],
+      QUINT8.asInstanceOf[DataType[Any]],
+      QUINT16.asInstanceOf[DataType[Any]]
+    ).contains(this.asInstanceOf[DataType[Any]])
   }
 
   /** Returns `true` if this data type represents a numeric data type. */

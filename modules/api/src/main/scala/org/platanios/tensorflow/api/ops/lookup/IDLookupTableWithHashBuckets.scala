@@ -19,7 +19,9 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.core.types.{DataType, INT64, TF, IsStringOrInteger}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.math.Math
 
 /** String to ID lookup table wrapper that assigns out-of-vocabulary keys to buckets.
   *

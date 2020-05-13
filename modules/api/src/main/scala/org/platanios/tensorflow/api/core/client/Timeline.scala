@@ -23,8 +23,9 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import org.slf4j.LoggerFactory
 
+import scala.collection.compat._
 import scala.collection.mutable
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.matching.Regex
 
 /** Helper for visualizing execution timelines of TensorFlow steps.
@@ -538,7 +539,7 @@ object Timeline {
         pid = Some(processID),
         tid = Some(0),
         ts = Some(timestamp),
-        args = Some(counters.mapValues(_.asJson)))
+        args = Some(counters.view.mapValues(_.asJson).toMap))
       this
     }
 

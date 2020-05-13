@@ -20,8 +20,10 @@ import org.platanios.tensorflow.api.core.Graph.Keys.{OpCollectionKey, OutputColl
 import org.platanios.tensorflow.api.core.exception.{InvalidShapeException, ShapeMismatchException}
 import org.platanios.tensorflow.api.core.types.{TF, IsNotQuantized}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Checks, Math, Op, Output, Sets, UntypedOp}
+import org.platanios.tensorflow.api.ops.{Checks, Op, Output, Sets, UntypedOp}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.variables.{Initializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
 

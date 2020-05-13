@@ -16,11 +16,14 @@
 package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.Math.matmul
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tf._
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import scala.collection.compat._
+import scala.collection.compat.immutable.LazyList
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -228,7 +231,7 @@ class OpSpec extends AnyFlatSpec with Matchers {
       createWith(deviceFunction = Some(matmulOnGPU)) {
         val c = constant(Tensor(Tensor(1.0), Tensor(1.0)))
         assert(c.device == "/device:CPU:0")
-        val m = matmul(c, constant(Tensor(Tensor(2.0))))
+        val m = Math.matmul(c, constant(Tensor(Tensor(2.0))))
         assert(m.device == "/device:GPU:0")
       }
     }
@@ -434,7 +437,7 @@ class OpSpec extends AnyFlatSpec with Matchers {
   // TODO: Add name scope exceptions spec.
 
   "'stripNameScope' and 'prependNameScope'" must "work correctly whether or not 'loc:@' is used" in {
-    val names = Array[String](
+    val names                  = Array[String](
       "hidden1/hidden1/weights", // Same prefix. Should strip.
       "hidden1///hidden1/weights", // Extra '/'. Should strip.
       "^hidden1/hidden1/weights", // Same prefix. Should strip.
@@ -442,17 +445,17 @@ class OpSpec extends AnyFlatSpec with Matchers {
       "hhidden1/hidden1/weights", // Different prefix. Should keep.
       "hidden1" // Not a prefix. Should keep.
     )
-    val expectedStripedNames = Array[String](
+    val expectedStripedNames   = Array[String](
       "hidden1/weights", "hidden1/weights", "^hidden1/weights", "loc:@hidden1/weights", "hhidden1/hidden1/weights",
       "hidden1")
     val expectedPrependedNames = Array[String](
       "hidden2/hidden1/weights", "hidden2/hidden1/weights", "^hidden2/hidden1/weights", "loc:@hidden2/hidden1/weights",
       "hidden2/hhidden1/hidden1/weights", "hidden2/hidden1")
-    val nameScopeToStrip = "hidden1"
-    val nameScopeToPrepend = "hidden2"
-    (names, expectedStripedNames, expectedPrependedNames).zipped
+    val nameScopeToStrip       = "hidden1"
+    val nameScopeToPrepend     = "hidden2"
+    names.lazyZip(expectedStripedNames).lazyZip(expectedPrependedNames)
         .foreach((name, expectedStripedName, expectedPrependedName) => {
-          val strippedName = Op.stripNameScope(nameScope = nameScopeToStrip, name = name)
+          val strippedName  = Op.stripNameScope(nameScope = nameScopeToStrip, name = name)
           val prependedName = Op.prependNameScope(nameScope = nameScopeToPrepend, name = strippedName)
           assert(strippedName == expectedStripedName)
           assert(prependedName == expectedPrependedName)

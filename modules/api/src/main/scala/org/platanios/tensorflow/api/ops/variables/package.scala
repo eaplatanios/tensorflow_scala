@@ -175,7 +175,7 @@ package object variables {
     ): Variable[T] = {
       val actualInitializer = Op.initializationScope {
         if (initializer == null)
-          defaultInitializer(name, dataType)
+          defaultInitializer(name, dataType.asInstanceOf[DataType[Any]])
         else
           initializer
       }

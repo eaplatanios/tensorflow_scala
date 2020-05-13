@@ -24,6 +24,8 @@ import org.platanios.tensorflow.api.utilities.Collections
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
+import scala.collection.compat._
+
 /** Type trait used to map structures of tensors to structures of symbolic tensors.
   *
   * @author Emmanouil Antonios Platanios
@@ -388,7 +390,7 @@ object OutputToShape {
       }
 
       override def shape(output: Map[K, T]): Map[K, ev.S] = {
-        output.mapValues(o => ev.shape(o))
+        output.view.mapValues(o => ev.shape(o)).toMap
       }
 
       override def decodeShape(
@@ -407,7 +409,7 @@ object OutputToShape {
           shape: Option[Map[K, ev.S]],
           converter: OutputStructure.Converter
       ): Map[K, T] = {
-        val shapes = shape.map(_.mapValues(Option(_))).getOrElse(value.mapValues(_ => None))
+        val shapes = shape.map(_.view.mapValues(Option(_)).toMap).getOrElse(value.view.mapValues(_ => None).toMap)
         (value.keys ++ shapes.keys).map(k => k -> ev.map(value(k), shapes(k), converter)).toMap
       }
     }

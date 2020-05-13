@@ -23,8 +23,8 @@ import com.google.protobuf.ByteString
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** Writes `Summary` protocol buffers to event files for use with TensorBoard.
   *
