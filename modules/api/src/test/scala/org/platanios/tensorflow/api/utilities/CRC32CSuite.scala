@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.utilities
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
 /**

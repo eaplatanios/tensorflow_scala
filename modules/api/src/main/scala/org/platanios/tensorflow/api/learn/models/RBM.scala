@@ -21,7 +21,9 @@ import org.platanios.tensorflow.api.core.types.{IsIntOrLongOrHalfOrFloatOrDouble
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.learn.{Counter, Model, TrainableModel}
 import org.platanios.tensorflow.api.learn.layers.Input
-import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output, Random}
+import org.platanios.tensorflow.api.ops.{NN, Op, Output, Random}
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.training.optimizers.Optimizer
 import org.platanios.tensorflow.api.ops.variables.{RandomNormalInitializer, Variable, ZerosInitializer}

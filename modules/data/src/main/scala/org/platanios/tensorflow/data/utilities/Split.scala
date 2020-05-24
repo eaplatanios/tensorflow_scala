@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.data.utilities
 
+import scala.collection.compat._
 import scala.util.Random
 
 /**
@@ -38,7 +39,7 @@ case class UniformSplit(
   @throws[IllegalArgumentException]
   override def apply(trainPortion: Float): (Seq[Int], Seq[Int]) = {
     require(trainPortion >= 0.0f && trainPortion <= 1.0f, "'trainPortion' must be in [0.0f, 1.0f].")
-    val permutedIndices = random.shuffle[Int, Seq](0 until numSamples)
+    val permutedIndices = random.shuffle((0 until numSamples).toList)
     val numTrainSamples = math.floor(numSamples * trainPortion).toInt
     (permutedIndices.take(numTrainSamples), permutedIndices.drop(numTrainSamples))
   }
@@ -51,9 +52,9 @@ case class UniformStratifiedSplit(
   @throws[IllegalArgumentException]
   override def apply(trainPortion: Float): (Seq[Int], Seq[Int]) = {
     require(trainPortion >= 0.0f && trainPortion <= 1.0f, "'trainPortion' must be in [0.0f, 1.0f].")
-    val (trainIndices, testIndices) = labels.zipWithIndex.groupBy(_._1).mapValues(_.map(_._2)).map({
+    val (trainIndices, testIndices) = labels.zipWithIndex.groupBy(_._1).view.mapValues(_.map(_._2)).toMap.map({
       case (_, indices) =>
-        val permutedIndices = random.shuffle[Int, Seq](indices)
+        val permutedIndices = random.shuffle(indices)
         val numTrainSamples = math.floor(indices.size * trainPortion).toInt
         (permutedIndices.take(numTrainSamples), permutedIndices.drop(numTrainSamples))
     }).unzip

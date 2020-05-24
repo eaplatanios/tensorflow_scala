@@ -21,6 +21,8 @@ import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexed
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
+import scala.collection.compat._
+
 /** Type trait used to map structures of tensors to structures of symbolic tensors.
   *
   * @author Emmanouil Antonios Platanios
@@ -75,9 +77,9 @@ object TensorToOutput {
 
       override def output(tensor: TensorIndexedSlices[T]): OutputIndexedSlices[T] = {
         OutputIndexedSlices(
-          indices = tensor.indices,
+          indices = tensor.indices.toOutput,
           values = tensor.values.toOutput,
-          denseShape = tensor.denseShape)
+          denseShape = tensor.denseShape.toOutput)
       }
     }
   }
@@ -92,9 +94,9 @@ object TensorToOutput {
 
       override def output(tensor: SparseTensor[T]): SparseOutput[T] = {
         SparseOutput(
-          indices = tensor.indices,
+          indices = tensor.indices.toOutput,
           values = tensor.values.toOutput,
-          denseShape = tensor.denseShape)
+          denseShape = tensor.denseShape.toOutput)
       }
     }
   }
@@ -142,7 +144,7 @@ object TensorToOutput {
       }
 
       override def output(tensor: Map[K, T]): Map[K, ev.O] = {
-        tensor.mapValues(t => ev.output(t))
+        tensor.view.mapValues(t => ev.output(t)).toMap
       }
     }
   }

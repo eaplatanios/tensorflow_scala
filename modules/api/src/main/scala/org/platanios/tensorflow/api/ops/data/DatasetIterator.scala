@@ -264,7 +264,7 @@ object DatasetIterator {
       (handle, initializer)
     }
     new InitializableDatasetIterator[T](handle)(
-      initializer = initializer,
+      initializer = initializer.asUntyped,
       _outputDataTypes = dataset.outputDataTypes,
       _outputShapes = dataset.outputShapes,
       name = name)

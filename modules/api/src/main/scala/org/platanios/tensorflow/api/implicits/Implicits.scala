@@ -15,10 +15,10 @@
 
 package org.platanios.tensorflow.api.implicits
 
-import org.platanios.tensorflow.api.{core, learn, ops, tensors}
+import org.platanios.tensorflow.api.{core, learn, tensors}
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.implicits.helpers.{OpStructure, OutputStructure}
-import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output, OutputLike, TensorArray, UntypedOp}
 import org.platanios.tensorflow.api.ops.variables.Variable
 import org.platanios.tensorflow.api.tensors.Tensor
 

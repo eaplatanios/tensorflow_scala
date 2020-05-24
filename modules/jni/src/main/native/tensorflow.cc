@@ -14,6 +14,7 @@
  */
 
 #include "exception.h"
+#include "python_api.h"
 #include "tensorflow.h"
 #include "utilities.h"
 
@@ -22,7 +23,6 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
-#include "tensorflow/c/python_api.h"
 
 namespace {
 template <class T>
@@ -47,19 +47,11 @@ TF_Graph* require_graph_handle(JNIEnv *env, jlong handle) {
 }
 }
 
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPointer(
+JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPointer(
     JNIEnv* env, jobject object) {
   JavaVM* jvm;
   env->GetJavaVM(&jvm);
-  std::string pointer = pointerToString<JavaVM*>(jvm);
-  return env->NewStringUTF(pointer.c_str());
-}
-
-JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_callbackRegistryPointer(
-    JNIEnv* env, jobject object) {
-  jclass registry = env->FindClass("org/platanios/tensorflow/jni/ScalaCallbacksRegistry");
-  std::string pointer = pointerToString<jobject>(env->NewGlobalRef(reinterpret_cast<jobject>(registry)));
-  return env->NewStringUTF(pointer.c_str());
+  return reinterpret_cast<jlong>(jvm);
 }
 
 JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_version(

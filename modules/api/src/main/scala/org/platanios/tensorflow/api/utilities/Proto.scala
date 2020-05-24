@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.utilities
 
 import org.platanios.tensorflow.api.io.FileIO
 
-import com.google.protobuf.{GeneratedMessageV3, TextFormat}
+import com.google.protobuf.GeneratedMessageV3
 
 import java.nio.file.{Files, Path}
 
@@ -42,7 +42,7 @@ object Proto {
     }
     val filePath = directory.resolve(filename)
     if (asText)
-      FileIO.writeStringToFileAtomic(filePath, TextFormat.printToString(message))
+      FileIO.writeStringToFileAtomic(filePath, message.toString)
     else
       message.writeTo(Files.newOutputStream(filePath))
     filePath

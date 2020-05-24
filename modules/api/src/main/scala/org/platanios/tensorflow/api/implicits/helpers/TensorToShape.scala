@@ -23,6 +23,8 @@ import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexed
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
+import scala.collection.compat._
+
 /** Type trait used to map structures of tensors to structures of symbolic tensors.
   *
   * @author Emmanouil Antonios Platanios
@@ -129,7 +131,7 @@ object TensorToShape {
       override type S = Map[K, ev.S]
 
       override def shape(output: Map[K, T]): Map[K, ev.S] = {
-        output.mapValues(o => ev.shape(o))
+        output.view.mapValues(o => ev.shape(o)).toMap
       }
     }
   }

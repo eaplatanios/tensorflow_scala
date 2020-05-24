@@ -1,83 +1,30 @@
-/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
+/* Copyright 2017-19, Emmanouil Antonios Platanios. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
 
 #include "jvm_callback_op.h"
 
 #include "exception.h"
 #include "utilities.h"
 
-#include "tensorflow/c/c_api_internal.h"
+#include "tensorflow/c/ops.h"
+#include "tensorflow/c/kernels.h"
+#include "tensorflow/c/eager/c_api.h"
+#include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/platform/mutex.h"
 
 namespace tensorflow {
-REGISTER_OP("JVMCallback")
-    .Input("input: Tin")
-    .Output("output: Tout")
-    .Attr("id: int")
-    .Attr("jvm_pointer: string")
-    .Attr("registry_pointer: string")
-    .Attr("Tin: list(type) >= 0")
-    .Attr("Tout: list(type) >=0")
-    .SetIsStateful()
-    .SetShapeFn(shape_inference::UnknownShape)
-    .Doc(R"doc(
-Invokes a JVM callback function, `f` to compute `f(input)->output`.
-
-This operation is considered stateful. For a stateless version, see
-`JVMCallback`.
-
-id: A unique ID representing a registered JVM callback function
-  in this address space.
-jvm_pointer: A pointer to an existing JVM instance represented as a
-  string. This is the JVM that will be used when invoking this JVM
-  callback.
-registry_pointer: Pointer to the JVM callbacks registry class.
-input: List of tensors that will provide input to the op.
-output: Output tensors from the op.
-Tin: Data types of the inputs to the op.
-Tout: Data types of the outputs from the op.
-      The length of the list specifies the number of outputs.
-)doc");
-
-REGISTER_OP("JVMCallbackStateless")
-    .Input("input: Tin")
-    .Output("output: Tout")
-    .Attr("id: int")
-    .Attr("jvm_pointer: string")
-    .Attr("registry_pointer: string")
-    .Attr("Tin: list(type) >= 0")
-    .Attr("Tout: list(type) >= 0")
-    .SetShapeFn(shape_inference::UnknownShape)
-    .Doc(R"doc(
-A stateless version of `JVMCallback`.
-)doc");
-
-struct TFE_TensorHandle {
-  TFE_TensorHandle(const tensorflow::Tensor& t, tensorflow::Device* d,
-                   tensorflow::Device* op_device)
-      : handle(new tensorflow::TensorHandle(t, d, op_device, nullptr)) {}
-
-  TFE_TensorHandle(tensorflow::TensorHandle* handle) : handle(handle) {}
-
-  tensorflow::TensorHandle* handle;
-};
-
-Status TensorHandle::Tensor(const tensorflow::Tensor** t) {
-  *t = &tensor_;
-  return Status::OK();
-}
-
 namespace {
   // Given the 'call', prepares the inputs as a JNI long array that is appropriate for calling the registry.
   jlongArray MakeInputs(JVMCall* call) {
@@ -85,13 +32,10 @@ namespace {
     jlongArray inputs = call->env->NewLongArray(static_cast<jsize>(n));
     jlong* inputs_array = call->env->GetLongArrayElements(inputs, nullptr);
     for (int64 i = 0; i < n; ++i) {
-      const Tensor& t = call->inputs[i];
-      TFE_TensorHandle* tensor;
-      if (call->gpu) {
-        tensor = new TFE_TensorHandle(t, call->device, call->device);
-      } else {
-        tensor = new TFE_TensorHandle(t, nullptr, nullptr);
-      }
+      TF_Tensor* t = call->inputs[i];
+      std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+      TFE_TensorHandle* tensor = TFE_NewTensorHandle(t, status.get());
+      CHECK_STATUS(call->env, status.get(), nullptr);
       inputs_array[i] = reinterpret_cast<jlong>(tensor);
     }
     call->env->ReleaseLongArrayElements(inputs, inputs_array, 0);
@@ -99,31 +43,35 @@ namespace {
   }
 
   // Process the return values by converting them back to TensorFlow tensors and adding them to the call outputs.
-  void ProcessOutputs(JVMCall* call, jlongArray call_outputs, TF_Status* status) {
+  void ProcessOutputs(JVMCall* call, jlongArray call_outputs) {
     call->outputs.clear();
     jsize n = call->env->GetArrayLength(call_outputs);
     jlong* outputs_array = call->env->GetLongArrayElements(call_outputs, nullptr);
     for (int i = 0; i < n; ++i) {
       static_assert(sizeof(jlong) >= sizeof(TFE_TensorHandle*), "Cannot package C object pointers as a Java long");
       if (outputs_array[i] == 0) {
-        status->status = errors::InvalidArgument("One of the op output tensors has been disposed already.");
+        TF_Status* status = TF_NewStatus();
+        TF_SetStatus(status, TF_INVALID_ARGUMENT, "One of the op output tensors has been disposed already.");
+        TF_OpKernelContext_Failure(call->ctx, status);
         return;
       }
       auto* h = reinterpret_cast<TFE_TensorHandle*>(outputs_array[i]);
       if (h == nullptr) {
-        status->status = errors::InvalidArgument("Could not obtain tensor handle to one of the outputs.");
+        TF_Status* status = TF_NewStatus();
+        TF_SetStatus(status, TF_INVALID_ARGUMENT, "Could not obtain tensor handle to one of the outputs.");
+        TF_OpKernelContext_Failure(call->ctx, status);
         return;
       }
-      if (!status->status.ok()) return;
-      const tensorflow::Tensor* t =  nullptr;
-      status->status = h->handle->Tensor(&t);
-      call->outputs.push_back(*t);
+      std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+      TF_Tensor* t = TFE_TensorHandleResolve(h, status.get());
+      CHECK_STATUS(call->env, status.get(), void());
+      call->outputs.push_back(t);
     }
     call->env->ReleaseLongArrayElements(call_outputs, outputs_array, 0);
   }
 
   // Calls the registered JVM function through the registry.
-  Status CallJVMFunction(JVMCall* call) {
+  void CallJVMFunction(JVMCall* call) {
     // Prepare the call arguments.
     jlongArray call_inputs = MakeInputs(call);
 
@@ -139,7 +87,6 @@ namespace {
         jstring excString = (jstring) call->env->CallObjectMethod(exc, toString);
         const char* excCString = call->env->GetStringUTFChars(excString, 0);
         std::string excCppString(excCString);
-        tensorflow::StringPiece tf_exc_string(excCppString);
         call->env->ReleaseStringUTFChars(excString, excCString);
 
         // Get the exception class name and convert it to a TensorFlow error code.
@@ -148,33 +95,43 @@ namespace {
         jstring clsName(static_cast<jstring>(call->env->CallObjectMethod(excObjCls, getName)));
         const char* clsNameCString = call->env->GetStringUTFChars(clsName, 0);
         std::string clsNameCppString(clsNameCString);
-        int error_code = tf_error_code(clsNameCppString);
+        TF_Code error_code = tf_error_code(clsNameCppString);
         call->env->ReleaseStringUTFChars(clsName, clsNameCString);
         call->env->ExceptionClear();
-        return tensorflow::Status((tensorflow::error::Code) error_code, tf_exc_string);
+
+        TF_Status* status = TF_NewStatus();
+        TF_SetStatus(status, error_code, excCppString.c_str());
+        TF_OpKernelContext_Failure(call->ctx, status);
+        return;
       }
 
       if (outputs == nullptr) {
-        return errors::Unknown("Failed to run JVM callback function.");
+        TF_Status* status = TF_NewStatus();
+        TF_SetStatus(
+          status, TF_UNKNOWN, "Failed to run JVM callback function.");
+        TF_OpKernelContext_Failure(call->ctx, status);
+        return;
       }
 
       // Process the return values and convert them back to TensorFlow tensors.
-      auto* status = new TF_Status;
-      ProcessOutputs(call, outputs, status);
-      return status->status;
+      ProcessOutputs(call, outputs);
     } else {
-      return errors::Unknown("Failed to run JVM callback function. Could not find registry class or its 'call' method.");
+      TF_Status* status = TF_NewStatus();
+      TF_SetStatus(
+        status, TF_UNKNOWN, "Failed to run JVM callback function. Could not find registry class or its 'call' method.");
+      TF_OpKernelContext_Failure(call->ctx, status);
+      return;
     }
   }
 
   struct JVMWrapper {
-    JavaVM* jvm_;
     mutex lock;
-
+    JavaVM* jvm_;
 	  JVMWrapper(JavaVM* jvm_) : jvm_(jvm_) { }
   };
 
-  static std::vector<JVMWrapper*> jvms;
+  static std::map<JavaVM*, JVMWrapper*> jvms;
+  static mutex lock;
 
   struct JVMThreadHelper {
     JNIEnv* env;
@@ -183,8 +140,9 @@ namespace {
     JVMThreadHelper() : jvm_(nullptr) { }
 
     ~JVMThreadHelper() {
-      if (jvm_ != nullptr)
+      if (jvm_ != nullptr) {
         jvm_->DetachCurrentThread();
+      }
     }
 
     void set_jvm(JavaVM* jvm) {
@@ -194,103 +152,220 @@ namespace {
 	       return;
       }
       jvm_ = jvm;
-      int jvmEnvStatus = jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
-      if (jvmEnvStatus == JNI_EDETACHED)
-        jvm_->AttachCurrentThread((void**) &env, nullptr);
+      jvm_->GetEnv((void**) &env, JNI_VERSION_1_6);
+      jvm_->AttachCurrentThread((void**) &env, nullptr);
+	  }
+
+	  void unset_jvm(JavaVM* jvm) {
+	    if (jvm_ != nullptr) {
+        if (jvm_ != jvm)
+          throw "Multiple JVMs detected per thread.";
+         return;
+      }
+      jvm_ = jvm;
+      jvm_->DetachCurrentThread();
 	  }
   };
 
-  JVMWrapper& get_jvm_wrapper(JavaVM* jvm_) {
-    for (JVMWrapper* wrapper : jvms)
-      if (wrapper->jvm_ == jvm_)
-        return *wrapper;
+  JVMWrapper* get_jvm_wrapper(JavaVM* jvm_) {
+    mutex_lock guard(lock);
+    std::map<JavaVM*, JVMWrapper*>::iterator it = jvms.find(jvm_);
+    if (it != jvms.end())
+      return it->second;
+    JVMWrapper* jvm_wrapper_ = new JVMWrapper(jvm_);
+    jvms[jvm_] = jvm_wrapper_;
+    return jvm_wrapper_;
+  }
 
-    /* the JVM isn't in the array */
-    jvms.push_back(new JVMWrapper(jvm_));
-    return **jvms.rbegin();
+  void delete_jvm_wrapper(JavaVM* jvm_) {
+    mutex_lock guard(lock);
+    std::map<JavaVM*, JVMWrapper*>::iterator it = jvms.find(jvm_);
+    if (it != jvms.end()) {
+      jvms.erase(jvm_);
+      delete it->second;
+    }
   }
 
   thread_local JVMThreadHelper jvm_thread;
 }  // namespace
 
 
-class JVMCallbackOp : public OpKernel {
+struct JVMCallbackKernel {
+  int id_;
+  JVMWrapper* jvm_wrapper_;
+  jclass registry_;
+  jmethodID call_method_id_;
+};
 
-public:
-  explicit JVMCallbackOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("id", &id_));
-    std::string jvm_pointer;
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("jvm_pointer", &jvm_pointer));
-    jvm_ = pointerFromString<JavaVM*>(jvm_pointer);
-	  mutex_lock l(get_jvm_wrapper(jvm_).lock);
-    jvm_thread.set_jvm(jvm_);
-    JNIEnv* env = jvm_thread.env;
-    std::string registry_pointer;
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("registry_pointer", &registry_pointer));
-    registry_ = pointerFromString<jclass>(registry_pointer);
-    call_method_id_ = env->GetStaticMethodID(registry_, "call", "(I[J)[J");
-    gpu_ = ctx->device_type().type_string() == DEVICE_GPU;
-  }
+static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
+  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
 
-  void Compute(OpKernelContext* ctx) override {
-	  mutex_lock l(get_jvm_wrapper(jvm_).lock);
-    jvm_thread.set_jvm(jvm_);
+  struct JVMCallbackKernel* k = new struct JVMCallbackKernel;
+
+  TF_OpKernelConstruction_GetAttrInt32(ctx, "id", &(k->id_), status.get());
+  // CHECK_STATUS(env, status.get(), nullptr);
+
+  // Get the JVM pointer.
+  int32_t jvm_pointer_upper;
+  int32_t jvm_pointer_lower;
+  TF_OpKernelConstruction_GetAttrInt32(ctx, "jvm_pointer_upper", &jvm_pointer_upper, status.get());
+  // CHECK_STATUS(env, status.get(), nullptr);
+  TF_OpKernelConstruction_GetAttrInt32(ctx, "jvm_pointer_lower", &jvm_pointer_lower, status.get());
+  // CHECK_STATUS(env, status.get(), nullptr);
+  uint64_t jvm_pointer =
+    (((uint64_t) static_cast<uint32_t>(jvm_pointer_upper)) << 32) |
+    ((uint64_t) static_cast<uint32_t>(jvm_pointer_lower));
+  JavaVM* jvm_ = reinterpret_cast<JavaVM*>(jvm_pointer);
+  k->jvm_wrapper_ = get_jvm_wrapper(jvm_);
+  mutex_lock guard(k->jvm_wrapper_->lock);
+  jvm_thread.set_jvm(k->jvm_wrapper_->jvm_);
+
+  // Obtain a handle to the JVM environment and the callbacks registry class.
+  JNIEnv* env = jvm_thread.env;
+  k->registry_ = env->FindClass("org/platanios/tensorflow/jni/ScalaCallbacksRegistry");
+  k->call_method_id_ = env->GetStaticMethodID(k->registry_, "call", "(I[J)[J");
+  return k;
+};
+
+static void JVMCallbackKernel_Compute(void* kernel, TF_OpKernelContext* ctx) {
+  struct JVMCallbackKernel* k = static_cast<struct JVMCallbackKernel*>(kernel);
+  if (ctx != nullptr) {
+    mutex_lock guard(k->jvm_wrapper_->lock);
+    jvm_thread.set_jvm(k->jvm_wrapper_->jvm_);
     JNIEnv* env = jvm_thread.env;
 
     JVMCall call;
     call.env = env;
-    call.registry = registry_;
-    call.call_method_id = call_method_id_;
-    call.device = dynamic_cast<Device*>(ctx->device());
-    call.gpu = gpu_;
-    call.id = id_;
-    for (int i = 0; i < ctx->num_inputs(); ++i) {
-      call.inputs.push_back(ctx->input(i));
+    call.registry = k->registry_;
+    call.call_method_id = k->call_method_id_;
+    call.ctx = ctx;
+    call.id = k->id_;
+
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
+
+    for (int i = 0; i < TF_NumInputs(ctx); ++i) {
+      TF_Tensor* tensor;
+      TF_GetInput(ctx, i, &tensor, status.get());
+      CHECK_STATUS(env, status.get(), void());
+      call.inputs.push_back(tensor);
     }
 
-    Status s = CallJVMFunction(&call);
+    CallJVMFunction(&call);
 
-    OP_REQUIRES_OK(ctx, s);
+    if (static_cast<int32>(call.outputs.size()) != TF_NumOutputs(ctx)) {
+      TF_SetStatus(
+        status.get(), TF_INVALID_ARGUMENT,
+        (std::to_string(k->id_) + " returns " +
+        std::to_string(call.outputs.size()) +
+        " values, but expects to see " +
+        std::to_string(TF_NumOutputs(ctx)) + " values.").c_str());
+      TF_OpKernelContext_Failure(ctx, status.get());
+    }
 
-    OP_REQUIRES(ctx, static_cast<int32>(call.outputs.size()) == ctx->num_outputs(),
-                errors::InvalidArgument(id_, " returns ", call.outputs.size(),
-                                        " values, but expects to see ",
-                                        ctx->num_outputs(), " values."));
     for (size_t i = 0; i < call.outputs.size(); ++i) {
-      const auto& t = call.outputs[i];
-      OP_REQUIRES(
-          ctx, t.dtype() == output_type(i),
-          errors::InvalidArgument(i, "-th value returned by ", id_, " is ",
-                                  DataTypeString(t.dtype()), ", but expects ",
-                                  DataTypeString(output_type(i))));
-      ctx->set_output(i, t);
+      const TF_Tensor* t = call.outputs[i];
+      if (TF_TensorType(t) != TF_ExpectedOutputDataType(call.ctx, i)) {
+        TF_SetStatus(
+          status.get(), TF_INVALID_ARGUMENT,
+          (std::to_string(i) + " -th value returned by " +
+          std::to_string(k->id_) + " is " +
+          std::to_string(TF_TensorType(t)) + ", but expects " +
+          std::to_string(TF_ExpectedOutputDataType(call.ctx, i))).c_str());
+        TF_OpKernelContext_Failure(ctx, status.get());
+      }
+
+      TF_SetOutput(ctx, i, t, status.get());
+      CHECK_STATUS(env, status.get(), void());
     }
   }
-
-private:
-  int id_;
-  JavaVM* jvm_;
-  jclass registry_;
-  jmethodID call_method_id_;
-
-  // True if and only if this op has been placed on a GPU.
-  bool gpu_;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(JVMCallbackOp);
 };
 
-namespace jvm_callback_kernel_factory {
-auto jvmCallbackOpInitializer = []{
-  if (GetRegisteredKernelsForOp("JVMCallback").kernel_size() == 0) {
-    REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_CPU), JVMCallbackOp);
-    REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_CPU), JVMCallbackOp);
+static void JVMCallbackKernel_Delete(void* kernel) {
+  struct JVMCallbackKernel* k = static_cast<struct JVMCallbackKernel*>(kernel);
+  delete_jvm_wrapper(k->jvm_wrapper_->jvm_);
+  delete k;
+};
+
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpRegistered = []() {
+  if (SHOULD_REGISTER_OP("JVMCallback")) {
+    TF_Status* status = TF_NewStatus();
+    TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallback");
+    TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
+    TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
+    TF_OpDefinitionBuilderSetIsStateful(op_builder, true);
+    TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
+    TF_RegisterOpDefinition(op_builder, status);
+    CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback op registration failed: " << TF_Message(status);
+    TF_DeleteStatus(status);
   }
-  // TODO: !!!
-  // if (GetRegisteredKernelsForOp("JVMCallback").kernel_size() == 0) {
-  //   REGISTER_KERNEL_BUILDER(Name("JVMCallback").Device(DEVICE_GPU), JVMCallbackOp);
-  //   REGISTER_KERNEL_BUILDER(Name("JVMCallbackStateless").Device(DEVICE_GPU), JVMCallbackOp);
-  // }
-  return 0;
+  return true;
 }();
-}
+
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackStatelessOpRegistered = []() {
+  if (SHOULD_REGISTER_OP("JVMCallbackStateless")) {
+    TF_Status* status = TF_NewStatus();
+    TF_OpDefinitionBuilder* op_builder = TF_NewOpDefinitionBuilder("JVMCallbackStateless");
+    TF_OpDefinitionBuilderAddInput(op_builder, "input: Tin");
+    TF_OpDefinitionBuilderAddOutput(op_builder, "output: Tout");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "id: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_upper: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "jvm_pointer_lower: int");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tin: list(type) >= 0");
+    TF_OpDefinitionBuilderAddAttr(op_builder, "Tout: list(type) >=0");
+    TF_OpDefinitionBuilderSetIsStateful(op_builder, false);
+    TF_OpDefinitionBuilderSetShapeInferenceFunction(op_builder, &TF_ShapeInferenceContextSetUnknownShape);
+    TF_RegisterOpDefinition(op_builder, status);
+    CHECK_EQ(TF_GetCode(status), TF_OK) << "JVM callback stateless op registration failed: " << TF_Message(status);
+    TF_DeleteStatus(status);
+  }
+  return true;
+}();
+
+// A dummy static variable initialized by a lambda whose side-effect is to
+// register the JVM callback op kernel.
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackOpKernelRegistered = []() {
+  if (SHOULD_REGISTER_OP_KERNEL("JVMCallback")) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
+      TF_NewStatus(), TF_DeleteStatus);
+    TF_KernelBuilder* builder_cpu = TF_NewKernelBuilder(
+      "JVMCallback", "CPU", &JVMCallbackKernel_Create,
+      &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    TF_RegisterKernelBuilder("JVMCallbackKernel", builder_cpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
+
+    // TODO: [CALLBACK] Register GPU kernel.
+    // TF_KernelBuilder* builder_gpu = TF_NewKernelBuilder(
+    //   "JVMCallback", "GPU", &JVMCallbackKernel_Create,
+    //   &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    // TF_RegisterKernelBuilder("JVMCallbackKernel", builder_gpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
+  }
+  return true;
+}();
+
+TF_ATTRIBUTE_UNUSED static bool IsJVMCallbackStatelessOpKernelRegistered = []() {
+  if (SHOULD_REGISTER_OP_KERNEL("JVMCallbackStateless")) {
+    std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(
+      TF_NewStatus(), TF_DeleteStatus);
+    TF_KernelBuilder* builder_cpu = TF_NewKernelBuilder(
+      "JVMCallbackStateless", "CPU", &JVMCallbackKernel_Create,
+      &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_cpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
+
+    // TODO: [CALLBACK] Register GPU kernel.
+    // TF_KernelBuilder* builder_gpu = TF_NewKernelBuilder(
+    //   "JVMCallbackStateless", "GPU", &JVMCallbackKernel_Create,
+    //   &JVMCallbackKernel_Compute, &JVMCallbackKernel_Delete);
+    // TF_RegisterKernelBuilder("JVMCallbackStatelessKernel", builder_gpu, status.get());
+    // CHECK_STATUS(env, status.get(), 0);
+  }
+  return true;
+}();
+
 }  // namespace tensorflow

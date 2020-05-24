@@ -17,8 +17,7 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.jni.{Session => NativeSession}
-
-import org.tensorflow.framework.DeviceAttributes
+import org.platanios.tensorflow.proto.DeviceAttributes
 
 /** Contains helper methods for dealing with devices.
   *

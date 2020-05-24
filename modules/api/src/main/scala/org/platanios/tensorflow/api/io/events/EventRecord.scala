@@ -15,8 +15,9 @@
 
 package org.platanios.tensorflow.api.io.events
 
+import org.platanios.tensorflow.proto.TensorProto
+
 import com.google.protobuf.ByteString
-import org.tensorflow.framework.TensorProto
 
 /**
   * @author Emmanouil Antonios Platanios

@@ -15,11 +15,11 @@
 
 package org.platanios.tensorflow.api.io
 
+import org.platanios.tensorflow.api.utilities.{CRC32C, Coding}
+import org.platanios.tensorflow.proto.Example
+
 import java.io.BufferedOutputStream
 import java.nio.file.{Files, Path, StandardOpenOption}
-
-import org.platanios.tensorflow.api.utilities.{CRC32C, Coding}
-import org.tensorflow.example.Example
 
 /** Helper used to write `Example` protocol buffers to TensorFlow record files.
   *
@@ -27,7 +27,7 @@ import org.tensorflow.example.Example
   *
   * @author Emmanouil Antonios Platanios
   */
-class TFRecordWriter(val filePath: Path) {
+case class TFRecordWriter(filePath: Path) {
   protected var fileStream: BufferedOutputStream = {
     new BufferedOutputStream(Files.newOutputStream(
       filePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.APPEND))

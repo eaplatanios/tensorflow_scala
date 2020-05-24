@@ -18,7 +18,10 @@ package org.platanios.tensorflow.api.ops.rnn.cell
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
-import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
+import org.platanios.tensorflow.api.ops.{NN, Op, Output}
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
+import org.platanios.tensorflow.api.tensors.Tensor
 
 /** The most basic RNN cell.
   *
@@ -57,7 +60,10 @@ class BasicRNNCell[T: TF : IsNotQuantized] protected (
         throw new IllegalArgumentException(s"Input must be rank-2 (provided rank-${output.rank}).")
       if (output.shape(1) == -1)
         throw new IllegalArgumentException(s"Last axis of input shape (${output.shape}) must be known.")
-      val linear = NN.addBias(Math.matmul(Basic.concatenate(Seq(output, state), axis = 1), kernel), bias)
+      val linear = NN.addBias(Math.matmul(
+        Basic.concatenate(Seq(output, state), axis = Tensor.ones[Int](Shape()).toOutput),
+        kernel
+      ), bias)
       val newOutput = activation(linear)
       Tuple(newOutput, newOutput)
     }

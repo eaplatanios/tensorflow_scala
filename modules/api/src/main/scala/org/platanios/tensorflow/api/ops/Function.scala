@@ -20,14 +20,16 @@ import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToDataType, OutputToShape}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.variables.Variable.VariableGetter
 import org.platanios.tensorflow.api.ops.variables._
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Function => NativeFunction, Graph => NativeGraph}
-import org.tensorflow.framework.FunctionDef
+import org.platanios.tensorflow.proto.FunctionDef
 
+import scala.collection.compat._
 import scala.collection.mutable
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 // TODO: [FUNCTIONS] Add support for function descriptions.
 
@@ -205,13 +207,13 @@ object InstantiatedFunction {
       val inputNamesWithDefault = inputDataTypes.indices.map(i => s"input_$i")
       inputShape match {
         case None =>
-          inputs.appendAll((inputNamesWithDefault, inputDataTypes).zipped
+          inputs.appendAll(inputNamesWithDefault.lazyZip(inputDataTypes)
               .map((name, dataType) => {
                 Basic.placeholder(name = name)(TF.fromDataType(dataType))
               }))
         case Some(shape) =>
           inputs.appendAll(
-            (inputNamesWithDefault, inputDataTypes, evOutputToShapeI.shapeStructure.shapes(shape)).zipped
+            inputNamesWithDefault.lazyZip(inputDataTypes).lazyZip(evOutputToShapeI.shapeStructure.shapes(shape))
                 .map((name, dataType, shape) => {
                   Basic.placeholder(shape, name = name)(TF.fromDataType(dataType))
                 }))
@@ -224,8 +226,8 @@ object InstantiatedFunction {
           underlyingGetter = functionGraph.customVariableGetter
         ) {
           // Unflatten the inputs, pass them to the function, and then flatten the returned outputs.
-          val outputs = function(input.map(evOutputStructureI.decodeOutput(_, inputs)._1)
-              .getOrElse(evOutputToDataTypeI.decodeOutput(inputDataType, inputs)._1))
+          val outputs = function(input.map(evOutputStructureI.decodeOutput(_, inputs.toSeq)._1)
+              .getOrElse(evOutputToDataTypeI.decodeOutput(inputDataType, inputs.toSeq)._1))
           val flattenedOutputs = evOutputStructureO.outputs(outputs).map(functionGraph.capture)
           (evOutputStructureO.decodeOutput(outputs, flattenedOutputs)._1, flattenedOutputs)
         }
@@ -262,7 +264,7 @@ object InstantiatedFunction {
     }
     val instantiatedFunction = new InstantiatedFunction[I, O](
       functionName, inputNamesWithDefault, outputNamesWithDefault, outputs,
-      subFunctions, extraInputs, functionDef, name, nativeHandleWrapper, closeFn)
+      subFunctions, extraInputs.toSeq, functionDef, name, nativeHandleWrapper, closeFn)
     // Keep track of references in the Scala side and notify the native library when the function is not referenced
     // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
     // potential memory leak.

@@ -16,10 +16,11 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api._
-import org.platanios.tensorflow.api.ops.{Basic, Op, OutputIndexedSlices}
+import org.platanios.tensorflow.api.ops.{Op, OutputIndexedSlices}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.tensors.TensorIndexedSlices
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
 /**

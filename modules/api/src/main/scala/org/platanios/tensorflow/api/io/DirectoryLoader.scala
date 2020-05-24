@@ -21,7 +21,9 @@ import org.platanios.tensorflow.api.io.DirectoryLoader.DirectoryDeletedException
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
+
+import scala.jdk.CollectionConverters._
 
 /** A directory loader that wraps a loader factory to load entries from a sequence of paths.
   *
@@ -41,10 +43,10 @@ import java.nio.file.Path
   */
 case class DirectoryLoader[T](
     private val directory: Path,
-    private val loaderFactory: (Path) => Loader[T],
-    private val pathFilter: (Path) => Boolean = _ => true) {
+    private val loaderFactory: Path => Loader[T],
+    private val pathFilter: Path => Boolean = _ => true) {
   private[this] var _path: Path = _
-  private[this] var _loader                  : Loader[T] = _
+  private[this] var _loader                  : Loader[T]       = _
   private[this] var _outOfOrderWritesDetected: Boolean         = false
   private[this] var _finalizedSizes          : Map[Path, Long] = Map.empty[Path, Long]
 
@@ -133,7 +135,7 @@ case class DirectoryLoader[T](
         }
       } catch {
         case _: Throwable =>
-          if (!FileIO.exists(directory))
+          if (!Files.exists(directory))
             throw DirectoryDeletedException(s"Directory '$directory' has been permanently deleted.")
           false
       }
@@ -145,7 +147,7 @@ case class DirectoryLoader[T](
         maybeNextPath()
       } catch {
         case _: Throwable =>
-          if (!FileIO.exists(directory))
+          if (!Files.exists(directory))
             throw DirectoryDeletedException(s"Directory '$directory' has been permanently deleted.")
       }
       event
@@ -155,7 +157,11 @@ case class DirectoryLoader[T](
   /** Gets the next path to load entries from. This method also does the checking for out-of-order writes as it iterates
     * through the paths. */
   private[this] def nextPath(): Path = {
-    val sortedPaths = FileIO.listDirectories(directory).map(directory.resolve).filter(pathFilter).sortBy(_.toString)
+    val sortedPaths = Files.walk(directory, 1).iterator().asScala.drop(1)
+        .map(directory.resolve)
+        .filter(pathFilter)
+        .toSeq
+        .sortBy(_.toString)
     if (sortedPaths.isEmpty) {
       null
     } else if (_path == null) {
@@ -164,7 +170,7 @@ case class DirectoryLoader[T](
       val currentPathIndex = sortedPaths.indexOf(_path)
       // Do not bother checking if the paths are in GCS (which we cannot check) or if we have already detected an
       // out-of-order write.
-      if (!FileIO.isGCSPath(sortedPaths.head) && !outOfOrderWritesDetected) {
+      if (!sortedPaths.head.startsWith("gs://") && !outOfOrderWritesDetected) {
         // Check the previous `OUT_OF_ORDER_WRITE_CHECK_COUNT` paths for out of order writes.
         val outOfOrderCheckStart = math.max(0, currentPathIndex - OUT_OF_ORDER_WRITE_CHECK_COUNT)
         _outOfOrderWritesDetected = sortedPaths.slice(outOfOrderCheckStart, currentPathIndex).exists(hasOutOfOrderWrite)
@@ -177,10 +183,10 @@ case class DirectoryLoader[T](
     * any. If the size cannot be determined, an error is logged. */
   private[this] def setPath(path: Path): Unit = {
     val oldPath = this._path
-    if (oldPath != null && !FileIO.isGCSPath(oldPath)) {
+    if (oldPath != null && !oldPath.startsWith("gs://")) {
       try {
         // We are done with the path, and so we store its size.
-        val size = FileIO.fileStatistics(oldPath).length
+        val size = Files.size(oldPath)
         DirectoryLoader.logger.debug(s"Setting latest size of '$oldPath' to $size.")
         _finalizedSizes = _finalizedSizes.updated(oldPath, size)
       } catch {
@@ -194,7 +200,7 @@ case class DirectoryLoader[T](
   /** Returns a boolean value indicating whether `path` has had an out-of-order write. */
   private[this] def hasOutOfOrderWrite(path: Path): Boolean = {
     // Check the sizes of each path before the current one.
-    val size = FileIO.fileStatistics(path).length
+    val size = Files.size(path)
     val oldSize = _finalizedSizes.getOrElse(path, -1L)
     if (size != oldSize) {
       if (oldSize == -1L)

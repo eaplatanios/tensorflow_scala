@@ -33,10 +33,7 @@ object JniCrossPackage extends AutoPlugin {
         .describedAs("Native code cross-compiling configuration.")
 
     val nativeCrossCompilationEnabled: SettingKey[Boolean] =
-      settingKey[Boolean]("###")
-
-    val dockerImagePrefix: SettingKey[String] =
-      settingKey[String]("###")
+      settingKey[Boolean]("Indicates whether cross-compilation of the native libraries is enabled.")
 
     val nativePlatforms: SettingKey[Set[Platform]] =
       settingKey[Set[Platform]]("Set of native platforms for which to cross-compile.")
@@ -103,18 +100,11 @@ object JniCrossPackage extends AutoPlugin {
             IO.createDirectory(platformTargetDir / "docker")
             IO.createDirectory(platformTargetDir / "lib")
 
-            // Generate Dockerfile.
-            platform.dockerfile.foreach(d => {
-              val dockerfilePath = platformTargetDir / "docker" / "Dockerfile"
-              log.info(s"Generating Dockerfile in '$dockerfilePath'.")
-              IO.write(dockerfilePath, d)
-            })
-
             // Compile and generate binaries.
             log.info(s"Generating binaries in '$platformTargetDir'.")
             val dockerContainer = s"${moduleName.value}_${platform.name}"
             val exitCode = platform.build(
-              dockerImage = s"${dockerImagePrefix.value}_${platform.name}",
+              dockerImage = s"${platform.dockerImage}",
               dockerContainer = dockerContainer,
               srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
               tgtDir = platformTargetDir.getPath,
@@ -127,7 +117,7 @@ object JniCrossPackage extends AutoPlugin {
             if (exitCode.getOrElse(0) != 0)
               sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
 
-            val sharedLibraryFilter = "*.so" | "*.dylib" | "*.dll"
+            val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll*"
             platform -> CrossCompilationOutput(
               managedResources = (platformTargetDir / "bin" ** sharedLibraryFilter).get.filter(_.isFile).toSet,
               packagedArtifactsDir = platformTargetDir / "lib",
@@ -190,10 +180,9 @@ object JniCrossPackage extends AutoPlugin {
   }
 
   sealed trait Platform {
-    val name: String
-    val tag : String
-    val dockerfile: Option[String] = None
-
+    val name        : String
+    val tag         : String
+    val dockerImage : String = ""
     val cMakePath   : String = "/usr/bin"
     val cMakeLibPath: String = "/usr/lib"
 
@@ -204,29 +193,25 @@ object JniCrossPackage extends AutoPlugin {
         tgtDir: String,
         libPath: String
     ): Option[ProcessBuilder] = {
-      // Create the necessary Docker image
-      val process = Process(
-        "/bin/bash" :: "-c" ::
-            s"(docker images -q $dockerImage | grep -q . || " +
-                s"docker build -t $dockerImage $tgtDir/docker/) || true" :: Nil) #&&
-          // Delete existing Docker containers that are not running anymore
-          Process("/bin/bash" :: "-c" ::
-              "(docker ps -a -q | grep -q . && " +
-                  "docker rm -fv $(docker ps -a -q)) || true" :: Nil) #&&
-          // Create a new container and copy the repository code in it
-          Process("docker" :: "run" :: "--name" :: dockerContainer :: "-dit" :: dockerImage :: "/bin/bash" :: Nil) #&&
-          Process("docker" :: "cp" :: s"$libPath/lib/." :: s"$dockerContainer:$cMakeLibPath" :: Nil) #&&
-          // Compile and package the JNI bindings
-          Process("docker" :: "cp" :: srcDir :: s"$dockerContainer:/root/src" :: Nil) #&&
-          Process("docker" :: "exec" :: dockerContainer :: "bash" :: "-c" ::
-              s"export LD_LIBRARY_PATH=$cMakeLibPath:${'"'}$$LD_LIBRARY_PATH${'"'} && " +
-                  s"export PATH=$cMakePath:${'"'}$$PATH${'"'} && " +
-                  "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 && " +
-                  "cd /root && mkdir bin && mkdir src/build && cd src/build && " +
-                  "cmake -DCMAKE_INSTALL_PREFIX:PATH=/root/bin -DCMAKE_BUILD_TYPE=Release /root/src &&" +
-                  "make VERBOSE=1 && make install" :: Nil) #&&
-          // Copy the compiled library back to the host
-          Process("docker" :: "cp" :: s"$dockerContainer:/root/bin" :: tgtDir :: Nil)
+      val process =
+        // Delete existing Docker containers that are not running anymore.
+        Process("/bin/bash" :: "-c" ::
+            "(docker ps -a -q | grep -q . && " +
+                "docker rm -fv $(docker ps -a -q)) || true" :: Nil) #&&
+            // Create a new container and copy the repository code in it.
+            Process("docker" :: "run" :: "--name" :: dockerContainer :: "-dit" :: dockerImage :: "/bin/bash" :: Nil) #&&
+            Process("docker" :: "cp" :: s"$libPath/lib/." :: s"$dockerContainer:$cMakeLibPath" :: Nil) #&&
+            // Compile and package the JNI bindings.
+            Process("docker" :: "cp" :: srcDir :: s"$dockerContainer:/root/src" :: Nil) #&&
+            Process("docker" :: "exec" :: dockerContainer :: "bash" :: "-c" ::
+                s"export LD_LIBRARY_PATH=$cMakeLibPath:${'"'}$$LD_LIBRARY_PATH${'"'} && " +
+                    s"export PATH=$cMakePath:${'"'}$$PATH${'"'} && " +
+                    "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 && " +
+                    "cd /root && mkdir bin && mkdir src/build && cd src/build && " +
+                    "cmake -DCMAKE_INSTALL_PREFIX:PATH=/root/bin -DCMAKE_BUILD_TYPE=Release /root/src &&" +
+                    "make VERBOSE=1 && make install" :: Nil) #&&
+            // Copy the compiled library back to the host.
+            Process("docker" :: "cp" :: s"$dockerContainer:/root/bin" :: tgtDir :: Nil)
       Some(process)
     }
 
@@ -244,27 +229,15 @@ object JniCrossPackage extends AutoPlugin {
   }
 
   object LINUX_x86_64 extends Platform {
-    override val name: String = "linux-x86_64"
-    override val tag : String = "linux-cpu-x86_64"
-
-    // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
-    override val dockerfile: Option[String] = Some(
-      """
-        |FROM eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.2.0
-        |WORKDIR /root
-      """.stripMargin)
+    override val name       : String = "linux-x86_64"
+    override val tag        : String = "linux-cpu-x86_64"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.0"
   }
 
   object LINUX_GPU_x86_64 extends Platform {
-    override val name: String = "linux-gpu-x86_64"
-    override val tag : String = "linux-gpu-x86_64"
-
-    // The parent Docker image is defined in the .circleci/images directory at the root of this repository.
-    override val dockerfile: Option[String] = Some(
-      """
-        |FROM eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.2.0
-        |WORKDIR /root
-      """.stripMargin)
+    override val name       : String = "linux-gpu-x86_64"
+    override val tag        : String = "linux-gpu-x86_64"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.0"
   }
 
   object DARWIN_x86_64 extends Platform {

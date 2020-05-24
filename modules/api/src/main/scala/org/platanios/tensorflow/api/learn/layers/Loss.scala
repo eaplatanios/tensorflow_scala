@@ -126,7 +126,7 @@ case class SequenceLoss[Predictions: TF : IsDecimal, Labels: TF, L: TF : IsFloat
     ops.NN.sequenceLoss(
       input._1, input._2,
       lossFn = loss,
-      weights = if (weights == null) null else ops.Basic.constant(weights),
+      weights = if (weights == null) null else ops.basic.Basic.constant(weights),
       averageAcrossTimeSteps = averageAcrossTimeSteps,
       averageAcrossBatch = averageAcrossBatch,
       name = name

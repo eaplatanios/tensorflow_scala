@@ -17,13 +17,14 @@ package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.io.{DirectoryLoader, FileIO}
+import org.platanios.tensorflow.proto.{GraphDef, MetaGraphDef, RunMetadata, SummaryMetadata}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, SummaryMetadata}
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 
+import scala.collection.compat._
 import scala.collection.mutable
 
 /** An [[EventMultiplexer]] manages access to multiple [[EventAccumulator]]s.
@@ -136,7 +137,7 @@ case class EventMultiplexer(
   @throws[InvalidArgumentException]
   def addRunsFromDirectory(directory: Path, name: String = null): EventMultiplexer = {
     EventMultiplexer.logger.info(s"Adding runs from directory '$directory'.")
-    if (FileIO.exists(directory) && !FileIO.isDirectory(directory))
+    if (Files.exists(directory) && !Files.isDirectory(directory))
       throw InvalidArgumentException(s"Path '$directory' exists but is not a directory.")
     FileIO.walk(directory)
         .filter(_._3.exists(_.getFileName.toString.contains("tfevents")))
@@ -246,7 +247,9 @@ case class EventMultiplexer(
         .map(run => run -> accumulator(run).flatMap(_.pluginTagToContent(pluginName)))
         .filter(_._2.isDefined)
         .toMap
+        .view
         .mapValues(_.get)
+        .toMap
   }
 
   /** Returns a map from runs to sequences with paths to all the registered assets for the provided plugin name, for

@@ -21,11 +21,12 @@ import org.platanios.tensorflow.api.core.types.{DataType, RESOURCE, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{TensorFlow => NativeLibrary}
-
-import org.tensorflow.framework.AttrValue
+import org.platanios.tensorflow.proto.AttrValue
 
 /** Contains functions for constructing ops related to control flow.
   *
@@ -332,32 +333,6 @@ private[api] trait ControlFlow {
 }
 
 private[api] object ControlFlow extends ControlFlow {
-  private[control_flow] trait Implicits {
-    implicit class ControlFlowOps(val op: UntypedOp) {
-      /** Returns `true` if the provided op is within a cond statement. */
-      def isInCond: Boolean = {
-        op.controlFlowContext.flatMap(_.condContext).isDefined
-      }
-
-      /** Returns `true` if the provided op is within a while loop statement. */
-      def isInWhileLoop: Boolean = {
-        op.controlFlowContext.flatMap(_.whileLoopContext()).isDefined
-      }
-
-      /** Returns `true` if the provided op is within an XLA control flow context. */
-      def isInXLAContext: Boolean = {
-        val xlaCompile = {
-          try {
-            op.booleanAttribute("_XlaCompile")
-          } catch {
-            case _: IllegalArgumentException => false
-          }
-        }
-        xlaCompile || op.controlFlowContext.flatMap(_.xlaContext).isDefined
-      }
-    }
-  }
-
   /** Returns `true` if and only if the provided op is a switch op. */
   private[ops] def isSwitch(op: Op[_, _]): Boolean = {
     op.opType == "Switch" || op.opType == "RefSwitch"

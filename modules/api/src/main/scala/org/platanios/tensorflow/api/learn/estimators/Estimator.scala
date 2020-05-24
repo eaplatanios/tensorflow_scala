@@ -30,9 +30,9 @@ import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.io.events.SummaryFileWriterCache
+import org.platanios.tensorflow.proto.Summary
 
 import com.typesafe.scalalogging.Logger
-import org.tensorflow.framework.Summary
 import org.slf4j.LoggerFactory
 
 import java.nio.file.{Files, Path}
@@ -140,7 +140,7 @@ abstract class Estimator[In, TrainIn, Out, TrainOut, Loss: TF : IsFloatOrDouble,
       val saver = Saver(
         sharded = true,
         maxToKeep = configuration.checkpointConfig.maxCheckpointsToKeep,
-        keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours,
+        keepCheckpointEveryNHours = configuration.checkpointConfig.keepCheckpointEveryNHours.toFloat,
         saveRelativePaths = true)
       graph.addToCollection(Graph.Keys.SAVERS)(saver)
       Some(saver)

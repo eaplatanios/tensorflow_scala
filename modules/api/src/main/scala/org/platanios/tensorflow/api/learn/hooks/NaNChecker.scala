@@ -17,8 +17,7 @@ package org.platanios.tensorflow.api.learn.hooks
 
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.ops.{Op, Output}
-import org.platanios.tensorflow.api.tensors.Tensor
-
+import org.platanios.tensorflow.api.tensors.{Tensor, ops}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
@@ -56,7 +55,7 @@ class NaNChecker protected (
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
   )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
     // TODO: [TYPES] !!! Remove the cast once we start using static types everywhere.
-    runResult.result.filter(_.toFloat.isNaN.any().scalar).foreach(value => {
+    runResult.result.filter(r => ops.Math.any(ops.Math.isNaN(r.toFloat)).scalar).foreach(value => {
       val message = s"Encountered NaN values in tensor: $value."
       if (failOnNaN) {
         NaNChecker.logger.error(message)

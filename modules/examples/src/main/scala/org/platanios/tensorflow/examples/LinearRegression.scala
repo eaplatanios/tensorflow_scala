@@ -67,7 +67,7 @@ object LinearRegression {
       outputs += weight * input
       i += 1
     }
-    (Tensor[Float](inputs).reshape(Shape(-1, 1)),
-        Tensor[Float](outputs).reshape(Shape(-1, 1)))
+    (Tensor[Float](inputs.toSeq).reshape(Shape(-1, 1)),
+        Tensor[Float](outputs.toSeq).reshape(Shape(-1, 1)))
   }
 }

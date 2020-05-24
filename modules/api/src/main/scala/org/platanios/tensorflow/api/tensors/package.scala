@@ -17,6 +17,7 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api.core.client.SessionConfig
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.util.DynamicVariable
 
 /**
@@ -25,7 +26,8 @@ import scala.util.DynamicVariable
 package object tensors {
   private[api] val executionContext: DynamicVariable[Context] = {
     val sessionConfig = sys.env.get("TF_CUDA_VISIBLE_DEVICES")
-        .map(devices => SessionConfig(gpuVisibleDevices = Some(devices.split(',').map(_.toInt))))
+        .map(devices => SessionConfig(
+          gpuVisibleDevices = Some(ArraySeq.unsafeWrapArray(devices.split(',').map(_.toInt)))))
     new DynamicVariable[Context](Context(sessionConfig))
   }
 

@@ -24,10 +24,10 @@ import org.platanios.tensorflow.api.learn.SessionWrapper
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.variables.Saver
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.proto.SessionLog
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.util.SessionLog
 
 import java.nio.file.{Files, Path}
 

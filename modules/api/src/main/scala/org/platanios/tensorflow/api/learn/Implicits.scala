@@ -18,15 +18,14 @@ package org.platanios.tensorflow.api.learn
 import org.platanios.tensorflow.api.learn.estimators.Estimator.{SupervisedModelFunction, UnsupervisedModelFunction}
 import org.platanios.tensorflow.api.learn.layers.{Layer, MapSeq}
 
-import scala.collection.TraversableLike
-import scala.collection.generic.CanBuildFrom
+import scala.collection.compat.Factory
 
 /** Groups together all implicits related to the learn API.
   *
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Implicits {
-  implicit class MappableLayer[T, R, CC[A] <: TraversableLike[A, CC[A]]](
+  implicit class MappableLayer[T, R, CC[A] <: Iterable[A]](
       layer: Layer[CC[T], CC[R]]
   ) extends Layer[CC[T], CC[R]]("Mappable") {
     override val layerType: String = "Mappable"
@@ -38,10 +37,8 @@ private[api] trait Implicits {
     def map[S](
         layer: Layer[CC[T], CC[R]],
         mapLayer: Layer[R, S]
-    )(implicit
-        cbfRS: CanBuildFrom[CC[R], S, CC[S]]
-    ): MapSeq[T, R, S, CC] = {
-      MapSeq[T, R, S, CC](layer.name, layer, mapLayer)(cbfRS)
+    )(implicit ccFactory: Factory[S, CC[S]]): MapSeq[T, R, S, CC] = {
+      MapSeq[T, R, S, CC](layer.name, layer, mapLayer)
     }
   }
 

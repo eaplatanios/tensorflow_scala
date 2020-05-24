@@ -23,16 +23,17 @@ import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 import org.platanios.tensorflow.jni.{Op => NativeOp, Tensor => NativeTensor, TensorFlow => NativeLibrary}
+import org.platanios.tensorflow.proto.{AttrValue, NodeDef, OpDef}
 
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.{AttrValue, NodeDef, OpDef}
 
 import java.nio.charset.{Charset, StandardCharsets}
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.collection.mutable
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /** Represents a graph node, or as we shall call it, an operation, that performs computation on tensors.
@@ -123,7 +124,7 @@ final class Op[I: Op.OpInput, O: Op.OpOutput] private[api] (
     gradientFn.isDefined
   }
 
-  private[ops] var controlFlowContext: Option[Context] = {
+  private[api] var controlFlowContext: Option[Context] = {
     None
   }
 
@@ -192,12 +193,12 @@ final class Op[I: Op.OpInput, O: Op.OpOutput] private[api] (
 
   /** Input of this op. */
   def input: I = {
-    implicitly[Op.OpInput[I]].fromOutputs(_inputs, originalInput)
+    implicitly[Op.OpInput[I]].fromOutputs(ArraySeq.unsafeWrapArray(_inputs), originalInput)
   }
 
   /** Inputs of this op. */
   def inputsSeq: Seq[Output[Any]] = {
-    _inputs
+    ArraySeq.unsafeWrapArray(_inputs)
   }
 
   /** Number of control inputs to this op. These are ops that are guaranteed to execute before this op. */
@@ -219,12 +220,12 @@ final class Op[I: Op.OpInput, O: Op.OpOutput] private[api] (
 
   /** Output of this op. */
   def output: O = {
-    implicitly[Op.OpOutput[O]].fromOutputs(_outputs)
+    implicitly[Op.OpOutput[O]].fromOutputs(ArraySeq.unsafeWrapArray(_outputs))
   }
 
   /** Inputs of this op. */
   def outputsSeq: Seq[Output[Any]] = {
-    _outputs
+    ArraySeq.unsafeWrapArray(_outputs)
   }
 
   /** Gets the (current) number of control outputs of this op. These are ops that are guaranteed to start executing
@@ -469,7 +470,7 @@ final class Op[I: Op.OpInput, O: Op.OpOutput] private[api] (
   def shapeAttribute(name: String): Shape = {
     using(graph.reference) { _ =>
       try {
-        Shape.fromSeq(NativeOp.getAttrShape(nativeHandle, name).map(_.toInt))
+        Shape.fromSeq(ArraySeq.unsafeWrapArray(NativeOp.getAttrShape(nativeHandle, name).map(_.toInt)))
       } catch {
         case e: Exception => throw new IllegalArgumentException(
           s"Op has no shape attribute named '$name'. TensorFlow native library error message: ${e.getMessage}")

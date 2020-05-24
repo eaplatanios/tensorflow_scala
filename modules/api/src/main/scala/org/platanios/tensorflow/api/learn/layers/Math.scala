@@ -67,7 +67,7 @@ case class AddN[T: TF : IsNumeric](
   override def forwardWithoutContext(
       input: Seq[Output[T]]
   )(implicit mode: Mode): Output[T] = {
-    ops.Math.addN(input, name = name)
+    ops.math.Math.addN(input, name = name)
   }
 }
 
@@ -81,7 +81,7 @@ case class Sum[T: TF : IsNumeric](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Math.sum[T, Int](input, axes, keepDims = keepDims, name = name)
+    ops.math.Math.sum[T, Int](input, axes, keepDims = keepDims, name = name)
   }
 }
 
@@ -95,7 +95,7 @@ case class Mean[T: TF : IsNotQuantized](
   override def forwardWithoutContext(
       input: Output[T]
   )(implicit mode: Mode): Output[T] = {
-    ops.Math.mean[T, Int](input, axes, keepDims = keepDims, name = name)
+    ops.math.Math.mean[T, Int](input, axes, keepDims = keepDims, name = name)
   }
 }
 

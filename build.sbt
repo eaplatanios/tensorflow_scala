@@ -16,20 +16,17 @@
 import ReleaseTransformations._
 import JniCrossPackage._
 import sbtrelease.Vcs
-
 import scala.sys.process.Process
 
-scalaVersion in ThisBuild := "2.12.8"
-crossScalaVersions in ThisBuild := Seq("2.11.12", "2.12.8")
-
 organization in ThisBuild := "org.platanios"
+scalaVersion in ThisBuild := "2.13.2"
+crossScalaVersions in ThisBuild := Seq("2.12.11", "2.13.2")
 
+fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
+nativeCrossCompilationEnabled in ThisBuild := false
 
-val tensorFlowVersion = "1.11.0"
-val circeVersion = "0.10.1" // Use for working with JSON.
-
-// addCompilerPlugin(MetalsPlugin.semanticdbScalac)
+val circeVersion = "0.12.3" // Used for working with JSON.
 
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",
@@ -43,52 +40,57 @@ scalacOptions in ThisBuild ++= Seq(
   "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
   // "-Xfatal-warnings",
   // "-Xlog-implicits",
-  "-Yno-adapted-args",
-  "-Ypartial-unification",
   // "-Ywarn-dead-code",
   // "-Ywarn-numeric-widen",
   // "-Ywarn-value-discard",
   "-Yrangepos",
-  "-Xfuture", // Turn on future language features.
-  // "-P:splain:all",
-  // "-P:splain:infix",
-  // "-P:splain:foundreq",
-  // "-P:splain:implicits",
-  // "-P:splain:color",
-  // "-P:splain:tree",
-  // "-P:splain:boundsimplicits:false"
+//  "-P:splain:all",
+//  "-P:splain:infix",
+//  "-P:splain:foundreq",
+//  "-P:splain:implicits",
+//  "-P:splain:color",
+//  "-P:splain:tree",
+//  "-P:splain:boundsimplicits:false"
 )
+
+scalacOptions in ThisBuild ++= {
+  if (!scalaVersion.value.startsWith("2.13")) {
+    Seq("-Yno-adapted-args", "-Ypartial-unification")
+  } else {
+    Seq("-Xfuture") // Turn on future language features.
+  }
+}
 
 val scalacProfilingEnabled: SettingKey[Boolean] =
   settingKey[Boolean]("Flag specifying whether to enable profiling for the Scala compiler.")
 
 scalacProfilingEnabled in ThisBuild := false
-nativeCrossCompilationEnabled in ThisBuild := false
 
 lazy val loggingSettings = Seq(
   libraryDependencies ++= Seq(
-    "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.0",
+    "com.typesafe.scala-logging" %% "scala-logging"   % "3.9.2",
     "ch.qos.logback"             %  "logback-classic" % "1.2.3"))
 
 lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
-  // addCompilerPlugin("io.tryp"  % "splain" % "0.3.3" cross CrossVersion.patch)
+  addCompilerPlugin("io.tryp"  % "splain" % "0.5.5" cross CrossVersion.patch),
+  libraryDependencies ++= Seq(
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6")
 )
 
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
     "junit"         %  "junit"     % "4.12",
-    "org.scalactic" %% "scalactic" % "3.0.5",
-    "org.scalatest" %% "scalatest" % "3.0.5" % "test"),
+    "org.scalatest" %% "scalatest" % "3.1.1" % "test",
+    "org.scalatestplus" %% "junit-4-12" % "3.1.1.0" % "test"),
   logBuffered in Test := false,
-  fork in test := false,
   testForkedParallel in Test := false,
   parallelExecution in Test := false,
   testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"))
 
 lazy val all = (project in file("."))
-    .aggregate(jni, api, data, examples)
-    .dependsOn(jni, api)
+    .aggregate(jni, api, proto, data, examples)
+    .dependsOn(jni, api, proto)
     .settings(moduleName := "tensorflow", name := "TensorFlow Scala")
     .settings(commonSettings)
     .settings(publishSettings)
@@ -109,12 +111,12 @@ lazy val all = (project in file("."))
 
 lazy val jni = (project in file("./modules/jni"))
     .enablePlugins(JniNative, TensorFlowGenerateTensorOps, JniCrossPackage, TensorFlowNativePackage)
-    .settings(moduleName := "tensorflow-jni", name := "TensorFlow Scala - JNI Bindings")
+    .settings(moduleName := "tensorflow-jni", name := "TensorFlow Scala - JNI")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      // Tensor op code generation settings
+      // Tensor op code generation settings.
       target in generateTensorOps := sourceDirectory.value / "main",
       ops in generateTensorOps := Map(
         "Basic" -> Seq(
@@ -160,32 +162,30 @@ lazy val jni = (project in file("./modules/jni"))
           "StringToHashBucketStrong")
       ),
       scalaPackage in generateTensorOps := "tensors",
-      // Native bindings compilation settings
+      // Native bindings compilation settings.
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
       nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tfBinaryVersion in JniCross := "nightly", // tensorFlowVersion,
+      tfBinaryVersion in JniCross := "nightly", // "2.1.0",
       tfLibCompile in JniCross := false,
       tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
       tfLibRepositoryBranch in JniCross := "master",
-      // Specify the order in which the different compilation tasks are executed
+      // Specify the order in which the different compilation tasks are executed.
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
 
 lazy val api = (project in file("./modules/api"))
-    .dependsOn(jni)
-    .enablePlugins(ProtobufPlugin)
+    .dependsOn(jni, proto)
     .settings(moduleName := "tensorflow-api", name := "TensorFlow Scala - API")
     .settings(commonSettings)
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
       libraryDependencies ++= Seq(
-        "org.tensorflow" % "proto" % tensorFlowVersion,
         "com.chuusai" %% "shapeless" % "2.3.3",
-        compilerPlugin("com.github.ghik" %% "silencer-plugin" % "0.6"),
-        "com.github.ghik" %% "silencer-lib" % "0.6"),
+        compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.6.0" cross CrossVersion.full),
+        "com.github.ghik" % "silencer-lib" % "1.6.0" % Provided cross CrossVersion.full),
       libraryDependencies ++= Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",
@@ -209,9 +209,16 @@ lazy val api = (project in file("./modules/api"))
         } else {
           Seq.empty
         }
-      },
-      // Protobuf Settings
-      version in ProtobufConfig := "3.5.1",
+      })
+
+lazy val proto = (project in file("./modules/proto"))
+    .enablePlugins(ProtobufPlugin)
+    .settings(moduleName := "tensorflow-proto", name := "TensorFlow Scala - Protobuf")
+    .settings(commonSettings)
+    .settings(testSettings)
+    .settings(publishSettings)
+    .settings(
+      version in ProtobufConfig := "3.11.4",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
@@ -225,11 +232,10 @@ lazy val horovod = (project in file("./modules/horovod"))
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      // Native bindings compilation settings
+      // Native bindings compilation settings.
       target in javah := sourceDirectory.value / "main" / "native" / "include",
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
-      dockerImagePrefix in JniCross := "tensorflow-jni",
       nativeArtifactName in JniCross := "horovod",
       nativeLibPath in JniCross := {
         (nativeCrossCompile in JniCross in jni).value
@@ -243,7 +249,7 @@ lazy val horovod = (project in file("./modules/horovod"))
           IO.createDirectory(platformTargetDir / "downloads")
           IO.createDirectory(platformTargetDir / "downloads" / "lib")
 
-          // Download the native TensorFlow library
+          // Download the native TensorFlow library.
           log.info(s"Downloading the TensorFlow native library.")
           val exitCode = TensorFlowNativePackage.downloadTfLib(
             platform, (tfJniTarget / platform.name).getPath, tfVersion
@@ -293,10 +299,10 @@ lazy val docs = (project in file("docs"))
         "github.base_url" -> "https://github.com/eaplatanios/tensorflow_scala",
         "snip.github_link" -> "false"),
       paradoxNavigationDepth in Paradox := 3,
-      makeSite := makeSite.dependsOn(paradox in Paradox).value,
-      mappings in makeSite in Paradox ++= Seq(
-        file("LICENSE") -> "LICENSE",
-        file("assets/favicon.ico") -> "favicon.ico"),
+      // makeSite := makeSite.dependsOn(paradox in Paradox).value,
+      // mappings in paradox in Paradox ++= Seq(
+      //   file("LICENSE") -> "LICENSE",
+      //   file("assets/favicon.ico") -> "favicon.ico"),
       scmInfo := Some(ScmInfo(
         url("https://github.com/eaplatanios/tensorflow_scala"),
         "git@github.com:eaplatanios/tensorflow_scala.git")),
@@ -364,13 +370,6 @@ lazy val publishSettings = Seq(
   releaseVcs := Vcs.detect(baseDirectory.value),
   releaseVcsSign := true,
   releaseIgnoreUntrackedFiles := true,
-  useGpg := true,  // Bouncy Castle has bugs with sub-keys, so we use gpg instead
-  PgpKeys.pgpSigner := new CommandLineGpgSigner(
-    command = "gpg",
-    agent = true,
-    secRing = file("~/.gnupg/secring.gpg").getPath,
-    optKey = pgpSigningKey.value,
-    optPassphrase = sys.env.get("PGP_PASSWORD").map(_.toCharArray)),
   publishMavenStyle := true,
   pomIncludeRepository := Function.const(false),
   publishTo := Some(

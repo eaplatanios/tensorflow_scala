@@ -18,7 +18,8 @@ package org.platanios.tensorflow.api.ops.metrics
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.{Math, Op, Output, UntypedOp}
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.metrics.Metric._
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope}
 import org.platanios.tensorflow.api.tensors.Tensor

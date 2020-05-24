@@ -19,7 +19,9 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
-import org.platanios.tensorflow.api.ops.{Basic, Math, NN, Op, Output}
+import org.platanios.tensorflow.api.ops.{NN, Op, Output}
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 
 /** The Long-Short Term Memory (LSTM) cell.
   *

@@ -19,7 +19,8 @@ import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
-import org.platanios.tensorflow.api.ops.Output
+import org.platanios.tensorflow.api.ops.Embedding.OutputParameters
+import org.platanios.tensorflow.api.ops.{EmbeddingMap, Output}
 import org.platanios.tensorflow.api.tensors.Tensor
 
 object Embedding {
@@ -47,8 +48,8 @@ case class Embedding[T: TF : IsNotQuantized](
   )(implicit mode: Mode): Output[T] = {
     val embeddingMap = getParameter[T]("EmbeddingMap", Shape(vocabularySize, embeddingSize))
     ops.Embedding.embeddingLookup(
-      embeddingMap, input, partitionStrategy, transformFn,
-      if (maxNorm == null) null else ops.Basic.constant(maxNorm),
+      EmbeddingMap(Seq(OutputParameters(embeddingMap))), input, partitionStrategy, transformFn,
+      if (maxNorm == null) null else ops.basic.Basic.constant(maxNorm),
       name)
   }
 }

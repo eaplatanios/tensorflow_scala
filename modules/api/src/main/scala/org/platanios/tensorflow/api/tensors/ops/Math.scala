@@ -921,7 +921,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def equal[T: TF : IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def equal[T: TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.equal(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }
@@ -933,7 +933,7 @@ trait Math {
     * @param  y Second input tensor.
     * @return Result as a new tensor.
     */
-  def notEqual[T: TF : IsNumeric](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
+  def notEqual[T: TF](x: Tensor[T], y: Tensor[T]): Tensor[Boolean] = {
     Tensor.fromNativeHandle[Boolean](NativeTensorOpsMath.notEqual(
       executionContext.value.nativeHandle, x.nativeHandle, y.nativeHandle))
   }

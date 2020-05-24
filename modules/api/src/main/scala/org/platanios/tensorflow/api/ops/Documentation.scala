@@ -20,14 +20,14 @@ package org.platanios.tensorflow.api.ops
   * @author Emmanouil Antonios Platanios
   */
 private[api] trait Documentation
-    extends Basic.Documentation
+    extends basic.Basic.Documentation
         with Cast.Documentation
         with Checks.Documentation
         with Clip.Documentation
         with Embedding.Documentation
         with Image.Documentation
         with Logging.Documentation
-        with Math.Documentation
+        with math.Math.Documentation
         with NN.Documentation
         with Parsing.Documentation
         with Random.Documentation

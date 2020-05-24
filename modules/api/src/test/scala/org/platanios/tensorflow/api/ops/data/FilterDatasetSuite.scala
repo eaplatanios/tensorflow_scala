@@ -18,12 +18,13 @@ package org.platanios.tensorflow.api.ops.data
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Math, Op}
+import org.platanios.tensorflow.api.ops.Op
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 
 import org.junit.Test
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 
 /**
   * @author Emmanouil Antonios Platanios

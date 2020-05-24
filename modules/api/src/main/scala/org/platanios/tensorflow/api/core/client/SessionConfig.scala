@@ -18,11 +18,12 @@ package org.platanios.tensorflow.api.core.client
 import org.platanios.tensorflow.api.config.ClusterConfig
 import org.platanios.tensorflow.api.core.client.SessionConfig._
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.proto._
 
 import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.framework._
 
-import scala.collection.JavaConverters._
+import scala.collection.compat._
+import scala.jdk.CollectionConverters._
 
 /** Session configuration for executing TensorFlow ops.
   *
@@ -190,7 +191,7 @@ case class SessionConfig(
 ) extends ProtoSerializable {
   val configProto: ConfigProto = {
     val configProto = ConfigProto.newBuilder()
-    deviceCount.foreach(d => configProto.putAllDeviceCount(d.mapValues(Integer.valueOf).asJava))
+    deviceCount.foreach(d => configProto.putAllDeviceCount(d.view.mapValues(Integer.valueOf).toMap.asJava))
     intraOpParallelismThreads.foreach(configProto.setIntraOpParallelismThreads)
     interOpParallelismThreads.foreach(configProto.setInterOpParallelismThreads)
     usePerSessionThreads.foreach(configProto.setUsePerSessionThreads)

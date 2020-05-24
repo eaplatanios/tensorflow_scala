@@ -25,10 +25,10 @@ import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.metrics.Metric
 import org.platanios.tensorflow.api.tensors.Tensor
+import org.platanios.tensorflow.proto.Summary
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.Summary
 
 import java.nio.file.Path
 

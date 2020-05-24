@@ -19,7 +19,8 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices}
+import org.platanios.tensorflow.api.ops.{Op, Output, OutputIndexedSlices}
+import org.platanios.tensorflow.api.ops.math.Math
 
 import scala.language.postfixOps
 

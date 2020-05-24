@@ -509,7 +509,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_platanios_tensorflow_jni_Op_00024_getAtt
     jtype *ret_elements = env->Get##jname##ArrayElements(return_array, NULL);                       \
     for (int i = 0; i < list_size; i++)                                                             \
       ret_elements[i] = static_cast<jtype>(attr_values[i]);                                         \
-    env->Release##jname##ArrayElements(return_array, ret_elements, NULL);                           \
+    env->Release##jname##ArrayElements(return_array, ret_elements, JNI_ABORT);                      \
     return return_array;                                                                            \
   }
 

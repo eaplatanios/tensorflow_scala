@@ -1,15 +1,16 @@
 package org.platanios.tensorflow.examples.python2scala
 
-import java.io._
-import java.nio.file.Paths
-
-import com.typesafe.scalalogging.Logger
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.Graph
 import org.platanios.tensorflow.api.core.client.FeedMap
 import org.platanios.tensorflow.api.ops.{Output, UntypedOp}
+import org.platanios.tensorflow.proto.MetaGraphDef
+
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework.MetaGraphDef
+
+import java.io._
+import java.nio.file.Paths
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
@@ -89,8 +90,8 @@ object LinearRegressionFromRestoredPythonModel {
       inputs += input
       outputs += weight * input
     }
-    (tfi.reshape(tfi.stack[Double](inputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)),
-        tfi.reshape(tfi.stack[Double](outputs.map(Tensor[Double](_))), Tensor[Int](-1, 1)))
+    (tfi.reshape(tfi.stack[Double](inputs.map(Tensor[Double](_)).toSeq), Tensor[Int](-1, 1)),
+        tfi.reshape(tfi.stack[Double](outputs.map(Tensor[Double](_)).toSeq), Tensor[Int](-1, 1)))
   }
 
   def printRestoredNodesAndOperations(

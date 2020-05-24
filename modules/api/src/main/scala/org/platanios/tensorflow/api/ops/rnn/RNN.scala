@@ -20,8 +20,10 @@ import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types.{IsIntOrLong, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape, Zero}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, OpSpecification, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.{Op, OpSpecification, Output, TensorArray}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.ops.variables.VariableScope
 

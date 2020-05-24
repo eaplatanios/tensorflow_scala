@@ -18,12 +18,13 @@ package org.platanios.tensorflow.api.ops.control_flow
 import org.platanios.tensorflow.api.ProtoSerializable
 import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.proto.ValuesDef
 
 import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.framework.ValuesDef
 
 import scala.collection.mutable
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /** Base class for control flow contexts.
   *
@@ -48,7 +49,7 @@ abstract class Context protected (
     private[control_flow] val values: mutable.Set[String] = mutable.Set.empty,
     private[control_flow] val externalValues: mutable.Map[String, Output[Any]] = mutable.Map.empty
 ) extends ProtoSerializable {
-  (values -- externalValues.keySet)
+  values.diff(externalValues.keySet)
       .map(_.split(":")(0))
       .map(Op.currentGraph.getOpByName(_))
       .foreach(_.controlFlowContext = Some(this))

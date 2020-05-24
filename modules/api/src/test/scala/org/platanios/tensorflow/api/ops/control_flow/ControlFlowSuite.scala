@@ -21,19 +21,21 @@ import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToTensor}
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.training.optimizers.GradientDescent
 import org.platanios.tensorflow.api.ops.variables.{ConstantInitializer, OnesInitializer, Variable, ZerosInitializer}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
+import org.platanios.tensorflow.proto.{CondContextDef, GraphDef, NodeDef, WhileContextDef}
 
 import com.google.protobuf.TextFormat
-import org.scalatest.Matchers
-import org.scalatest.junit.JUnitSuite
 import org.junit.Test
-import org.tensorflow.framework.{CondContextDef, GraphDef, NodeDef, WhileContextDef}
+import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.junit.JUnitSuite
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /**
   * @author Emmanouil Antonios Platanios

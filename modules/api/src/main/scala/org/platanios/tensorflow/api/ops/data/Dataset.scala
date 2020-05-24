@@ -21,8 +21,11 @@ import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.language.postfixOps
 
 /** Represents a potentially large set of elements.
@@ -125,11 +128,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
 
   /** Creates a new dataset that produces the elements of this dataset, in random order.
     *
-    * @param  bufferSize Buffer size, meaning the number of output elements to buffer before shuffling them.
-    * @param  seed       Seed value for the random number generator. If not provided, a random seed is used.
+    * @param  bufferSize             Buffer size, meaning the number of output elements to buffer before shuffling them.
+    * @param  reshuffleEachIteration Controls whether the shuffle order should be different for each epoch.
+    * @param  seed                   Seed value for the random number generator. If not provided, a random seed is used.
     * @return Created dataset.
     */
-  def shuffle(bufferSize: Long, seed: Option[Int] = None): Dataset[T] = {
+  def shuffle(bufferSize: Long, reshuffleEachIteration: Boolean = true, seed: Option[Int] = None): Dataset[T] = {
     new Dataset[T] {
       override val name: String = s"${outer.name}/Shuffle"
 
@@ -143,10 +147,11 @@ abstract class Dataset[T: OutputStructure] { outer =>
           (bs, s1, s2)
         }
         Op.Builder[(Output[Variant], Output[Long], Output[Long], Output[Long]), Output[Variant]](
-          opType = "ShuffleDataset",
+          opType = "ShuffleDatasetV3",
           name = name,
           input = (outer.createHandle(), bs, s1, s2)
-        ).setAttribute("output_types", flatOutputDataTypes.toArray)
+        ).setAttribute("reshuffle_each_iteration", reshuffleEachIteration)
+            .setAttribute("output_types", flatOutputDataTypes.toArray)
             .setAttribute("output_shapes", flatOutputShapes.toArray)
             .build().output
       }
@@ -1145,12 +1150,12 @@ abstract class Dataset[T: OutputStructure] { outer =>
         if (mostSpecificFlattenedShapes.isEmpty) {
           mostSpecificFlattenedShapes = Some(
             outer.flatOutputShapes.zip(other.flatOutputShapes).map(p => {
-              Shape.fromSeq(p._1.asArray.zip(p._2.asArray).map {
+              Shape.fromSeq(ArraySeq.unsafeWrapArray(p._1.asArray.zip(p._2.asArray).map {
                 case (d1, d2) if d1 == d2 => d1
                 case (d1, d2) if d1 == -1 => d2
                 case (d1, d2) if d2 == -1 => d1
                 case _ => -1
-              })
+              }))
             }))
         }
         mostSpecificFlattenedShapes.get

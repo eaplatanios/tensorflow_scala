@@ -19,13 +19,16 @@ import org.platanios.tensorflow.api.core.exception.InvalidDataTypeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.{Context, ControlFlow, GradientState}
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.utilities.DefaultsTo.AnyDefault
 import org.platanios.tensorflow.jni.{Graph => NativeGraph, Output => NativeOutput}
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
+import scala.collection.compat._
 import scala.collection.mutable
 
 /**
@@ -154,7 +157,7 @@ object Gradients {
 
       // Add the initial gradients for the ys.
       val dyInitial = initialGradients(dataType, ys, dys, colocateGradientsWithOps, gradientUID)
-      for ((y, dy) <- (ys, dyInitial).zipped)
+      for ((y, dy) <- ys.zip(dyInitial))
         setGradient(accumulatedGradients, y, dy)
 
       controlFlowGradientState.foreach(state => {
@@ -202,7 +205,7 @@ object Gradients {
             Op.createWith(nameScope = s"${op.name}Gradient") {
               // TODO: [CONTEXT] Add support for original op context.
               val outputGradients = opGradients.map(_.headOption.orNull)
-              var inputGradients = maybeCompile(name, op, () => op.gradientFn.get(op, outputGradients))
+              var inputGradients = maybeCompile(name, op, () => op.gradientFn.get(op, outputGradients.toSeq))
               if (gateGradients && inputGradients.count(_ != null) > 1) {
                 Op.createWith(device = null) {
                   Op.colocateWithForGradient(
@@ -218,7 +221,7 @@ object Gradients {
               val nInp = op.inputsSeq.length
               val nGrd = inputGradients.length
               assert(nInp == nGrd, s"Gradients size ($nGrd) for op '$op' does not match inputs size ($nInp).")
-              logGradients(op, outputGradients, inputGradients)
+              logGradients(op, outputGradients.toSeq, inputGradients)
               // TODO: [GRADIENTS] !!! Report somehow the non-differentiable ops in the graph. This is currently hard to debug.
               op.inputsSeq.zip(inputGradients).filter(_._2 != null).foreach(i => {
                 i._2 match {
@@ -486,7 +489,7 @@ object Gradients {
       val op = reachedQueue.dequeue()
       if (!reached.contains(op)) {
         reached += op
-        op.outputsSeq.foreach(o => reachedQueue.enqueue(o.consumers.map(_.op): _*))
+        op.outputsSeq.foreach(_.consumers.foreach(c => reachedQueue.enqueue(c.op)))
       }
     }
 

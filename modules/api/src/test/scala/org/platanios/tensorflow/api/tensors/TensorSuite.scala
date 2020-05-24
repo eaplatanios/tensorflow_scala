@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.tensors
 
 import org.platanios.tensorflow.api._
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
 import scala.language.postfixOps

@@ -17,8 +17,9 @@ package org.platanios.tensorflow.api
 
 import org.platanios.tensorflow.api
 import org.platanios.tensorflow.api.ops.control_flow.Context
-
 import com.typesafe.scalalogging.Logger
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.slf4j.LoggerFactory
 
 import scala.util.DynamicVariable
@@ -57,7 +58,7 @@ package object ops {
       outerContext: Option[GraphConstructionScope] = None)
 
   private[api] trait API
-      extends Basic
+      extends ops.basic.Basic
           with Callback
           with Cast
           with Checks

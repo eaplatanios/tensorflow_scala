@@ -61,7 +61,7 @@ object DataTypeStructure {
       }
 
       override def dataTypes(dataType: DataType[T]): Seq[DataType[Any]] = {
-        Seq(dataType)
+        Seq(dataType.asInstanceOf[DataType[Any]])
       }
 
       override def decodeDataType(

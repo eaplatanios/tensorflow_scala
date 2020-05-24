@@ -20,6 +20,8 @@ import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.variables.Variable
 
 import scala.language.postfixOps
@@ -363,32 +365,6 @@ trait Embedding {
 }
 
 object Embedding extends Embedding {
-  private[ops] trait Implicits {
-    implicit def singlePartitionEmbeddingMap[T: TF](
-        parameters: EmbeddingParameters[T]
-    ): EmbeddingMap[T] = {
-      EmbeddingMap(Seq(parameters))
-    }
-
-    implicit def multiplePartitionsEmbeddingMap[T: TF](
-        parameters: Seq[EmbeddingParameters[T]]
-    ): EmbeddingMap[T] = {
-      EmbeddingMap(parameters)
-    }
-
-    implicit def outputToEmbeddingMap[T: TF : IsNotQuantized](
-        parameters: Output[T]
-    ): EmbeddingMap[T] = {
-      OutputParameters(parameters)
-    }
-
-    implicit def variableToEmbeddingMap[T: TF : IsNotQuantized](
-        parameters: Variable[T]
-    ): EmbeddingMap[T] = {
-      VariableParameters(parameters)
-    }
-  }
-
   /** If `maxNorm` is not `null`, this method clips `parameters` to a maximum l2-norm of `maxNorm`. */
   private[Embedding] def clipByNorm[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
       parameters: Output[T],

@@ -17,14 +17,14 @@ package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.core.exception.{DataLossException, OutOfRangeException}
 import org.platanios.tensorflow.api.io.{CompressionType, Loader, NoCompression}
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
-import org.platanios.tensorflow.jni.{RecordReader => NativeReader}
+import org.platanios.tensorflow.api.utilities.{CRC32C, Coding}
+import org.platanios.tensorflow.proto.Event
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.util.Event
 
-import java.nio.file.Path
+import java.io.BufferedInputStream
+import java.nio.file.{Files, Path, StandardOpenOption}
 
 /** Event file reader.
   *
@@ -39,81 +39,71 @@ import java.nio.file.Path
   *
   * @author Emmanouil Antonios Platanios
   */
-class EventFileReader protected (
-    val filePath: Path,
-    val compressionType: CompressionType = NoCompression,
-    private[this] val nativeHandleWrapper: NativeHandleWrapper,
-    override protected val closeFn: () => Unit
-) extends Closeable with Loader[Event] {
-  /** Lock for the native handle. */
-  private[EventFileReader] def NativeHandleLock = nativeHandleWrapper.Lock
+case class EventFileReader(filePath: Path, compressionType: CompressionType = NoCompression) extends Loader[Event] {
+  protected val fileStream: BufferedInputStream = {
+    new BufferedInputStream(Files.newInputStream(filePath, StandardOpenOption.READ))
+  }
 
-  /** Native handle of this tensor. */
-  private[api] def nativeHandle: Long = nativeHandleWrapper.handle
+  // TODO: !!! This has weird semantics given that the tests currently expect the file stream to be reused.
+  def load(): Iterator[Event] = {
+    EventFileReader.logger.info(s"Opening a TensorFlow records file located at '${filePath.toAbsolutePath}'.")
 
-  def load(): Iterator[Event] = new Iterator[Event] {
-    /** Caches the next event stored in the file. */
-    private[this] var nextEvent: Event = _
+    new Iterator[Event] {
+      /** Caches the next event stored in the file. */
+      private[this] var nextEvent: Event = _
 
-    /** Reads the next event stored in the file. */
-    private[this] def readNext(): Event = {
-      try {
-        Event.parseFrom(NativeReader.recordReaderWrapperReadNext(nativeHandle))
-      } catch {
-        case _: OutOfRangeException | _: DataLossException =>
-          // We ignore partial read exceptions, because a record may be truncated. The record reader holds the offset
-          // prior to the failed read, and so retrying will succeed.
-          EventFileReader.logger.info(s"No more events stored at '${filePath.toAbsolutePath}'.")
-          null
+      /** Reads the next event stored in the file. */
+      private[this] def readNext(): Event = {
+        try {
+          // Read the header data.
+          val encLength = new Array[Byte](12)
+          fileStream.read(encLength)
+          val recordLength = Coding.decodeFixedInt64(encLength).toInt
+          val encLengthMaskedCrc = CRC32C.mask(CRC32C.value(encLength.take(8)))
+          if (Coding.decodeFixedInt32(encLength, offset = 8) != encLengthMaskedCrc) {
+            throw DataLossException("Encountered corrupted TensorFlow record.")
+          }
+
+          // Read the data.
+          val encData = new Array[Byte](recordLength + 4)
+          fileStream.read(encData)
+          val recordData = encData.take(recordLength)
+          val encDataMaskedCrc = CRC32C.mask(CRC32C.value(encData.take(recordLength)))
+          if (Coding.decodeFixedInt32(encData, offset = recordLength) != encDataMaskedCrc) {
+            throw DataLossException("Encountered corrupted TensorFlow record.")
+          }
+
+          Event.parseFrom(recordData)
+        } catch {
+          case _: OutOfRangeException | _: DataLossException =>
+            // We ignore partial read exceptions, because a record may be truncated. The record reader holds the offset
+            // prior to the failed read, and so retrying will succeed.
+            EventFileReader.logger.info(s"No more TF records stored at '${filePath.toAbsolutePath}'.")
+            null
+        }
       }
-    }
 
-    override def hasNext: Boolean = {
-      if (nextEvent == null)
-        nextEvent = readNext()
-      nextEvent != null
-    }
-
-    override def next(): Event = {
-      val event = {
+      override def hasNext: Boolean = {
         if (nextEvent == null)
-          readNext()
-        else
-          nextEvent
+          nextEvent = readNext()
+        nextEvent != null
       }
-      if (event != null)
-        nextEvent = readNext()
-      event
+
+      override def next(): Event = {
+        val event = {
+          if (nextEvent == null)
+            readNext()
+          else
+            nextEvent
+        }
+        if (event != null)
+          nextEvent = readNext()
+        event
+      }
     }
   }
 }
 
 private[io] object EventFileReader {
   private[EventFileReader] val logger: Logger = Logger(LoggerFactory.getLogger("Event File Reader"))
-
-  /** Creates a new events file reader.
-    *
-    * @param  filePath        Path to the file being read.
-    * @param  compressionType Compression type used for the file.
-    * @return Newly constructed events file reader.
-    */
-  def apply(filePath: Path, compressionType: CompressionType = NoCompression): EventFileReader = {
-    EventFileReader.logger.info(s"Opening a TensorFlow events file located at '${filePath.toAbsolutePath}'.")
-    val nativeHandle = NativeReader.newRecordReaderWrapper(filePath.toAbsolutePath.toString, compressionType.name, 0)
-    val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
-    val closeFn = () => {
-      nativeHandleWrapper.Lock.synchronized {
-        if (nativeHandleWrapper.handle != 0) {
-          NativeReader.deleteRecordReaderWrapper(nativeHandleWrapper.handle)
-          nativeHandleWrapper.handle = 0
-        }
-      }
-    }
-    val eventFileReader = new EventFileReader(filePath, compressionType, nativeHandleWrapper, closeFn)
-    // Keep track of references in the Scala side and notify the native library when the event file reader is not
-    // referenced anymore anywhere in the Scala side. This will let the native library free the allocated resources and
-    // prevent a potential memory leak.
-    Disposer.add(eventFileReader, closeFn)
-    eventFileReader
-  }
 }

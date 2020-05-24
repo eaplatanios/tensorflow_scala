@@ -21,15 +21,19 @@ import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.OutputToShape
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
+import org.platanios.tensorflow.proto.{AttrValue, CollectionDef, WhileContextDef}
+import org.platanios.tensorflow.proto.CollectionDef.BytesList
 
 import com.google.protobuf.{ByteString, GeneratedMessageV3}
-import org.tensorflow.framework.{AttrValue, CollectionDef, WhileContextDef}
-import org.tensorflow.framework.CollectionDef.BytesList
 
+import scala.collection.compat._
+import scala.collection.compat.immutable.ArraySeq
 import scala.collection.mutable
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 
 /** Control flow context for the while-loop construct.
@@ -515,7 +519,7 @@ private[api] case class WhileLoopContext private[control_flow] (
         val indicesAcc = Output.zeros[T](g.dataType, Output[Int](1))
         val valuesAcc = {
           if (g.values.shape.isFullyDefined) {
-            val zerosShape = Shape(1 +: g.values.shape.asArray.tail: _*).toOutput
+            val zerosShape = Shape(1 +: ArraySeq.unsafeWrapArray(g.values.shape.asArray).tail: _*).toOutput
             Output.zeros[T](g.dataType, zerosShape)
           } else {
             val value = op.inputsSeq(0)
@@ -729,7 +733,7 @@ object WhileLoopContext {
   //region Shape Invariants
 
   /** Returns `true` if `shape2` is a less strict shape than `shape1`, while being compatible with `shape1`. */
-  private[this] def shapeLessThenOrEqual(shape1: Shape, shape2: Shape): Boolean = {
+  private[this] def shapeLessThanOrEqual(shape1: Shape, shape2: Shape): Boolean = {
     shape2.rank == -1 ||
         shape1.rank == shape2.rank ||
         shape1.asArray.zip(shape2.asArray).forall(pair => pair._2 == -1 || pair._1 == pair._2)
@@ -754,17 +758,17 @@ object WhileLoopContext {
   ): Unit = {
     // Check that the shapes of the inputs are less than the shape invariants, and set the shapes of the enter tensors
     // to the shape invariants.
-    for ((input, enter, shape) <- (inputTensors, enterTensors, shapes).zipped) {
+    for ((input, enter, shape) <- inputTensors.lazyZip(enterTensors).lazyZip(shapes)) {
       (input, enter) match {
         case (i: Output[_], e: Output[_]) =>
-          if (!shapeLessThenOrEqual(i.shape, shape))
+          if (!shapeLessThanOrEqual(i.shape, shape))
             throw ShapeMismatchException(
               s"The shape invariant specified for '${i.name}' is not compatible with the initial shape of the " +
                   s"loop variable. It enters the loop with shape '${i.shape}', but the specified shape invariant " +
                   s"is '$shape'.")
           e.setShape(shape)
         case (i: OutputIndexedSlices[_], e: OutputIndexedSlices[_]) =>
-          if (!shapeLessThenOrEqual(i.values.shape, shape))
+          if (!shapeLessThanOrEqual(i.values.shape, shape))
             throw ShapeMismatchException(
               s"The shape invariant specified for '${i.values.name}' is not compatible the initial shape of the " +
                   s"values tensor of these indexed slices. It enters the loop with shape '${i.values.shape}', but " +
@@ -774,7 +778,7 @@ object WhileLoopContext {
           if (e.denseShape != null)
             e.denseShape.setShape(Shape(shape.rank))
         case (i: SparseOutput[_], e: SparseOutput[_]) =>
-          if (!shapeLessThenOrEqual(i.denseShape.shape, shape))
+          if (!shapeLessThanOrEqual(i.denseShape.shape, shape))
             throw ShapeMismatchException(
               s"The shape invariant specified for '${i.denseShape.name}' is not compatible the initial shape of the " +
                   s"dense shape tensor of this sparse tensor. It enters the loop with shape '${i.denseShape.shape}', " +
@@ -807,7 +811,7 @@ object WhileLoopContext {
   ): Unit = {
     (mergeTensor, nextTensor) match {
       case (merge: Output[_], next: Output[_]) =>
-        if (!shapeLessThenOrEqual(next.shape, merge.shape))
+        if (!shapeLessThanOrEqual(next.shape, merge.shape))
           throw ShapeMismatchException(
             s"The shape for '${merge.name}' is not an invariant for the loop. The tensor enters the loop with shape " +
                 s"'${merge.shape}', but has shape '${next.shape}' after one iteration. Please provide shape " +
@@ -820,9 +824,9 @@ object WhileLoopContext {
         val nextValuesShape = next.values.shape
         val nextIndicesShape = next.indices.shape
         val nextDenseShapeShape = if (next.denseShape != null) next.denseShape.shape else Shape.unknown()
-        if (!shapeLessThenOrEqual(nextValuesShape, mergeValuesShape) ||
-            !shapeLessThenOrEqual(nextIndicesShape, mergeIndicesShape) ||
-            !shapeLessThenOrEqual(nextDenseShapeShape, mergeDenseShapeShape))
+        if (!shapeLessThanOrEqual(nextValuesShape, mergeValuesShape) ||
+            !shapeLessThanOrEqual(nextIndicesShape, mergeIndicesShape) ||
+            !shapeLessThanOrEqual(nextDenseShapeShape, mergeDenseShapeShape))
           throw ShapeMismatchException(
             s"The shape for '${merge.name}' is not an invariant for the loop. The tensor enters the loop with shape " +
                 s"'($mergeValuesShape, $mergeIndicesShape, $mergeDenseShapeShape)', but has shape " +
@@ -836,9 +840,9 @@ object WhileLoopContext {
         val nextValuesShape = next.values.shape
         val nextIndicesShape = next.indices.shape
         val nextDenseShapeShape = next.denseShape.shape
-        if (!shapeLessThenOrEqual(nextValuesShape, mergeValuesShape) ||
-            !shapeLessThenOrEqual(nextIndicesShape, mergeIndicesShape) ||
-            !shapeLessThenOrEqual(nextDenseShapeShape, mergeDenseShapeShape))
+        if (!shapeLessThanOrEqual(nextValuesShape, mergeValuesShape) ||
+            !shapeLessThanOrEqual(nextIndicesShape, mergeIndicesShape) ||
+            !shapeLessThanOrEqual(nextDenseShapeShape, mergeDenseShapeShape))
           throw ShapeMismatchException(
             s"The shape for '${merge.name}' is not an invariant for the loop. The tensor enters the loop with shape " +
                 s"'($mergeValuesShape, $mergeIndicesShape, $mergeDenseShapeShape)', but has shape " +
@@ -875,10 +879,10 @@ object WhileLoopContext {
         .asInstanceOf[Output[Boolean]]
     val pivotForPredicate = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForPredName))
     val pivotForBody = graph.getOpByName(Op.prependNameScope(importScope, whileContextDef.getPivotForBodyName))
-    val loopEnters = mutable.Set(whileContextDef.getLoopEnterNamesList.asScala.map(name => {
+    val loopEnters = mutable.Set(whileContextDef.getLoopEnterNamesList.asScala.toSeq.map(name => {
       graph.getOutputByName(Op.prependNameScope(importScope, name))
     }): _*)
-    val loopExits = mutable.Set(whileContextDef.getLoopExitNamesList.asScala.map(name => {
+    val loopExits = mutable.Set(whileContextDef.getLoopExitNamesList.asScala.toSeq.map(name => {
       graph.getOutputByName(Op.prependNameScope(importScope, name))
     }): _*)
     val (values, externalValues) = Context.fromValuesDef(whileContextDef.getValuesDef, importScope)

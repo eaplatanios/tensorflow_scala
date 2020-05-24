@@ -26,8 +26,8 @@ import org.slf4j.LoggerFactory
 
 import java.nio.file.{Files, Path, Paths}
 
-import scala.collection.JavaConverters._
 import scala.concurrent.TimeoutException
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /** Training helper class that creates sessions and restores from checkpoints.
@@ -321,7 +321,8 @@ private[learn] case class SessionManager(
           } else {
             // Load the checkpoint.
             _saver.restore(session, Paths.get(checkpointState.get.getModelCheckpointPath))
-            _saver.recoverLastCheckpoints(checkpointState.get.getAllModelCheckpointPathsList.asScala.map(Paths.get(_)))
+            _saver.recoverLastCheckpoints(
+              checkpointState.get.getAllModelCheckpointPathsList.asScala.map(Paths.get(_)).toSeq)
             (session, true)
           }
         }

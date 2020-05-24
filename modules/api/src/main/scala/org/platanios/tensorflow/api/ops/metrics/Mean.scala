@@ -17,10 +17,12 @@ package org.platanios.tensorflow.api.ops.metrics
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.metrics.Metric._
 import org.platanios.tensorflow.api.ops.variables.{Variable, VariableScope, ZerosInitializer}
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, UntypedOp}
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
 
 /** Mean metric.

@@ -20,9 +20,12 @@ import org.platanios.tensorflow.api.core.types.{IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers.{OutputStructure, OutputToShape}
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.rnn.cell.{RNNCell, Tuple}
 import org.platanios.tensorflow.api.tensors.Tensor
 
+import scala.collection.compat._
 import scala.language.postfixOps
 
 /** RNN cell that wraps another RNN cell and adds support for attention to it.
@@ -169,25 +172,27 @@ class AttentionWrapperCell[T: TF : IsNotQuantized, CellState: OutputStructure, A
     val nextTuple = cell.forward(Tuple(cellInput, input.state.cellState))
     val output = nextTuple.output
     val weights = if (attentionLayerWeights != null) attentionLayerWeights else attentions.map(_ => null)
-    val (allAttentions, allAlignments, allStates) = (attentions, input.state.attentionState, weights).zipped.map {
-      case (attentionPair, previousState, w) =>
-        val (alignments, state) = attentionPair._2.alignment(output, previousState)
-        // Reshape from [batchSize, memoryTime] to [batchSize, 1, memoryTime]
-        val expandedAlignments = alignments.expandDims(1)
-        // Context is the inner product of alignments and values along the memory time dimension.
-        // The alignments shape is:       [batchSize, 1, memoryTime]
-        // The mechanism values shape is: [batchSize, memoryTime, memorySize]
-        // The batched matrix multiplication is over `memoryTime` and so the output shape is: [batchSize, 1, memorySize]
-        // We then squeeze out the singleton dimension.
-        val context = Math.matmul(expandedAlignments, previousState.values).squeeze(Seq(1))
-        val attention = {
-          if (w != null)
-            Math.matmul(Basic.concatenate(Seq(output, context), 1), w)
-          else
-            context
-        }
-        (attention, alignments, state)
-    }.unzip3
+    val (allAttentions, allAlignments, allStates) = attentions.lazyZip(input.state.attentionState).lazyZip(weights)
+        .map {
+          case (attentionPair, previousState, w) =>
+            val (alignments, state) = attentionPair._2.alignment(output, previousState)
+            // Reshape from [batchSize, memoryTime] to [batchSize, 1, memoryTime]
+            val expandedAlignments  = alignments.expandDims(1)
+            // Context is the inner product of alignments and values along the memory time dimension.
+            // The alignments shape is:       [batchSize, 1, memoryTime]
+            // The mechanism values shape is: [batchSize, memoryTime, memorySize]
+            // The batched matrix multiplication is over `memoryTime` and so the output shape is:
+            // [batchSize, 1, memorySize]
+            // We then squeeze out the singleton dimension.
+            val context             = Math.matmul(expandedAlignments, previousState.values).squeeze(Seq(1))
+            val attention           = {
+              if (w != null)
+                Math.matmul(Basic.concatenate(Seq(output, context), 1), w)
+              else
+                context
+            }
+            (attention, alignments, state)
+        }.unzip3
     val histories = {
       if (storeAlignmentsHistory)
         input.state.alignmentsHistory.zip(allAlignments).map(p => p._1.write(input.state.time, p._2))

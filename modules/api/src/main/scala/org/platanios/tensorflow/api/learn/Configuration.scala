@@ -152,7 +152,7 @@ case class Configuration(
     val tfConfigJsonParsed = parse(tfConfigJson)
 
     // Parse the cluster configuration.
-    val tfClusterConfig = tfConfigJsonParsed.right.flatMap(parsed => {
+    val tfClusterConfig = tfConfigJsonParsed.flatMap(parsed => {
       val clusterConfigJson = parsed.findAllByKey(CLUSTER_KEY)
       if (clusterConfigJson.isEmpty) {
         Left(null)
@@ -160,7 +160,7 @@ case class Configuration(
         throw InvalidArgumentException(
           s"Only a single 'cluster' configuration field should be provided in $TF_CONFIG_ENV.")
       } else {
-          clusterConfigJson.head.as[Map[String, Json]].right.map(_.toSeq.flatMap(p => {
+          clusterConfigJson.head.as[Map[String, Json]].map(_.toSeq.flatMap(p => {
           p._2.as[Seq[String]] match {
             case Left(_) => p._2.as[Map[Int, String]] match {
               case Left(_) => throw InvalidArgumentException(
@@ -169,77 +169,77 @@ case class Configuration(
             }
             case Right(tasks) => Map(p._1 -> JobConfig.fromSeq(tasks))
           }
-        })).right.map(m => ClusterConfig(Map(m: _*)))
+        })).map(m => ClusterConfig(Map(m: _*)))
       }
     })
 
     // Parse the task configuration.
-    val tfTaskConfig = tfConfigJsonParsed.right.flatMap(parsed => {
+    val tfTaskConfig = tfConfigJsonParsed.flatMap(parsed => {
       val cursor = parsed.hcursor
       val taskType = cursor.downField(TASK_ENV_KEY).get[String](TASK_TYPE_KEY)
       val taskIndex = cursor.downField(TASK_ENV_KEY).get[Int](TASK_ID_KEY)
-      for (t <- taskType.right; i <- taskIndex.right) yield (t, i)
+      for (t <- taskType; i <- taskIndex) yield (t, i)
     })
 
-    if (tfClusterConfig.isRight) {
-      // Distributed mode.
-      val config = tfClusterConfig.right.get
-      config.jobTasks(CHIEF.name) match {
-        case None => throw InvalidArgumentException(
-          s"If 'cluster' is set in $TF_CONFIG_ENV, it must have one 'chief' node.")
-        case Some(_) =>
-          if (config.jobTasks(CHIEF.name).get.size > 1)
-            throw InvalidArgumentException(s"The 'cluster' in $TF_CONFIG_ENV must have only one 'chief' node.")
+    tfClusterConfig match {
+      case Right(config) =>
+        // Distributed mode.
+        config.jobTasks(CHIEF.name) match {
+          case None => throw InvalidArgumentException(
+            s"If 'cluster' is set in $TF_CONFIG_ENV, it must have one 'chief' node.")
+          case Some(_) =>
+            if (config.jobTasks(CHIEF.name).get.size > 1)
+              throw InvalidArgumentException(s"The 'cluster' in $TF_CONFIG_ENV must have only one 'chief' node.")
 
-          val (taskType, taskIndex) = tfTaskConfig match {
-            case Left(exception) => throw InvalidArgumentException(
-              s"If 'cluster' is set in $TF_CONFIG_ENV, task type and index must be set too.", exception)
-            case Right(taskConfig) => taskConfig
-          }
+            val (taskType, taskIndex) = tfTaskConfig match {
+              case Left(exception) => throw InvalidArgumentException(
+                s"If 'cluster' is set in $TF_CONFIG_ENV, task type and index must be set too.", exception)
+              case Right(taskConfig) => taskConfig
+            }
 
-          // Check the task index bounds. An upper bound is not necessary as:
-          // - for evaluator tasks there is no upper bound.
-          // - for non-evaluator tasks, the task index is upper bounded by the number of jobs in the cluster
-          //   configuration, which will be checked later (while retrieving the `master`).
-          if (taskIndex < 0)
-            throw InvalidArgumentException("The task index must be a non-negative number.")
+            // Check the task index bounds. An upper bound is not necessary as:
+            // - for evaluator tasks there is no upper bound.
+            // - for non-evaluator tasks, the task index is upper bounded by the number of jobs in the cluster
+            //   configuration, which will be checked later (while retrieving the `master`).
+            if (taskIndex < 0)
+              throw InvalidArgumentException("The task index must be a non-negative number.")
 
-          taskType match {
-            case EVALUATOR.name =>
-              // Evaluator is not part of the training cluster.
-              val clusterConfig = None
-              val master = LOCAL_MASTER
-              val numParameterServers = 0
-              val numWorkers = 0
-              val isChief = false
-              (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief)
-            case _ =>
-              val clusterConfig = Some(config)
-              val master = getNetworkAddress(config, taskType, taskIndex)
-              val numParameterServers = countParameterServers(config)
-              val numWorkers = countWorkers(config)
-              val isChief = taskType == CHIEF.name
-              (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief)
-          }
-      }
-    } else {
-      // Local mode.
-      val (taskType, taskIndex) = tfTaskConfig match {
-        case Left(_) => (WORKER.name, 0)
-        case Right(taskConfig) => taskConfig
-      }
+            taskType match {
+              case EVALUATOR.name =>
+                // Evaluator is not part of the training cluster.
+                val clusterConfig = None
+                val master = LOCAL_MASTER
+                val numParameterServers = 0
+                val numWorkers = 0
+                val isChief = false
+                (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief)
+              case _ =>
+                val clusterConfig = Some(config)
+                val master = getNetworkAddress(config, taskType, taskIndex)
+                val numParameterServers = countParameterServers(config)
+                val numWorkers = countWorkers(config)
+                val isChief = taskType == CHIEF.name
+                (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief)
+            }
+        }
+      case Left(_) =>
+        // Local mode.
+        val (taskType, taskIndex) = tfTaskConfig match {
+          case Left(_) => (WORKER.name, 0)
+          case Right(taskConfig) => taskConfig
+        }
 
-      if (taskType != WORKER.name)
-        throw InvalidArgumentException(s"If 'cluster' is not set in $TF_CONFIG_ENV, task type must be ${WORKER.name}.")
-      if (taskIndex != 0)
-        throw InvalidArgumentException(s"If 'cluster' is not set in $TF_CONFIG_ENV, task index must be 0.")
+        if (taskType != WORKER.name)
+          throw InvalidArgumentException(s"If 'cluster' is not set in $TF_CONFIG_ENV, task type must be ${WORKER.name}.")
+        if (taskIndex != 0)
+          throw InvalidArgumentException(s"If 'cluster' is not set in $TF_CONFIG_ENV, task index must be 0.")
 
-      val clusterConfig = None
-      val master = ""
-      val numParameterServers = 0
-      val numWorkers = 1
-      val isChief = true
-      (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief)
+        val clusterConfig = None
+        val master = ""
+        val numParameterServers = 0
+        val numWorkers = 1
+        val isChief = true
+        (clusterConfig, taskType, taskIndex, master, numParameterServers, numWorkers, isChief)
     }
   }
 

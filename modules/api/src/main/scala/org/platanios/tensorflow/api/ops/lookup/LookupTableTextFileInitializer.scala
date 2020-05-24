@@ -88,13 +88,13 @@ class LookupTableTextFileInitializer[K: TF, V: TF] protected (
           .setAttribute("vocab_size", vocabularySize)
           .setAttribute("delimiter", delimiter)
           .build()
-      Op.currentGraph.addToCollection(Graph.Keys.TABLE_INITIALIZERS)(initializationOp)
+      Op.currentGraph.addToCollection(Graph.Keys.TABLE_INITIALIZERS)(initializationOp.asUntyped)
       // If the filename asset tensor is anything other than a string constant
       // (e.g., if it is a placeholder), then it does not make sense to track
       // it as an asset.
       if (filename.op.opType == "Const")
-        Op.currentGraph.addToCollection(Graph.Keys.ASSET_FILEPATHS)(filename)
-      initializationOp
+        Op.currentGraph.addToCollection(Graph.Keys.ASSET_FILEPATHS)(filename.asUntyped)
+      initializationOp.asUntyped
     }
   }
 }

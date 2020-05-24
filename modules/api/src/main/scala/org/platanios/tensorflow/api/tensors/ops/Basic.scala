@@ -20,14 +20,15 @@ import org.platanios.tensorflow.api.core.Indexer._
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.Basic.{ConstantPadding, PaddingMode}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
+import org.platanios.tensorflow.api.ops.basic.Basic.{ConstantPadding, PaddingMode}
 import org.platanios.tensorflow.api.tensors._
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
 
 import java.nio.charset.StandardCharsets
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.language.postfixOps
 
 /** Contains functions for executing ops related to basic tensor manipulation.
@@ -168,8 +169,9 @@ trait Basic {
       axis: Int = 0
   ): Seq[Tensor[T]] = {
     val num: Int = if (number >= 0) number else input.shape(axis)
-    NativeTensorOpsBasic.unpack(executionContext.value.nativeHandle, input.nativeHandle, num, axis)
-        .map(Tensor.fromNativeHandle[T])
+    ArraySeq.unsafeWrapArray(
+      NativeTensorOpsBasic.unpack(executionContext.value.nativeHandle, input.nativeHandle, num, axis)
+          .map(Tensor.fromNativeHandle[T]))
   }
 
   /** $OpDocBasicConcatenate
@@ -203,9 +205,10 @@ trait Basic {
       shapes: Seq[Tensor[Int]],
       axis: Tensor[Int]
   ): Seq[Tensor[Int]] = {
-    NativeTensorOpsBasic.concatOffset(
-      executionContext.value.nativeHandle, axis.nativeHandle, shapes.map(_.nativeHandle).toArray)
-        .map(Tensor.fromNativeHandle[Int])
+    ArraySeq.unsafeWrapArray(
+      NativeTensorOpsBasic.concatOffset(
+        executionContext.value.nativeHandle, axis.nativeHandle, shapes.map(_.nativeHandle).toArray)
+          .map(Tensor.fromNativeHandle[Int]))
   }
 
   /** $OpDocBasicSplitEvenly
@@ -221,9 +224,10 @@ trait Basic {
       numSplits: Int,
       axis: Tensor[Int] = 0
   ): Seq[Tensor[T]] = {
-    NativeTensorOpsBasic.split(
-      executionContext.value.nativeHandle, axis.nativeHandle, input.nativeHandle, numSplits.toLong)
-        .map(Tensor.fromNativeHandle[T])
+    ArraySeq.unsafeWrapArray(
+      NativeTensorOpsBasic.split(
+        executionContext.value.nativeHandle, axis.nativeHandle, input.nativeHandle, numSplits.toLong)
+          .map(Tensor.fromNativeHandle[T]))
   }
 
   /** $OpDocBasicSplit
@@ -239,10 +243,11 @@ trait Basic {
       splitSizes: Tensor[I],
       axis: Tensor[Int] = 0
   ): Seq[Tensor[T]] = {
-    NativeTensorOpsBasic.splitV(
-      executionContext.value.nativeHandle, input.nativeHandle, splitSizes.nativeHandle,
-      axis.nativeHandle, splitSizes.shape(0))
-        .map(Tensor.fromNativeHandle[T])
+    ArraySeq.unsafeWrapArray(
+      NativeTensorOpsBasic.splitV(
+        executionContext.value.nativeHandle, input.nativeHandle, splitSizes.nativeHandle,
+        axis.nativeHandle, splitSizes.shape(0))
+          .map(Tensor.fromNativeHandle[T]))
   }
 
   /** $OpDocBasicTile

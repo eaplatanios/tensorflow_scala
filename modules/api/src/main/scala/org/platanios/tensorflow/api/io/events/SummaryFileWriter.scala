@@ -16,16 +16,15 @@
 package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.proto._
 
 import com.google.protobuf.ByteString
-import org.tensorflow.framework.{GraphDef, MetaGraphDef, RunMetadata, Summary}
-import org.tensorflow.util.{Event, SessionLog, TaggedRunMetadata}
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** Writes `Summary` protocol buffers to event files for use with TensorBoard.
   *

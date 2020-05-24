@@ -22,10 +22,12 @@ import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.io.{CompressionType, NoCompression}
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.tensors.Tensor
 
 import java.util.concurrent.atomic.AtomicLong
 
+import scala.collection.compat._
 import scala.collection.mutable
 import scala.language.postfixOps
 
@@ -628,7 +630,7 @@ trait Data extends Experimental {
         val flatTensors = evTensorToOutput.tensorStructure.tensors(element)
         // Additional type and shape checking to ensure that the components of the generated element match the
         // output data types and output shapes arguments.
-        (flatTensors, flatDataTypes, flatShapes).zipped.foreach((tensor, dataType, shape) => {
+        flatTensors.lazyZip(flatDataTypes).lazyZip(flatShapes).foreach((tensor, dataType, shape) => {
           if (tensor.dataType != dataType)
             throw InvalidDataTypeException(
               s"The generator yielded an element of type ${tensor.dataType} " +

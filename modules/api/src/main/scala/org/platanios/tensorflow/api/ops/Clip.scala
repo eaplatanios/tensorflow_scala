@@ -18,6 +18,8 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.utilities.DefaultsTo.IntDefault
 
 /** Contains functions for constructing ops related to clipping tensor values.
@@ -194,70 +196,6 @@ trait Clip {
 }
 
 object Clip extends Clip {
-  private[ops] trait Implicits {
-    implicit def outputConvertibleToClipOps[T, OC](
-        value: OC
-    )(implicit f: OC => Output[T]): ClipOps[T] = {
-      new ClipOps(f(value))
-    }
-
-    implicit class ClipOps[T](val output: Output[T]) {
-      protected implicit val evTTF: TF[T] = {
-        TF.fromDataType(output.dataType)
-      }
-
-      /** $OpDocClipClipByValue
-        *
-        * @group ClipOps
-        * @param  clipValueMin 0-D (scalar) tensor, or a tensor with the same shape as this tensor, specifying the minimum
-        *                      value to clip by.
-        * @param  clipValueMax 0-D (scalar) tensor, or a tensor with the same shape as this tensor, specifying the maximum
-        *                      value to clip by.
-        * @param  name         Name prefix for created ops.
-        * @return Created op output.
-        */
-      def clipByValue(
-          clipValueMin: Output[T],
-          clipValueMax: Output[T],
-          name: String = "ClipByValue"
-      )(implicit ev: IsNotQuantized[T]): Output[T] = {
-        Clip.clipByValue(output, clipValueMin, clipValueMax, name)
-      }
-
-      /** $OpDocClipClipByNorm
-        *
-        * @group ClipOps
-        * @param  clipNorm 0-D (scalar) tensor > 0, specifying the maximum clipping value.
-        * @param  axes     1-D (vector) tensor containing the dimensions to use for computing the l2-norm. If
-        *                  `null` (the default), all dimensions are used.
-        * @param  name     Name prefix for created ops.
-        * @return Created op output.
-        */
-      def clipByNorm[I: IntDefault : TF : IsIntOrLong](
-          clipNorm: Output[T],
-          axes: Output[I] = null,
-          name: String = "ClipByNorm"
-      )(implicit ev: IsNotQuantized[T]): Output[T] = {
-        Clip.clipByNorm(output, clipNorm, axes, name)
-      }
-
-      /** $OpDocClipClipByAverageNorm
-        *
-        * @group ClipOps
-        * @param  clipNorm 0-D (scalar) tensor > 0, specifying the maximum clipping value.
-        * @param  name     Name prefix for created ops.
-        * @return Created op output.
-        */
-      def clipByAverageNorm(
-          input: Output[T],
-          clipNorm: Output[T],
-          name: String = "ClipByAverageNorm"
-      )(implicit ev: IsNotQuantized[T]): Output[T] = {
-        Clip.clipByAverageNorm(output, clipNorm, name)
-      }
-    }
-  }
-
   /** @define OpDocClipClipByValue
     *   The `clipByValue` op clips tensor values to a specified min and max value.
     *

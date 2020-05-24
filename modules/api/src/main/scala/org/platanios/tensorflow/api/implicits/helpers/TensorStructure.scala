@@ -43,7 +43,7 @@ object TensorStructure {
   implicit def fromTensor[T]: TensorStructure[Tensor[T]] = {
     new TensorStructure[Tensor[T]] {
       override def tensors(tensor: Tensor[T]): Seq[Tensor[Any]] = {
-        Seq(tensor)
+        Seq(tensor.asUntyped)
       }
     }
   }
@@ -51,7 +51,7 @@ object TensorStructure {
   implicit def fromTensorIndexedSlices[T]: TensorStructure[TensorIndexedSlices[T]] = {
     new TensorStructure[TensorIndexedSlices[T]] {
       override def tensors(tensor: TensorIndexedSlices[T]): Seq[Tensor[Any]] = {
-        Seq(tensor.indices, tensor.values, tensor.denseShape)
+        Seq(tensor.indices.asUntyped, tensor.values.asUntyped, tensor.denseShape.asUntyped)
       }
     }
   }
@@ -59,7 +59,7 @@ object TensorStructure {
   implicit def fromSparseTensor[T]: TensorStructure[SparseTensor[T]] = {
     new TensorStructure[SparseTensor[T]] {
       override def tensors(tensor: SparseTensor[T]): Seq[Tensor[Any]] = {
-        Seq(tensor.indices, tensor.values, tensor.denseShape)
+        Seq(tensor.indices.asUntyped, tensor.values.asUntyped, tensor.denseShape.asUntyped)
       }
     }
   }

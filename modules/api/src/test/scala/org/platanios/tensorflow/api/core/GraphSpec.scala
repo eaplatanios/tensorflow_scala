@@ -17,28 +17,28 @@ package org.platanios.tensorflow.api.core
 
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.core.exception.{GraphMismatchException, InvalidArgumentException}
-import org.platanios.tensorflow.api.core.types.FLOAT32
 import org.platanios.tensorflow.api.ops.{Op, UntypedOp}
 import org.platanios.tensorflow.api.ops.Op.createWith
-import org.platanios.tensorflow.api.ops.Basic.{constant, placeholder}
-import org.platanios.tensorflow.api.ops.Math.add
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class GraphSpec extends FlatSpec with Matchers {
+class GraphSpec extends AnyFlatSpec with Matchers {
   private[this] def prepareGraph(): (Graph, Array[UntypedOp]) = {
     val graph = Graph()
     val ops = createWith(graph = graph) {
-      val c1 = constant(Tensor(1.0), name = "C_1")
-      val c2 = constant(Tensor(2.0), name = "C_2")
+      val c1 = Basic.constant(Tensor(1.0), name = "C_1")
+      val c2 = Basic.constant(Tensor(2.0), name = "C_2")
       val c3 = createWith(nameScope = "Nested") {
-        constant(Tensor(3.0), name = "C_3")
+        Basic.constant(Tensor(3.0), name = "C_3")
       }
-      val c4 = constant(Tensor(4.0), name = "C_4")
+      val c4 = Basic.constant(Tensor(4.0), name = "C_4")
       Array(c1.op, c2.op, c3.op, c4.op)
     }
     (graph, ops)
@@ -67,9 +67,9 @@ class GraphSpec extends FlatSpec with Matchers {
   it must "throw a 'GraphMismatchException' when provided ops from other graphs" in {
     val (graph, ops) = prepareGraph()
     createWith(graph = Graph()) {
-      assert(intercept[GraphMismatchException](graph.isFeedable(constant(1.0))).getMessage ===
+      assert(intercept[GraphMismatchException](graph.isFeedable(Basic.constant(1.0))).getMessage ===
           "The provided op output does not belong to this graph.")
-      assert(intercept[GraphMismatchException](graph.preventFeeding(constant(1.0))).getMessage ===
+      assert(intercept[GraphMismatchException](graph.preventFeeding(Basic.constant(1.0))).getMessage ===
           "The provided op output does not belong to this graph.")
     }
   }
@@ -95,9 +95,9 @@ class GraphSpec extends FlatSpec with Matchers {
   it must "throw a 'GraphMismatchException' when provided ops from other graphs" in {
     val (graph, ops) = prepareGraph()
     createWith(graph = Graph()) {
-      assert(intercept[GraphMismatchException](graph.isFetchable(constant(1.0).op)).getMessage ===
+      assert(intercept[GraphMismatchException](graph.isFetchable(Basic.constant(1.0).op)).getMessage ===
           "The provided op does not belong to this graph.")
-      assert(intercept[GraphMismatchException](graph.preventFetching(constant(1.0).op)).getMessage ===
+      assert(intercept[GraphMismatchException](graph.preventFetching(Basic.constant(1.0).op)).getMessage ===
           "The provided op does not belong to this graph.")
     }
   }
@@ -157,8 +157,8 @@ class GraphSpec extends FlatSpec with Matchers {
 
   "'graphElementByName'" must "return an existing element in a graph" in {
     val (graph, ops) = prepareGraph()
-    assert(graph.getByName("C_2").left.get === ops(1))
-    assert(graph.getByName("C_2:0").right.get == ops(1).outputsSeq(0))
+    graph.getByName("C_2").left.foreach(op => assert(op === ops(1)))
+    graph.getByName("C_2:0").foreach(output => assert(output == ops(1).outputsSeq.head))
   }
 
   it must "throw an 'InvalidArgumentException' exception with an informative message " +
@@ -198,9 +198,9 @@ class GraphSpec extends FlatSpec with Matchers {
 
     Op.createWith(graph) {
       // Create a minimal graph with zero variables.
-      val input = placeholder[Float](Shape(), name = "Input")
-      val offset = constant(42.0f, name = "Offset")
-      val output = add(input, offset, name = "AddOffset")
+      val input = Basic.placeholder[Float](Shape(), name = "Input")
+      val offset = Basic.constant(42.0f, name = "Offset")
+      val output = Math.add(input, offset, name = "AddOffset")
 
       // Add input and output tensors to graph collections.
       graph.addToCollection(INPUTS)(input.asInstanceOf[Output[Any]])

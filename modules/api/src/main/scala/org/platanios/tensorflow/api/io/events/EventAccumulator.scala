@@ -17,18 +17,17 @@ package org.platanios.tensorflow.api.io.events
 
 import org.platanios.tensorflow.api.io.DirectoryLoader
 import org.platanios.tensorflow.api.utilities.Reservoir
+import org.platanios.tensorflow.proto._
 
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-import org.tensorflow.framework._
-import org.tensorflow.util.Event
-import org.tensorflow.util.SessionLog.SessionStatus
 
 import java.nio.file.{Files, Path}
 
-import scala.collection.JavaConverters._
+import scala.collection.compat._
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** Accumulates event values collected from the provided path.
   *
@@ -328,7 +327,8 @@ case class EventAccumulator(
               val histogram = value.getHisto
               val histogramValue = HistogramValue(
                 histogram.getMin, histogram.getMax, histogram.getNum, histogram.getSum, histogram.getSumSquares,
-                histogram.getBucketLimitList.asScala.map(_.toDouble), histogram.getBucketList.asScala.map(_.toDouble))
+                histogram.getBucketLimitList.asScala.map(_.toDouble).toSeq,
+                histogram.getBucketList.asScala.map(_.toDouble).toSeq)
               val record = HistogramEventRecord(event.getWallTime, event.getStep, histogramValue)
               _reservoirs(HistogramEventType).asInstanceOf[Reservoir[String, HistogramEventRecord]].add(value.getTag, record)
             // TODO: [EVENTS] Compress histogram and add to the compressed histograms reservoir.
@@ -387,7 +387,7 @@ case class EventAccumulator(
     * @param  event Event to use as reference for the purge.
     */
   private[this] def checkForRestartAndMaybePurge(event: Event): Unit = {
-    if (event.getSessionLog != null && event.getSessionLog.getStatus == SessionStatus.START)
+    if (event.getSessionLog != null && event.getSessionLog.getStatus == SessionLog.SessionStatus.START)
       purge(event, byTags = false)
   }
 
@@ -429,9 +429,9 @@ case class EventAccumulator(
     val expiredPerType = {
       if (byTags) {
         val tags = event.getSummary.getValueList.asScala.map(_.getTag)
-        _reservoirs.mapValues(r => tags.map(t => r.filter(notExpired, Some(t))).sum)
+        _reservoirs.view.mapValues(r => tags.map(t => r.filter(notExpired, Some(t))).sum).toMap
       } else {
-        _reservoirs.mapValues(_.filter(notExpired))
+        _reservoirs.view.mapValues(_.filter(notExpired)).toMap
       }
     }
     if (expiredPerType.values.sum > 0) {

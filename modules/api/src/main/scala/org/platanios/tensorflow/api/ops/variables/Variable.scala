@@ -20,13 +20,14 @@ import org.platanios.tensorflow.api.core.exception._
 import org.platanios.tensorflow.api.core.types._
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
-
-import org.tensorflow.framework.{SaveSliceInfoDef, VariableDef}
+import org.platanios.tensorflow.proto.{SaveSliceInfoDef, VariableDef}
 
 import scala.collection.mutable
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.postfixOps
 
 /** Variable based on resource handles.

@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops.variables
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.exception.{InvalidDataTypeException, ShapeMismatchException}
-import org.platanios.tensorflow.api.core.types.TF
+import org.platanios.tensorflow.api.core.types.{DataType, TF}
 import org.platanios.tensorflow.api.ops.{Op, OpSpecification}
 
 /** Variable store that carries a number of named variables.
@@ -102,21 +102,21 @@ case class VariableStore private[variables]() {
           s"The shape of a new variable ('$name') must be fully defined, but instead it was set to '$shape'.")
       val actualInitializer = Op.initializationScope {
         if (initializer == null)
-          defaultInitializer(name, dataType)
+          defaultInitializer(name, dataType.asInstanceOf[DataType[Any]])
         else
           initializer
       }
       val variable = makeGetter()(
         name, dataType, shape, actualInitializer, regularizer,
         trainable, reuse, collections, cachingDevice, null)
-      variables += name -> variable
+      variables += name -> variable.asUntyped
       // TODO: [LOGGING]
       // Run the regularizer if specified and save the resulting loss.
       if (regularizer != null) {
         Op.colocateWith(Set(variable.op), ignoreExisting = true) {
           val loss = Op.nameScope(s"$name/Regularizer")(regularizer(variable.value))
           if (loss != null)
-            Op.currentGraph.addToCollection(Graph.Keys.REGULARIZATION_LOSSES)(loss)
+            Op.currentGraph.addToCollection(Graph.Keys.REGULARIZATION_LOSSES)(loss.asUntyped)
         }
       }
       variable

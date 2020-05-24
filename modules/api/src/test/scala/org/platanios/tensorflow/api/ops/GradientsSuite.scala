@@ -17,15 +17,18 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.core.types.{INT32, FLOAT64}
+import org.platanios.tensorflow.api.core.types.{FLOAT64, INT32}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.using
 
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 import org.junit.Test
 
+import scala.collection.compat.immutable.ArraySeq
 import scala.collection.mutable
 
 /**
@@ -88,7 +91,7 @@ class GradientsSuite extends JUnitSuite {
     val graph = Graph()
     val expectedGraph = Graph()
     val (inputs, output) = buildSuccessGraph(graph)
-    val gradients = Op.createWith(graph)(Gradients.gradients(Seq(output), inputs, FLOAT64))
+    val gradients = Op.createWith(graph)(Gradients.gradients(Seq(output), ArraySeq.unsafeWrapArray(inputs), FLOAT64))
     val expectedGradients = buildExpectedGraph(expectedGraph, gradientInputsProvided = false)
     val graphDef = graph.toProto
     val expectedGraphDef = expectedGraph.toProto
@@ -184,13 +187,13 @@ class GradientsSuite extends JUnitSuite {
       val op = reachedQueue.dequeue()
       if (!reached.contains(op)) {
         reached += op
-        op.outputsSeq.foreach(o => reachedQueue.enqueue(o.consumers.map(_.op): _*))
+        op.outputsSeq.foreach(o => o.consumers.foreach(c => reachedQueue.enqueue(c.op)))
       }
     }
     // Collect all inputs of `destinationOps` that are in `reached`.
     val inputs = mutable.ArrayBuffer.empty[UntypedOp]
     reachedQueue.clear()
-    reachedQueue.enqueue(destinationOps.toSeq: _*)
+    destinationOps.foreach(o => reachedQueue.enqueue(o))
     while (reachedQueue.nonEmpty) {
       val op = reachedQueue.dequeue()
       if (reached.contains(op)) {
@@ -200,7 +203,7 @@ class GradientsSuite extends JUnitSuite {
         op.inputsSeq.foreach(i => reachedQueue.enqueue(i.op))
       }
     }
-    inputs
+    inputs.toSeq
   }
 
   private[this] def assertOpSeqEqual(opSeq1: Seq[UntypedOp], opSeq2: Seq[UntypedOp]): Unit = {

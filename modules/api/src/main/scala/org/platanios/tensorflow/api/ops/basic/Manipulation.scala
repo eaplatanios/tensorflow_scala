@@ -20,9 +20,10 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.{DataType, IsIntOrLong, IsNumeric, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
+import org.platanios.tensorflow.api.ops.{Op, Output, OutputIndexedSlices, OutputLike, SparseOutput}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
-import org.platanios.tensorflow.api.ops.{Basic, Math, Op, Output, OutputIndexedSlices, OutputLike, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{Tensor, executionContext}
 import org.platanios.tensorflow.api.utilities.DefaultsTo.{IntDefault, LongDefault}
 import org.platanios.tensorflow.jni.InvalidArgumentException
@@ -885,7 +886,7 @@ trait Manipulation {
   def pad[T: TF, I: TF : IsIntOrLong](
       input: Output[T],
       paddings: Output[I],
-      mode: PaddingMode = ConstantPadding(Some(Tensor(0).reshape(Shape()))),
+      mode: Manipulation.PaddingMode = Manipulation.ConstantPadding(Some(Tensor(0).reshape(Shape()))),
       name: String = "Pad"
   ): Output[T] = {
     mode.pad(input, paddings, name)
@@ -924,7 +925,7 @@ trait Manipulation {
       op: Op[(Output[T], Output[I]), Output[T]],
       outputGradient: Output[T]
   ): (Output[T], Output[I]) = {
-    val mode = PaddingMode.fromString(op.stringAttribute("mode"))
+    val mode = Manipulation.PaddingMode.fromString(op.stringAttribute("mode"))
     (pad(outputGradient, op.input._2, mode), null)
   }
 
@@ -991,7 +992,7 @@ trait Manipulation {
         // Setting the shape explicitly because transpose is not handled by the shape function.
         val inputShape = transposed.input._1.shape
         if (inputShape != null && inputShape.rank != -1)
-          transposed.output.setShape(Shape(inputShape.asArray.reverse: _*))
+          transposed.output.setShape(Shape(inputShape.asArray.reverse))
         transposed.output
       }
     } else {

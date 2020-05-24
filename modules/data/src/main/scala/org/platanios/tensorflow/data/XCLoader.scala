@@ -27,6 +27,8 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path}
 import java.util.zip.ZipInputStream
 
+import scala.collection.compat.immutable.{ArraySeq, LazyList}
+
 /** Loader for datasets obtained from the
   * [[http://manikvarma.org/downloads/XC/XMLRepository.html Extreme Classification Repository]].
   *
@@ -269,18 +271,18 @@ object XCLoader extends Loader {
         val splits = readSplits(inputStream, bufferSize)
         val datasetSplits = {
           if (dataset.splits == null)
-            splits.toSeq.map(s => Split(trainIndices = s, testIndices = null))
+            splits.toSeq.map(s => Split(trainIndices = ArraySeq.unsafeWrapArray(s), testIndices = null))
           else
-            dataset.splits.zip(splits).map(p => p._1.copy(trainIndices = p._2))
+            dataset.splits.zip(splits).map(p => p._1.copy(trainIndices = ArraySeq.unsafeWrapArray(p._2)))
         }
         dataset = dataset.copy(splits = datasetSplits)
       } else if (entry.getName.endsWith(datasetType.testSplitsFilename)) {
-        val splits = readSplits(inputStream, bufferSize)
+        val splits = ArraySeq.unsafeWrapArray(readSplits(inputStream, bufferSize))
         val datasetSplits = {
           if (dataset.splits == null)
-            splits.toSeq.map(s => Split(trainIndices = null, testIndices = s))
+            splits.map(s => Split(trainIndices = null, testIndices = ArraySeq.unsafeWrapArray(s)))
           else
-            dataset.splits.zip(splits).map(p => p._1.copy(testIndices = p._2))
+            dataset.splits.zip(splits).map(p => p._1.copy(testIndices = ArraySeq.unsafeWrapArray(p._2)))
         }
         dataset = dataset.copy(splits = datasetSplits)
       }
@@ -336,7 +338,7 @@ object XCLoader extends Loader {
   ): Data[SparseTensor] = {
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
-    Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+    LazyList.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
     val lines = outputStream.toString(StandardCharsets.UTF_8.name()).split("\\r?\\n")
     val firstLineParts = lines.head.split(' ')
     val numSamples = firstLineParts(0).toInt
@@ -396,7 +398,7 @@ object XCLoader extends Loader {
   ): Array[Array[Int]] = {
     val outputStream = new ByteArrayOutputStream()
     val buffer = new Array[Byte](bufferSize)
-    Stream.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
+    LazyList.continually(inputStream.read(buffer)).takeWhile(_ != -1).foreach(outputStream.write(buffer, 0, _))
     outputStream.toString(StandardCharsets.UTF_8.name())
         .split("\\r?\\n")
         .filter(_.nonEmpty)

@@ -18,12 +18,13 @@ package org.platanios.tensorflow.api.ops.training.optimizers
 import org.platanios.tensorflow.api._
 import org.platanios.tensorflow.api.ops.variables.Variable
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class GradientDescentSpec extends FlatSpec with Matchers {
+class GradientDescentSpec extends AnyFlatSpec with Matchers {
   "Gradient descent" must "work for dense updates to resource-based variables" in {
       val value0 = Tensor[Double](1.0, 2.0)
       val value1 = Tensor[Double](3.0, 4.0)

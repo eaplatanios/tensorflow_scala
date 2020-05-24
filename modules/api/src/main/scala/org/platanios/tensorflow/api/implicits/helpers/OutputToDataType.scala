@@ -23,6 +23,8 @@ import org.platanios.tensorflow.api.utilities.Collections
 import shapeless._
 import shapeless.ops.hlist.Tupler
 
+import scala.collection.compat._
+
 /** Type trait used to map structures of outputs to structures of data types.
   *
   * @author Emmanouil Antonios Platanios
@@ -283,7 +285,7 @@ object OutputToDataType {
       }
 
       override def dataType(output: Map[K, T]): Map[K, ev.D] = {
-        output.mapValues(o => ev.dataType(o))
+        output.view.mapValues(o => ev.dataType(o)).toMap
       }
 
       override def decodeOutput(

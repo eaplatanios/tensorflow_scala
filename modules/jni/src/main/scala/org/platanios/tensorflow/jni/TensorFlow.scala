@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory
 import java.io.{IOException, InputStream}
 import java.nio.file.{Files, Path, StandardCopyOption}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -77,9 +77,9 @@ object TensorFlow {
       val classLoader = Thread.currentThread.getContextClassLoader
 
       // Check if a TensorFlow native framework library resource is provided and load it.
-      Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME)))
+      Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME) + ".2"))
           .map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory))
-      Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME)))
+      Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME) + ".2"))
           .map(extractResource(LIB_NAME, _, tempDirectory))
 
       // Load the TensorFlow JNI bindings from the appropriate resource.
@@ -103,7 +103,6 @@ object TensorFlow {
       // Load the TensorFlow ops library from the appropriate resource.
       val opsResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(OPS_LIB_NAME)))
       val opsPath = opsResourceStream.map(extractResource(OPS_LIB_NAME, _, tempDirectory))
-      // TODO: !!! For some reason this can be called twice.
       opsPath.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
     }
   }
@@ -154,11 +153,9 @@ object TensorFlow {
 
   load()
 
-  lazy val currentJvmPointer             : String = jvmPointer
-  lazy val currentCallbackRegistryPointer: String = callbackRegistryPointer
+  lazy val currentJvmPointer: Long = jvmPointer
 
-  @native private[jni] def jvmPointer: String
-  @native private[jni] def callbackRegistryPointer: String
+  @native private[jni] def jvmPointer: Long
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
   @native def loadOpLibrary(libraryPath: String): Array[Byte]

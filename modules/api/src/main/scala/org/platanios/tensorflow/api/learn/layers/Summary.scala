@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.learn.layers
 
-import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.types.{IsReal, TF, UByte}
 import org.platanios.tensorflow.api.learn.{Mode, layers}
 import org.platanios.tensorflow.api.ops
@@ -81,7 +81,11 @@ case class HistogramSummary[T: TF : IsReal](
 case class ImageSummary[T: TF : IsReal](
     override val name: String,
     tag: String,
-    badColor: Tensor[UByte] = Tensor[UByte](UByte(255.toByte), UByte(0), UByte(0), UByte(255.toByte)),
+    badColor: Tensor[UByte] = Tensor[UByte](
+      Tensor.fill[UByte](Shape())(UByte(255.toByte)),
+      Tensor.fill[UByte](Shape())(UByte(0.toByte)),
+      Tensor.fill[UByte](Shape())(UByte(0.toByte)),
+      Tensor.fill[UByte](Shape())(UByte(255.toByte))),
     maxOutputs: Int = 3,
     family: String = null,
     collections: Set[Graph.Key[Output[Any]]] = Set(Graph.Keys.SUMMARIES)
@@ -109,7 +113,7 @@ case class AudioSummary(
   override def forwardWithoutContext(
       input: Output[Float]
   )(implicit mode: Mode): Output[Float] = {
-    ops.Summary.audio(tag, input, samplingRate, maxOutputs, collections, family)
+    ops.Summary.audio(tag, input, samplingRate.toOutput, maxOutputs, collections, family)
   input
   }
 }

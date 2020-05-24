@@ -118,6 +118,15 @@ are a few useful links:
     session), we use a combination of weak references and a disposing thread running in the background. Please refer to
     `tensorflow/src/main/scala/org/platanios/tensorflow/api/utilities/Disposer.scala`, for the implementation.
 
+## Compiling from Source
+
+Note that in order to compile TensorFlow Scala on your
+machine you will need to first install the TensorFlow
+Python API. You also need to make sure that you have a
+`python3` alias for your python binary. This is used by
+CMake to find the TensorFlow header files in your
+installation.
+
 ## Tutorials
 
 - [Object Detection using Pre-Trained Models](https://brunk.io/deep-learning-in-scala-part-3-object-detection.html)
@@ -168,6 +177,34 @@ TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google 
 - Website margins are a little large relative to the content in mobile
 - Make the code blocks scroll rather than wrap
 
+To publish a signed snapshot version of the package that is 
+cross-compiled, we use the following commands from within
+an SBT shell:
+
+```sbt
+set nativeCrossCompilationEnabled in jni := true
+publishSigned
+```
+
+You can also test cross-compilation using the following
+command:
+
+```bash
+sbt jni/cross:nativeCrossCompile
+```
+
+Compile the TensorFlow dynamic libraries from source using:
+
+```bash
+bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 //tensorflow:libtensorflow.so
+```
+
+On Ubuntu 18.04 you may get some linking errors, in which case you should use:
+
+```bash
+bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --noincompatible_do_not_split_linking_cmdline //tensorflow:libtensorflow.so
+```
+
 To publish the documentation website we use the following commands:
 
 ```bash
@@ -176,7 +213,7 @@ sbt docs/ghpagesPushSite # To publish the website
 ```
 
 ```bash
-find . -name '*.h' | cpio -pdmu ../tensorflow_scala/jni/src/main/native/include/
+find . -name '*.h' | cpio -pdmu ../tensorflow_scala/modules/jni/src/main/native/include/
 ```
 
 -->

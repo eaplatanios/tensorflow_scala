@@ -21,9 +21,9 @@ import org.platanios.tensorflow.api.core.exception.InvalidArgumentException
 import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
 import org.platanios.tensorflow.jni.{Server => NativeServer}
+import org.platanios.tensorflow.proto.ServerDef
 
 import com.google.protobuf.GeneratedMessageV3
-import org.tensorflow.distruntime.ServerDef
 
 /** In-process TensorFlow server, for use in distributed training.
   *

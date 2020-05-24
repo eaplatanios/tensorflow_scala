@@ -15,12 +15,13 @@
 
 package org.platanios.tensorflow.api.ops
 
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * @author Emmanouil Antonios Platanios
   */
-class BasicSpec extends FlatSpec with Matchers {
+class BasicSpec extends AnyFlatSpec with Matchers {
 //  "'ArrayOps.constant'" must "create a constant op when provided a Tensor of the same data type and shape" in {
 //    // DataType.Int32 Tensor
 //    val tensor1 = Tensor(Tensor(Tensor(2, 3), Tensor(0, 0), Tensor(5, 7)),

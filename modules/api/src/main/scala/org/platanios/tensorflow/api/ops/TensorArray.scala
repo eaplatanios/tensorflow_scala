@@ -18,8 +18,12 @@ package org.platanios.tensorflow.api.ops
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.{InvalidArgumentException, InvalidShapeException}
 import org.platanios.tensorflow.api.core.types.{DataType, Resource, TF}
+import org.platanios.tensorflow.api.ops.basic.Basic
+import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.tensors.Tensor
+
+import scala.collection.compat.immutable.ArraySeq
 
 /** Class wrapping dynamic-sized, per-time-step, write-once tensor arrays.
   *
@@ -148,7 +152,7 @@ case class TensorArray[T] private (
       val value = TensorArray.gatherOp(
         handle, ind, flow, _elementShape.getOrElse(Shape.unknown()), name)(TF.fromDataType(dataType))
       if (_elementShape.isDefined)
-        value.setShape(Shape(-1 +: _elementShape.get.asArray: _*))
+        value.setShape(Shape(-1 +: ArraySeq.unsafeWrapArray(_elementShape.get.asArray): _*))
       value
     }
   }
@@ -178,7 +182,7 @@ case class TensorArray[T] private (
       val valueShape = scatterFlow.op.inputsSeq(2).shape
       val shape = {
         if (valueShape != Shape.unknown())
-          Shape.fromSeq(valueShape.asArray.tail)
+          Shape.fromSeq(ArraySeq.unsafeWrapArray(valueShape.asArray.tail))
         else
           valueShape
       }
@@ -238,11 +242,11 @@ case class TensorArray[T] private (
     */
   def concatenate(name: String = "TensorArrayConcatenate"): Output[T] = {
     val shape = _elementShape.map(s => {
-      Shape.fromSeq(s.asArray.tail)
+      Shape.fromSeq(ArraySeq.unsafeWrapArray(s.asArray.tail))
     }).getOrElse(Shape.unknown())
     val (value, _) = TensorArray.concatenateOp(handle, flow, shape, name)(TF.fromDataType(dataType))
     if (_elementShape.isDefined)
-      value.setShape(Shape(-1 +: shape.asArray: _*))
+      value.setShape(Shape(-1 +: ArraySeq.unsafeWrapArray(shape.asArray): _*))
     value
   }
 
@@ -273,7 +277,7 @@ case class TensorArray[T] private (
           if (valueShape.rank != -1 &&
               lengths.isDefined &&
               lengths.get.max() == lengths.get.min()) {
-            Shape.fromSeq(lengths.get(0).scalar.toInt +: valueShape.asArray.tail)
+            Shape.fromSeq(ArraySeq.unsafeWrapArray(lengths.get(0).scalar.toInt +: valueShape.asArray.tail))
           } else {
             Shape.unknown()
           }

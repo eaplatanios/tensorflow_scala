@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.1.0)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 # Define project and related variables
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
-set(PROJECT_VERSION_MINOR 2)
+set(PROJECT_VERSION_MINOR 5)
 set(PROJECT_VERSION_PATCH 0)
 
 # Set up JNI
@@ -47,7 +47,17 @@ file(GLOB OP_LIB_SRC
   "ops/*.cc"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+# Find Python and get the TensorFlow header files from there.
+execute_process(COMMAND python3 -c
+  "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_compile_flags()))"
+  OUTPUT_VARIABLE TF_CFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND python3 -c
+  "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_link_flags()))"
+  OUTPUT_VARIABLE TF_LFLAGS
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0 ${TF_CFLAGS} ${TF_LFLAGS}")
 
 set(CMAKE_BUILD_WITH_INSTALL_RPATH 1)
 if(${APPLE})

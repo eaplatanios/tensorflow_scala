@@ -17,9 +17,10 @@ package org.platanios.tensorflow.api.io
 
 import org.junit.{Before, Rule, Test}
 import org.junit.rules.TemporaryFolder
-import org.scalatest.junit.JUnitSuite
+import org.scalatestplus.junit.JUnitSuite
 
 import java.io.InputStream
+import java.nio.charset.Charset
 import java.nio.file.{Files, Path, StandardOpenOption}
 
 /**
@@ -38,9 +39,11 @@ class DirectoryLoaderSuite extends JUnitSuite {
   }
 
   private[this] def writeToFile(filename: String, content: String): Unit = {
-    val fileIO = FileIO(_tempPath.resolve(filename), FileIO.APPEND)
-    fileIO.write(content)
-    fileIO.close()
+    Files.write(
+      _tempPath.resolve(filename),
+      content.getBytes(Charset.forName("UTF-8")),
+      StandardOpenOption.APPEND,
+      StandardOpenOption.CREATE)
   }
 
   private[this] def loadAll(): Unit = _loader.load().foreach(_ => ())
