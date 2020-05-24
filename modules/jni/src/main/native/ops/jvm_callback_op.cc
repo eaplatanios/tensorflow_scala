@@ -212,7 +212,7 @@ static void* JVMCallbackKernel_Create(TF_OpKernelConstruction* ctx) {
   // CHECK_STATUS(env, status.get(), nullptr);
   TF_OpKernelConstruction_GetAttrInt32(ctx, "jvm_pointer_lower", &jvm_pointer_lower, status.get());
   // CHECK_STATUS(env, status.get(), nullptr);
-  int64_t jvm_pointer = (((int64_t) jvm_pointer_upper) << 32) | (int64_t) jvm_pointer_lower;
+  uint64_t jvm_pointer = (((uint64_t) jvm_pointer_upper) << 32) | ((uint64_t) jvm_pointer_lower);
   JavaVM* jvm_ = reinterpret_cast<JavaVM*>(jvm_pointer);
   k->jvm_wrapper_ = get_jvm_wrapper(jvm_);
   mutex_lock guard(k->jvm_wrapper_->lock);
