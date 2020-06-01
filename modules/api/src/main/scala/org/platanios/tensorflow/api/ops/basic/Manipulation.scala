@@ -1715,7 +1715,7 @@ trait Manipulation {
       shrinkAxisMask: Long = 0,
       name: String = "StridedSlice"
   ): Output[T] = {
-    val stridesWithDefault = if (strides != null) Constructors.onesLike(begin) else strides
+    val stridesWithDefault = if (strides == null) Constructors.onesLike(begin) else strides
     Op.Builder[(Output[T], Output[I], Output[I], Output[I]), Output[T]](
       opType = "StridedSlice",
       name = name,

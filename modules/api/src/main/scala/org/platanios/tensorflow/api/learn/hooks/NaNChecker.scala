@@ -55,8 +55,8 @@ class NaNChecker protected (
       runResult: Hook.SessionRunResult[Seq[Tensor[Any]]]
   )(implicit evOutputToTensorC: OutputToTensor.Aux[C, CV]): Unit = {
     // TODO: [TYPES] !!! Remove the cast once we start using static types everywhere.
-    runResult.result.filter(r => ops.Math.any(ops.Math.isNaN(r.toFloat)).scalar).foreach(value => {
-      val message = s"Encountered NaN values in tensor: $value."
+    runResult.result.zip(tensorNames).filter(r => ops.Math.any(ops.Math.isNaN(r._1.toFloat)).scalar).foreach(value => {
+      val message = s"Encountered NaN values in tensor: ${value._2}."
       if (failOnNaN) {
         NaNChecker.logger.error(message)
         throw new IllegalStateException(message)
