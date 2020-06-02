@@ -1534,6 +1534,8 @@ trait Manipulation {
 
   /** Gathers slices from `input` according to `indices` with a leading batch dimension.
     *
+    * TODO [OPS]: This needs to be updated at this op now supports multiple leading batch dimensions.
+    *
     * This operation assumes that the leading dimensions of `indices` are dense, and computes:
     * {{{
     *   result(i1, ..., in) = input(i1, ..., in-1, indices(i1, ..., in))
@@ -1555,40 +1557,82 @@ trait Manipulation {
   def batchGather[T: TF, I: TF : IsIntOrLong](
       input: Output[T],
       indices: Output[I],
+      axis: Int = 1,
+      batchDimensionCount: Int = 1,
       name: String = "BatchGather"
   ): Output[T] = {
+    val inputRank = input.rank
+    val indicesRank = indices.rank
+
+    assert(batchDimensionCount >= 0, "`batchDimensionCount` must be non-negative.")
+    assert(inputRank >= 0, "`batchGather` does not allow for inputs with unknown rank.")
+    assert(indicesRank >= 0, "`batchGather` does not allow for indices with unknown rank.")
+    assert(batchDimensionCount < inputRank, "`batchDimensionCount` must be less than `input.rank`.")
+    assert(batchDimensionCount < indicesRank, "`batchDimensionCount` must be less than `indices.rank`.")
+
+    // Adjust the axis to be positive.
+    val positiveAxis = if (axis < 0) axis + inputRank else axis
+
     Op.nameScope(name) {
-      val inputShape = shape(input)
-      val castedInputShape = inputShape.castTo[I]
-      val indicesShape = shape(indices)
+      val zero = Constructors.zeros[I](Shape())
+      val one = Constructors.ones[I](Shape())
 
-      val indicesRank = indices.rank
-      if (indicesRank == -1)
-        throw InvalidShapeException("`batchGather` does not allow indices with unknown rank.")
-
-      var batchIndices = indices
-      var accumulatedDimValue = Constructors.ones[I](Shape())
-      for (i <- (indicesRank - 1) to 1 by -1) {
-        accumulatedDimValue *= castedInputShape(i)
-        val dimValue = castedInputShape(i - 1)
-        val zero = Constructors.zeros[I](Shape())
-        val one = Constructors.ones[I](Shape())
-        val dimIndices = accumulatedDimValue * Math.range(zero, dimValue, one)
-        val dimShape = stack((Seq.fill(i - 1)(one) :+ dimValue) ++ Seq.fill(indicesRank - i)(one))
-        batchIndices += reshape(dimIndices, dimShape)
+      // Handle the axis argument by transposing the axis dimension so that it is the first
+      // non-batch dimension, recursively calling `batchGather` with `axis = 0`, and then
+      // transposing the result to put the pre-axis dimensions before the indices dimensions.
+      if (positiveAxis != batchDimensionCount) {
+        val inputRankTensor = Constructors.constant[Int](inputRank).castTo[I]
+        val positiveAxisTensor = Constructors.constant[Int](positiveAxis).castTo[I]
+        val batchDimensionCountTensor = Constructors.constant[Int](batchDimensionCount).castTo[I]
+        // Move `input(axis)` up to `input(batchDimensionCount)`.
+        val permutation = concatenate(Seq(
+          Math.range(zero, batchDimensionCountTensor, one),
+          expandDims(positiveAxisTensor, one),
+          Math.range(batchDimensionCountTensor, positiveAxisTensor, one),
+          Math.range(one + positiveAxisTensor, inputRankTensor, one)))
+        val transposedInput = transpose(input, permutation)
+        val result = batchGather(
+          transposedInput,
+          indices,
+          axis = batchDimensionCount,
+          batchDimensionCount = batchDimensionCount)
+        // Move the result dimensions that correspond to `input(batchDimensionCount, ..., axis - 1)` to just before the
+        // dimensions that correspond to `indices(batchDimensionCount, ...)`.
+        val indicesRankTensor = Constructors.constant[Int](indicesRank).castTo[I]
+        val resultRankTensor = Constructors.constant[Int](result.rank).castTo[I]
+        val startTensor = Constructors.constant[Int](indicesRank + positiveAxis - batchDimensionCount).castTo[I]
+        val resultPermutation = concatenate(Seq(
+          Math.range(zero, batchDimensionCountTensor, one),
+          Math.range(indicesRankTensor, startTensor, one),
+          Math.range(batchDimensionCountTensor, indicesRankTensor, one),
+          Math.range(startTensor, resultRankTensor, one)))
+        transpose(result, resultPermutation)
+      } else {
+        val inputShape = shape(input)
+        val castedInputShape = inputShape.castTo[I]
+        val indicesShape = shape(indices)
+        var batchIndices = indices
+        var accumulatedDimValue = Constructors.ones[I](Shape())
+        for (i <- batchDimensionCount to 1 by -1) {
+          accumulatedDimValue *= castedInputShape(i)
+          val dimValue = castedInputShape(i - 1)
+          val dimIndices = accumulatedDimValue * Math.range(zero, dimValue, one)
+          val dimShape = stack((Seq.fill(i - 1)(one) :+ dimValue) ++ Seq.fill(indicesRank - i)(one))
+          batchIndices += reshape(dimIndices, dimShape)
+        }
+        val batchIndicesShape = shape(batchIndices)
+        val flatIndices = reshape(batchIndices, Shape(-1))
+        val outerShape = inputShape((batchDimensionCount + 1) ::)
+        val flatInnerShape = Math.prod(inputShape(0 :: (batchDimensionCount + 1)), axes = 0, keepDims = false)
+        val flatInput = reshape(input, concatenate(Seq(flatInnerShape(NewAxis), outerShape), axis = 0))
+        val flatResult = gather(flatInput, flatIndices)
+        val result = reshape(flatResult, concatenate(Seq(batchIndicesShape, outerShape), axis = 0))
+        var finalShape = batchIndices.shape(0 :: indicesRank - 1).mergeWith(input.shape(0 :: indicesRank - 1))
+        finalShape += indices.shape(indicesRank - 1)
+        finalShape ++= input.shape(indicesRank ::)
+        result.setShape(finalShape)
+        result
       }
-
-      val flatIndices = reshape(batchIndices, Shape(-1))
-      val outerShape = inputShape(indicesRank ::)
-      val flatInnerShape = Math.prod(inputShape(0 :: indicesRank), axes = 0, keepDims = false)
-      val flatInput = reshape(input, concatenate(Seq(flatInnerShape(NewAxis), outerShape), axis = 0))
-      val flatResult = gather(flatInput, flatIndices)
-      val result = reshape(flatResult, concatenate(Seq(indicesShape, outerShape), axis = 0))
-      var finalShape = indices.shape(0 :: indicesRank - 1).mergeWith(input.shape(0 :: indicesRank - 1))
-      finalShape += indices.shape(indicesRank - 1)
-      finalShape ++= input.shape(indicesRank ::)
-      result.setShape(finalShape)
-      result
     }
   }
 
