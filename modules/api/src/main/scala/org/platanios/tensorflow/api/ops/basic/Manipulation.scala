@@ -1627,9 +1627,10 @@ trait Manipulation {
         val flatInput = reshape(input, concatenate(Seq(flatInnerShape(NewAxis), outerShape), axis = 0))
         val flatResult = gather(flatInput, flatIndices)
         val result = reshape(flatResult, concatenate(Seq(batchIndicesShape, outerShape), axis = 0))
-        var finalShape = batchIndices.shape(0 :: indicesRank - 1).mergeWith(input.shape(0 :: indicesRank - 1))
-        finalShape += indices.shape(indicesRank - 1)
-        finalShape ++= input.shape(indicesRank ::)
+        var finalShape = indices.shape(0 :: batchDimensionCount - 1)
+            .mergeWith(input.shape(0 :: batchDimensionCount - 1))
+        finalShape ++= indices.shape(batchDimensionCount ::)
+        finalShape ++= input.shape((batchDimensionCount + 1) ::)
         result.setShape(finalShape)
         result
       }
