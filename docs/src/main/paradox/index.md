@@ -26,6 +26,20 @@ should be relatively stable by now, but things are still likely to change.
 
 @@@
 
+## Citation
+
+It would be greatly appreciated if you could cite this project using the following BibTex entry, if you end up using it
+in your work:
+
+```bibtex
+@misc{Platanios:2018:tensorflow-scala,
+	title			   = {{TensorFlow Scala}},
+	author			 = {Platanios, Emmanouil Antonios},
+	howpublished = {\small\url{https://github.com/eaplatanios/tensorflow_scala}},
+	year			   = {2018}
+}
+```
+
 ## Main Features
 
   - Easy manipulation of tensors and computations involving tensors (similar to NumPy in Python):
