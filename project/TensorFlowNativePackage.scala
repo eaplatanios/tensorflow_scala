@@ -88,7 +88,8 @@ object TensorFlowNativePackage extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(JniCross)(settings)
 
-  val tfLibUrlPrefix       : String = "https://storage.googleapis.com/tensorflow/libtensorflow"
+  // val tfLibUrlPrefix       : String = "https://storage.googleapis.com/tensorflow/libtensorflow"
+  val tfLibUrlPrefix       : String = "https://www.dropbox.com/s/h9rj6noaz1ai0uv/libtensorflow"
   val tfLibNightlyUrlPrefix: String = "https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package"
 
   def tfLibFilename(platform: Platform): String = platform match {
@@ -104,12 +105,15 @@ object TensorFlowNativePackage extends AutoPlugin {
   }
 
   def tfLibUrl(platform: Platform, version: String): String = (platform, version) match {
-    case (LINUX_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
-    case (LINUX_GPU_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
-    case (DARWIN_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
-    case (LINUX_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
-    case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-gpu-${LINUX_x86_64.name}-$v.tar.gz"
-    case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
+    // case (LINUX_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
+    // case (LINUX_GPU_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
+    // case (DARWIN_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
+    // case (LINUX_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
+    // case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-gpu-${LINUX_x86_64.name}-$v.tar.gz"
+    // case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
+    case (LINUX_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-$v-cpu-${platform.name}.tar.gz?dl=1"
+    case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-$v-gpu-${LINUX_x86_64.name}.tar.gz?dl=1"
+    case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-$v-cpu-${platform.name}.tar.gz?dl=1"
   }
 
   def downloadTfLib(

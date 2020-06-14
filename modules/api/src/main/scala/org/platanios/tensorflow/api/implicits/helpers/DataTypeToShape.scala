@@ -33,7 +33,7 @@ sealed trait DataTypeToShape[D] {
   def decodeShape(dataType: D, shapes: Seq[Shape]): (S, Seq[Shape])
 }
 
-object DataTypeToShape {
+object DataTypeToShape extends DataTypeToShapeLowPriorityImplicits {
   def apply[D](implicit ev: DataTypeToShape[D]): Aux[D, ev.S] = {
     ev.asInstanceOf[Aux[D, ev.S]]
   }
@@ -184,10 +184,9 @@ object DataTypeToShape {
     }
   }
 
-  implicit def fromProduct[PD <: Product, PS <: Product, HD <: HList, HS <: HList](implicit
+  implicit def fromKnownProduct[PD <: Product, PS <: Product, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
       evD: Strict[DataTypeToShape.Aux[HD, HS]],
-      tuplerS: Tupler.Aux[HS, PS],
       genS: Generic.Aux[PS, HS]
   ): DataTypeToShape.Aux[PD, PS] = {
     new DataTypeToShape[PD] {
@@ -205,5 +204,16 @@ object DataTypeToShape {
         (genS.from(out), remaining)
       }
     }
+  }
+}
+
+trait DataTypeToShapeLowPriorityImplicits {
+  implicit def fromProduct[PD <: Product, PS <: Product, HD <: HList, HS <: HList](implicit
+      genD: Generic.Aux[PD, HD],
+      evD: Strict[DataTypeToShape.Aux[HD, HS]],
+      tuplerS: Tupler.Aux[HS, PS],
+      genS: Generic.Aux[PS, HS]
+  ): DataTypeToShape.Aux[PD, PS] = {
+    DataTypeToShape.fromKnownProduct
   }
 }

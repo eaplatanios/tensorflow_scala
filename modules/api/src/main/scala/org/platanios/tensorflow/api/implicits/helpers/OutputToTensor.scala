@@ -36,7 +36,7 @@ sealed trait OutputToTensor[T] {
   def decodeTensor(output: T, tensors: Seq[Tensor[Any]]): (V, Seq[Tensor[Any]])
 }
 
-object OutputToTensor {
+object OutputToTensor extends OutputToTensorLowPriorityImplicits {
   def apply[T](implicit ev: OutputToTensor[T]): Aux[T, ev.V] = {
     ev.asInstanceOf[Aux[T, ev.V]]
   }
@@ -307,10 +307,9 @@ object OutputToTensor {
     }
   }
 
-  implicit def fromProduct[PT <: Product, PV <: Product, HT <: HList, HV <: HList](implicit
+  implicit def fromKnownProduct[PT <: Product, PV <: Product, HT <: HList, HV <: HList](implicit
       genT: Generic.Aux[PT, HT],
       evT: Strict[OutputToTensor.Aux[HT, HV]],
-      tuplerV: Tupler.Aux[HV, PV],
       genV: Generic.Aux[PV, HV]
   ): OutputToTensor.Aux[PT, PV] = {
     new OutputToTensor[PT] {
@@ -332,5 +331,16 @@ object OutputToTensor {
         (genV.from(out), remaining)
       }
     }
+  }
+}
+
+trait OutputToTensorLowPriorityImplicits {
+  implicit def fromProduct[PT <: Product, PV <: Product, HT <: HList, HV <: HList](implicit
+      genT: Generic.Aux[PT, HT],
+      evT: Strict[OutputToTensor.Aux[HT, HV]],
+      tuplerV: Tupler.Aux[HV, PV],
+      genV: Generic.Aux[PV, HV]
+  ): OutputToTensor.Aux[PT, PV] = {
+    OutputToTensor.fromKnownProduct
   }
 }

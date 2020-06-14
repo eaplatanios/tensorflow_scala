@@ -76,21 +76,22 @@ object TensorFlow {
       })
       val classLoader = Thread.currentThread.getContextClassLoader
 
-      // Check if a TensorFlow native framework library resource is provided and load it.
-      Option(classLoader.getResourceAsStream(makeResourceName(LIB_FRAMEWORK_NAME) + ".2"))
-          .map(extractResource(LIB_FRAMEWORK_NAME, _, tempDirectory))
-      Option(classLoader.getResourceAsStream(makeResourceName(LIB_NAME) + ".2"))
-          .map(extractResource(LIB_NAME, _, tempDirectory))
+      // Check if a TensorFlow native framework library resources are provided and load them.
+      (makeResourceNames(LIB_FRAMEWORK_NAME) ++ makeResourceNames(LIB_NAME)).map { case (name, path) =>
+        extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+      }
 
       // Load the TensorFlow JNI bindings from the appropriate resource.
-      val jniResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(JNI_LIB_NAME)))
-      val jniPath = jniResourceStream.map(extractResource(JNI_LIB_NAME, _, tempDirectory))
-      if (jniPath.isEmpty)
+      val jniPaths = makeResourceNames(JNI_LIB_NAME).flatMap { case (name, path) =>
+        extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+      }
+      if (jniPaths.isEmpty) {
         throw new UnsatisfiedLinkError(
           s"Cannot find the TensorFlow JNI bindings for OS: $os, and architecture: $architecture. See " +
               "https://github.com/eaplatanios/tensorflow_scala/tree/master/README.md for possible solutions " +
               "(such as building the library from source).")
-      jniPath.foreach(path => {
+      }
+      jniPaths.foreach(path => {
         try {
           System.load(path.toAbsolutePath.toString)
         } catch {
@@ -101,9 +102,10 @@ object TensorFlow {
       })
 
       // Load the TensorFlow ops library from the appropriate resource.
-      val opsResourceStream = Option(classLoader.getResourceAsStream(makeResourceName(OPS_LIB_NAME)))
-      val opsPath = opsResourceStream.map(extractResource(OPS_LIB_NAME, _, tempDirectory))
-      opsPath.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
+      val opsPaths = makeResourceNames(OPS_LIB_NAME).flatMap { case (name, path) =>
+        extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+      }
+      opsPaths.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
     }
   }
 
@@ -117,38 +119,42 @@ object TensorFlow {
     }
   }
 
-  /** Maps the provided library name to a filename, similar to [[System.mapLibraryName]], but with the only difference
-    * being that for the main TensorFlow native library only, the `.so` extension is used for Mac OS X shared libraries,
-    * as opposed to the `.dylib` extension. */
-  private def mapLibraryName(lib: String): String = {
-    var name = System.mapLibraryName(lib)
-    if (os == "darwin" && name.endsWith(".dylib"))
-      name = name.substring(0, name.lastIndexOf(".dylib")) + ".so"
-    name
+  /** Maps the provided library name to a set of filenames, similar to [[System.mapLibraryName]], but considering all
+    * combinations of `dylib` and `so` extensions, along with versioning for TensorFlow 2.x. */
+  private def mapLibraryName(lib: String): Seq[String] = {
+    if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
+      Seq(s"lib$lib.so")
+    } else {
+      Seq(s"lib$lib.so", s"lib$lib.so.2", s"lib$lib.dylib", s"lib$lib.2.dylib")
+    }
   }
 
-  /** Generates the resource name (including the path) for the specified library. */
-  private def makeResourceName(lib: String): String = {
-    if (lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME)
-      mapLibraryName(lib)
-    else
-      s"native/$os-$architecture/${mapLibraryName(lib)}"
+  /** Generates the resource names and paths for the specified library. */
+  private def makeResourceNames(lib: String): Seq[(String, String)] = {
+    if (lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME) {
+      mapLibraryName(lib).map(name => (name, name))
+    } else {
+      mapLibraryName(lib).map(name => (name, s"native/$os-$architecture/$name"))
+    }
   }
 
   /** Extracts the resource provided by `inputStream` to `directory`. The filename is the mapped library name for the
     * `lib` library. Returns a path pointing to the extracted file. */
-  private def extractResource(lib: String, resourceStream: InputStream, directory: Path): Path = {
-    val sampleFilename = mapLibraryName(lib)
-    val filePath = directory.resolve(sampleFilename)
-    logger.debug(s"Extracting the '$lib' native library to ${filePath.toAbsolutePath}.")
-    try {
-      val numBytes = Files.copy(resourceStream, filePath, StandardCopyOption.REPLACE_EXISTING)
-      logger.debug(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
-    } catch {
-      case exception: Exception =>
-        throw new UnsatisfiedLinkError(s"Error while extracting the '$lib' native library: $exception")
+  private def extractResource(filename: String, resourceStream: InputStream, directory: Path): Option[Path] = {
+    if (resourceStream != null) {
+      val filePath = directory.resolve(filename)
+      logger.debug(s"Extracting the '$filename' native library to ${filePath.toAbsolutePath}.")
+      try {
+        val numBytes = Files.copy(resourceStream, filePath, StandardCopyOption.REPLACE_EXISTING)
+        logger.debug(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
+      } catch {
+        case exception: Exception =>
+          throw new UnsatisfiedLinkError(s"Error while extracting the '$filename' native library: $exception")
+      }
+      Some(filePath)
+    } else {
+      None
     }
-    filePath
   }
 
   load()

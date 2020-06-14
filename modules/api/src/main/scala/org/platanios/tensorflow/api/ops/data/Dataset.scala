@@ -147,7 +147,7 @@ abstract class Dataset[T: OutputStructure] { outer =>
           (bs, s1, s2)
         }
         Op.Builder[(Output[Variant], Output[Long], Output[Long], Output[Long]), Output[Variant]](
-          opType = "ShuffleDatasetV3",
+          opType = "ShuffleDataset",
           name = name,
           input = (outer.createHandle(), bs, s1, s2)
         ).setAttribute("reshuffle_each_iteration", reshuffleEachIteration)

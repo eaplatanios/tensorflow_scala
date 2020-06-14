@@ -27,6 +27,20 @@ are a few useful links:
   - [Library Architecture](https://eaplatanios.github.io/tensorflow_scala/architecture.html)
   - [Contributing](https://eaplatanios.github.io/tensorflow_scala/contributing.html)
 
+## Citation
+
+It would be greatly appreciated if you could cite this project using the following BibTex entry, if you end up using it
+in your work:
+
+```bibtex
+@misc{Platanios:2018:tensorflow-scala,
+  title        = {{TensorFlow Scala}},
+  author       = {Platanios, Emmanouil Antonios},
+  howpublished = {\url{https://github.com/eaplatanios/tensorflow_scala}},
+  year         = {2018}
+}
+```
+
 ## Main Features
 
   - Easy manipulation of tensors and computations involving tensors (similar to NumPy in Python):
@@ -212,8 +226,13 @@ sbt docs/previewSite     # To preview the website
 sbt docs/ghpagesPushSite # To publish the website
 ```
 
+To prepare the precompiled TensorFlow binary packages, use the following commands:
+
 ```bash
-find . -name '*.h' | cpio -pdmu ../tensorflow_scala/modules/jni/src/main/native/include/
+mkdir lib
+cp -av /usr/local/lib/libtensorflow* lib/
+tar -zcvf libtensorflow-2.2.0-cpu-darwin-x86_64.tar.gz lib
+tar -ztvf libtensorflow-2.2.0-cpu-darwin-x86_64.tar.gz
 ```
 
 -->

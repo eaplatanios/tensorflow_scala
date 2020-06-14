@@ -34,7 +34,7 @@ sealed trait TensorToOutput[T] {
   def output(tensor: T): O
 }
 
-object TensorToOutput {
+object TensorToOutput extends TensorToOutputLowPriorityImplicits {
   type Aux[T, OO] = TensorToOutput[T] {
     type O = OO
   }
@@ -180,10 +180,9 @@ object TensorToOutput {
     }
   }
 
-  implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
+  implicit def fromKnownProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
       genT: Generic.Aux[PT, HT],
       evT: Strict[TensorToOutput.Aux[HT, HO]],
-      tuplerO: Tupler.Aux[HO, PO],
       genO: Generic.Aux[PO, HO]
   ): TensorToOutput.Aux[PT, PO] = {
     new TensorToOutput[PT] {
@@ -197,5 +196,16 @@ object TensorToOutput {
         genO.from(evT.value.output(genT.to(tensor)))
       }
     }
+  }
+}
+
+trait TensorToOutputLowPriorityImplicits {
+  implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
+      genT: Generic.Aux[PT, HT],
+      evT: Strict[TensorToOutput.Aux[HT, HO]],
+      tuplerO: Tupler.Aux[HO, PO],
+      genO: Generic.Aux[PO, HO]
+  ): TensorToOutput.Aux[PT, PO] = {
+    TensorToOutput.fromKnownProduct
   }
 }
