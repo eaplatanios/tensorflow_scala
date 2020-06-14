@@ -34,10 +34,10 @@ in your work:
 
 ```bibtex
 @misc{Platanios:2018:tensorflow-scala,
-	title			   = {{TensorFlow Scala}},
-	author			 = {Platanios, Emmanouil Antonios},
-	howpublished = {\small\url{https://github.com/eaplatanios/tensorflow_scala}},
-	year			   = {2018}
+  title        = {{TensorFlow Scala}},
+  author       = {Platanios, Emmanouil Antonios},
+  howpublished = {\url{https://github.com/eaplatanios/tensorflow_scala}},
+  year         = {2018}
 }
 ```
 
