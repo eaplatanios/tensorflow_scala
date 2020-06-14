@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
 set(PROJECT_VERSION_MINOR 5)
-set(PROJECT_VERSION_PATCH 0)
+set(PROJECT_VERSION_PATCH 1)
 
 # Set up JNI
 find_package(JNI REQUIRED)
@@ -24,28 +24,19 @@ include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
+list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so .so.2 .dylib .2.dylib)
 find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW)
   message(FATAL_ERROR "Library `tensorflow` not found.")
 endif()
-
 find_library(LIB_TENSORFLOW_FRAMEWORK tensorflow_framework HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW_FRAMEWORK)
   message(FATAL_ERROR "Library `tensorflow_framework` not found.")
 endif()
 
 # Collect sources for the JNI and the op libraries
-
-file(GLOB JNI_LIB_SRC
-  "*.cc"
-  "generated/*.cc"
-  "include/tensorflow/c/*.cc"
-  "include/tensorflow/core/distributed_runtime/server_lib.cc"
-)
-
-file(GLOB OP_LIB_SRC
-  "ops/*.cc"
-)
+file(GLOB JNI_LIB_SRC "*.cc" "generated/*.cc")
+file(GLOB OP_LIB_SRC "ops/*.cc")
 
 # Find Python and get the TensorFlow header files from there.
 execute_process(COMMAND python3 -c

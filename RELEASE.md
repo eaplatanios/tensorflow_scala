@@ -1,6 +1,13 @@
+# 0.5.1
+
+This release introduces support for TensorFlow 2.2 and
+Scala 2.13 and drops support for Scala 2.11. The
+distributed precompiled binaries for this version will only
+work with CUDA 10.1 on Linux.
+
 # 0.5.0
 
-This release introduces support for TensorFlow 2.x.
+This release introduces support for TensorFlow 2.0.
 
 # 0.4.2
 

@@ -212,8 +212,13 @@ sbt docs/previewSite     # To preview the website
 sbt docs/ghpagesPushSite # To publish the website
 ```
 
+To prepare the precompiled TensorFlow binary packages, use the following commands:
+
 ```bash
-find . -name '*.h' | cpio -pdmu ../tensorflow_scala/modules/jni/src/main/native/include/
+mkdir lib
+cp -av /usr/local/lib/libtensorflow* lib/
+tar -zcvf libtensorflow-2.2.0-cpu-darwin-x86_64.tar.gz lib
+tar -ztvf libtensorflow-2.2.0-cpu-darwin-x86_64.tar.gz
 ```
 
 -->

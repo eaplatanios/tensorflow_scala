@@ -231,13 +231,13 @@ object JniCrossPackage extends AutoPlugin {
   object LINUX_x86_64 extends Platform {
     override val name       : String = "linux-x86_64"
     override val tag        : String = "linux-cpu-x86_64"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.0"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.1"
   }
 
   object LINUX_GPU_x86_64 extends Platform {
     override val name       : String = "linux-gpu-x86_64"
     override val tag        : String = "linux-gpu-x86_64"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.0"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.1"
   }
 
   object DARWIN_x86_64 extends Platform {

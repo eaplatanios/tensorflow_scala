@@ -66,7 +66,7 @@ rm -rf /var/lib/apt/lists/*
 
 # Install the TensorFlow PIP Package
 python3 -m pip install --upgrade pip
-python3 -m pip install tensorflow==2.1.0
+python3 -m pip install tensorflow==2.2.0
 
 # Install Protobuf.
 PROTOBUF_VERSION="3.11.4"
