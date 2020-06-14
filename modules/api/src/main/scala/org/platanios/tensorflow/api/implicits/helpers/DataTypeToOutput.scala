@@ -31,7 +31,7 @@ sealed trait DataTypeToOutput[D] {
   def dataTypeStructure: DataTypeStructure[D]
 }
 
-object DataTypeToOutput {
+object DataTypeToOutput extends DataTypeToOutputLowPriorityImplicits {
   def apply[D](implicit ev: DataTypeToOutput[D]): Aux[D, ev.O] = {
     ev.asInstanceOf[Aux[D, ev.O]]
   }
@@ -119,10 +119,9 @@ object DataTypeToOutput {
     }
   }
 
-  implicit def fromProduct[PD <: Product, PO <: Product, HD <: HList, HO <: HList](implicit
+  implicit def fromKnownProduct[PD <: Product, PO <: Product, HD <: HList, HO <: HList](implicit
       genD: Generic.Aux[PD, HD],
       evD: Strict[DataTypeToOutput.Aux[HD, HO]],
-      tuplerO: Tupler.Aux[HO, PO],
       genO: Generic.Aux[PO, HO]
   ): DataTypeToOutput.Aux[PD, PO] = {
     new DataTypeToOutput[PD] {
@@ -132,5 +131,16 @@ object DataTypeToOutput {
         DataTypeStructure.fromProduct[PD, HD](genD, evD.value.dataTypeStructure)
       }
     }
+  }
+}
+
+trait DataTypeToOutputLowPriorityImplicits {
+  implicit def fromProduct[PD <: Product, PO <: Product, HD <: HList, HO <: HList](implicit
+      genD: Generic.Aux[PD, HD],
+      evD: Strict[DataTypeToOutput.Aux[HD, HO]],
+      tuplerO: Tupler.Aux[HO, PO],
+      genO: Generic.Aux[PO, HO]
+  ): DataTypeToOutput.Aux[PD, PO] = {
+    DataTypeToOutput.fromKnownProduct
   }
 }
