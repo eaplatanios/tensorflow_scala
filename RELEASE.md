@@ -3,7 +3,9 @@
 This release introduces support for TensorFlow 2.2 and
 Scala 2.13 and drops support for Scala 2.11. The
 distributed precompiled binaries for this version will only
-work with CUDA 10.1 on Linux.
+work with CUDA 10.1 on Linux. Finally, this release also
+brings improved support for implicit derivations in some
+cases where case classes over tensors are used.
 
 # 0.5.0
 
