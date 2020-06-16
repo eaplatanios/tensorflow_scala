@@ -184,7 +184,7 @@ object DataTypeToShape extends DataTypeToShapeLowPriorityImplicits {
     }
   }
 
-  implicit def fromKnownProduct[PD <: Product, PS <: Product, HD <: HList, HS <: HList](implicit
+  implicit def fromKnownProduct[PD <: Product, PS, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
       evD: Strict[DataTypeToShape.Aux[HD, HS]],
       genS: Generic.Aux[PS, HS]
@@ -208,7 +208,7 @@ object DataTypeToShape extends DataTypeToShapeLowPriorityImplicits {
 }
 
 trait DataTypeToShapeLowPriorityImplicits {
-  implicit def fromProduct[PD <: Product, PS <: Product, HD <: HList, HS <: HList](implicit
+  implicit def fromProduct[PD <: Product, PS, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
       evD: Strict[DataTypeToShape.Aux[HD, HS]],
       tuplerS: Tupler.Aux[HS, PS],

@@ -119,10 +119,9 @@ object DataTypeToOutput extends DataTypeToOutputLowPriorityImplicits {
     }
   }
 
-  implicit def fromKnownProduct[PD <: Product, PO <: Product, HD <: HList, HO <: HList](implicit
+  implicit def fromKnownProduct[PD <: Product, PO, HD <: HList, HO <: HList](implicit
       genD: Generic.Aux[PD, HD],
       evD: Strict[DataTypeToOutput.Aux[HD, HO]],
-      genO: Generic.Aux[PO, HO]
   ): DataTypeToOutput.Aux[PD, PO] = {
     new DataTypeToOutput[PD] {
       override type O = PO
@@ -135,11 +134,10 @@ object DataTypeToOutput extends DataTypeToOutputLowPriorityImplicits {
 }
 
 trait DataTypeToOutputLowPriorityImplicits {
-  implicit def fromProduct[PD <: Product, PO <: Product, HD <: HList, HO <: HList](implicit
+  implicit def fromProduct[PD <: Product, PO, HD <: HList, HO <: HList](implicit
       genD: Generic.Aux[PD, HD],
       evD: Strict[DataTypeToOutput.Aux[HD, HO]],
-      tuplerO: Tupler.Aux[HO, PO],
-      genO: Generic.Aux[PO, HO]
+      tuplerO: Tupler.Aux[HO, PO]
   ): DataTypeToOutput.Aux[PD, PO] = {
     DataTypeToOutput.fromKnownProduct
   }
