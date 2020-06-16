@@ -466,7 +466,7 @@ class Graph private[api](
     * @param  name Op name.
     * @return Option containing the op corresponding to that name (`None` if such an op does not exist in this graph).
     */
-  private[api] def findOp(name: String): Option[Op[Seq[Output[Any]], Seq[Output[Any]]]] = {
+  def findOp(name: String): Option[Op[Seq[Output[Any]], Seq[Output[Any]]]] = {
     NativeHandleLock.synchronized {
       val opHandle: Long = NativeGraph.findOp(nativeHandle, name)
       if (opHandle == 0)
