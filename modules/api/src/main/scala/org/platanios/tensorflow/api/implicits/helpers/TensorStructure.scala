@@ -107,7 +107,7 @@ object TensorStructure {
     }
   }
 
-  implicit def fromProduct[PT <: Product, HT <: HList](implicit
+  implicit def fromProduct[PT, HT <: HList](implicit
       genT: Generic.Aux[PT, HT],
       evT: Strict[TensorStructure[HT]]
   ): TensorStructure[PT] = {

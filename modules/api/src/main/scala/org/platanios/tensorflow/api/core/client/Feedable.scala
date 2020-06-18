@@ -15,7 +15,6 @@
 
 package org.platanios.tensorflow.api.core.client
 
-import org.platanios.tensorflow.api.core.types.TF
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput}
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
 

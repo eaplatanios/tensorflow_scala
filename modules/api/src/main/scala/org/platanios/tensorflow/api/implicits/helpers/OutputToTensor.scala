@@ -307,7 +307,7 @@ object OutputToTensor extends OutputToTensorLowPriorityImplicits {
     }
   }
 
-  implicit def fromKnownProduct[PT <: Product, PV <: Product, HT <: HList, HV <: HList](implicit
+  implicit def fromKnownProduct[PT <: Product, PV, HT <: HList, HV <: HList](implicit
       genT: Generic.Aux[PT, HT],
       evT: Strict[OutputToTensor.Aux[HT, HV]],
       genV: Generic.Aux[PV, HV]
@@ -335,7 +335,7 @@ object OutputToTensor extends OutputToTensorLowPriorityImplicits {
 }
 
 trait OutputToTensorLowPriorityImplicits {
-  implicit def fromProduct[PT <: Product, PV <: Product, HT <: HList, HV <: HList](implicit
+  implicit def fromProduct[PT <: Product, PV, HT <: HList, HV <: HList](implicit
       genT: Generic.Aux[PT, HT],
       evT: Strict[OutputToTensor.Aux[HT, HV]],
       tuplerV: Tupler.Aux[HV, PV],

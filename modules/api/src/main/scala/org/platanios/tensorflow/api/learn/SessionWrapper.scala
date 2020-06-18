@@ -25,6 +25,7 @@ import org.platanios.tensorflow.proto.{DebugOptions, RunMetadata, RunOptions}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.util.Try
 import scala.util.control.Exception._
@@ -208,6 +209,7 @@ class SessionWrapper private[learn](
 
   /** Returns `true` if this session should not be used anymore. This method always return `true` if the session has
     * been closed already. */
+  @tailrec
   final def shouldStop: Boolean = {
     if (checkStop || closed) {
       true
@@ -221,6 +223,7 @@ class SessionWrapper private[learn](
     }
   }
 
+  @tailrec
   private[learn] final def setShouldStop(value: Boolean): Unit = {
     _shouldStop = value
     session match {

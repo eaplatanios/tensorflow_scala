@@ -331,7 +331,8 @@ object Estimator {
       configuration: Configuration = Configuration(),
       hooks: Set[Hook] = Set.empty,
       chiefOnlyHooks: Set[Hook] = Set.empty,
-      sessionScaffold: SessionScaffold = SessionScaffold()): MonitoredSession = {
+      sessionScaffold: SessionScaffold = SessionScaffold(),
+  ): MonitoredSession = {
     if (!configuration.isChief) {
       val sessionCreator = WorkerSessionCreator(configuration.master, sessionScaffold, configuration.sessionConfig)
       MonitoredSession(sessionCreator, hooks)

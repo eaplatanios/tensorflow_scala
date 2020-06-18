@@ -1301,7 +1301,7 @@ object Basic extends Basic {
         */
       def gather[I: TF : IsIntOrLong](
           indices: Tensor[I],
-          axis: Tensor[I] = null
+          axis: Tensor[I]
       ): Tensor[T] = {
         Basic.gather(tensor, indices, axis)
       }

@@ -186,8 +186,9 @@ class Tensor[T] protected (
       index = offset
     )(TF.fromDataType(dataType))
     NativeHandleLock synchronized {
-      if (resolvedHandle != 0)
+      if (resolvedHandle != 0) {
         NativeTensor.delete(resolvedHandle)
+      }
     }
     value
   }
@@ -223,7 +224,7 @@ class Tensor[T] protected (
       private var i        : Int = 0
       private var remaining: Int = Tensor.this.size.ensuring(_ <= Int.MaxValue).toInt
 
-      override def size: Int = remaining
+      // override def size: Int = remaining
 
       private val buffer: ByteBuffer = {
         NativeTensor.buffer(resolved.handle).order(ByteOrder.nativeOrder)
@@ -234,8 +235,10 @@ class Tensor[T] protected (
       override def hasNext: Boolean = remaining > 0
 
       override def next(): T = {
-        if (!hasNext)
+        if (!hasNext) {
           throw new NoSuchElementException
+        }
+
         assert(resolved.handle != 0)
 
         val nextElement: T = dataType match {
@@ -252,14 +255,7 @@ class Tensor[T] protected (
         i += 1
         remaining -= 1
         if (0 == remaining) {
-          resolved.lock synchronized {
-            if (resolved.handle != 0) {
-              NativeTensor.delete(resolved.handle)
-              resolved.handle = 0
-            } else {
-              throw new ConcurrentModificationException
-            }
-          }
+          resolved()
         }
 
         nextElement
