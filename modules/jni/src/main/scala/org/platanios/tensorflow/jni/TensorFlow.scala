@@ -77,13 +77,13 @@ object TensorFlow {
       val classLoader = Thread.currentThread.getContextClassLoader
 
       // Check if a TensorFlow native framework library resources are provided and load them.
-      (makeResourceNames(LIB_FRAMEWORK_NAME) ++ makeResourceNames(LIB_NAME)).map { case (name, path) =>
-        extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+      (makeResourceNames(LIB_FRAMEWORK_NAME) ++ makeResourceNames(LIB_NAME)).map {
+        case (name, path) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
       }
 
       // Load the TensorFlow JNI bindings from the appropriate resource.
-      val jniPaths = makeResourceNames(JNI_LIB_NAME).flatMap { case (name, path) =>
-        extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+      val jniPaths = makeResourceNames(JNI_LIB_NAME).flatMap {
+        case (name, path) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
       }
       if (jniPaths.isEmpty) {
         throw new UnsatisfiedLinkError(
@@ -102,8 +102,8 @@ object TensorFlow {
       })
 
       // Load the TensorFlow ops library from the appropriate resource.
-      val opsPaths = makeResourceNames(OPS_LIB_NAME).flatMap { case (name, path) =>
-        extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+      val opsPaths = makeResourceNames(OPS_LIB_NAME).flatMap {
+        case (name, path) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
       }
       opsPaths.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
     }
