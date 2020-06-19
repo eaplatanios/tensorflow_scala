@@ -148,10 +148,10 @@ case class STL10Dataset(
       val split = UniformSplit(allLabels.shape(0), seed)
       val (trainIndices, testIndices) = split(trainPortion)
       copy(
-        trainImages = allImages.gather[Int](trainIndices),
-        trainLabels = allLabels.gather[Int](trainIndices),
-        testImages = allImages.gather[Int](testIndices),
-        testLabels = allLabels.gather[Int](testIndices))
+        trainImages = allImages.gather[Int](trainIndices, axis = 0),
+        trainLabels = allLabels.gather[Int](trainIndices, axis = 0),
+        testImages = allImages.gather[Int](testIndices, axis = 0),
+        testLabels = allLabels.gather[Int](testIndices, axis = 0))
     }
   }
 }

@@ -149,11 +149,11 @@ object XCLoader extends Loader {
         val (trainIndices, testIndices) = split(trainPortion)
         SplitData(
           trainData = Data(
-            features = allFeatures.gather[Int](trainIndices),
-            labels = allLabels.gather[Int](trainIndices)),
+            features = allFeatures.gather[Int](trainIndices, axis = 0),
+            labels = allLabels.gather[Int](trainIndices, axis = 0)),
           testData = Data(
-            features = allFeatures.gather[Int](testIndices),
-            labels = allLabels.gather[Int](testIndices)))
+            features = allFeatures.gather[Int](testIndices, axis = 0),
+            labels = allLabels.gather[Int](testIndices, axis = 0)))
       }
     }
   }
@@ -173,11 +173,11 @@ object XCLoader extends Loader {
       */
     def split(split: Int = 0): XCLoader.SplitData[Tensor] = {
       val trainData = XCLoader.Data(
-        features = data.features.toTensor.gather[Int](splits(split).trainIndices),
-        labels = data.labels.toTensor.gather[Int](splits(split).trainIndices))
+        features = data.features.toTensor.gather[Int](splits(split).trainIndices, axis = 0),
+        labels = data.labels.toTensor.gather[Int](splits(split).trainIndices, axis = 0))
       val testData = XCLoader.Data(
-        features = data.features.toTensor.gather[Int](splits(split).testIndices),
-        labels = data.labels.toTensor.gather[Int](splits(split).testIndices))
+        features = data.features.toTensor.gather[Int](splits(split).testIndices, axis = 0),
+        labels = data.labels.toTensor.gather[Int](splits(split).testIndices, axis = 0))
       XCLoader.SplitData(trainData, testData)
     }
   }
