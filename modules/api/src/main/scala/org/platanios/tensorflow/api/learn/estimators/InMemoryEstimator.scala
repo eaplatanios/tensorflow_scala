@@ -75,14 +75,15 @@ class InMemoryEstimator[In: OutputStructure, TrainIn: OutputStructure, Out: Outp
   if (trainHooks.exists(_.isInstanceOf[Stopper])
       || trainChiefOnlyHooks.exists(_.isInstanceOf[Stopper])
       || inferHooks.exists(_.isInstanceOf[Stopper])
-      || evaluateHooks.exists(_.isInstanceOf[Stopper]))
+      || evaluateHooks.exists(_.isInstanceOf[Stopper])) {
     Estimator.logger.warn("The provided stopper hook will be ignored. Please use 'stopCriteria' instead.")
+  }
 
   protected val graph: Graph = Graph()
 
   protected val model: TrainableModel[In, TrainIn, Out, TrainOut, Loss, EvalIn] = modelFunction(configuration)
 
-  protected val stopHook              : Stopper                 = Stopper(stopCriteria)
+  protected val stopHook              : Stopper           = Stopper(stopCriteria)
   protected var allTrainHooks         : mutable.Set[Hook] = mutable.Set(trainHooks.toSeq: _*).union(Set(stopHook))
   protected var allTrainChiefOnlyHooks: mutable.Set[Hook] = mutable.Set(trainChiefOnlyHooks.toSeq: _*)
 
@@ -144,8 +145,9 @@ class InMemoryEstimator[In: OutputStructure, TrainIn: OutputStructure, Out: Outp
   protected var additionalLocalInitOps: Set[UntypedOp] = Set.empty[UntypedOp]
 
   protected def localInitFunction(session: Session, builtSessionScaffold: BuiltSessionScaffold): Unit = {
-    if (additionalLocalInitOps.nonEmpty)
+    if (additionalLocalInitOps.nonEmpty) {
       session.run(targets = additionalLocalInitOps)
+    }
   }
 
   /** The underlying session that is kept alive throughout this estimator's lifetime. */

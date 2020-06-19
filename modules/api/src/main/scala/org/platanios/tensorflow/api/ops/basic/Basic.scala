@@ -422,7 +422,7 @@ object Basic extends Basic {
     *   that enable the fed value to be checked at runtime.
     *
     * @define OpDocBasicPlaceholderWithDefault
-    *   The `placeholderWithDefault` op returns a placeholder op that passes through a defult value when its input is
+    *   The `placeholderWithDefault` op returns a placeholder op that passes through a default value when its input is
     *   not fed.
     *
     * @define OpDocBasicSparsePlaceholder

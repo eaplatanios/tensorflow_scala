@@ -613,36 +613,6 @@ object Saver {
       throw new IllegalArgumentException(s"The 'saverDef' must specify a restore op name: $saverDef.")
   }
 
-  /** Returns the path to a file for storing the checkpoint state.
-    *
-    * @param  directory Directory used for saving and restoring checkpoints.
-    * @param  filename  File in `directory` that is used to store the checkpoint state.
-    * @return Path of the file that contains the checkpoint state.
-    */
-  private def checkpointPath(
-      directory: Path,
-      filename: String = "checkpoint"
-  ): Path = {
-    directory.resolve(filename)
-  }
-
-  /** Returns a boolean value indicating whether a V1 or V2 checkpoint exists with the specified prefix.
-    *
-    * This is the recommended way to check if a checkpoint exists, since it takes into account the naming difference
-    * between the V1 and the V2 formats.
-    *
-    * @param  checkpointPrefix Sequence of checkpoint paths. Typically the results of `Saver.save` or those of
-    *                          `Saver.latestCheckpoint`, regardless of sharded/non-sharded or the checkpoint format
-    *                          version (i.e., V1/V2).
-    * @return `true` if and only if, a checkpoint file referred to by `checkpointPrefix` exists.
-    */
-  private def checkpointExists(checkpointPrefix: Path): Boolean = {
-    // Try V2's metadata file first.
-    val pathPattern = prefixToCheckpointPath(checkpointPrefix, CheckpointFormatVersion.V2)
-    FileIO.getMatchingPaths(pathPattern).nonEmpty ||
-        FileIO.getMatchingPaths(checkpointPrefix).nonEmpty
-  }
-
   /** Generates a checkpoint state.
     *
     * @param  directory               Checkpoints directory.

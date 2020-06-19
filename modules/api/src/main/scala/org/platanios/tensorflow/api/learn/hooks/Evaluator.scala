@@ -50,6 +50,7 @@ import java.nio.file.Path
   * @param  triggerAtEnd     If `true`, the hook will be triggered at the end of the run. Note that if this flag is set
   *                          to `true`, then the global step must be computable without using a feed map for the
   *                          [[Session.run()]] call (which should always be the case by default).
+  * @param  device           Optional device on which to place the evaluation graph.
   * @param  numDecimalPoints Number of decimal points to use when logging floating point values.
   * @param  randomSeed       Random number generator seed to use.
   * @param  name             Name to use for the evaluation hook when logging and saving metric values. This must follow
@@ -64,6 +65,7 @@ class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval, TrainInD, TrainInS] pr
     val metrics: Seq[Metric[InEval, Output[Float]]],
     val trigger: HookTrigger = StepHookTrigger(100),
     val triggerAtEnd: Boolean = true,
+    val device: String = "",
     val numDecimalPoints: Int = 4,
     val randomSeed: Option[Int] = None,
     val name: String = "Evaluator"
@@ -87,7 +89,7 @@ class Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval, TrainInD, TrainInS] pr
 
   override protected def begin(): Unit = {
     graph = Graph()
-    Op.createWith(graph, nameScope = name) {
+    Op.createWith(graph, nameScope = name, device = device) {
       randomSeed.foreach(graph.setRandomSeed)
       evaluateOps = Op.nameScope("Model")(modelInstance.model.buildEvalOps(metrics))
       datasetInitializers = datasets.map(d => {
@@ -205,6 +207,7 @@ object Evaluator {
       metrics: Seq[Metric[InEval, Output[Float]]],
       trigger: HookTrigger = StepHookTrigger(100),
       triggerAtEnd: Boolean = true,
+      device: String = "",
       numDecimalPoints: Int = 4,
       randomSeed: Option[Int] = None,
       name: String = "Evaluator"
@@ -212,6 +215,6 @@ object Evaluator {
       evOutputToDataType: OutputToDataType.Aux[TrainIn, TrainInD],
       evOutputToShape: OutputToShape.Aux[TrainIn, TrainInS]
   ): Evaluator[In, TrainIn, Out, TrainOut, Loss, InEval, TrainInD, TrainInS] = {
-    new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, numDecimalPoints, randomSeed, name)
+    new Evaluator(log, summaryDir, datasets, metrics, trigger, triggerAtEnd, device, numDecimalPoints, randomSeed, name)
   }
 }

@@ -43,6 +43,7 @@ import java.util.ConcurrentModificationException
 
 import scala.collection.compat.immutable.ArraySeq
 import scala.language.{higherKinds, postfixOps}
+import scala.reflect.ClassTag
 
 /** Represents tensor-like objects.
   *
@@ -171,7 +172,7 @@ class Tensor[T] protected (
     NativeTensor.eagerResolve(nativeHandle)
   }
 
-  private[api] def getElementAtFlattenedIndex(index: Int): T = {
+  def getElementAtFlattenedIndex(index: Int): T = {
     val resolvedHandle = resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     val offset = dataType match {
@@ -203,34 +204,53 @@ class Tensor[T] protected (
     getElementAtFlattenedIndex(0)
   }
 
-  def entriesIterator: Iterator[T] = {
-    object resolved extends (() => Unit) {
-      private[Tensor] val lock   = Tensor.this.NativeHandleLock
-      private[Tensor] var handle = resolve()
+  def toArray(implicit classTag: ClassTag[T]): Array[T] = {
+    val array = Array.ofDim[T](size.toInt)
+    val resolvedHandle = resolve()
+    val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
+    array.indices.foreach { index =>
+      val offset = dataType match {
+        case STRING =>
+          val lengthsOffset = INT64.byteSize.get * size.toInt
+          val length        = DataType.getElementFromBuffer[Long](buffer, index * INT64.byteSize.get).toInt
+          lengthsOffset + length
+        case _ => index * dataType.byteSize.get
+      }
+      val value = DataType.getElementFromBuffer[T](
+        buffer = buffer,
+        index = offset
+      )(TF.fromDataType(dataType))
+      array(index) = value
+    }
+    NativeHandleLock synchronized {
+      if (resolvedHandle != 0) {
+        NativeTensor.delete(resolvedHandle)
+      }
+    }
+    array
+  }
 
-      override def apply(): Unit = {
+  def entriesIterator: Iterator[T] = {
+    new Iterator[T] {
+      private val lock      = Tensor.this.NativeHandleLock
+      private var handle    = resolve()
+      private var i         = 0
+      private var remaining = Tensor.this.size.ensuring(_ <= Int.MaxValue).toInt
+
+      private val buffer: ByteBuffer = {
+        NativeTensor.buffer(handle).order(ByteOrder.nativeOrder)
+      }
+
+      Disposer.add(this, () => {
         if (handle != 0) {
-          lock synchronized {
+          Tensor.this.NativeHandleLock synchronized {
             if (handle != 0) {
               NativeTensor.delete(handle)
               handle = 0
             }
           }
         }
-      }
-    }
-
-    new Iterator[T] {
-      private var i        : Int = 0
-      private var remaining: Int = Tensor.this.size.ensuring(_ <= Int.MaxValue).toInt
-
-      // override def size: Int = remaining
-
-      private val buffer: ByteBuffer = {
-        NativeTensor.buffer(resolved.handle).order(ByteOrder.nativeOrder)
-      }
-
-      Disposer.add(this, resolved)
+      })
 
       override def hasNext: Boolean = remaining > 0
 
@@ -238,26 +258,19 @@ class Tensor[T] protected (
         if (!hasNext) {
           throw new NoSuchElementException
         }
-
-        assert(resolved.handle != 0)
-
+        assert(handle != 0)
         val nextElement: T = dataType match {
           case STRING =>
             val lengthsOffset = INT64.byteSize.get * (i + remaining)
-            val length = DataType.getElementFromBuffer[Long](buffer, i * INT64.byteSize.get)
+            val length        = DataType.getElementFromBuffer[Long](buffer, i * INT64.byteSize.get)
             DataType.getElementFromBuffer[T](
               buffer,
               lengthsOffset + length.ensuring(_ <= Int.MaxValue).toInt)
           case _ =>
             DataType.getElementFromBuffer[T](buffer, i * dataType.byteSize.get)
         }
-
         i += 1
         remaining -= 1
-        if (0 == remaining) {
-          resolved()
-        }
-
         nextElement
       }
     }
