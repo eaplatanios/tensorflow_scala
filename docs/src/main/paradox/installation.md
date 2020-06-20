@@ -16,7 +16,7 @@ for Scala, you should add the following dependency:
 
 @@ dependency[sbt,Maven,Gradle] {
   group="org.platanios"
-  artifact="tensorflow"
+  artifact="tensorflow_2.13"
   version="0.4.1"
 }
 
@@ -25,6 +25,13 @@ for Scala, you should add the following dependency:
 This requires that you have installed the TensorFlow
 dynamic library in your system. If you haven't, please
 continue reading into the following section.
+
+@@@
+
+@@@ warning  { title='Scala version' }
+
+If you are not using SBT, make sure to change the artifact
+identifier to match the version of Scala you are using.
 
 @@@
 
@@ -44,7 +51,7 @@ Add the following dependency, instead of the previous one:
 
 @@ dependency[sbt,Maven,Gradle] {
   group="org.platanios"
-  artifact="tensorflow"
+  artifact="tensorflow_2.13"
   version="0.4.1"
   classifier="linux-cpu-x86_64"
 }
