@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="x-ua-compatible" content="ie=edge">
 <meta name="description" content="TensorFlow Scala - Documentation">
-<meta name="generator" content="Paradox, paradox-material-theme=0.5.1, mkdocs-material=3.0.3">
+<meta name="generator" content="Paradox, paradox-material-theme=0.6.0, mkdocs-material=3.0.3">
 
 <meta name="lang:clipboard.copy" content="Copy to clipboard">
 <meta name="lang:clipboard.copied" content="Copied to clipboard">
@@ -140,10 +140,14 @@ eaplatanios/tensorflow_scala
     <li><a href="guides/tensors.html" class="page">Tensors</a></li>
     <li><a href="guides/graph_construction.html" class="page">Graph Construction</a></li>
     <li><a href="guides/estimators.html" class="page">Estimators</a></li>
+    <li><a href="guides/adding_ops.html" class="page">Adding Support for New Ops</a></li>
   </ul></li>
   <li><a href="contributing.html" class="page">Contributing</a></li>
   <li><a href="release_notes.html" class="page">Release Notes</a>
   <ul>
+    <li><a href="release_notes/0.5.1.html" class="page">Release 0.5.1</a></li>
+    <li><a href="release_notes/0.5.0.html" class="page">Release 0.5.0</a></li>
+    <li><a href="release_notes/0.4.1.html" class="page">Release 0.4.1</a></li>
     <li><a href="release_notes/0.4.0.html" class="page">Release 0.4.0</a></li>
     <li><a href="release_notes/0.3.0.html" class="page">Release 0.3.0</a></li>
     <li><a href="release_notes/0.2.4.html" class="page">Release 0.2.4</a></li>
@@ -160,6 +164,7 @@ eaplatanios/tensorflow_scala
 <ul>
   <li><a href="index.html#tensorflow-scala" class="header">TensorFlow Scala</a>
   <ul>
+    <li><a href="index.html#citation" class="header">Citation</a></li>
     <li><a href="index.html#main-features" class="header">Main Features</a></li>
     <li><a href="index.html#tutorials" class="header">Tutorials</a></li>
     <li><a href="index.html#funding" class="header">Funding</a></li>
@@ -171,7 +176,7 @@ eaplatanios/tensorflow_scala
 <ul style="display: none">
 <li class="md-nav__item md-version" id="project.version">
 <label class="md-nav__link" for="__version">
-<i class="md-icon" title="Version">label_outline</i> 0.4.0*
+<i class="md-icon" title="Version">label_outline</i> 0.5.1*
 </label>
 </li>
 </ul>
@@ -186,6 +191,7 @@ eaplatanios/tensorflow_scala
 <ul>
   <li><a href="index.html#tensorflow-scala" class="header">TensorFlow Scala</a>
   <ul>
+    <li><a href="index.html#citation" class="header">Citation</a></li>
     <li><a href="index.html#main-features" class="header">Main Features</a></li>
     <li><a href="index.html#tutorials" class="header">Tutorials</a></li>
     <li><a href="index.html#funding" class="header">Funding</a></li>
@@ -202,7 +208,16 @@ eaplatanios/tensorflow_scala
 <h1><a href="#tensorflow-scala" name="tensorflow-scala" class="anchor"><span class="anchor-link"></span></a>TensorFlow Scala</h1>
 <p><a href="https://circleci.com/gh/eaplatanios/tensorflow_scala/tree/master"><img src="https://img.shields.io/circleci/project/github/eaplatanios/tensorflow_scala.svg?style=flat-square" alt="CircleCI" /></a> <a href="https://www.codacy.com/app/eaplatanios/tensorflow_scala?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=eaplatanios/tensorflow_scala&amp;utm_campaign=Badge_Grade"><img src="https://img.shields.io/codacy/grade/7fae7fba84df4831a80bc20c3bd021df.svg?style=flat-square" alt="Codacy Badge" /></a> <img src="https://img.shields.io/github/license/eaplatanios/tensorflow_scala.svg?style=flat-square" alt="License" /> <a href="http://platanios.org/tensorflow_scala/api/api"><img src="https://img.shields.io/badge/docs-api-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="API Docs" /></a> <a href="http://platanios.org/tensorflow_scala/api/jni"><img src="https://img.shields.io/badge/docs-jni-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="JNI Docs" /></a> <a href="http://platanios.org/tensorflow_scala/api/data"><img src="https://img.shields.io/badge/docs-data-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="Data Docs" /></a> <a href="http://platanios.org/tensorflow_scala/api/examples"><img src="https://img.shields.io/badge/docs-examples-lightgrey.svg?longCache=true&style=flat-square&logo=read-the-docs&logoColor=white" alt="Examples Docs" /></a></p>
 <p>This library is a Scala API for <a href="https://www.tensorflow.org">https://www.tensorflow.org</a>. It attempts to provide most of the functionality provided by the official Python API, while at the same type being strongly-typed and adding some new features. It is a work in progress and a project I started working on for my personal research purposes. Much of the API should be relatively stable by now, but things are still likely to change.</p>
-<p><a href="https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://img.shields.io/badge/chat-examples-ed1965.svg?longCache=true&style=flat-square&logo=gitter" alt="Chat Room" /></a></p>
+<p><a href="https://gitter.im/eaplatanios/tensorflow_scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://img.shields.io/badge/chat-gitter-ed1965.svg?longCache=true&style=flat-square&logo=gitter" alt="Chat Room" /></a></p>
+<h2><a href="#citation" name="citation" class="anchor"><span class="anchor-link"></span></a>Citation</h2>
+<p>It would be greatly appreciated if you could cite this project using the following BibTex entry, if you end up using it in your work:</p>
+<pre class="prettyprint"><code class="language-bibtex">@misc{Platanios:2018:tensorflow-scala,
+  title        = {{TensorFlow Scala}},
+  author       = {Platanios, Emmanouil Antonios},
+  howpublished = {\url{https://github.com/eaplatanios/tensorflow_scala}},
+  year         = {2018}
+}
+</code></pre>
 <h2><a href="#main-features" name="main-features" class="anchor"><span class="anchor-link"></span></a>Main Features</h2>
 <ul>
   <li>
@@ -257,11 +272,11 @@ val model = Model.simpleSupervised(input, trainInput, layer, loss, optimizer)
 val estimator = InMemoryEstimator(model)
 estimator.train(() =&gt; trainData, StopCriteria(maxSteps = Some(1000000)))</code></pre>
     <p>And by changing a few lines to the following code, you can get checkpoint capability, summaries, and seamless integration with TensorBoard:</p>
-    <pre class="prettyprint"><code class="language-scala">val loss = SparseSoftmaxCrossEntropy[Float, Long, Float](&quot;Loss&quot;) &gt;&gt;
+    <pre class="prettyprint"><code class="language-scala">override val loss = SparseSoftmaxCrossEntropy[Float, Long, Float](&quot;Loss&quot;) &gt;&gt;
     Mean(&quot;Loss/Mean&quot;) &gt;&gt;
     ScalarSummary(name = &quot;Loss&quot;, tag = &quot;Loss&quot;)
 val summariesDir = Paths.get(&quot;/tmp/summaries&quot;)
-val estimator = InMemoryEstimator(
+override val estimator = InMemoryEstimator(
   modelFunction = model,
   configurationBase = Configuration(Some(summariesDir)),
   trainHooks = Set(
@@ -302,6 +317,7 @@ estimator.train(() =&gt; trainData, StopCriteria(maxSteps = Some(100000)))</code
     </tr>
   </tbody>
 </table>
+<p>TensorFlow, the TensorFlow logo, and any related marks are trademarks of Google Inc.</p>
 </div>
 <div>
 <a href="https://github.com/eaplatanios/tensorflow_scala/tree/master/docs/src/main/paradox/index.md" title="Edit this page" class="md-source-file md-edit">
@@ -310,7 +326,7 @@ Edit this page
 </div>
 <div class="print-only">
 <span class="md-source-file md-version">
-0.4.0*
+0.5.1*
 </span>
 </div>
 </article>
