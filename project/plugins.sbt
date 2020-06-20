@@ -25,8 +25,8 @@ addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.2.5")
 addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.5")
 
 // Plugins used for the documentation website.
-addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.4.4")
-addSbtPlugin("io.github.jonas" % "sbt-paradox-material-theme" % "0.5.1")
+addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.8.0")
+addSbtPlugin("io.github.jonas" % "sbt-paradox-material-theme" % "0.6.0")
 addSbtPlugin("com.typesafe.sbt" % "sbt-site" % "1.3.2")
 addSbtPlugin("com.typesafe.sbt" % "sbt-ghpages" % "0.6.3")
 addSbtPlugin("com.thoughtworks.sbt-api-mappings" % "sbt-api-mappings" % "latest.release")

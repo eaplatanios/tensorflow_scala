@@ -39,6 +39,8 @@ The main APIs of TensorFlow Scala are the following:
     interface for building neural networks. Furthermore, it
     supports distributed training in a way that is very
     similar to the [TensorFlow Estimators API](tf_estimators).
+  - **[Adding Ops](guides/adding_ops.md)**
+    Example for how to add TensorFlow ops to TensorFlow Scala.
 
 @@@
 
@@ -51,17 +53,12 @@ experience of waiting for a neural network to train for a
 week only to find out that your evaluation code crashed and
 you lost everything, decrease significantly.
 
-It is recommended to first go through the
-**[Tensors](guides/tensors.md)** guide, and then go from
-high-level to low-level concepts as you progress (i.e.,
-read through the
-**[High-Level Learning](guides/estimators.md)** guide first
-and then through the
-**[Graph Construction](guides/graph_construction.md)**
+It is recommended to first go through the **Tensors** guide,
+and then go from high-level to low-level concepts as you
+progress (i.e., read through the **High-Level Learning**
+guide first and then through the **Graph Construction**
 guide). Concepts such as the TensorFlow graph and sessions
-only appear in the
-**[Graph Construction](guides/graph_construction.md)**
-guide.
+only appear in the **Graph Construction** guide.
 
 @@@ warning { title='Relationship to the TensorFlow Python API' }
 

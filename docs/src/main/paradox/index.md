@@ -19,9 +19,7 @@ should be relatively stable by now, but things are still likely to change.
 
 * [Installation](installation.md)
 * [Guides](guides.md)
-<!--* [Architecture](architecture.md)-->
 * [Contributing](contributing.md)
-<!--* [Graph Collections](guides/graph_collections.md)-->
 * [Release Notes](release_notes.md)
 
 @@@

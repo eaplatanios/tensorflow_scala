@@ -299,10 +299,10 @@ lazy val docs = (project in file("docs"))
         "github.base_url" -> "https://github.com/eaplatanios/tensorflow_scala",
         "snip.github_link" -> "false"),
       paradoxNavigationDepth in Paradox := 3,
-      // makeSite := makeSite.dependsOn(paradox in Paradox).value,
-      // mappings in paradox in Paradox ++= Seq(
-      //   file("LICENSE") -> "LICENSE",
-      //   file("assets/favicon.ico") -> "favicon.ico"),
+      makeSite := makeSite.dependsOn(paradox in Paradox).value,
+      mappings in paradox in Paradox ++= Seq(
+        file("LICENSE") -> "LICENSE",
+        file("assets/favicon.ico") -> "favicon.ico"),
       scmInfo := Some(ScmInfo(
         url("https://github.com/eaplatanios/tensorflow_scala"),
         "git@github.com:eaplatanios/tensorflow_scala.git")),

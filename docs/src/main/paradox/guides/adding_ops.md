@@ -14,5 +14,3 @@ For example, the implentation of `tf.add(x, y)` in
 TensorFlow Scala looks like this:
 
 @@snip [AddingOps.scala](/docs/src/main/scala/AddingOps.scala) { #add_op_example }
-
-

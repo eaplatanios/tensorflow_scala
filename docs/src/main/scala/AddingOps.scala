@@ -1,6 +1,6 @@
 import org.platanios.tensorflow.api._
 
-object AddingsOps {
+object AddingOps {
   // #add_op_example
   def add[T: TF : IsNotQuantized](
       x: Output[T],
