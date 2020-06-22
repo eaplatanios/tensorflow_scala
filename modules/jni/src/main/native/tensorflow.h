@@ -41,6 +41,14 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_
 
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    enableXLA
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_enableXLA
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
  * Method:    updateInput
  * Signature: (JJIJI)I
  */

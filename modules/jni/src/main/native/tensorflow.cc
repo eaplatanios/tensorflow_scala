@@ -23,6 +23,7 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/c_api_experimental.h"
 
 namespace {
 template <class T>
@@ -86,6 +87,12 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_
   TF_DeleteLibraryHandle(library);
   env->ReleaseStringUTFChars(library_filename, c_library_filename);
   return op_list;
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_enableXLA(JNIEnv* env, jobject object) {
+  // Create a dummy session options instance to allow us to call the experimental C API for enabling XLA.
+  auto* session_options = TF_NewSessionOptions();
+  TF_EnableXLACompilation(session_options, true);
 }
 
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput(

@@ -165,6 +165,7 @@ object TensorFlow {
   @native def version: String
   @native def dataTypeSize(dataTypeCValue: Int): Int
   @native def loadOpLibrary(libraryPath: String): Array[Byte]
+  @native def enableXLA(): Unit
 
   //region Internal API
 
