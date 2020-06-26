@@ -125,7 +125,7 @@ object TensorFlow {
     if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
       Seq(s"lib$lib.so")
     } else {
-      Seq(s"lib$lib.so", s"lib$lib.so.2", s"lib$lib.dylib", s"lib$lib.2.dylib")
+      Seq(s"lib$lib.so", s"lib$lib.so.2", s"lib$lib.so.2.2.0", s"lib$lib.dylib", s"lib$lib.2.dylib", s"lib$lib.2.2.0.dylib")
     }
   }
 

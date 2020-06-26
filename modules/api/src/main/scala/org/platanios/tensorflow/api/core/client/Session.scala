@@ -16,11 +16,12 @@
 package org.platanios.tensorflow.api.core.client
 
 import org.platanios.tensorflow.api.core.Graph
+import org.platanios.tensorflow.api.core.client.SessionConfig.{L1GraphOptimizerGlobalJIT, L2GraphOptimizerGlobalJIT}
 import org.platanios.tensorflow.api.implicits.helpers._
 import org.platanios.tensorflow.api.ops.{Op, Output, UntypedOp}
 import org.platanios.tensorflow.api.tensors.Tensor
 import org.platanios.tensorflow.api.utilities.{Closeable, DefaultsTo, Disposer, NativeHandleWrapper}
-import org.platanios.tensorflow.jni.{Session => NativeSession, Tensor => NativeTensor}
+import org.platanios.tensorflow.jni.{TensorFlow, Session => NativeSession, Tensor => NativeTensor}
 import org.platanios.tensorflow.proto.{RunMetadata, RunOptions}
 
 import scala.collection.compat.immutable.ArraySeq
@@ -207,6 +208,13 @@ object Session {
       target: String = null,
       sessionConfig: Option[SessionConfig] = None
   ): Session = {
+    // Enable XLA support, if needed.
+    sessionConfig.foreach { config =>
+      config.optGlobalJITLevel match {
+        case Some(L1GraphOptimizerGlobalJIT) | Some(L2GraphOptimizerGlobalJIT) => TensorFlow.enableXLA()
+        case _ => ()
+      }
+    }
     val graphReference = graph.reference
     val nativeHandle = NativeSession.allocate(
       graphReference.nativeHandle,

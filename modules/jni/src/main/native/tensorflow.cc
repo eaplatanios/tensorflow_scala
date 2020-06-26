@@ -93,6 +93,7 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_enable
   // Create a dummy session options instance to allow us to call the experimental C API for enabling XLA.
   auto* session_options = TF_NewSessionOptions();
   TF_EnableXLACompilation(session_options, true);
+  TF_DeleteSessionOptions(session_options);
 }
 
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput(

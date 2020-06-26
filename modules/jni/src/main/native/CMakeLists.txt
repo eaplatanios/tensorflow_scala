@@ -24,7 +24,7 @@ include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
-list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so .so.2 .dylib .2.dylib)
+list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.2.0 .so.2 .so .2.2.0.dylib .2.dylib .dylib)
 find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW)
   message(FATAL_ERROR "Library `tensorflow` not found.")
