@@ -2296,8 +2296,8 @@ trait Math {
   protected def safeShapeDiv(
       x: Output[Int],
       y: Output[Int]
-  ): Output[Int] = {
-    truncateDivide[Long](x.toLong, maximum[Long](y.toLong, Basic.ones[Long](Tensor.empty[Int]))).toInt
+  ): Output[Long] = {
+    truncateDivide[Long](x.toLong, maximum(y, 1).toLong)
   }
 
   /** $OpDocMathSum
@@ -2357,9 +2357,8 @@ trait Math {
     } else {
       val inputShape = Basic.shape(input)
       val outputShapeKeptDimensions = Math.reducedShape(inputShape, axes)
-      val tileScaling = safeShapeDiv(inputShape, outputShapeKeptDimensions)
       val reshapedOutputGradient = Basic.reshape(outputGradient, outputShapeKeptDimensions)
-      (Basic.tile(reshapedOutputGradient, tileScaling), null)
+      (Basic.broadcastTo(reshapedOutputGradient, inputShape), null)
     }
   }
 

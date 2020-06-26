@@ -1443,42 +1443,39 @@ trait Manipulation {
     // The input can be very large for sparse models and 'shape' raises an exception on the Windows platform whenever
     // any dimension is larger than Int. 'inputShape' is not used in the optimizer 'applySparse' gradients method
     // and so it's fine to convert it back to Int regardless of the truncation.
-    val zero = Constructors.zeros[Int](Shape())
     val input = op.input._1
     val inputShape = Op.colocateWith(Set(input.op), ignoreExisting = true) {
-      shape(input)
+      shape(input).toLong
     }
-    val indices = op.input._2.toInt
-    val indicesSize = expandDims(size(indices).toInt, zero)
+    val indices = op.input._2
+    val indicesSize = expandDims(size(indices).toLong, 0)
     val axis = op.input._3
     val axisStatic = Output.constantValue(axis)
     // For axis 0 gathers, we build appropriately shaped indexed slices.
     if (axisStatic.map(_.scalar).getOrElse(-1) == 0) {
-      val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), zero)
+      val valuesShape = concatenate(Seq(indicesSize, inputShape(1 ::)), 0)
       val values = reshape(outputGradient, valuesShape)
       val reshapedIndices = reshape(indices, indicesSize)
-      val gradient = OutputIndexedSlices(indices = reshapedIndices, values = values, denseShape = inputShape)
+      val gradient = OutputIndexedSlices(indices = reshapedIndices.toInt, values = values, denseShape = inputShape.toInt)
       (gradient, null, null)
     } else {
-      val intInputShape = inputShape.castTo[Int]
-      val intIndicesSize = indicesSize.castTo[Int]
-      val expandedAxis = axis.castTo[Int].expandDims(zero)
-      val outerShape = slice(intInputShape, zero, expandedAxis)
-      val outerSize = size(outerShape).castTo[Int]
-      val computedShape = slice(intInputShape, expandedAxis, size(inputShape).castTo[Int].expandDims(zero))
+      val expandedAxis = axis.expandDims(0).toLong
+      val outerShape = slice(inputShape, 0L, expandedAxis)
+      val outerSize = size(outerShape)
+      val computedShape = slice(inputShape, expandedAxis, size(inputShape).expandDims(0))
       val innerShape = computedShape.slice(1 ::)
-      val innerSize = size(innerShape).castTo[Int]
-      val outerAxesIndices = Math.range(zero, outerSize)
+      val innerSize = size(innerShape)
+      val outerAxesIndices = Math.range(0L, outerSize)
       val innerAxesIndices = Math.range(outerSize + 1, outerSize + 1 + innerSize)
-      val valuesShape = concatenate(Seq(outerShape, intIndicesSize, innerShape), zero)
+      val valuesShape = concatenate(Seq(outerShape, indicesSize, innerShape), 0)
       val values = reshape(outputGradient, valuesShape)
-      val reshapedIndices = reshape(indices, intIndicesSize)
+      val reshapedIndices = reshape(indices, indicesSize)
       // We need to sum up every slice `values(..., i, ...)` corresponding to `input(..., indices(i), ...)`. Since
       // `unsortedSegmentSum` does not support an axis parameter, we transpose the gather dimension to the front, and
       // then use `unsortedSegmentSum` to build a `[gatherAxis, outerAxes, innerAxes]` tensor containing all the
       // gradients affecting each index in `gatherAxis` summed up.
       val transposeAxes = concatenate(
-        Seq(outerSize.expandDims(zero), outerAxesIndices, innerAxesIndices), zero)
+        Seq(outerSize.expandDims(0), outerAxesIndices, innerAxesIndices), 0)
       val valuesTranspose = transpose(values, transposeAxes)
       val numSegments = inputShape.gather(axis)
 
@@ -1487,7 +1484,7 @@ trait Manipulation {
 
       val inputGradient = Math.unsortedSegmentSum(valuesTranspose, reshapedIndices, numSegments)
       // We now invert the above transpose by moving dimension 0 back to its original position.
-      val transposeAxesInverse = concatenate(Seq(outerAxesIndices + 1, zero, innerAxesIndices), zero)
+      val transposeAxesInverse = concatenate[Long](Seq(outerAxesIndices + 1, 0L, innerAxesIndices), 0)
       val inputGradientTranspose = transpose(inputGradient, transposeAxesInverse)
       (inputGradientTranspose, null, null)
     }
