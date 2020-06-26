@@ -96,6 +96,13 @@ class TensorSuite extends JUnitSuite {
     assert(tensor3(2, 2, 1).scalar == "2,2,1")
   }
 
+  @Test def testCreateTensorFromByteCodable(): Unit = {
+    val tensor = Tensor.fromByteCodable(Seq(2))
+    assert(tensor.dataType == INT32)
+    assert(tensor.shape == Shape(1))
+    assert(tensor.scalar == 2)
+  }
+
   @Test def testUnsupportedScalaTypeError(): Unit = {
     assertDoesNotCompile("val tensor: Tensor = Tensor(5.asInstanceOf[Any])")
   }

@@ -15,7 +15,7 @@
 
 package org.platanios.tensorflow.api.utilities
 
-import java.nio.ByteBuffer
+import java.nio.{ByteBuffer, ByteOrder}
 
 import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.types.{DataType, TF}
@@ -44,7 +44,7 @@ object ByteCodable {
     override def byteCount(value: T): Int = TF[T].dataType.nativeByteSize.get
 
     override def convertToByteArray(value: T): (Array[Byte], Shape) = {
-      val buffer = ByteBuffer.allocate(byteCount(value))
+      val buffer = ByteBuffer.allocate(byteCount(value)).order(ByteOrder.LITTLE_ENDIAN)
       DataType.putElementInBuffer(buffer, 0, value)
       (buffer.array(), Shape())
     }

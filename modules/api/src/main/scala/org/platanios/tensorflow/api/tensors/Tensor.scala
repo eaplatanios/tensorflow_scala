@@ -1046,23 +1046,23 @@ object Tensor {
       case _ => ()
     }
 
-    this synchronized {
-      // TODO: May behave weirdly for direct byte buffers allocated on the Scala side.
-      val directBuffer = {
-        if (buffer.isDirect) {
-          buffer
-        } else {
-          val direct = ByteBuffer.allocateDirect(numBytes.toInt)
-          val bufferCopy = buffer.duplicate()
-          direct.put(bufferCopy.limit(bufferCopy.position() + numBytes.toInt).asInstanceOf[ByteBuffer])
-          direct
-        }
+    val directBuffer = {
+      if (buffer.isDirect) {
+        buffer
+      } else {
+        val bufferPosition = buffer.position()
+        val bufferLimit = buffer.limit()
+        val direct = ByteBuffer.allocateDirect(numBytes.toInt)
+        direct.put(buffer.limit(buffer.position() + numBytes.toInt))
+        buffer.position(bufferPosition)
+        buffer.limit(bufferLimit)
+        direct.flip()
       }
-      val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, directBuffer)
-      val tensor = Tensor.fromHostNativeHandle[T](hostHandle)
-      NativeTensor.delete(hostHandle)
-      tensor
     }
+    val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, directBuffer)
+    val tensor = Tensor.fromHostNativeHandle[T](hostHandle)
+    NativeTensor.delete(hostHandle)
+    tensor
   }
 
   /** Reads the tensor stored in the provided Numpy (i.e., `.npy`) file. */

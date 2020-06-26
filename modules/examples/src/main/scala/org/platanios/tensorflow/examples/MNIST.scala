@@ -66,7 +66,7 @@ object MNIST {
     val loss = tf.learn.SparseSoftmaxCrossEntropy[Float, Long, Float]("Loss/CrossEntropy") >>
         tf.learn.Mean[Float]("Loss/Mean") >>
         tf.learn.ScalarSummary[Float]("Loss/Summary", "Loss")
-    val optimizer = tf.train.YellowFin()
+    val optimizer = tf.train.Adam()
 
     val model = tf.learn.Model.simpleSupervised(
       input = input,

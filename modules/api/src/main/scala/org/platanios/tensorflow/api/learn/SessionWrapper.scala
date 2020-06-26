@@ -130,7 +130,7 @@ class SessionWrapper private[learn](
       currentHooks.zip(hookRunArgs).zipWithIndex.foreach {
         case ((hook, runArgs), index) =>
           val results = result._1._2(index)
-          val decodedResult = runArgs.get.decodeResults(results)
+          val decodedResult = runArgs.map(_.decodeResults(results)).getOrElse(Seq.empty)
           hook.internalAfterSessionRun(
             runContext,
             Hook.SessionRunResult(decodedResult, result._2))
