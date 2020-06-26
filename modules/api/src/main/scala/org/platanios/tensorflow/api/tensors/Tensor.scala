@@ -25,17 +25,15 @@ import org.platanios.tensorflow.api.ops.{Op, Output}
 import org.platanios.tensorflow.api.ops.basic.{Basic => OutputBasic}
 import org.platanios.tensorflow.api.tensors.ops.{Basic, Cast, Math}
 import org.platanios.tensorflow.api.utilities.Proto.{Serializable => ProtoSerializable}
-import org.platanios.tensorflow.api.utilities.{Closeable, Disposer, NativeHandleWrapper}
+import org.platanios.tensorflow.api.utilities.{ByteCodable, Closeable, Disposer, NativeHandleWrapper}
 import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsBasic}
 import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOpsRandom}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 import org.platanios.tensorflow.proto.TensorProto
-
 import com.google.protobuf.ByteString
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import java.nio._
 import java.nio.charset.Charset
 import java.nio.file.Path
@@ -276,10 +274,7 @@ class Tensor[T] protected (
     }
   }
 
-  def apply(
-      firstIndexer: Indexer,
-      otherIndexers: Indexer*
-  ): Tensor[T] = {
+  def apply(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[T] = {
     this.slice(firstIndexer, otherIndexers: _*)
   }
 
@@ -291,10 +286,7 @@ class Tensor[T] protected (
     * @param  otherIndexers Rest of the indexers to use.
     * @return Resulting tensor.
     */
-  def slice(
-      firstIndexer: Indexer,
-      otherIndexers: Indexer*
-  ): Tensor[T] = {
+  def slice(firstIndexer: Indexer, otherIndexers: Indexer*): Tensor[T] = {
     val stridedSlice = Indexer.toStridedSlice(firstIndexer, otherIndexers: _*)
     val beginTensor: Tensor[Int] = stridedSlice._1
     val endTensor: Tensor[Int] = stridedSlice._2
@@ -719,6 +711,11 @@ object Tensor {
 
   def apply[T: TF](tensors: Tensor[T]*): Tensor[T] = {
     Basic.stack(tensors, axis = 0)
+  }
+
+  def fromByteCodable[T, S](value: T)(implicit ev: ByteCodable.Aux[T, S], evTF: TF[S]): Tensor[S] = {
+    val (bytes, shape) = ByteCodable[T].convertToByteArray(value)
+    fromBuffer[S](shape, bytes.length.toLong, ByteBuffer.wrap(bytes))
   }
 
   /** Returns a new tensor with shape `shape` and all elements set to zero.

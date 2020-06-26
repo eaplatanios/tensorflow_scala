@@ -46,7 +46,7 @@ case class DataType[T] private[types](
     *
     * Note that this value is currently not used anywhere within the TensorFlow Scala API.
     */
-  private[types] lazy val nativeByteSize: Option[Int] = {
+  lazy val nativeByteSize: Option[Int] = {
     NativeLibrary.dataTypeSize(cValue) match {
       case 0 => None
       case s => Some(s)
