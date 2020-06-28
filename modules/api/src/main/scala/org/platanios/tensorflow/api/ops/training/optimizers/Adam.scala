@@ -53,12 +53,13 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * to the entire momentum accumulator. This means that the sparse behavior is equivalent to the dense behavior (in
   * contrast to some momentum implementations which ignore momentum unless a variable slice was actually used).
   *
-  * For more information on this algorithm, please refer to this [paper](https://arxiv.org/abs/1412.6980)
-  * ([PDF](https://arxiv.org/pdf/1412.6980.pdf)).
+  * For more information on this algorithm, please refer to this [paper](https://arxiv.org/abs/1412.6980).
   *
   * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument
   *                                specifies the initial value of the learning rate.
   * @param  decay                  Learning rate decay method to use for each update.
+  * @param  weightDecay            Weight decay rate. Note that this is not equivalent to L2 regularization. Instead,
+  *                                the implementation is based on this [paper](https://arxiv.org/abs/1711.05101).
   * @param  beta1                  Exponential decay rate for the first moment estimates.
   * @param  beta2                  Exponential decay rate for the second moment estimates.
   * @param  useNesterov            If `true`, Nesterov momentum is used for the updates.
@@ -77,6 +78,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
 class Adam protected (
     val learningRate: Float = 0.001f,
     val decay: Schedule[Float] = FixedSchedule[Float](),
+    val weightDecay: Float = 0.0f,
     val beta1: Float = 0.9f,
     val beta2: Float = 0.999f,
     val useNesterov: Boolean = false,
@@ -88,6 +90,7 @@ class Adam protected (
   override val ignoreDuplicateSparseIndices: Boolean = true
 
   protected var learningRateTensor: Output[Float] = _
+  protected var weightDecayTensor : Output[Float] = _
   protected var beta1Tensor       : Output[Float] = _
   protected var beta2Tensor       : Output[Float] = _
   protected var epsilonTensor     : Output[Float] = _
@@ -101,25 +104,25 @@ class Adam protected (
     learningRateTensor.castTo[V].toOutput
   }
 
-  protected def getBeta1[V: TF](
-      variable: Variable[V]
-  ): Output[V] = {
+  protected def getWeightDecay[V: TF](variable: Variable[V]): Output[V] = {
+    if (weightDecayTensor == null)
+      throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
+    weightDecayTensor.castTo[V].toOutput
+  }
+
+  protected def getBeta1[V: TF](variable: Variable[V]): Output[V] = {
     if (beta1Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     beta1Tensor.castTo[V].toOutput
   }
 
-  protected def getBeta2[V: TF](
-      variable: Variable[V]
-  ): Output[V] = {
+  protected def getBeta2[V: TF](variable: Variable[V]): Output[V] = {
     if (beta2Tensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     beta2Tensor.castTo[V].toOutput
   }
 
-  protected def getEpsilon[V: TF](
-      variable: Variable[V]
-  ): Output[V] = {
+  protected def getEpsilon[V: TF](variable: Variable[V]): Output[V] = {
     if (epsilonTensor == null)
       throw new IllegalStateException("Method 'prepare' has not been called on this optimizer.")
     epsilonTensor.castTo[V].toOutput
@@ -150,6 +153,7 @@ class Adam protected (
     learningRateTensor = decay(Basic.constant(learningRate, name = "LearningRate"), iteration)
     if (learningRateSummaryTag != null)
       Summary.scalar(learningRateSummaryTag, learningRateTensor)
+    weightDecayTensor = Basic.constant(weightDecay, name = "WeightDecay")
     beta1Tensor = Basic.constant(beta1, name = "Beta1")
     beta2Tensor = Basic.constant(beta2, name = "Beta2")
     epsilonTensor = Basic.constant(epsilon, name = "Epsilon")
@@ -162,23 +166,34 @@ class Adam protected (
   ): UntypedOp = {
     val m = getSlot[T, T]("M", variable)
     val v = getSlot[T, T]("V", variable)
+    val learningRate = getLearningRate(variable, iteration)
+    val weightDecay = getWeightDecay(variable)
+    val weightDecayOp = {
+      if (this.weightDecay > 0) {
+        variable.assignSub(learningRate * weightDecay * variable.value).op
+      } else {
+        ControlFlow.noOp()
+      }
+    }
     val (beta1Power, beta2Power) = getBetaPowerAccumulators
-    Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
-      opType = "ResourceApplyAdam",
-      name = s"$name/ApplyDense",
-      input = (variable.handle,
-          m.handle,
-          v.handle,
-          beta1Power.value.castTo[T],
-          beta2Power.value.castTo[T],
-          getLearningRate(variable, iteration),
-          getBeta1(variable),
-          getBeta2(variable),
-          getEpsilon(variable),
-          gradient)
-    ).setAttribute("use_locking", useLocking)
-        .setAttribute("use_nesterov", useNesterov)
-        .build()
+    Op.createWith(controlDependencies = Set(weightDecayOp)) {
+      Op.Builder[(Output[Resource], Output[Resource], Output[Resource], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T], Output[T]), Unit](
+        opType = "ResourceApplyAdam",
+        name = s"$name/ApplyDense",
+        input = (variable.handle,
+            m.handle,
+            v.handle,
+            beta1Power.value.castTo[T],
+            beta2Power.value.castTo[T],
+            learningRate,
+            getBeta1(variable),
+            getBeta2(variable),
+            getEpsilon(variable),
+            gradient)
+      ).setAttribute("use_locking", useLocking)
+          .setAttribute("use_nesterov", useNesterov)
+          .build()
+    }
   }
 
   override def applySparse[T: TF : IsNotQuantized, I: TF : IsIntOrLong](
@@ -194,27 +209,43 @@ class Adam protected (
       val beta2 = getBeta2(variable)
       val epsilon = getEpsilon(variable)
       var learningRate = getLearningRate(variable, iteration)
-      val one = Basic.ones[T](Shape())
-      learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
-      learningRate = learningRate / (one - beta1Power.value.castTo[T])
 
-      // m_t = beta1 * m + (1 - beta1) * gradient
-      val mScaledGradient = gradient.values * (one - beta1)
-      var mT = m.assign(m.value * beta1)
-      mT = Op.createWith(controlDependencies = Set(mT.op)) {
-        m.assignScatterAdd(gradient.indices, mScaledGradient)
+      // Apply weight decay, if needed.
+      val weightDecay = getWeightDecay(variable)
+      val weightDecayOp = {
+        if (this.weightDecay > 0) {
+          variable.assignScatterSub(
+            gradient.indices,
+            learningRate * weightDecay * variable.gather(gradient.indices),
+          ).op
+        } else {
+          ControlFlow.noOp()
+        }
       }
 
-      // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-      val vScaledGradient = gradient.values * gradient.values * (one - beta2)
-      var vT = v.assign(v.value * beta2)
-      vT = Op.createWith(controlDependencies = Set(vT.op)) {
-        v.assignScatterAdd(gradient.indices, vScaledGradient)
-      }
+      Op.createWith(controlDependencies = Set(weightDecayOp)) {
+        val one = Basic.ones[T](Shape())
+        learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
+        learningRate = learningRate / (one - beta1Power.value.castTo[T])
 
-      val vTSqrt = Math.sqrt(vT)
-      val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
-      ControlFlow.group(Set(update.op, mT.op, vT.op))
+        // m_t = beta1 * m + (1 - beta1) * gradient
+        val mScaledGradient = gradient.values * (one - beta1)
+        var mT = m.assign(m.value * beta1)
+        mT = Op.createWith(controlDependencies = Set(mT.op)) {
+          m.assignScatterAdd(gradient.indices, mScaledGradient)
+        }
+
+        // v_t = beta2 * v + (1 - beta2) * gradient * gradient
+        val vScaledGradient = gradient.values * gradient.values * (one - beta2)
+        var vT = v.assign(v.value * beta2)
+        vT = Op.createWith(controlDependencies = Set(vT.op)) {
+          v.assignScatterAdd(gradient.indices, vScaledGradient)
+        }
+
+        val vTSqrt = Math.sqrt(vT)
+        val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
+        ControlFlow.group(Set(update.op, mT.op, vT.op))
+      }
     }
   }
 
@@ -239,6 +270,7 @@ object Adam {
   def apply(
       learningRate: Float = 0.001f,
       decay: Schedule[Float] = FixedSchedule[Float](),
+      weightDecay: Float = 0.0f,
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
       useNesterov: Boolean = false,
@@ -248,7 +280,7 @@ object Adam {
       name: String = "Adam"
   ): Adam = {
     new Adam(
-      learningRate, decay, beta1, beta2, useNesterov,
+      learningRate, decay, weightDecay, beta1, beta2, useNesterov,
       epsilon, useLocking, learningRateSummaryTag, name)
   }
 }

@@ -1053,10 +1053,10 @@ object Tensor {
         val bufferPosition = buffer.position()
         val bufferLimit = buffer.limit()
         val direct = ByteBuffer.allocateDirect(numBytes.toInt)
-        direct.put(buffer.limit(buffer.position() + numBytes.toInt))
+        direct.put(buffer.limit(buffer.position() + numBytes.toInt).asInstanceOf[ByteBuffer])
         buffer.position(bufferPosition)
         buffer.limit(bufferLimit)
-        direct.flip()
+        direct.flip().asInstanceOf[ByteBuffer]
       }
     }
     val hostHandle = NativeTensor.fromBuffer(dataType.cValue, shape.asArray.map(_.toLong), numBytes, directBuffer)

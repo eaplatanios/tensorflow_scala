@@ -16,9 +16,9 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{TF, IsIntOrLong, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{IsIntOrLong, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{OutputIndexedSlices, UntypedOp}
+import org.platanios.tensorflow.api.ops.{Op, OutputIndexedSlices, UntypedOp}
 import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
 import org.platanios.tensorflow.api.ops.math.Math
@@ -73,6 +73,8 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument
   *                                specifies the initial value of the learning rate.
   * @param  decay                  Learning rate decay method to use for each update.
+  * @param  weightDecay            Weight decay rate. Note that this is not equivalent to L2 regularization. Instead,
+  *                                the implementation is based on this [paper](https://arxiv.org/abs/1711.05101).
   * @param  beta1                  Exponential decay rate for the first moment estimates.
   * @param  beta2                  Exponential decay rate for the second moment estimates.
   * @param  useNesterov            If `true`, Nesterov momentum is used for the updates.
@@ -91,6 +93,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
 class LazyAdam protected (
     override val learningRate: Float = 0.001f,
     override val decay: Schedule[Float] = FixedSchedule[Float](),
+    override val weightDecay: Float = 0.0f,
     override val beta1: Float = 0.9f,
     override val beta2: Float = 0.999f,
     override val useNesterov: Boolean = false,
@@ -99,7 +102,7 @@ class LazyAdam protected (
     override val learningRateSummaryTag: String = null,
     override val name: String = "LazyAdam"
 ) extends Adam(
-  learningRate, decay, beta1, beta2, useNesterov,
+  learningRate, decay, weightDecay, beta1, beta2, useNesterov,
   epsilon, useLocking, learningRateSummaryTag, name
 ) {
   override val ignoreDuplicateSparseIndices: Boolean = true
@@ -116,25 +119,41 @@ class LazyAdam protected (
     val beta2 = getBeta2(variable)
     val epsilon = getEpsilon(variable)
     var learningRate = getLearningRate(variable, iteration)
-    val one = Basic.ones[T](Shape())
-    learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
-    learningRate = learningRate / (one - beta1Power.value.castTo[T])
 
-    // m_t = beta1 * m + (1 - beta1) * gradient
-    val mTSlice = beta1 * Basic.gather(m.value, gradient.indices, axis = 0) + (one - beta1) * gradient.values
-    val mT = m.assignScatter(gradient.indices, mTSlice)
+    // Apply weight decay, if needed.
+    val weightDecay   = getWeightDecay(variable)
+    val weightDecayOp = {
+      if (this.weightDecay > 0) {
+        variable.assignScatterSub(
+          gradient.indices,
+          learningRate * weightDecay * variable.gather(gradient.indices),
+        ).op
+      } else {
+        ControlFlow.noOp()
+      }
+    }
 
-    // v_t = beta2 * v + (1 - beta2) * gradient * gradient
-    val vTSlice = beta2 * Basic.gather(v.value, gradient.indices, axis = 0) + (one - beta2) * Math.square(gradient.values)
-    val vT = v.assignScatter(gradient.indices, vTSlice)
+    Op.createWith(controlDependencies = Set(weightDecayOp)) {
+      val one = Basic.ones[T](Shape())
+      learningRate = learningRate * Math.sqrt(one - beta2Power.value.castTo[T])
+      learningRate = learningRate / (one - beta1Power.value.castTo[T])
 
-    // variable -= learning_rate * m_t / (epsilon_t + sqrt(v_t))
-    val mTDenominatorSlice = Basic.gather(mT, gradient.indices, axis = 0)
-    val vTDenominatorSlice = Basic.gather(vT, gradient.indices, axis = 0)
-    val denominatorSlice = Math.sqrt(vTDenominatorSlice) + epsilon
-    val update = variable.assignScatterSub(gradient.indices, learningRate * mTDenominatorSlice / denominatorSlice)
+      // m_t = beta1 * m + (1 - beta1) * gradient
+      val mTSlice = beta1 * Basic.gather(m.value, gradient.indices, axis = 0) + (one - beta1) * gradient.values
+      val mT = m.assignScatter(gradient.indices, mTSlice)
 
-    ControlFlow.group(Set(update.op, mT.op, vT.op))
+      // v_t = beta2 * v + (1 - beta2) * gradient * gradient
+      val vTSlice = beta2 * Basic.gather(v.value, gradient.indices, axis = 0) + (one - beta2) * Math.square(gradient.values)
+      val vT = v.assignScatter(gradient.indices, vTSlice)
+
+      // variable -= learning_rate * m_t / (epsilon_t + sqrt(v_t))
+      val mTDenominatorSlice = Basic.gather(mT, gradient.indices, axis = 0)
+      val vTDenominatorSlice = Basic.gather(vT, gradient.indices, axis = 0)
+      val denominatorSlice = Math.sqrt(vTDenominatorSlice) + epsilon
+      val update = variable.assignScatterSub(gradient.indices, learningRate * mTDenominatorSlice / denominatorSlice)
+
+      ControlFlow.group(Set(update.op, mT.op, vT.op))
+    }
   }
 }
 
@@ -142,6 +161,7 @@ object LazyAdam {
   def apply(
       learningRate: Float = 0.001f,
       decay: Schedule[Float] = FixedSchedule[Float](),
+      weightDecay: Float = 0.0f,
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
       useNesterov: Boolean = false,
@@ -151,7 +171,7 @@ object LazyAdam {
       name: String = "LazyAdam"
   ): LazyAdam = {
     new LazyAdam(
-      learningRate, decay, beta1, beta2, useNesterov,
+      learningRate, decay, weightDecay, beta1, beta2, useNesterov,
       epsilon, useLocking, learningRateSummaryTag, name)
   }
 }
