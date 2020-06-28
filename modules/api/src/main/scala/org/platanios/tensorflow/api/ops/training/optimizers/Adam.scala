@@ -55,23 +55,26 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * For more information on this algorithm, please refer to this [paper](https://arxiv.org/abs/1412.6980).
   *
-  * @param  learningRate           Learning rate. Must be `> 0`. If used with `decay`, then this argument
-  *                                specifies the initial value of the learning rate.
-  * @param  decay                  Learning rate decay method to use for each update.
-  * @param  weightDecay            Weight decay rate. Note that this is not equivalent to L2 regularization. Instead,
-  *                                the implementation is based on this [paper](https://arxiv.org/abs/1711.05101).
-  * @param  beta1                  Exponential decay rate for the first moment estimates.
-  * @param  beta2                  Exponential decay rate for the second moment estimates.
-  * @param  useNesterov            If `true`, Nesterov momentum is used for the updates.
-  * @param  epsilon                Small constant used for numerical stability. This epsilon corresponds to
-  *                                "epsilon hat" in the Kingma and Ba paper (in the formula just before Section 2.1),
-  *                                and not to the epsilon in Algorithm 1 of the paper.
-  * @param  useLocking             If `true`, the gradient descent updates will be protected by a lock. Otherwise, the
-  *                                behavior is undefined, but may exhibit less contention.
-  * @param  learningRateSummaryTag Optional summary tag name to use for the learning rate value. If `null`, no summary
-  *                                is created for the learning rate. Otherwise, a scalar summary is created which can
-  *                                be monitored using TensorBoard.
-  * @param  name                   Name for this optimizer.
+  * @param  learningRate                Learning rate. Must be `> 0`. If used with `decay`, then this argument
+  *                                     specifies the initial value of the learning rate.
+  * @param  decay                       Learning rate decay method to use for each update.
+  * @param  weightDecay                 Weight decay rate. Note that this is not equivalent to L2 regularization.
+  *                                     Instead, the implementation is based on this
+  *                                     [paper](https://arxiv.org/abs/1711.05101).
+  * @param  excludeFromWeightDecayNames Variables whose name contains any of the strings in this set will be excluded
+  *                                     from weight decay regularization.
+  * @param  beta1                       Exponential decay rate for the first moment estimates.
+  * @param  beta2                       Exponential decay rate for the second moment estimates.
+  * @param  useNesterov                 If `true`, Nesterov momentum is used for the updates.
+  * @param  epsilon                     Small constant used for numerical stability. This epsilon corresponds to
+  *                                     "epsilon hat" in the Kingma and Ba paper (in the formula just before Section
+  *                                     2.1), and not to the epsilon in Algorithm 1 of the paper.
+  * @param  useLocking                  If `true`, the gradient descent updates will be protected by a lock. Otherwise,
+  *                                     the behavior is undefined, but may exhibit less contention.
+  * @param  learningRateSummaryTag      Optional summary tag name to use for the learning rate value. If `null`, no
+  *                                     summary is created for the learning rate. Otherwise, a scalar summary is created
+  *                                     which can be monitored using TensorBoard.
+  * @param  name                        Name for this optimizer.
   *
   * @author Emmanouil Antonios Platanios
   */
@@ -79,6 +82,7 @@ class Adam protected (
     val learningRate: Float = 0.001f,
     val decay: Schedule[Float] = FixedSchedule[Float](),
     val weightDecay: Float = 0.0f,
+    val excludeFromWeightDecayNames: Set[String] = Set.empty,
     val beta1: Float = 0.9f,
     val beta2: Float = 0.999f,
     val useNesterov: Boolean = false,
@@ -169,7 +173,7 @@ class Adam protected (
     val learningRate = getLearningRate(variable, iteration)
     val weightDecay = getWeightDecay(variable)
     val weightDecayOp = {
-      if (this.weightDecay > 0) {
+      if (doWeightDecay(variable)) {
         variable.assignSub(learningRate * weightDecay * variable.value).op
       } else {
         ControlFlow.noOp()
@@ -213,7 +217,7 @@ class Adam protected (
       // Apply weight decay, if needed.
       val weightDecay = getWeightDecay(variable)
       val weightDecayOp = {
-        if (this.weightDecay > 0) {
+        if (doWeightDecay(variable)) {
           variable.assignScatterSub(
             gradient.indices,
             learningRate * weightDecay * variable.gather(gradient.indices),
@@ -264,6 +268,10 @@ class Adam protected (
     }
     ControlFlow.group(updateOps ++ updateBetaPowerOps, nameScope)
   }
+
+  protected def doWeightDecay[V: TF](variable: Variable[V]): Boolean = {
+    weightDecay > 0 && excludeFromWeightDecayNames.forall(!variable.name.contains(_))
+  }
 }
 
 object Adam {
@@ -271,6 +279,7 @@ object Adam {
       learningRate: Float = 0.001f,
       decay: Schedule[Float] = FixedSchedule[Float](),
       weightDecay: Float = 0.0f,
+      excludeFromWeightDecayNames: Set[String] = Set.empty,
       beta1: Float = 0.9f,
       beta2: Float = 0.999f,
       useNesterov: Boolean = false,
@@ -280,7 +289,7 @@ object Adam {
       name: String = "Adam"
   ): Adam = {
     new Adam(
-      learningRate, decay, weightDecay, beta1, beta2, useNesterov,
-      epsilon, useLocking, learningRateSummaryTag, name)
+      learningRate, decay, weightDecay, excludeFromWeightDecayNames, beta1, beta2,
+      useNesterov, epsilon, useLocking, learningRateSummaryTag, name)
   }
 }
