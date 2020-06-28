@@ -32,6 +32,7 @@ package object optimizers {
     type LazyAdam = optimizers.LazyAdam
     type LazyAMSGrad = optimizers.LazyAMSGrad
     type YellowFin = optimizers.YellowFin
+    type Yogi = optimizers.Yogi
 
     val AdaDelta       : optimizers.AdaDelta.type        = optimizers.AdaDelta
     val Adafactor      : optimizers.Adafactor.type       = optimizers.Adafactor
@@ -43,5 +44,6 @@ package object optimizers {
     val LazyAdam       : optimizers.LazyAdam.type        = optimizers.LazyAdam
     val LazyAMSGrad    : optimizers.LazyAMSGrad.type     = optimizers.LazyAMSGrad
     val YellowFin      : optimizers.YellowFin.type       = optimizers.YellowFin
+    val Yogi           : optimizers.Yogi.type            = optimizers.Yogi
   }
 }
