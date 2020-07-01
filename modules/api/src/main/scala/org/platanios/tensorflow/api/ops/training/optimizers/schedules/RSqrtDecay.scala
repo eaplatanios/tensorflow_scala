@@ -31,11 +31,12 @@ import org.platanios.tensorflow.api.ops.variables.Variable
   *
   * The decayed value is computed as follows:
   * {{{
-  *    decayed = value * decayFactor / sqrt(max(step, decayThreshold))
+  *    decayed = value * decayFactor / sqrt(max(step / decaySteps, decayThreshold))
   * }}}
   *
   * @param  decayFactor    Decay factor.
   * @param  decayThreshold Decay threshold.
+  * @param  decaySteps Decay steps.
   * @param  startStep      Step after which to start decaying the learning rate.
   *
   * @author Emmanouil Antonios Platanios
@@ -43,6 +44,7 @@ import org.platanios.tensorflow.api.ops.variables.Variable
 class RSqrtDecay protected (
     val decayFactor: Float = 500.0f,
     val decayThreshold: Float = 1.0f,
+    val decaySteps: Int = 1,
     val startStep: Long = 0L,
     val name: String = "RSqrtDecay"
 ) extends Schedule[Float] {
@@ -83,7 +85,7 @@ class RSqrtDecay protected (
       decayFactor: Output[Float],
       decayThreshold: Output[Float]
   ): Output[Float] = {
-    decayFactor * Math.rsqrt(Math.maximum(step, decayThreshold))
+    decayFactor * initialValue * Math.rsqrt(Math.maximum(step / decaySteps, decayThreshold))
   }
 }
 
@@ -91,9 +93,10 @@ object RSqrtDecay {
   def apply(
       decayFactor: Float = 500.0f,
       decayThreshold: Float = 1.0f,
+      decaySteps: Int = 1,
       startStep: Long = 0L,
       name: String = "RSqrtDecay"
   ): RSqrtDecay = {
-    new RSqrtDecay(decayFactor, decayThreshold, startStep, name)
+    new RSqrtDecay(decayFactor, decayThreshold, decaySteps, startStep, name)
   }
 }
