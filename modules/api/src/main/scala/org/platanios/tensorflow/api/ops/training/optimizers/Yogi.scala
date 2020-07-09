@@ -16,7 +16,7 @@
 package org.platanios.tensorflow.api.ops.training.optimizers
 
 import org.platanios.tensorflow.api.core.Shape
-import org.platanios.tensorflow.api.core.types.{Resource, TF, IsIntOrLong, IsNotQuantized}
+import org.platanios.tensorflow.api.core.types.{IsIntOrLong, IsNotQuantized, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops._
 import org.platanios.tensorflow.api.ops.basic.Basic
@@ -186,10 +186,10 @@ class Yogi protected (
         val mT = m.assign((m.value * beta1) + mScaledGradient)
 
         // v_t = beta2 * v + (1 - beta2) * gradient * gradient * sign(gradient * gradient - v)
-        val gradientSquared = gradient * gradient
+        val gradientSquared = Math.square(gradient)
         val sign = Math.sign(gradientSquared - v.value)
-        val vScaledGradient = Math.square(gradient) * (one - beta2) * sign
-        val vT = v.assign((v.value * beta2) + vScaledGradient)
+        val vScaledGradient = gradientSquared * (one - beta2) * sign
+        val vT = v.assignAdd(vScaledGradient)
 
         val vTSqrt = Math.sqrt(vT)
         val update = variable.assignSub(learningRate * mT / Math.add(vTSqrt, epsilon))
@@ -238,10 +238,10 @@ class Yogi protected (
         }
 
         // v_t = beta2 * v + (1 - beta2) * gradient * gradient * sign(gradient * gradient - v)
-        val gradientSquared = gradient.values * gradient.values
+        val gradientSquared = Math.square(gradient.values)
         val sign = Math.sign(gradientSquared - v.value.gather(gradient.indices))
-        var vScaledGradient = gradientSquared * (one - beta2) * sign
-        var vT = v.assign(v.value * beta2)
+        val vScaledGradient = gradientSquared * (one - beta2) * sign
+        var vT = v.value
         vT = Op.createWith(controlDependencies = Set(vT.op)) {
           v.assignScatterAdd(gradient.indices, vScaledGradient)
         }

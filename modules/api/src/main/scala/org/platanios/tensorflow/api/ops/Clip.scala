@@ -138,7 +138,7 @@ trait Clip {
       name: String = "GlobalNorm"
   ): Output[T] = {
     Op.nameScope(name) {
-      val values = inputs.map {
+      val values = inputs.collect {
         case o: Output[T] => o
         case o: OutputIndexedSlices[T] => o.values
         case o: SparseOutput[T] => o.values
@@ -174,6 +174,7 @@ trait Clip {
       // Calculate the l2-norm and clip elements by the ratio of `clipNorm` to that l2-norm.
       val scale = clipNorm * Math.minimum(Math.divide(one, norm), Math.divide(one, clipNorm))
       val values = inputs.map {
+        case null => null
         case o: Output[T] => o
         case o: OutputIndexedSlices[T] => o.values
         case o: SparseOutput[T] => o.values
