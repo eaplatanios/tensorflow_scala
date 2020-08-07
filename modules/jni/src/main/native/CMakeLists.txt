@@ -9,6 +9,8 @@ set(PROJECT_VERSION_MAJOR 0)
 set(PROJECT_VERSION_MINOR 5)
 set(PROJECT_VERSION_PATCH 1)
 
+add_definitions(-DNOMINMAX)
+
 # Set up JNI
 find_package(JNI REQUIRED)
 if(JNI_FOUND)
@@ -24,7 +26,7 @@ include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
-list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.2.0 .so.2 .so .2.2.0.dylib .2.dylib .dylib)
+list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.2.0 .so.2 .so .2.2.0.dylib .2.dylib .dylib .lib)
 find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW)
   message(FATAL_ERROR "Library `tensorflow` not found.")
@@ -39,11 +41,16 @@ file(GLOB JNI_LIB_SRC "*.cc" "generated/*.cc")
 file(GLOB OP_LIB_SRC "ops/*.cc")
 
 # Find Python and get the TensorFlow header files from there.
-execute_process(COMMAND python3 -c
+if(WIN32)
+  set(PYTHON python)
+else()
+  set(PYTHON python3)
+endif()
+execute_process(COMMAND PYTHON -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_compile_flags()))"
   OUTPUT_VARIABLE TF_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND python3 -c
+execute_process(COMMAND PYTHON -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_link_flags()))"
   OUTPUT_VARIABLE TF_LFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)

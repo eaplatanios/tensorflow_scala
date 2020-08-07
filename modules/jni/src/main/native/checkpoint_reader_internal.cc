@@ -15,6 +15,7 @@ limitations under the License.
 #include <unordered_set>
 #include <utility>
 
+#include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
 //#include "tensorflow/core/platform/status.h"
 #include "tensorflow/core/platform/stringpiece.h"
@@ -35,7 +36,8 @@ CheckpointReader::CheckpointReader(const string& filename, TF_Status* status)
   // Depending on whether this is a V2 ckpt, initializes "reader_" or
   // "v2_reader_".
   std::vector<string> v2_path;
-  if (Env::Default()->GetMatchingPaths(MetaFilename(filename), &v2_path).ok() &&
+  string meta_filename = strings::Printf("%.*s.index", static_cast<int>(filename.size()), filename.data());
+  if (Env::Default()->GetMatchingPaths(meta_filename, &v2_path).ok() &&
       !v2_path.empty()) {
     v2_reader_.reset(
         new BundleReader(Env::Default(), filename /* prefix to a V2 ckpt */));
@@ -113,7 +115,7 @@ CheckpointReader::BuildV2VarMaps() {
   // First pass: filters out the entries of the slices.
   std::unordered_set<string> filtered_keys;
   BundleEntryProto entry;
-  v2_reader_->Seek(kHeaderEntryKey);
+  v2_reader_->Seek(/* kHeaderEntryKey */ "");
   for (v2_reader_->Next(); v2_reader_->Valid(); v2_reader_->Next()) {
     CHECK(entry.ParseFromArray(v2_reader_->value().data(),
                                v2_reader_->value().size()))
@@ -133,15 +135,14 @@ CheckpointReader::BuildV2VarMaps() {
       new TensorSliceReader::VarToShapeMap);
   std::unique_ptr<TensorSliceReader::VarToDataTypeMap> var_to_data_type_map(
       new TensorSliceReader::VarToDataTypeMap);
-  v2_reader_->Seek(kHeaderEntryKey);
+  v2_reader_->Seek(/* kHeaderEntryKey */ "");
   for (v2_reader_->Next(); v2_reader_->Valid(); v2_reader_->Next()) {
     if (filtered_keys.count(string(v2_reader_->key())) > 0) continue;
     CHECK(entry.ParseFromArray(v2_reader_->value().data(),
                                v2_reader_->value().size()))
         << entry.InitializationErrorString();
     string key(v2_reader_->key());
-    (*var_to_shape_map)[key] = TensorShape(entry.shape());
-    (*var_to_data_type_map)[key] = DataType(entry.dtype());
+    v2_reader_->LookupDtypeAndShape(key, &((*var_to_data_type_map)[key]), &((*var_to_shape_map)[key]));
   }
   // The returned pointers are owned by the caller.
   return std::make_pair(std::move(var_to_shape_map),

@@ -63,7 +63,6 @@ void SetAttr(TF_Graph* graph, TF_Operation* op, const char* attr_name,
 
 void ClearAttr(TF_Graph* graph, TF_Operation* op, const char* attr_name,
                TF_Status* status) {
-
   mutex_lock l(graph->mu);
   op->node.ClearAttr(attr_name);
   // TODO: RecordMutation(graph, *op, "clearing attribute");
@@ -120,7 +119,9 @@ void RemoveAllControlInputs(TF_Graph* graph, TF_Operation* op) {
   mutex_lock l(graph->mu);
   std::vector<const Edge*> control_edges;
   for (const Edge* edge : op->node.in_edges()) {
-    if (!edge->IsControlEdge()) continue;
+    // The following is a hack due to what's exposed by TensorFlow on Windows. Ideally, it should be checking for
+    // `!edge->IsControlEdge()`.
+    if (!edge->src_output() == -1) continue;
     control_edges.push_back(edge);
   }
   for (const Edge* edge : control_edges) {

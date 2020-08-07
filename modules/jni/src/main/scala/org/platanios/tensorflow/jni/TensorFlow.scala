@@ -69,11 +69,7 @@ object TensorFlow {
     if (!checkIfLoaded()) {
       // Native code is not present, perhaps it has been packaged into the JAR file containing this code.
       val tempDirectory = Files.createTempDirectory("tensorflow_scala_native_libraries")
-      Runtime.getRuntime.addShutdownHook(new Thread() {
-        override def run(): Unit = {
-          Files.walk(tempDirectory).iterator().asScala.toSeq.reverse.foreach(Files.deleteIfExists)
-        }
-      })
+      tempDirectory.toFile.deleteOnExit()
       val classLoader = Thread.currentThread.getContextClassLoader
 
       // Check if a TensorFlow native framework library resources are provided and load them.
@@ -122,7 +118,9 @@ object TensorFlow {
   /** Maps the provided library name to a set of filenames, similar to [[System.mapLibraryName]], but considering all
     * combinations of `dylib` and `so` extensions, along with versioning for TensorFlow 2.x. */
   private def mapLibraryName(lib: String): Seq[String] = {
-    if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
+    if (os == "windows") {
+      Seq(s"$lib.dll")
+    } else if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
       Seq(s"lib$lib.so")
     } else {
       Seq(s"lib$lib.so", s"lib$lib.so.2", s"lib$lib.so.2.2.0", s"lib$lib.dylib", s"lib$lib.2.dylib", s"lib$lib.2.2.0.dylib")

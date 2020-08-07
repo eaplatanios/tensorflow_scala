@@ -106,13 +106,7 @@ private[api] case class DeviceSpecification(
   */
 private[api] object DeviceSpecification {
   private val deviceStringRegex: Regex = {
-    """
-      #^(?:/job:([^/:]+))?
-      #(?:/replica:([[0-9]&&[^\:]]+))?
-      #(?:/task:([[0-9]&&[^\:]]+))?
-      #(?:(?:/device:([^/:]+):([[0-9*]&&[^\:]]+))
-      #|(?:/?([^/:]+):([[0-9*]&&[^\:]]+)))?$"""
-        .stripMargin('#')
+    """^(?:/job:([^/:]+))?(?:/replica:([[0-9]&&[^\:]]+))?(?:/task:([[0-9]&&[^\:]]+))?(?:(?:/device:([^/:]+):([[0-9*]&&[^\:]]+))|(?:/?([^/:]+):([[0-9*]&&[^\:]]+)))?$"""
         .replaceAll("\n", "")
         .r("job", "replica", "task", "deviceType", "deviceIndex", "deviceTypeShort", "deviceIndexShort")
   }

@@ -125,8 +125,18 @@ object BuildTool {
         "cmake" ::
             s"-DLD_LIBRARY_PATH=${System.getProperty("java.library.path")}:$$LD_LIBRARY_PATH" ::
             s"-DCMAKE_INSTALL_PREFIX:PATH=${target.getAbsolutePath}" ::
-            "-DCMAKE_BUILD_TYPE=Release" ::
             baseDirectory.getAbsolutePath :: Nil,
+        buildDirectory)
+
+      override def make(): ProcessBuilder = Process(
+        "cmake" ::
+          "--build" :: buildDirectory.getAbsolutePath ::
+          "--config" :: "Release" :: Nil,
+        buildDirectory)
+
+      override def install(): ProcessBuilder = Process(
+        "cmake" ::
+          "--install" :: buildDirectory.getAbsolutePath :: Nil,
         buildDirectory)
     }
   }

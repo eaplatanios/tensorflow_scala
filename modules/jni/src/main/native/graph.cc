@@ -178,9 +178,9 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_Graph_00024_importGraph
     for (int i = 0; i < input_map_length; ++i) {
       jstring input_map_key_op = reinterpret_cast<jstring>(env->GetObjectArrayElement(input_map_key_ops, i));
       const char *input_map_key_op_c_string = env->GetStringUTFChars(input_map_key_op, nullptr);
-      int input_map_key_output = reinterpret_cast<int>(input_map_key_outputs_elements[i]);
+      int input_map_key_output = static_cast<int>(input_map_key_outputs_elements[i]);
       REQUIRE_HANDLE(op, TF_Operation, input_map_value_ops_elements[i], void());
-      int output_index = reinterpret_cast<int>(input_map_value_outputs_elements[i]);
+      int output_index = static_cast<int>(input_map_value_outputs_elements[i]);
       TF_Output output{op, output_index};
       TF_ImportGraphDefOptionsAddInputMapping(options, input_map_key_op_c_string, input_map_key_output, output);
       env->ReleaseStringUTFChars(input_map_key_op, input_map_key_op_c_string);

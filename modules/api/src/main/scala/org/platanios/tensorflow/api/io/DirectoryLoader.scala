@@ -170,7 +170,7 @@ case class DirectoryLoader[T](
       val currentPathIndex = sortedPaths.indexOf(_path)
       // Do not bother checking if the paths are in GCS (which we cannot check) or if we have already detected an
       // out-of-order write.
-      if (!sortedPaths.head.startsWith("gs://") && !outOfOrderWritesDetected) {
+      if (!sortedPaths.head.toAbsolutePath.toString.startsWith("gs://") && !outOfOrderWritesDetected) {
         // Check the previous `OUT_OF_ORDER_WRITE_CHECK_COUNT` paths for out of order writes.
         val outOfOrderCheckStart = math.max(0, currentPathIndex - OUT_OF_ORDER_WRITE_CHECK_COUNT)
         _outOfOrderWritesDetected = sortedPaths.slice(outOfOrderCheckStart, currentPathIndex).exists(hasOutOfOrderWrite)
@@ -183,7 +183,7 @@ case class DirectoryLoader[T](
     * any. If the size cannot be determined, an error is logged. */
   private[this] def setPath(path: Path): Unit = {
     val oldPath = this._path
-    if (oldPath != null && !oldPath.startsWith("gs://")) {
+    if (oldPath != null && !oldPath.toAbsolutePath.toString.startsWith("gs://")) {
       try {
         // We are done with the path, and so we store its size.
         val size = Files.size(oldPath)
