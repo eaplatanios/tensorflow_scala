@@ -305,16 +305,18 @@ class Saver private(
           nextCheckpointTime += saverDef.getKeepCheckpointEveryNHours * 3600
         } else {
           // Otherwise delete the files.
-          FileIO.deleteMatchingPaths(Saver.metaGraphFilename(checkpoint._1, metaGraphSuffix))
+          FileIO.deleteMatchingPaths(Saver.metaGraphFilename(checkpoint._1, metaGraphSuffix).toAbsolutePath.toString)
           writerVersion match {
             case Saver.V1 =>
               // Deprecated checkpoint format using an exact match on the checkpoint filename.
-              FileIO.deleteMatchingPaths(checkpoint._1)
+              FileIO.deleteMatchingPaths(checkpoint._1.toAbsolutePath.toString)
             case Saver.V2 =>
               // The V2 format has a metadata file along with some data files.
               val filename = checkpoint._1.getFileName
-              FileIO.deleteMatchingPaths(checkpoint._1.resolveSibling(s"$filename.index"))
-              FileIO.deleteMatchingPaths(checkpoint._1.resolveSibling(s"$filename.data-?????-of-?????"))
+              FileIO.deleteMatchingPaths(checkpoint._1.resolveSibling(s"$filename.index").toAbsolutePath.toString)
+              FileIO.deleteMatchingPaths(
+                checkpoint._1.resolveSibling(s"$filename.data").toAbsolutePath.toString + "-?????-of-?????",
+              )
           }
         }
       }
@@ -593,8 +595,8 @@ object Saver {
       // Look for either a V2 path or a V1 path, with priority for V2.
       val fileSystem = directory.getFileSystem
       val modelCheckpointPath = fileSystem.getPath(checkpointState.get.getModelCheckpointPath)
-      val v2Path = prefixToCheckpointPath(modelCheckpointPath, CheckpointFormatVersion.V2)
-      val v1Path = prefixToCheckpointPath(modelCheckpointPath, CheckpointFormatVersion.V1)
+      val v2Path = prefixToCheckpointPath(modelCheckpointPath, CheckpointFormatVersion.V2).toAbsolutePath.toString
+      val v1Path = prefixToCheckpointPath(modelCheckpointPath, CheckpointFormatVersion.V1).toAbsolutePath.toString
       if (FileIO.getMatchingPaths(v2Path).nonEmpty || FileIO.getMatchingPaths(v1Path).nonEmpty)
         Some(modelCheckpointPath)
       else
@@ -776,7 +778,7 @@ object Saver {
       unit: TimeUnit = TimeUnit.SECONDS,
       followSymbolicLinks: Boolean = true
   ): Seq[Long] = {
-    def maybeGetTime(pattern: Path): Long = {
+    def maybeGetTime(pattern: String): Long = {
       val paths = FileIO.getMatchingPaths(pattern)
       if (paths.nonEmpty) {
         FileIO.getLastModifiedTime(paths.head, unit, followSymbolicLinks)
@@ -788,12 +790,12 @@ object Saver {
     val times = checkpointPrefixes.map(prefix => {
       // Try V2's metadata file first.
       val pathPattern = prefixToCheckpointPath(prefix, CheckpointFormatVersion.V2)
-      val time = maybeGetTime(pathPattern)
+      val time = maybeGetTime(pathPattern.toAbsolutePath.toString)
       if (time > 0) {
         time
       } else {
         // Otherwise, try V1, where the prefix is the complete path name.
-        maybeGetTime(prefix)
+        maybeGetTime(prefix.toAbsolutePath.toString)
       }
     })
 

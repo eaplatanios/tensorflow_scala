@@ -104,23 +104,35 @@ object FileIO {
     * @param  path Path pattern.
     * @return Set of all paths matching the provided path pattern.
     */
-  def getMatchingPaths(path: Path): Set[Path] = {
-    val pathAsString = path.toAbsolutePath.toString
+  def getMatchingPaths(path: String): Set[Path] = {
+    var pathAsString = path
     val separator = FileSystems.getDefault.getSeparator
+
+    // If the separator is the backslash character (i.e., we are on Windows), we replace all separators with forward
+    // slash characters to perform the glob detection and then revert back before returning.
+    if (separator == "\\") {
+      pathAsString = pathAsString.replace("\\", "/")
+    }
 
     // Find the fixed prefix by looking for the first wildcard.
     val (directory, glob) = {
       val wildcard = pathAsString.indexWhere("*?[\\".contains(_))
       val prefix = if (wildcard != -1) pathAsString.substring(0, wildcard) else pathAsString
       val suffix = if (wildcard != -1) pathAsString.substring(wildcard) else ""
-      val separatorIndex = prefix.lastIndexOf(separator)
-      val directory = path.getFileSystem.getPath(prefix.substring(0, separatorIndex))
+      val separatorIndex = prefix.lastIndexOf(if (separator == "\\") "/" else separator)
+      val directory = {
+        if (separator == "\\") {
+          prefix.replace("/", "\\").substring(0, separatorIndex)
+        } else {
+          prefix.substring(0, separatorIndex)
+        }
+      }
       val glob = (prefix.substring(separatorIndex + 1) + suffix).replaceAll("([^\\[]*)\\[\\^", "$1\\[!")
       (directory, glob)
     }
 
     // Get all the matching paths.
-    Files.newDirectoryStream(directory, glob).asScala.toSeq.toSet[Path]
+    Files.newDirectoryStream(Paths.get(directory), glob).asScala.toSeq.toSet[Path]
   }
 
   /** Deletes all the matching paths to the path pattern provided.
@@ -143,7 +155,7 @@ object FileIO {
     *
     * @param  path Path pattern.
     */
-  def deleteMatchingPaths(path: Path): Unit = {
+  def deleteMatchingPaths(path: String): Unit = {
     getMatchingPaths(path).foreach(Files.delete)
   }
 
