@@ -34,8 +34,8 @@ apt-get install -y --no-install-recommends \
     libtool \
     libssl-dev \
     mlocate \
-    openjdk-8-jdk \
-    openjdk-8-jre-headless \
+    openjdk-11-jdk \
+    openjdk-11-jre-headless \
     pkg-config \
     python3-dev \
     python3-setuptools \
@@ -66,7 +66,7 @@ rm -rf /var/lib/apt/lists/*
 
 # Install the TensorFlow PIP Package
 python3 -m pip install --upgrade pip
-python3 -m pip install tensorflow==2.2.0
+python3 -m pip install tensorflow==2.3.0
 
 # Install Protobuf.
 PROTOBUF_VERSION="3.11.4"

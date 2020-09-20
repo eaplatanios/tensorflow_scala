@@ -8,6 +8,6 @@ RUN /install.sh
 # Set up MPI
 ENV TF_NEED_MPI 1
 
-ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
 COPY . /tensorflow_scala

@@ -13,6 +13,8 @@
  * the License.
  */
 
+import java.nio.charset.StandardCharsets
+
 import sbt._
 import sbt.Keys._
 
@@ -57,7 +59,7 @@ object JniCrossPackage extends AutoPlugin {
   import JniNative.autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    nativePlatforms := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
+    nativePlatforms := Set(LINUX_x86_64, LINUX_GPU_x86_64, WINDOWS_x86_64, DARWIN_x86_64),
     target := (target in Compile).value / "native",
     nativeLibPath := {
       val targetDir = (target in nativeCrossCompile).value
@@ -100,24 +102,34 @@ object JniCrossPackage extends AutoPlugin {
             IO.createDirectory(platformTargetDir / "docker")
             IO.createDirectory(platformTargetDir / "lib")
 
-            // Compile and generate binaries.
-            log.info(s"Generating binaries in '$platformTargetDir'.")
-            val dockerContainer = s"${moduleName.value}_${platform.name}"
-            val exitCode = platform.build(
-              dockerImage = s"${platform.dockerImage}",
-              dockerContainer = dockerContainer,
-              srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
-              tgtDir = platformTargetDir.getPath,
-              libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
+            platform match {
+              // For Windows, we expect the binaries to have already been built and placed in the `bin` and the `lib`
+              // subdirectories, because we currently have no way to cross-compile.
+              case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
+                if (!(platformTargetDir / "bin").exists()) {
+                  throw new IllegalStateException("The Windows binaries must have already been prebuilt.")
+                }
+              case _ =>
+                // Compile and generate binaries.
+                log.info(s"Generating binaries in '$platformTargetDir'.")
+                val dockerContainer = s"${moduleName.value}_${platform.name}"
+                val exitCode = platform.build(
+                  dockerImage = s"${platform.dockerImage}",
+                  dockerContainer = dockerContainer,
+                  srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
+                  tgtDir = platformTargetDir.getPath,
+                  libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
 
-            // Clean up.
-            log.info("Cleaning up after build.")
-            IO.deleteFilesEmptyDirs(IO.listFiles(platformTargetDir / "code"))
-            platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
-            if (exitCode.getOrElse(0) != 0)
-              sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
+                // Clean up.
+                log.info("Cleaning up after build.")
+                IO.deleteFilesEmptyDirs(IO.listFiles(platformTargetDir / "code"))
+                platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
+                if (exitCode.getOrElse(0) != 0) {
+                  sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
+                }
+            }
 
-            val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll*"
+            val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll" | "*.lib"
             platform -> CrossCompilationOutput(
               managedResources = (platformTargetDir / "bin" ** sharedLibraryFilter).get.filter(_.isFile).toSet,
               packagedArtifactsDir = platformTargetDir / "lib",
@@ -168,11 +180,23 @@ object JniCrossPackage extends AutoPlugin {
   ): Option[File] = {
     val dir = crossCompilationOutput.packagedArtifactsDir.getPath
     val dirPath = Paths.get(dir)
-    // TODO: [BUILD] !!! Make the following name more generic.
+    // TODO: [BUILD] Make the following name more generic.
     val jarPath = dirPath.resolveSibling(s"tensorflow-native-${platform.name}.jar").toString
     val filePaths = crossCompilationOutput.packagedArtifacts.map(f => dirPath.relativize(Paths.get(f.getPath))).toList
+    val processedSymLinkPaths = filePaths.map { filePath =>
+      val fullFilePath = dirPath.resolve(filePath)
+      if (Files.isSymbolicLink(fullFilePath)) {
+        val realFilePath = fullFilePath.toRealPath()
+        val linkFileContent = dirPath.relativize(realFilePath).toString
+        val linkFilePath = fullFilePath.resolveSibling(filePath.getFileName.toString + ".link")
+        Files.write(linkFilePath, linkFileContent.getBytes(StandardCharsets.UTF_8))
+        dirPath.relativize(linkFilePath)
+      } else {
+        filePath
+      }
+    }
     if (filePaths.nonEmpty) {
-      Process("jar" :: "cf" :: jarPath :: Nil ++ filePaths.flatMap("-C" :: dir :: _.toString :: Nil)).!
+      Process("jar" :: "cf" :: jarPath :: Nil ++ processedSymLinkPaths.flatMap("-C" :: dir :: _.toString :: Nil)).!
       Some(new File(jarPath))
     } else {
       None
@@ -231,13 +255,23 @@ object JniCrossPackage extends AutoPlugin {
   object LINUX_x86_64 extends Platform {
     override val name       : String = "linux-x86_64"
     override val tag        : String = "linux-cpu-x86_64"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.1"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.3"
   }
 
   object LINUX_GPU_x86_64 extends Platform {
     override val name       : String = "linux-gpu-x86_64"
     override val tag        : String = "linux-gpu-x86_64"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.1"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.3"
+  }
+
+  object WINDOWS_x86_64 extends Platform {
+    override val name: String = "windows-x86_64"
+    override val tag : String = "windows-cpu-x86_64"
+  }
+
+  object WINDOWS_GPU_x86_64 extends Platform {
+    override val name: String = "windows-gpu-x86_64"
+    override val tag : String = "windows-gpu-x86_64"
   }
 
   object DARWIN_x86_64 extends Platform {

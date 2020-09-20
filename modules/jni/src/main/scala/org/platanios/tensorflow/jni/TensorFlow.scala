@@ -17,10 +17,10 @@ package org.platanios.tensorflow.jni
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
-
 import java.io.{IOException, InputStream}
-import java.nio.file.{Files, Path, StandardCopyOption}
+import java.nio.file.{Files, LinkOption, Path, Paths, StandardCopyOption}
 
+import scala.io.{Codec, Source}
 import scala.jdk.CollectionConverters._
 
 /**
@@ -119,11 +119,18 @@ object TensorFlow {
     * combinations of `dylib` and `so` extensions, along with versioning for TensorFlow 2.x. */
   private def mapLibraryName(lib: String): Seq[String] = {
     if (os == "windows") {
-      Seq(s"$lib.dll")
+      Seq(s"$lib.dll", s"$lib.lib")
     } else if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
       Seq(s"lib$lib.so")
     } else {
-      Seq(s"lib$lib.so", s"lib$lib.so.2", s"lib$lib.so.2.2.0", s"lib$lib.dylib", s"lib$lib.2.dylib", s"lib$lib.2.2.0.dylib")
+      Seq(
+        s"lib$lib.so.link",
+        s"lib$lib.so.2.link",
+        s"lib$lib.so.2.3.0",
+        s"lib$lib.dylib.link",
+        s"lib$lib.2.dylib.link",
+        s"lib$lib.2.3.0.dylib",
+      )
     }
   }
 
@@ -143,7 +150,14 @@ object TensorFlow {
       val filePath = directory.resolve(filename)
       logger.debug(s"Extracting the '$filename' native library to ${filePath.toAbsolutePath}.")
       try {
-        val numBytes = Files.copy(resourceStream, filePath, StandardCopyOption.REPLACE_EXISTING)
+        val (streamToCopy, path) = if (filename.endsWith(".link")) {
+          val linkPath = Source.fromInputStream(resourceStream)(Codec.UTF8).mkString
+          val stream = Thread.currentThread.getContextClassLoader.getResourceAsStream(linkPath)
+          (stream, directory.resolve(filename.dropRight(5)))
+        } else {
+          (resourceStream, filePath)
+        }
+        val numBytes = Files.copy(streamToCopy, path, StandardCopyOption.REPLACE_EXISTING)
         logger.debug(String.format(s"Copied $numBytes bytes to ${filePath.toAbsolutePath}."))
       } catch {
         case exception: Exception =>

@@ -1,4 +1,4 @@
-/* Copyright 2017-19, Emmanouil Antonios Platanios. All Rights Reserved.
+/* Copyright 2017-20, Emmanouil Antonios Platanios. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -30,51 +30,26 @@ object TensorFlowNativePackage extends AutoPlugin {
   object autoImport {
     val tfBinaryVersion: SettingKey[String] = settingKey[String](
       "Version of the TensorFlow pre-compiled binaries to (optionally) download.")
-
-    val tfLibCompile: SettingKey[Boolean] = settingKey[Boolean](
-      "If `true`, the native TensorFlow library will be compiled on this machine. If `false`, pre-compiled " +
-          "binaries will be downloaded from the TensorFlow CI server.")
-
-    val tfLibRepository: SettingKey[String] = settingKey[String](
-      "Git repository from which to obtain the sources of the TensorFlow library, if it is to be compiled.")
-
-    val tfLibRepositoryBranch: SettingKey[String] = settingKey[String](
-      "Git repository branch from which to obtain the sources of the TensorFlow library, if it is to be compiled.")
   }
 
   import autoImport._
   import JniCrossPackage.autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    tfBinaryVersion := "nightly",
-    tfLibCompile := false,
-    tfLibRepository := "https://github.com/tensorflow/tensorflow.git",
-    tfLibRepositoryBranch := "master",
+    tfBinaryVersion := "2.3.0",
     nativeArtifactName := "tensorflow",
     nativeLibPath := {
-      val log = streams.value.log
+      val log       = streams.value.log
       val targetDir = (target in nativeCrossCompile).value
       val tfVersion = (tfBinaryVersion in nativeCrossCompile).value
-      val compileTfLibValue = tfLibCompile.value
-      val tfLibRepositoryValue = tfLibRepository.value
-      val tfLibRepositoryBranchValue = tfLibRepositoryBranch.value
       IO.createDirectory(targetDir)
       (nativePlatforms in nativeCrossCompile).value.map(platform => {
         val platformTargetDir = targetDir / platform.name
         IO.createDirectory(platformTargetDir / "downloads")
-        IO.createDirectory(platformTargetDir / "downloads" / "lib")
 
-        if (compileTfLibValue) {
-          val workingDir = (platformTargetDir / "code").toPath
-          workingDir.resolve("tensorflow").toFile.mkdirs()
-          TensorFlowNativeCrossCompiler.compile(
-            workingDir, platformTargetDir.getPath, tfLibRepositoryValue,
-            tfLibRepositoryBranchValue, platform) ! log
-        }
-
-        // Download the native TensorFlow library.
+        // Download the TensorFlow native library.
         log.info(s"Downloading the TensorFlow native library for platform '${platform.name}'.")
-        val exitCode = downloadTfLib(platform, platformTargetDir.getPath, tfVersion).map(_ ! log)
+        val exitCode = downloadAndExtractLibrary(platform, platformTargetDir.getPath, tfVersion).map(_ ! log)
 
         if (exitCode.getOrElse(0) != 0) {
           sys.error(
@@ -88,52 +63,49 @@ object TensorFlowNativePackage extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Def.Setting[_]] = inConfig(JniCross)(settings)
 
-  // val tfLibUrlPrefix       : String = "https://storage.googleapis.com/tensorflow/libtensorflow"
-  val tfLibUrlPrefix       : String = "https://www.dropbox.com/s"
-  val tfLibNightlyUrlPrefix: String = "https://storage.googleapis.com/tensorflow-nightly/github/tensorflow/lib_package"
+  val tfLibUrlPrefix: String = "https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow"
 
   def tfLibFilename(platform: Platform): String = platform match {
-    case LINUX_x86_64 => s"libtensorflow-cpu-${platform.name}.tar.gz"
-    case LINUX_GPU_x86_64 => s"libtensorflow-gpu-${LINUX_x86_64.name}.tar.gz"
-    case DARWIN_x86_64 => s"libtensorflow-cpu-${platform.name}.tar.gz"
+    case LINUX_x86_64 | LINUX_GPU_x86_64 | DARWIN_x86_64 => "libtensorflow.tar.gz"
+    case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 => "libtensorflow.zip"
   }
 
   def tfLibExtractCommand(platform: Platform): String = platform match {
     case LINUX_x86_64 => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
     case LINUX_GPU_x86_64 => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
+    case WINDOWS_x86_64 => ???
+    case WINDOWS_GPU_x86_64 => ???
     case DARWIN_x86_64 => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
   }
 
   def tfLibUrl(platform: Platform, version: String): String = (platform, version) match {
-    // case (LINUX_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
-    // case (LINUX_GPU_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
-    // case (DARWIN_x86_64, "nightly") => s"$tfLibNightlyUrlPrefix/${tfLibFilename(platform)}"
-    // case (LINUX_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
-    // case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-gpu-${LINUX_x86_64.name}-$v.tar.gz"
-    // case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix/libtensorflow-cpu-${platform.name}-$v.tar.gz"
-    case (LINUX_x86_64, v) => s"$tfLibUrlPrefix/uah9cnka3c83ir6/libtensorflow-$v-cpu-${platform.name}.tar.gz?dl=1"
-    case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix/abfd9o9xibtxtle/libtensorflow-$v-gpu-${LINUX_x86_64.name}.tar.gz?dl=1"
-    case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix/h9rj6noaz1ai0uv/libtensorflow-$v-cpu-${platform.name}.tar.gz?dl=1"
+    case (LINUX_x86_64, v) => s"$tfLibUrlPrefix-cpu-linux-x86_64-$v.tar.gz"
+    case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix-gpu-linux-x86_64-$v.tar.gz"
+    case (WINDOWS_x86_64, v) => s"$tfLibUrlPrefix-cpu-windows-x86_64-$v.zip"
+    case (WINDOWS_GPU_x86_64, v) => s"$tfLibUrlPrefix-gpu-windows-x86_64-$v.zip"
+    case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix-cpu-darwin-x86_64-$v.tar.gz"
   }
 
-  def downloadTfLib(
-      platform: Platform,
-      targetDir: String,
-      tfVersion: String
-  ): Option[ProcessBuilder] = {
-    val path = s"$targetDir/downloads/lib/${tfLibFilename(platform)}"
-    val downloadProcess = {
-      if (Files.notExists(Paths.get(path)))
-        url(tfLibUrl(platform, tfVersion)) #> file(path)
-      else
-        Process(true)
+  def downloadAndExtractLibrary(platform: Platform, targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
+    val path = s"$targetDir/downloads/${tfLibFilename(platform)}"
+    platform match {
+      case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
+        if (Files.notExists(Paths.get(targetDir).resolve("lib"))) {
+          throw new IllegalStateException("The Windows TensorFlow library must have already been downloaded manually.")
+        }
+        None
+      case _ =>
+        val downloadProcess = if (Files.notExists(Paths.get(path))) {
+          url(tfLibUrl(platform, tfVersion)) #> file(path)
+        } else {
+          Process(true)
+        }
+        val extractProcess  = if (tfLibFilename(platform).endsWith(".tar.gz")) {
+          Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/"))
+        } else {
+          Process("unzip" :: "-qq" :: "-u" :: path :: Nil, new File(s"$targetDir/"))
+        }
+        Some(downloadProcess #&& extractProcess)
     }
-    val extractProcess = {
-      if (tfLibFilename(platform).endsWith(".tar.gz"))
-        Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/"))
-      else
-        Process("unzip" :: "-qq" :: "-u" :: path :: Nil, new File(s"$targetDir/"))
-    }
-    Some(downloadProcess #&& extractProcess)
   }
 }

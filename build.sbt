@@ -26,6 +26,7 @@ fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
 nativeCrossCompilationEnabled in ThisBuild := false
 
+val tensorFlowVersion = "2.3.0"
 val circeVersion = "0.12.3" // Used for working with JSON.
 
 scalacOptions in ThisBuild ++= Seq(
@@ -167,11 +168,14 @@ lazy val jni = (project in file("./modules/jni"))
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
-      nativePlatforms in JniCross := Set(LINUX_x86_64, LINUX_GPU_x86_64, DARWIN_x86_64),
-      tfBinaryVersion in JniCross := "2.2.0",
-      tfLibCompile in JniCross := false,
-      tfLibRepository in JniCross := "https://github.com/tensorflow/tensorflow.git",
-      tfLibRepositoryBranch in JniCross := "master",
+      nativePlatforms in JniCross := Set(
+        LINUX_x86_64,
+        LINUX_GPU_x86_64,
+        WINDOWS_x86_64,
+        WINDOWS_GPU_x86_64,
+        DARWIN_x86_64,
+      ),
+      tfBinaryVersion in JniCross := tensorFlowVersion,
       // Specify the order in which the different compilation tasks are executed.
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
 
@@ -223,47 +227,6 @@ lazy val proto = (project in file("./modules/proto"))
       javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
       sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
       unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value)
-
-lazy val horovod = (project in file("./modules/horovod"))
-    .dependsOn(jni, api)
-    .enablePlugins(JniNative, JniCrossPackage)
-    .settings(moduleName := "tensorflow-horovod", name := "TensorFlow Scala - Horovod")
-    .settings(commonSettings)
-    .settings(testSettings)
-    .settings(publishSettings)
-    .settings(
-      // Native bindings compilation settings.
-      target in javah := sourceDirectory.value / "main" / "native" / "include",
-      sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
-      target in nativeCompile := target.value / "native" / nativePlatform.value,
-      nativeArtifactName in JniCross := "horovod",
-      nativeLibPath in JniCross := {
-        (nativeCrossCompile in JniCross in jni).value
-        val tfVersion = (tfBinaryVersion in JniCross in jni).value
-        val tfJniTarget = (target in JniCross in jni).value
-        val log = streams.value.log
-        val targetDir = (target in nativeCrossCompile in JniCross).value
-        IO.createDirectory(targetDir)
-        (nativePlatforms in nativeCrossCompile in JniCross).value.map(platform => {
-          val platformTargetDir = targetDir / platform.name
-          IO.createDirectory(platformTargetDir / "downloads")
-          IO.createDirectory(platformTargetDir / "downloads" / "lib")
-
-          // Download the native TensorFlow library.
-          log.info(s"Downloading the TensorFlow native library.")
-          val exitCode = TensorFlowNativePackage.downloadTfLib(
-            platform, (tfJniTarget / platform.name).getPath, tfVersion
-          ).map(_ ! log)
-
-          if (exitCode.getOrElse(0) != 0) {
-            sys.error(
-              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. " +
-                  s"Exit code: $exitCode.")
-          }
-
-          platform -> tfJniTarget / platform.name
-        }).toMap
-      })
 
 lazy val data = (project in file("./modules/data"))
     .dependsOn(api)
