@@ -1,3 +1,16 @@
+# 0.5.4
+
+Switched to using TensorFlow 2.3 an added support for 
+Windows.
+
+# 0.5.3
+
+Accidentally broken release.
+
+# 0.5.2
+
+Accidentally broken release.
+
 # 0.5.1
 
 This release introduces support for TensorFlow 2.2 and
