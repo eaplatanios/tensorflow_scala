@@ -1,3 +1,8 @@
+# 0.5.5
+
+Fix for 0.5.4 that includes pre-compiled binaries for 
+all supported platforms.
+
 # 0.5.4
 
 Switched to using TensorFlow 2.3 an added support for 

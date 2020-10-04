@@ -97,37 +97,38 @@ object JniCrossPackage extends AutoPlugin {
             log.info(s"Using '$baseDir' as the base directory.")
             val platformTargetDir = targetDir / platform.name
 
-            IO.createDirectory(platformTargetDir)
-            IO.createDirectory(platformTargetDir / "code")
-            IO.createDirectory(platformTargetDir / "docker")
-            IO.createDirectory(platformTargetDir / "lib")
-
-            platform match {
-              // For Windows, we expect the binaries to have already been built and placed in the `bin` and the `lib`
-              // subdirectories, because we currently have no way to cross-compile.
-              case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
-                if (!(platformTargetDir / "bin").exists()) {
-                  throw new IllegalStateException("The Windows binaries must have already been prebuilt.")
-                }
-              case _ =>
-                // Compile and generate binaries.
-                log.info(s"Generating binaries in '$platformTargetDir'.")
-                val dockerContainer = s"${moduleName.value}_${platform.name}"
-                val exitCode = platform.build(
-                  dockerImage = s"${platform.dockerImage}",
-                  dockerContainer = dockerContainer,
-                  srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
-                  tgtDir = platformTargetDir.getPath,
-                  libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
-
-                // Clean up.
-                log.info("Cleaning up after build.")
-                IO.deleteFilesEmptyDirs(IO.listFiles(platformTargetDir / "code"))
-                platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
-                if (exitCode.getOrElse(0) != 0) {
-                  sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
-                }
-            }
+            // TODO: Uncomment this once we properly sort out cross-compilation.
+//            IO.createDirectory(platformTargetDir)
+//            IO.createDirectory(platformTargetDir / "code")
+//            IO.createDirectory(platformTargetDir / "docker")
+//            IO.createDirectory(platformTargetDir / "lib")
+//
+//            platform match {
+//              // For Windows, we expect the binaries to have already been built and placed in the `bin` and the `lib`
+//              // subdirectories, because we currently have no way to cross-compile.
+//              case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
+//                if (!(platformTargetDir / "bin").exists()) {
+//                  throw new IllegalStateException("The Windows binaries must have already been prebuilt.")
+//                }
+//              case _ =>
+//                // Compile and generate binaries.
+//                log.info(s"Generating binaries in '$platformTargetDir'.")
+//                val dockerContainer = s"${moduleName.value}_${platform.name}"
+//                val exitCode = platform.build(
+//                  dockerImage = s"${platform.dockerImage}",
+//                  dockerContainer = dockerContainer,
+//                  srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
+//                  tgtDir = platformTargetDir.getPath,
+//                  libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
+//
+//                // Clean up.
+//                log.info("Cleaning up after build.")
+//                IO.deleteFilesEmptyDirs(IO.listFiles(platformTargetDir / "code"))
+//                platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
+//                if (exitCode.getOrElse(0) != 0) {
+//                  sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
+//                }
+//            }
 
             val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll" | "*.lib"
             platform -> CrossCompilationOutput(

@@ -87,25 +87,27 @@ object TensorFlowNativePackage extends AutoPlugin {
   }
 
   def downloadAndExtractLibrary(platform: Platform, targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
-    val path = s"$targetDir/downloads/${tfLibFilename(platform)}"
-    platform match {
-      case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
-        if (Files.notExists(Paths.get(targetDir).resolve("lib"))) {
-          throw new IllegalStateException("The Windows TensorFlow library must have already been downloaded manually.")
-        }
-        None
-      case _ =>
-        val downloadProcess = if (Files.notExists(Paths.get(path))) {
-          url(tfLibUrl(platform, tfVersion)) #> file(path)
-        } else {
-          Process(true)
-        }
-        val extractProcess  = if (tfLibFilename(platform).endsWith(".tar.gz")) {
-          Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/"))
-        } else {
-          Process("unzip" :: "-qq" :: "-u" :: path :: Nil, new File(s"$targetDir/"))
-        }
-        Some(downloadProcess #&& extractProcess)
-    }
+    // TODO: Setup cross-compilation environments (maybe using CircleCI).
+    None
+//    val path = s"$targetDir/downloads/${tfLibFilename(platform)}"
+//    platform match {
+//      case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
+//        if (Files.notExists(Paths.get(targetDir).resolve("lib"))) {
+//          throw new IllegalStateException("The Windows TensorFlow library must have already been downloaded manually.")
+//        }
+//        None
+//      case _ =>
+//        val downloadProcess = if (Files.notExists(Paths.get(path))) {
+//          url(tfLibUrl(platform, tfVersion)) #> file(path)
+//        } else {
+//          Process(true)
+//        }
+//        val extractProcess  = if (tfLibFilename(platform).endsWith(".tar.gz")) {
+//          Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/"))
+//        } else {
+//          Process("unzip" :: "-qq" :: "-u" :: path :: Nil, new File(s"$targetDir/"))
+//        }
+//        Some(downloadProcess #&& extractProcess)
+//    }
   }
 }
