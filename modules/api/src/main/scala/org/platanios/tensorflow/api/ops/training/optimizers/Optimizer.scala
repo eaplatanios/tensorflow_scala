@@ -182,7 +182,7 @@ trait Optimizer {
       // Create the slots needed by the variables.
       Op.initializationScope {
         VariableScope.scope(name) {
-          createSlots(variables)
+          createSlots(gradientsAndVariables.map(_._2))
         }
       }
 
