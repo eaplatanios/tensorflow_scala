@@ -66,13 +66,17 @@ object TensorFlow {
       val classLoader = Thread.currentThread.getContextClassLoader
 
       // Check if a TensorFlow native framework library resources are provided and load them.
-      (makeResourceNames(LIB_FRAMEWORK_NAME) ++ makeResourceNames(LIB_NAME)).map {
-        case (name, path) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+      (makeResourceNames(LIB_FRAMEWORK_NAME) ++ makeResourceNames(LIB_NAME)).foreach {
+        case (name, path, preLoad) =>
+          val resource = extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+          if (preLoad) {
+            resource.foreach(r => System.load(r.toAbsolutePath.toString))
+          }
       }
 
       // Load the TensorFlow JNI bindings from the appropriate resource.
       val jniPaths = makeResourceNames(JNI_LIB_NAME).flatMap {
-        case (name, path) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+        case (name, path, _) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
       }
       if (jniPaths.isEmpty) {
         throw new UnsatisfiedLinkError(
@@ -92,7 +96,7 @@ object TensorFlow {
 
       // Load the TensorFlow ops library from the appropriate resource.
       val opsPaths = makeResourceNames(OPS_LIB_NAME).flatMap {
-        case (name, path) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
+        case (name, path, _) => extractResource(name, classLoader.getResourceAsStream(path), tempDirectory)
       }
       opsPaths.foreach(path => loadOpLibrary(path.toAbsolutePath.toString))
     }
@@ -110,29 +114,29 @@ object TensorFlow {
 
   /** Maps the provided library name to a set of filenames, similar to [[System.mapLibraryName]], but considering all
     * combinations of `dylib` and `so` extensions, along with versioning for TensorFlow 2.x. */
-  private def mapLibraryName(lib: String): Seq[String] = {
+  private def mapLibraryName(lib: String): Seq[(String, Boolean)] = {
     if (platform == "windows") {
-      Seq(s"$lib.dll", s"$lib.lib")
+      Seq((s"$lib.dll", true), (s"$lib.lib", false))
     } else if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
-      Seq(s"lib$lib.so")
+      Seq((s"lib$lib.so", false))
     } else {
       Seq(
-        s"lib$lib.so.link",
-        s"lib$lib.so.2.link",
-        s"lib$lib.so.2.3.0",
-        s"lib$lib.dylib.link",
-        s"lib$lib.2.dylib.link",
-        s"lib$lib.2.3.0.dylib",
+        (s"lib$lib.so.link", false),
+        (s"lib$lib.so.2.link", false),
+        (s"lib$lib.so.2.3.0", false),
+        (s"lib$lib.dylib.link", false),
+        (s"lib$lib.2.dylib.link", false),
+        (s"lib$lib.2.3.0.dylib", false),
       )
     }
   }
 
   /** Generates the resource names and paths for the specified library. */
-  private def makeResourceNames(lib: String): Seq[(String, String)] = {
+  private def makeResourceNames(lib: String): Seq[(String, String, Boolean)] = {
     if (lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME) {
-      mapLibraryName(lib).map(name => (name, name))
+      mapLibraryName(lib).map { case (name, preLoad) => (name, name, preLoad) }
     } else {
-      mapLibraryName(lib).map(name => (name, s"native/$platform/$name"))
+      mapLibraryName(lib).map { case (name, preLoad) => (name, s"native/$platform/$name", preLoad) }
     }
   }
 
