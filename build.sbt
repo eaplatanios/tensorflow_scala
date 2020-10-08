@@ -106,7 +106,7 @@ lazy val all = (project in file("."))
         (nativeCrossCompile in JniCross in jni).value
             .map(p => p._1 -> getPackagedArtifacts(p._1, p._2))
             .filter(_._2.isDefined).map {
-          case (platform, file) => Artifact((nativeArtifactName in JniCross in jni).value, platform.tag) -> file.get
+          case (platform, file) => Artifact((nativeArtifactName in JniCross in jni).value, platform.name) -> file.get
         }
       })
 
