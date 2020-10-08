@@ -17,11 +17,11 @@ package org.platanios.tensorflow.jni
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+
 import java.io.{IOException, InputStream}
-import java.nio.file.{Files, LinkOption, Path, Paths, StandardCopyOption}
+import java.nio.file.{Files, Path, StandardCopyOption}
 
 import scala.io.{Codec, Source}
-import scala.jdk.CollectionConverters._
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -41,20 +41,13 @@ object TensorFlow {
   /** TensorFlow ops library name. */
   private val OPS_LIB_NAME: String = "tensorflow_ops"
 
-  /** Current platform operating system. */
-  private val os = {
+  /** Current platform. */
+  private val platform = {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) "linux"
     else if (name.contains("os x") || name.contains("darwin")) "darwin"
     else if (name.contains("windows")) "windows"
     else name.replaceAll("\\s", "")
-  }
-
-  /** Current platform architecture. */
-  private val architecture = {
-    val arch = System.getProperty("os.arch").toLowerCase
-    if (arch == "amd64") "x86_64"
-    else arch
   }
 
   /** Loads the TensorFlow JNI bindings library along with the TensorFlow native library, if provided as a resource. */
@@ -83,7 +76,7 @@ object TensorFlow {
       }
       if (jniPaths.isEmpty) {
         throw new UnsatisfiedLinkError(
-          s"Cannot find the TensorFlow JNI bindings for OS: $os, and architecture: $architecture. See " +
+          s"Cannot find the TensorFlow JNI bindings for platform: $platform. See " +
               "https://github.com/eaplatanios/tensorflow_scala/tree/master/README.md for possible solutions " +
               "(such as building the library from source).")
       }
@@ -118,7 +111,7 @@ object TensorFlow {
   /** Maps the provided library name to a set of filenames, similar to [[System.mapLibraryName]], but considering all
     * combinations of `dylib` and `so` extensions, along with versioning for TensorFlow 2.x. */
   private def mapLibraryName(lib: String): Seq[String] = {
-    if (os == "windows") {
+    if (platform == "windows") {
       Seq(s"$lib.dll", s"$lib.lib")
     } else if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
       Seq(s"lib$lib.so")
@@ -139,7 +132,7 @@ object TensorFlow {
     if (lib == LIB_NAME || lib == LIB_FRAMEWORK_NAME) {
       mapLibraryName(lib).map(name => (name, name))
     } else {
-      mapLibraryName(lib).map(name => (name, s"native/$os-$architecture/$name"))
+      mapLibraryName(lib).map(name => (name, s"native/$platform/$name"))
     }
   }
 
