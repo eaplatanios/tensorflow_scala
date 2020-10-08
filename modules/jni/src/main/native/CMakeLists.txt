@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
 set(PROJECT_VERSION_MINOR 5)
-set(PROJECT_VERSION_PATCH 1)
+set(PROJECT_VERSION_PATCH 6)
 
 add_definitions(-DNOMINMAX)
 
@@ -29,7 +29,7 @@ include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
-list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.3.0 .so.2 .so .2.3.0.dylib .2.dylib .dylib .lib)
+list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.3.1 .so.2 .so .2.3.1.dylib .2.dylib .dylib .lib)
 find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW)
   message(FATAL_ERROR "Library `tensorflow` not found.")

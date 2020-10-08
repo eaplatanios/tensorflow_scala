@@ -27,21 +27,13 @@ import sbt.Keys._
 object JniNative extends AutoPlugin {
   override def requires: Plugins = plugins.JvmPlugin
 
-  private[this] val os = {
+  private[this] val currentNativePlatform: String = {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) "linux"
     else if (name.contains("os x") || name.contains("darwin")) "darwin"
     else if (name.contains("windows")) "windows"
     else name.replaceAll("\\s", "")
   }
-
-  private[this] val architecture = {
-    val arch = System.getProperty("os.arch").toLowerCase
-    if (arch == "amd64") "x86_64"
-    else arch
-  }
-
-  private[this] val currentNativePlatform: String = s"$os-$architecture"
 
   object autoImport {
     val nativeCompile: TaskKey[Seq[File]] =

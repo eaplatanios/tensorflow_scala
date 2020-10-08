@@ -26,7 +26,7 @@ fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
 nativeCrossCompilationEnabled in ThisBuild := false
 
-val tensorFlowVersion = "2.3.0"
+val tensorFlowVersion = "2.3.1"
 val circeVersion = "0.12.3" // Used for working with JSON.
 
 scalacOptions in ThisBuild ++= Seq(
@@ -168,13 +168,7 @@ lazy val jni = (project in file("./modules/jni"))
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
-      nativePlatforms in JniCross := Set(
-        LINUX_x86_64,
-        LINUX_GPU_x86_64,
-        WINDOWS_x86_64,
-        WINDOWS_GPU_x86_64,
-        DARWIN_x86_64,
-      ),
+      nativePlatforms in JniCross := Set(LINUX, WINDOWS, DARWIN),
       tfBinaryVersion in JniCross := tensorFlowVersion,
       // Specify the order in which the different compilation tasks are executed.
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)

@@ -219,6 +219,13 @@ On Ubuntu 18.04 you may get some linking errors, in which case you should use:
 bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --noincompatible_do_not_split_linking_cmdline //tensorflow:libtensorflow.so
 ```
 
+On Windows you may get some CUDA-related errors, in which case you should use:
+
+```cmd
+bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --define=no_tensorflow_py_deps=true --copt=-DTHRUST_IGNORE_CUB_VERSION_CHECK --copt=-nvcc_options=disable-warnings //tensorflow:tensorflow.lib
+bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --define=no_tensorflow_py_deps=true --copt=-DTHRUST_IGNORE_CUB_VERSION_CHECK --copt=-nvcc_options=disable-warnings //tensorflow:tensorflow_framework.lib
+```
+
 To publish the documentation website we use the following commands:
 
 ```bash

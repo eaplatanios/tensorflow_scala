@@ -59,7 +59,7 @@ object JniCrossPackage extends AutoPlugin {
   import JniNative.autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    nativePlatforms := Set(LINUX_x86_64, LINUX_GPU_x86_64, WINDOWS_x86_64, DARWIN_x86_64),
+    nativePlatforms := Set(LINUX, WINDOWS, DARWIN),
     target := (target in Compile).value / "native",
     nativeLibPath := {
       val targetDir = (target in nativeCrossCompile).value
@@ -97,16 +97,16 @@ object JniCrossPackage extends AutoPlugin {
             log.info(s"Using '$baseDir' as the base directory.")
             val platformTargetDir = targetDir / platform.name
 
-            // TODO: Uncomment this once we properly sort out cross-compilation.
 //            IO.createDirectory(platformTargetDir)
 //            IO.createDirectory(platformTargetDir / "code")
 //            IO.createDirectory(platformTargetDir / "docker")
 //            IO.createDirectory(platformTargetDir / "lib")
 //
 //            platform match {
+//              // TODO: Figure out the right cross-compilation story.
 //              // For Windows, we expect the binaries to have already been built and placed in the `bin` and the `lib`
 //              // subdirectories, because we currently have no way to cross-compile.
-//              case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
+//              case WINDOWS =>
 //                if (!(platformTargetDir / "bin").exists()) {
 //                  throw new IllegalStateException("The Windows binaries must have already been prebuilt.")
 //                }
@@ -119,7 +119,8 @@ object JniCrossPackage extends AutoPlugin {
 //                  dockerContainer = dockerContainer,
 //                  srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
 //                  tgtDir = platformTargetDir.getPath,
-//                  libPath = nativeLibPath.value(platform).getPath).map(_ ! log)
+//                  libPath = nativeLibPath.value(platform).getPath,
+//                ).map(_ ! log)
 //
 //                // Clean up.
 //                log.info("Cleaning up after build.")
@@ -206,7 +207,6 @@ object JniCrossPackage extends AutoPlugin {
 
   sealed trait Platform {
     val name        : String
-    val tag         : String
     val dockerImage : String = ""
     val cMakePath   : String = "/usr/bin"
     val cMakeLibPath: String = "/usr/lib"
@@ -253,31 +253,17 @@ object JniCrossPackage extends AutoPlugin {
     override def toString: String = name
   }
 
-  object LINUX_x86_64 extends Platform {
-    override val name       : String = "linux-x86_64"
-    override val tag        : String = "linux-cpu-x86_64"
+  object LINUX extends Platform {
+    override val name       : String = "linux"
     override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.3"
   }
 
-  object LINUX_GPU_x86_64 extends Platform {
-    override val name       : String = "linux-gpu-x86_64"
-    override val tag        : String = "linux-gpu-x86_64"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.3"
+  object WINDOWS extends Platform {
+    override val name: String = "windows"
   }
 
-  object WINDOWS_x86_64 extends Platform {
-    override val name: String = "windows-x86_64"
-    override val tag : String = "windows-cpu-x86_64"
-  }
-
-  object WINDOWS_GPU_x86_64 extends Platform {
-    override val name: String = "windows-gpu-x86_64"
-    override val tag : String = "windows-gpu-x86_64"
-  }
-
-  object DARWIN_x86_64 extends Platform {
-    override val name: String = "darwin-x86_64"
-    override val tag : String = "darwin-cpu-x86_64"
+  object DARWIN extends Platform {
+    override val name: String = "darwin"
 
     override def build(
         dockerImage: String,

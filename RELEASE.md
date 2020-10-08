@@ -1,3 +1,13 @@
+# 0.5.6
+
+Switched to using TensorFlow 2.3.1 that fixes multiple 
+security vulnerabilities of TensorFlow 2.3.0. Also:
+
+- Fixed a minor bug related to optimizers.
+- Switched to supporting three native platforms:
+  `linux`, `windows`, and `darwin`, where the last one 
+   does not include GPU support.
+
 # 0.5.5
 
 Fix for 0.5.4 that includes pre-compiled binaries for 

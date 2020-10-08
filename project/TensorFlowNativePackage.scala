@@ -36,7 +36,7 @@ object TensorFlowNativePackage extends AutoPlugin {
   import JniCrossPackage.autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    tfBinaryVersion := "2.3.0",
+    tfBinaryVersion := "2.3.1",
     nativeArtifactName := "tensorflow",
     nativeLibPath := {
       val log       = streams.value.log
@@ -66,24 +66,20 @@ object TensorFlowNativePackage extends AutoPlugin {
   val tfLibUrlPrefix: String = "https://storage.googleapis.com/tensorflow/libtensorflow/libtensorflow"
 
   def tfLibFilename(platform: Platform): String = platform match {
-    case LINUX_x86_64 | LINUX_GPU_x86_64 | DARWIN_x86_64 => "libtensorflow.tar.gz"
-    case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 => "libtensorflow.zip"
+    case LINUX | DARWIN => "libtensorflow.tar.gz"
+    case WINDOWS => "libtensorflow.zip"
   }
 
   def tfLibExtractCommand(platform: Platform): String = platform match {
-    case LINUX_x86_64 => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
-    case LINUX_GPU_x86_64 => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
-    case WINDOWS_x86_64 => ???
-    case WINDOWS_GPU_x86_64 => ???
-    case DARWIN_x86_64 => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
+    case LINUX => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
+    case WINDOWS => ???
+    case DARWIN => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
   }
 
   def tfLibUrl(platform: Platform, version: String): String = (platform, version) match {
-    case (LINUX_x86_64, v) => s"$tfLibUrlPrefix-cpu-linux-x86_64-$v.tar.gz"
-    case (LINUX_GPU_x86_64, v) => s"$tfLibUrlPrefix-gpu-linux-x86_64-$v.tar.gz"
-    case (WINDOWS_x86_64, v) => s"$tfLibUrlPrefix-cpu-windows-x86_64-$v.zip"
-    case (WINDOWS_GPU_x86_64, v) => s"$tfLibUrlPrefix-gpu-windows-x86_64-$v.zip"
-    case (DARWIN_x86_64, v) => s"$tfLibUrlPrefix-cpu-darwin-x86_64-$v.tar.gz"
+    case (LINUX, v) => s"$tfLibUrlPrefix-cpu-linux-x86_64-$v.tar.gz"
+    case (WINDOWS, v) => s"$tfLibUrlPrefix-cpu-windows-x86_64-$v.zip"
+    case (DARWIN, v) => s"$tfLibUrlPrefix-cpu-darwin-x86_64-$v.tar.gz"
   }
 
   def downloadAndExtractLibrary(platform: Platform, targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
@@ -91,7 +87,7 @@ object TensorFlowNativePackage extends AutoPlugin {
     None
 //    val path = s"$targetDir/downloads/${tfLibFilename(platform)}"
 //    platform match {
-//      case WINDOWS_x86_64 | WINDOWS_GPU_x86_64 =>
+//      case WINDOWS =>
 //        if (Files.notExists(Paths.get(targetDir).resolve("lib"))) {
 //          throw new IllegalStateException("The Windows TensorFlow library must have already been downloaded manually.")
 //        }
