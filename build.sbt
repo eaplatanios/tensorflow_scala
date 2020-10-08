@@ -338,7 +338,7 @@ lazy val publishSettings = Seq(
   releaseProcess := Seq[ReleaseStep](
     checkSnapshotDependencies,
     inquireVersions,
-    runClean,
+    // runClean,
     runTest,
     setReleaseVersion,
     commitReleaseVersion,
