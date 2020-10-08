@@ -123,10 +123,10 @@ object TensorFlow {
       Seq(
         (s"lib$lib.so.link", false),
         (s"lib$lib.so.2.link", false),
-        (s"lib$lib.so.2.3.0", false),
+        (s"lib$lib.so.2.3.1", false),
         (s"lib$lib.dylib.link", false),
         (s"lib$lib.2.dylib.link", false),
-        (s"lib$lib.2.3.0.dylib", false),
+        (s"lib$lib.2.3.1.dylib", false),
       )
     }
   }
