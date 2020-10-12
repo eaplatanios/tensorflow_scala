@@ -1,9 +1,20 @@
+# 0.5.7
+
+Bug fixes:
+
+- Fixed a bug related to using `tf.logSoftmax` with 
+  `axes` set to something other than `-1`.
+- Fixed the native binaries packaging for the `darwin`
+  and `linux` platforms.
+
 # 0.5.6
 
 Switched to using TensorFlow 2.3.1 that fixes multiple 
 security vulnerabilities of TensorFlow 2.3.0. Also:
 
-- Fixed a minor bug related to optimizers.
+- Fixed a minor bug related to optimizer slot variables 
+  not being saved in TF checkpoints when 
+  `tf.stopGradients` is used.
 - Switched to supporting three native platforms:
   `linux`, `windows`, and `darwin`, where the last one 
    does not include GPU support.

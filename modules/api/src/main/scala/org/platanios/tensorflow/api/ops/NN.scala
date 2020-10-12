@@ -1763,9 +1763,10 @@ object NN extends NN {
       input,
       Basic.concatenate(Seq(
         Math.range(zero, axis1),
-        axis2,
+        axis2.expandDims(0),
         Math.range(axis1 + one, axis2),
-        axis1), axis = 0),
+        axis1.expandDims(0),
+      ), axis = 0),
       conjugate = false,
       name = name)
   }

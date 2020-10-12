@@ -226,6 +226,13 @@ bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --define=no_tensorf
 bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --define=no_tensorflow_py_deps=true --copt=-DTHRUST_IGNORE_CUB_VERSION_CHECK --copt=-nvcc_options=disable-warnings //tensorflow:tensorflow_framework.lib
 ```
 
+For Mac we also need to deal with this currently:
+
+```bash
+install_name_tool -id @rpath/libtensorflow.2.dylib libtensorflow.2.3.1.dylib
+install_name_tool -change @rpath/libtensorflow.so.2 @rpath/libtensorflow.2.dylib libtensorflow_framework.2.3.1.dyli
+```
+
 To publish the documentation website we use the following commands:
 
 ```bash

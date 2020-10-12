@@ -131,7 +131,7 @@ object JniCrossPackage extends AutoPlugin {
 //                }
 //            }
 
-            val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll" | "*.lib"
+            val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll" | "*.lib" | "*.link*"
             platform -> CrossCompilationOutput(
               managedResources = (platformTargetDir / "bin" ** sharedLibraryFilter).get.filter(_.isFile).toSet,
               packagedArtifactsDir = platformTargetDir / "lib",
