@@ -116,7 +116,7 @@ object TensorFlow {
     * combinations of `dylib` and `so` extensions, along with versioning for TensorFlow 2.x. */
   private def mapLibraryName(lib: String): Seq[(String, Boolean)] = {
     if (platform == "windows") {
-      Seq((s"$lib.dll", true), (s"$lib.lib", false))
+      Seq((s"$lib.dll", true))
     } else if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
       Seq((s"lib$lib.so", false))
     } else {
@@ -148,8 +148,10 @@ object TensorFlow {
       logger.debug(s"Extracting the '$filename' native library to ${filePath.toAbsolutePath}.")
       try {
         val (streamToCopy, path) = if (filename.endsWith(".link")) {
-          val linkPath = Source.fromInputStream(resourceStream)(Codec.UTF8).mkString
+          val linkPathSource = Source.fromInputStream(resourceStream)(Codec.UTF8)
+          val linkPath = linkPathSource.mkString
           val stream = Thread.currentThread.getContextClassLoader.getResourceAsStream(linkPath)
+          linkPathSource.close()
           (stream, directory.resolve(filename.dropRight(5)))
         } else {
           (resourceStream, filePath)
