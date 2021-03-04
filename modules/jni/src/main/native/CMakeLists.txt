@@ -48,12 +48,17 @@ file(GLOB JNI_LIB_SRC "*.cc" "generated/*.cc")
 file(GLOB OP_LIB_SRC "ops/*.cc")
 
 # Find Python and get the TensorFlow header files from there.
+if(WIN32)
+  set(PYTHON python)
+else()
+  set(PYTHON python3)
+endif()
 set(TF_CPP_MIN_LOG_LEVEL 3)
-execute_process(COMMAND python -c
+execute_process(COMMAND ${PYTHON} -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_compile_flags()))"
   OUTPUT_VARIABLE TF_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND python -c
+execute_process(COMMAND ${PYTHON} -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_link_flags()))"
   OUTPUT_VARIABLE TF_LFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
