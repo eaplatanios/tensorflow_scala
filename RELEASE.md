@@ -1,3 +1,11 @@
+# 0.6.0
+
+- Switched to using TensorFlow 2.4.0, which required
+  updating the handling of `String` tensors.
+- Fixed a bug in the gradient of `tf.gather`.
+- Refactored the handling of the native libraries and
+  the temporary directories that they are extracted in.
+
 # 0.5.7
 
 Bug fixes:
