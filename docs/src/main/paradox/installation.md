@@ -17,7 +17,7 @@ for Scala, you should add the following dependency:
 @@ dependency[sbt,Maven,Gradle] {
   group="org.platanios"
   artifact="tensorflow_2.13"
-  version="0.5.6"
+  version="0.6.0"
 }
 
 @@@ note
@@ -52,7 +52,7 @@ Add the following dependency, instead of the previous one:
 @@ dependency[sbt,Maven,Gradle] {
   group="org.platanios"
   artifact="tensorflow_2.13"
-  version="0.5.6"
+  version="0.6.0"
   classifier="linux"
 }
 

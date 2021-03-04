@@ -3,7 +3,7 @@ version: 2
 jobs:
    build-linux-cpu-x86_64:
      docker:
-       - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.1
+       - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.6.0
      working_directory: ~/repository
      environment:
        LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
@@ -13,8 +13,8 @@ jobs:
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
-       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.5.1-SNAPSHOT/tensorflow_2.13-0.5.1-SNAPSHOT-linux-cpu-x86_64.jar
-       - run: jar xf tensorflow_2.13-0.5.1-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.6.0-SNAPSHOT/tensorflow_2.13-0.6.0-SNAPSHOT-linux-cpu-x86_64.jar
+       - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux-cpu-x86_64.jar
        - run: mv libtensorflow.* /usr/lib/
        - run: mv libtensorflow_framework.* /usr/lib/
        - run: cd ..
@@ -30,7 +30,7 @@ jobs:
 
    build-linux-gpu-x86_64:
      docker:
-       - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.1
+       - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.6.0
      working_directory: ~/repository
      environment:
        LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
@@ -40,8 +40,8 @@ jobs:
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
-       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.5.1-SNAPSHOT/tensorflow_2.13-0.5.1-SNAPSHOT-linux-gpu-x86_64.jar
-       - run: jar xf tensorflow_2.13-0.5.1-SNAPSHOT-linux-gpu-x86_64.jar
+       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.6.0-SNAPSHOT/tensorflow_2.13-0.6.0-SNAPSHOT-linux-gpu-x86_64.jar
+       - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux-gpu-x86_64.jar
        - run: mv libtensorflow.* /usr/lib/
        - run: mv libtensorflow_framework.* /usr/lib/
        - run: cd ..

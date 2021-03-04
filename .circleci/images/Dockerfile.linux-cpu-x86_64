@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 # Copy and run the install script.
 COPY .circleci/images/install.sh /install.sh

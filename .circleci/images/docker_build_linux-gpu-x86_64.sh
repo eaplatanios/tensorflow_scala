@@ -1,7 +1,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOCKER_CONTEXT_PATH="$(realpath ${SCRIPT_DIR}/../../)"
 
-DOCKER_IMAGE="eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.5.3"
+DOCKER_IMAGE="eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.6.0"
 DOCKER_FILE=".circleci/images/Dockerfile.linux-gpu-x86_64"
 
 docker build \
