@@ -284,7 +284,8 @@ object DataType {
         val stringBytes = v.getBytes(StandardCharsets.ISO_8859_1)
         NativeTensor.setStringBytes(
           stringBytes,
-          buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice())
+          buffer.duplicate().position(index).asInstanceOf[ByteBuffer].slice(),
+        )
       case (v: Boolean, BOOLEAN) =>
         buffer.put(index, if (v) 1 else 0)
         dataType.byteSize.get

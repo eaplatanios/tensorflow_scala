@@ -6,14 +6,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 # Define project and related variables
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
-set(PROJECT_VERSION_MINOR 5)
-set(PROJECT_VERSION_PATCH 6)
+set(PROJECT_VERSION_MINOR 6)
+set(PROJECT_VERSION_PATCH 0)
 
 add_definitions(-DNOMINMAX)
 
 # Set up JNI
 if(NOT JAVA_HOME)
-  set(JAVA_HOME "/usr/lib/jvm/java-11-openjdk-amd64")
+  set(JAVA_HOME "/Users/eaplatanios/Library/Java/JavaVirtualMachines/adopt-openjdk-11.0.7/Contents/Home")
 endif()
 find_package(JNI REQUIRED)
 if(JNI_FOUND)
@@ -29,7 +29,7 @@ include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
-list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.3.1 .so.2 .so .2.3.1.dylib .2.dylib .dylib .lib)
+list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.4.0 .so.2 .so .2.4.0.dylib .2.dylib .dylib .lib)
 find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW)
   message(FATAL_ERROR "Library `tensorflow` not found.")
@@ -48,17 +48,12 @@ file(GLOB JNI_LIB_SRC "*.cc" "generated/*.cc")
 file(GLOB OP_LIB_SRC "ops/*.cc")
 
 # Find Python and get the TensorFlow header files from there.
-if(WIN32)
-  set(PYTHON python)
-else()
-  set(PYTHON python3)
-endif()
 set(TF_CPP_MIN_LOG_LEVEL 3)
-execute_process(COMMAND ${PYTHON} -c
+execute_process(COMMAND python -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_compile_flags()))"
   OUTPUT_VARIABLE TF_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${PYTHON} -c
+execute_process(COMMAND python -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_link_flags()))"
   OUTPUT_VARIABLE TF_LFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)

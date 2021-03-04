@@ -22,7 +22,7 @@ import org.scalatest.flatspec.AnyFlatSpec
   */
 class TensorFlowSpec extends AnyFlatSpec {
   "The TensorFlow library version" must "have non-zero length" in {
-    assert(TensorFlow.version == "2.3.1")
+    assert(TensorFlow.version == "2.4.0")
   }
 
   "The TensorFlow library data type sizes" must "be correct" in {

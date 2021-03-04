@@ -22,6 +22,7 @@
 #include <memory>
 
 #include "tensorflow/c/c_api.h"
+#include "tensorflow/c/tf_tstring.h"
 #include "tensorflow/c/eager/c_api.h"
 
 //region TensorFlow C Tensors
@@ -300,9 +301,7 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
   jbyteArray string,
   jobject string_buffer
 ) {
-  char* dst_buffer = reinterpret_cast<char*>(env->GetDirectBufferAddress(string_buffer));
   size_t src_len = static_cast<size_t>(env->GetArrayLength(string));
-  size_t dst_len = TF_StringEncodedSize(src_len);
   std::unique_ptr<char[]> buffer(new char[src_len]);
   // jbyte is a signed char, while the C standard doesn't require char and
   // signed char to be the same. As a result, static_cast<char*>(src) will
@@ -311,11 +310,12 @@ JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_setStringB
   static_assert(sizeof(jbyte) == sizeof(char), "Cannot convert Java byte to a C char.");
   std::memcpy(buffer.get(), src, src_len);
   env->ReleaseByteArrayElements(string, src, JNI_ABORT);
-  // env->GetByteArrayRegion(string, 0, static_cast<jsize>(src_len), reinterpret_cast<jbyte*>(buffer.get()));
-  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  size_t num_bytes_written = TF_StringEncode(buffer.get(), src_len, dst_buffer, dst_len, status.get());
-  CHECK_STATUS(env, status.get(), 0);
-  return static_cast<jsize>(num_bytes_written);
+
+  TF_TString* dst = static_cast<TF_TString*>(env->GetDirectBufferAddress(string_buffer));
+  TF_TString_Init(dst);
+  TF_TString_Copy(dst, buffer.get(), src_len);
+
+  return sizeof(TF_TString);
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getStringBytes(
@@ -323,29 +323,22 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
   jobject object,
   jobject string_buffer
 ) {
-  jbyteArray return_array = nullptr;
-
-  // Call TF_StringDecode(...).
-  std::unique_ptr<TF_Status, decltype(&TF_DeleteStatus)> status(TF_NewStatus(), TF_DeleteStatus);
-  char* src_buffer = reinterpret_cast<char*>(env->GetDirectBufferAddress(string_buffer));
+  const TF_TString* src = static_cast<const TF_TString*>(env->GetDirectBufferAddress(string_buffer));
   size_t src_len = static_cast<size_t>(env->GetDirectBufferCapacity(string_buffer));
-  const char* dst = nullptr;
-  size_t dst_len = 0;
-  TF_StringDecode(src_buffer, src_len, &dst, &dst_len, status.get());
-
-  if (throw_exception_if_not_ok(env, status.get())) {
-    return_array = env->NewByteArray(static_cast<jsize>(dst_len));
-    env->SetByteArrayRegion(return_array, 0, static_cast<jsize>(dst_len), reinterpret_cast<const jbyte*>(dst));
-  }
+  const char* dst = TF_TString_GetDataPointer(src);
+  size_t dst_len = TF_TString_GetSize(src);
+  jbyteArray return_array = env->NewByteArray(dst_len);
+  jbyte* cpy = env->GetByteArrayElements(return_array, nullptr);
+  memcpy(cpy, dst, dst_len);
+  env->ReleaseByteArrayElements(return_array, cpy, 0);
   return return_array;
 }
 
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getEncodedStringSize(
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_tfStringSize(
   JNIEnv* env,
-  jobject object,
-  jint string_num_bytes
+  jobject object
 ) {
-  return static_cast<jint>(TF_StringEncodedSize(static_cast<size_t>(string_num_bytes)));
+  return sizeof(TF_TString);
 }
 
 //endregion String Helpers

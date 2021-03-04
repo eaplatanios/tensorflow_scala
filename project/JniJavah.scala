@@ -49,8 +49,9 @@ object JniJavah extends AutoPlugin {
     javahClasses in javah := {
       import xsbti.compile._
       val compiled: CompileAnalysis = (compile in Compile).value
-      val classFiles: Set[File] = compiled.readStamps.getAllProductStamps.asScala.keySet.toSet
-      val nativeClasses = classFiles flatMap { file => JniJavah.nativeClasses(file) }
+      val classFiles = compiled.readStamps.getAllProductStamps.asScala.keySet.toSet
+      val fileConverter = new sbt.internal.inc.PlainVirtualFileConverter()
+      val nativeClasses = classFiles.map(fileConverter.toPath(_).toFile).flatMap { file => JniJavah.nativeClasses(file) }
       nativeClasses
     },
     target in javah := target.value / "native" / "include",

@@ -121,7 +121,7 @@ void RemoveAllControlInputs(TF_Graph* graph, TF_Operation* op) {
   for (const Edge* edge : op->node.in_edges()) {
     // The following is a hack due to what's exposed by TensorFlow on Windows. Ideally, it should be checking for
     // `!edge->IsControlEdge()`.
-    if (!edge->src_output() == -1) continue;
+    if (edge->src_output() != -1) continue;
     control_edges.push_back(edge);
   }
   for (const Edge* edge : control_edges) {

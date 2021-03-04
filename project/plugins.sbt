@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
   "org.tensorflow" % "proto" % "1.15.0")
 
 addSbtPlugin("ch.epfl.scala" % "sbt-bloop" % "1.2.5")
-addSbtPlugin("com.github.gseitz" % "sbt-protobuf" % "0.6.5")
+addSbtPlugin("com.github.sbt" % "sbt-protobuf" % "0.7.0")
 
 // Plugins used for the documentation website.
 addSbtPlugin("com.lightbend.paradox" % "sbt-paradox" % "0.8.0")

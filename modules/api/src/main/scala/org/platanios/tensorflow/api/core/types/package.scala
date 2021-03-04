@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.core
 
+import org.platanios.tensorflow.jni.{Tensor => NativeTensor}
 import org.platanios.tensorflow.proto.DataType._
 
 import scala.annotation.implicitNotFound
@@ -47,7 +48,7 @@ package object types {
 
   //region Data Type Instances
 
-  val STRING    : DataType[String]        = DataType[String]("String", 7, None, DT_STRING)
+  val STRING    : DataType[String]        = DataType[String]("String", 7, Some(NativeTensor.tfStringSize()), DT_STRING)
   val BOOLEAN   : DataType[Boolean]       = DataType[Boolean]("Boolean", 10, Some(1), DT_BOOL)
   val FLOAT16   : DataType[Half]          = DataType[Half]("Half", 19, Some(2), DT_HALF)
   val FLOAT32   : DataType[Float]         = DataType[Float]("Float", 1, Some(4), DT_FLOAT)

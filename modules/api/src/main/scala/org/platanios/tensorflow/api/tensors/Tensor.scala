@@ -15,6 +15,19 @@
 
 package org.platanios.tensorflow.api.tensors
 
+import scala.collection.compat.immutable.ArraySeq
+import scala.language.{higherKinds, postfixOps}
+import scala.reflect.ClassTag
+
+import java.nio._
+import java.nio.charset.Charset
+import java.nio.file.Path
+import java.util.ConcurrentModificationException
+
+import com.google.protobuf.ByteString
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
+
 import org.platanios.tensorflow.api.core._
 import org.platanios.tensorflow.api.core.client.Session
 import org.platanios.tensorflow.api.core.exception._
@@ -31,17 +44,6 @@ import org.platanios.tensorflow.jni.generated.tensors.{Basic => NativeTensorOpsB
 import org.platanios.tensorflow.jni.generated.tensors.{Random => NativeTensorOpsRandom}
 import org.platanios.tensorflow.jni.generated.tensors.{Sparse => NativeTensorOpsSparse}
 import org.platanios.tensorflow.proto.TensorProto
-import com.google.protobuf.ByteString
-import com.typesafe.scalalogging.Logger
-import org.slf4j.LoggerFactory
-import java.nio._
-import java.nio.charset.Charset
-import java.nio.file.Path
-import java.util.ConcurrentModificationException
-
-import scala.collection.compat.immutable.ArraySeq
-import scala.language.{higherKinds, postfixOps}
-import scala.reflect.ClassTag
 
 /** Represents tensor-like objects.
   *
@@ -173,13 +175,7 @@ class Tensor[T] protected (
   def getElementAtFlattenedIndex(index: Int): T = {
     val resolvedHandle = resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
-    val offset = dataType match {
-      case STRING =>
-        val lengthsOffset = INT64.byteSize.get * size.toInt
-        val length = DataType.getElementFromBuffer[Long](buffer, index * INT64.byteSize.get).toInt
-        lengthsOffset + length
-      case _ => index * dataType.byteSize.get
-    }
+    val offset = index * dataType.byteSize.get
     val value = DataType.getElementFromBuffer[T](
       buffer = buffer,
       index = offset
@@ -207,13 +203,7 @@ class Tensor[T] protected (
     val resolvedHandle = resolve()
     val buffer = NativeTensor.buffer(resolvedHandle).order(ByteOrder.nativeOrder)
     array.indices.foreach { index =>
-      val offset = dataType match {
-        case STRING =>
-          val lengthsOffset = INT64.byteSize.get * size.toInt
-          val length        = DataType.getElementFromBuffer[Long](buffer, index * INT64.byteSize.get).toInt
-          lengthsOffset + length
-        case _ => index * dataType.byteSize.get
-      }
+      val offset = index * dataType.byteSize.get
       val value = DataType.getElementFromBuffer[T](
         buffer = buffer,
         index = offset
@@ -257,16 +247,7 @@ class Tensor[T] protected (
           throw new NoSuchElementException
         }
         assert(handle != 0)
-        val nextElement: T = dataType match {
-          case STRING =>
-            val lengthsOffset = INT64.byteSize.get * (i + remaining)
-            val length        = DataType.getElementFromBuffer[Long](buffer, i * INT64.byteSize.get)
-            DataType.getElementFromBuffer[T](
-              buffer,
-              lengthsOffset + length.ensuring(_ <= Int.MaxValue).toInt)
-          case _ =>
-            DataType.getElementFromBuffer[T](buffer, i * dataType.byteSize.get)
-        }
+        val nextElement = DataType.getElementFromBuffer[T](buffer, i * dataType.byteSize.get)
         i += 1
         remaining -= 1
         nextElement
@@ -820,35 +801,15 @@ object Tensor {
   def fill[T: TF](shape: Shape)(value: T): Tensor[T] = {
     shape.assertFullyDefined()
     val dataType = implicitly[TF[T]].dataType
-    val hostHandle = dataType match {
-      case STRING =>
-        val numStringBytes = value.toString.getBytes(Charset.forName("UTF-8")).length
-        val numEncodedBytes = NativeTensor.getEncodedStringSize(numStringBytes)
-        val numBytes = shape.numElements * (INT64.byteSize.get + numEncodedBytes)
-        val hostHandle = NativeTensor.allocate(STRING.cValue, shape.asArray.map(_.toLong), numBytes)
-        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-        val baseOffset = INT64.byteSize.get * shape.numElements.toInt
-        var index = 0
-        var i = 0
-        while (i < shape.numElements) {
-          val numEncodedBytes = DataType.putElementInBuffer[T](buffer, baseOffset + index, value)
-          DataType.putElementInBuffer[Long](buffer, i * INT64.byteSize.get, index.toLong)
-          index += numEncodedBytes
-          i += 1
-        }
-        hostHandle
-      case _ =>
-        val numBytes = shape.numElements * dataType.byteSize.get
-        val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
-        val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
-        var index = 0
-        var i = 0
-        while (i < shape.numElements) {
-          DataType.putElementInBuffer[T](buffer, index, value)
-          index += dataType.byteSize.get
-          i += 1
-        }
-        hostHandle
+    val numBytes = shape.numElements * dataType.byteSize.get
+    val hostHandle = NativeTensor.allocate(dataType.cValue, shape.asArray.map(_.toLong), numBytes)
+    val buffer = NativeTensor.buffer(hostHandle).order(ByteOrder.nativeOrder)
+    var index = 0
+    var i = 0
+    while (i < shape.numElements) {
+      DataType.putElementInBuffer[T](buffer, index, value)
+      index += dataType.byteSize.get
+      i += 1
     }
     val tensor = Tensor.fromHostNativeHandle[T](hostHandle)
     NativeTensor.delete(hostHandle)
