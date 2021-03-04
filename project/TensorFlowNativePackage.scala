@@ -47,13 +47,15 @@ object TensorFlowNativePackage extends AutoPlugin {
         val platformTargetDir = targetDir / platform.name
         IO.createDirectory(platformTargetDir / "downloads")
 
-        // Download the TensorFlow native library.
-        log.info(s"Downloading the TensorFlow native library for platform '${platform.name}'.")
-        val exitCode = downloadAndExtractLibrary(platform, platformTargetDir.getPath, tfVersion).map(_ ! log)
+        // Download and extract the TensorFlow native library, if needed.
+        if (nativeCrossCompilationForcedIfExists.value || !(platformTargetDir / "lib").exists()) {
+          log.info(s"Downloading the TensorFlow native library for platform '${platform.name}'.")
+          val exitCode = downloadAndExtractLibrary(platform, platformTargetDir.getPath, tfVersion).map(_ ! log)
 
-        if (exitCode.getOrElse(0) != 0) {
-          sys.error(
-            s"An error occurred while preparing the native TensorFlow libraries for '$platform'. Exit code: $exitCode.")
+          if (exitCode.getOrElse(0) != 0) {
+            sys.error(
+              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. Exit code: $exitCode.")
+          }
         }
 
         platform -> platformTargetDir

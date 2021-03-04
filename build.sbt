@@ -171,6 +171,7 @@ lazy val jni = (project in file("./modules/jni"))
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
       nativePlatforms in JniCross := Set(LINUX, WINDOWS, WINDOWS_CPU, DARWIN),
+      nativeCrossCompilationForcedIfExists in JniCross := false,
       tfBinaryVersion in JniCross := tensorFlowVersion,
       // Specify the order in which the different compilation tasks are executed.
       nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
