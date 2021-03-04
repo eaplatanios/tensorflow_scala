@@ -76,7 +76,8 @@ lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
   addCompilerPlugin("io.tryp"  % "splain" % "0.5.5" cross CrossVersion.patch),
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6")
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6",
+  )
 )
 
 lazy val testSettings = Seq(
