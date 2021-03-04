@@ -21,6 +21,7 @@ project/plugins/project/
 
 # Bloop Specific
 .bloop
+.bsp
 
 # Metals Specific
 .metals

@@ -56,7 +56,7 @@ object TensorFlow {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) "linux"
     else if (name.contains("os x") || name.contains("darwin")) "darwin"
-    else if (name.contains("windows")) "windows-cpu"
+    else if (name.contains("windows")) "windows"
     else name.replaceAll("\\s", "")
   }
 

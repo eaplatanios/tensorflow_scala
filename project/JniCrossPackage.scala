@@ -59,7 +59,7 @@ object JniCrossPackage extends AutoPlugin {
   import JniNative.autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    nativePlatforms := Set(LINUX, WINDOWS_CPU, WINDOWS_GPU, DARWIN),
+    nativePlatforms := Set(LINUX, WINDOWS, WINDOWS_CPU, DARWIN),
     target := (target in Compile).value / "native",
     nativeLibPath := {
       val targetDir = (target in nativeCrossCompile).value
@@ -106,7 +106,7 @@ object JniCrossPackage extends AutoPlugin {
               // TODO: Figure out the right cross-compilation story.
               // For Windows, we expect the binaries to have already been built and placed in the `bin` and the `lib`
               // subdirectories, because we currently have no way to cross-compile.
-              case WINDOWS_CPU | WINDOWS_GPU =>
+              case WINDOWS | WINDOWS_CPU =>
                 if (!(platformTargetDir / "bin").exists()) {
                   throw new IllegalStateException("The Windows binaries must have already been prebuilt.")
                 }
@@ -255,15 +255,15 @@ object JniCrossPackage extends AutoPlugin {
 
   object LINUX extends Platform {
     override val name       : String = "linux"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.3"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.6.0"
+  }
+
+  object WINDOWS extends Platform {
+    override val name: String = "windows"
   }
 
   object WINDOWS_CPU extends Platform {
     override val name: String = "windows-cpu"
-  }
-
-  object WINDOWS_GPU extends Platform {
-    override val name: String = "windows-gpu"
   }
 
   object DARWIN extends Platform {

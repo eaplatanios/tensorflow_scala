@@ -207,6 +207,8 @@ command:
 sbt jni/cross:nativeCrossCompile
 ```
 
+CUDA Compute Capabilities: 3.5,7.0,7.5,8.0,8.6
+
 Compile the TensorFlow dynamic libraries from source using:
 
 ```bash
