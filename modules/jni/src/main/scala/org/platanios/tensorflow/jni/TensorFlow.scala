@@ -123,10 +123,10 @@ object TensorFlow {
       Seq(
         (s"lib$lib.so.link", false),
         (s"lib$lib.so.2.link", false),
-        (s"lib$lib.so.2.3.1", false),
+        (s"lib$lib.so.2.4.0", false),
         (s"lib$lib.dylib.link", false),
         (s"lib$lib.2.dylib.link", false),
-        (s"lib$lib.2.3.1.dylib", false),
+        (s"lib$lib.2.4.0.dylib", false),
       )
     }
   }
@@ -185,8 +185,13 @@ object TensorFlow {
   @native private[tensorflow] def addControlInput(graphHandle: Long, opHandle: Long, inputOpHandle: Long): Int
   @native private[tensorflow] def clearControlInputs(graphHandle: Long, opHandle: Long): Int
   @native private[tensorflow] def setRequestedDevice(graphHandle: Long, opHandle: Long, device: String): Int
+
   @native private[tensorflow] def setAttributeProto(
-      graphHandle: Long, opHandle: Long, attributeName: String, attributeValue: Array[Byte]): Unit
+      graphHandle: Long,
+      opHandle: Long,
+      attributeName: String,
+      attributeValue: Array[Byte],
+  ): Unit
 
   //endregion Internal API
 }
