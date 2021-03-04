@@ -26,7 +26,7 @@ fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
 nativeCrossCompilationEnabled in ThisBuild := false
 
-val tensorFlowVersion = "2.3.1"
+val tensorFlowVersion = "2.4.0"
 val circeVersion = "0.12.3" // Used for working with JSON.
 
 scalacOptions in ThisBuild ++= Seq(

@@ -36,7 +36,7 @@ object TensorFlowNativePackage extends AutoPlugin {
   import JniCrossPackage.autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    tfBinaryVersion := "2.3.1",
+    tfBinaryVersion := "2.4.0",
     nativeArtifactName := "tensorflow",
     nativeLibPath := {
       val log       = streams.value.log
@@ -70,41 +70,25 @@ object TensorFlowNativePackage extends AutoPlugin {
     case WINDOWS_CPU | WINDOWS_GPU => "libtensorflow.zip"
   }
 
-  def tfLibExtractCommand(platform: Platform): String = platform match {
-    case LINUX => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
-    case WINDOWS_CPU | WINDOWS_GPU => ???
-    case DARWIN => s"tar xf /root/${tfLibFilename(platform)} -C /usr"
-  }
-
   def tfLibUrl(platform: Platform, version: String): String = (platform, version) match {
-    case (LINUX, v) => s"$tfLibUrlPrefix-cpu-linux-x86_64-$v.tar.gz"
+    case (LINUX, v) => s"$tfLibUrlPrefix-gpu-linux-x86_64-$v.tar.gz"
     case (WINDOWS_CPU, v) => s"$tfLibUrlPrefix-cpu-windows-x86_64-$v.zip"
     case (WINDOWS_GPU, v) => s"$tfLibUrlPrefix-gpu-windows-x86_64-$v.zip"
     case (DARWIN, v) => s"$tfLibUrlPrefix-cpu-darwin-x86_64-$v.tar.gz"
   }
 
   def downloadAndExtractLibrary(platform: Platform, targetDir: String, tfVersion: String): Option[ProcessBuilder] = {
-    // TODO: Setup cross-compilation environments (maybe using CircleCI).
-    None
-//    val path = s"$targetDir/downloads/${tfLibFilename(platform)}"
-//    platform match {
-//      case WINDOWS_CPU | WINDOWS_GPU =>
-//        if (Files.notExists(Paths.get(targetDir).resolve("lib"))) {
-//          throw new IllegalStateException("The Windows TensorFlow library must have already been downloaded manually.")
-//        }
-//        None
-//      case _ =>
-//        val downloadProcess = if (Files.notExists(Paths.get(path))) {
-//          url(tfLibUrl(platform, tfVersion)) #> file(path)
-//        } else {
-//          Process(true)
-//        }
-//        val extractProcess  = if (tfLibFilename(platform).endsWith(".tar.gz")) {
-//          Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/"))
-//        } else {
-//          Process("unzip" :: "-qq" :: "-u" :: path :: Nil, new File(s"$targetDir/"))
-//        }
-//        Some(downloadProcess #&& extractProcess)
-//    }
+    val path = s"$targetDir/downloads/${tfLibFilename(platform)}"
+    val downloadProcess = if (Files.notExists(Paths.get(path))) {
+      url(tfLibUrl(platform, tfVersion)) #> file(path)
+    } else {
+      Process(true)
+    }
+    val extractProcess  = if (tfLibFilename(platform).endsWith(".tar.gz")) {
+      Process("tar" :: "xf" :: path :: Nil, new File(s"$targetDir/"))
+    } else {
+      Process("unzip" :: "-qq" :: "-u" :: path :: Nil, new File(s"$targetDir/"))
+    }
+    Some(downloadProcess #&& extractProcess)
   }
 }
