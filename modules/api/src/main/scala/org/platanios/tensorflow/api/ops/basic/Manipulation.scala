@@ -1459,10 +1459,10 @@ trait Manipulation {
       val gradient = OutputIndexedSlices(indices = reshapedIndices.toInt, values = values, denseShape = inputShape.toInt)
       (gradient, null, null)
     } else {
-      val expandedAxis = axis.expandDims(0).toLong
-      val outerShape = slice(inputShape, 0L, expandedAxis)
+      val longAxis = axis.toLong
+      val outerShape = slice(inputShape, 0L, longAxis)
       val outerSize = size(outerShape)
-      val computedShape = slice(inputShape, expandedAxis, size(inputShape).expandDims(0))
+      val computedShape = slice(inputShape, longAxis, size(inputShape).expandDims(0))
       val innerShape = computedShape.slice(1 ::)
       val innerSize = size(innerShape)
       val outerAxesIndices = Math.range(0L, outerSize)
