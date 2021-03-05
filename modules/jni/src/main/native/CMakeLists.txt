@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.1.0)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
+# Set the minimum OS X deployment version
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X Deployment Version")
+
 # Define project and related variables
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
