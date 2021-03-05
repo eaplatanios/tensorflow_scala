@@ -26,8 +26,8 @@ object Logging {
   }
 
   /** Sets the current TensorFlow logging [[Level]]. */
-  def setLoggingLevel(level: Level, overwrite: Boolean = true): Unit = {
-    TensorFlow.setLogLevel(level.value.toString, overwrite)
+  def setLoggingLevel(level: Level): Unit = {
+    TensorFlow.setLogLevel(level.value.toString)
   }
 
   /** Returns the current TensorFlow logging [[Level]]. */
