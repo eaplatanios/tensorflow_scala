@@ -27,7 +27,7 @@ class TensorFlowSpec extends AnyFlatSpec {
 
   "The TensorFlow logging level" must "be configurable" in {
     assert(TensorFlow.getLogLevel == null)
-    TensorFlow.setLogLevel("3", overwrite = true)
+    TensorFlow.setLogLevel("3")
     assert(TensorFlow.getLogLevel == "3")
   }
 

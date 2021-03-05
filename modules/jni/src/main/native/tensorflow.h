@@ -50,10 +50,10 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_enable
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__
  * Method:    setLogLevel
- * Signature: (Ljava/lang/String;B)V
+ * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setLogLevel
-  (JNIEnv *, jobject, jstring, jboolean);
+  (JNIEnv *, jobject, jstring);
 
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__

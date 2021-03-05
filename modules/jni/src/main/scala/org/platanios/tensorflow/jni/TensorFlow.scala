@@ -223,7 +223,7 @@ object TensorFlow {
   @native def loadOpLibrary(libraryPath: String): Array[Byte]
   @native def enableXLA(): Unit
 
-  @native def setLogLevel(value: String, overwrite: Boolean): Unit
+  @native def setLogLevel(value: String): Unit
   @native def getLogLevel: String
 
   //region Internal API
