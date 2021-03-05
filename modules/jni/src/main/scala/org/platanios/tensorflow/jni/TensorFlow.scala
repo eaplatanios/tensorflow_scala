@@ -97,10 +97,14 @@ object TensorFlow {
   private def checkIfExtracted(): Boolean = {
     val extractedLibsFile = TF_SCALA_DIRECTORY.resolve(EXTRACTED_LIBS_FILENAME)
     if (Files.exists(extractedLibsFile)) {
-      val source = Source.fromFile(extractedLibsFile.toFile)
-      val directory = Paths.get(source.getLines.mkString)
-      source.close()
-      loadLibrariesFromDirectory(directory)
+      try {
+        val source    = Source.fromFile(extractedLibsFile.toFile)
+        val directory = Paths.get(source.getLines.mkString)
+        source.close()
+        loadLibrariesFromDirectory(directory)
+      } catch {
+        case _: Throwable => false
+      }
     } else {
       false
     }
@@ -218,6 +222,9 @@ object TensorFlow {
   @native def dataTypeSize(dataTypeCValue: Int): Int
   @native def loadOpLibrary(libraryPath: String): Array[Byte]
   @native def enableXLA(): Unit
+
+  @native def setLogLevel(value: String, overwrite: Boolean): Unit
+  @native def getLogLevel: String
 
   //region Internal API
 

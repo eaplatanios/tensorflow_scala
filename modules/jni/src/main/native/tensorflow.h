@@ -49,6 +49,22 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_enable
 
 /*
  * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    setLogLevel
+ * Signature: (Ljava/lang/String;B)V
+ */
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setLogLevel
+  (JNIEnv *, jobject, jstring, jboolean);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
+ * Method:    getLogLevel
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_getLogLevel
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     org_platanios_tensorflow_jni_TensorFlow__
  * Method:    updateInput
  * Signature: (JJIJI)I
  */

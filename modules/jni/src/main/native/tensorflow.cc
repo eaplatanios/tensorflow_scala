@@ -21,11 +21,14 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <stdlib.h>
+#include <string>
 
 #include "tensorflow/c/c_api.h"
 #include "tensorflow/c/c_api_experimental.h"
 
 namespace {
+
 template <class T>
 T* requireHandleImpl(JNIEnv* env, jlong handle) {
   static_assert(sizeof(jlong) >= sizeof(T*),
@@ -46,6 +49,22 @@ TF_Operation* require_operation_handle(JNIEnv *env, jlong handle) {
 TF_Graph* require_graph_handle(JNIEnv *env, jlong handle) {
   return requireHandleImpl<TF_Graph>(env, handle);
 }
+
+int setenv(const char *name, const char *value, int overwrite) {
+  int error = 0;
+  if(!overwrite) {
+    size_t envSize = 0;
+    error = getenv_s(&envSize, nullptr, 0, name);
+    if(error || envSize) {
+      return error;
+    }
+  }
+  std::string nameString(name);
+  std::string valueString(value);
+  std::string assignmentString = nameString + "=" + valueString;
+  return putenv(assignmentString.c_str());
+}
+
 }
 
 JNIEXPORT jlong JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_jvmPointer(
@@ -94,6 +113,24 @@ JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_enable
   auto* session_options = TF_NewSessionOptions();
   TF_EnableXLACompilation(session_options, true);
   TF_DeleteSessionOptions(session_options);
+}
+
+JNIEXPORT void JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_setLogLevel(
+  JNIEnv* env,
+  jobject object,
+  jstring value,
+  jboolean overwrite
+) {
+  const char *nativeValue = env->GetStringUTFChars(value, 0);
+  setenv("TF_CPP_MIN_LOG_LEVEL", nativeValue, int(overwrite));
+  env->ReleaseStringUTFChars(value, nativeValue);
+}
+
+JNIEXPORT jstring JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_getLogLevel(
+  JNIEnv* env,
+  jobject object
+) {
+  return env->NewStringUTF(getenv("TF_CPP_MIN_LOG_LEVEL"));
 }
 
 JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_TensorFlow_00024_updateInput(
