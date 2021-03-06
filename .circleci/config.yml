@@ -14,7 +14,7 @@ jobs:
        - checkout
        - run: mkdir downloads && cd downloads
        - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.6.0-SNAPSHOT/tensorflow_2.13-0.6.0-SNAPSHOT-linux.jar
-       - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux-x86_64.jar
+       - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux.jar
        - run: mv libtensorflow.* /usr/lib/
        - run: mv libtensorflow_framework.* /usr/lib/
        - run: cd ..
