@@ -1,7 +1,7 @@
 version: 2
 
 jobs:
-   build-linux-cpu-x86_64:
+   build-linux-x86_64:
      docker:
        - image: eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.6.0
      working_directory: ~/repository
@@ -13,35 +13,8 @@ jobs:
      steps:
        - checkout
        - run: mkdir downloads && cd downloads
-       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.6.0-SNAPSHOT/tensorflow_2.13-0.6.0-SNAPSHOT-linux-cpu-x86_64.jar
-       - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux-cpu-x86_64.jar
-       - run: mv libtensorflow.* /usr/lib/
-       - run: mv libtensorflow_framework.* /usr/lib/
-       - run: cd ..
-       - restore_cache:
-           keys:
-             - v0.5.1-dependencies-{{ checksum "build.sbt" }}
-       - run: cat /dev/null | sbt +test:compile
-       - save_cache:
-           paths:
-             - ~/.ivy2
-           key: v0.5.1-dependencies--{{ checksum "build.sbt" }}
-       - run: cat /dev/null | sbt +test:test
-
-   build-linux-gpu-x86_64:
-     docker:
-       - image: eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.6.0
-     working_directory: ~/repository
-     environment:
-       LD_LIBRARY_PATH: /usr/lib:$LD_LIBRARY_PATH
-       JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
-       JVM_OPTS: -Xmx3200m
-       TERM: dumb
-     steps:
-       - checkout
-       - run: mkdir downloads && cd downloads
-       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.6.0-SNAPSHOT/tensorflow_2.13-0.6.0-SNAPSHOT-linux-gpu-x86_64.jar
-       - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux-gpu-x86_64.jar
+       - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.6.0-SNAPSHOT/tensorflow_2.13-0.6.0-SNAPSHOT-linux-x86_64.jar
+       - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux-x86_64.jar
        - run: mv libtensorflow.* /usr/lib/
        - run: mv libtensorflow_framework.* /usr/lib/
        - run: cd ..
@@ -59,5 +32,4 @@ workflows:
   version: 2
   test:
     jobs:
-      - build-linux-cpu-x86_64
-      - build-linux-gpu-x86_64
+      - build-linux-x86_64
