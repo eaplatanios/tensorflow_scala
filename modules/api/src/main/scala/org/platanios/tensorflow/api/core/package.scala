@@ -26,6 +26,7 @@ package object core {
   private[api] val defaultGraph: core.Graph = core.Graph()
 
   private[api] trait API {
+    val Logging: core.Logging.type = core.Logging
     val Timeline: core.client.Timeline.type = core.client.Timeline
 
     type DeviceSpecification = core.DeviceSpecification

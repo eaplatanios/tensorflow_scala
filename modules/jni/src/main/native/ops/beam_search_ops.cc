@@ -28,6 +28,11 @@ limitations under the License.
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/util/work_sharder.h"
 
+// Hack to fix compilation on Windows.
+#define EXPAND(x) x
+#define TF_NEW_ID_FOR_INIT_2(m, c, ...) EXPAND(m(c, __VA_ARGS__)) // L145 selective_registration.h
+#define TF_EXTRACT_KERNEL_NAME_IMPL(m, ...) EXPAND(m(__VA_ARGS__)) // L1431 op_kernel.h
+
 namespace tensorflow {
 
 using shape_inference::DimensionHandle;

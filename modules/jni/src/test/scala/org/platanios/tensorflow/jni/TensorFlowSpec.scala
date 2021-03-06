@@ -25,6 +25,12 @@ class TensorFlowSpec extends AnyFlatSpec {
     assert(TensorFlow.version == "2.4.0")
   }
 
+  "The TensorFlow logging level" must "be configurable" in {
+    assert(TensorFlow.getLogLevel == null)
+    TensorFlow.setLogLevel("3")
+    assert(TensorFlow.getLogLevel == "3")
+  }
+
   "The TensorFlow library data type sizes" must "be correct" in {
     assert(TensorFlow.dataTypeSize(-1) === 0)
     assert(TensorFlow.dataTypeSize(0) === 0)

@@ -47,13 +47,15 @@ object TensorFlowNativePackage extends AutoPlugin {
         val platformTargetDir = targetDir / platform.name
         IO.createDirectory(platformTargetDir / "downloads")
 
-        // Download the TensorFlow native library.
-        log.info(s"Downloading the TensorFlow native library for platform '${platform.name}'.")
-        val exitCode = downloadAndExtractLibrary(platform, platformTargetDir.getPath, tfVersion).map(_ ! log)
+        // Download and extract the TensorFlow native library, if needed.
+        if (nativeCrossCompilationForcedIfExists.value || !(platformTargetDir / "lib").exists()) {
+          log.info(s"Downloading the TensorFlow native library for platform '${platform.name}'.")
+          val exitCode = downloadAndExtractLibrary(platform, platformTargetDir.getPath, tfVersion).map(_ ! log)
 
-        if (exitCode.getOrElse(0) != 0) {
-          sys.error(
-            s"An error occurred while preparing the native TensorFlow libraries for '$platform'. Exit code: $exitCode.")
+          if (exitCode.getOrElse(0) != 0) {
+            sys.error(
+              s"An error occurred while preparing the native TensorFlow libraries for '$platform'. Exit code: $exitCode.")
+          }
         }
 
         platform -> platformTargetDir
@@ -67,13 +69,13 @@ object TensorFlowNativePackage extends AutoPlugin {
 
   def tfLibFilename(platform: Platform): String = platform match {
     case LINUX | DARWIN => "libtensorflow.tar.gz"
-    case WINDOWS_CPU | WINDOWS_GPU => "libtensorflow.zip"
+    case WINDOWS | WINDOWS_CPU => "libtensorflow.zip"
   }
 
   def tfLibUrl(platform: Platform, version: String): String = (platform, version) match {
     case (LINUX, v) => s"$tfLibUrlPrefix-gpu-linux-x86_64-$v.tar.gz"
+    case (WINDOWS, v) => s"$tfLibUrlPrefix-gpu-windows-x86_64-$v.zip"
     case (WINDOWS_CPU, v) => s"$tfLibUrlPrefix-cpu-windows-x86_64-$v.zip"
-    case (WINDOWS_GPU, v) => s"$tfLibUrlPrefix-gpu-windows-x86_64-$v.zip"
     case (DARWIN, v) => s"$tfLibUrlPrefix-cpu-darwin-x86_64-$v.tar.gz"
   }
 

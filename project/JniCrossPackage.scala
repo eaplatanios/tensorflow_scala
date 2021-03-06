@@ -34,20 +34,31 @@ object JniCrossPackage extends AutoPlugin {
         .extend(Compile)
         .describedAs("Native code cross-compiling configuration.")
 
-    val nativeCrossCompilationEnabled: SettingKey[Boolean] =
+    val nativeCrossCompilationEnabled: SettingKey[Boolean] = {
       settingKey[Boolean]("Indicates whether cross-compilation of the native libraries is enabled.")
+    }
 
-    val nativePlatforms: SettingKey[Set[Platform]] =
+    val nativeCrossCompilationForcedIfExists: SettingKey[Boolean] = {
+      settingKey[Boolean](
+        "Indicates whether cross-compilation of the native libraries is forced even if the " +
+            "compiled libraries exist in the target directories.")
+    }
+
+    val nativePlatforms: SettingKey[Set[Platform]] = {
       settingKey[Set[Platform]]("Set of native platforms for which to cross-compile.")
+    }
 
-    val nativeArtifactName: SettingKey[String] =
+    val nativeArtifactName: SettingKey[String] = {
       settingKey[String]("###")
+    }
 
-    val nativeLibPath: TaskKey[Map[Platform, File]] =
+    val nativeLibPath: TaskKey[Map[Platform, File]] = {
       taskKey[Map[Platform, File]]("###")
+    }
 
-    val nativeCrossCompile: TaskKey[Map[Platform, CrossCompilationOutput]] =
+    val nativeCrossCompile: TaskKey[Map[Platform, CrossCompilationOutput]] = {
       taskKey[Map[Platform, CrossCompilationOutput]]("###")
+    }
   }
 
   case class CrossCompilationOutput(
@@ -59,7 +70,7 @@ object JniCrossPackage extends AutoPlugin {
   import JniNative.autoImport._
 
   lazy val settings: Seq[Setting[_]] = Seq(
-    nativePlatforms := Set(LINUX, WINDOWS_CPU, WINDOWS_GPU, DARWIN),
+    nativePlatforms := Set(LINUX, WINDOWS, WINDOWS_CPU, DARWIN),
     target := (target in Compile).value / "native",
     nativeLibPath := {
       val targetDir = (target in nativeCrossCompile).value
@@ -85,6 +96,7 @@ object JniCrossPackage extends AutoPlugin {
       nativeCrossCompile.value
       Seq.empty
     },
+    nativeCrossCompilationForcedIfExists := true,
     nativeCrossCompile := Def.taskDyn {
       if (nativeCrossCompilationEnabled.value) {
         Def.task {
@@ -102,33 +114,35 @@ object JniCrossPackage extends AutoPlugin {
             IO.createDirectory(platformTargetDir / "docker")
             IO.createDirectory(platformTargetDir / "lib")
 
-            platform match {
-              // TODO: Figure out the right cross-compilation story.
-              // For Windows, we expect the binaries to have already been built and placed in the `bin` and the `lib`
-              // subdirectories, because we currently have no way to cross-compile.
-              case WINDOWS_CPU | WINDOWS_GPU =>
-                if (!(platformTargetDir / "bin").exists()) {
-                  throw new IllegalStateException("The Windows binaries must have already been prebuilt.")
-                }
-              case _ =>
-                // Compile and generate binaries.
-                log.info(s"Generating binaries in '$platformTargetDir'.")
-                val dockerContainer = s"${moduleName.value}_${platform.name}"
-                val exitCode = platform.build(
-                  dockerImage = s"${platform.dockerImage}",
-                  dockerContainer = dockerContainer,
-                  srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
-                  tgtDir = platformTargetDir.getPath,
-                  libPath = nativeLibPath.value(platform).getPath,
-                ).map(_ ! log)
+            if (nativeCrossCompilationForcedIfExists.value || !(platformTargetDir / "bin").exists()) {
+              platform match {
+                // TODO: Figure out the right cross-compilation story.
+                // For Windows, we expect the binaries to have already been built and placed in the `bin` and the `lib`
+                // subdirectories, because we currently have no way to cross-compile.
+                case WINDOWS | WINDOWS_CPU =>
+                  if (!(platformTargetDir / "bin").exists()) {
+                    throw new IllegalStateException("The Windows binaries must have already been prebuilt.")
+                  }
+                case _ =>
+                  // Compile and generate binaries.
+                  log.info(s"Generating binaries in '$platformTargetDir'.")
+                  val dockerContainer = s"${moduleName.value}_${platform.name}"
+                  val exitCode = platform.build(
+                    dockerImage = s"${platform.dockerImage}",
+                    dockerContainer = dockerContainer,
+                    srcDir = (baseDirectory.value / "src" / "main" / "native").getPath,
+                    tgtDir = platformTargetDir.getPath,
+                    libPath = nativeLibPath.value(platform).getPath,
+                  ).map(_ ! log)
 
-                // Clean up.
-                log.info("Cleaning up after build.")
-                IO.deleteFilesEmptyDirs(IO.listFiles(platformTargetDir / "code"))
-                platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
-                if (exitCode.getOrElse(0) != 0) {
-                  sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
-                }
+                  // Clean up.
+                  log.info("Cleaning up after build.")
+                  IO.deleteFilesEmptyDirs(IO.listFiles(platformTargetDir / "code"))
+                  platform.cleanUpAfterBuild(dockerContainer).foreach(_ ! log)
+                  if (exitCode.getOrElse(0) != 0) {
+                    sys.error(s"An error occurred while cross-compiling for '$platform'. Exit code: $exitCode.")
+                  }
+              }
             }
 
             val sharedLibraryFilter = "*.so*" | "*.dylib*" | "*.dll" | "*.lib" | "*.link*"
@@ -255,15 +269,15 @@ object JniCrossPackage extends AutoPlugin {
 
   object LINUX extends Platform {
     override val name       : String = "linux"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.5.3"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.6.0"
+  }
+
+  object WINDOWS extends Platform {
+    override val name: String = "windows"
   }
 
   object WINDOWS_CPU extends Platform {
     override val name: String = "windows-cpu"
-  }
-
-  object WINDOWS_GPU extends Platform {
-    override val name: String = "windows-gpu"
   }
 
   object DARWIN extends Platform {

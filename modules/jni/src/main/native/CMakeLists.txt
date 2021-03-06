@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.1.0)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
+# Set the minimum OS X deployment version
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X Deployment Version")
+
 # Define project and related variables
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
@@ -48,12 +51,17 @@ file(GLOB JNI_LIB_SRC "*.cc" "generated/*.cc")
 file(GLOB OP_LIB_SRC "ops/*.cc")
 
 # Find Python and get the TensorFlow header files from there.
+if(WIN32)
+  set(PYTHON python)
+else()
+  set(PYTHON python3)
+endif()
 set(TF_CPP_MIN_LOG_LEVEL 3)
-execute_process(COMMAND python -c
+execute_process(COMMAND ${PYTHON} -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_compile_flags()))"
   OUTPUT_VARIABLE TF_CFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND python -c
+execute_process(COMMAND ${PYTHON} -c
   "import tensorflow as tf; print(\" \".join(tf.sysconfig.get_link_flags()))"
   OUTPUT_VARIABLE TF_LFLAGS
   OUTPUT_STRIP_TRAILING_WHITESPACE)

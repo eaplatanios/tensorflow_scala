@@ -56,7 +56,7 @@ object TensorFlow {
     val name = System.getProperty("os.name").toLowerCase
     if (name.contains("linux")) "linux"
     else if (name.contains("os x") || name.contains("darwin")) "darwin"
-    else if (name.contains("windows")) "windows-cpu"
+    else if (name.contains("windows")) "windows"
     else name.replaceAll("\\s", "")
   }
 
@@ -97,10 +97,14 @@ object TensorFlow {
   private def checkIfExtracted(): Boolean = {
     val extractedLibsFile = TF_SCALA_DIRECTORY.resolve(EXTRACTED_LIBS_FILENAME)
     if (Files.exists(extractedLibsFile)) {
-      val source = Source.fromFile(extractedLibsFile.toFile)
-      val directory = Paths.get(source.getLines.mkString)
-      source.close()
-      loadLibrariesFromDirectory(directory)
+      try {
+        val source    = Source.fromFile(extractedLibsFile.toFile)
+        val directory = Paths.get(source.getLines.mkString)
+        source.close()
+        loadLibrariesFromDirectory(directory)
+      } catch {
+        case _: Throwable => false
+      }
     } else {
       false
     }
@@ -154,7 +158,7 @@ object TensorFlow {
   /** Maps the provided library name to a set of filenames, similar to [[System.mapLibraryName]], but considering all
     * combinations of `dylib` and `so` extensions, along with versioning for TensorFlow 2.x. */
   private def mapLibraryName(lib: String): Seq[(String, Boolean)] = {
-    if (platform == "windows-cpu") {
+    if (platform == "windows") {
       Seq((s"$lib.dll", true))
     } else if (lib == JNI_LIB_NAME || lib == OPS_LIB_NAME) {
       Seq((s"lib$lib.so", false))
@@ -218,6 +222,9 @@ object TensorFlow {
   @native def dataTypeSize(dataTypeCValue: Int): Int
   @native def loadOpLibrary(libraryPath: String): Array[Byte]
   @native def enableXLA(): Unit
+
+  @native def setLogLevel(value: String): Unit
+  @native def getLogLevel: String
 
   //region Internal API
 
