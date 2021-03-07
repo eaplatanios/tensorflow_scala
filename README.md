@@ -231,7 +231,7 @@ For Mac we also need to deal with this currently:
 
 ```bash
 install_name_tool -id @rpath/libtensorflow.2.dylib libtensorflow.2.4.0.dylib
-install_name_tool -change @rpath/libtensorflow.so.2 @rpath/libtensorflow.2.dylib libtensorflow_framework.2.4.0.dyli
+install_name_tool -change @rpath/libtensorflow.so.2 @rpath/libtensorflow.2.dylib libtensorflow_framework.2.4.0.dylib
 ```
 
 To publish the documentation website we use the following commands:

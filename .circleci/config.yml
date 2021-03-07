@@ -15,8 +15,12 @@ jobs:
        - run: mkdir downloads && cd downloads
        - run: wget https://oss.sonatype.org/service/local/repositories/snapshots/content/org/platanios/tensorflow_2.13/0.6.0-SNAPSHOT/tensorflow_2.13-0.6.0-SNAPSHOT-linux.jar
        - run: jar xf tensorflow_2.13-0.6.0-SNAPSHOT-linux.jar
-       - run: mv libtensorflow.* /usr/lib/
-       - run: mv libtensorflow_framework.* /usr/lib/
+       - run: mv libtensorflow.so /usr/lib/libtensorflow.so
+       - run: mv libtensorflow_framework.so /usr/lib/libtensorflow_framework.so
+       - run: ln -s /usr/lib/libtensorflow.so /usr/lib/libtensorflow.so.2
+       - run: ln -s /usr/lib/libtensorflow.so /usr/lib/libtensorflow.so.2.4.0
+       - run: ln -s /usr/lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so.2
+       - run: ln -s /usr/lib/libtensorflow_framework.so /usr/lib/libtensorflow_framework.so.2.4.0
        - run: cd ..
        - restore_cache:
            keys:
