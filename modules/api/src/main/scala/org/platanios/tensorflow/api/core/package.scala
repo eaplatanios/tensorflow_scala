@@ -38,8 +38,11 @@ package object core {
 
   private[api] trait API {
 
-    def modifyDefaultSessionConfig(fn: SessionConfig => SessionConfig): Unit = DefaultSessionConfigLock.synchronized {
-      defaultSessionConfig = fn(defaultSessionConfig)
+    def modifyDefaultSessionConfig(fn: SessionConfig => SessionConfig): SessionConfig = {
+      DefaultSessionConfigLock.synchronized {
+        defaultSessionConfig = fn(defaultSessionConfig)
+        defaultSessionConfig
+      }
     }
 
     val Logging: core.Logging.type = core.Logging
