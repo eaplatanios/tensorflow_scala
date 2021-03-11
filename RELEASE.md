@@ -2,6 +2,7 @@
 
 - Switched to using TensorFlow 2.4.0, which required
   updating the handling of `String` tensors.
+- Added `tf.modifyDefaultSessionConfig`.
 - Added an API for controlling the TensorFlow logging 
   behavior (via `tf.Logging`).
 - Fixed a bug in the gradient of `tf.gather`.

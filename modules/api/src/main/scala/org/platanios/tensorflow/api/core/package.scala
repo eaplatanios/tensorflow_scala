@@ -15,7 +15,10 @@
 
 package org.platanios.tensorflow.api
 
+import org.platanios.tensorflow.api.core.client.SessionConfig
 import org.platanios.tensorflow.jni
+
+import scala.collection.compat.immutable.ArraySeq
 
 /**
   * @author Emmanouil Antonios Platanios
@@ -25,7 +28,20 @@ package object core {
 
   private[api] val defaultGraph: core.Graph = core.Graph()
 
+  private[api] var defaultSessionConfig: SessionConfig = {
+    sys.env.get("TF_CUDA_VISIBLE_DEVICES").map { devices =>
+      SessionConfig(gpuVisibleDevices = Some(ArraySeq.unsafeWrapArray(devices.split(',').map(_.toInt))))
+    }.getOrElse(SessionConfig())
+  }
+
+  private object DefaultSessionConfigLock
+
   private[api] trait API {
+
+    def modifyDefaultSessionConfig(fn: SessionConfig => SessionConfig): Unit = DefaultSessionConfigLock.synchronized {
+      defaultSessionConfig = fn(defaultSessionConfig)
+    }
+
     val Logging: core.Logging.type = core.Logging
     val Timeline: core.client.Timeline.type = core.client.Timeline
 
