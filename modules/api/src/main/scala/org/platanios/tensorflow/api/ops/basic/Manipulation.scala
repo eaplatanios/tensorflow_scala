@@ -1464,14 +1464,8 @@ trait Manipulation {
       val inputSize = size(inputShape)
       val outerShape = slice(inputShape, zero, longAxis)
       val outerSize = size(outerShape)
-      val valuesShape = ControlFlow.cond(
-        longAxis < inputSize - 1,
-        () => {
-          val innerShape = slice(inputShape, longAxis + 1, inputSize.expandDims(0) - longAxis - 1)
-          concatenate(Seq(outerShape, indicesSize, innerShape), 0)
-        },
-        () => concatenate(Seq(outerShape, indicesSize), 0)
-      )
+      val innerShape = slice(inputShape, longAxis + 1, inputSize.expandDims(0) - longAxis - 1)
+      val valuesShape = concatenate(Seq(outerShape, indicesSize, innerShape), 0)
       val values = reshape(outputGradient, valuesShape)
       val reshapedIndices = reshape(indices, indicesSize)
       // We need to sum up every slice `values(..., i, ...)` corresponding to `input(..., indices(i), ...)`. Since
