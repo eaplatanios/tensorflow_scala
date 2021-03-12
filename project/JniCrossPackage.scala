@@ -245,7 +245,7 @@ object JniCrossPackage extends AutoPlugin {
             Process("docker" :: "exec" :: dockerContainer :: "bash" :: "-c" ::
                 s"export LD_LIBRARY_PATH=$cMakeLibPath:${'"'}$$LD_LIBRARY_PATH${'"'} && " +
                     s"export PATH=$cMakePath:${'"'}$$PATH${'"'} && " +
-                    "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 && " +
+                    "export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 && " +
                     "cd /root && mkdir bin && mkdir src/build && cd src/build && " +
                     "cmake -DCMAKE_INSTALL_PREFIX:PATH=/root/bin -DCMAKE_BUILD_TYPE=Release /root/src &&" +
                     "make VERBOSE=1 && make install" :: Nil) #&&
@@ -269,7 +269,7 @@ object JniCrossPackage extends AutoPlugin {
 
   object LINUX extends Platform {
     override val name       : String = "linux"
-    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-cpu-x86_64-0.6.0"
+    override val dockerImage: String = "eaplatanios/tensorflow_scala:linux-gpu-x86_64-0.6.0"
   }
 
   object WINDOWS extends Platform {

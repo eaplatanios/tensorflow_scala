@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:18.04
 
 # Copy and run the install script.
 COPY .circleci/images/install.sh /install.sh
@@ -10,4 +10,4 @@ ENV TF_NEED_MPI 1
 
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
-COPY . /tensorflow_scala
+# COPY . /tensorflow_scala

@@ -1,6 +1,6 @@
-FROM nvidia/cuda:11.2.1-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.0.3-cudnn8-devel-ubuntu18.04
 
-# In the Ubuntu 20.04 images, cudnn is placed in system paths. Move them to
+# In the Ubuntu 18.04 images, cudnn is placed in system paths. Move them to
 # /usr/local/cuda
 RUN cp -P /usr/include/cudnn.h /usr/local/cuda/include
 RUN cp -P /usr/lib/x86_64-linux-gnu/libcudnn* /usr/local/cuda/lib64
@@ -22,4 +22,4 @@ ENV TF_CUDA_COMPUTE_CAPABILITIES 3.0
 
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
-COPY . /tensorflow_scala
+# COPY . /tensorflow_scala
