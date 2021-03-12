@@ -17,7 +17,7 @@ package org.platanios.tensorflow.api.ops
 
 import org.platanios.tensorflow.api.core.{Graph, Shape}
 import org.platanios.tensorflow.api.core.client.Session
-import org.platanios.tensorflow.api.core.types.{FLOAT64, INT32}
+import org.platanios.tensorflow.api.core.types.{FLOAT32, FLOAT64, INT32}
 import org.platanios.tensorflow.api.implicits.Implicits._
 import org.platanios.tensorflow.api.ops.basic.Basic
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -176,6 +176,17 @@ class GradientsSuite extends JUnitSuite {
       val target = lv._3.read(lv._1 - 1)
       val gradient = Gradients.gradients(Seq(target), Seq(v), INT32).head
       assert(gradient == null)
+    }
+  }
+
+  @Test def testGatherGradientAlongAxis1DoesNotCrash(): Unit = using(Graph()) { graph =>
+    Op.createWith(graph) {
+      val input = Basic.constant(1.0, Shape(32, 100), name = "Input")
+      val indices = Basic.constant(2, Shape(100), name = "Indices")
+      val gather = Basic.gather(input, indices, axis = 1)
+      val gradient = Gradients.gradients(Seq(gather), Seq(input), FLOAT32).head
+      val session = Session()
+      assert(session.run(fetches = gradient.toOutput).getElementAtFlattenedIndex(2) === 100f)
     }
   }
 
