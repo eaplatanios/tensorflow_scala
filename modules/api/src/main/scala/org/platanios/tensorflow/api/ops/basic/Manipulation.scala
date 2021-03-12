@@ -1465,9 +1465,9 @@ trait Manipulation {
       val outerShape = slice(inputShape, zero, longAxis)
       val outerSize = size(outerShape)
       val valuesShape = ControlFlow.cond(
-        longAxis < inputSize - 2,
+        longAxis < inputSize - 1,
         () => {
-          val innerShape = slice(inputShape, longAxis + 1, inputSize.expandDims(0) - 1)
+          val innerShape = slice(inputShape, longAxis + 1, inputSize.expandDims(0) - longAxis - 1)
           concatenate(Seq(outerShape, indicesSize, innerShape), 0)
         },
         () => concatenate(Seq(outerShape, indicesSize), 0)
