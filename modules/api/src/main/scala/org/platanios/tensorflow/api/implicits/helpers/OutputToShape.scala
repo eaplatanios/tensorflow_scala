@@ -320,10 +320,7 @@ object OutputToShape {
           shape: Option[Option[ev.S]],
           converter: OutputStructure.Converter
       ): Option[T] = {
-        (value, shape) match {
-          case (Some(v), Some(s)) => Some(ev.map(v, s, converter))
-          case _ => None
-        }
+        value.map(v => ev.map(v, shape.flatten, converter))
       }
     }
   }
