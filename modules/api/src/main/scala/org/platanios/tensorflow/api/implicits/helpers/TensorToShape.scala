@@ -29,7 +29,7 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorToShape[T] {
+trait TensorToShape[T] {
   type S
 
   def shape(tensor: T): S

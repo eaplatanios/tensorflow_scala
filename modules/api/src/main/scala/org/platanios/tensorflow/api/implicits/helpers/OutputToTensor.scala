@@ -28,7 +28,7 @@ import shapeless.ops.hlist.Tupler
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputToTensor[T] {
+trait OutputToTensor[T] {
   type V
 
   def tensorStructure: TensorStructure[V]
@@ -309,8 +309,8 @@ object OutputToTensor extends OutputToTensorLowPriorityImplicits {
 
   implicit def fromKnownProduct[PT <: Product, PV, HT <: HList, HV <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: Strict[OutputToTensor.Aux[HT, HV]],
-      genV: Generic.Aux[PV, HV]
+      genV: Generic.Aux[PV, HV],
+      evT: Strict[OutputToTensor.Aux[HT, HV]]
   ): OutputToTensor.Aux[PT, PV] = {
     new OutputToTensor[PT] {
       override type V = PV

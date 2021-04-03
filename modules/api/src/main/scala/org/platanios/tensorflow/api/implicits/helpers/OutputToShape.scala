@@ -30,7 +30,7 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputToShape[T] {
+trait OutputToShape[T] {
   type S
 
   def outputStructure: OutputStructure[T]

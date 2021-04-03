@@ -30,7 +30,7 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait Zero[T] {
+trait Zero[T] {
   type S // Shape type
 
   def evOutputToShape: OutputToShape.Aux[T, S]

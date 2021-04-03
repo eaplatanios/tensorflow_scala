@@ -29,7 +29,7 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorToDataType[T] {
+trait TensorToDataType[T] {
   type D
 
   def dataType(tensor: T): D

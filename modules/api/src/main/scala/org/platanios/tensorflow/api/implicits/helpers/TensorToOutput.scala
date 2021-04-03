@@ -27,10 +27,11 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorToOutput[T] {
+trait TensorToOutput[T] {
   type O
 
   def tensorStructure: TensorStructure[T]
+  def outputStructure: OutputStructure[O]
   def output(tensor: T): O
 }
 
@@ -43,13 +44,9 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
     new TensorToOutput[Unit] {
       override type O = Unit
 
-      override def tensorStructure: TensorStructure[Unit] = {
-        TensorStructure.fromUnit
-      }
-
-      override def output(tensor: Unit): Unit = {
-        ()
-      }
+      override def tensorStructure: TensorStructure[Unit] = TensorStructure.fromUnit
+      override def outputStructure: OutputStructure[Unit] = OutputStructure.fromUnit
+      override def output(tensor: Unit): Unit = ()
     }
   }
 
@@ -57,13 +54,9 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
     new TensorToOutput[Tensor[T]] {
       override type O = Output[T]
 
-      override def tensorStructure: TensorStructure[Tensor[T]] = {
-        TensorStructure.fromTensor[T]
-      }
-
-      override def output(tensor: Tensor[T]): Output[T] = {
-        tensor.toOutput
-      }
+      override def tensorStructure: TensorStructure[Tensor[T]] = TensorStructure.fromTensor[T]
+      override def outputStructure: OutputStructure[Output[T]] = OutputStructure.fromOutput[T]
+      override def output(tensor: Tensor[T]): Output[T] = tensor.toOutput
     }
   }
 
@@ -73,6 +66,10 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
 
       override def tensorStructure: TensorStructure[TensorIndexedSlices[T]] = {
         TensorStructure.fromTensorIndexedSlices[T]
+      }
+
+      override def outputStructure: OutputStructure[OutputIndexedSlices[T]] = {
+        OutputStructure.fromOutputIndexedSlices[T]
       }
 
       override def output(tensor: TensorIndexedSlices[T]): OutputIndexedSlices[T] = {
@@ -90,6 +87,10 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
 
       override def tensorStructure: TensorStructure[SparseTensor[T]] = {
         TensorStructure.fromSparseTensor[T]
+      }
+
+      override def outputStructure: OutputStructure[SparseOutput[T]] = {
+        OutputStructure.fromSparseOutput[T]
       }
 
       override def output(tensor: SparseTensor[T]): SparseOutput[T] = {
@@ -111,6 +112,10 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
         TensorStructure.fromOption[T](ev.tensorStructure)
       }
 
+      override def outputStructure: OutputStructure[Option[ev.O]] = {
+        OutputStructure.fromOption[ev.O](ev.outputStructure)
+      }
+
       override def output(tensor: Option[T]): Option[ev.O] = {
         tensor.map(t => ev.output(t))
       }
@@ -125,6 +130,10 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
 
       override def tensorStructure: TensorStructure[Seq[T]] = {
         TensorStructure.fromSeq[T](ev.tensorStructure)
+      }
+
+      override def outputStructure: OutputStructure[Seq[ev.O]] = {
+        OutputStructure.fromSeq[ev.O](ev.outputStructure)
       }
 
       override def output(tensor: Seq[T]): Seq[ev.O] = {
@@ -143,6 +152,10 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
         TensorStructure.fromMap[K, T](ev.tensorStructure)
       }
 
+      override def outputStructure: OutputStructure[Map[K, ev.O]] = {
+        OutputStructure.fromMap[K, ev.O](ev.outputStructure)
+      }
+
       override def output(tensor: Map[K, T]): Map[K, ev.O] = {
         tensor.view.mapValues(t => ev.output(t)).toMap
       }
@@ -153,13 +166,9 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
     new TensorToOutput[HNil] {
       override type O = HNil
 
-      override def tensorStructure: TensorStructure[HNil] = {
-        TensorStructure.fromHNil
-      }
-
-      override def output(tensor: HNil): HNil = {
-        HNil
-      }
+      override def tensorStructure: TensorStructure[HNil] = TensorStructure.fromHNil
+      override def outputStructure: OutputStructure[HNil] = OutputStructure.fromHNil
+      override def output(tensor: HNil): HNil = HNil
     }
   }
 
@@ -174,22 +183,30 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
         TensorStructure.fromHList[HT, TT](evH.value.tensorStructure, evT.value.tensorStructure)
       }
 
+      override def outputStructure: OutputStructure[HO :: TO] = {
+        OutputStructure.fromHList[HO, TO](evH.value.outputStructure, evT.value.outputStructure)
+      }
+
       override def output(tensor: HT :: TT): HO :: TO = {
         evH.value.output(tensor.head) :: evT.value.output(tensor.tail)
       }
     }
   }
 
-  implicit def fromKnownProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
+  implicit def fromKnownProduct[PT <: Product, PO, HT <: HList, HO <: HList](implicit
       genT: Generic.Aux[PT, HT],
-      evT: Strict[TensorToOutput.Aux[HT, HO]],
-      genO: Generic.Aux[PO, HO]
+      genO: Generic.Aux[PO, HO],
+      evT: Strict[TensorToOutput.Aux[HT, HO]]
   ): TensorToOutput.Aux[PT, PO] = {
     new TensorToOutput[PT] {
       override type O = PO
 
       override def tensorStructure: TensorStructure[PT] = {
         TensorStructure.fromProduct[PT, HT](genT, evT.value.tensorStructure)
+      }
+
+      override def outputStructure: OutputStructure[PO] = {
+        OutputStructure.fromProduct[PO, HO](genO, evT.value.outputStructure)
       }
 
       override def output(tensor: PT): PO = {
@@ -200,7 +217,7 @@ object TensorToOutput extends TensorToOutputLowPriorityImplicits {
 }
 
 trait TensorToOutputLowPriorityImplicits {
-  implicit def fromProduct[PT <: Product, PO <: Product, HT <: HList, HO <: HList](implicit
+  implicit def fromProduct[PT <: Product, PO, HT <: HList, HO <: HList](implicit
       genT: Generic.Aux[PT, HT],
       evT: Strict[TensorToOutput.Aux[HT, HO]],
       tuplerO: Tupler.Aux[HO, PO],

@@ -271,15 +271,20 @@ object Parsing extends Parsing {
     * To treat sparse input as dense, provide a `defaultValue`. Otherwise, the parsing functions will fail on any
     * examples missing this feature.
     *
+    * @param  key          Name of the input feature.
     * @param  shape        Shape of the input feature.
+    * @param  dataType     Data type of the input feature.
     * @param  defaultValue Value to be used if an example is missing this feature. It must match the specified `shape`.
     * @tparam T Data type of the input feature.
     */
-  case class FixedLengthFeature[T: TF : IsStringOrFloatOrLong](
+  case class FixedLengthFeature[T: TF](
       key: String,
       shape: Shape,
+      providedDataType: DataType[T] = null,
       defaultValue: Option[Tensor[T]] = None
   ) extends Feature {
+    val dataType: DataType[T] = if (providedDataType == null) TF[T].dataType else providedDataType
+
     require(defaultValue.isEmpty || defaultValue.get.shape == shape,
       s"The default value shape (${defaultValue.get.shape}) does not match the expected $shape.")
   }
@@ -348,10 +353,11 @@ object Parsing extends Parsing {
       indexKeys: Seq[String],
       valueKey: String,
       size: Seq[Long],
+      dataType: DataType[T],
       alreadySorted: Boolean = false
   ) extends Feature
 
-  sealed trait Features[T] {
+  trait Features[T] {
     type Result
 
     @throws[InvalidArgumentException]
@@ -369,7 +375,7 @@ object Parsing extends Parsing {
       type Result = R
     }
 
-    implicit def fromFixedLengthFeature[T: TF]: Features.Aux[FixedLengthFeature[T], Output[T]] = {
+    implicit def fromFixedLengthFeature[T]: Features.Aux[FixedLengthFeature[T], Output[T]] = {
       new Features[FixedLengthFeature[T]] {
         override type Result = Output[T]
 
@@ -377,7 +383,7 @@ object Parsing extends Parsing {
         override def toRawParameters(features: FixedLengthFeature[T]): RawParameters = {
           prepareRawParameters(Seq(RawParameters(
             denseKeys = Seq(features.key),
-            denseTypes = Seq(TF[T].dataType.asInstanceOf[DataType[Any]]),
+            denseTypes = Seq(features.dataType.asInstanceOf[DataType[Any]]),
             denseShapes = Seq(features.shape),
             denseDefaults = features.defaultValue
                 .map(v => ListMap(features.key -> v.asInstanceOf[Tensor[Any]]))
@@ -394,7 +400,7 @@ object Parsing extends Parsing {
       }
     }
 
-    implicit def fromVariableLengthFeature[T: TF]: Features.Aux[VariableLengthFeature[T], SparseOutput[T]] = {
+    implicit def fromVariableLengthFeature[T]: Features.Aux[VariableLengthFeature[T], SparseOutput[T]] = {
       new Features[VariableLengthFeature[T]] {
         override type Result = SparseOutput[T]
 
@@ -402,7 +408,7 @@ object Parsing extends Parsing {
         override def toRawParameters(features: VariableLengthFeature[T]): RawParameters = {
           prepareRawParameters(Seq(RawParameters(
             sparseKeys = Seq(features.key),
-            sparseTypes = Seq(TF[T].dataType.asInstanceOf[DataType[Any]]))))
+            sparseTypes = Seq(features.dataType.asInstanceOf[DataType[Any]]))))
         }
 
         override def fromParsed(
@@ -415,7 +421,7 @@ object Parsing extends Parsing {
       }
     }
 
-    implicit def fromSparseFeature[T: TF]: Features.Aux[SparseFeature[T], SparseOutput[T]] = {
+    implicit def fromSparseFeature[T]: Features.Aux[SparseFeature[T], SparseOutput[T]] = {
       new Features[SparseFeature[T]] {
         override type Result = SparseOutput[T]
 
@@ -430,7 +436,7 @@ object Parsing extends Parsing {
               sparseTypes.append(INT64.asInstanceOf[DataType[Any]])
             }
           })
-          val valueDataType = TF[T].dataType
+          val valueDataType = features.dataType
           val valueKeyIndex = sparseKeys.indexOf(features.valueKey)
           if (valueKeyIndex > -1) {
             val dataType = sparseTypes(valueKeyIndex)
@@ -587,7 +593,7 @@ object Parsing extends Parsing {
     /** Represents the raw parameters parsed from a set features that we pass to the parsing ops.
       * Note that we use a [[ListMap]] for `denseDefaults` because ignoring the ordering would cause graph equality to
       * fail in some tests. */
-    private[Parsing] case class RawParameters(
+    case class RawParameters(
         sparseKeys: Seq[String] = Seq.empty,
         sparseTypes: Seq[DataType[Any]] = Seq.empty,
         denseKeys: Seq[String] = Seq.empty,
@@ -596,9 +602,7 @@ object Parsing extends Parsing {
         denseDefaults: ListMap[String, Tensor[Any]] = ListMap.empty)
 
     @throws[InvalidArgumentException]
-    private[Parsing] def prepareRawParameters(
-        rawParameters: Seq[RawParameters]
-    ): RawParameters = {
+    def prepareRawParameters(rawParameters: Seq[RawParameters]): RawParameters = {
       val sparseKeys    = mutable.ListBuffer.empty[String]
       val sparseTypes   = mutable.ListBuffer.empty[DataType[Any]]
       val denseKeys     = mutable.ListBuffer.empty[String]

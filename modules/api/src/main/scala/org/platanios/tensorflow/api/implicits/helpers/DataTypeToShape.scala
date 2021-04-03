@@ -26,7 +26,7 @@ import shapeless.ops.hlist.Tupler
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait DataTypeToShape[D] {
+trait DataTypeToShape[D] {
   type S
 
   def sizeFromDataType(dataType: D): Int
@@ -186,8 +186,8 @@ object DataTypeToShape extends DataTypeToShapeLowPriorityImplicits {
 
   implicit def fromKnownProduct[PD <: Product, PS, HD <: HList, HS <: HList](implicit
       genD: Generic.Aux[PD, HD],
-      evD: Strict[DataTypeToShape.Aux[HD, HS]],
-      genS: Generic.Aux[PS, HS]
+      genS: Generic.Aux[PS, HS],
+      evD: Strict[DataTypeToShape.Aux[HD, HS]]
   ): DataTypeToShape.Aux[PD, PS] = {
     new DataTypeToShape[PD] {
       override type S = PS

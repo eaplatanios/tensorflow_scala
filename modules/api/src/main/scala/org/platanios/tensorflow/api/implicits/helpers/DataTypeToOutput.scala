@@ -25,7 +25,7 @@ import shapeless.ops.hlist.Tupler
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait DataTypeToOutput[D] {
+trait DataTypeToOutput[D] {
   type O
 
   def dataTypeStructure: DataTypeStructure[D]

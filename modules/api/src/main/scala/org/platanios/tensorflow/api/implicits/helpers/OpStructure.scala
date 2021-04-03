@@ -40,7 +40,7 @@ import scala.language.higherKinds
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OpStructure[T] {
+trait OpStructure[T] {
   /** Target ops to execute. */
   def ops(executable: T): Set[UntypedOp]
 }

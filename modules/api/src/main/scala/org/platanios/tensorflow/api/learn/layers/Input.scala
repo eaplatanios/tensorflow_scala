@@ -85,6 +85,11 @@ object Input {
     new Input[T](dataType, shape, name)
   }
 
+  /** Creates a new [[Input]] without checking that the provided data type and shape are correct. */
+  def createUnsafe[T](dataType: Any, shape: Any, name: String = "Input"): Input[T] = {
+    new Input[T](dataType, shape, name)
+  }
+
   private[layers] trait API {
     type Input[T] = layers.Input[T]
     val Input: layers.Input.type = layers.Input

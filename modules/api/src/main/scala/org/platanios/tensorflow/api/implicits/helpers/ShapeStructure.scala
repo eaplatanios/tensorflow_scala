@@ -26,7 +26,7 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait ShapeStructure[S] {
+trait ShapeStructure[S] {
   def size(shape: S): Int
   def shapes(shape: S): Seq[Shape]
   def map(shape: S, converter: Shape => Shape): S

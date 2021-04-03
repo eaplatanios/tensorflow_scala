@@ -951,15 +951,13 @@ abstract class Dataset[T: OutputStructure] { outer =>
     *                       batching. Any unknown dimensions (e.g., equal to `-1`) will be padded to the maximum size of
     *                       that dimension in each batch.
     * @param  paddingValues Scalar tensor structure representing the padding values to use for the respective
-    *                       components. Defaults to zero for numeric types and the empty string for string types.
-    * @param  name          Name for this dataset.
+    *                       components.
     * @return Created dataset.
     */
   def paddedBatch[D, S, V](
       batchSize: Long,
       paddedShapes: S,
-      paddingValues: Option[V] = None,
-      name: String = s"${this.name}/PaddedBatch"
+      paddingValues: V,
   )(implicit
       evOutputToDataType: OutputToDataType.Aux[T, D],
       evOutputToShape: OutputToShape.Aux[T, S],
@@ -973,11 +971,85 @@ abstract class Dataset[T: OutputStructure] { outer =>
       }
 
       private def flatPaddingValues: Seq[Output[Any]] = {
-        paddingValues match {
-          case Some(values) => evOutputToTensor.tensorStructure.tensors(values).map(Basic.constant(_))
-          case None => flatOutputDataTypes.map(Basic.zeros[Any](_, Tensor.empty[Int]))
-        }
+        evOutputToTensor.tensorStructure.tensors(paddingValues).map(Basic.constant(_))
       }
+
+      override def createHandle[D, S]()(implicit
+          evOutputToDataType: OutputToDataType.Aux[T, D],
+          evOutputToShape: OutputToShape.Aux[T, S]
+      ): Output[Variant] = {
+        Op.Builder[(Output[Variant], Output[Long], Seq[Output[Long]], Seq[Output[Any]]), Output[Variant]](
+          opType = "PaddedBatchDataset",
+          name = name,
+          input = (
+              outer.createHandle(),
+              batchSize,
+              Op.nameScope(s"$name/PaddedShapes")(flatPaddedShapes),
+              Op.nameScope(s"$name/PaddingValues")(flatPaddingValues))
+        ).setAttribute("Toutput_types", flatOutputDataTypes.toArray)
+            .setAttribute("output_shapes", flatOutputShapes.toArray)
+            .build().output
+      }
+
+      override def outputDataTypes[D](implicit evOutputToDataType: OutputToDataType.Aux[T, D]): D = {
+        outer.outputDataTypes
+      }
+
+      override def outputShapes[S](implicit evOutputToShape: OutputToShape.Aux[T, S]): S = {
+        evOutputToShape.shapeStructure.decodeShape(
+          outer.outputShapes,
+          outer.flatOutputShapes.map(Shape(-1) ++ _)
+        )._1
+      }
+    }
+  }
+
+  /** Creates a new dataset that combines consecutive elements of this dataset into padded batches.
+  *
+  * Like the dataset `batch` op, this op combines multiple consecutive elements of a dataset, which might have
+  * different shapes, into a single element. The tensors in the resulting element have an additional outer
+  * dimension, and are padded to the respective shape in `paddedShapes`.
+  *
+  * This transformation combines multiple consecutive elements of the input dataset into a single element. Like the
+  * dataset `batch` op, the tensors in the resulting element have an additional outer dimension, which will be
+  * `batchSize` for all but the last element, and `N % batchSize` for the last element, where `N` is the number of
+  * elements in this dataset. Unlike the `batch` op, the elements may have different shapes for some of their
+  * components, and this transformation will pad each component to the respective shape in `paddedShapes`. The
+  * `paddedShapes` argument determines the resulting shape for each dimension of each component in an output
+  * element:
+  *
+  *   - If the dimension is a constant, then the component will be padded out to that length along that dimension.
+  *   - If the dimension is unknown, then the component will be padded out to the maximum length of all elements
+  * along that dimension.
+  *
+  * '''NOTE:''' If the number of elements in this dataset (`N`) is not an exact multiple of `batchSize`, the final
+  * batch may contain smaller tensors with shape `N % batchSize` in the batch dimension. If your program depends on
+  * the batches having the same shape, consider using the `paddedBatchAndDropRemainder` transformation instead.
+  *
+  * See also the `denseToSparseBatch` op, which combines elements that may have different shapes
+  * into a sparse tensor.
+  *
+  * @param  batchSize    Batch size to use.
+  * @param  paddedShapes Shape to which the respective component of each input element should be padded prior to
+  *                      batching. Any unknown dimensions (e.g., equal to `-1`) will be padded to the maximum size of
+  *                      that dimension in each batch.
+  * @return Created dataset.
+  */
+  def paddedBatch[D, S](
+      batchSize: Long,
+      paddedShapes: S,
+  )(implicit
+      evOutputToDataType: OutputToDataType.Aux[T, D],
+      evOutputToShape: OutputToShape.Aux[T, S],
+  ): Dataset[T] = {
+    new Dataset[T] {
+      override val name: String = s"${outer.name}/PaddedBatch"
+
+      private def flatPaddedShapes: Seq[Output[Long]] = {
+        evOutputToShape.shapeStructure.shapes(paddedShapes).map(_.toOutput.toLong)
+      }
+
+      private def flatPaddingValues: Seq[Output[Any]] = flatOutputDataTypes.map(Basic.zeros[Any](_, Tensor.empty[Int]))
 
       override def createHandle[D, S]()(implicit
           evOutputToDataType: OutputToDataType.Aux[T, D],
