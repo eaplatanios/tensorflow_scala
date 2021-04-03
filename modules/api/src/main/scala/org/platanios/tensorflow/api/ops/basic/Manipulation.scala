@@ -20,7 +20,7 @@ import org.platanios.tensorflow.api.core.Shape
 import org.platanios.tensorflow.api.core.exception.InvalidShapeException
 import org.platanios.tensorflow.api.core.types.{DataType, IsIntOrLong, IsNumeric, TF}
 import org.platanios.tensorflow.api.implicits.Implicits._
-import org.platanios.tensorflow.api.ops.{Op, Output, OutputIndexedSlices, OutputLike, SparseOutput}
+import org.platanios.tensorflow.api.ops.{Logging, Op, Output, OutputIndexedSlices, OutputLike, SparseOutput}
 import org.platanios.tensorflow.api.ops.NN.CNNDataFormat
 import org.platanios.tensorflow.api.ops.math.Math
 import org.platanios.tensorflow.api.ops.control_flow.ControlFlow
@@ -1448,7 +1448,7 @@ trait Manipulation {
       shape(input).toLong
     }
     val indices = op.input._2
-    val indicesSize = expandDims(size(indices).toLong, 0)
+    val indicesSize = size(indices).toLong.expandDims(0)
     val axis = op.input._3
     val axisStatic = Output.constantValue(axis)
     // For axis 0 gathers, we build appropriately shaped indexed slices.
@@ -1459,14 +1459,12 @@ trait Manipulation {
       val gradient = OutputIndexedSlices(indices = reshapedIndices.toInt, values = values, denseShape = inputShape.toInt)
       (gradient, null, null)
     } else {
-      val expandedAxis = axis.expandDims(0).toLong
-      val outerShape = slice(inputShape, 0L, expandedAxis)
+      val zero = Basic.zeros[Long](Shape(1))
+      val longAxis = axis.toLong.expandDims(0)
+      val inputSize = size(inputShape)
+      val outerShape = slice(inputShape, zero, longAxis)
       val outerSize = size(outerShape)
-      val computedShape = slice(inputShape, expandedAxis, size(inputShape).expandDims(0))
-      val innerShape = computedShape.slice(1 ::)
-      val innerSize = size(innerShape)
-      val outerAxesIndices = Math.range(0L, outerSize)
-      val innerAxesIndices = Math.range(outerSize + 1, outerSize + 1 + innerSize)
+      val innerShape = slice(inputShape, longAxis + 1, inputSize.expandDims(0) - longAxis - 1)
       val valuesShape = concatenate(Seq(outerShape, indicesSize, innerShape), 0)
       val values = reshape(outputGradient, valuesShape)
       val reshapedIndices = reshape(indices, indicesSize)
@@ -1474,6 +1472,8 @@ trait Manipulation {
       // `unsortedSegmentSum` does not support an axis parameter, we transpose the gather dimension to the front, and
       // then use `unsortedSegmentSum` to build a `[gatherAxis, outerAxes, innerAxes]` tensor containing all the
       // gradients affecting each index in `gatherAxis` summed up.
+      val outerAxesIndices = Math.range(0L, outerSize)
+      val innerAxesIndices = Math.range(outerSize + 1, size(valuesShape))
       val transposeAxes = concatenate(
         Seq(outerSize.expandDims(0), outerAxesIndices, innerAxesIndices), 0)
       val valuesTranspose = transpose(values, transposeAxes)
@@ -1484,7 +1484,7 @@ trait Manipulation {
 
       val inputGradient = Math.unsortedSegmentSum(valuesTranspose, reshapedIndices, numSegments)
       // We now invert the above transpose by moving dimension 0 back to its original position.
-      val transposeAxesInverse = concatenate[Long](Seq(outerAxesIndices + 1, 0L, innerAxesIndices), 0)
+      val transposeAxesInverse = concatenate[Long](Seq(outerAxesIndices + 1, zero, innerAxesIndices), 0)
       val inputGradientTranspose = transpose(inputGradient, transposeAxesInverse)
       (inputGradientTranspose, null, null)
     }

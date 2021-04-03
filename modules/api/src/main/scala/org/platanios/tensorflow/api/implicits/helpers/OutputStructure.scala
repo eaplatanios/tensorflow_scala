@@ -50,7 +50,7 @@ import scala.language.higherKinds
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputStructure[T] {
+trait OutputStructure[T] {
   def size(output: T): Int
   def outputs(output: T): Seq[Output[Any]]
   def decodeOutput(output: T, outputs: Seq[Output[Any]]): (T, Seq[Output[Any]])
@@ -395,7 +395,7 @@ object OutputStructure {
     }
   }
 
-  implicit def fromProduct[PT <: Product, HT <: HList](implicit
+  implicit def fromProduct[PT, HT <: HList](implicit
       genT: Generic.Aux[PT, HT],
       evT: Strict[OutputStructure[HT]]
   ): OutputStructure[PT] = {

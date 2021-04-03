@@ -61,7 +61,7 @@ class DataTypeSpec extends AnyFlatSpec with Matchers {
   }
 
   "'DataType.byteSize'" must "give the correct result" in {
-    assert(STRING.byteSize === None)
+    assert(STRING.byteSize === Some(24))
     assert(BOOLEAN.byteSize === Some(1))
     assert(FLOAT16.byteSize === Some(2))
     assert(FLOAT32.byteSize === Some(4))

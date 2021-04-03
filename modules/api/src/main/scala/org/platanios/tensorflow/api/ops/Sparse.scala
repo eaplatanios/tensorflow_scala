@@ -78,7 +78,7 @@ trait Sparse {
     * @param  name        Name prefix for the created ops.
     * @return Sparse tensor with the same shape as `sparseInput`, but in canonical ordering.
     */
-  def reorder[T: TF](
+  def reorder[T](
       sparseInput: SparseOutput[T],
       name: String = "SparseReorder"
   ): SparseOutput[T] = {
@@ -108,7 +108,7 @@ trait Sparse {
     * @return Sparse tensor with the same shape as `sparseInput`, but in canonical ordering.
     */
   @throws[InvalidArgumentException]
-  def merge[T: TF, I: TF: IsIntOrLong](
+  def merge[T, I: TF: IsIntOrLong](
       sparseIndices: Seq[SparseOutput[I]],
       sparseValues: SparseOutput[T],
       depths: Seq[Tensor[Long]],

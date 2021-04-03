@@ -1,3 +1,17 @@
+# 0.6.0
+
+- Switched to using TensorFlow 2.4.0, which required
+  updating the handling of `String` tensors.
+- Added `tf.modifyDefaultSessionConfig`.
+- Added an API for controlling the TensorFlow logging 
+  behavior (via `tf.Logging`).
+- Fixed a bug in the gradient of `tf.gather`.
+- Lots of changes and fixes related to the implicit
+  helpers and the way they are used when building
+  datasets.
+- Refactored the handling of the native libraries and
+  the temporary directories that they are extracted in.
+
 # 0.5.7
 
 Bug fixes:

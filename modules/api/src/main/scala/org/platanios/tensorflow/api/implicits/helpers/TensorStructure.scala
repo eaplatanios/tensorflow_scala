@@ -16,35 +16,41 @@
 package org.platanios.tensorflow.api.implicits.helpers
 
 import org.platanios.tensorflow.api.tensors.{SparseTensor, Tensor, TensorIndexedSlices}
-
 import shapeless._
+
+import scala.collection.compat._
 
 /** Type trait used to represent nested structures over tensors.
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait TensorStructure[V] {
+trait TensorStructure[V] {
   def tensors(tensor: V): Seq[Tensor[Any]]
+  def map(value: V, converter: TensorStructure.Converter): V
 }
 
 object TensorStructure {
+  trait Converter {
+    def apply[T](value: Tensor[T]): Tensor[T] = value
+    def apply[T](value: TensorIndexedSlices[T]): TensorIndexedSlices[T] = value
+    def apply[T](value: SparseTensor[T]): SparseTensor[T] = value
+  }
+
   def apply[V](implicit ev: TensorStructure[V]): TensorStructure[V] = {
     ev
   }
 
   implicit val fromUnit: TensorStructure[Unit] = {
     new TensorStructure[Unit] {
-      override def tensors(tensor: Unit): Seq[Tensor[Any]] = {
-        Seq.empty
-      }
+      override def tensors(tensor: Unit): Seq[Tensor[Any]] = Seq.empty
+      override def map(value: Unit, converter: Converter): Unit = ()
     }
   }
 
   implicit def fromTensor[T]: TensorStructure[Tensor[T]] = {
     new TensorStructure[Tensor[T]] {
-      override def tensors(tensor: Tensor[T]): Seq[Tensor[Any]] = {
-        Seq(tensor.asUntyped)
-      }
+      override def tensors(tensor: Tensor[T]): Seq[Tensor[Any]] = Seq(tensor.asUntyped)
+      override def map(value: Tensor[T], converter: Converter): Tensor[T] = converter(value)
     }
   }
 
@@ -53,6 +59,8 @@ object TensorStructure {
       override def tensors(tensor: TensorIndexedSlices[T]): Seq[Tensor[Any]] = {
         Seq(tensor.indices.asUntyped, tensor.values.asUntyped, tensor.denseShape.asUntyped)
       }
+
+      override def map(value: TensorIndexedSlices[T], converter: Converter): TensorIndexedSlices[T] = converter(value)
     }
   }
 
@@ -61,6 +69,8 @@ object TensorStructure {
       override def tensors(tensor: SparseTensor[T]): Seq[Tensor[Any]] = {
         Seq(tensor.indices.asUntyped, tensor.values.asUntyped, tensor.denseShape.asUntyped)
       }
+
+      override def map(value: SparseTensor[T], converter: Converter): SparseTensor[T] = converter(value)
     }
   }
 
@@ -69,6 +79,8 @@ object TensorStructure {
       override def tensors(tensor: Option[T]): Seq[Tensor[Any]] = {
         tensor.toSeq.flatMap(ev.tensors)
       }
+
+      override def map(value: Option[T], converter: Converter): Option[T] = value.map(ev.map(_, converter))
     }
   }
 
@@ -77,6 +89,8 @@ object TensorStructure {
       override def tensors(tensor: Seq[T]): Seq[Tensor[Any]] = {
         tensor.flatMap(ev.tensors)
       }
+
+      override def map(value: Seq[T], converter: Converter): Seq[T] = value.map(ev.map(_, converter))
     }
   }
 
@@ -85,14 +99,17 @@ object TensorStructure {
       override def tensors(tensor: Map[K, D]): Seq[Tensor[Any]] = {
         tensor.values.flatMap(ev.tensors).toSeq
       }
+
+      override def map(value: Map[K, D], converter: Converter): Map[K, D] = {
+        value.view.mapValues(ev.map(_, converter)).toMap
+      }
     }
   }
 
   implicit val fromHNil: TensorStructure[HNil] = {
     new TensorStructure[HNil] {
-      override def tensors(tensor: HNil): Seq[Tensor[Any]] = {
-        Seq.empty
-      }
+      override def tensors(tensor: HNil): Seq[Tensor[Any]] = Seq.empty
+      override def map(value: HNil, converter: Converter): HNil = HNil
     }
   }
 
@@ -104,6 +121,11 @@ object TensorStructure {
       override def tensors(tensor: HT :: TT): Seq[Tensor[Any]] = {
         evH.value.tensors(tensor.head) ++ evT.value.tensors(tensor.tail)
       }
+
+      override def map(value: HT :: TT, converter: Converter): HT :: TT = {
+        evH.value.map(value.head, converter) ::
+            evT.value.map(value.tail, converter)
+      }
     }
   }
 
@@ -114,6 +136,10 @@ object TensorStructure {
     new TensorStructure[PT] {
       override def tensors(tensor: PT): Seq[Tensor[Any]] = {
         evT.value.tensors(genT.to(tensor))
+      }
+
+      override def map(value: PT, converter: Converter): PT = {
+        genT.from(evT.value.map(genT.to(value), converter))
       }
     }
   }

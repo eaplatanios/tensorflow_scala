@@ -30,7 +30,7 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputToShape[T] {
+trait OutputToShape[T] {
   type S
 
   def outputStructure: OutputStructure[T]
@@ -320,10 +320,7 @@ object OutputToShape {
           shape: Option[Option[ev.S]],
           converter: OutputStructure.Converter
       ): Option[T] = {
-        (value, shape) match {
-          case (Some(v), Some(s)) => Some(ev.map(v, s, converter))
-          case _ => None
-        }
+        value.map(v => ev.map(v, shape.flatten, converter))
       }
     }
   }

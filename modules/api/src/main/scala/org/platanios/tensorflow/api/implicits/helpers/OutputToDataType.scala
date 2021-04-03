@@ -15,6 +15,7 @@
 
 package org.platanios.tensorflow.api.implicits.helpers
 
+import org.platanios.tensorflow.api.TF
 import org.platanios.tensorflow.api.core.types.{DataType, FLOAT32, INT32, INT64, VARIANT, Variant}
 import org.platanios.tensorflow.api.ops.data.Dataset
 import org.platanios.tensorflow.api.ops.{Output, OutputIndexedSlices, SparseOutput, TensorArray}
@@ -29,7 +30,7 @@ import scala.collection.compat._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait OutputToDataType[T] {
+trait OutputToDataType[T] {
   type D
 
   def dataTypeStructure: DataTypeStructure[D]
@@ -72,7 +73,7 @@ object OutputToDataType {
     }
   }
 
-  implicit def fromOutput[T]: Aux[Output[T], DataType[T]] = {
+  implicit def fromOutput[T: TF]: Aux[Output[T], DataType[T]] = {
     new OutputToDataType[Output[T]] {
       override type D = DataType[T]
 
@@ -85,7 +86,7 @@ object OutputToDataType {
       }
 
       override def dataType(output: Output[T]): DataType[T] = {
-        output.dataType
+        TF[T].dataType
       }
 
       override def decodeOutput(
@@ -97,7 +98,7 @@ object OutputToDataType {
     }
   }
 
-  implicit def fromOutputIndexedSlices[T]: Aux[OutputIndexedSlices[T], IndexedSlicesDataType[T]] = {
+  implicit def fromOutputIndexedSlices[T: TF]: Aux[OutputIndexedSlices[T], IndexedSlicesDataType[T]] = {
     new OutputToDataType[OutputIndexedSlices[T]] {
       override type D = IndexedSlicesDataType[T]
 
@@ -110,7 +111,7 @@ object OutputToDataType {
       }
 
       override def dataType(output: OutputIndexedSlices[T]): IndexedSlicesDataType[T] = {
-        (INT32, output.dataType, INT32)
+        (INT32, TF[T].dataType, INT32)
       }
 
       override def decodeOutput(
@@ -126,7 +127,7 @@ object OutputToDataType {
     }
   }
 
-  implicit def fromSparseOutput[T]: Aux[SparseOutput[T], SparseDataType[T]] = {
+  implicit def fromSparseOutput[T: TF]: Aux[SparseOutput[T], SparseDataType[T]] = {
     new OutputToDataType[SparseOutput[T]] {
       override type D = SparseDataType[T]
 
@@ -139,7 +140,7 @@ object OutputToDataType {
       }
 
       override def dataType(output: SparseOutput[T]): SparseDataType[T] = {
-        (INT64, output.dataType, INT64)
+        (INT64, TF[T].dataType, INT64)
       }
 
       override def decodeOutput(

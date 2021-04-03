@@ -147,10 +147,9 @@ trait Data extends Experimental {
       evTensorToOutput: TensorToOutput.Aux[V, T],
       evTensorToDataType: TensorToDataType.Aux[V, DD],
       evTensorToShape: TensorToShape.Aux[V, SS],
-      evOutputStructure: OutputStructure[T]
   ): Dataset[T] = {
     val datasetName = name
-    new Dataset[T] {
+    new Dataset[T]()(evTensorToOutput.outputStructure) {
       override val name: String = datasetName
 
       override def createHandle[D, S]()(implicit
@@ -160,7 +159,7 @@ trait Data extends Experimental {
         val outputs = Op.nameScope(s"$name/TensorToOutput") {
           evTensorToOutput.output(data)
         }
-        val flatOutputs = OutputStructure[T].outputs(outputs)
+        val flatOutputs = evTensorToOutput.outputStructure.outputs(outputs)
         Op.Builder[Seq[Output[Any]], Output[Variant]](
           opType = "TensorSliceDataset",
           name = name,
@@ -592,13 +591,14 @@ trait Data extends Experimental {
       evOutputToDataType: OutputToDataType.Aux[T, D],
       evDataTypeToShape: DataTypeToShape.Aux[D, S],
       evOutputToShape: OutputToShape.Aux[T, S],
-      evOutputStructure: OutputStructure[T]
   ): Dataset[T] = {
+    implicit val outputStructure: OutputStructure[T] = evOutputToShape.outputStructure
+
     val outputShapeWithDefault: S = {
       if (outputShape != null) {
         outputShape
       } else {
-        val flatShapes = Seq.fill(evOutputToDataType.sizeFromDataType(outputDataType))(Shape.unknown())
+        val flatShapes = Seq.fill(evDataTypeToShape.sizeFromDataType(outputDataType))(Shape.unknown())
         evDataTypeToShape.decodeShape(outputDataType, flatShapes)._1
       }
     }

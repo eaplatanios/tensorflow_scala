@@ -24,7 +24,7 @@ import shapeless._
   *
   * @author Emmanouil Antonios Platanios
   */
-sealed trait DataTypeStructure[D] {
+trait DataTypeStructure[D] {
   def size(dataType: D): Int
   def dataTypes(dataType: D): Seq[DataType[Any]]
   def decodeDataType(dataType: D, dataTypes: Seq[DataType[Any]]): (D, Seq[DataType[Any]])

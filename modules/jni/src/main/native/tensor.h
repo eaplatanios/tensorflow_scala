@@ -180,11 +180,11 @@ JNIEXPORT jbyteArray JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getS
 
 /*
  * Class:     org_platanios_tensorflow_jni_Tensor__
- * Method:    getEncodedStringSize
- * Signature: (I)I
+ * Method:    tfStringSize
+ * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_getEncodedStringSize
-  (JNIEnv *, jobject, jint);
+JNIEXPORT jint JNICALL Java_org_platanios_tensorflow_jni_Tensor_00024_tfStringSize
+  (JNIEnv *, jobject);
 
 //endregion String Helpers
 

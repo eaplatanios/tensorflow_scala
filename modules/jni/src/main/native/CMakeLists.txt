@@ -3,17 +3,20 @@ cmake_minimum_required(VERSION 3.1.0)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
+# Set the minimum OS X deployment version
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.9" CACHE STRING "Minimum OS X Deployment Version")
+
 # Define project and related variables
 project(tensorflow)
 set(PROJECT_VERSION_MAJOR 0)
-set(PROJECT_VERSION_MINOR 5)
-set(PROJECT_VERSION_PATCH 6)
+set(PROJECT_VERSION_MINOR 6)
+set(PROJECT_VERSION_PATCH 0)
 
 add_definitions(-DNOMINMAX)
 
 # Set up JNI
 if(NOT JAVA_HOME)
-  set(JAVA_HOME "/usr/lib/jvm/java-11-openjdk-amd64")
+  set(JAVA_HOME "/Users/eaplatanios/Library/Java/JavaVirtualMachines/adopt-openjdk-11.0.7/Contents/Home")
 endif()
 find_package(JNI REQUIRED)
 if(JNI_FOUND)
@@ -29,7 +32,7 @@ include_directories(./ops)
 include_directories(${JNI_INCLUDE_DIRS})
 
 # Find Native TensorFlow Library to link
-list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.3.1 .so.2 .so .2.3.1.dylib .2.dylib .dylib .lib)
+list(APPEND CMAKE_FIND_LIBRARY_SUFFIXES .so.2.4.0 .so.2 .so .2.4.0.dylib .2.dylib .dylib .lib)
 find_library(LIB_TENSORFLOW tensorflow HINTS ENV LD_LIBRARY_PATH)
 if(NOT LIB_TENSORFLOW)
   message(FATAL_ERROR "Library `tensorflow` not found.")

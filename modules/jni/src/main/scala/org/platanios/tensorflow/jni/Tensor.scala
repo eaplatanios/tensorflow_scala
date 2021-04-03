@@ -56,7 +56,7 @@ object Tensor {
 
   @native def setStringBytes(stringBytes: Array[Byte], buffer: ByteBuffer): Int
   @native def getStringBytes(buffer: ByteBuffer): Array[Byte]
-  @native def getEncodedStringSize(numStringBytes: Int): Int
+  @native def tfStringSize(): Int
 
   //endregion String Helpers
 }

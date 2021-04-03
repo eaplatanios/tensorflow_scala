@@ -26,7 +26,7 @@ fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
 nativeCrossCompilationEnabled in ThisBuild := false
 
-val tensorFlowVersion = "2.3.1"
+val tensorFlowVersion = "2.4.0"
 val circeVersion = "0.12.3" // Used for working with JSON.
 
 scalacOptions in ThisBuild ++= Seq(
@@ -76,7 +76,8 @@ lazy val commonSettings = loggingSettings ++ Seq(
   // Plugin that prints better implicit resolution errors.
   addCompilerPlugin("io.tryp"  % "splain" % "0.5.5" cross CrossVersion.patch),
   libraryDependencies ++= Seq(
-    "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6")
+    "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6",
+  )
 )
 
 lazy val testSettings = Seq(
@@ -108,7 +109,8 @@ lazy val all = (project in file("."))
             .filter(_._2.isDefined).map {
           case (platform, file) => Artifact((nativeArtifactName in JniCross in jni).value, platform.name) -> file.get
         }
-      })
+      },
+    )
 
 lazy val jni = (project in file("./modules/jni"))
     .enablePlugins(JniNative, TensorFlowGenerateTensorOps, JniCrossPackage, TensorFlowNativePackage)
@@ -168,10 +170,12 @@ lazy val jni = (project in file("./modules/jni"))
       sourceDirectory in nativeCompile := sourceDirectory.value / "main" / "native",
       target in nativeCompile := target.value / "native" / nativePlatform.value,
       target in JniCross := target.value / "native",
-      nativePlatforms in JniCross := Set(LINUX, WINDOWS_CPU, WINDOWS_GPU, DARWIN),
+      nativePlatforms in JniCross := Set(LINUX, WINDOWS, WINDOWS_CPU, DARWIN),
+      nativeCrossCompilationForcedIfExists in JniCross := false,
       tfBinaryVersion in JniCross := tensorFlowVersion,
       // Specify the order in which the different compilation tasks are executed.
-      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value)
+      nativeCompile := nativeCompile.dependsOn(generateTensorOps).value,
+    )
 
 lazy val api = (project in file("./modules/api"))
     .dependsOn(jni, proto)
@@ -218,9 +222,7 @@ lazy val proto = (project in file("./modules/proto"))
     .settings(
       version in ProtobufConfig := "3.11.4",
       sourceDirectory in ProtobufConfig := sourceDirectory.value / "main" / "proto",
-      javaSource in ProtobufConfig := ((sourceDirectory in Compile).value / "generated" / "java"),
-      sourceDirectories in Compile += sourceDirectory.value / "main" / "generated" / "java",
-      unmanagedResourceDirectories in Compile += (sourceDirectory in ProtobufConfig).value)
+    )
 
 lazy val data = (project in file("./modules/data"))
     .dependsOn(api)
@@ -229,7 +231,8 @@ lazy val data = (project in file("./modules/data"))
     .settings(testSettings)
     .settings(publishSettings)
     .settings(
-      libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15")
+      libraryDependencies += "org.apache.commons" % "commons-compress" % "1.15",
+    )
 
 lazy val examples = (project in file("./modules/examples"))
     .dependsOn(api, data)
@@ -296,7 +299,8 @@ lazy val noPublishSettings = Seq(
   publishLocal := Unit,
   publishArtifact := false,
   skip in publish := true,
-  releaseProcess := Nil)
+  releaseProcess := Nil,
+)
 
 val deletedPublishedSnapshots = taskKey[Unit]("Delete published snapshots.")
 

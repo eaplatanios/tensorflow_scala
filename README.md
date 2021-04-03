@@ -207,6 +207,8 @@ command:
 sbt jni/cross:nativeCrossCompile
 ```
 
+CUDA Compute Capabilities: 3.5,7.0,7.5,8.0,8.6
+
 Compile the TensorFlow dynamic libraries from source using:
 
 ```bash
@@ -228,8 +230,8 @@ bazel build --config=opt --cxxopt=-D_GLIBCXX_USE_CXX11_ABI=0 --define=no_tensorf
 For Mac we also need to deal with this currently:
 
 ```bash
-install_name_tool -id @rpath/libtensorflow.2.dylib libtensorflow.2.3.1.dylib
-install_name_tool -change @rpath/libtensorflow.so.2 @rpath/libtensorflow.2.dylib libtensorflow_framework.2.3.1.dyli
+install_name_tool -id @rpath/libtensorflow.2.dylib libtensorflow.2.4.0.dylib
+install_name_tool -change @rpath/libtensorflow.so.2 @rpath/libtensorflow.2.dylib libtensorflow_framework.2.4.0.dylib
 ```
 
 To publish the documentation website we use the following commands:
