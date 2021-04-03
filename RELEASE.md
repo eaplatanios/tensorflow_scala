@@ -6,7 +6,9 @@
 - Added an API for controlling the TensorFlow logging 
   behavior (via `tf.Logging`).
 - Fixed a bug in the gradient of `tf.gather`.
-- Fixed a bug in `OutputToShape.map`.
+- Lots of changes and fixes related to the implicit
+  helpers and the way they are used when building
+  datasets.
 - Refactored the handling of the native libraries and
   the temporary directories that they are extracted in.
 
