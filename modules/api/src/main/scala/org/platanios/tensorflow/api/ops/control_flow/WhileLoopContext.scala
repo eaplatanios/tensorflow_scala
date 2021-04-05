@@ -207,9 +207,7 @@ private[api] case class WhileLoopContext private[control_flow] (
       bodyFn: T => T,
       loopVariables: T,
       shapeInvariants: Option[S]
-  )(implicit
-      evOutputToShape: OutputToShape.Aux[T, S]
-  ): T = {
+  )(implicit evOutputToShape: OutputToShape.Aux[T, S]): T = {
     val evOutputStructure = evOutputToShape.outputStructure
 
     try {
