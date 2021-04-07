@@ -188,13 +188,15 @@ object Session {
       sessionConfig.map(_.configProto.toByteArray).orNull)
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
+      graphReference.close()
       nativeHandleWrapper.Lock.synchronized {
         if (nativeHandleWrapper.handle != 0) {
-          NativeTensor.eagerDelete(nativeHandleWrapper.handle)
+          NativeSession.delete(nativeHandleWrapper.handle)
           nativeHandleWrapper.handle = 0
         }
       }
     }
+    graph.nativeHandleWrapper.addPreCleanupFunction(closeFn)
     val session = new Session(graphReference, target, nativeHandleWrapper, closeFn)
     // Keep track of references in the Scala side and notify the native library when the session is not referenced
     // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
