@@ -1,3 +1,7 @@
+# 0.6.1
+
+- `Session.run` no longer locks.
+
 # 0.6.0
 
 - Switched to using TensorFlow 2.4.0, which required
