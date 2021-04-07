@@ -46,9 +46,6 @@ class Session private[api](
 ) extends Closeable {
   val graph: Graph = graphReference.graph
 
-  /** Lock for the native handle. */
-  private[Session] def NativeHandleLock = nativeHandleWrapper.Lock
-
   /** Native handle of this tensor. */
   private[api] def nativeHandle: Long = nativeHandleWrapper.handle
 
@@ -78,9 +75,7 @@ class Session private[api](
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
-  )(implicit
-      evOutputToTensor: OutputToTensor.Aux[F, V]
-  ): V = {
+  )(implicit evOutputToTensor: OutputToTensor.Aux[F, V]): V = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options)._1
   }
 
@@ -117,9 +112,7 @@ class Session private[api](
       fetches: F = Seq.empty[Output[Any]],
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None
-  )(implicit
-      evOutputToTensor: OutputToTensor.Aux[F, V]
-  ): (V, Option[RunMetadata]) = {
+  )(implicit evOutputToTensor: OutputToTensor.Aux[F, V]): (V, Option[RunMetadata]) = {
     runHelper(feeds = feeds, fetches = fetches, targets = targets, options = options, wantMetadata = true)
   }
 
@@ -131,9 +124,7 @@ class Session private[api](
       targets: E = Set.empty[UntypedOp],
       options: Option[RunOptions] = None,
       wantMetadata: Boolean = false
-  )(implicit
-      evOutputToTensor: OutputToTensor.Aux[F, V]
-  ): (V, Option[RunMetadata]) = {
+  )(implicit evOutputToTensor: OutputToTensor.Aux[F, V]): (V, Option[RunMetadata]) = {
     if (nativeHandle == 0)
       throw new IllegalStateException("This session has already been closed.")
     // TODO: !!! [JNI] Add a call to 'extend' once some JNI issues are resolved.
@@ -147,49 +138,24 @@ class Session private[api](
     val outputTensorHandles: Array[Long] = Array.ofDim[Long](uniqueFetches.length)
     val targetOpHandles: Array[Long] = Option(targets).map(OpStructure[E].ops)
         .getOrElse(Set.empty[UntypedOp]).map(_.nativeHandle).toArray
-    NativeHandleLock.synchronized {
-      if (nativeHandle == 0)
-        throw new IllegalStateException("close() has been called on the session.")
-      nativeHandleWrapper.referenceCount += 1
-    }
-    try {
-      val metadata: Array[Byte] = NativeSession.run(
-        handle = nativeHandle,
-        runOptions = options.map(_.toByteArray).getOrElse(Array.empty[Byte]),
-        inputTensorHandles = inputTensorHandles,
-        inputOpHandles = inputOpHandles,
-        inputOpIndices = inputOpIndices,
-        outputOpHandles = outputOpHandles,
-        outputOpIndices = outputOpIndices,
-        targetOpHandles = targetOpHandles,
-        wantRunMetadata = wantMetadata,
-        outputTensorHandles = outputTensorHandles)
-      val outputs: V = resultsBuilder(ArraySeq.unsafeWrapArray(outputTensorHandles.map(handle => {
-        val tensor = Tensor.fromHostNativeHandle[Any](handle)
-        NativeTensor.delete(handle)
-        tensor
-      })))
-      inputTensorHandles.foreach(NativeTensor.delete)
-      (outputs, Option(metadata).map(RunMetadata.parseFrom))
-    } catch {
-      case t: Throwable =>
-        NativeHandleLock.synchronized {
-          if (nativeHandle != 0) {
-            nativeHandleWrapper.referenceCount -= 1
-            if (nativeHandleWrapper.referenceCount == 0)
-              NativeHandleLock.notifyAll()
-          }
-        }
-        throw t
-    } finally {
-      NativeHandleLock.synchronized {
-        if (nativeHandle != 0) {
-          nativeHandleWrapper.referenceCount -= 1
-          if (nativeHandleWrapper.referenceCount == 0)
-            NativeHandleLock.notifyAll()
-        }
-      }
-    }
+    val metadata: Array[Byte] = NativeSession.run(
+      handle = nativeHandle,
+      runOptions = options.map(_.toByteArray).getOrElse(Array.empty[Byte]),
+      inputTensorHandles = inputTensorHandles,
+      inputOpHandles = inputOpHandles,
+      inputOpIndices = inputOpIndices,
+      outputOpHandles = outputOpHandles,
+      outputOpIndices = outputOpIndices,
+      targetOpHandles = targetOpHandles,
+      wantRunMetadata = wantMetadata,
+      outputTensorHandles = outputTensorHandles)
+    val outputs: V = resultsBuilder(ArraySeq.unsafeWrapArray(outputTensorHandles.map(handle => {
+      val tensor = Tensor.fromHostNativeHandle[Any](handle)
+      NativeTensor.delete(handle)
+      tensor
+    })))
+    inputTensorHandles.foreach(NativeTensor.delete)
+    (outputs, Option(metadata).map(RunMetadata.parseFrom))
   }
 
   /** Returns a boolean flag indicating whether this session has been closed. */
@@ -222,28 +188,13 @@ object Session {
       sessionConfig.map(_.configProto.toByteArray).orNull)
     val nativeHandleWrapper = NativeHandleWrapper(nativeHandle)
     val closeFn = () => {
-      var done = false
-      graphReference.close()
       nativeHandleWrapper.Lock.synchronized {
         if (nativeHandleWrapper.handle != 0) {
-          while (!done && nativeHandleWrapper.referenceCount > 0) {
-            try {
-              nativeHandleWrapper.Lock.wait()
-            } catch {
-              case _: InterruptedException =>
-                Thread.currentThread().interrupt()
-                // TODO: [CLIENT] Possible leak of the session and graph in this case?
-                done = true
-            }
-          }
-          if (!done) {
-            NativeSession.delete(nativeHandleWrapper.handle)
-            nativeHandleWrapper.handle = 0
-          }
+          NativeTensor.eagerDelete(nativeHandleWrapper.handle)
+          nativeHandleWrapper.handle = 0
         }
       }
     }
-    graph.nativeHandleWrapper.addPreCleanupFunction(closeFn)
     val session = new Session(graphReference, target, nativeHandleWrapper, closeFn)
     // Keep track of references in the Scala side and notify the native library when the session is not referenced
     // anymore anywhere in the Scala side. This will let the native library free the allocated resources and prevent a
