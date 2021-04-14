@@ -2,6 +2,7 @@
 
 - Added a check for the `stack` operation that avoids an 
   ugly segfault.
+- Improvements to `Tensor.fromByteCodable`.
 - Minor bug fix related to the `ChiefSessionCreator` 
   initialization ops.
 

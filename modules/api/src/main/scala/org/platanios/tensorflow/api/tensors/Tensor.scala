@@ -694,9 +694,12 @@ object Tensor {
     Basic.stack(tensors, axis = 0)
   }
 
-  def fromByteCodable[T, S](value: T)(implicit ev: ByteCodable.Aux[T, S], evTF: TF[S]): Tensor[S] = {
-    val (bytes, shape) = ByteCodable[T].convertToByteArray(value)
-    fromBuffer[S](shape, bytes.length.toLong, ByteBuffer.wrap(bytes))
+  def fromByteCodable[T, S](
+      value: T,
+      shape: Option[Shape] = None,
+  )(implicit ev: ByteCodable.Aux[T, S], evTF: TF[S]): Tensor[S] = {
+    val (bytes, derivedShape) = ByteCodable[T].convertToByteArray(value, shape)
+    fromBuffer[S](derivedShape, bytes.length.toLong, ByteBuffer.wrap(bytes))
   }
 
   /** Returns a new tensor with shape `shape` and all elements set to zero.

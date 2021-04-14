@@ -26,7 +26,7 @@ trait ByteCodable[T] {
   type Scalar
 
   def byteCount(value: T): Int
-  def convertToByteArray(value: T): (Array[Byte], Shape)
+  def convertToByteArray(value: T, shape: Option[Shape] = None): (Array[Byte], Shape)
 }
 
 object ByteCodable {
@@ -43,7 +43,7 @@ object ByteCodable {
 
     override def byteCount(value: T): Int = TF[T].dataType.nativeByteSize.get
 
-    override def convertToByteArray(value: T): (Array[Byte], Shape) = {
+    override def convertToByteArray(value: T, shape: Option[Shape] = None): (Array[Byte], Shape) = {
       val buffer = ByteBuffer.allocate(byteCount(value)).order(ByteOrder.LITTLE_ENDIAN)
       DataType.putElementInBuffer(buffer, 0, value)
       (buffer.array(), Shape())
@@ -55,12 +55,21 @@ object ByteCodable {
 
     override def byteCount(value: Array[T]): Int = value.map(ByteCodable[T].byteCount).sum
 
-    override def convertToByteArray(value: Array[T]): (Array[Byte], Shape) = {
-      val results = value.map(ByteCodable[T].convertToByteArray)
+    override def convertToByteArray(value: Array[T], shape: Option[Shape] = None): (Array[Byte], Shape) = {
       require(
-        results.forall(_._2.asArray.sameElements(results.head._2.asArray)),
-        "All nested arrays must have the same size.")
-      (results.flatMap(_._1), Shape(value.length) ++ results.head._2)
+        value.nonEmpty || shape.isDefined,
+        "A shape must be provided when converting empty arrays to byte arrays.",
+      )
+      val results = value.map(ByteCodable[T].convertToByteArray(_, shape.map(_.drop(1))))
+      require(
+        results.isEmpty || results.forall(_._2.asArray.sameElements(results.head._2.asArray)),
+        "All nested arrays must have the same size.",
+      )
+      require(
+        shape.isEmpty || results.isEmpty || shape.forall(_.isCompatibleWith(Shape(value.length) ++ results.head._2)),
+        "The provided shape is not compatible with the provided values."
+      )
+      (results.flatMap(_._1), shape.getOrElse(Shape(value.length) ++ results.head._2))
     }
   }
 
@@ -69,12 +78,21 @@ object ByteCodable {
 
     override def byteCount(value: Seq[T]): Int = value.map(ByteCodable[T].byteCount).sum
 
-    override def convertToByteArray(value: Seq[T]): (Array[Byte], Shape) = {
-      val results = value.map(ByteCodable[T].convertToByteArray)
+    override def convertToByteArray(value: Seq[T], shape: Option[Shape] = None): (Array[Byte], Shape) = {
       require(
-        results.forall(_._2.asArray.sameElements(results.head._2.asArray)),
-        "All nested arrays must have the same size.")
-      (results.flatMap(_._1).toArray, Shape(value.length) ++ results.head._2)
+        value.nonEmpty || shape.isDefined,
+        "A shape must be provided when converting empty sequences to byte arrays.",
+      )
+      val results = value.map(ByteCodable[T].convertToByteArray(_, shape.map(_.drop(1))))
+      require(
+        results.isEmpty || results.forall(_._2.asArray.sameElements(results.head._2.asArray)),
+        "All nested arrays must have the same size.",
+      )
+      require(
+        shape.isEmpty || results.isEmpty || shape.forall(_.isCompatibleWith(Shape(value.length) ++ results.head._2)),
+        "The provided shape is not compatible with the provided values."
+      )
+      (results.flatMap(_._1).toArray, shape.getOrElse(Shape(value.length) ++ results.head._2))
     }
   }
 }

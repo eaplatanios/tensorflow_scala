@@ -328,6 +328,18 @@ final class Shape private (private val array: Array[Int]) extends ProtoSerializa
       Shape.unknown(slice.length(rank))
   }
 
+  /** A [[Shape]] containing the first `n` elements of this [[Shape]]. */
+  def take(n: Int): Shape = new Shape(array.take(n))
+
+  /** The rest of this [[Shape]] without its `n` first elements. */
+  def drop(n: Int): Shape = new Shape(array.drop(n))
+
+  /** A [[Shape]] containing the last `n` elements of this [[Shape]]. */
+  def takeRight(n: Int): Shape = new Shape(array.takeRight(n))
+
+  /** The rest of this [[Shape]] without its `n` last elements. */
+  def dropRight(n: Int): Shape = new Shape(array.dropRight(n))
+
   /** Converts this shape to a one-dimensional tensor.
     *
     * @return One-dimensional tensor representing this shape.
