@@ -2,6 +2,8 @@
 
 - Added a check for the `stack` operation that avoids an 
   ugly segfault.
+- Minor bug fix related to the `ChiefSessionCreator` 
+  initialization ops.
 
 # 0.6.1
 
