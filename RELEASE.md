@@ -1,3 +1,8 @@
+# 0.6.2
+
+- Added a check for the `stack` operation that avoids an 
+  ugly segfault.
+
 # 0.6.1
 
 - `Session.run` no longer locks.

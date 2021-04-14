@@ -300,6 +300,7 @@ trait Manipulation {
       axis: Int = 0,
       name: String = "Stack"
   ): Output[T] = {
+    require(inputs.nonEmpty, "Cannot stack an empty Seq[Output].")
     Op.Builder[Seq[Output[T]], Output[T]](
       opType = "Pack",
       name = name,

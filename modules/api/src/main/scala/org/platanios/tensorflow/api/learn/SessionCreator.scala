@@ -70,7 +70,7 @@ case class ChiefSessionCreator(
     if (extraInitOps.isEmpty)
       builtSessionScaffold.initOp
     else
-      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.localInitOp, name = "Init").asUntyped
+      ControlFlow.group(extraInitOps.toSet + builtSessionScaffold.initOp, name = "Init").asUntyped
   }
 
   override protected lazy val localInitOp: UntypedOp = {

@@ -137,6 +137,7 @@ trait Basic {
       inputs: Seq[Tensor[T]],
       axis: Int = 0
   ): Tensor[T] = {
+    require(inputs.nonEmpty, "Cannot stack an empty Seq[Tensor].")
     Tensor.fromNativeHandle[T](NativeTensorOpsBasic.pack(
       executionContext.value.nativeHandle, inputs.map(_.nativeHandle).toArray, axis))
   }
