@@ -4016,7 +4016,7 @@ trait Math {
         }
         val shapeA = Basic.shape(a).castTo[Int]
         val rankA = Basic.rank(a)
-        var axesO = Basic.constant(mappedAxes, name = "Axes")
+        var axesO = Basic.constant(Tensor.fromByteCodable(mappedAxes, Some(Shape(mappedAxes.size))), name = "Axes")
         axesO = ((axesO >= 0).castTo[Int] * axesO) + ((axesO < 0).castTo[Int] * (axesO + rankA))
         val (free, _) = Basic.listDiff(Math.range(0, rankA), axesO, indicesDataType = Int)
         val freeAxes = Basic.gather(shapeA, free, axis = 0)

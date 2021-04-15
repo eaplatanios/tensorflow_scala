@@ -67,13 +67,13 @@ package object variables {
 
     def saver(
         saveables: Set[Saveable] = null, reshape: Boolean = false, sharded: Boolean = false, maxToKeep: Int = 5,
-        keepCheckpointEveryNHours: Float = 10000.0f, restoreSequentially: Boolean = false, filename: String = "model",
+        keepCheckpointEveryNHours: Float = 10000.0f, filename: String = "model",
         builder: SaverDefBuilder = DefaultSaverDefBuilder, allowEmpty: Boolean = false,
         writerVersion: WriterVersion = V2, saveRelativePaths: Boolean = false, padGlobalStep: Boolean = false,
         name: String = "Saver"
     ): Saver = {
       Saver(
-        saveables, reshape, sharded, maxToKeep, keepCheckpointEveryNHours, restoreSequentially, filename, builder,
+        saveables, reshape, sharded, maxToKeep, keepCheckpointEveryNHours, filename, builder,
         allowEmpty, writerVersion, saveRelativePaths, padGlobalStep, name)
     }
 

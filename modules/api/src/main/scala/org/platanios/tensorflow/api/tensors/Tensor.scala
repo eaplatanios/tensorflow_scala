@@ -702,6 +702,14 @@ object Tensor {
     fromBuffer[S](derivedShape, bytes.length.toLong, ByteBuffer.wrap(bytes))
   }
 
+  def fromStrings(values: Seq[String]): Tensor[String] = {
+    if (values.isEmpty) {
+      Tensor.empty[String]
+    } else {
+      Basic.stack(values.map(Tensor.fill[String](Shape())), axis = 0)
+    }
+  }
+
   /** Returns a new tensor with shape `shape` and all elements set to zero.
     *
     * For example:

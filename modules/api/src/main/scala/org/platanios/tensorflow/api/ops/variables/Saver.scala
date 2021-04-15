@@ -374,8 +374,6 @@ object Saver {
     *                                   may be kept.
     * @param  keepCheckpointEveryNHours Denotes how often checkpoints should be saved, in hour units. Defaults to
     *                                   10,000 hours.
-    * @param  restoreSequentially       Boolean value which, if `true`, causes the restoration of different variables to
-    *                                   happen sequentially within each device.
     * @param  filename                  Filename used for the saveable objects saving and loading.
     * @param  builder                   Saver builder to use. Defaults to [[DefaultSaverDefBuilder]].
     * @param  allowEmpty                Boolean value indicating whether to allow for an empty saver (i.e., one with no
@@ -399,7 +397,6 @@ object Saver {
       sharded: Boolean = false,
       maxToKeep: Int = 5,
       keepCheckpointEveryNHours: Float = 10000.0f,
-      restoreSequentially: Boolean = false,
       filename: String = "model",
       builder: SaverDefBuilder = DefaultSaverDefBuilder,
       allowEmpty: Boolean = false,
@@ -425,7 +422,6 @@ object Saver {
       sharded = sharded,
       maxToKeep = maxToKeep,
       keepCheckpointEveryNHours = keepCheckpointEveryNHours,
-      restoreSequentially = restoreSequentially,
       filename = filename,
       name = name)
     new Saver(saverDef, saveRelativePaths = saveRelativePaths, padGlobalStep = padGlobalStep)
@@ -940,19 +936,19 @@ trait SaverDefBuilder {
     * @param  name     Name for the created op.
     * @return Created op outputs (restored tensors that constitute `saveable`).
     */
-  protected def restore[T](
+  protected def restore(
       prefix: Output[String],
       saveable: Saveable,
       name: String = "Restore"
-  ): Seq[Output[T]] = {
+  ): Seq[Output[Any]] = {
     val (tensorNames, slices, dataTypes) =
       saveable.saveSpecifications
           .map(s => (
               s.name,
               s.saveSliceSpecification,
-              s.value().dataType.asInstanceOf[DataType[T]]))
-          .unzip3[String, String, DataType[T]]
-    SaverDefBuilder.restoreV2Op[T](prefix, tensorNames, slices, dataTypes, name)
+              s.value().dataType))
+          .unzip3[String, String, DataType[Any]]
+    SaverDefBuilder.restoreV2Op(prefix, tensorNames, slices, dataTypes, name)
   }
 
   /** Adds ops to save objects that are on the same shard and returns a tensor containing the filename used for the save
@@ -1065,7 +1061,6 @@ trait SaverDefBuilder {
     * @param  saveables           Sequence of saveable objects that the created op will restore.
     * @param  reshape             Boolean value indicating whether to reshape loaded tensors to the shape of the
     *                             corresponding saveable object.
-    * @param  restoreSequentially Boolean value indicating whether to restore variables objects within a shard.
     * @param  name                Name for the created op.
     * @return Created op.
     */
@@ -1073,38 +1068,56 @@ trait SaverDefBuilder {
       prefix: Output[String],
       saveables: Set[Saveable],
       reshape: Boolean,
-      restoreSequentially: Boolean,
       name: String = "Restore"
   ): Op[Seq[Output[Any]], Unit] = {
-    var restoreOps = Seq.empty[UntypedOp]
-    saveables.foreach(saveable => {
-      val restoreControlInputs = if (restoreSequentially) Set(restoreOps.last) else Set.empty[UntypedOp]
-      // Load and optionally reshape on the CPU, as string tensors are not available on the GPU.
-      // TODO: !!! [GPU] Re-enable restore on GPU when we can support annotating string tensors as "HostMemory" inputs.
-      Op.createWith(
-        controlDependencies = restoreControlInputs,
-        device = Saver.setCPU0(saveable.device)
-      ) {
-        val shapes = {
-          if (reshape) {
-            // Compute the shapes and let the restore op decide if and how to do the reshape.
-            saveable.saveSpecifications.map(s => {
-              val sValue = s.value()
-              if (s.value().shape.isFullyDefined)
-                sValue.shape.toOutput
-              else
-                Basic.shape(sValue)(TF.fromDataType(sValue.dataType))
-            })
-          } else {
-            null
+    val saveablesSeq = saveables.toSeq
+    val (tensorNames, slices, dataTypes, tensorCounts) = saveablesSeq.foldLeft(
+      Seq.empty[String],
+      Seq.empty[String],
+      Seq.empty[DataType[Any]],
+      Seq.empty[Int],
+    ) {
+      case ((tensorNames, slices, dataTypes, tensorCounts), saveable) =>
+        val (saveableTensorNames, saveableSlices, saveableDataTypes) = saveable.saveSpecifications.map { s =>
+          (s.name, s.saveSliceSpecification, s.value().dataType)
+        }.unzip3[String, String, DataType[Any]]
+        (
+            tensorNames ++ saveableTensorNames,
+            slices ++ saveableSlices,
+            dataTypes ++ saveableDataTypes,
+            tensorCounts :+ saveableTensorNames.size,
+        )
+    }
+    // Load and optionally reshape on the CPU, as string tensors are not available on the GPU.
+    // TODO: !!! [GPU] Re-enable restore on GPU when we can support annotating string tensors as "HostMemory" inputs.
+    val restoredTensors = Op.device("/device:CPU:0") {
+      SaverDefBuilder.restoreV2Op(prefix, tensorNames, slices, dataTypes, name)
+    }
+
+    val (_, restoreOps) = saveablesSeq.zip(tensorCounts).foldLeft(restoredTensors, Set.empty[UntypedOp]) {
+      case ((remainingTensors, restoreOps), (saveable, tensorCount)) =>
+        Op.device(saveable.device) {
+          val shapes = {
+            if (reshape) {
+              // Compute the shapes and let the restore op decide if and how to do the reshape.
+              saveable.saveSpecifications.map(s => {
+                val sValue = s.value()
+                if (s.value().shape.isFullyDefined)
+                  sValue.shape.toOutput
+                else
+                  Basic.shape(sValue)(TF.fromDataType(sValue.dataType))
+              })
+            } else {
+              null
+            }
           }
+          val restoreOp = saveable.restore(remainingTensors.take(tensorCount), shapes)
+          (remainingTensors.drop(tensorCount), restoreOps + restoreOp)
         }
-        restoreOps :+= saveable.restore(restore(prefix, saveable, name), shapes)
-      }
-    })
+    }
 
     // Create a no-op that has control dependencies for all the updates.
-    ControlFlow.group(restoreOps.toSet).asInstanceOf[Op[Seq[Output[Any]], Unit]]
+    ControlFlow.group(restoreOps).asInstanceOf[Op[Seq[Output[Any]], Unit]]
   }
 
   /** Adds ops to restore sharded (per device) objects.
@@ -1117,7 +1130,6 @@ trait SaverDefBuilder {
     *                             is the result of the [[SaverDefBuilder.groupByDevice]] method.
     * @param  reshape             Boolean value indicating whether to reshape loaded tensors to the shape of the
     *                             corresponding saveable object.
-    * @param  restoreSequentially Boolean value indicating whether to restore variables objects within a shard.
     * @param  name                Name for the created op.
     * @return Created op.
     */
@@ -1125,13 +1137,12 @@ trait SaverDefBuilder {
       prefix: Output[String],
       saveablesByDevice: Seq[(String, Set[Saveable])],
       reshape: Boolean,
-      restoreSequentially: Boolean,
       name: String = "Restore"
   ): Op[Seq[Output[Any]], Unit] = {
     val restoreOps = saveablesByDevice.map {
       case (device, saveables) =>
         Op.device(device) {
-          addRestoreOps(prefix, saveables, restoreSequentially, reshape, name)
+          addRestoreOps(prefix, saveables, reshape, name)
         }
     }
     // Create a no-op that has control dependencies for all the updates.
@@ -1153,8 +1164,6 @@ trait SaverDefBuilder {
     *                                   may be kept.
     * @param  keepCheckpointEveryNHours Denotes how often checkpoints should be saved, in hour units. Defaults to
     *                                   10,000 hours.
-    * @param  restoreSequentially       Boolean value which, if `true`, causes the restoration of different variables to
-    *                                   happen sequentially within each device.
     * @param  filename                  Filename used for the saveable objects saving and loading.
     * @param  name                      Name scope for the created ops.
     * @return Created [[SaverDef]] object.
@@ -1165,7 +1174,6 @@ trait SaverDefBuilder {
       sharded: Boolean = false,
       maxToKeep: Int = 5,
       keepCheckpointEveryNHours: Float = 10000.0f,
-      restoreSequentially: Boolean = false,
       filename: String = "model",
       name: String = "Saver"
   ): SaverDef = {
@@ -1178,12 +1186,12 @@ trait SaverDefBuilder {
         val saveablesByDevice = SaverDefBuilder.groupByDevice(saveables)
         val saveOutput = addShardedSaveOps(filenameOutput, saveablesByDevice)
         val restoreOp = addShardedRestoreOps(
-          filenameOutput, saveablesByDevice, reshape, restoreSequentially)
+          filenameOutput, saveablesByDevice, reshape)
         (filenameOutput, saveOutput, restoreOp)
       } else {
         val saveOutput = addSaveOps(filenameOutput, saveables)
         val restoreOp = addRestoreOps(
-          filenameOutput, saveables, reshape, restoreSequentially)
+          filenameOutput, saveables, reshape)
         (filenameOutput, saveOutput, restoreOp)
       }
     }
@@ -1255,8 +1263,7 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of tensors in " +
             s"'tensors' (${tensors.length}).")
-    // TODO: [TENSORS] !!! Can we avoid all the tensor reshapes in the future? Maybe have a "withRank" function.
-    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
+    val tensorNamesInput = Tensor.fromStrings(tensorNames).toOutput
     Op.Builder[(Output[String], Output[String], Seq[Output[T]]), Unit](
       opType = "Save",
       name = name,
@@ -1315,8 +1322,8 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
             s"'slices' (${slices.length}).")
-    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
-    val slicesInput = slices.toTensor.reshape(Shape(slices.length)).toOutput
+    val tensorNamesInput = Tensor.fromStrings(tensorNames).toOutput
+    val slicesInput = Tensor.fromStrings(slices).toOutput
     Op.Builder[(Output[String], Output[String], Output[String], Seq[Output[Any]]), Unit](
       opType = "SaveSlices",
       name = name,
@@ -1433,8 +1440,8 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
             s"'slices' (${slices.length}).")
-    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
-    val slicesInput = slices.toTensor.reshape(Shape(slices.length)).toOutput
+    val tensorNamesInput = Tensor.fromStrings(tensorNames).toOutput
+    val slicesInput = Tensor.fromStrings(slices).toOutput
     Op.Builder[(Output[String], Output[String], Output[String], Seq[Output[Any]]), Unit](
       opType = "SaveV2",
       name = name,
@@ -1474,13 +1481,13 @@ object SaverDefBuilder {
     *                                  and the number of data types in `dataTypes`.
     */
   @throws[IllegalArgumentException]
-  private def restoreV2Op[T](
+  private def restoreV2Op(
       prefix: Output[String],
       tensorNames: Seq[String],
       slices: Seq[String],
-      dataTypes: Seq[DataType[T]],
+      dataTypes: Seq[DataType[Any]],
       name: String = "Restore"
-  ): Seq[Output[T]] = {
+  ): Seq[Output[Any]] = {
     if (tensorNames.length != slices.length)
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of slices in " +
@@ -1489,14 +1496,13 @@ object SaverDefBuilder {
       throw new IllegalArgumentException(
         s"The number of tensor names provided (${tensorNames.length}) does not match the number of data types in " +
             s"'dataTypes' (${dataTypes.length}).")
-    val tensorNamesInput = tensorNames.toTensor.reshape(Shape(tensorNames.length)).toOutput
-    val slicesInput = slices.toTensor.reshape(Shape(slices.length)).toOutput
-    Op.Builder[(Output[String], Output[String], Output[String]), Seq[Output[T]]](
+    val tensorNamesInput = Tensor.fromStrings(tensorNames).toOutput
+    val slicesInput = Tensor.fromStrings(slices).toOutput
+    Op.Builder[(Output[String], Output[String], Output[String]), Seq[Output[Any]]](
       opType = "RestoreV2",
       name = name,
       input = (prefix, tensorNamesInput, slicesInput)
-    ).setAttribute("dtypes", dataTypes.map(_.asInstanceOf[DataType[Any]]).toArray)
-        .build().output
+    ).setAttribute("dtypes", dataTypes.toArray).build().output
   }
 
   /** Creates an op that merges the metadata files of sharded checkpoints (the op is V2 checkpoint format specific).

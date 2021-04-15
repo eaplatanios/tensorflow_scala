@@ -1,3 +1,8 @@
+# 0.6.3
+
+- Made restoring `Saveable`s a bit more efficient.
+- Fixed some potential memory issues.
+
 # 0.6.2
 
 - Added a check for the `stack` operation that avoids an 
