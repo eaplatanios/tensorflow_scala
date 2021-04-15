@@ -1,7 +1,12 @@
-# 0.6.3
+# 0.6.4
 
 - Made restoring `Saveable`s a bit more efficient.
 - Fixed some potential memory issues.
+
+# 0.6.3
+
+This version is broken because I ran into some 
+issues with Sonatype while trying to release it.
 
 # 0.6.2
 
