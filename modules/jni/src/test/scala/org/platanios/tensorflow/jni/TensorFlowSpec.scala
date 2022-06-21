@@ -22,7 +22,7 @@ import org.scalatest.flatspec.AnyFlatSpec
   */
 class TensorFlowSpec extends AnyFlatSpec {
   "The TensorFlow library version" must "have non-zero length" in {
-    assert(TensorFlow.version == "2.4.0")
+    assert(TensorFlow.version == "2.4.0" || TensorFlow.version == "2.4.4")
   }
 
   "The TensorFlow logging level" must "be configurable" in {
