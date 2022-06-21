@@ -26,8 +26,6 @@ fork in ThisBuild := true
 autoCompilerPlugins in ThisBuild := true
 nativeCrossCompilationEnabled in ThisBuild := false
 
-envVars in ThisBuild := Map("DYLD_LIBRARY_PATH" -> "/usr/local/lib")
-
 val tensorFlowVersion = "2.4.4"
 val circeVersion = "0.12.3" // Used for working with JSON.
 
