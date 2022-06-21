@@ -196,7 +196,7 @@ object DataType {
     val value = dataType match {
       case STRING => ""
       case BOOLEAN => false
-      case FLOAT16 => ???
+      case FLOAT16 => Half(0)
       case FLOAT32 => 0.0f
       case FLOAT64 => 0.0
       case BFLOAT16 => ???
@@ -235,7 +235,7 @@ object DataType {
     val value = dataType match {
       case STRING => ???
       case BOOLEAN => true
-      case FLOAT16 => ???
+      case FLOAT16 => Half(15360)
       case FLOAT32 => 1.0f
       case FLOAT64 => 1.0
       case BFLOAT16 => ???
@@ -289,7 +289,9 @@ object DataType {
       case (v: Boolean, BOOLEAN) =>
         buffer.put(index, if (v) 1 else 0)
         dataType.byteSize.get
-      case (v: Half, FLOAT16) => ???
+      case (v: Half, FLOAT16) =>
+        buffer.putShort(index, v.data)
+        dataType.byteSize.get
       case (v: Float, FLOAT32) =>
         buffer.putFloat(index, v)
         dataType.byteSize.get
@@ -318,7 +320,7 @@ object DataType {
         buffer.putChar(index, v.data.toChar)
         dataType.byteSize.get
       case (v: UInt, UINT32) =>
-        buffer.putInt(index, v.data.toInt)
+        buffer.putInt(index, v.data)
         dataType.byteSize.get
       case (v: ULong, UINT64) => ???
       case (v: QByte, QINT8) =>
@@ -328,7 +330,7 @@ object DataType {
         buffer.putChar(index, v.data.toChar)
         dataType.byteSize.get
       case (v: QInt, QINT32) =>
-        buffer.putInt(index, v.data.toInt)
+        buffer.putInt(index, v.data)
         dataType.byteSize.get
       case (v: QUByte, QUINT8) =>
         buffer.put(index, v.data)
@@ -366,7 +368,7 @@ object DataType {
         val stringBytes = NativeTensor.getStringBytes(bufferWithOffset.slice())
         new String(stringBytes, StandardCharsets.ISO_8859_1)
       case BOOLEAN => buffer.get(index) == 1
-      case FLOAT16 => ???
+      case FLOAT16 => Half(buffer.getShort(index))
       case FLOAT32 => buffer.getFloat(index)
       case FLOAT64 => buffer.getDouble(index)
       case BFLOAT16 => ???
@@ -400,7 +402,7 @@ object DataType {
     (value, dataType) match {
       case (v: String, STRING) => builder.addStringVal(ByteString.copyFrom(v.getBytes))
       case (v: Boolean, BOOLEAN) => builder.addBoolVal(v)
-      case (v: Half, FLOAT16) => ???
+      case (v: Half, FLOAT16) => builder.addHalfVal(v.data)
       case (v: Float, FLOAT32) => builder.addFloatVal(v)
       case (v: Double, FLOAT64) => builder.addDoubleVal(v)
       case (v: TruncatedHalf, BFLOAT16) => ???
