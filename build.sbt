@@ -82,7 +82,7 @@ lazy val commonSettings = loggingSettings ++ Seq(
 
 lazy val testSettings = Seq(
   libraryDependencies ++= Seq(
-    "junit"         %  "junit"     % "4.12",
+    "junit"         %  "junit"     % "4.13.1" % "test",
     "org.scalatest" %% "scalatest" % "3.1.1" % "test",
     "org.scalatestplus" %% "junit-4-12" % "3.1.1.0" % "test"),
   logBuffered in Test := false,
