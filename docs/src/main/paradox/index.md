@@ -75,6 +75,7 @@ in your work:
 ## Tutorials
 
 - [Object Detection using Pre-Trained Models](https://brunk.io/deep-learning-in-scala-part-3-object-detection.html)
+- [Linear Regression via ANN](https://novakov-alexey.github.io/tensorflow-scala/)
 
 ## Funding
 

@@ -25,6 +25,7 @@ project/plugins/project/
 
 # Metals Specific
 .metals
+metals.sbt
 
 # Hydra Specific
 .hydra
